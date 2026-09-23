@@ -85,7 +85,7 @@ export default function NewSedanaOutboundOrderPage() {
   const [outboundItems, setOutboundItems] = useState<Record<string, number>>({});
   const [showAllItems, setShowAllItems] = useState(false);
 
-  // البنود المستحقة للصرف بعد مرور الوقت ويتوفر لها رصيد
+  // البنود المستحقة للصرف بعد مرور الوقت (المؤقت وصل للصفر) ويتوفر لها رصيد بالمستودع
   const dueItems = useMemo(() => {
     return inventoryItems.filter((it: any) => {
       const isDueTime = it.isDue || (it.nextDueDate && new Date(it.nextDueDate).getTime() <= Date.now());
@@ -95,23 +95,16 @@ export default function NewSedanaOutboundOrderPage() {
     });
   }, [inventoryItems]);
 
-  // البنود المتاحة بالمستودع عموماً
-  const allAvailableItems = useMemo(() => {
-    return inventoryItems.filter(
-      (it: any) => Number(it.availableStock || 0) > 0 && Number(it.remainingToDisburse || 0) > 0
-    );
-  }, [inventoryItems]);
+  // البنود المتاحة للإخراج هي حصراً البنود المستحقة
+  const itemsToDisplay = dueItems;
 
-  const itemsToDisplay = showAllItems ? allAvailableItems : (dueItems.length > 0 ? dueItems : allAvailableItems);
-
-  // تهيئة الاختيارات والكميات الأولية تلقائياً
+  // تهيئة الاختيارات والكميات الأولية تلقائياً للبنود المستحقة فقط
   useEffect(() => {
-    if (inventoryItems.length > 0 && selectedItemIds.size === 0) {
+    if (dueItems.length > 0 && selectedItemIds.size === 0) {
       const initialSelected = new Set<string>();
       const initialQtys: Record<string, number> = {};
 
-      const targetList = dueItems.length > 0 ? dueItems : allAvailableItems;
-      targetList.forEach((it: any) => {
+      dueItems.forEach((it: any) => {
         initialSelected.add(String(it.id));
         const maxAllowed = Math.min(Number(it.availableStock || 0), Number(it.remainingToDisburse || 0));
         const suggested = Math.min(Number(it.cycleQuantity || 1), maxAllowed);
@@ -121,9 +114,16 @@ export default function NewSedanaOutboundOrderPage() {
       setSelectedItemIds(initialSelected);
       setOutboundItems(initialQtys);
     }
-  }, [inventoryItems, dueItems, allAvailableItems]);
+  }, [dueItems]);
 
   const toggleItemSelection = (id: string, it: any) => {
+    // التحقق من استحقاق البند
+    const isDueTime = it.isDue || (it.nextDueDate && new Date(it.nextDueDate).getTime() <= Date.now());
+    if (!isDueTime) {
+      toast.error(`لا يمكن اختيار الصنف (${it.itemName || it.name}) لعدم انتهاء مؤقته التنازلي بعد`);
+      return;
+    }
+
     setSelectedItemIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -158,6 +158,18 @@ export default function NewSedanaOutboundOrderPage() {
   });
 
   const handleSubmit = () => {
+    // التحقق من أن الأصناف المختارة حان موعدها
+    for (const id of Array.from(selectedItemIds)) {
+      const found = inventoryItems.find((i: any) => String(i.id) === String(id));
+      if (found) {
+        const isDueTime = found.isDue || (found.nextDueDate && new Date(found.nextDueDate).getTime() <= Date.now());
+        if (!isDueTime) {
+          toast.error(`لا يمكن إخراج الصنف (${found.name || found.itemName}) لعدم حلول موعد صرفه الدوري بعد.`);
+          return;
+        }
+      }
+    }
+
     const items = Array.from(selectedItemIds)
       .map((id) => {
         const found = inventoryItems.find((i: any) => String(i.id) === String(id));
@@ -304,27 +316,14 @@ export default function NewSedanaOutboundOrderPage() {
 
         {/* شريط حالة استحقاق البنود */}
         {dueItems.length > 0 ? (
-          <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-bold">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>يوجد {dueItems.length} صنف حان موعد إخراجها الدوري وتتوفر كمياتها بالمستودع.</span>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAllItems(!showAllItems)}
-              className="text-xs font-semibold h-7 border-emerald-300 text-emerald-900 hover:bg-emerald-100"
-            >
-              {showAllItems ? "عرض البنود المستحقة فقط" : "عرض كافة البنود المتوفرة"}
-            </Button>
+          <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>يوجد {dueItems.length} صنف حان موعد إخراجها الدوري (وصل مؤقتها للصفر) وتتوفر كمياتها بالمستودع.</span>
           </div>
         ) : (
-          <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>تنبيه: لا توجد بنود حان موعد إخراجها الدوري حالياً (يتم عرض الأصناف التي بها رصيد متاح للإخراج المباشر).</span>
-            </div>
+          <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center gap-2.5 text-xs text-amber-900 dark:text-amber-200 font-bold">
+            <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>تنبيه: لا توجد بنود حان موعد إخراجها الدوري حالياً (لا يمكن إخراج أي بند لم يصل وقته في العداد التنازلي إلى الصفر).</span>
           </div>
         )}
 
@@ -337,33 +336,35 @@ export default function NewSedanaOutboundOrderPage() {
                 <span>البنود المشمولة بأمر الإخراج وتحديد الكميات</span>
               </CardTitle>
               <CardDescription className="text-xs">
-                حدد البنود والكميات المراد صرفها للمسجد بناءً على الرصيد المتوفر بالمستودع
+                حدد البنود والكميات المستحقة للصرف (التي انتهى مؤقتها التنازلي) بناءً على الرصيد المتوفر بالمستودع
               </CardDescription>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const allIds = new Set((itemsToDisplay || []).map((it: any) => String(it.id)));
-                  setSelectedItemIds(allIds);
-                }}
-                className="text-xs h-7 px-2.5 cursor-pointer font-semibold"
-              >
-                تحديد الكل
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedItemIds(new Set())}
-                className="text-xs h-7 px-2.5 cursor-pointer font-semibold"
-              >
-                إلغاء التحديد
-              </Button>
-            </div>
+            {dueItems.length > 0 && (
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const allIds = new Set((itemsToDisplay || []).map((it: any) => String(it.id)));
+                    setSelectedItemIds(allIds);
+                  }}
+                  className="text-xs h-7 px-2.5 cursor-pointer font-semibold"
+                >
+                  تحديد الكل
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedItemIds(new Set())}
+                  className="text-xs h-7 px-2.5 cursor-pointer font-semibold"
+                >
+                  إلغاء التحديد
+                </Button>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto" dir="rtl">
@@ -381,7 +382,13 @@ export default function NewSedanaOutboundOrderPage() {
                   {(itemsToDisplay || []).length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="p-8 text-center text-muted-foreground">
-                        لا توجد بنود متاحة للصرف بالمستودع حالياً.
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <Clock className="w-8 h-8 text-amber-500/80 stroke-1" />
+                          <p className="font-bold text-sm text-foreground">لا توجد بنود مستحقة للصرف حالياً</p>
+                          <p className="text-xs text-muted-foreground max-w-sm">
+                            لا يمكن إخراج أي بند ما زال مؤقته التنازلي جارياً. ستظهر البنود هنا تلقائياً فور انتهاء العداد التنازلي.
+                          </p>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (

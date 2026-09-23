@@ -1145,6 +1145,44 @@ export const sedanaExecutionRouter = router({
         }
       });
 
+      // تتبع أول أمر إدخال وآخر إخراج مؤكد لكل صنف لحساب المؤقتات
+      const firstInwardDateMap: Record<string, string> = {};
+      const lastConfirmedOutboundDateMap: Record<string, string> = {};
+
+      (pData.sedanaExecution.inwardOrders || []).forEach((inOrder: any) => {
+        const orderDate = inOrder.createdAt || inOrder.orderDate;
+        (inOrder.items || []).forEach((it: any) => {
+          if (orderDate && (!firstInwardDateMap[it.id] || orderDate < firstInwardDateMap[it.id])) {
+            firstInwardDateMap[it.id] = orderDate;
+          }
+        });
+      });
+
+      (pData.sedanaExecution.outboundOrders || []).forEach((outOrder: any) => {
+        if (outOrder.status !== "cancelled" && outOrder.status !== "pending_confirmation") {
+          const confirmedDate = outOrder.confirmedBySupervisorAt || outOrder.scheduledDate || outOrder.createdAt;
+          if (confirmedDate) {
+            (outOrder.items || []).forEach((it: any) => {
+              if (!lastConfirmedOutboundDateMap[it.id] || confirmedDate > lastConfirmedOutboundDateMap[it.id]) {
+                lastConfirmedOutboundDateMap[it.id] = confirmedDate;
+              }
+            });
+          }
+        }
+      });
+
+      const boqItems = await db
+        .select()
+        .from(quantitySchedules)
+        .where(eq(quantitySchedules.requestId, req.id));
+
+      const getFrequencyDays = (freq: string): number => {
+        if (freq.includes("ربع") || freq === "ربع سنوي") return 90;
+        if (freq.includes("نصف") || freq === "نصف سنوي") return 180;
+        if (freq.includes("سنو") || freq === "سنوي") return 365;
+        return 30; // شهري افتراضياً
+      };
+
       for (const item of input.items) {
         const available = Math.max(0, (inwardMap[item.id] || 0) - (outboundMap[item.id] || 0));
         if (item.quantity > available + 0.0001) {
@@ -1152,6 +1190,30 @@ export const sedanaExecutionRouter = router({
             code: "BAD_REQUEST",
             message: `الكمية المدخلة للصنف (${item.itemName}) وقدرها ${item.quantity} تتجاوز الرصيد المتوفر حالياً في المستودع (${available} ${item.unit})`,
           });
+        }
+
+        // التحقق من حلول موعد الصرف الدوري (انتهاء المؤقت الزمني إلى الصفر)
+        const boq = boqItems.find((b) => String(b.id) === String(item.id));
+        let freq = "شهري";
+        if (boq?.itemDescription) {
+          const m = boq.itemDescription.match(/دورية\s*التوريد\s*:\s*([^\s,]+)/);
+          if (m) freq = m[1];
+        }
+        const freqDays = getFrequencyDays(freq);
+        const cycleStartDate = firstInwardDateMap[item.id];
+        const lastConfirmed = lastConfirmedOutboundDateMap[item.id];
+
+        if (cycleStartDate) {
+          const refDate = lastConfirmed ? new Date(lastConfirmed) : new Date(cycleStartDate);
+          const nextDueDate = new Date(refDate.getTime() + freqDays * 24 * 60 * 60 * 1000);
+          const diffMs = nextDueDate.getTime() - Date.now();
+          if (diffMs > 0) {
+            const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `لا يمكن إصدار أمر إخراج للصنف (${item.itemName}) لعدم حلول موعد صرفه الدوري بعد (متبقي ${daysRemaining} يوم في العداد التنازلي).`,
+            });
+          }
         }
       }
 
