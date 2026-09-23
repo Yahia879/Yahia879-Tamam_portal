@@ -353,6 +353,22 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية لأوامر الصرف إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("disbursement_orders.") && permId !== "disbursement_orders.view" && permId !== "disbursement_orders.sign") {
+      if (!isChecked("disbursement_orders.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض أوامر الصرف' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل صلاحية إرسال التذكير لمركز الاعتماد المالي إذا كان عرض مركز الاعتماد معطلاً
+    if (permId === "board_leadership.remind") {
+      if (!isChecked("board_chairman")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض مركز الاعتماد المالي' أولاً");
+        return;
+      }
+    }
+
 
 
     const defaultState = rolePermissions?.includes(permId) || false;
@@ -484,6 +500,14 @@ export default function UserPermissions() {
         }
         if (permId === "sedana_warehouse.view") {
           cascadeRevoke("sedana_warehouse.");
+        }
+        if (permId === "board_chairman") {
+          const defVal = rolePermissions?.includes("board_leadership.remind") || false;
+          if (defVal) {
+            updated["board_leadership.remind"] = false;
+          } else {
+            delete updated["board_leadership.remind"];
+          }
         }
 
 
@@ -662,6 +686,7 @@ export default function UserPermissions() {
       board_leadership: {
         board_chairman: "عرض مركز الاعتماد المالي",
         board_member: "عرض لوحة عضو مجلس الإدارة",
+        remind: "إرسال تذكير بالاعتماد",
       },
       pending_reports: {
         view: "عرض التقارير",
@@ -781,6 +806,7 @@ export default function UserPermissions() {
         view: "عرض أوامر الصرف",
         create_direct: "انشاء امر صرف مخصص",
         exception_approve: "استثناء اعتماد مُعد الأمر",
+        remind: "إرسال تذكير بالاعتماد",
       },
       progress_reports: {
         view: "عرض تقارير الإنجاز",
@@ -922,7 +948,7 @@ export default function UserPermissions() {
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
-        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve"] },
+        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
       ]
     },
@@ -984,7 +1010,7 @@ export default function UserPermissions() {
           id: "board_leadership",
           nameAr: "مجلس الإدارة والقيادة العليا",
           icon: Shield,
-          perms: ["board_chairman", "board_member"]
+          perms: ["board_chairman", "board_member", "remind"]
         }
       ]
     }
@@ -1136,6 +1162,7 @@ export default function UserPermissions() {
                       const boardIds: Record<string, string> = {
                         board_chairman: "board_chairman",
                         board_member: "board_member",
+                        remind: "board_leadership.remind",
                       };
                       id = boardIds[p] || id;
                     }
@@ -1200,6 +1227,8 @@ export default function UserPermissions() {
                               (perm.id.startsWith("purchase_orders.") && perm.id !== "purchase_orders.view" && !isChecked("purchase_orders.view")) ||
                               (perm.id.startsWith("csr_letters.") && perm.id !== "csr_letters.view" && !isChecked("csr_letters.view")) ||
                               (perm.id.startsWith("sedana_warehouse.") && perm.id !== "sedana_warehouse.view" && !isChecked("sedana_warehouse.view")) ||
+                              (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && !isChecked("disbursement_orders.view")) ||
+                              (perm.id === "board_leadership.remind" && !isChecked("board_chairman")) ||
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !isChecked("mosques.view")) ||
                               (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !isChecked("suppliers.view")) ||
                               (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !isChecked("quotations.view")) ||
