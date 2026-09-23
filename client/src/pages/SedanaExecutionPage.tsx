@@ -318,6 +318,34 @@ export default function SedanaExecutionPage() {
     onError: (err) => toast.error(err.message || "حدث خطأ أثناء اعتماد وتأكيد أمر الإخراج"),
   });
 
+  const req = data?.request;
+  const mosque = data?.mosque;
+  const inventoryItems = data?.inventoryItems || [];
+  const availableReferences = (data as any)?.availableReferences || [];
+  const disbursementOrders: any[] = (data as any)?.disbursementOrders || [];
+  const inwardOrders = data?.inwardOrders || [];
+  const outboundOrders = data?.outboundOrders || [];
+  const deliveryOrders = data?.deliveryOrders || [];
+
+  // البنود التي حان وقت إخراجها وتتوفر بالمستودع
+  const eligibleDueItems = useMemo(() => {
+    return inventoryItems.filter((it: any) => {
+      const isDueTime = it.isDue || (it.nextDueDate && new Date(it.nextDueDate).getTime() <= Date.now());
+      const hasStock = Number(it.availableStock || 0) > 0;
+      const notCompleted = Number(it.remainingToDisburse || 0) > 0;
+      return isDueTime && hasStock && notCompleted;
+    });
+  }, [inventoryItems]);
+
+  // البنود المتوفرة بالمستودع عموماً
+  const allStockAvailableItems = useMemo(() => {
+    return inventoryItems.filter(
+      (it: any) => Number(it.availableStock || 0) > 0 && Number(it.remainingToDisburse || 0) > 0
+    );
+  }, [inventoryItems]);
+
+  const modalItemsToDisplay = showAllStockItems ? allStockAvailableItems : eligibleDueItems;
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -328,15 +356,6 @@ export default function SedanaExecutionPage() {
       </DashboardLayout>
     );
   }
-
-  const req = data?.request;
-  const mosque = data?.mosque;
-  const inventoryItems = data?.inventoryItems || [];
-  const availableReferences = (data as any)?.availableReferences || [];
-  const disbursementOrders: any[] = (data as any)?.disbursementOrders || [];
-  const inwardOrders = data?.inwardOrders || [];
-  const outboundOrders = data?.outboundOrders || [];
-  const deliveryOrders = data?.deliveryOrders || [];
 
   // إحصائيات سريعة
   const totalApproved = inventoryItems.reduce((s, i) => s + i.approvedQty, 0);
@@ -376,25 +395,6 @@ export default function SedanaExecutionPage() {
       items: itemsToInward,
     });
   };
-
-  // البنود التي حان وقت إخراجها وتتوفر بالمستودع
-  const eligibleDueItems = useMemo(() => {
-    return inventoryItems.filter((it: any) => {
-      const isDueTime = it.isDue || (it.nextDueDate && new Date(it.nextDueDate).getTime() <= Date.now());
-      const hasStock = Number(it.availableStock || 0) > 0;
-      const notCompleted = Number(it.remainingToDisburse || 0) > 0;
-      return isDueTime && hasStock && notCompleted;
-    });
-  }, [inventoryItems]);
-
-  // البنود المتوفرة بالمستودع عموماً
-  const allStockAvailableItems = useMemo(() => {
-    return inventoryItems.filter(
-      (it: any) => Number(it.availableStock || 0) > 0 && Number(it.remainingToDisburse || 0) > 0
-    );
-  }, [inventoryItems]);
-
-  const modalItemsToDisplay = showAllStockItems ? allStockAvailableItems : eligibleDueItems;
 
   // فتح نافذة أمر إخراج جديد بناءً على البنود المستحقة للصرف بعد مرور الوقت
   const handleOpenOutboundModal = () => {
