@@ -3,13 +3,15 @@ import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Printer, Loader2, AlertCircle, CheckCircle2, Building2 } from "lucide-react";
+import { ArrowRight, Printer, Loader2, AlertCircle, CheckCircle2, Building2, Lock } from "lucide-react";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
+import { usePermission } from "@/hooks/usePermission";
 
 export default function SedanaDeliveryOrderPrint() {
   const params = useParams<{ id: string; deliveryId?: string }>();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const canPrint = usePermission("sedana_warehouse.print") || usePermission("sedana_warehouse");
   const requestId = parseInt(params.id || "0");
 
   useDocumentTitle(`أمر تسليم مستودعي #${requestId} - سدانة`);
@@ -49,6 +51,23 @@ export default function SedanaDeliveryOrderPrint() {
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center gap-3" dir="rtl">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
         <p className="text-sm text-muted-foreground">جاري تحميل أمر التسليم...</p>
+      </div>
+    );
+  }
+
+  if (!canPrint) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center min-h-[50vh] text-center p-8" dir="rtl">
+        <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4 text-destructive">
+          <Lock className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-bold text-foreground mb-2">غير مصرح بالوصول</h2>
+        <p className="text-muted-foreground max-w-md text-sm mb-6">
+          عذراً، ليس لديك الصلاحية لمعاينة وطباعة محاضر وأوامر التسليم في المستودع الافتراضي. يرجى التواصل مع مسؤول النظام لمنحك الصلاحية اللازمة.
+        </p>
+        <Button variant="outline" onClick={() => window.history.back()}>
+          العودة
+        </Button>
       </div>
     );
   }
