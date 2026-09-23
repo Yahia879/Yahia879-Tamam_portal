@@ -70,6 +70,9 @@ import {
   MessageSquare,
   Send,
   CheckCircle2,
+  Bell,
+  PenLine,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { exportStyledExcel } from "@/lib/excelExportHelper";
@@ -281,12 +284,42 @@ export default function DisbursementOrders() {
   const permOrdersViewDetails = usePermission("disbursement_orders.view_details");
   const permOrdersCreateDirect = usePermission("disbursement_orders.create_direct");
   const permOrdersExceptionApprove = usePermission("disbursement_orders.exception_approve");
+  const permOrdersRemind = usePermission("disbursement_orders.remind");
 
   const canApproveOrder = permOrdersApprove || permOrdersSign || permDisbursementsApprove || permDisbursementsSign;
   const canRejectOrder = permOrdersReject;
   const canViewDetails = permOrdersViewDetails;
   const canCreateDirectOrder = permOrdersCreateDirect;
   const canExceptionApproveOrder = user?.role === "super_admin" || permOrdersExceptionApprove;
+  const canRemind = user?.role === "super_admin" || user?.role === "system_admin" || permOrdersRemind;
+
+  // نافذة إرسال تذكير بالاعتماد
+  const [reminderModal, setReminderModal] = useState<{
+    open: boolean;
+    order: any | null;
+    isCustomizing: boolean;
+    customMessage: string;
+  }>({
+    open: false,
+    order: null,
+    isCustomizing: false,
+    customMessage: "",
+  });
+
+  const sendReminderMutation = trpc.disbursements.sendApprovalReminder.useMutation({
+    onSuccess: (res) => {
+      toast.success(res.message || "تم إرسال التذكير بنجاح");
+      setReminderModal({
+        open: false,
+        order: null,
+        isCustomizing: false,
+        customMessage: "",
+      });
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء إرسال التذكير");
+    },
+  });
 
   const exceptionApproveOrderMutation = trpc.disbursements.exceptionApproveOrder.useMutation({
     onSuccess: () => {
@@ -746,8 +779,26 @@ export default function DisbursementOrders() {
                                           </DropdownMenuItem>
                                         )}
 
-                                        <DropdownMenuItem
-                                          onClick={() => {
+                                        {canRemind && (order.status === "pending" || order.status === "pending_executive" || order.status === "draft" || order.status === "edited") && (
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              const defMsg = `نود تذكيركم بوجود أمر صرف رقم "${order.orderNumber}" بمبلغ ${Number(order.amount || 0).toLocaleString("ar-SA")} ريال بانتظار اعتمادكم الكريم.`;
+                                              setReminderModal({
+                                                open: true,
+                                                order,
+                                                isCustomizing: false,
+                                                customMessage: defMsg,
+                                              });
+                                            }}
+                                            className="flex items-center gap-2 cursor-pointer text-amber-700 hover:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-semibold"
+                                          >
+                                            <Bell className="h-4 w-4 text-amber-600" />
+                                            <span>تذكير بالاعتماد</span>
+                                          </DropdownMenuItem>
+                                        )}
+
+                                        <DropdownMenuItem
+                                          onClick={() => {
                                             navigate(`/disbursement-orders/${order.id}/print`);
                                           }}
                                           className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50 font-semibold"
@@ -998,8 +1049,26 @@ export default function DisbursementOrders() {
                                         </DropdownMenuItem>
                                       )}
 
-                                      <DropdownMenuItem
-                                        onClick={() => {
+                                      {canRemind && (order.status === "pending" || order.status === "pending_executive" || order.status === "draft" || order.status === "edited") && (
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            const defMsg = `نود تذكيركم بوجود أمر صرف رقم "${order.orderNumber}" بمبلغ ${Number(order.amount || 0).toLocaleString("ar-SA")} ريال بانتظار اعتمادكم الكريم.`;
+                                            setReminderModal({
+                                              open: true,
+                                              order,
+                                              isCustomizing: false,
+                                              customMessage: defMsg,
+                                            });
+                                          }}
+                                          className="flex items-center gap-2 cursor-pointer text-amber-700 hover:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-semibold"
+                                        >
+                                          <Bell className="h-4 w-4 text-amber-600" />
+                                          <span>تذكير بالاعتماد</span>
+                                        </DropdownMenuItem>
+                                      )}
+
+                                      <DropdownMenuItem
+                                        onClick={() => {
                                           navigate(`/disbursement-orders/${order.id}/print`);
                                         }}
                                         className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50 font-semibold"
@@ -1586,6 +1655,133 @@ export default function DisbursementOrders() {
                 className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 cursor-pointer"
               >
                 إغلاق
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة إرسال تذكير بالاعتماد */}
+        <Dialog
+          open={reminderModal.open}
+          onOpenChange={(open) => {
+            if (!open) {
+              setReminderModal({
+                open: false,
+                order: null,
+                isCustomizing: false,
+                customMessage: "",
+              });
+            }
+          }}
+        >
+          <DialogContent dir="rtl" className="sm:max-w-[550px] rounded-3xl p-6 sm:p-7 text-right">
+            <DialogHeader className="text-right sm:text-right border-b pb-4">
+              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg sm:text-xl font-bold">
+                <Bell className="w-5 h-5 text-amber-600 shrink-0" />
+                <span>إرسال تذكير بالاعتماد</span>
+              </DialogTitle>
+              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 font-medium">
+                إرسال إشعار تذكيري لصاحب الصلاحية لاعتماد أمر الصرف رقم ({reminderModal.order?.orderNumber})
+              </DialogDescription>
+            </DialogHeader>
+
+            {reminderModal.order && (
+              <div className="space-y-4 py-3">
+                {/* ملخص أمر الصرف */}
+                <div className="p-3.5 bg-muted/40 rounded-2xl border text-xs space-y-1.5 font-medium">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">رقم أمر الصرف:</span>
+                    <span className="font-bold text-foreground">{reminderModal.order.orderNumber}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">المستفيد:</span>
+                    <span className="font-bold text-foreground truncate max-w-[260px]">{reminderModal.order.beneficiaryName}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">المبلغ:</span>
+                    <span className="font-bold text-emerald-700 dark:text-emerald-400 font-mono text-sm inline-flex items-center gap-1">
+                      {Number(reminderModal.order.amount || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                    </span>
+                  </div>
+                </div>
+
+                {/* محتوى رسالة التذكير */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300">
+                      نص رسالة التذكير:
+                    </label>
+                    {!reminderModal.isCustomizing ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setReminderModal((prev) => ({ ...prev, isCustomizing: true }))}
+                        className="text-xs text-primary hover:text-primary/80 font-bold h-7 gap-1 cursor-pointer"
+                      >
+                        <PenLine className="w-3.5 h-3.5" />
+                        <span>تعديل الرسالة</span>
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const defMsg = `نود تذكيركم بوجود أمر صرف رقم "${reminderModal.order?.orderNumber}" بمبلغ ${Number(reminderModal.order?.amount || 0).toLocaleString("ar-SA")} ريال بانتظار اعتمادكم الكريم.`;
+                          setReminderModal((prev) => ({ ...prev, isCustomizing: false, customMessage: defMsg }));
+                        }}
+                        className="text-xs text-muted-foreground hover:text-foreground font-bold h-7 gap-1 cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>استعادة الافتراضية</span>
+                      </Button>
+                    )}
+                  </div>
+
+                  {!reminderModal.isCustomizing ? (
+                    <div className="p-4 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 rounded-2xl text-xs sm:text-sm text-amber-950 dark:text-amber-200 leading-relaxed font-medium">
+                      نود تذكيركم بوجود أمر صرف رقم "{reminderModal.order.orderNumber}" بمبلغ {Number(reminderModal.order.amount || 0).toLocaleString("ar-SA")} ريال بانتظار اعتمادكم الكريم.
+                    </div>
+                  ) : (
+                    <Textarea
+                      value={reminderModal.customMessage}
+                      onChange={(e) => setReminderModal((prev) => ({ ...prev, customMessage: e.target.value }))}
+                      placeholder="اكتب نص رسالة التذكير المخصصة..."
+                      className="min-h-[100px] text-xs sm:text-sm rounded-2xl border-amber-300 dark:border-amber-800 focus:ring-amber-500 font-medium leading-relaxed resize-none"
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+
+            <DialogFooter className="flex flex-row justify-start items-center gap-3 pt-3 border-t border-border/60">
+              <Button
+                onClick={() => {
+                  if (!reminderModal.order) return;
+                  sendReminderMutation.mutate({
+                    orderId: reminderModal.order.id,
+                    customMessage: reminderModal.isCustomizing ? reminderModal.customMessage : undefined,
+                    source: "disbursement_orders",
+                  });
+                }}
+                disabled={sendReminderMutation.isPending}
+                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white shadow-sm cursor-pointer"
+              >
+                {sendReminderMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Bell className="w-4 h-4 ml-1.5" />}
+                <span>إرسال التذكير</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setReminderModal({
+                  open: false,
+                  order: null,
+                  isCustomizing: false,
+                  customMessage: "",
+                })}
+                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 cursor-pointer"
+              >
+                إلغاء
               </Button>
             </DialogFooter>
           </DialogContent>
