@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -99,6 +100,12 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
   }
   const { user } = useAuth();
   const [, navigate] = useLocation();
+
+  // صلاحيات أوامر الشراء
+  const canAddOrder = usePermission("purchase_orders.add");
+  const canApprove = usePermission("purchase_orders.approve");
+  const canCreateDisbursement = usePermission("purchase_orders.create_disbursement");
+  const canExport = usePermission("purchase_orders.export");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -272,20 +279,37 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
             <RotateCcw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin text-sky-600" : ""}`} />
             <span>تحديث</span>
           </Button>
-          <Button
-            size="sm"
-            onClick={() => {
-              const qParts = [];
-              if (requestId) qParts.push(`requestId=${requestId}`);
-              if (projectId) qParts.push(`projectId=${projectId}`);
-              const qStr = qParts.length > 0 ? `?${qParts.join("&")}` : "";
-              navigate(`/purchase-orders/new${qStr}`);
-            }}
-            className="text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>إضافة أمر شراء جديد</span>
-          </Button>
+
+          {canExport && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExportExcel}
+              disabled={isExporting}
+              className="text-xs font-bold gap-1.5 border-border hover:bg-muted cursor-pointer text-emerald-700 dark:text-emerald-400 hover:text-emerald-800"
+              title="تصدير إلى Excel"
+            >
+              <Download className={`w-3.5 h-3.5 ${isExporting ? "animate-spin text-emerald-600" : "text-emerald-600"}`} />
+              <span>{isExporting ? "جاري التصدير..." : "تصدير إلى Excel"}</span>
+            </Button>
+          )}
+
+          {canAddOrder && (
+            <Button
+              size="sm"
+              onClick={() => {
+                const qParts = [];
+                if (requestId) qParts.push(`requestId=${requestId}`);
+                if (projectId) qParts.push(`projectId=${projectId}`);
+                const qStr = qParts.length > 0 ? `?${qParts.join("&")}` : "";
+                navigate(`/purchase-orders/new${qStr}`);
+              }}
+              className="text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>إضافة أمر شراء جديد</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -574,7 +598,7 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
                                 </DropdownMenuItem>
 
                                 {/* اعتماد أمر الشراء فورياً إن كان مسودة */}
-                                {order.status === "draft" && (
+                                {order.status === "draft" && canApprove && (
                                   <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
@@ -594,7 +618,7 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
                                 )}
 
                                 {/* إنشاء أمر صرف لأمر الشراء المعتمد */}
-                                {order.status === "approved" && !order.disbursementOrder && (
+                                {order.status === "approved" && !order.disbursementOrder && canCreateDisbursement && (
                                   <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
