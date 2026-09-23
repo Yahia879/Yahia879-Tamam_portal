@@ -85,7 +85,9 @@ export default function NewSedanaOutboundOrderPage() {
   const params = useParams<{ id?: string }>();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
-  const canOutbound = usePermission("sedana_warehouse.outbound") || usePermission("sedana_warehouse");
+  const permWarehouse = usePermission("sedana_warehouse");
+  const permOutbound = usePermission("sedana_warehouse.outbound");
+  const canOutbound = user?.role === "super_admin" || user?.role === "system_admin" || permWarehouse || permOutbound;
 
   // جلب قائمة طلبات سدانة للاختيار
   const { data: sedanaRequests = [] } = trpc.sedanaExecution.listSedanaRequests.useQuery();
