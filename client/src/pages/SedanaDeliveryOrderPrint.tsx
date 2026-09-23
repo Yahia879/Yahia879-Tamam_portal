@@ -11,7 +11,9 @@ export default function SedanaDeliveryOrderPrint() {
   const params = useParams<{ id: string; deliveryId?: string }>();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
-  const canPrint = usePermission("sedana_warehouse.print") || usePermission("sedana_warehouse");
+  const permWarehouse = usePermission("sedana_warehouse");
+  const permPrint = usePermission("sedana_warehouse.print");
+  const canPrint = user?.role === "super_admin" || user?.role === "system_admin" || permWarehouse || permPrint;
   const requestId = parseInt(params.id || "0");
 
   useDocumentTitle(`أمر تسليم مستودعي #${requestId} - سدانة`);
