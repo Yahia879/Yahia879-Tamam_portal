@@ -295,6 +295,14 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للمسؤولية المجتمعية إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("csr_letters.") && permId !== "csr_letters.view") {
+      if (!isChecked("csr_letters.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض خطابات المسؤولية المجتمعية' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية للتقارير إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("reports.") && permId !== "reports.view_stats") {
       if (!isChecked("reports.view_stats")) {
@@ -452,6 +460,9 @@ export default function UserPermissions() {
         }
         if (permId === "purchase_orders.view") {
           cascadeRevoke("purchase_orders.");
+        }
+        if (permId === "csr_letters.view") {
+          cascadeRevoke("csr_letters.");
         }
 
 
@@ -701,6 +712,14 @@ export default function UserPermissions() {
         create_disbursement: "إنشاء أمر صرف لأمر الشراء",
         export: "تصدير أوامر الشراء إكسيل",
       },
+      csr_letters: {
+        view: "عرض خطابات المسؤولية المجتمعية",
+        add: "إنشاء خطاب مسؤولية مجتمعية جديد",
+        approve: "اعتماد خطابات المسؤولية المجتمعية",
+        create_disbursement: "إنشاء أمر صرف للخطاب",
+        print: "معاينة وطباعة الخطاب الرسمي",
+        export: "تصدير الخطابات إكسيل",
+      },
       disbursements: {
         view: "عرض طلبات الصرف",
         add: "إنشاء طلب صرف",
@@ -868,6 +887,7 @@ export default function UserPermissions() {
       title: "إدارة المخزون",
       modules: [
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
+        { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "print", "export"] },
       ]
     },
     {
@@ -1134,6 +1154,7 @@ export default function UserPermissions() {
                             const isDisabled = 
                               (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !isChecked("contracts.view")) ||
                               (perm.id.startsWith("purchase_orders.") && perm.id !== "purchase_orders.view" && !isChecked("purchase_orders.view")) ||
+                              (perm.id.startsWith("csr_letters.") && perm.id !== "csr_letters.view" && !isChecked("csr_letters.view")) ||
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !isChecked("mosques.view")) ||
                               (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !isChecked("suppliers.view")) ||
                               (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !isChecked("quotations.view")) ||
