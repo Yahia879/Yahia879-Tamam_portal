@@ -93,10 +93,9 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
     "csr_letters.add",
     "csr_letters.approve",
     "csr_letters.create_disbursement",
-    "csr_letters.print",
     "csr_letters.export",
   ],
-  "csr_letters.view": ["csr_letters.view"],
+  "csr_letters.view": ["csr_letters.view", "csr_letters.print"],
   "csr_letters.add": ["csr_letters.add"],
   "csr_letters.approve": ["csr_letters.approve"],
   "csr_letters.create_disbursement": ["csr_letters.create_disbursement"],
@@ -989,8 +988,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "csr_letters.add", moduleId: "csr_letters", action: "add", nameAr: "إنشاء خطاب مسؤولية مجتمعية جديد", nameEn: "Create CSR Letter" },
       { id: "csr_letters.approve", moduleId: "csr_letters", action: "approve", nameAr: "اعتماد خطابات المسؤولية المجتمعية", nameEn: "Approve CSR Letters" },
       { id: "csr_letters.create_disbursement", moduleId: "csr_letters", action: "create_disbursement", nameAr: "إنشاء أمر صرف للخطاب", nameEn: "Create Disbursement for CSR Letter" },
-      { id: "csr_letters.print", moduleId: "csr_letters", action: "print", nameAr: "معاينة وطباعة الخطاب الرسمي", nameEn: "Print CSR Letter" },
-      { id: "csr_letters.export", moduleId: "csr_letters", action: "export", nameAr: "تصدير الخطابات إكسيل", nameEn: "Export CSR Letters" },
+          { id: "csr_letters.export", moduleId: "csr_letters", action: "export", nameAr: "تصدير الخطابات إكسيل", nameEn: "Export CSR Letters" },
       { id: "sedana_warehouse.view", moduleId: "sedana_warehouse", action: "view", nameAr: "عرض المستودع الافتراضي", nameEn: "View Virtual Warehouse" },
       { id: "sedana_warehouse.inward", moduleId: "sedana_warehouse", action: "inward", nameAr: "تسجيل أمر إدخال بالمستودع", nameEn: "Record Inward Warehouse Order" },
       { id: "sedana_warehouse.outbound", moduleId: "sedana_warehouse", action: "outbound", nameAr: "إنشاء أمر إخراج ومسوغ صرف", nameEn: "Create Outbound & Disbursement Voucher" },
@@ -1057,14 +1055,14 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
     // إسناد الصلاحيات الافتراضية للمسؤولية المجتمعية للأدوار الأساسية إن لم تكن مسندة
     const csrDefaultRolePerms: Record<string, string[]> = {
-      super_admin: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.print", "csr_letters.export"],
-      system_admin: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.print", "csr_letters.export"],
-      general_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.print", "csr_letters.export"],
-      executive_director: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.print", "csr_letters.export"],
-      financial_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.print", "csr_letters.export"],
-      financial: ["csr_letters.view", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.print", "csr_letters.export"],
-      projects_office: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.print", "csr_letters.export"],
-      project_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.print", "csr_letters.export"],
+      super_admin: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
+      system_admin: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
+      general_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
+      executive_director: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
+      financial_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
+      financial: ["csr_letters.view", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
+      projects_office: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
+      project_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.export"],
     };
 
     for (const [rId, pIds] of Object.entries(csrDefaultRolePerms)) {
