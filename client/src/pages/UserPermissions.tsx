@@ -51,7 +51,8 @@ import {
   PenLine,
   SlidersHorizontal,
   HeartHandshake,
-  ShieldAlert
+  ShieldAlert,
+  ShoppingCart
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import DashboardLayout from "../components/DashboardLayout";
@@ -286,6 +287,14 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية لأوامر الشراء إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("purchase_orders.") && permId !== "purchase_orders.view") {
+      if (!isChecked("purchase_orders.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض أوامر الشراء' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية للتقارير إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("reports.") && permId !== "reports.view_stats") {
       if (!isChecked("reports.view_stats")) {
@@ -440,6 +449,9 @@ export default function UserPermissions() {
         }
         if (permId === "disbursement_orders.view") {
           cascadeRevoke("disbursement_orders.");
+        }
+        if (permId === "purchase_orders.view") {
+          cascadeRevoke("purchase_orders.");
         }
 
 
@@ -682,6 +694,13 @@ export default function UserPermissions() {
         template_delete: "حذف قالب العقد",
         clause_add: "إضافة بند للعقد"
       },
+      purchase_orders: {
+        view: "عرض أوامر الشراء",
+        add: "إنشاء أمر شراء جديد",
+        approve: "اعتماد أوامر الشراء",
+        create_disbursement: "إنشاء أمر صرف لأمر الشراء",
+        export: "تصدير أوامر الشراء إكسيل",
+      },
       disbursements: {
         view: "عرض طلبات الصرف",
         add: "إنشاء طلب صرف",
@@ -843,6 +862,12 @@ export default function UserPermissions() {
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
+      ]
+    },
+    {
+      title: "إدارة المخزون",
+      modules: [
+        { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
       ]
     },
     {
