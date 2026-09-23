@@ -78,13 +78,22 @@ export default function SedanaExecutionPage() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
 
-  // صلاحيات المستودع الافتراضي
-  const canView = usePermission("sedana_warehouse.view") || usePermission("sedana_warehouse");
-  const canInward = usePermission("sedana_warehouse.inward") || usePermission("sedana_warehouse");
-  const canOutbound = usePermission("sedana_warehouse.outbound") || usePermission("sedana_warehouse");
-  const canConfirmReceipt = usePermission("sedana_warehouse.confirm_receipt") || usePermission("sedana_warehouse");
-  const canPrint = usePermission("sedana_warehouse.print") || usePermission("sedana_warehouse");
-  const canExport = usePermission("sedana_warehouse.export") || usePermission("sedana_warehouse");
+  // صلاحيات المستودع الافتراضي (استدعاء جميع الـ Hooks بشكل ثابت لمنع الـ conditional hook call)
+  const permWarehouse = usePermission("sedana_warehouse");
+  const permView = usePermission("sedana_warehouse.view");
+  const permInward = usePermission("sedana_warehouse.inward");
+  const permOutbound = usePermission("sedana_warehouse.outbound");
+  const permConfirmReceipt = usePermission("sedana_warehouse.confirm_receipt");
+  const permPrint = usePermission("sedana_warehouse.print");
+  const permExport = usePermission("sedana_warehouse.export");
+
+  const isAdmin = user?.role === "super_admin" || user?.role === "system_admin";
+  const canView = isAdmin || permWarehouse || permView;
+  const canInward = isAdmin || permWarehouse || permInward;
+  const canOutbound = isAdmin || permWarehouse || permOutbound;
+  const canConfirmReceipt = isAdmin || permWarehouse || permConfirmReceipt;
+  const canPrint = isAdmin || permWarehouse || permPrint;
+  const canExport = isAdmin || permWarehouse || permExport;
 
   const [isExporting, setIsExporting] = useState(false);
 
