@@ -1513,6 +1513,29 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   } else {
     allPermissions.delete("disbursement_orders");
   }
+  // أوامر الشراء
+  if (
+    allPermissions.has("purchase_orders.view") ||
+    allPermissions.has("purchase_orders.add") ||
+    allPermissions.has("purchase_orders.approve") ||
+    allPermissions.has("purchase_orders.create_disbursement") ||
+    allPermissions.has("purchase_orders.export")
+  ) {
+    allPermissions.add("purchase_orders");
+  }
+
+  // خطابات المسؤولية المجتمعية
+  if (
+    allPermissions.has("csr_letters.view") ||
+    allPermissions.has("csr_letters.add") ||
+    allPermissions.has("csr_letters.approve") ||
+    allPermissions.has("csr_letters.create_disbursement") ||
+    allPermissions.has("csr_letters.export")
+  ) {
+    allPermissions.add("csr_letters");
+  }
+
+  // المستودع الافتراضي
   if (
     allPermissions.has("sedana_warehouse.view") ||
     allPermissions.has("sedana_warehouse.inward") ||
@@ -1522,8 +1545,6 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.has("sedana_warehouse.export")
   ) {
     allPermissions.add("sedana_warehouse");
-  } else {
-    allPermissions.delete("sedana_warehouse");
   }
   if (
     allPermissions.has("progress_reports.view") ||
