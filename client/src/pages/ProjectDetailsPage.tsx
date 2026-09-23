@@ -169,20 +169,23 @@ export default function ProjectDetailsPage() {
   // إذا كان المستخدم يملك فقط صلاحية المالية بدون صلاحية عرض التفاصيل
   const financialsOnly = canViewFinancials && !canViewDetails;
 
-  useEffect(() => {
-    if (financialsOnly) {
-      setActiveTab("financials");
-    } else if (!canViewFinancials && activeTab === "financials") {
-      setActiveTab("overview");
-    }
-  }, [financialsOnly, canViewFinancials, activeTab]);
-
   // جلب تفاصيل المشروع
   const { data: project, isLoading, error: projectError, refetch } = trpc.projects.getById.useQuery({ 
     id: parseInt(id || "0"),
   }, {
     retry: false,
   });
+
+  // التحقق الحصري من برنامج سدانة
+  const isSedanaProgram = project?.programType === "sedana" || project?.request?.programType === "sedana";
+
+  useEffect(() => {
+    if (financialsOnly && !isSedanaProgram) {
+      setActiveTab("financials");
+    } else if ((!canViewFinancials || isSedanaProgram) && activeTab === "financials") {
+      setActiveTab("overview");
+    }
+  }, [financialsOnly, canViewFinancials, isSedanaProgram, activeTab]);
 
   // جلب مديري المشاريع المتاحين
   const { data: managersResult } = trpc.users.getAll.useQuery(
@@ -371,9 +374,6 @@ export default function ProjectDetailsPage() {
 
   const [selectedPaymentForItemsModal, setSelectedPaymentForItemsModal] = useState<any | null>(null);
 
-  // التحقق الحصري من برنامج سدانة
-  const isSedanaProgram = project?.programType === "sedana" || project?.request?.programType === "sedana";
-
   // هل يجب إظهار تبويبي العقود والدفعات؟
   // في المشاريع العادية: تظهران دائماً
   // في برامج سدانة: تختفيان إذا لم نقم بعمل عقد مع أي مورد (سواء مسجل كعقد فعلي أو محدد كمسار عقد في التأمين)
@@ -482,6 +482,9 @@ export default function ProjectDetailsPage() {
       setActiveTab("overview");
     }
     if (!isSedanaProgram && !hasCsrLetterMethod && activeTab === "csr_letters") {
+      setActiveTab("overview");
+    }
+    if (isSedanaProgram && activeTab === "financials") {
       setActiveTab("overview");
     }
   }, [showContractsAndPayments, isSedanaProgram, hasPurchaseOrderMethod, hasCsrLetterMethod, activeTab]);
@@ -715,7 +718,7 @@ export default function ProjectDetailsPage() {
       icon: ClipboardList, 
       badge: boqItemsCount > 0 ? `${boqItemsCount}` : undefined 
     },
-    ...(canViewFinancials ? [{ 
+    ...(!isSedanaProgram && canViewFinancials ? [{ 
       id: "financials", 
       label: "المالية", 
       icon: RiyalNavIcon, 
@@ -1744,7 +1747,7 @@ export default function ProjectDetailsPage() {
               </TabsContent>
 
               {/* المالية */}
-              {canViewFinancials && (
+              {!isSedanaProgram && canViewFinancials && (
                 <TabsContent value="financials" className="space-y-6 mt-0">
                   {isFinancialsLocked ? (
                     <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">

@@ -34,6 +34,7 @@ import {
   ChevronLeft,
   Sparkles,
 } from "lucide-react";
+import RequesterPendingOutboundModal from "@/components/sedana/RequesterPendingOutboundModal";
 
 interface BeneficiaryLayoutProps {
   children: React.ReactNode;
@@ -470,6 +471,7 @@ export default function BeneficiaryLayout({
           </div>
         )}
         {children}
+        <RequesterPendingOutboundModal />
       </main>
 
       {/* Modern Footer */}

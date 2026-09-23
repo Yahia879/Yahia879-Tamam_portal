@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
-import { mosqueRequests, mosques, users, quantitySchedules, requestHistory, requestStageTracking, disbursementOrders } from "../../drizzle/schema";
+import { mosqueRequests, mosques, users, quantitySchedules, requestHistory, requestStageTracking, disbursementOrders, projects, payments } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNotNull, inArray, or } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -178,8 +178,10 @@ export const sedanaExecutionRouter = router({
               cycleQty = totalQty >= 5 ? 1 : totalQty;
             } else if (frequency.includes("ربع") || frequency === "ربع سنوي") {
               cycleQty = Math.ceil(totalQty / 4) || 1;
+            } else if (frequency.includes("نصف") || frequency === "نصف سنوي") {
+              cycleQty = totalQty >= 12 ? 6 : (totalQty >= 4 ? 2 : 1);
             } else {
-              cycleQty = totalQty;
+              cycleQty = totalQty >= 4 ? Math.ceil(totalQty / 4) : 1;
             }
           }
 
@@ -204,7 +206,18 @@ export const sedanaExecutionRouter = router({
           const matchedBasket = basketMap.get(String(it.key || it.id)) || (it.name ? basketMap.get(it.name.trim()) : null);
           const frequency = it.frequency || matchedBasket?.frequency || "شهري";
           const totalQty = parseFloat(it.approvedQty || it.requestedQty || "1");
-          const cycleQty = it.cycleQuantity || matchedBasket?.monthlyLimit || (frequency === "شهري" ? 1 : totalQty);
+          let cycleQty = it.cycleQuantity || matchedBasket?.monthlyLimit;
+          if (!cycleQty) {
+            if (frequency.includes("شهر") || frequency === "شهري") {
+              cycleQty = totalQty >= 5 ? 1 : totalQty;
+            } else if (frequency.includes("ربع") || frequency === "ربع سنوي") {
+              cycleQty = Math.ceil(totalQty / 4) || 1;
+            } else if (frequency.includes("نصف") || frequency === "نصف سنوي") {
+              cycleQty = totalQty >= 12 ? 6 : (totalQty >= 4 ? 2 : 1);
+            } else {
+              cycleQty = totalQty >= 4 ? Math.ceil(totalQty / 4) : 1;
+            }
+          }
 
           return {
             id: String(it.key || it.id || idx + 1),
@@ -225,7 +238,18 @@ export const sedanaExecutionRouter = router({
         baseItems = basket.map((b: any, idx: number) => {
           const frequency = b.frequency || "شهري";
           const totalQty = parseFloat(b.quantity || "1");
-          const cycleQty = b.monthlyLimit || b.periodLimits?.[frequency] || (frequency === "شهري" ? 1 : totalQty);
+          let cycleQty = b.monthlyLimit || b.periodLimits?.[frequency];
+          if (!cycleQty) {
+            if (frequency.includes("شهر") || frequency === "شهري") {
+              cycleQty = totalQty >= 5 ? 1 : totalQty;
+            } else if (frequency.includes("ربع") || frequency === "ربع سنوي") {
+              cycleQty = Math.ceil(totalQty / 4) || 1;
+            } else if (frequency.includes("نصف") || frequency === "نصف سنوي") {
+              cycleQty = totalQty >= 12 ? 6 : (totalQty >= 4 ? 2 : 1);
+            } else {
+              cycleQty = totalQty >= 4 ? Math.ceil(totalQty / 4) : 1;
+            }
+          }
 
           return {
             id: String(b.id || idx + 1),
@@ -248,6 +272,7 @@ export const sedanaExecutionRouter = router({
       const inwardMap: Record<string, number> = {};
       const outboundMap: Record<string, number> = {};
       const pendingConfirmationMap: Record<string, number> = {};
+      const pendingReceiptMap: Record<string, number> = {};
       const deliveredMap: Record<string, number> = {};
 
       // تتبع أول أمر إدخال وآخر تأكيد إخراج لكل صنف
@@ -276,12 +301,20 @@ export const sedanaExecutionRouter = router({
           (outOrder.items || []).forEach((it: any) => {
             pendingConfirmationMap[it.id] = (pendingConfirmationMap[it.id] || 0) + Number(it.quantity || 0);
           });
-        } else if (outOrder.status !== "cancelled") {
+        } else if (outOrder.status === "pending_receipt") {
+          // أوامر إخراج خرجت من المستودع بانتظار تأكيد واستلام المستفيد
           (outOrder.items || []).forEach((it: any) => {
             outboundMap[it.id] = (outboundMap[it.id] || 0) + Number(it.quantity || 0);
+            pendingReceiptMap[it.id] = (pendingReceiptMap[it.id] || 0) + Number(it.quantity || 0);
           });
-          // تتبع تاريخ آخر إخراج مؤكد
-          const confirmedDate = outOrder.confirmedBySupervisorAt || outOrder.scheduledDate || outOrder.createdAt;
+        } else if (outOrder.status === "delivered") {
+          // أوامر إخراج تم تأكيد استلامها نهائياً من قبل المستفيد
+          (outOrder.items || []).forEach((it: any) => {
+            outboundMap[it.id] = (outboundMap[it.id] || 0) + Number(it.quantity || 0);
+            deliveredMap[it.id] = (deliveredMap[it.id] || 0) + Number(it.quantity || 0);
+          });
+          // تتبع تاريخ آخر إخراج مؤكد ومستلم لبدء العداد التنازلي للدفعة التالية
+          const confirmedDate = outOrder.confirmation?.confirmedAt || outOrder.deliveredDate || outOrder.confirmedBySupervisorAt || outOrder.scheduledDate || outOrder.createdAt;
           if (confirmedDate) {
             (outOrder.items || []).forEach((it: any) => {
               if (!lastConfirmedOutboundDateMap[it.id] || confirmedDate > lastConfirmedOutboundDateMap[it.id]) {
@@ -293,8 +326,9 @@ export const sedanaExecutionRouter = router({
         }
       });
 
+      // أي أمر تسليم مستقل مؤكد
       (executionData.deliveryOrders || []).forEach((delOrder: any) => {
-        if (delOrder.status === "confirmed") {
+        if (delOrder.status === "confirmed" && !delOrder.outboundOrderId) {
           (delOrder.items || []).forEach((it: any) => {
             deliveredMap[it.id] = (deliveredMap[it.id] || 0) + Number(it.quantity || 0);
           });
@@ -355,8 +389,6 @@ export const sedanaExecutionRouter = router({
         const totalCycles = Math.ceil(it.quantity / (it.cycleQuantity || 1));
         const confirmedCount = confirmedOutboundCountMap[it.id] || 0;
         const currentCycleNumber = confirmedCount;
-        const isCompleted = totalOut >= it.quantity;
-
         // تحديد تاريخ بدء الدورة: أول إدخال للصنف > أول إدخال عام > بدء مرحلة التنفيذ
         const cycleStartDate = firstInwardDateMap[it.id] || globalFirstInwardDate || executionStageStartDate;
         const lastConfirmedDate = lastConfirmedOutboundDateMap[it.id] || null;
@@ -365,23 +397,19 @@ export const sedanaExecutionRouter = router({
         let daysUntilNextDue: number | null = null;
         let isDue = false;
 
-        if (isCompleted) {
-          // الصنف مكتمل الصرف
-          nextDueDate = null;
-          daysUntilNextDue = null;
-        } else if (!cycleStartDate) {
+        if (!cycleStartDate && !lastConfirmedDate) {
           // لا يوجد تاريخ بدء بعد (لم يُورّد أي شيء ولم تبدأ مرحلة التنفيذ)
           nextDueDate = null;
           daysUntilNextDue = null;
         } else {
-          // حساب موعد الدفعة التالية
+          // حساب موعد الدفعة التالية: بعد آخر إخراج مؤكد + فترة الدورية، أو من تاريخ أول إدخال
           let refDate: Date;
           if (lastConfirmedDate) {
             // بعد آخر إخراج مؤكد + فترة الدورية
             refDate = new Date(lastConfirmedDate);
           } else {
             // أول دفعة: من تاريخ أول إدخال + فترة الدورية
-            refDate = new Date(cycleStartDate);
+            refDate = new Date(cycleStartDate || now);
           }
           const nextDue = new Date(refDate.getTime() + frequencyDays * 24 * 60 * 60 * 1000);
           nextDueDate = nextDue.toISOString();
@@ -401,7 +429,7 @@ export const sedanaExecutionRouter = router({
           totalCycles,
           frequencyDays,
           isDue,
-          isCompleted,
+          isCompleted: false, // لا يُغلق المستودع ولا يُعتبر مكتمل الصرف لضمان استمرار عمل العداد التنازلي للدفعة التالية
           hasStock,
         };
       });
@@ -412,6 +440,7 @@ export const sedanaExecutionRouter = router({
         const totalOutbound = outboundMap[it.id] || 0;
         const totalDelivered = deliveredMap[it.id] || 0;
         const pendingConfirmationQty = pendingConfirmationMap[it.id] || 0;
+        const pendingReceiptQty = pendingReceiptMap[it.id] || 0;
         const availableStock = Math.max(0, totalInward - totalOutbound);
         const pendingInward = Math.max(0, approvedQty - totalInward);
         const remainingToDisburse = Math.max(0, approvedQty - totalOutbound);
@@ -423,6 +452,7 @@ export const sedanaExecutionRouter = router({
           totalInward,
           totalOutbound,
           pendingConfirmationQty,
+          pendingReceiptQty,
           totalDelivered,
           availableStock,
           pendingInward,
@@ -745,6 +775,89 @@ export const sedanaExecutionRouter = router({
         }
       );
 
+      // فحص جاهزية تسليم الطلب (مرحلة الاستلام - handover)
+      const pProc = pData.sedanaProcurement || {};
+      const supAlloc = pProc.suppliersAllocation || {};
+      const itmAlloc = pProc.itemsAllocation || {};
+      const itmSupMap = pProc.itemSupplierMap || {};
+
+      // هل نوع التأمين معاه مورد؟
+      const hasSupplierInsurance = 
+        Object.values(supAlloc).some((m: any) => m === "contract" || m === "supplier_contract" || m === "purchase_order") ||
+        Object.values(itmAlloc).some((m: any) => m === "contract" || m === "supplier_contract" || m === "purchase_order") ||
+        Object.keys(itmSupMap).length > 0 ||
+        (Array.isArray(pProc.purchaseOrders) && pProc.purchaseOrders.length > 0) ||
+        !!pProc.activePurchaseOrder;
+
+      // فحص الدفعات وأوامر الصرف المرتبطة
+      // 1. أوامر الصرف للطلب
+      const allDisbOrders = await db
+        .select({
+          id: disbursementOrders.id,
+          orderNumber: disbursementOrders.orderNumber,
+          status: disbursementOrders.status,
+          amount: disbursementOrders.amount,
+        })
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.requestId, req.id));
+
+      // 2. الدفعات المالية للمشروع المرتبط إن وجد
+      let allProjectPayments: any[] = [];
+      const [linkedProj] = await db
+        .select({ id: projects.id })
+        .from(projects)
+        .where(eq(projects.requestId, req.id))
+        .limit(1);
+
+      if (linkedProj) {
+        allProjectPayments = await db
+          .select({
+            id: payments.id,
+            paymentNumber: payments.paymentNumber,
+            status: payments.status,
+            amount: payments.amount,
+          })
+          .from(payments)
+          .where(eq(payments.projectId, linkedProj.id));
+      }
+
+      // حساب الدفعات غير المسددة
+      const unpaidDisbOrders = allDisbOrders.filter(d => d.status !== "executed");
+      const unpaidProjPayments = allProjectPayments.filter(p => p.status !== "paid" && p.status !== "executed");
+      
+      const totalPaymentsCount = allDisbOrders.length + allProjectPayments.length;
+      const unpaidPaymentsCount = unpaidDisbOrders.length + unpaidProjPayments.length;
+      const paidPaymentsCount = totalPaymentsCount - unpaidPaymentsCount;
+
+      const isAlreadyHandoverOrClosed = ["handover", "closed"].includes(req.currentStage);
+
+      let canHandover = true;
+      let blockedReason: string | null = null;
+
+      if (isAlreadyHandoverOrClosed) {
+        canHandover = false;
+        blockedReason = req.currentStage === "closed" ? "الطلب مكتمل ومغلق بالفعل" : "الطلب تم تحويله لمرحلة التسليم بالفعل";
+      } else if (hasSupplierInsurance) {
+        if (totalPaymentsCount === 0) {
+          canHandover = false;
+          blockedReason = "نوع التأمين يتضمن مورداً معتمداً، ولكن لم يتم إصدار أو سداد أي أوامر صرف للمورد بعد (يجب سداد جميع الدفعات أولاً).";
+        } else if (unpaidPaymentsCount > 0) {
+          canHandover = false;
+          blockedReason = `لا يمكن تسليم الطلب لوجود ${unpaidPaymentsCount} دفعة/أمر صرف لم يتم سدادها بعد (حالتها غير مسددة). يجب سداد كافة الدفعات قبل تسليم الطلب.`;
+        }
+      }
+
+      const handoverValidation = {
+        hasSupplierInsurance,
+        hasUnpaidPayments: unpaidPaymentsCount > 0 || (hasSupplierInsurance && totalPaymentsCount === 0),
+        canHandover,
+        blockedReason,
+        totalPaymentsCount,
+        unpaidPaymentsCount,
+        paidPaymentsCount,
+        isAlreadyHandoverOrClosed,
+      };
+
       return {
         request: {
           id: req.id,
@@ -764,6 +877,7 @@ export const sedanaExecutionRouter = router({
         inwardOrders: executionData.inwardOrders || [],
         outboundOrders: executionData.outboundOrders || [],
         deliveryOrders: executionData.deliveryOrders || [],
+        handoverValidation,
       };
     }),
 
@@ -1146,6 +1260,28 @@ export const sedanaExecutionRouter = router({
       const outboundId = `OUT-${req.id}-${Date.now()}`;
       const deliveryId = `DEL-${req.id}-${Date.now()}`;
 
+      let requesterUser: any = null;
+      if (req.userId) {
+        const [u] = await db.select({ role: users.role, name: users.name }).from(users).where(eq(users.id, req.userId)).limit(1);
+        requesterUser = u;
+      }
+      const isRequesterUser = requesterUser?.role === "service_requester";
+      const nowIso = new Date().toISOString();
+
+      const initialStatus = isRequesterUser ? ("pending_receipt" as const) : ("delivered" as const);
+      const initialDeliveryStatus = isRequesterUser ? ("pending_delivery" as const) : ("confirmed" as const);
+
+      const initialConfirmation = !isRequesterUser
+        ? {
+            confirmedAt: nowIso,
+            confirmedBy: ctx.user.id,
+            confirmedByName: input.recipientName || "إمام المسجد",
+            signatureUrl: `auto_sig_${Date.now()}`,
+            satisfactionRating: 5,
+            notes: input.notes || "تم الاستلام والاعتماد مباشرة لكون الطلب منشأ من قبل مسؤول",
+          }
+        : null;
+
       const newOutbound = {
         id: outboundId,
         orderNumber,
@@ -1157,15 +1293,16 @@ export const sedanaExecutionRouter = router({
         recipientPhone: input.recipientPhone || "",
         deliveryLocation: input.deliveryLocation || "",
         disbursementVoucherCode,
-        status: "pending_receipt" as const, // بانتظار تأكيد واستلام الإمام
+        status: initialStatus,
+        deliveredDate: !isRequesterUser ? (input.scheduledDate || nowIso.split("T")[0]) : undefined,
         notes: input.notes || "",
         items: input.items,
         linkedDeliveryId: deliveryId,
-        confirmation: null,
+        confirmation: initialConfirmation,
         createdBy: ctx.user.id,
         createdByName: ctx.user.name,
-        createdAt: new Date().toISOString(),
-        confirmedBySupervisorAt: new Date().toISOString(),
+        createdAt: nowIso,
+        confirmedBySupervisorAt: nowIso,
         confirmedBySupervisorId: ctx.user.id,
         confirmedBySupervisorName: ctx.user.name,
       };
@@ -1181,13 +1318,14 @@ export const sedanaExecutionRouter = router({
         recipientRole: input.recipientRole || "إمام المسجد",
         recipientPhone: input.recipientPhone || "",
         scheduledDate: input.scheduledDate,
-        status: "pending_delivery" as const,
+        deliveredDate: !isRequesterUser ? (input.scheduledDate || nowIso.split("T")[0]) : undefined,
+        status: initialDeliveryStatus,
         items: input.items,
         notes: input.notes || "",
-        confirmation: null,
+        confirmation: initialConfirmation,
         createdBy: ctx.user.id,
         createdByName: ctx.user.name,
-        createdAt: new Date().toISOString(),
+        createdAt: nowIso,
       };
 
       pData.sedanaExecution.outboundOrders.push(newOutbound);
@@ -1676,26 +1814,13 @@ export const sedanaExecutionRouter = router({
         });
       }
 
-      // هل تم تأكيد جميع أوامر التسليم بنجاح؟
+      // تظل مرحلة الطلب في مرحلة التنفيذ (execution) لضمان استمرار عمل المستودع الافتراضي وجدولة الدفعات الدورية
       const allConfirmed = deliveries.length > 0 && deliveries.every((d: any) => d.status === "confirmed");
-      let newStage = req.currentStage;
-      let newStatus = req.status;
-
-      if (allConfirmed) {
-        if (req.currentStage === "execution") {
-          newStage = "handover";
-        } else if (req.currentStage === "handover") {
-          newStage = "closed";
-          newStatus = "completed";
-        }
-      }
 
       await db
         .update(mosqueRequests)
         .set({
           programData: pData,
-          currentStage: newStage,
-          status: newStatus,
           updatedAt: new Date(),
         })
         .where(eq(mosqueRequests.id, input.requestId));
@@ -1705,9 +1830,9 @@ export const sedanaExecutionRouter = router({
           requestId: input.requestId,
           userId: ctx.user.id,
           fromStage: req.currentStage,
-          toStage: newStage,
+          toStage: req.currentStage,
           fromStatus: req.status,
-          toStatus: newStatus,
+          toStatus: req.status,
           action: "sedana_outbound_receipt_confirmed",
           notes: `تم اعتماد وتأكيد استلام أمر الإخراج ${outbounds[targetOutIndex].orderNumber} (${outbounds[targetOutIndex].disbursementVoucherCode}) إلكترونياً من قبل الإمام`,
         });
@@ -1720,7 +1845,152 @@ export const sedanaExecutionRouter = router({
         message: "تم اعتماد وتأكيد استلام أمر الإخراج وتوثيق المحضر بنجاح",
         outbound: outbounds[targetOutIndex],
         allConfirmed,
-        currentStage: newStage,
+        currentStage: req.currentStage,
+      };
+    }),
+
+  // ==========================================
+  // 5.2 جلب أوامر الإخراج المعلقة بانتظار استلام وتأكيد المستفيد/الإمام
+  // ==========================================
+  getMyPendingOutbounds: protectedProcedure
+    .query(async ({ ctx }) => {
+      // يظهر هذا الإشعار حصراً لطالب الخدمة (إمام المسجد / المستفيد) وليس للمسؤولين
+      if (ctx.user.role !== "service_requester") {
+        return [];
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const rows = await db
+        .select({
+          request: mosqueRequests,
+          mosque: mosques,
+        })
+        .from(mosqueRequests)
+        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+        .where(
+          and(
+            isNotNull(mosqueRequests.programData),
+            eq(mosqueRequests.userId, ctx.user.id)
+          )
+        );
+
+      const pendingList: any[] = [];
+
+      for (const row of rows) {
+        const req = row.request;
+        const mosque = row.mosque;
+
+        let pData: any = req.programData;
+        while (typeof pData === "string") {
+          try {
+            pData = JSON.parse(pData);
+          } catch {
+            break;
+          }
+        }
+        if (!pData || typeof pData !== "object") continue;
+
+        const outbounds = pData.sedanaExecution?.outboundOrders || [];
+        outbounds.forEach((out: any) => {
+          if (out.status === "pending_receipt") {
+            pendingList.push({
+              requestId: req.id,
+              requestNumber: req.requestNumber || String(req.id),
+              mosqueName: mosque?.name || "المسجد",
+              mosqueCity: mosque?.city || "",
+              imamName: mosque?.imamName || out.recipientName || "إمام المسجد",
+              outbound: out,
+            });
+          }
+        });
+      }
+
+      return pendingList;
+    }),
+
+  // ==========================================
+  // 5.3 رفض استلام أمر الإخراج من قبل الإمام/المستفيد مع ذكر السبب
+  // ==========================================
+  rejectOutboundReceipt: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      outboundOrderId: z.string(),
+      reason: z.string().min(3, "يرجى كتابة سبب الرفض بالتفصيل"),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [req] = await db
+        .select()
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, input.requestId))
+        .limit(1);
+
+      if (!req) throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+
+      let pData: any = req.programData;
+      while (typeof pData === "string") {
+        try {
+          pData = JSON.parse(pData);
+        } catch {
+          break;
+        }
+      }
+      pData = pData && typeof pData === "object" ? pData : {};
+      pData.sedanaExecution = pData.sedanaExecution || {};
+      const outbounds = pData.sedanaExecution.outboundOrders || [];
+      const deliveries = pData.sedanaExecution.deliveryOrders || [];
+
+      const targetOutIndex = outbounds.findIndex((o: any) => o.id === input.outboundOrderId || o.orderNumber === input.outboundOrderId);
+      if (targetOutIndex === -1) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "أمر الإخراج غير موجود" });
+      }
+
+      const rejectedAt = new Date().toISOString();
+      outbounds[targetOutIndex].status = "rejected";
+      outbounds[targetOutIndex].rejectionReason = input.reason;
+      outbounds[targetOutIndex].rejectedAt = rejectedAt;
+      outbounds[targetOutIndex].rejectedBy = ctx.user.id;
+      outbounds[targetOutIndex].rejectedByName = ctx.user.name || "إمام المسجد";
+
+      // تحديث سجل أمر التسليم المرتبط
+      const targetDelIndex = deliveries.findIndex((d: any) => d.outboundOrderId === outbounds[targetOutIndex].id || d.id === outbounds[targetOutIndex].linkedDeliveryId);
+      if (targetDelIndex !== -1) {
+        deliveries[targetDelIndex].status = "rejected";
+        deliveries[targetDelIndex].rejectionReason = input.reason;
+        deliveries[targetDelIndex].rejectedAt = rejectedAt;
+      }
+
+      await db
+        .update(mosqueRequests)
+        .set({
+          programData: pData,
+          updatedAt: new Date(),
+        })
+        .where(eq(mosqueRequests.id, input.requestId));
+
+      try {
+        await db.insert(requestHistory).values({
+          requestId: input.requestId,
+          userId: ctx.user.id,
+          fromStage: req.currentStage,
+          toStage: req.currentStage,
+          fromStatus: req.status,
+          toStatus: req.status,
+          action: "sedana_outbound_receipt_rejected",
+          notes: `تم رفض استلام أمر الإخراج ${outbounds[targetOutIndex].orderNumber} من قبل المستفيد. السبب: ${input.reason}`,
+        });
+      } catch (e) {
+        console.error("Log error:", e);
+      }
+
+      return {
+        success: true,
+        message: "تم تسجيل رفض الاستلام وتوثيق السبب بنجاح",
+        outbound: outbounds[targetOutIndex],
       };
     }),
 
@@ -1900,6 +2170,145 @@ export const sedanaExecutionRouter = router({
         mosquesServed: Array.from(mosquesServed.values()),
         totalRequests: userRequests.length,
         deliveriesHistory,
+      };
+    }),
+
+  // ==========================================
+  // 6. تسليم طلب سدانة وتحويله لمرحلة الاستلام (Handover)
+  // ==========================================
+  handoverSedanaRequest: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      confirmationWord: z.string(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      if (input.confirmationWord.trim() !== "تأكيد") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: 'يجب كتابة كلمة "تأكيد" باللغة العربية بدقة لإتمام تسليم الطلب.',
+        });
+      }
+
+      const [req] = await db
+        .select()
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, input.requestId))
+        .limit(1);
+
+      if (!req) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      if (["handover", "closed"].includes(req.currentStage)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "الطلب في مرحلة التسليم بالفعل أو تم إغلاقه مسبقاً",
+        });
+      }
+
+      // فحص نوع التأمين مع المورد وحالة الدفعات
+      let pData: any = req.programData;
+      while (typeof pData === "string") {
+        try { pData = JSON.parse(pData); } catch { break; }
+      }
+      pData = pData && typeof pData === "object" ? pData : {};
+
+      const pProc = pData.sedanaProcurement || {};
+      const supAlloc = pProc.suppliersAllocation || {};
+      const itmAlloc = pProc.itemsAllocation || {};
+      const itmSupMap = pProc.itemSupplierMap || {};
+
+      const hasSupplierInsurance = 
+        Object.values(supAlloc).some((m: any) => m === "contract" || m === "supplier_contract" || m === "purchase_order") ||
+        Object.values(itmAlloc).some((m: any) => m === "contract" || m === "supplier_contract" || m === "purchase_order") ||
+        Object.keys(itmSupMap).length > 0 ||
+        (Array.isArray(pProc.purchaseOrders) && pProc.purchaseOrders.length > 0) ||
+        !!pProc.activePurchaseOrder;
+
+      if (hasSupplierInsurance) {
+        const allDisbOrders = await db
+          .select({ id: disbursementOrders.id, status: disbursementOrders.status })
+          .from(disbursementOrders)
+          .where(eq(disbursementOrders.requestId, req.id));
+
+        const [linkedProj] = await db
+          .select({ id: projects.id })
+          .from(projects)
+          .where(eq(projects.requestId, req.id))
+          .limit(1);
+
+        let allProjectPayments: any[] = [];
+        if (linkedProj) {
+          allProjectPayments = await db
+            .select({ id: payments.id, status: payments.status })
+            .from(payments)
+            .where(eq(payments.projectId, linkedProj.id));
+        }
+
+        const totalPayments = allDisbOrders.length + allProjectPayments.length;
+        const unpaidCount = allDisbOrders.filter(d => d.status !== "executed").length + 
+                            allProjectPayments.filter(p => p.status !== "paid" && p.status !== "executed").length;
+
+        if (totalPayments === 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "لا يمكن تسليم الطلب: نوع التأمين يتضمن مورداً معتمداً ولكن لم يتم إصدار أو سداد أي أوامر صرف له بعد.",
+          });
+        }
+
+        if (unpaidCount > 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `لا يمكن تسليم الطلب: توجد ${unpaidCount} دفعة/أمر صرف بحالة غير مسددة. يجب سداد كافة المستحقات أولاً.`,
+          });
+        }
+      }
+
+      const oldStage = req.currentStage;
+      const newStage = "handover";
+
+      await db
+        .update(mosqueRequests)
+        .set({
+          currentStage: newStage,
+          updatedAt: new Date(),
+        })
+        .where(eq(mosqueRequests.id, input.requestId));
+
+      try {
+        await db.insert(requestHistory).values({
+          requestId: input.requestId,
+          userId: ctx.user.id,
+          fromStage: oldStage,
+          toStage: newStage,
+          fromStatus: req.status,
+          toStatus: req.status,
+          action: "sedana_handover_submitted",
+          notes: input.notes || `قام المستخدم (${ctx.user.name}) بتسليم طلب سدانة ونقله رسمياً إلى مرحلة التسليم (Handover) بعد كتابة كلمة التأكيد والتحقق من سداد المورد.`,
+        });
+      } catch (e) {
+        console.error("History log error:", e);
+      }
+
+      try {
+        await db.insert(requestStageTracking).values({
+          requestId: input.requestId,
+          stageCode: newStage,
+          startedAt: new Date(),
+          assignedTo: ctx.user.id,
+        });
+      } catch (e) {
+        // ignore duplicate
+      }
+
+      return {
+        success: true,
+        message: "تم تسليم الطلب ونقله إلى مرحلة التسليم بنجاح",
+        currentStage: newStage,
       };
     }),
 });

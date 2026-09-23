@@ -63,6 +63,7 @@ import {
   Hourglass,
   RotateCcw,
   BadgeCheck,
+  PackageCheck,
   Info,
   Search,
   ArrowLeft,
@@ -297,6 +298,25 @@ export default function SedanaExecutionPage() {
     onError: (err) => toast.error(err.message || "حدث خطأ أثناء اعتماد وتأكيد أمر الإخراج"),
   });
 
+  // تسليم الطلب (مرحلة الاستلام - Handover) المحمي بكلمة تأكيد
+  const [isHandoverModalOpen, setIsHandoverModalOpen] = useState(false);
+  const [confirmationWord, setConfirmationWord] = useState("");
+  const [handoverNotes, setHandoverNotes] = useState("");
+
+  const handoverMutation = trpc.sedanaExecution.handoverSedanaRequest.useMutation({
+    onSuccess: (res) => {
+      toast.success(res.message || "تم تسليم الطلب وتحويله إلى مرحلة التسليم بنجاح");
+      setIsHandoverModalOpen(false);
+      setConfirmationWord("");
+      setHandoverNotes("");
+      utils.sedanaExecution.getVirtualInventory.invalidate({ requestId });
+      utils.requests.getById.invalidate({ id: requestId });
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء تسليم الطلب");
+    },
+  });
+
   const req = data?.request;
   const mosque = data?.mosque;
   const inventoryItems = data?.inventoryItems || [];
@@ -305,6 +325,7 @@ export default function SedanaExecutionPage() {
   const inwardOrders = data?.inwardOrders || [];
   const outboundOrders = data?.outboundOrders || [];
   const deliveryOrders = data?.deliveryOrders || [];
+  const handoverValidation = (data as any)?.handoverValidation;
 
 
 
@@ -978,6 +999,7 @@ export default function SedanaExecutionPage() {
                         const availableStock = it.availableStock || 0;
                         const isStockAvailable = availableStock >= cycleQty;
                         const hasPendingConfirmation = (it.pendingConfirmationQty || 0) > 0;
+                        const hasPendingReceipt = (it.pendingReceiptQty || 0) > 0;
                         const isCompleted = (it.totalOutbound || 0) >= it.approvedQty;
 
                         return (
@@ -1048,12 +1070,21 @@ export default function SedanaExecutionPage() {
                               </div>
                             </td>
                             <td className="p-3 text-center">
-                              {it.isAllCompleted ? (
+                              {hasPendingConfirmation ? (
                                 <div className="flex flex-col items-center gap-1">
-                                  <Badge variant="outline" className="border-emerald-300 text-emerald-800 bg-emerald-50 text-[10px] font-bold gap-1">
-                                    <CheckCircle2 className="w-3 h-3" />
-                                    مكتمل الصرف ✓
+                                  <Badge variant="outline" className="border-amber-400 bg-amber-50 text-amber-900 text-[10px] font-bold gap-1 animate-pulse">
+                                    <Clock className="w-3 h-3" />
+                                    بانتظار تأكيد المسؤول
                                   </Badge>
+                                  <span className="text-[9px] text-muted-foreground">العداد متوقف مؤقتاً</span>
+                                </div>
+                              ) : hasPendingReceipt ? (
+                                <div className="flex flex-col items-center gap-1">
+                                  <Badge variant="outline" className="border-sky-400 bg-sky-50 text-sky-900 text-[10px] font-bold gap-1 animate-pulse">
+                                    <Clock className="w-3 h-3 text-sky-600" />
+                                    بانتظار استلام الإمام
+                                  </Badge>
+                                  <span className="text-[9px] text-muted-foreground">العداد يبدأ بعد تأكيد الاستلام</span>
                                 </div>
                               ) : !it.nextDueDate ? (
                                 <div className="flex flex-col items-center gap-1">
@@ -1062,14 +1093,6 @@ export default function SedanaExecutionPage() {
                                     بانتظار التوريد
                                   </Badge>
                                   <span className="text-[9px] text-muted-foreground">العداد يبدأ بعد أول توريد</span>
-                                </div>
-                              ) : hasPendingConfirmation ? (
-                                <div className="flex flex-col items-center gap-1">
-                                  <Badge variant="outline" className="border-amber-400 bg-amber-50 text-amber-900 text-[10px] font-bold gap-1 animate-pulse">
-                                    <Clock className="w-3 h-3" />
-                                    بانتظار تأكيد المسؤول
-                                  </Badge>
-                                  <span className="text-[9px] text-muted-foreground">العداد متوقف مؤقتاً</span>
                                 </div>
                               ) : countdown ? (
                                 <div className="flex flex-col items-center gap-1.5">
@@ -1242,6 +1265,88 @@ export default function SedanaExecutionPage() {
 
           {/* التبويب 3: سجلات المستودع (أوامر الإدخال وأوامر الإخراج) */}
           <TabsContent value="records" dir="rtl" className="space-y-4">
+            {/* بطاقة إجراء تسليم الطلب وملاحظة وجود مورد */}
+            <Card className="border border-border/80 shadow-2xs bg-card overflow-hidden">
+              <div className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-800">
+                      <PackageCheck className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-sm font-bold text-foreground">
+                      تسليم الطلب ونقله لمرحلة التسليم (Handover)
+                    </h3>
+                    {req?.currentStage === "handover" ? (
+                      <Badge variant="outline" className="bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 text-xs font-bold gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>الطلب في مرحلة التسليم</span>
+                      </Badge>
+                    ) : req?.currentStage === "closed" ? (
+                      <Badge variant="outline" className="bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border-slate-300 text-xs font-bold gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-600" />
+                        <span>الطلب مكتمل ومغلق</span>
+                      </Badge>
+                    ) : null}
+                  </div>
+                  
+                  {/* ملاحظة وجود مورد وحالة السداد */}
+                  <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+                    <span>
+                      {handoverValidation?.hasSupplierInsurance
+                        ? "ملاحظة التوريد: نوع التأمين معتمد مع مورد (عقد / أمر شراء)"
+                        : "ملاحظة التوريد: نوع التأمين مباشر / بدون مورد خارجي"}
+                    </span>
+                    {handoverValidation?.hasSupplierInsurance && (
+                      <>
+                        <span className="text-border">•</span>
+                        {handoverValidation?.unpaidPaymentsCount === 0 && (handoverValidation?.totalPaymentsCount ?? 0) > 0 ? (
+                          <span className="text-emerald-700 dark:text-emerald-400 font-semibold inline-flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>كافة الدفعات مسددة بنجاح ({handoverValidation.totalPaymentsCount})</span>
+                          </span>
+                        ) : (
+                          <span className="text-amber-700 dark:text-amber-400 font-semibold inline-flex items-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            <span>{handoverValidation?.blockedReason || "توجد دفعات غير مسددة"}</span>
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* زر تسليم الطلب */}
+                {req?.currentStage !== "handover" && req?.currentStage !== "closed" && (
+                  <div className="flex flex-col sm:items-end gap-1 shrink-0">
+                    <Button
+                      size="sm"
+                      disabled={!handoverValidation?.canHandover || handoverMutation.isPending}
+                      onClick={() => {
+                        setConfirmationWord("");
+                        setHandoverNotes("");
+                        setIsHandoverModalOpen(true);
+                      }}
+                      className={`h-9 px-4 text-xs font-bold gap-2 shadow-xs cursor-pointer ${
+                        handoverValidation?.canHandover
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                          : "bg-muted text-muted-foreground cursor-not-allowed border border-border opacity-70"
+                      }`}
+                      title={handoverValidation?.blockedReason || "تسليم الطلب وتحويله لمرحلة التسليم"}
+                    >
+                      <PackageCheck className="w-4 h-4" />
+                      <span>تسليم الطلب</span>
+                    </Button>
+                    {!handoverValidation?.canHandover && handoverValidation?.blockedReason && (
+                      <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1 max-w-xs text-right" dir="rtl">
+                        <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
+                        <span>{handoverValidation.blockedReason}</span>
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </Card>
+
             {/* بطاقة: سجلات أوامر الإدخال المستودعي */}
             <Card className="border border-border/80 shadow-2xs">
               <CardHeader className="p-4 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-muted/10">
@@ -1858,6 +1963,160 @@ export default function SedanaExecutionPage() {
                 className="text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white"
               >
                 {confirmReceiptMutation.isPending ? "جاري التوثيق..." : "تأكيد الاستلام الرقمي الآن"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة تأكيد تسليم الطلب المحمية بكلمة تأكيد */}
+        <Dialog open={isHandoverModalOpen} onOpenChange={setIsHandoverModalOpen}>
+          <DialogContent className="sm:max-w-md text-right font-sans" dir="rtl">
+            <DialogHeader className="text-right">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 border border-emerald-200 dark:border-emerald-800">
+                  <PackageCheck className="w-5 h-5" />
+                </div>
+                <DialogTitle className="text-lg font-bold text-foreground">
+                  تسليم الطلب ونقله لمرحلة التسليم
+                </DialogTitle>
+              </div>
+              <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                أنت على وشك اعتماد تسليم طلب سدانة لمسجد <span className="font-semibold text-foreground">{mosque?.name || "المسجد"}</span> ونقله رسمياً إلى مرحلة <span className="font-bold text-emerald-700 dark:text-emerald-400">"التسليم"</span>.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-3">
+              {/* ملخص التحقق المالي والتوريد */}
+              <div className="p-3 rounded-xl bg-muted/40 border border-border/80 space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">رقم الطلب:</span>
+                  <span className="font-bold text-foreground">#{req?.requestNumber || req?.id}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">نوع التأمين:</span>
+                  <span className="font-medium text-foreground">
+                    {handoverValidation?.hasSupplierInsurance ? "معتمد مع مورد (عقد / أمر شراء)" : "مباشر / بدون مورد خارجي"}
+                  </span>
+                </div>
+                {handoverValidation?.hasSupplierInsurance && (
+                  <div className="flex items-center justify-between pt-1 border-t border-border/60">
+                    <span className="text-muted-foreground">حالة دفعات المورد:</span>
+                    <span className={`font-bold inline-flex items-center gap-1 ${
+                      handoverValidation?.unpaidPaymentsCount === 0 && (handoverValidation?.totalPaymentsCount ?? 0) > 0
+                        ? "text-emerald-700 dark:text-emerald-400"
+                        : "text-amber-600 dark:text-amber-400"
+                    }`}>
+                      {handoverValidation?.unpaidPaymentsCount === 0 && (handoverValidation?.totalPaymentsCount ?? 0) > 0 ? (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>كافة الدفعات مسددة بنجاح ({handoverValidation.totalPaymentsCount})</span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          <span>{handoverValidation?.blockedReason || "توجد دفعات غير مسددة"}</span>
+                        </>
+                      )}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* تنبيه أمان وتأكيد */}
+              <div className="p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 space-y-2">
+                <div className="flex items-start gap-2">
+                  <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                  <div className="text-xs space-y-1">
+                    <p className="font-bold text-amber-900 dark:text-amber-200">
+                      إجراء محمي يتطلب التأكيد
+                    </p>
+                    <p className="text-amber-700 dark:text-amber-300/90 leading-relaxed">
+                      لتأكيد التسليم ومنع الإجراءات غير المقصودة، يرجى كتابة كلمة <span className="font-extrabold text-foreground underline decoration-emerald-500 underline-offset-4 select-all">تأكيد</span> في المربع أدناه:
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-1">
+                  <Input
+                    placeholder='اكتب كلمة "تأكيد" هنا...'
+                    value={confirmationWord}
+                    onChange={(e) => setConfirmationWord(e.target.value)}
+                    className="h-10 text-center font-bold text-sm tracking-wide bg-background border-amber-300 dark:border-amber-700 focus-visible:ring-emerald-500"
+                    autoFocus
+                  />
+                  {confirmationWord.trim() && confirmationWord.trim() !== "تأكيد" && (
+                    <p className="text-[11px] text-destructive mt-1 font-medium">
+                      الكلمة المدخلة غير مطابقة. يجب كتابة "تأكيد" بدقة.
+                    </p>
+                  )}
+                  {confirmationWord.trim() === "تأكيد" && (
+                    <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5" />
+                      <span>تمت كتابة كلمة التأكيد بشكل صحيح</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* ملاحظات إضافية */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-foreground">
+                  ملاحظات التسليم (اختياري):
+                </label>
+                <Textarea
+                  placeholder="أي ملاحظات أو تفاصيل إضافية حول عملية التسليم..."
+                  value={handoverNotes}
+                  onChange={(e) => setHandoverNotes(e.target.value)}
+                  className="text-xs min-h-[70px] resize-none"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsHandoverModalOpen(false);
+                  setConfirmationWord("");
+                  setHandoverNotes("");
+                }}
+                disabled={handoverMutation.isPending}
+                className="text-xs cursor-pointer"
+              >
+                إلغاء
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (confirmationWord.trim() !== "تأكيد") {
+                    toast.error('يرجى كتابة كلمة "تأكيد" بدقة لإتمام العملية');
+                    return;
+                  }
+                  handoverMutation.mutate({
+                    requestId,
+                    confirmationWord: confirmationWord.trim(),
+                    notes: handoverNotes.trim() || undefined,
+                  });
+                }}
+                disabled={
+                  confirmationWord.trim() !== "تأكيد" ||
+                  handoverMutation.isPending ||
+                  !handoverValidation?.canHandover
+                }
+                className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer gap-1.5 disabled:opacity-50"
+              >
+                {handoverMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>جاري تسليم الطلب...</span>
+                  </>
+                ) : (
+                  <>
+                    <PackageCheck className="w-4 h-4" />
+                    <span>تأكيد وتسليم الطلب الآن</span>
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -1286,7 +1286,7 @@ export const requestsRouter = router({
       }
 
       // التحقق من شروط الدفعات للانتقال لمرحلة الاستلام
-      if (input.newStage === 'handover') {
+      if (input.newStage === 'handover' && !isSedana) {
         const projectResult = await db.select({ id: projects.id }).from(projects)
           .where(eq(projects.requestId, input.requestId)).limit(1);
         if (projectResult.length > 0) {

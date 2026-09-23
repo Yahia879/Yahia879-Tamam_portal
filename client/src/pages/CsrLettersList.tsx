@@ -102,8 +102,6 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 10;
 
-  const [isExporting, setIsExporting] = useState(false);
-
   // Debounce للبحث
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -159,63 +157,6 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
-  // تصدير البيانات إلى Excel
-  const handleExportExcel = async () => {
-    try {
-      setIsExporting(true);
-      const allMatching = await utils.procurement.listCsrLetters.fetch({
-        requestId: requestId || undefined,
-        search: debouncedSearch || undefined,
-        status: statusFilter !== "all" ? statusFilter : undefined,
-        page: 1,
-        limit: 10000,
-      });
-      const exportLetters = allMatching?.letters || letters;
-      if (exportLetters.length === 0) {
-        toast.info("لا توجد بيانات لتصديرها");
-        return;
-      }
-
-      const columns = [
-        { header: "رقم الخطاب", align: "center" as const, minWidth: 18 },
-        { header: "رقم الطلب", align: "center" as const, minWidth: 14 },
-        { header: "المسجد المستفيد", align: "right" as const, minWidth: 26 },
-        { header: "المدينة", align: "center" as const, minWidth: 16 },
-        { header: "تاريخ الخطاب", align: "center" as const, minWidth: 16 },
-        { header: "الموجه إليه", align: "right" as const, minWidth: 28 },
-        { header: "المفوض بالتوقيع", align: "right" as const, minWidth: 22 },
-        { header: "عدد الأصناف", align: "center" as const, minWidth: 14 },
-        { header: "الحالة", align: "center" as const, minWidth: 18 },
-      ];
-
-      const rows = exportLetters.map((l) => [
-        l.letterNumber || "",
-        `#${l.requestNumber}`,
-        l.mosqueName || "",
-        l.mosqueCity || "",
-        l.letterDate || "",
-        `${l.salutation || "السادة"} / ${l.recipientName || ""} ${l.honorific || "المحترمون"}`,
-        l.signatoryName || "",
-        l.itemsCount || 0,
-        STATUS_MAP[l.status]?.label || l.status || "",
-      ]);
-
-      await exportStyledExcel({
-        sheetName: "خطابات المسؤولية المجتمعية",
-        columns,
-        rows,
-        fileName: `CSR_Letters_${new Date().toISOString().split("T")[0]}.xlsx`,
-      });
-
-      toast.success("تم تصدير ملف الإكسيل بنجاح");
-    } catch (e) {
-      console.error("Export error:", e);
-      toast.error("حدث خطأ أثناء تصدير الملف");
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   const orgName = orgSettings?.officialReportsName || orgSettings?.organizationName || "جمعية عمارة المساجد";
 
 
@@ -249,30 +190,6 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="text-xs font-bold gap-1.5 border-border hover:bg-muted cursor-pointer"
-            title="تحديث البيانات"
-          >
-            <RotateCcw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin text-sky-600" : ""}`} />
-            <span>تحديث</span>
-          </Button>
-          {canExport && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleExportExcel}
-              disabled={isExporting}
-              className="text-xs font-bold gap-1.5 border-border hover:bg-muted cursor-pointer"
-              title="تصدير إلى Excel"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>{isExporting ? "جاري التصدير..." : "تصدير إلى Excel"}</span>
-            </Button>
-          )}
           {canAdd && (
             <Button
               size="sm"
@@ -626,32 +543,65 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
             )}
 
             {/* عناصر التنقل بين الصفحات */}
-            {totalPages > 1 && (
-              <div className="p-3 border-t flex items-center justify-between gap-2 text-xs text-muted-foreground bg-muted/10">
-                <span>إجمالي النتائج: {total} خطاب</span>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="h-7 w-7 p-0"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                  <span className="px-2 font-bold text-foreground">
-                    صفحة {currentPage} من {totalPages}
+            {total > 0 && (
+              <div className="p-3.5 border-t flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground bg-muted/10 font-sans">
+                <div className="flex items-center gap-2">
+                  <span>
+                    عرض <span className="font-bold text-foreground">{(currentPage - 1) * limit + 1}</span> إلى{" "}
+                    <span className="font-bold text-foreground">{Math.min(currentPage * limit, total)}</span> من إجمالي{" "}
+                    <span className="font-bold text-foreground">{total}</span> خطاب مسؤولية مجتمعية
                   </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="h-7 w-7 p-0"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
                 </div>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="h-8 px-2.5 text-xs font-bold gap-1 cursor-pointer"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                      <span>السابق</span>
+                    </Button>
+
+                    <div className="flex items-center gap-1 mx-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                        .map((p, idx, arr) => {
+                          const prev = arr[idx - 1];
+                          const showEllipsis = prev && p - prev > 1;
+                          return (
+                            <div key={p} className="flex items-center gap-1">
+                              {showEllipsis && <span className="px-1 text-muted-foreground">...</span>}
+                              <Button
+                                size="sm"
+                                variant={p === currentPage ? "default" : "outline"}
+                                onClick={() => setCurrentPage(p)}
+                                className={`h-8 w-8 p-0 text-xs font-bold cursor-pointer ${
+                                  p === currentPage ? "bg-sky-600 hover:bg-sky-700 text-white" : ""
+                                }`}
+                              >
+                                {p}
+                              </Button>
+                            </div>
+                          );
+                        })}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="h-8 px-2.5 text-xs font-bold gap-1 cursor-pointer"
+                    >
+                      <span>التالي</span>
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
