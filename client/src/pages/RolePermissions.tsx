@@ -1562,6 +1562,7 @@ export default function RolePermissions() {
                               const isChecked = isPermissionGranted(perm.id);
                                const isDisabled = 
                                  (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !selectedPerms.includes("contracts.view")) ||
+                                 (perm.id.startsWith("purchase_orders.") && perm.id !== "purchase_orders.view" && !selectedPerms.includes("purchase_orders.view")) ||
                                  (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
                                  (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||
                                  (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !selectedPerms.includes("quotations.view")) ||
