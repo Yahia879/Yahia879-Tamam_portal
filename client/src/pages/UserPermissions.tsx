@@ -1133,6 +1133,7 @@ export default function UserPermissions() {
 
                             const isDisabled = 
                               (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !isChecked("contracts.view")) ||
+                              (perm.id.startsWith("purchase_orders.") && perm.id !== "purchase_orders.view" && !isChecked("purchase_orders.view")) ||
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !isChecked("mosques.view")) ||
                               (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !isChecked("suppliers.view")) ||
                               (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !isChecked("quotations.view")) ||
