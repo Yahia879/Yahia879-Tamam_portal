@@ -818,24 +818,6 @@ export default function BoardDashboard({
                                           </DropdownMenuItem>
                                         )}
 
-                                        {/* خيار إرسال تذكير بالاعتماد يظهر فقط عندما يكون أمر الصرف بانتظار الاعتماد */}
-                                        {canRemind && isNeedsApproval && (
-                                          <DropdownMenuItem
-                                            onClick={() => {
-                                              const defMsg = `نود تذكيركم بوجود أمر صرف رقم "${order.orderNumber}" بمبلغ ${Number(order.amount || 0).toLocaleString("ar-SA")} ريال بانتظار اعتمادكم الكريم.`;
-                                              setReminderModal({
-                                                open: true,
-                                                order,
-                                                isCustomizing: false,
-                                                customMessage: defMsg,
-                                              });
-                                            }}
-                                            className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 focus:bg-amber-50 dark:focus:bg-amber-950/30 transition-colors"
-                                          >
-                                            <Bell className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                                            <span>تذكير بالاعتماد</span>
-                                          </DropdownMenuItem>
-                                        )}
 
                                         {/* خيارات الاعتماد والرفض المباشر للمخولين فقط (تختفي عندما يكون الطلب معتمداً بالفعل) */}
                                         {canPerformActions && isNeedsApproval && (

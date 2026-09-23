@@ -254,6 +254,7 @@ export default function Requests({
           </div>
           {!initialAssignedToMe && (
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center">
+              {isAdmin && (
               <PermissionGuard permission="requests.create">
                 <Link href="/service-request?service=sedana">
                   <Button className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2 w-full sm:w-auto h-10 shadow-sm font-bold border-0 transition-all">
@@ -262,6 +263,7 @@ export default function Requests({
                   </Button>
                 </Link>
               </PermissionGuard>
+              )}
               {(user?.role === "quick_response" || userPermissions.includes("requests.create_quick_request")) && (
                 <>
                   <Link href="/requests/quick-create">

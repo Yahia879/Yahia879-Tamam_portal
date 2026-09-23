@@ -96,13 +96,6 @@ export default function BeneficiaryLayout({
       path: "/my-mosques",
     },
     {
-      id: "sedana",
-      label: "طلب سدانة",
-      icon: Sparkles,
-      path: "/request-form-dynamic?service=sedana",
-      isSedana: true,
-    },
-    {
       id: "new-request",
       label: "تقديم طلب جديد",
       icon: Plus,
@@ -146,18 +139,6 @@ export default function BeneficiaryLayout({
               </Link>
             </div>
 
-            {/* Quick Sedana CTA for Tablet (visible on sm to md) */}
-            <div className="hidden sm:flex md:hidden items-center">
-              <Link href="/request-form-dynamic?service=sedana">
-                <Button
-                  size="sm"
-                  className="rounded-xl shadow-xs bg-cyan-600 hover:bg-cyan-700 text-white font-bold gap-1.5 px-3 h-8 text-xs cursor-pointer border border-cyan-500/30"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-200" />
-                  <span>طلب سدانة</span>
-                </Button>
-              </Link>
-            </div>
 
             {/* Desktop Navigation Bar */}
             <nav className="hidden md:flex items-center gap-1.5 bg-muted/60 dark:bg-muted/30 p-1.5 rounded-2xl border border-border/50 dark:border-border/60">
@@ -336,12 +317,6 @@ export default function BeneficiaryLayout({
 
               {/* Primary CTAs in Drawer */}
               <div className="px-4 py-2 space-y-2">
-                <Link href="/request-form-dynamic?service=sedana" onClick={() => setMobileMenuOpen(false)}>
-                  <Button className="w-full rounded-xl shadow-md bg-cyan-600 hover:bg-cyan-700 text-white font-bold gap-2 h-10 transition-all cursor-pointer border border-cyan-500/30">
-                    <Sparkles className="w-4 h-4 text-cyan-200" />
-                    <span>طلب برنامج سدانة</span>
-                  </Button>
-                </Link>
                 <Link href="/request-form-dynamic" onClick={() => setMobileMenuOpen(false)}>
                   <Button className="w-full rounded-xl shadow-md gradient-primary text-white font-bold gap-2 h-10 hover:opacity-95 transition-all cursor-pointer">
                     <Plus className="w-4 h-4" />

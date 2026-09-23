@@ -159,15 +159,17 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
       items,
     });
 
-    const inventoryItems = [
-      { icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" },
-      { icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" },
-      { icon: Boxes, label: "المستودع الافتراضي", path: "/sedana-warehouse" },
-    ];
-    groups.push({
-      label: isEn ? "Inventory Management" : "إدارة المخزون",
-      items: inventoryItems,
-    });
+    if (["super_admin", "system_admin"].includes(role)) {
+      const inventoryItems = [
+        { icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" },
+        { icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" },
+        { icon: Boxes, label: "المستودع الافتراضي", path: "/sedana-warehouse" },
+      ];
+      groups.push({
+        label: isEn ? "Inventory Management" : "إدارة المخزون",
+        items: inventoryItems,
+      });
+    }
   }
 
   // الاستجابة السريعة
@@ -326,22 +328,24 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     });
   }
 
-  // 4. إدارة المخزون
-  const inventoryItems: MenuItem[] = [];
-  if (has("purchase_orders") || has("purchase_orders.view")) {
-    inventoryItems.push({ icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" });
-  }
-  if (has("csr_letters") || has("csr_letters.view")) {
-    inventoryItems.push({ icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" });
-  }
-  if (has("sedana_warehouse") || has("sedana_warehouse.view")) {
-    inventoryItems.push({ icon: Boxes, label: "المستودع الافتراضي", path: "/sedana-warehouse" });
-  }
-  if (inventoryItems.length > 0) {
-    groups.push({
-      label: isEn ? "Inventory Management" : "إدارة المخزون",
-      items: inventoryItems,
-    });
+  // 4. إدارة المخزون (فقط لمدراء النظام)
+  if (["super_admin", "system_admin"].includes(role)) {
+    const inventoryItems: MenuItem[] = [];
+    if (has("purchase_orders") || has("purchase_orders.view")) {
+      inventoryItems.push({ icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" });
+    }
+    if (has("csr_letters") || has("csr_letters.view")) {
+      inventoryItems.push({ icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" });
+    }
+    if (has("sedana_warehouse") || has("sedana_warehouse.view")) {
+      inventoryItems.push({ icon: Boxes, label: "المستودع الافتراضي", path: "/sedana-warehouse" });
+    }
+    if (inventoryItems.length > 0) {
+      groups.push({
+        label: isEn ? "Inventory Management" : "إدارة المخزون",
+        items: inventoryItems,
+      });
+    }
   }
 
   // 4. الاتصال المؤسسي والشركاء

@@ -495,9 +495,9 @@ export default function SedanaExecutionPage() {
               <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground">إجمالي طلبات سدانة</p>
+                    <p className="text-[11px] font-semibold text-muted-foreground">إجمالي طلبات المستودع</p>
                     <p className="text-2xl font-black text-foreground mt-0.5">{sedanaRequests.length}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">مسجلة في النظام</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">في مرحلة التنفيذ وما بعدها</p>
                   </div>
                   <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                     <Building2 className="w-5 h-5" />
@@ -510,10 +510,10 @@ export default function SedanaExecutionPage() {
                   <div>
                     <p className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
                       <span>مرحلة التشغيل والتنفيذ</span>
-                      <span className="text-[10px] bg-emerald-200/60 dark:bg-emerald-900/60 px-1.5 py-0.2 rounded font-normal">الأولوية</span>
+                      <span className="text-[10px] bg-emerald-200/60 dark:bg-emerald-900/60 px-1.5 py-0.2 rounded font-normal">نشط</span>
                     </p>
                     <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400 mt-0.5">{executionStageCount}</p>
-                    <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">جاهزة لإدارة المستودع والتسليم</p>
+                    <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">جاهزة لإدارة المستودع والإخراج</p>
                   </div>
                   <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-emerald-100 dark:bg-emerald-950 text-emerald-600 border border-emerald-200 dark:border-emerald-800">
                     <Sparkles className="w-5 h-5" />
@@ -524,12 +524,12 @@ export default function SedanaExecutionPage() {
               <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground">مراحل أخرى</p>
+                    <p className="text-[11px] font-semibold text-muted-foreground">التسليم والإغلاق</p>
                     <p className="text-2xl font-black text-foreground mt-0.5">{otherStagesCount}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">قيد التقييم أو التعاقد</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">مكتملة الصرف أو الاستلام</p>
                   </div>
-                  <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-amber-50 dark:bg-amber-950/30 text-amber-600">
-                    <Clock className="w-5 h-5" />
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-purple-50 dark:bg-purple-950/30 text-purple-600">
+                    <CheckCircle2 className="w-5 h-5" />
                   </div>
                 </CardContent>
               </Card>
@@ -580,7 +580,7 @@ export default function SedanaExecutionPage() {
                   onClick={() => setListStageFilter("others")}
                   className={`text-xs font-bold h-9 px-3 cursor-pointer ${listStageFilter === "others" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
                 >
-                  المراحل الأخرى ({otherStagesCount})
+                  التسليم والإغلاق ({otherStagesCount})
                 </Button>
               </div>
             </div>
@@ -1292,17 +1292,23 @@ export default function SedanaExecutionPage() {
                   {/* ملاحظة وجود مورد وحالة السداد */}
                   <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
                     <span>
-                      {handoverValidation?.hasSupplierInsurance
-                        ? "ملاحظة التوريد: نوع التأمين معتمد مع مورد (عقد / أمر شراء)"
+                      {handoverValidation?.hasContractInsurance
+                        ? "ملاحظة التوريد: نوع التأمين معتمد بعقد لمورد معتمد"
+                        : handoverValidation?.hasSupplierInsurance
+                        ? "ملاحظة التوريد: نوع التأمين معتمد مع مورد (أمر شراء / مساهمة مجتمعية)"
                         : "ملاحظة التوريد: نوع التأمين مباشر / بدون مورد خارجي"}
                     </span>
-                    {handoverValidation?.hasSupplierInsurance && (
+                    {(handoverValidation?.hasSupplierInsurance || handoverValidation?.hasContractInsurance) && (
                       <>
                         <span className="text-border">•</span>
-                        {handoverValidation?.unpaidPaymentsCount === 0 && (handoverValidation?.totalPaymentsCount ?? 0) > 0 ? (
+                        {handoverValidation?.canHandover ? (
                           <span className="text-emerald-700 dark:text-emerald-400 font-semibold inline-flex items-center gap-1">
                             <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>كافة الدفعات مسددة بنجاح ({handoverValidation.totalPaymentsCount})</span>
+                            <span>
+                              {handoverValidation?.hasContractInsurance && (handoverValidation?.scheduledBatchesTotal ?? 0) > 0
+                                ? `كافة الدفعات المجدولة للعقد مسددة بنجاح (${handoverValidation.scheduledBatchesPaid}/${handoverValidation.scheduledBatchesTotal})`
+                                : `كافة الدفعات مسددة بنجاح (${handoverValidation.totalPaymentsCount})`}
+                            </span>
                           </span>
                         ) : (
                           <span className="text-amber-700 dark:text-amber-400 font-semibold inline-flex items-center gap-1">
@@ -1995,21 +2001,29 @@ export default function SedanaExecutionPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">نوع التأمين:</span>
                   <span className="font-medium text-foreground">
-                    {handoverValidation?.hasSupplierInsurance ? "معتمد مع مورد (عقد / أمر شراء)" : "مباشر / بدون مورد خارجي"}
+                    {handoverValidation?.hasContractInsurance
+                      ? "معتمد بعقد لمورد معتمد"
+                      : handoverValidation?.hasSupplierInsurance
+                      ? "معتمد مع مورد (أمر شراء / مساهمة مجتمعية)"
+                      : "مباشر / بدون مورد خارجي"}
                   </span>
                 </div>
-                {handoverValidation?.hasSupplierInsurance && (
+                {(handoverValidation?.hasSupplierInsurance || handoverValidation?.hasContractInsurance) && (
                   <div className="flex items-center justify-between pt-1 border-t border-border/60">
                     <span className="text-muted-foreground">حالة دفعات المورد:</span>
                     <span className={`font-bold inline-flex items-center gap-1 ${
-                      handoverValidation?.unpaidPaymentsCount === 0 && (handoverValidation?.totalPaymentsCount ?? 0) > 0
+                      handoverValidation?.canHandover
                         ? "text-emerald-700 dark:text-emerald-400"
                         : "text-amber-600 dark:text-amber-400"
                     }`}>
-                      {handoverValidation?.unpaidPaymentsCount === 0 && (handoverValidation?.totalPaymentsCount ?? 0) > 0 ? (
+                      {handoverValidation?.canHandover ? (
                         <>
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>كافة الدفعات مسددة بنجاح ({handoverValidation.totalPaymentsCount})</span>
+                          <span>
+                            {handoverValidation?.hasContractInsurance && (handoverValidation?.scheduledBatchesTotal ?? 0) > 0
+                              ? `كافة الدفعات المجدولة للعقد مسددة بنجاح (${handoverValidation.scheduledBatchesPaid}/${handoverValidation.scheduledBatchesTotal})`
+                              : `كافة الدفعات مسددة بنجاح (${handoverValidation.totalPaymentsCount})`}
+                          </span>
                         </>
                       ) : (
                         <>

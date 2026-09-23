@@ -779,23 +779,6 @@ export default function DisbursementOrders() {
                                           </DropdownMenuItem>
                                         )}
 
-                                        {canRemind && (order.status === "pending" || order.status === "pending_executive" || order.status === "draft" || order.status === "edited") && (
-                                          <DropdownMenuItem
-                                            onClick={() => {
-                                              const defMsg = `نود تذكيركم بوجود أمر صرف رقم "${order.orderNumber}" بمبلغ ${Number(order.amount || 0).toLocaleString("ar-SA")} ريال بانتظار اعتمادكم الكريم.`;
-                                              setReminderModal({
-                                                open: true,
-                                                order,
-                                                isCustomizing: false,
-                                                customMessage: defMsg,
-                                              });
-                                            }}
-                                            className="flex items-center gap-2 cursor-pointer text-amber-700 hover:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-semibold"
-                                          >
-                                            <Bell className="h-4 w-4 text-amber-600" />
-                                            <span>تذكير بالاعتماد</span>
-                                          </DropdownMenuItem>
-                                        )}
 
                                         <DropdownMenuItem
                                           onClick={() => {
@@ -1049,23 +1032,6 @@ export default function DisbursementOrders() {
                                         </DropdownMenuItem>
                                       )}
 
-                                      {canRemind && (order.status === "pending" || order.status === "pending_executive" || order.status === "draft" || order.status === "edited") && (
-                                        <DropdownMenuItem
-                                          onClick={() => {
-                                            const defMsg = `نود تذكيركم بوجود أمر صرف رقم "${order.orderNumber}" بمبلغ ${Number(order.amount || 0).toLocaleString("ar-SA")} ريال بانتظار اعتمادكم الكريم.`;
-                                            setReminderModal({
-                                              open: true,
-                                              order,
-                                              isCustomizing: false,
-                                              customMessage: defMsg,
-                                            });
-                                          }}
-                                          className="flex items-center gap-2 cursor-pointer text-amber-700 hover:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-semibold"
-                                        >
-                                          <Bell className="h-4 w-4 text-amber-600" />
-                                          <span>تذكير بالاعتماد</span>
-                                        </DropdownMenuItem>
-                                      )}
 
                                       <DropdownMenuItem
                                         onClick={() => {

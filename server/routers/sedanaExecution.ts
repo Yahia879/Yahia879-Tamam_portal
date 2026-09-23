@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
-import { mosqueRequests, mosques, users, quantitySchedules, requestHistory, requestStageTracking, disbursementOrders, projects, payments } from "../../drizzle/schema";
+import { mosqueRequests, mosques, users, quantitySchedules, requestHistory, requestStageTracking, disbursementOrders, projects, payments, contractsEnhanced, contractPayments } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNotNull, inArray, or } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -41,6 +41,12 @@ export const sedanaExecutionRouter = router({
 
         const isSedana = req.programType === "sedana" || pData.isSedana || pData.sedanaProcurement || pData.basketItems;
         if (!isSedana) continue;
+
+        // يظهر المستودع أول ما يصل الطلب لمرحلة "التنفيذ" أو بعد هذه المرحلة (التنفيذ، التسليم، مغلق)
+        const allowedExecutionStages = ["execution", "handover", "closed"];
+        if (!allowedExecutionStages.includes(req.currentStage)) {
+          continue;
+        }
 
         const sedanaProc = pData.sedanaProcurement || {};
         const executionData = pData.sedanaExecution || {};
@@ -781,10 +787,17 @@ export const sedanaExecutionRouter = router({
       const itmAlloc = pProc.itemsAllocation || {};
       const itmSupMap = pProc.itemSupplierMap || {};
 
-      // هل نوع التأمين معاه مورد؟
+      // هل نوع التأمين يتضمن عقداً لمورد معتمد؟
+      const hasContractInsurance =
+        Object.values(supAlloc).some((m: any) => m === "contract" || m === "supplier_contract") ||
+        Object.values(itmAlloc).some((m: any) => m === "contract" || m === "supplier_contract") ||
+        Object.values(itmSupMap).some((s: any) => s === "contract" || s?.insuranceType === "contract" || s?.type === "contract");
+
+      // هل نوع التأمين معاه مورد بشكل عام؟
       const hasSupplierInsurance = 
-        Object.values(supAlloc).some((m: any) => m === "contract" || m === "supplier_contract" || m === "purchase_order") ||
-        Object.values(itmAlloc).some((m: any) => m === "contract" || m === "supplier_contract" || m === "purchase_order") ||
+        hasContractInsurance ||
+        Object.values(supAlloc).some((m: any) => m === "purchase_order") ||
+        Object.values(itmAlloc).some((m: any) => m === "purchase_order") ||
         Object.keys(itmSupMap).length > 0 ||
         (Array.isArray(pProc.purchaseOrders) && pProc.purchaseOrders.length > 0) ||
         !!pProc.activePurchaseOrder;
@@ -821,12 +834,112 @@ export const sedanaExecutionRouter = router({
           .where(eq(payments.projectId, linkedProj.id));
       }
 
-      // حساب الدفعات غير المسددة
+      // 3. فحص العقود والدفعات المجدولة للعقد إن وجدت
+      const contractConditions = [eq(contractsEnhanced.requestId, req.id)];
+      if (linkedProj?.id) {
+        contractConditions.push(eq(contractsEnhanced.projectId, linkedProj.id));
+      }
+      const reqContracts = await db
+        .select({
+          id: contractsEnhanced.id,
+          contractNumber: contractsEnhanced.contractNumber,
+          status: contractsEnhanced.status,
+          paymentScheduleJson: contractsEnhanced.paymentScheduleJson,
+          contractAmount: contractsEnhanced.contractAmount,
+          secondPartyName: contractsEnhanced.secondPartyName,
+        })
+        .from(contractsEnhanced)
+        .where(or(...contractConditions));
+
+      let allContractPayments: any[] = [];
+      if (reqContracts.length > 0) {
+        const contractIds = reqContracts.map(c => c.id);
+        allContractPayments = await db
+          .select({
+            id: contractPayments.id,
+            contractId: contractPayments.contractId,
+            phaseName: contractPayments.phaseName,
+            status: contractPayments.status,
+            amount: contractPayments.amount,
+          })
+          .from(contractPayments)
+          .where(inArray(contractPayments.contractId, contractIds));
+      }
+
+      // حساب الدفعات المجدولة في العقود
+      let scheduledBatchesTotal = 0;
+      let scheduledBatchesUnpaid = 0;
+      let scheduledBatchesPaid = 0;
+
+      for (const contract of reqContracts) {
+        let schedule: any[] = [];
+        if (contract.paymentScheduleJson) {
+          try {
+            let parsed: any = contract.paymentScheduleJson;
+            while (typeof parsed === "string") {
+              try { parsed = JSON.parse(parsed); } catch { break; }
+            }
+            if (Array.isArray(parsed)) {
+              schedule = parsed;
+            } else if (parsed && typeof parsed === "object") {
+              if (Array.isArray(parsed.batches)) schedule = parsed.batches;
+              else if (Array.isArray(parsed.payments)) schedule = parsed.payments;
+              else if (Array.isArray(parsed.schedule)) schedule = parsed.schedule;
+            }
+          } catch (e) {}
+        }
+
+        const cpsForContract = allContractPayments.filter(cp => cp.contractId === contract.id);
+
+        if (schedule.length > 0) {
+          for (let idx = 0; idx < schedule.length; idx++) {
+            const batch = schedule[idx];
+            scheduledBatchesTotal++;
+            const isPaidStatus = 
+              batch.status === "paid" || 
+              batch.status === "executed" || 
+              batch.isPaid === true || 
+              !!batch.paidAt;
+            
+            const matchingCp = cpsForContract.find((cp: any) => 
+              batch.id === `cp-${cp.id}` || 
+              batch.id === cp.id || 
+              idx === cp.phaseOrder || 
+              batch.name === cp.phaseName
+            );
+            const isCpPaid = matchingCp && matchingCp.status === "paid";
+
+            const matchingProjPayment = allProjectPayments.find((p: any) =>
+              (batch.id && (`manual-${p.id}` === batch.id || String(p.id) === String(batch.id))) ||
+              (p.paymentNumber && batch.id && String(batch.id).includes(p.paymentNumber)) ||
+              (p.description && batch.name && (p.description === batch.name || p.description.includes(batch.name)))
+            );
+            const isProjPaymentPaid = matchingProjPayment && (matchingProjPayment.status === "paid" || matchingProjPayment.status === "executed");
+
+            if (isPaidStatus || isCpPaid || isProjPaymentPaid) {
+              scheduledBatchesPaid++;
+            } else {
+              scheduledBatchesUnpaid++;
+            }
+          }
+        } else if (cpsForContract.length > 0) {
+          for (const cp of cpsForContract) {
+            scheduledBatchesTotal++;
+            if (cp.status === "paid") {
+              scheduledBatchesPaid++;
+            } else {
+              scheduledBatchesUnpaid++;
+            }
+          }
+        }
+      }
+
+      // حساب الدفعات غير المسددة العامة
       const unpaidDisbOrders = allDisbOrders.filter(d => d.status !== "executed");
       const unpaidProjPayments = allProjectPayments.filter(p => p.status !== "paid" && p.status !== "executed");
       
-      const totalPaymentsCount = allDisbOrders.length + allProjectPayments.length;
-      const unpaidPaymentsCount = unpaidDisbOrders.length + unpaidProjPayments.length;
+      const totalPaymentsCount = allDisbOrders.length + allProjectPayments.length + scheduledBatchesTotal;
+      const unpaidPaymentsCount = unpaidDisbOrders.length + unpaidProjPayments.length + scheduledBatchesUnpaid;
       const paidPaymentsCount = totalPaymentsCount - unpaidPaymentsCount;
 
       const isAlreadyHandoverOrClosed = ["handover", "closed"].includes(req.currentStage);
@@ -837,11 +950,22 @@ export const sedanaExecutionRouter = router({
       if (isAlreadyHandoverOrClosed) {
         canHandover = false;
         blockedReason = req.currentStage === "closed" ? "الطلب مكتمل ومغلق بالفعل" : "الطلب تم تحويله لمرحلة التسليم بالفعل";
-      } else if (hasSupplierInsurance) {
-        if (totalPaymentsCount === 0) {
+      } else if (hasContractInsurance) {
+        if (reqContracts.length === 0) {
           canHandover = false;
-          blockedReason = "نوع التأمين يتضمن مورداً معتمداً، ولكن لم يتم إصدار أو سداد أي أوامر صرف للمورد بعد (يجب سداد جميع الدفعات أولاً).";
+          blockedReason = "تم تحديد نوع التأمين لـ مورد أو أكثر بعقد في مرحلة اعتماد نوع التأمين، ولكن لم يتم إنشاء العقد وجدولة الدفعات وسدادها بعد. يجب سداد كافة الدفعات المجدولة أولاً.";
+        } else if (scheduledBatchesTotal === 0 && totalPaymentsCount === 0) {
+          canHandover = false;
+          blockedReason = "تم تحديد نوع التأمين لـ مورد أو أكثر بعقد، ولكن لا توجد دفعات مجدولة مسددة في العقد. يجب جدولة وسداد كافة الدفعات المجدولة أولاً.";
+        } else if (scheduledBatchesUnpaid > 0) {
+          canHandover = false;
+          blockedReason = `لا يمكن تسليم الطلب: تم تحديد نوع التأمين لـ مورد أو أكثر بعقد في مرحلة اعتماد نوع التأمين، ويوجد ${scheduledBatchesUnpaid} دفعة مجدولة في عقدهم بحالة غير مسددة. يجب سداد كافة الدفعات المجدولة أولاً.`;
         } else if (unpaidPaymentsCount > 0) {
+          canHandover = false;
+          blockedReason = `لا يمكن تسليم الطلب: توجد ${unpaidPaymentsCount} دفعة/أمر صرف لم يتم سدادها بعد (حالتها غير مسددة). يجب سداد كافة المستحقات قبل تسليم الطلب.`;
+        }
+      } else if (hasSupplierInsurance) {
+        if (unpaidPaymentsCount > 0) {
           canHandover = false;
           blockedReason = `لا يمكن تسليم الطلب لوجود ${unpaidPaymentsCount} دفعة/أمر صرف لم يتم سدادها بعد (حالتها غير مسددة). يجب سداد كافة الدفعات قبل تسليم الطلب.`;
         }
@@ -849,7 +973,12 @@ export const sedanaExecutionRouter = router({
 
       const handoverValidation = {
         hasSupplierInsurance,
-        hasUnpaidPayments: unpaidPaymentsCount > 0 || (hasSupplierInsurance && totalPaymentsCount === 0),
+        hasContractInsurance,
+        contractCount: reqContracts.length,
+        scheduledBatchesTotal,
+        scheduledBatchesUnpaid,
+        scheduledBatchesPaid,
+        hasUnpaidPayments: unpaidPaymentsCount > 0 || (hasContractInsurance && (reqContracts.length === 0 || scheduledBatchesUnpaid > 0)),
         canHandover,
         blockedReason,
         totalPaymentsCount,
@@ -2222,14 +2351,21 @@ export const sedanaExecutionRouter = router({
       const itmAlloc = pProc.itemsAllocation || {};
       const itmSupMap = pProc.itemSupplierMap || {};
 
+      // هل نوع التأمين يتضمن عقداً لمورد معتمد؟
+      const hasContractInsurance =
+        Object.values(supAlloc).some((m: any) => m === "contract" || m === "supplier_contract") ||
+        Object.values(itmAlloc).some((m: any) => m === "contract" || m === "supplier_contract") ||
+        Object.values(itmSupMap).some((s: any) => s === "contract" || s?.insuranceType === "contract" || s?.type === "contract");
+
       const hasSupplierInsurance = 
-        Object.values(supAlloc).some((m: any) => m === "contract" || m === "supplier_contract" || m === "purchase_order") ||
-        Object.values(itmAlloc).some((m: any) => m === "contract" || m === "supplier_contract" || m === "purchase_order") ||
+        hasContractInsurance ||
+        Object.values(supAlloc).some((m: any) => m === "purchase_order") ||
+        Object.values(itmAlloc).some((m: any) => m === "purchase_order") ||
         Object.keys(itmSupMap).length > 0 ||
         (Array.isArray(pProc.purchaseOrders) && pProc.purchaseOrders.length > 0) ||
         !!pProc.activePurchaseOrder;
 
-      if (hasSupplierInsurance) {
+      if (hasSupplierInsurance || hasContractInsurance) {
         const allDisbOrders = await db
           .select({ id: disbursementOrders.id, status: disbursementOrders.status })
           .from(disbursementOrders)
@@ -2249,22 +2385,133 @@ export const sedanaExecutionRouter = router({
             .where(eq(payments.projectId, linkedProj.id));
         }
 
-        const totalPayments = allDisbOrders.length + allProjectPayments.length;
-        const unpaidCount = allDisbOrders.filter(d => d.status !== "executed").length + 
-                            allProjectPayments.filter(p => p.status !== "paid" && p.status !== "executed").length;
+        // فحص العقود والدفعات المجدولة للعقد
+        const contractConditions = [eq(contractsEnhanced.requestId, req.id)];
+        if (linkedProj?.id) {
+          contractConditions.push(eq(contractsEnhanced.projectId, linkedProj.id));
+        }
+        const reqContracts = await db
+          .select({
+            id: contractsEnhanced.id,
+            status: contractsEnhanced.status,
+            paymentScheduleJson: contractsEnhanced.paymentScheduleJson,
+          })
+          .from(contractsEnhanced)
+          .where(or(...contractConditions));
 
-        if (totalPayments === 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "لا يمكن تسليم الطلب: نوع التأمين يتضمن مورداً معتمداً ولكن لم يتم إصدار أو سداد أي أوامر صرف له بعد.",
-          });
+        let allContractPayments: any[] = [];
+        if (reqContracts.length > 0) {
+          const contractIds = reqContracts.map(c => c.id);
+          allContractPayments = await db
+            .select({
+              id: contractPayments.id,
+              contractId: contractPayments.contractId,
+              phaseName: contractPayments.phaseName,
+              status: contractPayments.status,
+            })
+            .from(contractPayments)
+            .where(inArray(contractPayments.contractId, contractIds));
         }
 
-        if (unpaidCount > 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `لا يمكن تسليم الطلب: توجد ${unpaidCount} دفعة/أمر صرف بحالة غير مسددة. يجب سداد كافة المستحقات أولاً.`,
-          });
+        let scheduledBatchesTotal = 0;
+        let scheduledBatchesUnpaid = 0;
+
+        for (const contract of reqContracts) {
+          let schedule: any[] = [];
+          if (contract.paymentScheduleJson) {
+            try {
+              let parsed: any = contract.paymentScheduleJson;
+              while (typeof parsed === "string") {
+                try { parsed = JSON.parse(parsed); } catch { break; }
+              }
+              if (Array.isArray(parsed)) {
+                schedule = parsed;
+              } else if (parsed && typeof parsed === "object") {
+                if (Array.isArray(parsed.batches)) schedule = parsed.batches;
+                else if (Array.isArray(parsed.payments)) schedule = parsed.payments;
+                else if (Array.isArray(parsed.schedule)) schedule = parsed.schedule;
+              }
+            } catch (e) {}
+          }
+
+          const cpsForContract = allContractPayments.filter(cp => cp.contractId === contract.id);
+
+          if (schedule.length > 0) {
+            for (let idx = 0; idx < schedule.length; idx++) {
+              const batch = schedule[idx];
+              scheduledBatchesTotal++;
+              const isPaidStatus = 
+                batch.status === "paid" || 
+                batch.status === "executed" || 
+                batch.isPaid === true || 
+                !!batch.paidAt;
+              
+              const matchingCp = cpsForContract.find((cp: any) => 
+                batch.id === `cp-${cp.id}` || 
+                batch.id === cp.id || 
+                idx === cp.phaseOrder || 
+                batch.name === cp.phaseName
+              );
+              const isCpPaid = matchingCp && matchingCp.status === "paid";
+
+              const matchingProjPayment = allProjectPayments.find((p: any) =>
+                (batch.id && (`manual-${p.id}` === batch.id || String(p.id) === String(batch.id))) ||
+                (p.paymentNumber && batch.id && String(batch.id).includes(p.paymentNumber)) ||
+                (p.description && batch.name && (p.description === batch.name || p.description.includes(batch.name)))
+              );
+              const isProjPaymentPaid = matchingProjPayment && (matchingProjPayment.status === "paid" || matchingProjPayment.status === "executed");
+
+              if (!isPaidStatus && !isCpPaid && !isProjPaymentPaid) {
+                scheduledBatchesUnpaid++;
+              }
+            }
+          } else if (cpsForContract.length > 0) {
+            for (const cp of cpsForContract) {
+              scheduledBatchesTotal++;
+              if (cp.status !== "paid") {
+                scheduledBatchesUnpaid++;
+              }
+            }
+          }
+        }
+
+        const totalPayments = allDisbOrders.length + allProjectPayments.length + scheduledBatchesTotal;
+        const unpaidCount = allDisbOrders.filter(d => d.status !== "executed").length + 
+                            allProjectPayments.filter(p => p.status !== "paid" && p.status !== "executed").length +
+                            scheduledBatchesUnpaid;
+
+        if (hasContractInsurance) {
+          if (reqContracts.length === 0) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "لا يمكن تسليم الطلب: تم تحديد نوع التأمين لـ مورد أو أكثر بعقد في مرحلة اعتماد نوع التأمين، ولكن لم يتم تحرير العقد وجدولة وسداد الدفعات بعد.",
+            });
+          }
+          if (scheduledBatchesTotal === 0 && totalPayments === 0) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "لا يمكن تسليم الطلب: تم تحديد نوع التأمين لـ مورد أو أكثر بعقد، ولكن لا توجد دفعات مجدولة مسددة في العقد.",
+            });
+          }
+          if (scheduledBatchesUnpaid > 0) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `لا يمكن تسليم الطلب: تم تحديد نوع التأمين لـ مورد أو أكثر بعقد في مرحلة اعتماد نوع التأمين، وتوجد ${scheduledBatchesUnpaid} دفعة مجدولة في عقدهم بحالة غير مسددة. يجب سداد كافة الدفعات المجدولة أولاً.`,
+            });
+          }
+          if (unpaidCount > 0) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `لا يمكن تسليم الطلب: توجد ${unpaidCount} مستحقات/أوامر صرف بحالة غير مسددة. يجب سداد كافة الدفعات أولاً.`,
+            });
+          }
+        } else if (hasSupplierInsurance) {
+          if (unpaidCount > 0) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `لا يمكن تسليم الطلب: توجد ${unpaidCount} دفعة/أمر صرف بحالة غير مسددة. يجب سداد كافة المستحقات أولاً.`,
+            });
+          }
         }
       }
 
