@@ -760,8 +760,7 @@ export default function RolePermissions() {
             { id: "csr_letters.add", nameAr: "إنشاء خطاب مسؤولية مجتمعية جديد" },
             { id: "csr_letters.approve", nameAr: "اعتماد خطابات المسؤولية المجتمعية" },
             { id: "csr_letters.create_disbursement", nameAr: "إنشاء أمر صرف للخطاب" },
-            { id: "csr_letters.print", nameAr: "معاينة وطباعة الخطاب الرسمي" },
-            { id: "csr_letters.export", nameAr: "تصدير الخطابات إكسيل" },
+              { id: "csr_letters.export", nameAr: "تصدير الخطابات إكسيل" },
           ]
         },
         {
@@ -969,8 +968,7 @@ export default function RolePermissions() {
             { id: "csr_letters.add", nameAr: "إنشاء خطاب مسؤولية مجتمعية جديد" },
             { id: "csr_letters.approve", nameAr: "اعتماد خطابات المسؤولية المجتمعية" },
             { id: "csr_letters.create_disbursement", nameAr: "إنشاء أمر صرف للخطاب" },
-            { id: "csr_letters.print", nameAr: "معاينة وطباعة الخطاب الرسمي" },
-            { id: "csr_letters.export", nameAr: "تصدير الخطابات إكسيل" },
+              { id: "csr_letters.export", nameAr: "تصدير الخطابات إكسيل" },
           ]
         },
         {
@@ -1035,7 +1033,7 @@ export default function RolePermissions() {
       title: "إدارة المخزون",
       modules: [
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
-        { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "print", "export"] },
+        { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound", "confirm_receipt", "print", "export"] },
       ]
     },
@@ -1107,7 +1105,7 @@ export default function RolePermissions() {
       title: "إدارة المخزون",
       modules: [
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
-        { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "print", "export"] },
+        { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound", "confirm_receipt", "print", "export"] },
       ]
     },
@@ -1304,7 +1302,6 @@ export default function RolePermissions() {
         add: "إنشاء خطاب مسؤولية مجتمعية جديد",
         approve: "اعتماد خطابات المسؤولية المجتمعية",
         create_disbursement: "إنشاء أمر صرف للخطاب",
-        print: "معاينة وطباعة الخطاب الرسمي",
         export: "تصدير الخطابات إكسيل",
       },
       sedana_warehouse: {
