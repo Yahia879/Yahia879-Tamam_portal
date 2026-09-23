@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,6 +90,12 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
   }
   const { user } = useAuth();
   const [, navigate] = useLocation();
+
+  const canAdd = usePermission("csr_letters.add");
+  const canApprove = usePermission("csr_letters.approve");
+  const canCreateDisbursement = usePermission("csr_letters.create_disbursement");
+  const canPrint = usePermission("csr_letters.print");
+  const canExport = usePermission("csr_letters.export");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -254,20 +261,35 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
             <RotateCcw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin text-sky-600" : ""}`} />
             <span>تحديث</span>
           </Button>
-          <Button
-            size="sm"
-            onClick={() => {
-              const qParts = [];
-              if (requestId) qParts.push(`requestId=${requestId}`);
-              if (projectId) qParts.push(`projectId=${projectId}`);
-              const qStr = qParts.length > 0 ? `?${qParts.join("&")}` : "";
-              navigate(`/csr-letters/new${qStr}`);
-            }}
-            className="text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>إضافة خطاب مسؤولية مجتمعية جديد</span>
-          </Button>
+          {canExport && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExportExcel}
+              disabled={isExporting}
+              className="text-xs font-bold gap-1.5 border-border hover:bg-muted cursor-pointer"
+              title="تصدير إلى Excel"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>{isExporting ? "جاري التصدير..." : "تصدير إلى Excel"}</span>
+            </Button>
+          )}
+          {canAdd && (
+            <Button
+              size="sm"
+              onClick={() => {
+                const qParts = [];
+                if (requestId) qParts.push(`requestId=${requestId}`);
+                if (projectId) qParts.push(`projectId=${projectId}`);
+                const qStr = qParts.length > 0 ? `?${qParts.join("&")}` : "";
+                navigate(`/csr-letters/new${qStr}`);
+              }}
+              className="text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>إضافة خطاب مسؤولية مجتمعية جديد</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -524,13 +546,15 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-56 text-right font-sans">
                                 {/* معاينة وطباعة الخطاب الرسمي */}
-                                <DropdownMenuItem
-                                  onClick={() => navigate(`/requests/${letter.requestId}/csr-letter?letterNumber=${encodeURIComponent(letter.letterNumber)}`)}
-                                  className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs"
-                                >
-                                  <Eye className="w-4 h-4 text-sky-600 shrink-0" />
-                                  <span>معاينة وطباعة الخطاب الرسمي</span>
-                                </DropdownMenuItem>
+                                {canPrint && (
+                                  <DropdownMenuItem
+                                    onClick={() => navigate(`/requests/${letter.requestId}/csr-letter?letterNumber=${encodeURIComponent(letter.letterNumber)}`)}
+                                    className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs"
+                                  >
+                                    <Eye className="w-4 h-4 text-sky-600 shrink-0" />
+                                    <span>معاينة وطباعة الخطاب الرسمي</span>
+                                  </DropdownMenuItem>
+                                )}
 
                                 {/* استعراض الأصناف المطلوبة */}
                                 <DropdownMenuItem
@@ -542,7 +566,7 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
                                 </DropdownMenuItem>
 
                                 {/* اعتماد خطاب المسؤولية المجتمعية فورياً إن كان مسودة */}
-                                {letter.status === "draft" && (
+                                {canApprove && letter.status === "draft" && (
                                   <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
@@ -562,7 +586,7 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
                                 )}
 
                                 {/* إنشاء أمر صرف لخطاب المسؤولية المجتمعية المعتمد */}
-                                {letter.status === "approved" && !letter.disbursementOrder && (
+                                {canCreateDisbursement && letter.status === "approved" && !letter.disbursementOrder && (
                                   <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
