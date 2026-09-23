@@ -159,9 +159,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/purchase-orders/new": ["purchase_orders.add", "purchase_orders"],
   "/csr-letters": ["csr_letters.view", "csr_letters"],
   "/csr-letters/new": ["csr_letters.add", "csr_letters"],
-  "/requests/:id/new-csr-letter": ["csr_letters.add", "csr_letters"],
-  "/requests/:id/csr-letter": ["csr_letters.view", "csr_letters"],
-  "/requests/:id/sedana-csr": ["csr_letters.view", "csr_letters"],
   "/sedana-warehouse": ["sedana_warehouse.view", "sedana_warehouse"],
   "/sedana-warehouse/inward/new": ["sedana_warehouse.inward", "sedana_warehouse"],
   "/sedana-warehouse/outbound/new": ["sedana_warehouse.outbound", "sedana_warehouse"],
@@ -328,13 +325,20 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
 
   // معاينة وطباعة أمر الشراء
   { pattern: /^\/requests\/\d+\/purchase-order$/, permission: ["purchase_orders.view", "purchase_orders"] },
+  { pattern: /^\/requests\/\d+\/sedana-po$/, permission: ["purchase_orders.view", "purchase_orders"] },
+  { pattern: /^\/requests\/\d+\/new-purchase-order$/, permission: ["purchase_orders.add", "purchase_orders"] },
+
+  // خطابات المسؤولية المجتمعية
+  { pattern: /^\/requests\/\d+\/csr-letter$/, permission: ["csr_letters.view", "csr_letters"] },
+  { pattern: /^\/requests\/\d+\/sedana-csr$/, permission: ["csr_letters.view", "csr_letters"] },
+  { pattern: /^\/requests\/\d+\/new-csr-letter$/, permission: ["csr_letters.add", "csr_letters"] },
 
   // المستودع الافتراضي وتنفيذ سدانة
   { pattern: /^\/requests\/\d+\/sedana-execution$/, permission: ["sedana_warehouse.view", "sedana_warehouse"] },
   { pattern: /^\/requests\/\d+\/sedana-inward\/new$/, permission: ["sedana_warehouse.inward", "sedana_warehouse"] },
   { pattern: /^\/requests\/\d+\/sedana-outbound\/new$/, permission: ["sedana_warehouse.outbound", "sedana_warehouse"] },
-  { pattern: /^\/requests\/\d+\/sedana-delivery$/, permission: ["sedana_warehouse.print", "sedana_warehouse.view", "sedana_warehouse"] },
-  { pattern: /^\/requests\/\d+\/delivery-order$/, permission: ["sedana_warehouse.print", "sedana_warehouse.view", "sedana_warehouse"] },
+  { pattern: /^\/requests\/\d+\/sedana-delivery$/, permission: ["sedana_warehouse.view", "sedana_warehouse"] },
+  { pattern: /^\/requests\/\d+\/delivery-order$/, permission: ["sedana_warehouse.view", "sedana_warehouse"] },
 
   // التقارير الختامية
   { pattern: /^\/final-report\/\d+$/, permission: ["projects", "requests.view_details"] },
