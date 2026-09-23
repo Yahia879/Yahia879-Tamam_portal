@@ -79,6 +79,245 @@ async function generateDisbursementOrderNumber(db: NonNullable<Awaited<ReturnTyp
   return `${prefix}${sequence.toString().padStart(4, "0")}`;
 }
 
+// تحويل طلب صرف معتمد تلقائياً إلى أمر صرف
+export async function autoCreateDisbursementOrderFromRequest(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  requestId: number,
+  currentUserId?: number | null
+): Promise<{ id: number; orderNumber: string } | null> {
+  const [request] = await db
+    .select()
+    .from(disbursementRequests)
+    .where(eq(disbursementRequests.id, requestId));
+
+  if (!request) return null;
+
+  // التحقق من وجود أمر صرف سابق
+  const [existingOrder] = await db
+    .select()
+    .from(disbursementOrders)
+    .where(eq(disbursementOrders.disbursementRequestId, requestId));
+
+  if (existingOrder) {
+    if (existingOrder.status === "rejected") {
+      await db
+        .update(disbursementOrders)
+        .set({
+          amount: request.amount,
+          status: "edited" as any,
+          rejectedBy: null,
+          rejectedAt: null,
+          rejectionReason: null,
+          rejectedRole: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(disbursementOrders.id, existingOrder.id));
+    }
+    return { id: existingOrder.id, orderNumber: existingOrder.orderNumber };
+  }
+
+  // استخراج بيانات المورد المخصص من المرفقات إن وجد
+  let customSupplier: any = null;
+  if (request.attachmentsJson) {
+    try {
+      const attachments = typeof request.attachmentsJson === "string"
+        ? JSON.parse(request.attachmentsJson)
+        : request.attachmentsJson;
+      if (Array.isArray(attachments)) {
+        const infoAttachment = attachments.find((a: any) => a.name === "custom_supplier_info");
+        if (infoAttachment && infoAttachment.url) {
+          customSupplier = typeof infoAttachment.url === "string"
+            ? JSON.parse(infoAttachment.url)
+            : infoAttachment.url;
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing custom supplier for auto order creation:", e);
+    }
+  }
+
+  // جلب بيانات العقد المرتبط إن وجد
+  let contract: any = null;
+  if (request.contractId) {
+    const [c] = await db
+      .select()
+      .from(contractsEnhanced)
+      .where(eq(contractsEnhanced.id, request.contractId))
+      .limit(1);
+    contract = c;
+  }
+
+  if (!contract && request.projectId) {
+    const [c] = await db
+      .select()
+      .from(contractsEnhanced)
+      .where(
+        and(
+          eq(contractsEnhanced.projectId, request.projectId),
+          sql`${contractsEnhanced.status} IN ('approved', 'active')`
+        )
+      )
+      .orderBy(desc(contractsEnhanced.createdAt))
+      .limit(1);
+    contract = c;
+  }
+
+  // جلب اسم المشروع والـ requestId التابع للمشروع
+  let projectName = "";
+  let projectRequestId: number | null = null;
+  if (request.projectId) {
+    const [p] = await db
+      .select({ name: projects.name, requestId: projects.requestId })
+      .from(projects)
+      .where(eq(projects.id, request.projectId))
+      .limit(1);
+    if (p) {
+      projectName = p.name;
+      projectRequestId = p.requestId;
+    }
+  }
+
+  const beneficiaryName =
+    customSupplier?.name ||
+    contract?.secondPartyName ||
+    projectName ||
+    request.title ||
+    "مستفيد غير محدد";
+
+  const beneficiaryBank =
+    customSupplier?.bank ||
+    contract?.secondPartyBankName ||
+    null;
+
+  const beneficiaryIban =
+    customSupplier?.iban ||
+    contract?.secondPartyIban ||
+    null;
+
+  const beneficiaryAccountName =
+    customSupplier?.bankAccountName ||
+    customSupplier?.name ||
+    contract?.secondPartyAccountName ||
+    beneficiaryName;
+
+  const sadadNumber = customSupplier?.sadadNumber || null;
+  const billerCode = customSupplier?.billerCode || null;
+  const adminFees = customSupplier?.adminFees !== undefined && customSupplier?.adminFees !== null
+    ? String(customSupplier.adminFees)
+    : (request.adminFees ? String(request.adminFees) : "0.00");
+
+  let contractPaymentItemsJson: string | null = null;
+  let linkedRequestId: number | null = contract?.requestId || projectRequestId || null;
+
+  if (contract?.paymentScheduleJson) {
+    try {
+      const schedule = typeof contract.paymentScheduleJson === "string"
+        ? JSON.parse(contract.paymentScheduleJson)
+        : contract.paymentScheduleJson;
+
+      if (Array.isArray(schedule) && schedule.length > 0) {
+        let matchedPayment = schedule.find(
+          (sp: any) => String(sp.id) === String(request.contractPaymentId) || sp.name === request.title
+        );
+        if (!matchedPayment && request.contractPaymentId) {
+          const [cp] = await db
+            .select()
+            .from(contractPayments)
+            .where(eq(contractPayments.id, request.contractPaymentId))
+            .limit(1);
+          if (cp) {
+            matchedPayment = schedule[cp.phaseOrder] || schedule.find((sp: any) => sp.name === cp.phaseName);
+          }
+        }
+        if (!matchedPayment && schedule.length === 1) {
+          matchedPayment = schedule[0];
+        }
+        if (matchedPayment?.items && Array.isArray(matchedPayment.items) && matchedPayment.items.length > 0) {
+          contractPaymentItemsJson = JSON.stringify(matchedPayment.items);
+        }
+      }
+    } catch (e) {
+      console.error("Error resolving contract payment items for auto disbursement order:", e);
+    }
+  }
+
+  if (!linkedRequestId && request.projectId) {
+    try {
+      const [p] = await db
+        .select({ requestId: projects.requestId })
+        .from(projects)
+        .where(eq(projects.id, request.projectId))
+        .limit(1);
+      if (p?.requestId) linkedRequestId = p.requestId;
+    } catch (e) {}
+  }
+
+  const orderNumber = await generateDisbursementOrderNumber(db);
+
+  const [orderResult] = await db.insert(disbursementOrders).values({
+    orderNumber,
+    disbursementRequestId: request.id,
+    amount: request.amount,
+    beneficiaryName,
+    beneficiaryBank,
+    beneficiaryIban,
+    beneficiaryAccountName,
+    paymentMethod: "bank_transfer",
+    sadadNumber,
+    billerCode,
+    adminFees,
+    sourceType: request.contractId || contract?.id ? "contract" : undefined,
+    itemsJson: contractPaymentItemsJson,
+    requestId: linkedRequestId,
+    status: "pending",
+    createdBy: currentUserId || request.approvedBy || request.requestedBy || null,
+  });
+
+  const orderId = Number(orderResult.insertId);
+
+  try {
+    await notifyDisbursementOrderCreation(
+      orderId,
+      orderNumber,
+      request.requestNumber,
+      request.amount,
+      request.projectId
+    );
+  } catch (e) {
+    console.error("Error sending order creation notification:", e);
+  }
+
+  try {
+    const managers = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(
+        sql`${users.role} IN ('super_admin', 'system_admin', 'general_manager')`,
+        isNull(users.deletedAt)
+      ));
+
+    for (const manager of managers) {
+      await createNotification({
+        userId: manager.id,
+        title: "أمر صرف جديد يحتاج اعتماد",
+        message: `تم تحويل طلب الصرف رقم ${request.requestNumber} ${
+          projectName ? `للمشروع ${projectName}` : ""
+        } تلقائياً إلى أمر صرف رقم ${orderNumber} بمبلغ ${Number(request.amount).toLocaleString("ar-SA")} ريال. يرجى الاعتماد.`,
+        type: "warning",
+        relatedType: "disbursement_order",
+        relatedId: orderId,
+      });
+    }
+  } catch (e) {
+    console.error("Error sending manager notifications:", e);
+  }
+
+  return {
+    id: orderId,
+    orderNumber,
+  };
+}
+
 export const disbursementsRouter = router({
   // عدد المعاملات المعلقة التي تتطلب إجراء/اعتماد من المستخدم الحالي
   getPendingActionCounts: protectedProcedure
@@ -1277,12 +1516,17 @@ export const disbursementsRouter = router({
           }
         }
 
+        // تحويل الطلب تلقائياً إلى أمر صرف بمجرد اعتماده من المدير التنفيذي
+        const autoOrder = await autoCreateDisbursementOrderFromRequest(db, request.id, ctx.user.id);
+
         // إرسال إشعار لمقدم/منشئ الطلب
         if (request.requestedBy) {
           await createNotification({
             userId: request.requestedBy,
             title: "تم اعتماد طلب الصرف نهائياً",
-            message: `تم اعتماد طلب الصرف رقم ${request.requestNumber} بنجاح من قِبَل المدير التنفيذي، ويمكنك الآن تحويله إلى أمر صرف`,
+            message: autoOrder
+              ? `تم اعتماد طلب الصرف رقم ${request.requestNumber} بنجاح من قِبَل المدير التنفيذي وتم تحويله تلقائياً إلى أمر صرف رقم ${autoOrder.orderNumber}`
+              : `تم اعتماد طلب الصرف رقم ${request.requestNumber} بنجاح من قِبَل المدير التنفيذي`,
             type: "success",
             relatedType: "disbursement_request",
             relatedId: input.id,
@@ -1305,20 +1549,24 @@ export const disbursementsRouter = router({
         for (const user of financialUsers) {
           await createNotification({
             userId: user.id,
-            title: "طلب صرف معتمد - جاهز لأمر الصرف",
+            title: "طلب صرف معتمد - تم إنشاء أمر الصرف تلقائياً",
             message: `تم اعتماد طلب الصرف رقم ${request.requestNumber} ${
               project ? `للمشروع ${project.name}` : ""
-            } بمبلغ ${Number(request.amount).toLocaleString("ar-SA")} ريال من قِبَل المدير التنفيذي.`,
+            } بمبلغ ${Number(request.amount).toLocaleString("ar-SA")} ريال من قِبَل المدير التنفيذي ${
+              autoOrder ? `وتم تحويله تلقائياً إلى أمر صرف رقم ${autoOrder.orderNumber}` : ""
+            }.`,
             type: "info",
-            relatedType: "disbursement_request",
-            relatedId: input.id,
+            relatedType: autoOrder ? "disbursement_order" : "disbursement_request",
+            relatedId: autoOrder?.id || input.id,
           });
         }
 
         return {
           success: true,
           status: "approved",
-          message: "تم اعتماد طلب الصرف بنجاح من قِبَل المدير التنفيذي",
+          orderId: autoOrder?.id,
+          orderNumber: autoOrder?.orderNumber,
+          message: "تم اعتماد طلب الصرف بنجاح من قِبَل المدير التنفيذي وتم تحويله تلقائياً إلى أمر صرف",
         };
       }
 
