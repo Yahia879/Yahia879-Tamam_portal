@@ -1425,6 +1425,14 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.add("disbursements.create");
   }
   if (
+    allPermissions.has("purchase_orders.create_disbursement") ||
+    allPermissions.has("csr_letters.create_disbursement")
+  ) {
+    allPermissions.add("disbursement_orders.view");
+    allPermissions.add("disbursement_orders.view_details");
+    allPermissions.add("disbursement_orders.create_direct");
+  }
+  if (
     allPermissions.has("disbursement_orders.view") ||
     allPermissions.has("disbursement_orders.approve") ||
     allPermissions.has("disbursement_orders.exception_approve") ||

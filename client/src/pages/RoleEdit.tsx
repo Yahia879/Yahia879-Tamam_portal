@@ -767,6 +767,13 @@ export default function RoleEdit() {
             duration: 4500,
           });
         }
+        if (permId === "purchase_orders.create_disbursement" || permId === "csr_letters.create_disbursement") {
+          ["disbursement_orders.view", "disbursement_orders.create_direct"].forEach(targetId => {
+            if (!next.includes(targetId)) {
+              next.push(targetId);
+            }
+          });
+        }
         return next;
       }
     });
@@ -807,6 +814,16 @@ export default function RoleEdit() {
           });
           toast.info("تم منح كافة صلاحيات قسمي 'الطلبات' و'إدارة المستفيدين' تلقائياً مع تفعيل التصعيد الإداري", {
             duration: 4500,
+          });
+        }
+        if (
+          permIds.includes("purchase_orders.create_disbursement") ||
+          permIds.includes("csr_letters.create_disbursement")
+        ) {
+          ["disbursement_orders.view", "disbursement_orders.create_direct"].forEach(targetId => {
+            if (!next.includes(targetId)) {
+              next.push(targetId);
+            }
           });
         }
         return next;
