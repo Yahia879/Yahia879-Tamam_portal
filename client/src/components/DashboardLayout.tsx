@@ -331,8 +331,10 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("purchase_orders") || has("purchase_orders.view")) {
     inventoryItems.push({ icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" });
   }
-  if (has("contracts") || has("contracts.view") || has("requests") || has("requests.view") || has("requests.view_details")) {
+  if (has("csr_letters") || has("csr_letters.view")) {
     inventoryItems.push({ icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" });
+  }
+  if (has("contracts") || has("contracts.view") || has("requests") || has("requests.view") || has("requests.view_details")) {
     inventoryItems.push({ icon: Boxes, label: "المستودع الافتراضي", path: "/sedana-warehouse" });
   }
   if (inventoryItems.length > 0) {
