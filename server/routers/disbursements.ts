@@ -4448,4 +4448,95 @@ export const disbursementsRouter = router({
 
       return { success: true };
     }),
+
+  // إرسال تذكير بالاعتماد لأمر الصرف
+  sendApprovalReminder: protectedProcedure
+    .input(
+      z.object({
+        orderId: z.number(),
+        customMessage: z.string().optional(),
+        source: z.enum(["board_executive", "disbursement_orders"]),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من الصلاحيات
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      if (!isAdmin) {
+        if (input.source === "board_executive") {
+          const hasBoardRemind =
+            ctx.user.role === "board_chairman" ||
+            (await checkPermission(ctx.user.id, "board_leadership.remind")) ||
+            (await checkPermission(ctx.user.id, "board_chairman_remind")) ||
+            (await checkPermission(ctx.user.id, "board_chairman"));
+          if (!hasBoardRemind) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إرسال تذكير بالاعتماد في مركز الاعتماد المالي" });
+          }
+        } else {
+          const hasOrderRemind =
+            (await checkPermission(ctx.user.id, "disbursement_orders.remind")) ||
+            (await checkPermission(ctx.user.id, "disbursement_orders.approve"));
+          if (!hasOrderRemind) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إرسال تذكير بالاعتماد لأمر الصرف" });
+          }
+        }
+      }
+
+      const [order] = await db
+        .select()
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.id, input.orderId))
+        .limit(1);
+
+      if (!order) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
+      }
+
+      if (order.status === "executed" || order.status === "rejected") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن إرسال تذكير لأمر صرف تم تنفيذه أو رفضه" });
+      }
+
+      const defaultMessage = `نود تذكيركم بوجود أمر صرف رقم "${order.orderNumber}" بمبلغ ${Number(order.amount).toLocaleString("ar-SA")} ريال بانتظار اعتمادكم الكريم.`;
+      const finalMessage = input.customMessage?.trim() || defaultMessage;
+
+      // تحديد المستقبلين المؤهلين للاعتماد
+      const candidateRoles =
+        input.source === "board_executive"
+          ? ["board_chairman", "super_admin"]
+          : order.status === "approved"
+          ? ["board_chairman", "super_admin"]
+          : ["board_chairman", "financial_manager", "super_admin", "system_admin"];
+
+      const eligibleUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(
+          and(
+            isNull(users.deletedAt),
+            inArray(users.role, candidateRoles as any),
+            ne(users.id, ctx.user.id)
+          )
+        );
+
+      const recipientIds = new Set<number>(eligibleUsers.map((u) => u.id));
+
+      for (const targetUserId of Array.from(recipientIds)) {
+        await createNotification({
+          userId: targetUserId,
+          type: "warning",
+          title: "تذكير باعتماد أمر صرف",
+          message: finalMessage,
+          relatedType: "disbursement_order",
+          relatedId: order.id,
+        });
+      }
+
+      return {
+        success: true,
+        sentCount: recipientIds.size,
+        message: "تم إرسال التذكير بنجاح",
+      };
+    }),
 });
