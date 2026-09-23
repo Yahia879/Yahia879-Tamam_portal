@@ -38,7 +38,8 @@ import {
   AlertCircle, Banknote, Receipt, MapPin, Layers,
   Check, Sparkles, PieChart as PieIcon, ClipboardList, Truck, Link2, FileSpreadsheet,
   MoreVertical, Eye, XCircle, FileCode, CheckCircle, ArrowUpRight, Search, Filter,
-  ChevronLeft, ChevronRight, Info, Printer, ExternalLink, MessageSquare, Loader2
+  ChevronLeft, ChevronRight, Info, Printer, ExternalLink, MessageSquare, Loader2,
+  Bell, PenLine, RotateCcw
 } from "lucide-react";
 
 const CHART_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"];
@@ -158,6 +159,35 @@ export default function BoardDashboard({
 
   // الصلاحيات التنفيذية والمعاينة الشاملة تظهر لمن لديه صلاحية رئيس مجلس الإدارة أو المشرف العام
   const canPerformActions = isChairmanRole || hasChairmanActionPerm || isAdminRole;
+  const canRemind = userPermissions.includes("board_leadership.remind") || userPermissions.includes("board_chairman_remind") || canPerformActions;
+
+  // نافذة إرسال تذكير بالاعتماد
+  const [reminderModal, setReminderModal] = useState<{
+    open: boolean;
+    order: any | null;
+    isCustomizing: boolean;
+    customMessage: string;
+  }>({
+    open: false,
+    order: null,
+    isCustomizing: false,
+    customMessage: "",
+  });
+
+  const sendReminderMutation = trpc.disbursements.sendApprovalReminder.useMutation({
+    onSuccess: (res) => {
+      toast.success(res.message || "تم إرسال التذكير بنجاح");
+      setReminderModal({
+        open: false,
+        order: null,
+        isCustomizing: false,
+        customMessage: "",
+      });
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء إرسال التذكير");
+    },
+  });
 
   const { data, isLoading, isError, error, refetch, isRefetching } = trpc.board.getExecutiveStats.useQuery({
     page: currentPage,
@@ -785,6 +815,25 @@ export default function BoardDashboard({
                                           >
                                             <Info className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
                                             <span>عرض مبررات الرفض</span>
+                                          </DropdownMenuItem>
+                                        )}
+
+                                        {/* خيار إرسال تذكير بالاعتماد يظهر فقط عندما يكون أمر الصرف بانتظار الاعتماد */}
+                                        {canRemind && isNeedsApproval && (
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              const defMsg = `نود تذكيركم بوجود أمر صرف رقم "${order.orderNumber}" بمبلغ ${Number(order.amount || 0).toLocaleString("ar-SA")} ريال بانتظار اعتمادكم الكريم.`;
+                                              setReminderModal({
+                                                open: true,
+                                                order,
+                                                isCustomizing: false,
+                                                customMessage: defMsg,
+                                              });
+                                            }}
+                                            className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 focus:bg-amber-50 dark:focus:bg-amber-950/30 transition-colors"
+                                          >
+                                            <Bell className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                                            <span>تذكير بالاعتماد</span>
                                           </DropdownMenuItem>
                                         )}
 
@@ -1927,6 +1976,131 @@ export default function BoardDashboard({
               <Button
                 variant="outline"
                 onClick={() => setConfirmApproveOrder(null)}
+                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 cursor-pointer"
+              >
+                إلغاء
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ==================== 🔔 نافذة إرسال تذكير بالاعتماد ==================== */}
+        <Dialog
+          open={reminderModal.open}
+          onOpenChange={(open) => {
+            if (!open) {
+              setReminderModal({
+                open: false,
+                order: null,
+                isCustomizing: false,
+                customMessage: "",
+              });
+            }
+          }}
+        >
+          <DialogContent dir="rtl" className="sm:max-w-[550px] rounded-3xl p-6 sm:p-7 text-right">
+            <DialogHeader className="text-right sm:text-right border-b pb-4">
+              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg sm:text-xl font-bold">
+                <Bell className="w-5 h-5 text-amber-600 shrink-0" />
+                <span>إرسال تذكير بالاعتماد</span>
+              </DialogTitle>
+              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 font-medium">
+                إرسال إشعار تذكيري لصاحب الصلاحية لاعتماد أمر الصرف رقم ({reminderModal.order?.orderNumber})
+              </DialogDescription>
+            </DialogHeader>
+
+            {reminderModal.order && (
+              <div className="space-y-4 py-3">
+                {/* ملخص أمر الصرف */}
+                <div className="p-3.5 bg-muted/40 rounded-2xl border text-xs space-y-1.5 font-medium">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">رقم أمر الصرف:</span>
+                    <span className="font-bold text-foreground">{reminderModal.order.orderNumber}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">المستفيد:</span>
+                    <span className="font-bold text-foreground truncate max-w-[260px]">{reminderModal.order.beneficiaryName}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">المبلغ:</span>
+                    <span className="font-bold text-emerald-700 dark:text-emerald-400 font-mono text-sm">{formatCurrency(reminderModal.order.amount || 0)}</span>
+                  </div>
+                </div>
+
+                {/* محتوى رسالة التذكير */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300">
+                      نص رسالة التذكير:
+                    </label>
+                    {!reminderModal.isCustomizing ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setReminderModal((prev) => ({ ...prev, isCustomizing: true }))}
+                        className="text-xs text-primary hover:text-primary/80 font-bold h-7 gap-1"
+                      >
+                        <PenLine className="w-3.5 h-3.5" />
+                        <span>تعديل الرسالة</span>
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const defMsg = `نود تذكيركم بوجود أمر صرف رقم "${reminderModal.order?.orderNumber}" بمبلغ ${Number(reminderModal.order?.amount || 0).toLocaleString("ar-SA")} ريال بانتظار اعتمادكم الكريم.`;
+                          setReminderModal((prev) => ({ ...prev, isCustomizing: false, customMessage: defMsg }));
+                        }}
+                        className="text-xs text-muted-foreground hover:text-foreground font-bold h-7 gap-1"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>استعادة الافتراضية</span>
+                      </Button>
+                    )}
+                  </div>
+
+                  {!reminderModal.isCustomizing ? (
+                    <div className="p-4 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 rounded-2xl text-xs sm:text-sm text-amber-950 dark:text-amber-200 leading-relaxed font-medium">
+                      نود تذكيركم بوجود أمر صرف رقم "{reminderModal.order.orderNumber}" بمبلغ {Number(reminderModal.order.amount || 0).toLocaleString("ar-SA")} ريال بانتظار اعتمادكم الكريم.
+                    </div>
+                  ) : (
+                    <Textarea
+                      value={reminderModal.customMessage}
+                      onChange={(e) => setReminderModal((prev) => ({ ...prev, customMessage: e.target.value }))}
+                      placeholder="اكتب نص رسالة التذكير المخصصة..."
+                      className="min-h-[100px] text-xs sm:text-sm rounded-2xl border-amber-300 dark:border-amber-800 focus:ring-amber-500 font-medium leading-relaxed resize-none"
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+
+            <DialogFooter className="flex flex-row justify-start items-center gap-3 pt-3 border-t border-border/60">
+              <Button
+                onClick={() => {
+                  if (!reminderModal.order) return;
+                  sendReminderMutation.mutate({
+                    orderId: reminderModal.order.orderId || reminderModal.order.id,
+                    customMessage: reminderModal.isCustomizing ? reminderModal.customMessage : undefined,
+                    source: "board_executive",
+                  });
+                }}
+                disabled={sendReminderMutation.isPending}
+                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white shadow-sm cursor-pointer"
+              >
+                {sendReminderMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Bell className="w-4 h-4 ml-1.5" />}
+                <span>إرسال التذكير</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setReminderModal({
+                  open: false,
+                  order: null,
+                  isCustomizing: false,
+                  customMessage: "",
+                })}
                 className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 cursor-pointer"
               >
                 إلغاء
