@@ -1175,6 +1175,9 @@ export const sedanaExecutionRouter = router({
         createdBy: ctx.user.id,
         createdByName: ctx.user.name,
         createdAt: new Date().toISOString(),
+        confirmedBySupervisorAt: new Date().toISOString(),
+        confirmedBySupervisorId: ctx.user.id,
+        confirmedBySupervisorName: ctx.user.name,
       };
 
       // إنشاء سجل أمر تسليم موازٍ تلقائياً لربطه بمسوغ الصرف والتوقيع الرقمي
