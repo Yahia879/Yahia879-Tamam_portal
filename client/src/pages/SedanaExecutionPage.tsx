@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -58,6 +58,10 @@ import {
   AlertTriangle,
   Store,
   CalendarDays,
+  Timer,
+  TimerReset,
+  Hourglass,
+  RotateCcw,
   BadgeCheck,
   Info,
   Search,
@@ -86,6 +90,31 @@ export default function SedanaExecutionPage() {
   const canExport = usePermission("sedana_warehouse.export");
 
   const [isExporting, setIsExporting] = useState(false);
+
+  // عداد تنازلي حي - يُحدَّث كل ثانية
+  const [countdownTick, setCountdownTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCountdownTick((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // دالة حساب الفارق الزمني من nextDueDate
+  const getCountdown = useCallback((nextDueDate: string | null | undefined) => {
+    if (!nextDueDate) return null;
+    const now = Date.now();
+    const due = new Date(nextDueDate).getTime();
+    const diffMs = due - now;
+    if (diffMs <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, totalMs: diffMs, isOverdue: true };
+    const totalSec = Math.floor(diffMs / 1000);
+    const days = Math.floor(totalSec / 86400);
+    const hours = Math.floor((totalSec % 86400) / 3600);
+    const minutes = Math.floor((totalSec % 3600) / 60);
+    const seconds = totalSec % 60;
+    return { days, hours, minutes, seconds, totalMs: diffMs, isOverdue: false };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countdownTick]);
 
   // جلب قائمة كافة طلبات سدانة لاختيار الطلب
   const { data: sedanaRequests = [], isLoading: isRequestsLoading } = trpc.sedanaExecution.listSedanaRequests.useQuery();
@@ -186,6 +215,46 @@ export default function SedanaExecutionPage() {
   const [confirmOutboundRating, setConfirmOutboundRating] = useState(5);
   const [confirmOutboundNotes, setConfirmOutboundNotes] = useState("");
   const [confirmOutboundDate, setConfirmOutboundDate] = useState(new Date().toISOString().split("T")[0]);
+
+  // تأكيد إخراج المواد واعتماد الصرف من قبل المسؤول
+  const [selectedOutboundForSupervisor, setSelectedOutboundForSupervisor] = useState<any | null>(null);
+  const [isConfirmSupervisorModalOpen, setIsConfirmSupervisorModalOpen] = useState(false);
+  const [supervisorOutboundDate, setSupervisorOutboundDate] = useState(new Date().toISOString().split("T")[0]);
+  const [supervisorOutboundMethod, setSupervisorOutboundMethod] = useState<"direct_imam" | "courier_delivery" | "warehouse_pickup" | "scheduled_batch">("direct_imam");
+  const [supervisorOutboundRecipient, setSupervisorOutboundRecipient] = useState("");
+  const [supervisorOutboundRole, setSupervisorOutboundRole] = useState("إمام المسجد");
+  const [supervisorOutboundPhone, setSupervisorOutboundPhone] = useState("");
+  const [supervisorOutboundLocation, setSupervisorOutboundLocation] = useState("");
+  const [supervisorOutboundNotes, setSupervisorOutboundNotes] = useState("");
+  const [supervisorOutboundItems, setSupervisorOutboundItems] = useState<Record<string, number>>({});
+
+  const confirmSupervisorOutboundMutation = trpc.sedanaExecution.confirmSupervisorOutbound.useMutation({
+    onSuccess: () => {
+      toast.success("تم تأكيد واعتماد إخراج المواد وإصدار مسوغ الصرف وأمر التسليم الميداني بنجاح");
+      setIsConfirmSupervisorModalOpen(false);
+      setSelectedOutboundForSupervisor(null);
+      utils.sedanaExecution.getVirtualInventory.invalidate({ requestId });
+      utils.requests.getById.invalidate({ id: requestId });
+    },
+    onError: (err) => toast.error(err.message || "حدث خطأ أثناء اعتماد أمر الإخراج"),
+  });
+
+  const handleOpenSupervisorConfirmModal = (out: any) => {
+    setSelectedOutboundForSupervisor(out);
+    setSupervisorOutboundDate(out.scheduledDate || new Date().toISOString().split("T")[0]);
+    setSupervisorOutboundMethod(out.outboundMethod || "direct_imam");
+    setSupervisorOutboundRecipient(out.recipientName || mosque?.imamName || "إمام المسجد");
+    setSupervisorOutboundRole(out.recipientRole || "إمام المسجد");
+    setSupervisorOutboundPhone(out.recipientPhone || mosque?.imamPhone || "");
+    setSupervisorOutboundLocation(out.deliveryLocation || [mosque?.name, mosque?.district, mosque?.city].filter(Boolean).join(" - "));
+    setSupervisorOutboundNotes(out.notes || "");
+    const itemQtys: Record<string, number> = {};
+    (out.items || []).forEach((it: any) => {
+      itemQtys[it.id] = Number(it.quantity || 0);
+    });
+    setSupervisorOutboundItems(itemQtys);
+    setIsConfirmSupervisorModalOpen(true);
+  };
 
   // عرض تفاصيل استلام أمر الإخراج المكتمل
   const [selectedOutboundToView, setSelectedOutboundToView] = useState<any | null>(null);
@@ -749,7 +818,7 @@ export default function SedanaExecutionPage() {
 
         {/* التبويبات الرئيسية */}
         <Tabs defaultValue="stock" dir="rtl" className="space-y-4">
-          <TabsList dir="rtl" className="bg-muted/40 p-1 rounded-xl w-full justify-start overflow-x-auto flex-nowrap">
+          <TabsList dir="rtl" className="bg-muted/40 p-1 rounded-xl w-full grid grid-cols-1 sm:grid-cols-3 gap-1 h-auto">
             <TabsTrigger value="stock" className="text-xs font-bold gap-1.5">
               <Boxes className="w-3.5 h-3.5" />
               <span>رصيد المستودع الافتراضي</span>
@@ -842,8 +911,224 @@ export default function SedanaExecutionPage() {
             </Card>
           </TabsContent>
 
-          {/* التبويب 2: أوامر الإخراج ومسوغات الصرف */}
+                    {/* التبويب 2: أوامر الإخراج ومسوغات الصرف */}
           <TabsContent value="outbound" dir="rtl" className="space-y-4">
+            {/* بطاقة: البنود المسجلة في الطلب وجدول الصرف الدوري */}
+            <Card className="border border-border/80 shadow-2xs">
+              <CardHeader className="p-4 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-muted/10">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-600 border border-sky-200 dark:border-sky-800">
+                      <CalendarDays className="w-4 h-4" />
+                    </div>
+                    <CardTitle className="text-sm font-bold text-foreground">
+                      البنود المسجلة في الطلب وجدول الصرف الدوري
+                    </CardTitle>
+                  </div>
+                  <CardDescription className="text-xs">
+                    متابعة الأصناف المعتمدة بالطلب، فترات الصرف المقررة (شهرياً / ربع سنوياً)، رصيد المستودع، ومواعيد خروج الدفعات الدورية
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto" dir="rtl">
+                  <Table className="text-xs text-right" dir="rtl">
+                    <TableHeader className="bg-muted/30">
+                      <TableRow className="border-b">
+                        <th className="p-3 w-10 text-center font-bold">#</th>
+                        <th className="p-3 font-bold min-w-[170px]">اسم الصنف والتصنيف</th>
+                        <th className="p-3 font-bold text-center min-w-[120px]">الكمية المقررة بالطلب</th>
+                        <th className="p-3 font-bold text-center min-w-[110px]">فترة / دورية الصرف</th>
+                        <th className="p-3 font-bold text-center min-w-[90px]">رقم الدفعة</th>
+                        <th className="p-3 font-bold text-center min-w-[130px] bg-muted/40">الموجود بالمستودع</th>
+                        <th className="p-3 font-bold text-center min-w-[220px]">⏱ العداد التنازلي للدفعة التالية</th>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="divide-y divide-border">
+                      {inventoryItems.map((it: any, idx: number) => {
+                        const freq = it.frequency || it.period || "شهري";
+                        const isMonthly = freq.includes("شهر") || freq === "شهري";
+                        const isQuarterly = freq.includes("ربع") || freq === "ربع سنوي";
+
+                        const countdown = getCountdown(it.nextDueDate);
+                        const progressPct = it.nextDueDate && it.frequencyDays && countdown && !countdown.isOverdue
+                          ? Math.min(100, Math.max(0, 100 - (countdown.totalMs / (it.frequencyDays * 86400000)) * 100))
+                          : it.nextDueDate && countdown?.isOverdue ? 100 : 0;
+
+                        const cycleQty = it.cycleQuantity || 1;
+                        const availableStock = it.availableStock || 0;
+                        const isStockAvailable = availableStock >= cycleQty;
+                        const hasPendingConfirmation = (it.pendingConfirmationQty || 0) > 0;
+                        const isCompleted = (it.totalOutbound || 0) >= it.approvedQty;
+
+                        return (
+                          <TableRow key={it.id || idx} className="hover:bg-muted/10 transition-colors">
+                            <td className="p-3 text-center">
+                              <span className="font-mono text-xs font-bold text-muted-foreground bg-muted/50 px-2 py-1 rounded">
+                                {idx + 1}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <div className="font-bold text-foreground text-sm">{it.name}</div>
+                              <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-1">
+                                <span className="bg-muted px-2 py-0.5 rounded font-medium">{it.category || "مواد وتجهيزات"}</span>
+                                {it.description && <span className="truncate max-w-[160px]">({it.description})</span>}
+                              </div>
+                            </td>
+                            <td className="p-3 text-center">
+                              <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                                <span className="font-mono text-base font-black text-slate-900 dark:text-slate-100">{it.approvedQty}</span>
+                                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{it.unit}</span>
+                              </div>
+                            </td>
+                            <td className="p-3 text-center">
+                              <Badge
+                                variant="outline"
+                                className={`text-xs px-2.5 py-1 gap-1 font-bold ${
+                                  isMonthly
+                                    ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:border-blue-800"
+                                    : isQuarterly
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800"
+                                    : "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:border-purple-800"
+                                }`}
+                              >
+                                <Clock className="w-3.5 h-3.5" />
+                                <span>{freq}</span>
+                              </Badge>
+                            </td>
+                            <td className="p-3 text-center">
+                              <div className="inline-flex flex-col items-center justify-center px-2.5 py-1.5 rounded-lg bg-muted/60 border border-border/80 shadow-2xs">
+                                <div className="font-mono text-base font-black text-foreground">
+                                  <span className="text-primary font-black">{it.currentCycleNumber ?? 0}</span>
+                                  <span className="text-muted-foreground/50 mx-1 text-sm font-normal">/</span>
+                                  <span>{it.totalCycles || 1}</span>
+                                </div>
+                                <span className="text-[10px] text-muted-foreground font-medium">دفعة</span>
+                              </div>
+                            </td>
+                            <td className="p-3 text-center">
+                              <div className="inline-flex flex-col items-center justify-center">
+                                <div
+                                  className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border shadow-2xs transition-colors ${
+                                    !isStockAvailable
+                                      ? "bg-red-50 text-red-700 border-red-300 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800"
+                                      : "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800"
+                                  }`}
+                                >
+                                  <span className="font-mono text-base font-black">{availableStock}</span>
+                                  <span className="text-xs font-semibold">{it.unit}</span>
+                                </div>
+                                {!isStockAvailable ? (
+                                  <span className="text-[10px] font-bold text-red-600 dark:text-red-400 mt-1 flex items-center gap-0.5">
+                                    <AlertTriangle className="w-2.5 h-2.5" />
+                                    <span>غير متوفر بالمستودع</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 mt-1">
+                                    متوفر بالمستودع
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-3 text-center">
+                              {it.isAllCompleted ? (
+                                <div className="flex flex-col items-center gap-1">
+                                  <Badge variant="outline" className="border-emerald-300 text-emerald-800 bg-emerald-50 text-[10px] font-bold gap-1">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    مكتمل الصرف ✓
+                                  </Badge>
+                                </div>
+                              ) : !it.nextDueDate ? (
+                                <div className="flex flex-col items-center gap-1">
+                                  <Badge variant="outline" className="border-slate-300 text-slate-600 bg-slate-50 text-[10px] font-medium gap-1">
+                                    <Hourglass className="w-3 h-3" />
+                                    بانتظار التوريد
+                                  </Badge>
+                                  <span className="text-[9px] text-muted-foreground">العداد يبدأ بعد أول توريد</span>
+                                </div>
+                              ) : hasPendingConfirmation ? (
+                                <div className="flex flex-col items-center gap-1">
+                                  <Badge variant="outline" className="border-amber-400 bg-amber-50 text-amber-900 text-[10px] font-bold gap-1 animate-pulse">
+                                    <Clock className="w-3 h-3" />
+                                    بانتظار تأكيد المسؤول
+                                  </Badge>
+                                  <span className="text-[9px] text-muted-foreground">العداد متوقف مؤقتاً</span>
+                                </div>
+                              ) : countdown ? (
+                                <div className="flex flex-col items-center gap-1.5">
+                                  {/* شريط التقدم الدائري */}
+                                  <div className="relative w-12 h-12">
+                                    <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
+                                      <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" className="text-muted/20" strokeWidth="3" />
+                                      <circle
+                                        cx="24" cy="24" r="20" fill="none"
+                                        strokeWidth="3"
+                                        strokeLinecap="round"
+                                        strokeDasharray={`${(progressPct / 100) * 125.66} 125.66`}
+                                        className={countdown.isOverdue ? "text-red-500 animate-pulse" : countdown.days < 3 ? "text-amber-500" : "text-sky-500"}
+                                        stroke="currentColor"
+                                      />
+                                    </svg>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      {countdown.isOverdue ? (
+                                        <span className="text-red-600 text-[10px] font-black">حان!</span>
+                                      ) : (
+                                        <span className={`font-black text-xs ${countdown.days < 3 ? "text-amber-700" : "text-sky-700"}`}>{countdown.days}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {/* العداد التفصيلي */}
+                                  {countdown.isOverdue ? (
+                                    <div className="flex flex-col items-center gap-0.5">
+                                      <Badge variant="outline" className="border-red-400 bg-red-50 text-red-800 text-[10px] font-bold gap-1 animate-pulse">
+                                        <AlertTriangle className="w-3 h-3" />
+                                        حان موعد الإخراج!
+                                      </Badge>
+                                      <span className="text-[9px] text-muted-foreground font-medium">
+                                        يجب إخراج {it.cycleQuantity || 1} {it.unit}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-col items-center gap-0.5">
+                                      <div className={`flex items-center gap-1 font-mono text-[11px] font-bold ${countdown.days < 3 ? (countdown.days < 1 ? "text-red-700 animate-pulse" : "text-amber-700") : "text-sky-800"}`} dir="ltr">
+                                        <span>{String(countdown.days).padStart(2, "0")}d</span>
+                                        <span className="text-muted-foreground/40">:</span>
+                                        <span>{String(countdown.hours).padStart(2, "0")}h</span>
+                                        <span className="text-muted-foreground/40">:</span>
+                                        <span>{String(countdown.minutes).padStart(2, "0")}m</span>
+                                        <span className="text-muted-foreground/40">:</span>
+                                        <span className="text-muted-foreground/60">{String(countdown.seconds).padStart(2, "0")}s</span>
+                                      </div>
+                                      <span className="text-[9px] text-muted-foreground">
+                                        {countdown.days < 1 ? "أقل من يوم!" : countdown.days < 3 ? "اقترب الموعد" : `${countdown.days} يوم متبقي`}
+                                      </span>
+                                      <span className="text-[8px] text-muted-foreground/60">
+                                        يجب إخراج {it.cycleQuantity || 1} {it.unit}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {!isStockAvailable && (
+                                    <span className="text-[9px] text-red-600 font-bold bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-900">
+                                      المخزون بالمستودع غير كافٍ
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <Badge variant="outline" className="border-slate-300 text-slate-600 bg-slate-50 text-[10px] font-medium">
+                                  —
+                                </Badge>
+                              )}
+                            </td>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* بطاقة: أوامر الإخراج ومسوغات الصرف المحاسبية */}
             <Card className="border border-border/80 shadow-2xs">
               <CardHeader className="p-4 border-b flex flex-row items-center justify-between">
                 <div>
@@ -854,16 +1139,6 @@ export default function SedanaExecutionPage() {
                     وفقاً لوثيقة سدانة، يمثل أمر الإخراج مسوغ صرف محاسبي رسمي لخروج المواد من المستودع الافتراضي
                   </CardDescription>
                 </div>
-                {canOutbound && (
-                  <Button
-                    size="sm"
-                    onClick={() => setLocation(`/requests/${requestId}/sedana-outbound/new`)}
-                    className="text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xs"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>إنشاء أمر إخراج جديد</span>
-                  </Button>
-                )}
               </CardHeader>
               <CardContent className="p-0">
                 {outboundOrders.length === 0 ? (
@@ -887,7 +1162,7 @@ export default function SedanaExecutionPage() {
                           <th className="p-3 font-bold text-center">تاريخ الإخراج</th>
                           <th className="p-3 font-bold text-center">الأصناف المشمولة</th>
                           <th className="p-3 font-bold text-center">حالة الاعتماد والاستلام</th>
-                          <th className="p-3 font-bold text-center w-48">الإجراءات</th>
+                          <th className="p-3 font-bold text-center w-52">الإجراءات</th>
                         </TableRow>
                       </TableHeader>
                       <TableBody className="divide-y divide-border">
@@ -929,21 +1204,37 @@ export default function SedanaExecutionPage() {
                                 </div>
                               </td>
                               <td className="p-3 text-center">
-                                {isDelivered ? (
+                                {out.status === "pending_confirmation" ? (
+                                  <Badge variant="outline" className="border-amber-400 text-amber-900 bg-amber-50 text-[10px] gap-1 font-bold">
+                                    <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
+                                    <span>بانتظار تأكيد المسؤول</span>
+                                  </Badge>
+                                ) : isDelivered ? (
                                   <Badge variant="outline" className="border-emerald-300 text-emerald-800 bg-emerald-50 text-[10px] gap-1 font-bold">
                                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                                     <span>معتمد ومؤكد الاستلام ✓</span>
                                   </Badge>
                                 ) : (
-                                  <Badge variant="outline" className="border-amber-300 text-amber-800 bg-amber-50 text-[10px] gap-1 font-bold">
-                                    <Clock className="w-3 h-3 text-amber-600" />
-                                    <span>بانتظار تأكيد استلام الإمام</span>
+                                  <Badge variant="outline" className="border-sky-300 text-sky-800 bg-sky-50 text-[10px] gap-1 font-bold">
+                                    <Truck className="w-3 h-3 text-sky-600" />
+                                    <span>معتمد ومُخرج - بانتظار استلام الإمام</span>
                                   </Badge>
                                 )}
                               </td>
                               <td className="p-3 text-center">
                                 <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                                  {isDelivered ? (
+                                  {out.status === "pending_confirmation" ? (
+                                    canOutbound && (
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleOpenSupervisorConfirmModal(out)}
+                                        className="h-7 text-xs font-bold gap-1 bg-amber-600 hover:bg-amber-700 text-white shadow-2xs"
+                                      >
+                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                        <span>تأكيد واعتماد الإخراج</span>
+                                      </Button>
+                                    )
+                                  ) : isDelivered ? (
                                     <>
                                       <Button
                                         size="sm"

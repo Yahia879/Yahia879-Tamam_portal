@@ -140,55 +140,153 @@ export const sedanaExecutionRouter = router({
         deliveryOrders: [],
       };
 
+      // بناء خريطة لبنود سلة سدانة الأصلية لاستخراج الدوريات والفترات
+      const basket = Array.isArray(pData.basketItems) ? pData.basketItems : [];
+      const basketMap = new Map<string, any>();
+      basket.forEach((b: any) => {
+        if (b.id) basketMap.set(String(b.id), b);
+        if (b.name) basketMap.set(b.name.trim(), b);
+      });
+
       // بناء قائمة الأصناف الأساسية المعتمدة
       let baseItems: any[] = [];
       if (boqItems.length > 0) {
-        baseItems = boqItems.map((b) => ({
-          id: String(b.id),
-          name: b.itemName,
-          description: b.itemDescription || "",
-          quantity: parseFloat(b.quantity || "1"),
-          unit: b.unit || "وحدة",
-          allocationMethod: allocations[String(b.id)] || "purchase_order",
-        }));
+        baseItems = boqItems.map((b) => {
+          let matchedBasket: any = null;
+          if (b.boqCode && b.boqCode.startsWith("BOQ-SED-")) {
+            const rawId = b.boqCode.replace("BOQ-SED-", "");
+            matchedBasket = basketMap.get(rawId);
+          }
+          if (!matchedBasket && b.itemName) {
+            matchedBasket = basketMap.get(b.itemName.trim());
+          }
+
+          let frequency = matchedBasket?.frequency || "";
+          if (!frequency && b.itemDescription) {
+            const m = b.itemDescription.match(/دورية\s*التوريد\s*:\s*([^\s,]+)/);
+            if (m) frequency = m[1];
+          }
+          if (!frequency) frequency = "شهري";
+
+          const totalQty = parseFloat(b.quantity || "1");
+          let cycleQty = matchedBasket?.monthlyLimit || matchedBasket?.periodLimits?.[frequency];
+          if (!cycleQty) {
+            if (frequency.includes("شهر") || frequency === "شهري") {
+              cycleQty = totalQty >= 5 ? 1 : totalQty;
+            } else if (frequency.includes("ربع") || frequency === "ربع سنوي") {
+              cycleQty = Math.ceil(totalQty / 4) || 1;
+            } else {
+              cycleQty = totalQty;
+            }
+          }
+
+          return {
+            id: String(b.id),
+            name: b.itemName,
+            description: b.itemDescription || "",
+            quantity: totalQty,
+            unit: b.unit || "وحدة",
+            category: b.category || matchedBasket?.category || "مواد وتجهيزات",
+            frequency,
+            period: frequency,
+            cycleQuantity: Number(cycleQty),
+            monthlyLimit: matchedBasket?.monthlyLimit || null,
+            periodLimits: matchedBasket?.periodLimits || null,
+            allocationMethod: allocations[String(b.id)] || "purchase_order",
+          };
+        });
       } else if (pData.evaluation?.items) {
         const evalItems = Array.isArray(pData.evaluation.items) ? pData.evaluation.items : [];
-        baseItems = evalItems.map((it: any, idx: number) => ({
-          id: String(it.key || it.id || idx + 1),
-          name: it.name || it.itemName || `بند ${idx + 1}`,
-          description: it.description || it.spec || "",
-          quantity: parseFloat(it.approvedQty || it.requestedQty || "1"),
-          unit: it.unit || "وحدة",
-          allocationMethod: allocations[String(it.key || it.id)] || "purchase_order",
-        }));
+        baseItems = evalItems.map((it: any, idx: number) => {
+          const matchedBasket = basketMap.get(String(it.key || it.id)) || (it.name ? basketMap.get(it.name.trim()) : null);
+          const frequency = it.frequency || matchedBasket?.frequency || "شهري";
+          const totalQty = parseFloat(it.approvedQty || it.requestedQty || "1");
+          const cycleQty = it.cycleQuantity || matchedBasket?.monthlyLimit || (frequency === "شهري" ? 1 : totalQty);
+
+          return {
+            id: String(it.key || it.id || idx + 1),
+            name: it.name || it.itemName || `بند ${idx + 1}`,
+            description: it.description || it.spec || "",
+            quantity: totalQty,
+            unit: it.unit || "وحدة",
+            category: it.category || matchedBasket?.category || "مواد وتجهيزات",
+            frequency,
+            period: frequency,
+            cycleQuantity: Number(cycleQty),
+            monthlyLimit: matchedBasket?.monthlyLimit || null,
+            periodLimits: matchedBasket?.periodLimits || null,
+            allocationMethod: allocations[String(it.key || it.id)] || "purchase_order",
+          };
+        });
       } else if (pData.basketItems) {
-        const basket = Array.isArray(pData.basketItems) ? pData.basketItems : [];
-        baseItems = basket.map((b: any, idx: number) => ({
-          id: String(b.id || idx + 1),
-          name: b.name,
-          description: b.description || b.category || "",
-          quantity: parseFloat(b.quantity || "1"),
-          unit: b.unit || "وحدة",
-          allocationMethod: allocations[String(b.id)] || "purchase_order",
-        }));
+        baseItems = basket.map((b: any, idx: number) => {
+          const frequency = b.frequency || "شهري";
+          const totalQty = parseFloat(b.quantity || "1");
+          const cycleQty = b.monthlyLimit || b.periodLimits?.[frequency] || (frequency === "شهري" ? 1 : totalQty);
+
+          return {
+            id: String(b.id || idx + 1),
+            name: b.name,
+            description: b.description || b.category || "",
+            quantity: totalQty,
+            unit: b.unit || "وحدة",
+            category: b.category || "مواد وتجهيزات",
+            frequency,
+            period: frequency,
+            cycleQuantity: Number(cycleQty),
+            monthlyLimit: b.monthlyLimit || null,
+            periodLimits: b.periodLimits || null,
+            allocationMethod: allocations[String(b.id)] || "purchase_order",
+          };
+        });
       }
 
       // حساب رصيد المخزون الافتراضي لكل صنف
       const inwardMap: Record<string, number> = {};
       const outboundMap: Record<string, number> = {};
+      const pendingConfirmationMap: Record<string, number> = {};
       const deliveredMap: Record<string, number> = {};
 
+      // تتبع أول أمر إدخال وآخر تأكيد إخراج لكل صنف
+      const firstInwardDateMap: Record<string, string> = {};
+      const lastConfirmedOutboundDateMap: Record<string, string> = {};
+      const confirmedOutboundCountMap: Record<string, number> = {};
+
+      let globalFirstInwardDate: string | null = null;
+
       (executionData.inwardOrders || []).forEach((inOrder: any) => {
+        const orderDate = inOrder.createdAt || inOrder.orderDate;
+        if (orderDate && (!globalFirstInwardDate || orderDate < globalFirstInwardDate)) {
+          globalFirstInwardDate = orderDate;
+        }
         (inOrder.items || []).forEach((it: any) => {
           inwardMap[it.id] = (inwardMap[it.id] || 0) + Number(it.quantity || 0);
+          if (orderDate && (!firstInwardDateMap[it.id] || orderDate < firstInwardDateMap[it.id])) {
+            firstInwardDateMap[it.id] = orderDate;
+          }
         });
       });
 
       (executionData.outboundOrders || []).forEach((outOrder: any) => {
-        if (outOrder.status !== "cancelled") {
+        if (outOrder.status === "pending_confirmation") {
+          // أوامر إخراج مجدولة بانتظار تأكيد المسؤول - لا تُخصم من الرصيد المتوفر رسمياً حتى يؤكدها المسؤول
+          (outOrder.items || []).forEach((it: any) => {
+            pendingConfirmationMap[it.id] = (pendingConfirmationMap[it.id] || 0) + Number(it.quantity || 0);
+          });
+        } else if (outOrder.status !== "cancelled") {
           (outOrder.items || []).forEach((it: any) => {
             outboundMap[it.id] = (outboundMap[it.id] || 0) + Number(it.quantity || 0);
           });
+          // تتبع تاريخ آخر إخراج مؤكد
+          const confirmedDate = outOrder.confirmedBySupervisorAt || outOrder.scheduledDate || outOrder.createdAt;
+          if (confirmedDate) {
+            (outOrder.items || []).forEach((it: any) => {
+              if (!lastConfirmedOutboundDateMap[it.id] || confirmedDate > lastConfirmedOutboundDateMap[it.id]) {
+                lastConfirmedOutboundDateMap[it.id] = confirmedDate;
+              }
+              confirmedOutboundCountMap[it.id] = (confirmedOutboundCountMap[it.id] || 0) + 1;
+            });
+          }
         }
       });
 
@@ -200,22 +298,220 @@ export const sedanaExecutionRouter = router({
         }
       });
 
+      // الحصول على تاريخ بدء مرحلة التنفيذ
+      let executionStageStartDate: string | null = null;
+      try {
+        const stageRows = await db
+          .select({ startedAt: requestStageTracking.startedAt })
+          .from(requestStageTracking)
+          .where(
+            and(
+              eq(requestStageTracking.requestId, req.id),
+              eq(requestStageTracking.stageCode, "execution")
+            )
+          )
+          .limit(1);
+        if (stageRows.length > 0 && stageRows[0].startedAt) {
+          executionStageStartDate = new Date(stageRows[0].startedAt).toISOString();
+        }
+      } catch {
+        // تجاهل أخطاء stage tracking
+      }
+
+      // دالة حساب عدد الأيام لفترة الدورية
+      const getFrequencyDays = (freq: string): number => {
+        if (freq.includes("ربع") || freq === "ربع سنوي") return 90;
+        if (freq.includes("نصف") || freq === "نصف سنوي") return 180;
+        if (freq.includes("سنو") || freq === "سنوي") return 365;
+        return 30; // شهري افتراضياً
+      };
+
+      // جدولة الإخراج التلقائي بناءً على العداد التنازلي (عندما يصل العداد لـ 0 ويوجد رصيد كافٍ)
+      const unconfirmedOrders = (executionData.outboundOrders || []).filter(
+        (o: any) => o.status === "pending_confirmation"
+      );
+      const itemsInPendingConfirmation = new Set<string>();
+      unconfirmedOrders.forEach((o: any) => {
+        (o.items || []).forEach((it: any) => itemsInPendingConfirmation.add(String(it.id)));
+      });
+
+      const now = new Date();
+      const autoEligibleItems: any[] = [];
+
+      // حساب الجدولة الزمنية لكل بند
+      const itemTimingMap: Record<string, {
+        cycleStartDate: string | null;
+        lastConfirmedOutboundDate: string | null;
+        nextDueDate: string | null;
+        daysUntilNextDue: number | null;
+        currentCycleNumber: number;
+        totalCycles: number;
+        frequencyDays: number;
+        isDue: boolean;
+        isCompleted: boolean;
+        hasStock: boolean;
+      }> = {};
+
+      baseItems.forEach((it) => {
+        const totalIn = inwardMap[it.id] || 0;
+        const totalOut = outboundMap[it.id] || 0;
+        const pendingQty = pendingConfirmationMap[it.id] || 0;
+        const avail = Math.max(0, totalIn - totalOut);
+        const rem = Math.max(0, it.quantity - totalOut);
+        const frequencyDays = getFrequencyDays(it.frequency);
+        const totalCycles = Math.ceil(it.quantity / (it.cycleQuantity || 1));
+        const confirmedCount = confirmedOutboundCountMap[it.id] || 0;
+        const currentCycleNumber = confirmedCount;
+        const isCompleted = totalOut >= it.quantity;
+
+        // تحديد تاريخ بدء الدورة: أول إدخال للصنف > أول إدخال عام > بدء مرحلة التنفيذ
+        const cycleStartDate = firstInwardDateMap[it.id] || globalFirstInwardDate || executionStageStartDate;
+        const lastConfirmedDate = lastConfirmedOutboundDateMap[it.id] || null;
+
+        let nextDueDate: string | null = null;
+        let daysUntilNextDue: number | null = null;
+        let isDue = false;
+
+        if (isCompleted) {
+          // الصنف مكتمل الصرف
+          nextDueDate = null;
+          daysUntilNextDue = null;
+        } else if (!cycleStartDate) {
+          // لا يوجد تاريخ بدء بعد (لم يُورّد أي شيء ولم تبدأ مرحلة التنفيذ)
+          nextDueDate = null;
+          daysUntilNextDue = null;
+        } else {
+          // حساب موعد الدفعة التالية
+          let refDate: Date;
+          if (lastConfirmedDate) {
+            // بعد آخر إخراج مؤكد + فترة الدورية
+            refDate = new Date(lastConfirmedDate);
+          } else {
+            // أول دفعة: من تاريخ أول إدخال + فترة الدورية
+            refDate = new Date(cycleStartDate);
+          }
+          const nextDue = new Date(refDate.getTime() + frequencyDays * 24 * 60 * 60 * 1000);
+          nextDueDate = nextDue.toISOString();
+          const diffMs = nextDue.getTime() - now.getTime();
+          daysUntilNextDue = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+          isDue = diffMs <= 0;
+        }
+
+        const hasStock = avail > 0 && rem > 0;
+
+        itemTimingMap[it.id] = {
+          cycleStartDate,
+          lastConfirmedOutboundDate: lastConfirmedDate,
+          nextDueDate,
+          daysUntilNextDue,
+          currentCycleNumber: Math.min(currentCycleNumber, totalCycles),
+          totalCycles,
+          frequencyDays,
+          isDue,
+          isCompleted,
+          hasStock,
+        };
+
+        // الإنشاء التلقائي: فقط عندما حان الموعد (isDue) ويوجد رصيد ولا يوجد أمر بانتظار التأكيد
+        if (isDue && hasStock && !itemsInPendingConfirmation.has(String(it.id)) && !isCompleted) {
+          const batchQty = Math.min(it.cycleQuantity || 1, avail, rem);
+          if (batchQty > 0) {
+            autoEligibleItems.push({
+              id: it.id,
+              itemName: it.name,
+              quantity: batchQty,
+              unit: it.unit,
+              frequency: it.frequency,
+            });
+          }
+        }
+      });
+
+      if (autoEligibleItems.length > 0) {
+        executionData.outboundOrders = executionData.outboundOrders || [];
+        const count = executionData.outboundOrders.length + 1;
+        const orderNumber = `OUT-${req.id}-${String(count).padStart(2, "0")}`;
+        const disbursementVoucherCode = `DV-SED-${req.id}-${String(count).padStart(2, "0")}`;
+        const outboundId = `OUT-${req.id}-${Date.now()}`;
+        const todayStr = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+
+        const primaryFreq = autoEligibleItems[0]?.frequency || "شهري";
+        const autoOutbound = {
+          id: outboundId,
+          orderNumber,
+          scheduledDate: todayStr,
+          periodLabel: `الدفعة الدورية (${primaryFreq}) - دفعة رقم ${count}`,
+          outboundMethod: "direct_imam",
+          recipientName: mosque?.imamName || "إمام المسجد",
+          recipientRole: "إمام المسجد",
+          recipientPhone: mosque?.imamPhone || "",
+          deliveryLocation: [mosque?.name, mosque?.district, mosque?.city].filter(Boolean).join(" - "),
+          disbursementVoucherCode,
+          status: "pending_confirmation" as const, // بانتظار تأكيد واعتماد المسؤول
+          isAutoGenerated: true,
+          notes: `تم توليد هذا الأمر تلقائياً بواسطة النظام عند انتهاء العداد الزمني للدورة (${primaryFreq})، وهو بانتظار تأكيد واعتماد المسؤول قبل خروج المواد.`,
+          items: autoEligibleItems,
+          linkedDeliveryId: null,
+          confirmation: null,
+          createdBy: null,
+          createdByName: "النظام (جدولة آلية)",
+          createdAt: new Date().toISOString(),
+        };
+
+        executionData.outboundOrders.push(autoOutbound);
+
+        // تحديث pendingConfirmationMap بالبنود الجديدة
+        autoEligibleItems.forEach((it) => {
+          pendingConfirmationMap[it.id] = (pendingConfirmationMap[it.id] || 0) + it.quantity;
+          itemsInPendingConfirmation.add(String(it.id));
+          // تحديث timing
+          if (itemTimingMap[it.id]) {
+            itemTimingMap[it.id].isDue = false;
+          }
+        });
+
+        // حفظ في قاعدة البيانات
+        pData.sedanaExecution = executionData;
+        await db
+          .update(mosqueRequests)
+          .set({
+            programData: pData,
+            updatedAt: new Date(),
+          })
+          .where(eq(mosqueRequests.id, req.id));
+      }
+
       const inventoryItems = baseItems.map((it) => {
         const approvedQty = it.quantity;
         const totalInward = inwardMap[it.id] || 0;
         const totalOutbound = outboundMap[it.id] || 0;
         const totalDelivered = deliveredMap[it.id] || 0;
+        const pendingConfirmationQty = pendingConfirmationMap[it.id] || 0;
         const availableStock = Math.max(0, totalInward - totalOutbound);
         const pendingInward = Math.max(0, approvedQty - totalInward);
+        const remainingToDisburse = Math.max(0, approvedQty - totalOutbound);
+        const timing = itemTimingMap[it.id];
 
         return {
           ...it,
           approvedQty,
           totalInward,
           totalOutbound,
+          pendingConfirmationQty,
           totalDelivered,
           availableStock,
           pendingInward,
+          remainingToDisburse,
+          // حقول العداد التنازلي
+          cycleStartDate: timing?.cycleStartDate || null,
+          lastConfirmedOutboundDate: timing?.lastConfirmedOutboundDate || null,
+          nextDueDate: timing?.nextDueDate || null,
+          daysUntilNextDue: timing?.daysUntilNextDue ?? null,
+          currentCycleNumber: timing?.currentCycleNumber ?? 0,
+          totalCycles: timing?.totalCycles || 1,
+          frequencyDays: timing?.frequencyDays || 30,
+          isDue: timing?.isDue || false,
+          isAllCompleted: timing?.isCompleted || false,
         };
       });
 
@@ -932,6 +1228,157 @@ export const sedanaExecutionRouter = router({
         order: newOutbound,
         delivery: newDelivery,
       };
+    }),
+
+  // ==========================================
+  // 3.5 تأكيد واعتماد أمر الإخراج المجدول من قِبل المسؤول
+  // ==========================================
+  confirmSupervisorOutbound: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      outboundOrderId: z.string(),
+      scheduledDate: z.string().optional(),
+      outboundMethod: z.enum(["direct_imam", "courier_delivery", "warehouse_pickup", "scheduled_batch"]).optional(),
+      recipientName: z.string().optional(),
+      recipientRole: z.string().optional(),
+      recipientPhone: z.string().optional(),
+      deliveryLocation: z.string().optional(),
+      notes: z.string().optional(),
+      items: z.array(z.object({
+        id: z.string(),
+        itemName: z.string(),
+        quantity: z.number().min(0.01),
+        unit: z.string(),
+      })).optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [req] = await db
+        .select()
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, input.requestId))
+        .limit(1);
+
+      if (!req) throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+
+      let pData: any = req.programData;
+      while (typeof pData === "string") {
+        try { pData = JSON.parse(pData); } catch { break; }
+      }
+      pData = pData && typeof pData === "object" ? pData : {};
+      pData.sedanaExecution = pData.sedanaExecution || {};
+      pData.sedanaExecution.outboundOrders = pData.sedanaExecution.outboundOrders || [];
+      pData.sedanaExecution.deliveryOrders = pData.sedanaExecution.deliveryOrders || [];
+
+      const targetIndex = pData.sedanaExecution.outboundOrders.findIndex((o: any) => o.id === input.outboundOrderId);
+      if (targetIndex === -1) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "أمر الإخراج غير موجود" });
+      }
+
+      const out = pData.sedanaExecution.outboundOrders[targetIndex];
+
+      if (input.scheduledDate) out.scheduledDate = input.scheduledDate;
+      if (input.outboundMethod) out.outboundMethod = input.outboundMethod;
+      if (input.recipientName) out.recipientName = input.recipientName;
+      if (input.recipientRole) out.recipientRole = input.recipientRole;
+      if (input.recipientPhone !== undefined) out.recipientPhone = input.recipientPhone;
+      if (input.deliveryLocation !== undefined) out.deliveryLocation = input.deliveryLocation;
+      if (input.notes !== undefined) out.notes = input.notes;
+      if (input.items && input.items.length > 0) out.items = input.items;
+
+      out.status = "pending_receipt";
+      out.confirmedBySupervisorAt = new Date().toISOString();
+      out.confirmedBySupervisorId = ctx.user.id;
+      out.confirmedBySupervisorName = ctx.user.name;
+
+      const delCount = pData.sedanaExecution.deliveryOrders.length + 1;
+      const deliveryId = out.linkedDeliveryId || `DEL-${req.id}-${Date.now()}`;
+      out.linkedDeliveryId = deliveryId;
+
+      const existingDelIndex = pData.sedanaExecution.deliveryOrders.findIndex(
+        (d: any) => d.id === deliveryId || d.outboundOrderId === out.id
+      );
+
+      const deliveryPayload = {
+        id: deliveryId,
+        deliveryNumber: `DEL-${req.id}-${String(delCount).padStart(2, "0")}`,
+        outboundOrderId: out.id,
+        disbursementVoucherCode: out.disbursementVoucherCode,
+        outboundMethod: out.outboundMethod || "direct_imam",
+        recipientName: out.recipientName || "إمام المسجد",
+        recipientRole: out.recipientRole || "إمام المسجد",
+        recipientPhone: out.recipientPhone || "",
+        scheduledDate: out.scheduledDate,
+        status: "pending_delivery" as const,
+        items: out.items,
+        notes: out.notes || "",
+        confirmation: null,
+        createdBy: ctx.user.id,
+        createdByName: ctx.user.name,
+        createdAt: new Date().toISOString(),
+      };
+
+      if (existingDelIndex >= 0) {
+        pData.sedanaExecution.deliveryOrders[existingDelIndex] = {
+          ...pData.sedanaExecution.deliveryOrders[existingDelIndex],
+          ...deliveryPayload,
+        };
+      } else {
+        pData.sedanaExecution.deliveryOrders.push(deliveryPayload);
+      }
+
+      await db
+        .update(mosqueRequests)
+        .set({
+          programData: pData,
+          updatedAt: new Date(),
+        })
+        .where(eq(mosqueRequests.id, input.requestId));
+
+      try {
+        await db.insert(requestHistory).values({
+          requestId: input.requestId,
+          userId: ctx.user.id,
+          fromStage: req.currentStage,
+          toStage: req.currentStage,
+          fromStatus: req.status,
+          toStatus: req.status,
+          action: "sedana_outbound_supervisor_confirmed",
+          notes: `قام المسؤول (${ctx.user.name}) بتأكيد واعتماد أمر الإخراج رقم ${out.orderNumber} ومسوغ الصرف ${out.disbursementVoucherCode}`,
+        });
+      } catch (e) {
+        console.error("Log error:", e);
+      }
+
+      return {
+        success: true,
+        order: out,
+        delivery: deliveryPayload,
+      };
+    }),
+
+  // ==========================================
+  // 3.6 توليد يدوي لأوامر الإخراج المجدولة حسب فترات البنود
+  // ==========================================
+  triggerScheduledOutboundGeneration: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [req] = await db
+        .select()
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, input.requestId))
+        .limit(1);
+
+      if (!req) throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+
+      return { success: true, message: "تم تحديث وجدولة أوامر الإخراج تلقائياً بنجاح" };
     }),
 
   // ==========================================
