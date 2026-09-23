@@ -76,6 +76,18 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   quotations: ["quotations.view", "quotations.create", "quotations.edit", "quotations.approve"],
   financial_approval: ["financial.view", "financial.approve", "financial.reject"],
   contracts: ["contracts.view", "contracts.create", "contracts.edit", "contracts.edit_approved", "contracts.delete", "contracts.approve"],
+  purchase_orders: [
+    "purchase_orders.view",
+    "purchase_orders.add",
+    "purchase_orders.approve",
+    "purchase_orders.create_disbursement",
+    "purchase_orders.export",
+  ],
+  "purchase_orders.view": ["purchase_orders.view"],
+  "purchase_orders.add": ["purchase_orders.add"],
+  "purchase_orders.approve": ["purchase_orders.approve"],
+  "purchase_orders.create_disbursement": ["purchase_orders.create_disbursement"],
+  "purchase_orders.export": ["purchase_orders.export"],
   disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve", "disbursements.exception_approve"],
   disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.exception_approve", "disbursement_orders.reject", "disbursement_orders.create_direct"],
   progress_reports: ["progress_reports.view", "progress_reports.add", "progress_reports.edit", "progress_reports.approve", "progress_reports.exception_approve"],
@@ -738,6 +750,34 @@ async function ensureAllCustomPermissionsExist(db: any) {
       console.log("Inserted missing custom module: requesters");
     }
 
+    // Ensure 'purchase_orders' module exists in the modules table
+    const [existingPoModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "purchase_orders")).limit(1);
+    if (!existingPoModule) {
+      await db.insert(modules).values({
+        id: "purchase_orders",
+        nameAr: "أوامر الشراء",
+        nameEn: "Purchase Orders",
+        icon: "ShoppingCart",
+        displayOrder: 9,
+        isActive: true
+      });
+      console.log("Inserted missing custom module: purchase_orders");
+    }
+
+    // Ensure 'signing' module exists in the modules table
+    const [existingSigningModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "signing")).limit(1);
+    if (!existingSigningModule) {
+      await db.insert(modules).values({
+        id: "signing",
+        nameAr: "صلاحيات التوقيع",
+        nameEn: "Signing Permissions",
+        icon: "PenLine",
+        displayOrder: 15,
+        isActive: true
+      }).catch(() => {});
+      console.log("Inserted missing custom module: signing");
+    }
+
     // تنظيف الصلاحيات الملغاة وتحديث وحدات الصلاحيات
     try {
       await db.delete(rolePermissions).where(eq(rolePermissions.permissionId, "analytics_hub.project_reports"));
@@ -881,24 +921,64 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "receipt_vouchers.edit", moduleId: "disbursements", action: "edit", nameAr: "تعديل سند القبض", nameEn: "Edit Receipt Voucher" },
       { id: "receipt_vouchers.exception_approve", moduleId: "disbursements", action: "exception_approve", nameAr: "استثناء اعتماد السند", nameEn: "Exception Approve Receipt Voucher" },
       { id: "requests.create_quick_request", moduleId: "requests", action: "create_quick_request", nameAr: "إنشاء طلب سريع", nameEn: "Create Quick Request" },
+      { id: "purchase_orders.view", moduleId: "purchase_orders", action: "view", nameAr: "عرض أوامر الشراء", nameEn: "View Purchase Orders" },
+      { id: "purchase_orders.add", moduleId: "purchase_orders", action: "add", nameAr: "إنشاء أمر شراء جديد", nameEn: "Create Purchase Order" },
+      { id: "purchase_orders.approve", moduleId: "purchase_orders", action: "approve", nameAr: "اعتماد أوامر الشراء", nameEn: "Approve Purchase Orders" },
+      { id: "purchase_orders.create_disbursement", moduleId: "purchase_orders", action: "create_disbursement", nameAr: "إنشاء أمر صرف لأمر الشراء", nameEn: "Create Disbursement Order" },
+      { id: "purchase_orders.export", moduleId: "purchase_orders", action: "export", nameAr: "تصدير أوامر الشراء إكسيل", nameEn: "Export Purchase Orders" },
     ];
 
     for (const p of customPerms) {
-      const existing = await db.select({ id: permissions.id })
-        .from(permissions)
-        .where(eq(permissions.id, p.id))
-        .limit(1);
-      
-      if (existing.length === 0) {
-        await db.insert(permissions).values(p);
-        console.log(`Inserted missing custom permission: ${p.id}`);
-      } else {
-        await db.update(permissions).set({
-          nameAr: p.nameAr,
-          nameEn: p.nameEn,
-          moduleId: p.moduleId,
-          action: p.action
-        }).where(eq(permissions.id, p.id));
+      try {
+        const existing = await db.select({ id: permissions.id })
+          .from(permissions)
+          .where(eq(permissions.id, p.id))
+          .limit(1);
+        
+        if (existing.length === 0) {
+          await db.insert(permissions).values(p);
+          console.log(`Inserted missing custom permission: ${p.id}`);
+        } else {
+          await db.update(permissions).set({
+            nameAr: p.nameAr,
+            nameEn: p.nameEn,
+            moduleId: p.moduleId,
+            action: p.action
+          }).where(eq(permissions.id, p.id));
+        }
+      } catch (pErr) {
+        console.warn(`Could not sync custom permission ${p.id}:`, pErr);
+      }
+    }
+
+    // إسناد الصلاحيات الافتراضية لأوامر الشراء للأدوار الأساسية إن لم تكن مسندة
+    const poDefaultRolePerms: Record<string, string[]> = {
+      super_admin: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
+      system_admin: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
+      general_manager: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
+      executive_director: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
+      financial_manager: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
+      financial: ["purchase_orders.view", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
+      projects_office: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
+      project_manager: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.export"],
+    };
+
+    for (const [rId, pIds] of Object.entries(poDefaultRolePerms)) {
+      for (const pId of pIds) {
+        const [existing] = await db.select({ id: rolePermissions.id })
+          .from(rolePermissions)
+          .where(and(
+            eq(rolePermissions.roleId, rId),
+            eq(rolePermissions.permissionId, pId)
+          ))
+          .limit(1);
+
+        if (!existing) {
+          await db.insert(rolePermissions).values({
+            roleId: rId,
+            permissionId: pId
+          }).catch(() => {});
+        }
       }
     }
   } catch (err) {
