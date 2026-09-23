@@ -94,7 +94,6 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
   const canAdd = usePermission("csr_letters.add");
   const canApprove = usePermission("csr_letters.approve");
   const canCreateDisbursement = usePermission("csr_letters.create_disbursement");
-  const canPrint = usePermission("csr_letters.print");
   const canExport = usePermission("csr_letters.export");
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -546,15 +545,13 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-56 text-right font-sans">
                                 {/* معاينة وطباعة الخطاب الرسمي */}
-                                {canPrint && (
-                                  <DropdownMenuItem
-                                    onClick={() => navigate(`/requests/${letter.requestId}/csr-letter?letterNumber=${encodeURIComponent(letter.letterNumber)}`)}
-                                    className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs"
-                                  >
-                                    <Eye className="w-4 h-4 text-sky-600 shrink-0" />
-                                    <span>معاينة وطباعة الخطاب الرسمي</span>
-                                  </DropdownMenuItem>
-                                )}
+                                <DropdownMenuItem
+                                  onClick={() => navigate(`/requests/${letter.requestId}/csr-letter?letterNumber=${encodeURIComponent(letter.letterNumber)}`)}
+                                  className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs"
+                                >
+                                  <Eye className="w-4 h-4 text-sky-600 shrink-0" />
+                                  <span>معاينة وطباعة الخطاب الرسمي</span>
+                                </DropdownMenuItem>
 
                                 {/* استعراض الأصناف المطلوبة */}
                                 <DropdownMenuItem
