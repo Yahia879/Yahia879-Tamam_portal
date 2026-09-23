@@ -328,8 +328,10 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
 
   // 4. إدارة المخزون
   const inventoryItems: MenuItem[] = [];
-  if (has("contracts") || has("contracts.view") || has("requests") || has("requests.view") || has("requests.view_details")) {
+  if (has("purchase_orders") || has("purchase_orders.view")) {
     inventoryItems.push({ icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" });
+  }
+  if (has("contracts") || has("contracts.view") || has("requests") || has("requests.view") || has("requests.view_details")) {
     inventoryItems.push({ icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" });
     inventoryItems.push({ icon: Boxes, label: "المستودع الافتراضي", path: "/sedana-warehouse" });
   }
