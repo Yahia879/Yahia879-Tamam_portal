@@ -46,7 +46,8 @@ import {
   SlidersHorizontal,
   HeartHandshake,
   BarChart3,
-  ShieldAlert
+  ShieldAlert,
+  ShoppingCart
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -82,6 +83,7 @@ const superAdminGroups = [
       { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
       { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
       { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
+      { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
       { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
       { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
       { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve"] },
@@ -250,6 +252,13 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       template_edit: "تعديل قالب العقد",
       template_delete: "حذف قالب العقد",
       clause_add: "إضافة بند للعقد"
+    },
+    purchase_orders: {
+      view: "عرض أوامر الشراء",
+      add: "إنشاء أمر شراء جديد",
+      approve: "اعتماد أوامر الشراء",
+      create_disbursement: "إنشاء أمر صرف لأمر الشراء",
+      export: "تصدير أوامر الشراء إكسيل",
     },
     disbursements: {
       view: "عرض طلبات الصرف",
@@ -582,6 +591,14 @@ export default function RoleEdit() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية لأوامر الشراء إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("purchase_orders.") && permId !== "purchase_orders.view") {
+      if (!selectedPerms.includes("purchase_orders.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض أوامر الشراء' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية للتقارير إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("reports.") && permId !== "reports.view_stats") {
       if (!selectedPerms.includes("reports.view_stats")) {
@@ -688,6 +705,11 @@ export default function RoleEdit() {
         // عند إلغاء تفعيل صلاحية 'عرض أوامر الصرف'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات أوامر الصرف الأخرى
         if (permId === "disbursement_orders.view") {
           next = next.filter(id => !id.startsWith("disbursement_orders."));
+        }
+
+        // عند إلغاء تفعيل صلاحية 'عرض أوامر الشراء'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات أوامر الشراء الأخرى
+        if (permId === "purchase_orders.view") {
+          next = next.filter(id => !id.startsWith("purchase_orders."));
         }
 
 
