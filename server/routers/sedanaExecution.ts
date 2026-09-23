@@ -103,9 +103,11 @@ export const sedanaExecutionRouter = router({
         .select({
           request: mosqueRequests,
           mosque: mosques,
+          user: users,
         })
         .from(mosqueRequests)
         .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+        .leftJoin(users, eq(mosqueRequests.userId, users.id))
         .where(eq(mosqueRequests.id, input.requestId))
         .limit(1);
 
@@ -115,6 +117,7 @@ export const sedanaExecutionRouter = router({
 
       const req = row.request;
       const mosque = row.mosque;
+      const requester = row.user;
 
       let pData: any = req.programData;
       while (typeof pData === "string") {
@@ -827,6 +830,9 @@ export const sedanaExecutionRouter = router({
           descriptiveName: req.descriptiveName,
           currentStage: req.currentStage,
           status: req.status,
+          requesterName: requester?.name || mosque?.imamName || "مقدم الطلب",
+          requesterPhone: requester?.phone || mosque?.imamPhone || "",
+          requesterEmail: requester?.email || "",
           createdAt: req.createdAt,
         },
         mosque,
