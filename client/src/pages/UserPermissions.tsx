@@ -777,7 +777,6 @@ export default function UserPermissions() {
         add: "إنشاء خطاب مسؤولية مجتمعية جديد",
         approve: "اعتماد خطابات المسؤولية المجتمعية",
         create_disbursement: "إنشاء أمر صرف للخطاب",
-        print: "معاينة وطباعة الخطاب الرسمي",
         export: "تصدير الخطابات إكسيل",
       },
       sedana_warehouse: {
@@ -956,7 +955,7 @@ export default function UserPermissions() {
       title: "إدارة المخزون",
       modules: [
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
-        { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "print", "export"] },
+        { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound", "confirm_receipt", "print", "export"] },
       ]
     },
