@@ -117,7 +117,8 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "sedana_warehouse.print": ["sedana_warehouse.print"],
   "sedana_warehouse.export": ["sedana_warehouse.export"],
   disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve", "disbursements.exception_approve"],
-  disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.exception_approve", "disbursement_orders.reject", "disbursement_orders.create_direct"],
+  disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.exception_approve", "disbursement_orders.reject", "disbursement_orders.create_direct", "disbursement_orders.remind"],
+  "disbursement_orders.remind": ["disbursement_orders.remind"],
   progress_reports: ["progress_reports.view", "progress_reports.add", "progress_reports.edit", "progress_reports.approve", "progress_reports.exception_approve"],
   project_reports: ["project_reports.view", "project_reports.create"],
   financial_report: ["financial_reports.view"],
@@ -300,6 +301,8 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "board_leadership.board_chairman": ["board_chairman", "board_chairman_view"],
   "board_leadership.board_chairman_view": ["board_chairman_view"],
   "board_leadership.board_member": ["board_member"],
+  "board_leadership.remind": ["board_leadership.remind", "board_chairman_remind"],
+  board_chairman_remind: ["board_leadership.remind", "board_chairman_remind"],
 };
 
 /**
@@ -994,6 +997,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "sedana_warehouse.confirm_receipt", moduleId: "sedana_warehouse", action: "confirm_receipt", nameAr: "اعتماد وتأكيد الاستلام", nameEn: "Approve & Confirm Receipt" },
       { id: "sedana_warehouse.print", moduleId: "sedana_warehouse", action: "print", nameAr: "معاينة وطباعة محاضر وأوامر التسليم", nameEn: "Print Delivery Orders" },
       { id: "sedana_warehouse.export", moduleId: "sedana_warehouse", action: "export", nameAr: "تصدير بيانات المستودع إكسيل", nameEn: "Export Warehouse Data" },
+      { id: "disbursement_orders.remind", moduleId: "disbursements", action: "remind", nameAr: "إرسال تذكير بالاعتماد", nameEn: "Send Approval Reminder" },
+      { id: "board_leadership.remind", moduleId: "board", action: "remind", nameAr: "إرسال تذكير بالاعتماد", nameEn: "Send Approval Reminder" },
     ];
 
     for (const p of customPerms) {
@@ -1503,7 +1508,8 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.has("disbursement_orders.exception_approve") ||
     allPermissions.has("disbursement_orders.reject") ||
     allPermissions.has("disbursement_orders.view_details") ||
-    allPermissions.has("disbursement_orders.create_direct")
+    allPermissions.has("disbursement_orders.create_direct") ||
+    allPermissions.has("disbursement_orders.remind")
   ) {
     allPermissions.add("disbursement_orders");
   } else {
@@ -1573,7 +1579,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.add("pending_reports");
   }
 
-  if (allPermissions.has("board_chairman") || allPermissions.has("board_member")) {
+  if (allPermissions.has("board_chairman") || allPermissions.has("board_member") || allPermissions.has("board_leadership.remind") || allPermissions.has("board_chairman_remind")) {
     allPermissions.add("board_leadership");
   }
 
