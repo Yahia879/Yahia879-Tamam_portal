@@ -88,6 +88,20 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "purchase_orders.approve": ["purchase_orders.approve"],
   "purchase_orders.create_disbursement": ["purchase_orders.create_disbursement"],
   "purchase_orders.export": ["purchase_orders.export"],
+  csr_letters: [
+    "csr_letters.view",
+    "csr_letters.add",
+    "csr_letters.approve",
+    "csr_letters.create_disbursement",
+    "csr_letters.print",
+    "csr_letters.export",
+  ],
+  "csr_letters.view": ["csr_letters.view"],
+  "csr_letters.add": ["csr_letters.add"],
+  "csr_letters.approve": ["csr_letters.approve"],
+  "csr_letters.create_disbursement": ["csr_letters.create_disbursement"],
+  "csr_letters.print": ["csr_letters.print"],
+  "csr_letters.export": ["csr_letters.export"],
   disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve", "disbursements.exception_approve"],
   disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.exception_approve", "disbursement_orders.reject", "disbursement_orders.create_direct"],
   progress_reports: ["progress_reports.view", "progress_reports.add", "progress_reports.edit", "progress_reports.approve", "progress_reports.exception_approve"],
@@ -764,6 +778,20 @@ async function ensureAllCustomPermissionsExist(db: any) {
       console.log("Inserted missing custom module: purchase_orders");
     }
 
+    // Ensure 'csr_letters' module exists in the modules table
+    const [existingCsrModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "csr_letters")).limit(1);
+    if (!existingCsrModule) {
+      await db.insert(modules).values({
+        id: "csr_letters",
+        nameAr: "المسؤولية المجتمعية",
+        nameEn: "CSR Letters",
+        icon: "HeartHandshake",
+        displayOrder: 10,
+        isActive: true
+      });
+      console.log("Inserted missing custom module: csr_letters");
+    }
+
     // Ensure 'signing' module exists in the modules table
     const [existingSigningModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "signing")).limit(1);
     if (!existingSigningModule) {
@@ -926,6 +954,12 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "purchase_orders.approve", moduleId: "purchase_orders", action: "approve", nameAr: "اعتماد أوامر الشراء", nameEn: "Approve Purchase Orders" },
       { id: "purchase_orders.create_disbursement", moduleId: "purchase_orders", action: "create_disbursement", nameAr: "إنشاء أمر صرف لأمر الشراء", nameEn: "Create Disbursement Order" },
       { id: "purchase_orders.export", moduleId: "purchase_orders", action: "export", nameAr: "تصدير أوامر الشراء إكسيل", nameEn: "Export Purchase Orders" },
+      { id: "csr_letters.view", moduleId: "csr_letters", action: "view", nameAr: "عرض خطابات المسؤولية المجتمعية", nameEn: "View CSR Letters" },
+      { id: "csr_letters.add", moduleId: "csr_letters", action: "add", nameAr: "إنشاء خطاب مسؤولية مجتمعية جديد", nameEn: "Create CSR Letter" },
+      { id: "csr_letters.approve", moduleId: "csr_letters", action: "approve", nameAr: "اعتماد خطابات المسؤولية المجتمعية", nameEn: "Approve CSR Letters" },
+      { id: "csr_letters.create_disbursement", moduleId: "csr_letters", action: "create_disbursement", nameAr: "إنشاء أمر صرف للخطاب", nameEn: "Create Disbursement for CSR Letter" },
+      { id: "csr_letters.print", moduleId: "csr_letters", action: "print", nameAr: "معاينة وطباعة الخطاب الرسمي", nameEn: "Print CSR Letter" },
+      { id: "csr_letters.export", moduleId: "csr_letters", action: "export", nameAr: "تصدير الخطابات إكسيل", nameEn: "Export CSR Letters" },
     ];
 
     for (const p of customPerms) {
@@ -964,6 +998,37 @@ async function ensureAllCustomPermissionsExist(db: any) {
     };
 
     for (const [rId, pIds] of Object.entries(poDefaultRolePerms)) {
+      for (const pId of pIds) {
+        const [existing] = await db.select({ id: rolePermissions.id })
+          .from(rolePermissions)
+          .where(and(
+            eq(rolePermissions.roleId, rId),
+            eq(rolePermissions.permissionId, pId)
+          ))
+          .limit(1);
+
+        if (!existing) {
+          await db.insert(rolePermissions).values({
+            roleId: rId,
+            permissionId: pId
+          }).catch(() => {});
+        }
+      }
+    }
+
+    // إسناد الصلاحيات الافتراضية للمسؤولية المجتمعية للأدوار الأساسية إن لم تكن مسندة
+    const csrDefaultRolePerms: Record<string, string[]> = {
+      super_admin: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.print", "csr_letters.export"],
+      system_admin: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.print", "csr_letters.export"],
+      general_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.print", "csr_letters.export"],
+      executive_director: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.print", "csr_letters.export"],
+      financial_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.print", "csr_letters.export"],
+      financial: ["csr_letters.view", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.print", "csr_letters.export"],
+      projects_office: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.print", "csr_letters.export"],
+      project_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.print", "csr_letters.export"],
+    };
+
+    for (const [rId, pIds] of Object.entries(csrDefaultRolePerms)) {
       for (const pId of pIds) {
         const [existing] = await db.select({ id: rolePermissions.id })
           .from(rolePermissions)
