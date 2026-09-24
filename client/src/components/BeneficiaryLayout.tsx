@@ -146,28 +146,6 @@ export default function BeneficiaryLayout({
                 const Icon = item.icon;
                 const isActive = activeTab === item.id || location === item.path;
 
-                if (item.isSedana) {
-                  const isSedanaActive =
-                    activeTab === "sedana" ||
-                    (location === "/request-form-dynamic" &&
-                      searchString.includes("sedana"));
-
-                  return (
-                    <Link key={item.id} href={item.path}>
-                      <Button
-                        size="sm"
-                        className={`rounded-xl font-bold gap-1.5 px-3.5 h-9 transition-all cursor-pointer ${
-                          isSedanaActive
-                            ? "bg-cyan-700 text-white ring-2 ring-cyan-400/60 shadow-md"
-                            : "bg-cyan-600 hover:bg-cyan-700 text-white shadow-xs border border-cyan-500/30 hover:shadow-md hover:scale-[1.02]"
-                        }`}
-                      >
-                        <Sparkles className="w-4 h-4 text-cyan-200" />
-                        <span>{item.label}</span>
-                      </Button>
-                    </Link>
-                  );
-                }
 
                 if (item.isPrimary) {
                   return (
@@ -328,7 +306,7 @@ export default function BeneficiaryLayout({
               {/* Navigation Links */}
               <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
                 {navItems
-                  .filter((item) => !item.isPrimary && !item.isSedana)
+                  .filter((item) => !item.isPrimary)
                   .map((item) => {
                     const Icon = item.icon;
                     const isActive = activeTab === item.id || location === item.path;
