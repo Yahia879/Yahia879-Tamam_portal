@@ -3294,7 +3294,6 @@ export default function ContractForm() {
                                   })()}
                                 </div>
                               </div>
-                            </div>
 
 
                             {/* قسم ربط الأصناف والبنود الموردة في هذه الدفعة - خاص ببرنامج سدانة فقط */}
@@ -3460,6 +3459,8 @@ export default function ContractForm() {
                                 )}
                               </div>
 
+                              )}
+                            </div>
                             {!isPaid && (
                               <Button
                                 variant="ghost"
