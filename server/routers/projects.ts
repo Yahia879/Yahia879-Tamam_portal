@@ -2675,7 +2675,6 @@ export const projectsRouter = router({
         } catch (e) {
           console.error("Error syncing paymentScheduleJson for manual payment:", e);
         }
-        }
       } else if (input.id.startsWith("cp-")) {
         const actualId = cpRec.id;
         const updateValues: any = { amount: input.amount.toString() };
@@ -2766,8 +2765,6 @@ export const projectsRouter = router({
                 .where(eq(contractsEnhanced.projectId, c.projectId));
               const total = parseFloat(res?.total || "0");
               await db.update(projects).set({ actualCost: total.toString() }).where(eq(projects.id, c.projectId));
-            }
-          }
             }
           }
         } catch (e) {
