@@ -76,7 +76,25 @@ export default function BeneficiaryLayout({
   const unreadNotificationsCount =
     notificationsData?.notifications?.filter((n: any) => !n.isRead).length || 0;
 
-  const navItems = [
+  // إظهار زر سدانة فقط للشخص الذي رقم جواله "0500000000"
+  const isSedanaAllowed = Boolean(
+    user?.phone && (
+      user.phone.trim() === "0500000000" ||
+      user.phone.replace(/[^0-9]/g, "") === "0500000000" ||
+      user.phone.replace(/[^0-9]/g, "") === "966500000000"
+    )
+  );
+
+  interface NavItem {
+    id: string;
+    label: string;
+    icon: any;
+    path: string;
+    isPrimary?: boolean;
+    isSedana?: boolean;
+  }
+
+  const navItems: NavItem[] = [
     {
       id: "dashboard",
       label: "الرئيسية",
@@ -95,6 +113,17 @@ export default function BeneficiaryLayout({
       icon: Building2,
       path: "/my-mosques",
     },
+    ...(isSedanaAllowed
+      ? [
+          {
+            id: "sedana",
+            label: "طلب سدانة",
+            icon: Sparkles,
+            path: "/request-form-dynamic?service=sedana",
+            isSedana: true,
+          },
+        ]
+      : []),
     {
       id: "new-request",
       label: "تقديم طلب جديد",
@@ -140,11 +169,49 @@ export default function BeneficiaryLayout({
             </div>
 
 
+            {/* Quick Sedana CTA for Tablet (visible on sm to md) */}
+            {isSedanaAllowed && (
+              <div className="hidden sm:flex md:hidden items-center">
+                <Link href="/request-form-dynamic?service=sedana">
+                  <Button
+                    size="sm"
+                    className="rounded-xl shadow-xs bg-cyan-600 hover:bg-cyan-700 text-white font-bold gap-1.5 px-3 h-8 text-xs cursor-pointer border border-cyan-500/30"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-cyan-200" />
+                    <span>طلب سدانة</span>
+                  </Button>
+                </Link>
+              </div>
+            )}
+
             {/* Desktop Navigation Bar */}
             <nav className="hidden md:flex items-center gap-1.5 bg-muted/60 dark:bg-muted/30 p-1.5 rounded-2xl border border-border/50 dark:border-border/60">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id || location === item.path;
+
+                if (item.isSedana) {
+                  const isSedanaActive =
+                    activeTab === "sedana" ||
+                    (location === "/request-form-dynamic" &&
+                      searchString.includes("sedana"));
+
+                  return (
+                    <Link key={item.id} href={item.path}>
+                      <Button
+                        size="sm"
+                        className={`rounded-xl font-bold gap-1.5 px-3.5 h-9 transition-all cursor-pointer ${
+                          isSedanaActive
+                            ? "bg-cyan-700 text-white ring-2 ring-cyan-400/60 shadow-md"
+                            : "bg-cyan-600 hover:bg-cyan-700 text-white shadow-xs border border-cyan-500/30 hover:shadow-md hover:scale-[1.02]"
+                        }`}
+                      >
+                        <Sparkles className="w-4 h-4 text-cyan-200" />
+                        <span>{item.label}</span>
+                      </Button>
+                    </Link>
+                  );
+                }
 
 
                 if (item.isPrimary) {
@@ -295,6 +362,14 @@ export default function BeneficiaryLayout({
 
               {/* Primary CTAs in Drawer */}
               <div className="px-4 py-2 space-y-2">
+                {isSedanaAllowed && (
+                  <Link href="/request-form-dynamic?service=sedana" onClick={() => setMobileMenuOpen(false)}>
+                    <Button className="w-full rounded-xl shadow-md bg-cyan-600 hover:bg-cyan-700 text-white font-bold gap-2 h-10 transition-all cursor-pointer border border-cyan-500/30">
+                      <Sparkles className="w-4 h-4 text-cyan-200" />
+                      <span>طلب برنامج سدانة</span>
+                    </Button>
+                  </Link>
+                )}
                 <Link href="/request-form-dynamic" onClick={() => setMobileMenuOpen(false)}>
                   <Button className="w-full rounded-xl shadow-md gradient-primary text-white font-bold gap-2 h-10 hover:opacity-95 transition-all cursor-pointer">
                     <Plus className="w-4 h-4" />
@@ -306,7 +381,7 @@ export default function BeneficiaryLayout({
               {/* Navigation Links */}
               <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
                 {navItems
-                  .filter((item) => !item.isPrimary)
+                  .filter((item) => !item.isPrimary && !item.isSedana)
                   .map((item) => {
                     const Icon = item.icon;
                     const isActive = activeTab === item.id || location === item.path;
