@@ -1279,8 +1279,16 @@ export default function ContractForm() {
 
   // تثبيت ومزامنة قيمة العقد دائماً مع عرض السعر المعتمد للمورد إن وجد
   useEffect(() => {
-    if (approvedSupplierQuotation?.totalAmount) {
-      const qAmt = parseFloat(String(approvedSupplierQuotation.totalAmount));
+    if (approvedSupplierQuotation) {
+      const qAmt = parseFloat(
+        String(
+          approvedSupplierQuotation.approvedAmount ||
+          approvedSupplierQuotation.negotiatedAmount ||
+          approvedSupplierQuotation.finalAmount ||
+          approvedSupplierQuotation.totalAmount ||
+          0
+        )
+      );
       if (qAmt > 0 && Math.abs(contractData.totalValue - qAmt) > 0.01) {
         setContractData(prev => {
           const mgmtAmt = prev.managementFeeType === "fixed"
@@ -1296,7 +1304,13 @@ export default function ContractForm() {
         });
       }
     }
-  }, [approvedSupplierQuotation?.totalAmount, contractData.totalValue]);
+  }, [
+    approvedSupplierQuotation?.approvedAmount,
+    approvedSupplierQuotation?.negotiatedAmount,
+    approvedSupplierQuotation?.finalAmount,
+    approvedSupplierQuotation?.totalAmount,
+    contractData.totalValue,
+  ]);
 
   // تحديث المشروع والحقول الأخرى من بيانات الطلب
   useEffect(() => {
