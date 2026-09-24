@@ -936,6 +936,28 @@ export default function ContractForm() {
 
       // تحميل جدول الدفعات من العقد الحالي (الأولوية دائماً لجدول الدفعات الفعلي contractPayments من قاعدة البيانات)
       let parsedSchedule: PaymentScheduleItem[] = [];
+      let jsonSchedule: any[] = [];
+      if (c.paymentScheduleJson) {
+        try {
+          let schedule = c.paymentScheduleJson;
+          if (typeof schedule === 'string') {
+            try {
+              schedule = JSON.parse(schedule);
+              if (typeof schedule === 'string') {
+                schedule = JSON.parse(schedule);
+              }
+            } catch (e) {
+              console.error("Failed to parse paymentScheduleJson string:", e);
+            }
+          }
+          if (Array.isArray(schedule) && schedule.length > 0) {
+            jsonSchedule = schedule;
+          }
+        } catch (e) {
+          console.error("خطأ في تحليل جدول الدفعات من JSON:", e);
+        }
+      }
+
       if (existingContract.payments && existingContract.payments.length > 0) {
         parsedSchedule = existingContract.payments.map((p: any, idx: number) => {
           const comp = (p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "")
@@ -944,7 +966,23 @@ export default function ContractForm() {
           const paidAmt = p.paidAmount ? parseFloat(String(p.paidAmount)) : 0;
           const amt = p.agreedAmount ? parseFloat(String(p.agreedAmount)) : (p.amount ? parseFloat(String(p.amount)) : 0);
           const totalVal = c.contractAmount ? parseFloat(String(c.contractAmount)) : 0;
-          const pct = p.percentage ? parseFloat(String(p.percentage)) : (totalVal > 0 ? Number(((amt / totalVal) * 100).toFixed(2)) : 0);
+
+          // البحث عن بيانات الدفعة المقابلة في JSON للحفاظ على النسبة والبنود
+          const jsonMatch = jsonSchedule.find((s: any) => 
+            (s.id && String(s.id) === String(p.id)) || 
+            (s.name && s.name === p.phaseName)
+          ) || jsonSchedule[idx];
+
+          let pct = (p.percentage !== undefined && p.percentage !== null && !isNaN(Number(p.percentage)))
+            ? parseFloat(String(p.percentage))
+            : (jsonMatch?.percentage !== undefined && jsonMatch?.percentage !== null && !isNaN(Number(jsonMatch.percentage)))
+              ? parseFloat(String(jsonMatch.percentage))
+              : (totalVal > 0 ? Number(((amt / totalVal) * 100).toFixed(2)) : 0);
+
+          // حماية النسبة بحيث لا تتجاوز 100% ولا تقل عن 0%
+          if (pct > 100) pct = 100;
+          if (pct < 0) pct = 0;
+
           const isPaid = Boolean(p.isPaid === true || p.status === "paid" || p.status === "partially_paid" || paidAmt > 0);
           const isPartiallyPaid = Boolean(p.isPartiallyPaid === true || p.status === "partially_paid" || (paidAmt > 0 && paidAmt < amt));
 
@@ -963,81 +1001,71 @@ export default function ContractForm() {
           }
 
           return {
-            id: p.id ? String(p.id) : `payment_${idx + 1}`,
-            name: p.phaseName || p.name || `الدفعة ${idx + 1}`,
+            id: p.id ? String(p.id) : (jsonMatch?.id || `payment_${idx + 1}`),
+            name: p.phaseName || p.name || jsonMatch?.name || `الدفعة ${idx + 1}`,
+            type: p.type || jsonMatch?.type || "progress",
+            percentage: pct,
+            amount: amt,
+            agreedAmount: amt,
+            paidAmount: paidAmt,
+            dueDate: formattedDueDate || jsonMatch?.dueDate || "",
+            description: p.notes || p.description || p.condition || jsonMatch?.description || "",
+            completionPercentage: comp ?? jsonMatch?.completionPercentage,
+            items: Array.isArray(p.items) ? p.items : (Array.isArray(jsonMatch?.items) ? jsonMatch.items : []),
+            status: isPaid ? (isPartiallyPaid ? "partially_paid" : "paid") : (p.status || "pending"),
+            isPaid: isPaid,
+            isPartiallyPaid: isPartiallyPaid,
+          };
+        });
+      } else if (jsonSchedule.length > 0) {
+        parsedSchedule = jsonSchedule.map((p: any, idx: number) => {
+          const comp = (p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "")
+            ? Number(p.completionPercentage)
+            : undefined;
+          const paidAmt = p.paidAmount ? parseFloat(String(p.paidAmount)) : 0;
+          const amt = p.agreedAmount ? parseFloat(String(p.agreedAmount)) : (p.amount ? parseFloat(String(p.amount)) : 0);
+          const totalVal = c.contractAmount ? parseFloat(String(c.contractAmount)) : 0;
+          let pct = (p.percentage !== undefined && p.percentage !== null && !isNaN(Number(p.percentage)))
+            ? parseFloat(String(p.percentage))
+            : (totalVal > 0 ? Number(((amt / totalVal) * 100).toFixed(2)) : 0);
+
+          if (pct > 100) pct = 100;
+          if (pct < 0) pct = 0;
+
+          const isPaid = Boolean(p.isPaid === true || p.status === "paid" || p.status === "partially_paid" || paidAmt > 0);
+          const isPartiallyPaid = Boolean(p.isPartiallyPaid === true || p.status === "partially_paid" || (paidAmt > 0 && paidAmt < amt));
+
+          let formattedDueDate = "";
+          if (p.dueDate) {
+            try {
+              const dStr = String(p.dueDate);
+              if (dStr.includes("T")) {
+                formattedDueDate = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(p.dueDate));
+              } else {
+                formattedDueDate = dStr.split(" ")[0];
+              }
+            } catch (e) {
+              formattedDueDate = "";
+            }
+          }
+
+          return {
+            id: p.id || `payment_${idx + 1}`,
+            name: p.name || p.phaseName || `الدفعة ${idx + 1}`,
             type: p.type || "progress",
             percentage: pct,
             amount: amt,
             agreedAmount: amt,
             paidAmount: paidAmt,
             dueDate: formattedDueDate,
-            description: p.notes || p.description || p.condition || "",
+            description: p.description || p.notes || "",
             completionPercentage: comp,
+            items: Array.isArray(p.items) ? p.items : [],
             status: isPaid ? (isPartiallyPaid ? "partially_paid" : "paid") : (p.status || "pending"),
             isPaid: isPaid,
             isPartiallyPaid: isPartiallyPaid,
           };
         });
-      } else if (c.paymentScheduleJson) {
-        try {
-          let schedule = c.paymentScheduleJson;
-          if (typeof schedule === 'string') {
-            try {
-              schedule = JSON.parse(schedule);
-              if (typeof schedule === 'string') {
-                schedule = JSON.parse(schedule);
-              }
-            } catch (e) {
-              console.error("Failed to parse paymentScheduleJson string:", e);
-            }
-          }
-          if (Array.isArray(schedule) && schedule.length > 0) {
-            parsedSchedule = schedule.map((p: any, idx: number) => {
-              const comp = (p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "")
-                ? Number(p.completionPercentage)
-                : undefined;
-              const paidAmt = p.paidAmount ? parseFloat(String(p.paidAmount)) : 0;
-              const amt = p.agreedAmount ? parseFloat(String(p.agreedAmount)) : (p.amount ? parseFloat(String(p.amount)) : 0);
-              const totalVal = c.contractAmount ? parseFloat(String(c.contractAmount)) : 0;
-              const pct = p.percentage ? parseFloat(String(p.percentage)) : (totalVal > 0 ? Number(((amt / totalVal) * 100).toFixed(2)) : 0);
-              const isPaid = Boolean(p.isPaid === true || p.status === "paid" || p.status === "partially_paid" || paidAmt > 0);
-              const isPartiallyPaid = Boolean(p.isPartiallyPaid === true || p.status === "partially_paid" || (paidAmt > 0 && paidAmt < amt));
-
-              let formattedDueDate = "";
-              if (p.dueDate) {
-                try {
-                  const dStr = String(p.dueDate);
-                  if (dStr.includes("T")) {
-                    formattedDueDate = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(p.dueDate));
-                  } else {
-                    formattedDueDate = dStr.split(" ")[0];
-                  }
-                } catch (e) {
-                  formattedDueDate = "";
-                }
-              }
-
-              return {
-                id: p.id || `payment_${idx + 1}`,
-                name: p.name || p.phaseName || `الدفعة ${idx + 1}`,
-                type: p.type || "progress",
-                percentage: pct,
-                amount: amt,
-                agreedAmount: amt,
-                paidAmount: paidAmt,
-                dueDate: formattedDueDate,
-                description: p.description || p.notes || "",
-                completionPercentage: comp,
-                items: Array.isArray(p.items) ? p.items : [],
-                status: isPaid ? (isPartiallyPaid ? "partially_paid" : "paid") : (p.status || "pending"),
-                isPaid: isPaid,
-                isPartiallyPaid: isPartiallyPaid,
-              };
-            });
-          }
-        } catch (e) {
-          console.error("خطأ في تحليل جدول الدفعات من JSON:", e);
-        }
       }
       setPaymentSchedule(sortPaymentsByDate(parsedSchedule));
 
