@@ -76,12 +76,12 @@ export default function BeneficiaryLayout({
   const unreadNotificationsCount =
     notificationsData?.notifications?.filter((n: any) => !n.isRead).length || 0;
 
-  // إظهار زر سدانة فقط للشخص الذي رقم جواله "0500000000"
+  // إظهار زر سدانة فقط للشخص الذي رقم جواله "0535922238"
   const isSedanaAllowed = Boolean(
     user?.phone && (
-      user.phone.trim() === "0500000000" ||
-      user.phone.replace(/[^0-9]/g, "") === "0500000000" ||
-      user.phone.replace(/[^0-9]/g, "") === "966500000000"
+      user.phone.trim() === "0535922238" ||
+      user.phone.replace(/[^0-9]/g, "") === "0535922238" ||
+      user.phone.replace(/[^0-9]/g, "") === "966535922238"
     )
   );
 
