@@ -83,12 +83,29 @@ export const authRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const existingUserByEmail = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+      // فحص عدم تكرار البريد أو الجوال بين طالبي الخدمة (المستفيدين) فقط
+      const existingUserByEmail = await db
+        .select()
+        .from(users)
+        .where(and(
+          eq(users.email, input.email),
+          eq(users.role, "service_requester"),
+          isNull(users.deletedAt)
+        ))
+        .limit(1);
       if (existingUserByEmail.length > 0) {
         return { available: false, reason: "email" };
       }
 
-      const existingUserByPhone = await db.select().from(users).where(eq(users.phone, input.phone)).limit(1);
+      const existingUserByPhone = await db
+        .select()
+        .from(users)
+        .where(and(
+          eq(users.phone, input.phone),
+          eq(users.role, "service_requester"),
+          isNull(users.deletedAt)
+        ))
+        .limit(1);
       if (existingUserByPhone.length > 0) {
         return { available: false, reason: "phone" };
       }
@@ -103,22 +120,46 @@ export const authRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق من عدم وجود المستخدم (بالبريد أو الجوال)
-      const existingUserByEmail = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+      // التحقق من عدم وجود مستفيد بنفس البريد أو الجوال
+      const existingUserByEmail = await db
+        .select()
+        .from(users)
+        .where(and(
+          eq(users.email, input.email),
+          eq(users.role, "service_requester"),
+          isNull(users.deletedAt)
+        ))
+        .limit(1);
       if (existingUserByEmail.length > 0) {
-        throw new TRPCError({ code: "CONFLICT", message: "البريد الإلكتروني مسجل مسبقاً" });
+        throw new TRPCError({ code: "CONFLICT", message: "البريد الإلكتروني مسجل مسبقاً كمستفيد" });
       }
       
-      const existingUserByPhone = await db.select().from(users).where(eq(users.phone, input.phone)).limit(1);
+      const existingUserByPhone = await db
+        .select()
+        .from(users)
+        .where(and(
+          eq(users.phone, input.phone),
+          eq(users.role, "service_requester"),
+          isNull(users.deletedAt)
+        ))
+        .limit(1);
       if (existingUserByPhone.length > 0) {
-        throw new TRPCError({ code: "CONFLICT", message: "رقم الجوال مسجل مسبقاً" });
+        throw new TRPCError({ code: "CONFLICT", message: "رقم الجوال مسجل مسبقاً كمستفيد" });
       }
 
-      // التحقق من عدم تكرار رقم الهوية الوطنية
+      // التحقق من عدم تكرار رقم الهوية الوطنية بين المستفيدين
       if (input.nationalId && input.nationalId.trim() !== "") {
-        const existingUserByNationalId = await db.select().from(users).where(eq(users.nationalId, input.nationalId.trim())).limit(1);
+        const existingUserByNationalId = await db
+          .select()
+          .from(users)
+          .where(and(
+            eq(users.nationalId, input.nationalId.trim()),
+            eq(users.role, "service_requester"),
+            isNull(users.deletedAt)
+          ))
+          .limit(1);
         if (existingUserByNationalId.length > 0) {
-          throw new TRPCError({ code: "CONFLICT", message: "رقم الهوية هذا مسجل مسبقاً" });
+          throw new TRPCError({ code: "CONFLICT", message: "رقم الهوية هذا مسجل مسبقاً كمستفيد" });
         }
       }
 
@@ -161,15 +202,55 @@ export const authRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // البحث عن المستخدم (بالبريد أو الجوال) مع استبعاد المحذوفين
-      const userResult = input.email 
-        ? await db.select().from(users).where(and(eq(users.email, input.email), isNull(users.deletedAt))).limit(1)
-        : await db.select().from(users).where(and(eq(users.phone, input.phone!), isNull(users.deletedAt))).limit(1);
-      if (userResult.length === 0) {
+      let user: any = null;
+
+      if (input.email) {
+        const userResult = await db
+          .select()
+          .from(users)
+          .where(and(eq(users.email, input.email), isNull(users.deletedAt)))
+          .limit(1);
+        if (userResult.length === 0) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "البريد الإلكتروني أو كلمة المرور غير صحيحة" });
+        }
+        user = userResult[0];
+      } else if (input.phone) {
+        const candidates = await db
+          .select()
+          .from(users)
+          .where(and(eq(users.phone, input.phone), isNull(users.deletedAt)));
+
+        if (candidates.length === 0) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "رقم الجوال أو كلمة المرور غير صحيحة" });
+        } else if (candidates.length === 1) {
+          user = candidates[0];
+        } else {
+          // في حال وجود أكثر من حساب بنفس رقم الجوال (مثل موظف ومستفيد)، نبحث عن الحساب المطابق لكلمة المرور مع إعطاء الأولوية للمستفيد
+          const requesterCandidates = candidates.filter(c => c.role === "service_requester");
+          const otherCandidates = candidates.filter(c => c.role !== "service_requester");
+          const prioritized = [...requesterCandidates, ...otherCandidates];
+
+          for (const cand of prioritized) {
+            if (cand.passwordHash) {
+              const [salt, storedHash] = cand.passwordHash.split(":");
+              const inputHash = hashPassword(input.password, salt);
+              if (inputHash === storedHash) {
+                user = cand;
+                break;
+              }
+            }
+          }
+          if (!user) {
+            // في حال عدم التطابق، نعتمد الحساب الأول ليفشل فحص كلمة المرور المعتاد
+            user = requesterCandidates[0] || candidates[0];
+          }
+        }
+      }
+
+      if (!user) {
         const identifier = input.email ? "البريد الإلكتروني" : "رقم الجوال";
         throw new TRPCError({ code: "UNAUTHORIZED", message: `${identifier} أو كلمة المرور غير صحيحة` });
       }
-
-      const user = userResult[0];
 
       // التحقق من حالة الحساب
       const isRequesterAllowed = user.role === "service_requester" && 

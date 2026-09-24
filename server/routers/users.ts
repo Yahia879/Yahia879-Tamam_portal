@@ -273,17 +273,33 @@ export const usersRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
 
-      // التحقق من عدم تكرار البريد الإلكتروني
-      const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).limit(1);
+      // التحقق من عدم تكرار البريد الإلكتروني بين موظفي الكادر
+      const [existing] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(
+          eq(users.email, input.email),
+          ne(users.role, "service_requester"),
+          isNull(users.deletedAt)
+        ))
+        .limit(1);
       if (existing) {
-        throw new TRPCError({ code: "CONFLICT", message: "هذا البريد الإلكتروني مستخدم سابقاً" });
+        throw new TRPCError({ code: "CONFLICT", message: "هذا البريد الإلكتروني مستخدم سابقاً لموظف آخر" });
       }
 
-      // التحقق من عدم تكرار رقم الجوال
+      // التحقق من عدم تكرار رقم الجوال بين موظفي الكادر
       if (input.phone && input.phone.trim() !== "") {
-        const [existingPhone] = await db.select({ id: users.id }).from(users).where(eq(users.phone, input.phone)).limit(1);
+        const [existingPhone] = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(and(
+            eq(users.phone, input.phone),
+            ne(users.role, "service_requester"),
+            isNull(users.deletedAt)
+          ))
+          .limit(1);
         if (existingPhone) {
-          throw new TRPCError({ code: "CONFLICT", message: "رقم الجوال هذا مستخدم سابقاً" });
+          throw new TRPCError({ code: "CONFLICT", message: "رقم الجوال هذا مستخدم سابقاً لموظف آخر" });
         }
       }
 
@@ -577,12 +593,19 @@ export const usersRouter = router({
         }
       }
 
-      // التحقق من عدم استخدام البريد الإلكتروني من قِبل مستخدم آخر
+      const isTargetStaff = targetUser?.role !== "service_requester";
+
+      // التحقق من عدم استخدام البريد الإلكتروني من قِبل مستخدم آخر في نفس الفئة
       if (input.email) {
         const [existingUser] = await db
           .select({ id: users.id })
           .from(users)
-          .where(and(eq(users.email, input.email), ne(users.id, input.id)))
+          .where(and(
+            eq(users.email, input.email),
+            ne(users.id, input.id),
+            isTargetStaff ? ne(users.role, "service_requester") : eq(users.role, "service_requester"),
+            isNull(users.deletedAt)
+          ))
           .limit(1);
         if (existingUser) {
           throw new TRPCError({
@@ -592,12 +615,17 @@ export const usersRouter = router({
         }
       }
 
-      // التحقق من عدم استخدام رقم الجوال من قِبل مستخدم آخر
+      // التحقق من عدم استخدام رقم الجوال من قِبل مستخدم آخر في نفس الفئة
       if (input.phone && input.phone.trim() !== "") {
         const [existingUserByPhone] = await db
           .select({ id: users.id })
           .from(users)
-          .where(and(eq(users.phone, input.phone), ne(users.id, input.id)))
+          .where(and(
+            eq(users.phone, input.phone),
+            ne(users.id, input.id),
+            isTargetStaff ? ne(users.role, "service_requester") : eq(users.role, "service_requester"),
+            isNull(users.deletedAt)
+          ))
           .limit(1);
         if (existingUserByPhone) {
           throw new TRPCError({
