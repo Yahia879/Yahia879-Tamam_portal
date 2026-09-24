@@ -539,10 +539,27 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     { enabled: newReport.projectId > 0 }
   );
 
-  const totalContractAmount = projectDetails?.contracts?.reduce((sum: number, c: any) => sum + parseFloat(c.amount || "0"), 0) || 0;
-  const totalScheduledPayments = projectDetails?.payments?.reduce((sum: number, p: any) => sum + parseFloat(p.amount || "0"), 0) || 0;
+  // احتساب المبلغ الفعلي للدفعة: المبلغ المسدد في حال كانت مسددة أو مسددة جزئياً، أو المبلغ المتفق عليه للدفعات غير المسددة
+  const getPaymentEffectiveAmount = (p: any): number => {
+    const paidAmt = parseFloat(String(p.paidAmount || 0).replace(/,/g, ""));
+    const isPaid = Boolean(p.isPaid || p.status === "paid" || p.status === "partially_paid" || p.status === "executed" || !!p.paidAt || paidAmt > 0);
+    if (isPaid && paidAmt > 0) {
+      return paidAmt;
+    }
+    const agreedAmt = parseFloat(String(p.agreedAmount !== undefined && p.agreedAmount !== null ? p.agreedAmount : (p.amount || 0)).replace(/,/g, ""));
+    return isNaN(agreedAmt) ? 0 : agreedAmt;
+  };
 
-  const hasIncompleteSchedule = newReport.projectId > 0 && !isProjectDetailsLoading && (totalContractAmount === 0 || Math.abs(totalContractAmount - totalScheduledPayments) > 0.01);
+  const totalContractAmount = projectDetails?.contracts?.reduce((sum: number, c: any) => {
+    const amt = parseFloat(String(c.amount || "0").replace(/,/g, ""));
+    return sum + (isNaN(amt) ? 0 : amt);
+  }, 0) || 0;
+
+  const totalScheduledPayments = projectDetails?.payments
+    ?.filter((p: any) => p.status !== "rejected" && p.status !== "cancelled")
+    ?.reduce((sum: number, p: any) => sum + getPaymentEffectiveAmount(p), 0) || 0;
+
+  const hasIncompleteSchedule = newReport.projectId > 0 && !isProjectDetailsLoading && (totalContractAmount === 0 || (totalContractAmount - totalScheduledPayments) > 0.05);
 
   // Mutations
   const createMutation = trpc.progressReports.create.useMutation({
@@ -770,15 +787,16 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     setSelectedPaymentId(payment.id);
     
     const completionPercentage = Math.min(100, Math.max(0, payment.completionPercentage || 0));
+    const effectiveAmt = getPaymentEffectiveAmount(payment);
     setNewReport(prev => ({
       ...prev,
       title: paymentTitle,
       plannedProgress: completionPercentage,
       actualProgress: completionPercentage,
       overallProgress: completionPercentage,
-      budgetSpent: payment.amount?.toString() || "0",
+      budgetSpent: effectiveAmt.toString(),
       workSummary: payment.workDescription || payment.description || "",
-      agreedPaymentAmount: payment.amount?.toString() || "0",
+      agreedPaymentAmount: effectiveAmt.toString(),
     }));
 
     toast.success("تم اختيار الدفعة وملء البيانات تلقائياً");
@@ -1272,7 +1290,12 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                               <div className="flex items-baseline justify-between mt-1 border-t border-dashed border-border/40 pt-2">
                                 <span className="text-[11px] text-muted-foreground">قيمة الدفعة:</span>
                                 <span className="font-extrabold text-base text-foreground inline-flex items-center gap-1">
-                                  {parseFloat(payment.amount || "0").toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                  {getPaymentEffectiveAmount(payment).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                  {payment.isPartiallyPaid && (
+                                    <span className="text-[10px] font-normal text-muted-foreground mr-1">
+                                      (مسدد جزئياً من {parseFloat(payment.agreedAmount || payment.amount || "0").toLocaleString()})
+                                    </span>
+                                  )}
                                 </span>
                               </div>
 
