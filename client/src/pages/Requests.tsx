@@ -192,7 +192,11 @@ export default function Requests({
     
     const program = params.get("program");
     if (program && (PROGRAM_LABELS[program] || program === "all")) {
-      setProgramFilter(program);
+      if (program === "sedana" && !isAdmin) {
+        setProgramFilter("all");
+      } else {
+        setProgramFilter(program);
+      }
     }
 
     const status = params.get("status");
@@ -206,11 +210,12 @@ export default function Requests({
     }
 
     setPage(1);
-  }, [searchParamsStr]);
+  }, [searchParamsStr, isAdmin]);
 
   const { data: requestsData, isLoading } = trpc.requests.search.useQuery({
     search: search || undefined,
-    programType: programFilter !== "all" ? programFilter as any : undefined,
+    programType: (!isAdmin && programFilter === "sedana") ? undefined : (programFilter !== "all" ? programFilter as any : undefined),
+    excludeSedana: !isAdmin,
     status: statusFilter !== "all" ? statusFilter as any : undefined,
     currentStage: stageFilter !== "all" ? stageFilter as any : undefined,
     assignedTo: initialAssignedToMe ? user?.id : undefined,
@@ -219,7 +224,8 @@ export default function Requests({
     limit,
   });
 
-  const requests = requestsData?.requests || [];
+  const rawRequests = requestsData?.requests || [];
+  const requests = isAdmin ? rawRequests : rawRequests.filter((r: any) => (r.request?.programType || r.programType) !== "sedana");
   const total = requestsData?.total || 0;
   const totalPages = Math.ceil(total / limit);
 
@@ -366,7 +372,9 @@ export default function Requests({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">{isEn ? "All Programs" : "جميع البرامج"}</SelectItem>
-                      {Object.entries(PROGRAM_LABELS).map(([key]) => (
+                      {Object.entries(PROGRAM_LABELS)
+                        .filter(([key]) => isAdmin || key !== "sedana")
+                        .map(([key]) => (
                         <SelectItem key={key} value={key}>{translateProgram(key)}</SelectItem>
                       ))}
                     </SelectContent>

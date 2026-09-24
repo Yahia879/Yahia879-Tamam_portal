@@ -265,6 +265,7 @@ const searchRequestsSchema = z.object({
   fromDate: z.string().optional(),
   toDate: z.string().optional(),
   creatorType: z.enum(["all", "beneficiary", "officer"]).optional(),
+  excludeSedana: z.boolean().optional(),
   page: z.number().default(1),
   limit: z.number().default(20),
 });
@@ -480,6 +481,11 @@ export const requestsRouter = router({
 
       if (!isOwner && !isAssigned && !isFinalReportAssignee && !hasDetailsPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض هذا الطلب" });
+      }
+
+      // طلبات سدانة لا يُسمح بعرض تفاصيلها إلا لـ super_admin و system_admin (أو صاحب الطلب)
+      if (request.programType === "sedana" && !isOwner && !["super_admin", "system_admin"].includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "طلبات سدانة مخصصة لمديري النظام فقط" });
       }
 
       // الحصول على بيانات المسجد (قد يكون null في حالة برنامج بنيان أو طلب سريع مخصص)
@@ -755,6 +761,18 @@ export const requestsRouter = router({
       }
       
       // الأدوار الإدارية أو من يملك صلاحية requests.view_details يرون جميع الطلبات (لا تضيف شروط)
+
+      // شرط حجب طلبات برنامج "سدانة" عن غير super_admin و system_admin
+      const isSuperOrSystemAdmin = ["super_admin", "system_admin"].includes(ctx.user.role || "");
+      if (input.excludeSedana || (!isSuperOrSystemAdmin && !input.programType)) {
+        if (!isSuperOrSystemAdmin || input.excludeSedana) {
+          conditions.push(
+            sql`(${mosqueRequests.programType} IS NULL OR ${mosqueRequests.programType} != 'sedana')`
+          );
+        }
+      } else if (!isSuperOrSystemAdmin && input.programType === "sedana") {
+        conditions.push(sql`1 = 0`);
+      }
 
       if (input.search) {
         conditions.push(
