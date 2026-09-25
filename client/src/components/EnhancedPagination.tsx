@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface EnhancedPaginationProps {
@@ -111,7 +120,8 @@ export function usePersistedPage(storageKey: string, defaultPage = 1) {
 }
 
 /**
- * مكوّن الترقيم الشامل والمحسن لجميع جداول النظام (تصميم عصري وموحد فاخر)
+ * مكوّن الترقيم الشامل والمحسن لجميع جداول النظام:
+ * نمط الكبسولة الذكية العائمة مع نافذة التنقل السريع (Smart Popover Capsule)
  */
 export default function EnhancedPagination({
   page: propPage,
@@ -124,14 +134,14 @@ export default function EnhancedPagination({
   itemNamePlural = "عناصر",
   isEn = false,
   className,
-  showGoToPage = true,
 }: EnhancedPaginationProps) {
   const page = propPage ?? propCurrentPage ?? 1;
-  const [inputVal, setInputVal] = useState<string>(String(page));
+  const [isOpen, setIsOpen] = useState(false);
+  const [jumpInput, setJumpInput] = useState("");
 
-  // مزامنة القيمة المدخلة مع رقم الصفحة الفعلي
+  // مزامنة حقل الإدخال مع الصفحة الحالية
   useEffect(() => {
-    setInputVal(String(page));
+    setJumpInput(String(page));
   }, [page]);
 
   // في اتجاه RTL العربي:
@@ -147,17 +157,15 @@ export default function EnhancedPagination({
     }
   }, [page, totalPages, onPageChange]);
 
-  const commitPage = () => {
-    const parsed = parseInt(inputVal.trim(), 10);
-    if (isNaN(parsed)) {
-      setInputVal(String(page));
-      return;
+  const handleJumpSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const parsed = parseInt(jumpInput.trim(), 10);
+    if (isNaN(parsed)) return;
+    const target = Math.max(1, Math.min(parsed, totalPages));
+    if (target !== page) {
+      onPageChange(target);
     }
-    const clamped = Math.max(1, Math.min(parsed, totalPages));
-    setInputVal(String(clamped));
-    if (clamped !== page) {
-      onPageChange(clamped);
-    }
+    setIsOpen(false);
   };
 
   if (totalPages <= 0 && (!totalItems || totalItems <= 0)) {
@@ -166,26 +174,25 @@ export default function EnhancedPagination({
 
   const startItem = totalItems && totalItems > 0 ? (page - 1) * itemsPerPage + 1 : 0;
   const endItem = totalItems && totalItems > 0 ? Math.min(page * itemsPerPage, totalItems) : 0;
-  const hasPendingChange = inputVal.trim() !== "" && inputVal.trim() !== String(page);
 
   return (
     <div
       className={cn(
-        "py-3 px-4 bg-muted/15 border-t flex flex-col items-center justify-center gap-2 text-xs select-none",
+        "py-3.5 px-4 bg-muted/15 border-t flex flex-col items-center justify-center gap-2 select-none",
         className
       )}
       dir={isEn ? "ltr" : "rtl"}
     >
-      {/* 1. شريط تحكم موحد فاخر في المنتصف تماماً (السابق | صفحة [ 1 ] من 10 | التالي) */}
+      {/* 1. الكبسولة العائمة الذكية في المنتصف (Floating Smart Capsule) */}
       {totalPages > 1 && (
-        <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-background border border-border/80 shadow-2xs">
-          {/* زر الصفحة السابقة */}
+        <div className="inline-flex items-center gap-1.5 p-1 rounded-full bg-background/95 backdrop-blur-md border border-border/80 shadow-xs transition-shadow hover:shadow-sm">
+          {/* زر السابق */}
           <Button
             type="button"
             variant="ghost"
             size="sm"
             className={cn(
-              "h-8 px-3 gap-1.5 text-xs font-medium rounded-lg transition-all active:scale-95",
+              "h-8 px-3 gap-1 text-xs font-medium rounded-full transition-all active:scale-95",
               page <= 1 ? "opacity-35 cursor-not-allowed" : "hover:bg-muted text-foreground"
             )}
             onClick={() => onPageChange(Math.max(1, page - 1))}
@@ -196,67 +203,74 @@ export default function EnhancedPagination({
             <span className="font-normal">{isEn ? "Previous" : "السابق"}</span>
           </Button>
 
-          {/* فاصل */}
-          <div className="h-4 w-px bg-border/60 mx-0.5" />
+          {/* زر النافذة المنبثقة لاختيار الصفحة */}
+          <Popover open={isOpen} onOpenChange={setIsOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-8 px-3.5 gap-2 text-xs font-medium rounded-full border-border/70 hover:border-primary/50 hover:bg-muted/40 transition-all shadow-2xs group",
+                  isOpen && "border-primary ring-2 ring-primary/20 bg-muted/40"
+                )}
+                title={isEn ? "Click for fast jump" : "انقر للانتقال السريع للصفحات"}
+              >
+                <span className="text-muted-foreground font-normal">{isEn ? "Page" : "صفحة"}</span>
+                <span className="font-bold text-primary font-mono text-sm px-0.5">{page}</span>
+                <span className="text-muted-foreground font-normal">{isEn ? "of" : "من"}</span>
+                <span className="font-semibold text-foreground font-mono">{totalPages}</span>
+                <ChevronDown
+                  className={cn(
+                    "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 group-hover:text-foreground",
+                    isOpen && "rotate-180 text-primary"
+                  )}
+                />
+              </Button>
+            </PopoverTrigger>
 
-          {/* حقل الصفحة التفاعلي الأنيق في المنتصف */}
-          <div className="flex items-center gap-1.5 px-2.5 text-xs font-medium">
-            <span className="text-muted-foreground font-normal">{isEn ? "Page" : "صفحة"}</span>
-            {showGoToPage ? (
-              <div className="relative inline-flex items-center">
-                <input
+            <PopoverContent
+              align="center"
+              side="top"
+              sideOffset={10}
+              className="w-56 p-3 rounded-2xl shadow-xl border bg-background/98 backdrop-blur-md space-y-2 z-50 animate-in fade-in zoom-in-95 duration-150"
+              dir={isEn ? "ltr" : "rtl"}
+            >
+              <div className="text-[11px] font-medium text-muted-foreground text-center">
+                {isEn ? `Go to page (1 - ${totalPages}):` : `الانتقال لصفحة (1 - ${totalPages}):`}
+              </div>
+
+              <form onSubmit={handleJumpSubmit} className="flex items-center gap-1.5">
+                <Input
                   type="number"
                   min={1}
                   max={totalPages}
-                  value={inputVal}
-                  onChange={(e) => setInputVal(e.target.value)}
+                  value={jumpInput}
+                  onChange={(e) => setJumpInput(e.target.value)}
                   onFocus={(e) => e.target.select()}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      commitPage();
-                      (e.target as HTMLInputElement).blur();
-                    }
-                  }}
-                  onBlur={commitPage}
-                  className={cn(
-                    "h-7 w-11 text-center text-xs font-mono font-bold rounded-md bg-muted/40 hover:bg-muted/70 focus:bg-background border transition-all outline-none",
-                    "focus:border-primary focus:ring-1 focus:ring-primary/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
-                    hasPendingChange
-                      ? "border-primary text-primary bg-primary/5 ring-1 ring-primary/30"
-                      : "border-border/60 text-primary"
-                  )}
-                  title={isEn ? "Click to change page, press Enter" : "انقر لتغيير الصفحة واضغط Enter"}
-                  aria-label={isEn ? "Current page" : "رقم الصفحة"}
+                  placeholder={String(page)}
+                  className="h-8 text-center text-xs font-mono font-bold bg-muted/40 focus-visible:ring-1 focus-visible:ring-primary rounded-lg"
+                  autoFocus
                 />
-                {hasPendingChange && (
-                  <button
-                    type="button"
-                    onClick={commitPage}
-                    className="absolute -top-1.5 -start-1.5 bg-primary text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px] font-bold shadow-xs hover:bg-primary/90 animate-in fade-in zoom-in duration-150 cursor-pointer"
-                    title={isEn ? "Go" : "انتقال"}
-                  >
-                    ✓
-                  </button>
-                )}
-              </div>
-            ) : (
-              <span className="font-bold text-primary font-mono px-1">{page}</span>
-            )}
-            <span className="text-muted-foreground font-normal">{isEn ? "of" : "من"}</span>
-            <span className="font-semibold text-foreground font-mono">{totalPages}</span>
-          </div>
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="h-8 px-3 text-xs gradient-primary text-white shrink-0 hover:opacity-90 rounded-lg font-medium shadow-2xs cursor-pointer"
+                  disabled={!jumpInput.trim() || parseInt(jumpInput, 10) === page}
+                >
+                  {isEn ? "Go" : "انتقال"}
+                </Button>
+              </form>
+            </PopoverContent>
+          </Popover>
 
-          {/* فاصل */}
-          <div className="h-4 w-px bg-border/60 mx-0.5" />
-
-          {/* زر الصفحة التالية */}
+          {/* زر التالي */}
           <Button
             type="button"
             variant="ghost"
             size="sm"
             className={cn(
-              "h-8 px-3 gap-1.5 text-xs font-medium rounded-lg transition-all active:scale-95",
+              "h-8 px-3 gap-1 text-xs font-medium rounded-full transition-all active:scale-95",
               page >= totalPages ? "opacity-35 cursor-not-allowed" : "hover:bg-muted text-foreground"
             )}
             onClick={() => onPageChange(Math.min(totalPages, page + 1))}
@@ -269,7 +283,7 @@ export default function EnhancedPagination({
         </div>
       )}
 
-      {/* 2. ملخص عدد العناصر المعروضة في المنتصف أسفل شريط التنقل بتناسق تام */}
+      {/* 2. ملخص عدد العناصر المعروضة في المنتصف أسفل الكبسولة بتناسق تام */}
       {totalItems !== undefined && totalItems > 0 && (
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium whitespace-nowrap">
           <span className="w-1.5 h-1.5 rounded-full bg-primary/70 shrink-0" />
