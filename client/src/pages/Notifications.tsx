@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import BeneficiaryLayout from "@/components/BeneficiaryLayout";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bell, CheckCheck, FileText, Building2, User, AlertCircle, Loader2, ChevronRight, ChevronLeft, ArrowRight, ArrowLeft, Star } from "lucide-react";
@@ -25,7 +26,7 @@ export default function Notifications() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
-  const [page, setPage] = useState(1);
+  const [page, setPage] = usePersistedPage("notifications_page");
   const limit = 10;
 
   // حالة اللغة الخاصة بدور الاستجابة السريعة (quick_response)
@@ -204,40 +205,19 @@ export default function Notifications() {
                     );
                   })}
                 </div>
-                {data && data.total > limit && (
-                  <div className="flex flex-col sm:flex-row items-center justify-between border-t border-border/60 p-4 gap-4 bg-slate-50/50 dark:bg-slate-900/20" dir={isEn ? "ltr" : "rtl"}>
-                    <div className="text-xs text-muted-foreground font-semibold">
-                      {isEn 
-                        ? `Showing ${(page - 1) * limit + 1} - ${Math.min(page * limit, data.total)} of ${data.total} notifications`
-                        : `يتم عرض ${(page - 1) * limit + 1} - ${Math.min(page * limit, data.total)} من أصل ${data.total} إشعار`
-                      }
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                        className="h-8 flex items-center gap-1.5 hover:bg-muted/80 transition-colors rounded-lg text-xs font-semibold"
-                      >
-                        {isEn ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                        {isEn ? "Previous" : "السابق"}
-                      </Button>
-                      <div className="text-xs font-bold px-3 py-1.5 rounded-md bg-muted text-muted-foreground border border-border/40">
-                        {isEn ? `Page ${page} of ${data.totalPages}` : `صفحة ${page} من ${data.totalPages}`}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
-                        disabled={page >= data.totalPages}
-                        className="h-8 flex items-center gap-1.5 hover:bg-muted/80 transition-colors rounded-lg text-xs font-semibold"
-                      >
-                        {isEn ? "Next" : "التالي"}
-                        {isEn ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
-                      </Button>
-                    </div>
-                  </div>
+                {data && data.totalPages > 1 && (
+                  <EnhancedPagination
+                    page={page}
+                    totalPages={data.totalPages}
+                    onPageChange={(p) => {
+                      setPage(p);
+                    }}
+                    totalItems={data.total}
+                    itemsPerPage={limit}
+                    itemName={isEn ? "notification" : "إشعار"}
+                    itemNamePlural={isEn ? "notifications" : "إشعارات"}
+                    isEn={isEn}
+                  />
                 )}
               </div>
             ) : (
