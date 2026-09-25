@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useLocation, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -163,7 +164,7 @@ export default function ContractsList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage, resetPage] = usePersistedPage("contracts_page");
   const pageSize = 10;
   const [showProjectSelectionDialog, setShowProjectSelectionDialog] = useState(false);
   const [projectDialogSearch, setProjectDialogSearch] = useState("");
@@ -699,7 +700,10 @@ export default function ContractsList() {
                   <Input
                     placeholder="بحث برقم العقد أو العنوان أو اسم المورد..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      resetPage();
+                    }}
                     className="pr-10 text-right"
                     dir="rtl"
                   />
@@ -948,36 +952,19 @@ export default function ContractsList() {
                 })}
 
                 {/* التصفح */}
-                {totalPages > 1 && (
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      عرض {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, totalContracts)} من {totalContracts} عقد
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                      <span className="text-xs sm:text-sm">
-                        صفحة {currentPage} من {totalPages}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <EnhancedPagination
+                  page={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={(p) => {
+                    setCurrentPage(p);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  totalItems={totalContracts}
+                  itemsPerPage={pageSize}
+                  itemName="عقد"
+                  itemNamePlural="عقود"
+                  className="rounded-xl border border-border/50 shadow-xs mt-2"
+                />
               </div>
             )}
           </TabsContent>
