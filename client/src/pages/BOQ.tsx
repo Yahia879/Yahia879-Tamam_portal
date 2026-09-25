@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -79,7 +80,7 @@ export default function BOQ() {
   const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
   const queryRequestId = searchParams.get("requestId");
   const [selectedRequestId, setSelectedRequestId] = useState<string>(params.requestId || queryRequestId || "");
-  const [page, setPage] = useState(1);
+  const [page, setPage, resetPage] = usePersistedPage("boq_page");
   const limit = 20;
   
   // تعيين requestId من URL أو معلمات البحث عند تغيير المسار
@@ -258,7 +259,7 @@ export default function BOQ() {
                         value={searchQuery}
                         onChange={(e) => {
                           setSearchQuery(e.target.value);
-                          setPage(1);
+                          resetPage();
                         }}
                         className="h-10 w-full pr-10"
                       />
@@ -268,7 +269,7 @@ export default function BOQ() {
                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">البرنامج</label>
                     <Select value={filterProgram} onValueChange={(v) => {
                       setFilterProgram(v);
-                      setPage(1);
+                      resetPage();
                     }}>
                       <SelectTrigger className="w-full h-10 text-xs md:text-sm">
                         <SelectValue placeholder="البرنامج" />
@@ -285,7 +286,7 @@ export default function BOQ() {
                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">حالة الجدول والاعتماد</label>
                     <Select value={filterStatus} onValueChange={(v: any) => {
                       setFilterStatus(v);
-                      setPage(1);
+                      resetPage();
                     }}>
                       <SelectTrigger className="w-full h-10 text-xs md:text-sm">
                         <SelectValue placeholder="الحالة" />
@@ -439,72 +440,19 @@ export default function BOQ() {
                     })}
                   </div>
 
-                  {/* الترقيم وعداد الصفحات متطابق مع /requests */}
-                  <div className="px-4 py-4 bg-muted/20 border-t flex flex-col items-center justify-center gap-4">
-                    <div className="text-[11px] md:text-xs text-muted-foreground text-center">
-                      يعرض {(page - 1) * limit + 1} - {Math.min(page * limit, total)} من أصل {total} طلب
-                    </div>
-                    
-                    {totalPages > 1 && (
-                      <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8 shrink-0"
-                          onClick={() => {
-                            setPage(page - 1);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
-                          disabled={page === 1}
-                        >
-                          <ChevronLeft className="h-4 w-4 rotate-180" />
-                        </Button>
-                        
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                          if (
-                            totalPages <= 5 ||
-                            p === 1 ||
-                            p === totalPages ||
-                            (p >= page - 1 && p <= page + 1)
-                          ) {
-                            return (
-                              <Button
-                                key={p}
-                                variant={page === p ? "default" : "outline"}
-                                size="sm"
-                                className={`h-8 min-w-[32px] px-2 text-[11px] shrink-0 ${page === p ? 'gradient-primary text-white border-0' : ''}`}
-                                onClick={() => {
-                                  setPage(p);
-                                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                                }}
-                              >
-                                {p}
-                              </Button>
-                            );
-                          } else if (
-                            (p === page - 2 && page > 3) ||
-                            (p === page + 2 && page < totalPages - 2)
-                          ) {
-                            return <span key={p} className="px-0.5 text-muted-foreground">...</span>;
-                          }
-                          return null;
-                        })}
-
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8 shrink-0"
-                          onClick={() => {
-                            setPage(page + 1);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
-                          disabled={page === totalPages}
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                  {/* الترقيم وعداد الصفحات */}
+                  <EnhancedPagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={(newPage) => {
+                      setPage(newPage);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    totalItems={total}
+                    itemsPerPage={limit}
+                    itemName="طلب"
+                    itemNamePlural="طلبات"
+                  />
                 </div>
               ) : (
                 <div className="p-12 text-center">
