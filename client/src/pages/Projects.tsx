@@ -20,6 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Link, useLocation } from "wouter";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -87,7 +88,7 @@ export default function Projects() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [page, setPage] = useState(1);
+  const [page, setPage, resetPage] = usePersistedPage("projects_table_page");
   const limit = 20;
 
   const serverPermissions = useUserPermissions();
@@ -215,14 +216,14 @@ export default function Projects() {
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
-                    setPage(1);
+                    resetPage();
                   }}
                   className="pr-10 h-10"
                 />
               </div>
               <Select value={typeFilter} onValueChange={(v) => {
                 setTypeFilter(v);
-                setPage(1);
+                resetPage();
               }}>
                 <SelectTrigger className="w-full sm:w-[210px] h-10">
                   <SelectValue placeholder="نوع المشروع" />
@@ -237,7 +238,7 @@ export default function Projects() {
               </Select>
               <Select value={statusFilter} onValueChange={(v) => {
                 setStatusFilter(v);
-                setPage(1);
+                resetPage();
               }}>
                 <SelectTrigger className="w-full sm:w-[200px] h-10">
                   <SelectValue placeholder="حالة المشروع" />
@@ -497,40 +498,16 @@ export default function Projects() {
         </Card>
 
         {/* Pagination Controls */}
-        {total > limit && (
-          <div className="flex items-center justify-between bg-card p-4 rounded-xl border border-border/50 shadow-sm">
-            <div className="text-sm text-muted-foreground">
-              عرض {(page - 1) * limit + 1} إلى {Math.min(page * limit, total)} من أصل {total} مشروع
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handlePageChange(page - 1)}
-                disabled={page === 1}
-                className="gap-1"
-              >
-                السابق
-              </Button>
-              
-              <div className="flex items-center gap-1 px-2">
-                <span className="text-sm font-medium">{page}</span>
-                <span className="text-sm text-muted-foreground">/</span>
-                <span className="text-sm text-muted-foreground">{totalPages}</span>
-              </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handlePageChange(page + 1)}
-                disabled={page >= totalPages}
-                className="gap-1"
-              >
-                التالي
-              </Button>
-            </div>
-          </div>
-        )}
+        <EnhancedPagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          totalItems={total}
+          itemsPerPage={limit}
+          itemName="مشروع"
+          itemNamePlural="مشاريع"
+          className="rounded-xl border border-border/50 shadow-xs"
+        />
       </div>
     </DashboardLayout>
   );
