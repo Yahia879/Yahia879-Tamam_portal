@@ -127,12 +127,12 @@ export function getActiveAction(
         nextStage: "boq_preparation",
       };
     } else if (currentStage === 'contracting') {
-      title = "اعتماد نوع التأمين";
-      description = "اختر مسار تأمين بنود المشروع لكل مورد: عقد توريد وخدمات، أمر شراء داخلي لإدارة المشتريات، أو خطاب مسؤولية مجتمعية.";
+      title = "اعتماد نوع التوريد";
+      description = "اختر مسار توريد بنود المشروع لكل مورد: عقد توريد وخدمات، أمر شراء داخلي لإدارة المشتريات، أو خطاب مسؤولية مجتمعية.";
       icon = "FileSignature";
       iconColor = "text-cyan-600";
       actionButton = {
-        label: "تحديد نوع التأمين",
+        label: "تحديد نوع التوريد",
         redirectUrl: "/requests/:requestId/procurement",
       };
     }
