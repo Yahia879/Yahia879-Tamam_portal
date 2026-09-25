@@ -61,7 +61,7 @@ import {
   ShoppingCart,
   Boxes,
 } from "lucide-react";
-import { CSSProperties, useEffect, useRef, useState } from "react";
+import { CSSProperties, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -419,6 +419,50 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
 // دالة مساعدة لاستخراج جميع العناصر بالترتيب
 const getMenuItems = (role: string) => getMenuGroups(role).flatMap(g => g.items);
 
+const SIDEBAR_SCROLL_KEY = "tamam_sidebar_scroll_top";
+const SIDEBAR_COLLAPSED_GROUPS_KEY = "tamam_sidebar_collapsed_groups";
+
+// دالة مساعدة لتحديد ما إذا كان المسار يتبع لعنصر في القائمة (بما في ذلك المسارات الفرعية)
+const isItemActive = (itemPath: string, currentPath: string, allItems: MenuItem[]): boolean => {
+  const cleanPath = currentPath.split("?")[0].split("#")[0];
+  if (cleanPath === itemPath) return true;
+
+  // مسارات فرعية مخصصة تتبع لعناصر محددة
+  if (itemPath === "/staff" && (cleanPath.startsWith("/users") || cleanPath.startsWith("/roles") || cleanPath.startsWith("/job-positions"))) {
+    return true;
+  }
+  if (itemPath === "/sedana-warehouse" && (
+    cleanPath.startsWith("/sedana-execution") || 
+    cleanPath.startsWith("/sedana-bulk-purchasing") || 
+    cleanPath.startsWith("/sedana-warehouse/")
+  )) {
+    return true;
+  }
+  if (itemPath === "/settings" && (cleanPath.startsWith("/organization-settings") || cleanPath.startsWith("/categories"))) {
+    return true;
+  }
+  if (itemPath === "/purchase-orders" && cleanPath.startsWith("/purchase-orders/")) {
+    return true;
+  }
+  if (itemPath === "/csr-letters" && cleanPath.startsWith("/csr-letters/")) {
+    return true;
+  }
+
+  // تحقق عام من أن المسار الحالي فرع من مسار العنصر (مثل /projects/new يتبع /projects)
+  if (itemPath !== "/" && itemPath !== "/dashboard" && cleanPath.startsWith(itemPath + "/")) {
+    // التأكد من عدم وجود عنصر آخر أكثر دقة وتحديداً في القائمة
+    const hasMoreSpecific = allItems.some(
+      other => other.path !== itemPath && (
+        cleanPath === other.path || 
+        (other.path !== "/" && other.path !== "/dashboard" && cleanPath.startsWith(other.path + "/") && other.path.length > itemPath.length)
+      )
+    );
+    return !hasMoreSpecific;
+  }
+
+  return false;
+};
+
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 295;
 const MIN_WIDTH = 240;
@@ -657,10 +701,52 @@ function DashboardLayoutContent({
     (user as any)?.customRole?.nameEn === "Quick Response";
 
   const isEn = isQuickResponseUser && lang === "en";
-  const { state, toggleSidebar } = useSidebar();
+  const { state, toggleSidebar, setOpenMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const sidebarContentRef = useRef<HTMLDivElement>(null);
+  const lastScrollTopRef = useRef<number>(0);
+  const scrollTimeoutRef = useRef<number | null>(null);
+
+  // حالة الأقسام المطوية مع الحفظ في sessionStorage
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = sessionStorage.getItem(SIDEBAR_COLLAPSED_GROUPS_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const toggleGroup = useCallback((groupLabel: string) => {
+    setCollapsedGroups(prev => {
+      const next = { ...prev, [groupLabel]: !prev[groupLabel] };
+      try {
+        sessionStorage.setItem(SIDEBAR_COLLAPSED_GROUPS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  const saveScrollPosition = useCallback((scrollTop: number) => {
+    lastScrollTopRef.current = scrollTop;
+    try {
+      sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(Math.max(0, Math.round(scrollTop))));
+    } catch {}
+  }, []);
+
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const top = e.currentTarget.scrollTop;
+    lastScrollTopRef.current = top;
+    if (scrollTimeoutRef.current) {
+      cancelAnimationFrame(scrollTimeoutRef.current);
+    }
+    scrollTimeoutRef.current = requestAnimationFrame(() => {
+      saveScrollPosition(top);
+    });
+  }, [saveScrollPosition]);
+
   // إذا كان للمستخدم دور قابل للتخصيص (أي دور غير super_admin و system_admin و service_requester)،
   // نبني القائمة الجانبية من صلاحياته الفعلية المسجلة
   const userPermissions: string[] = (user as any)?.permissions ?? [];
@@ -677,7 +763,47 @@ function DashboardLayoutContent({
     : getMenuGroups(user?.role || "", isEn, customRoleNameAr, customRoleNameEn)
   ).filter(group => group.items && group.items.length > 0);
   const menuItems = menuGroups.flatMap(g => g.items);
-  const activeMenuItem = menuItems.find(item => item.path === location);
+  const activeMenuItem = menuItems.find(item => isItemActive(item.path, location, menuItems));
+
+  // 1. استعادة موضع التمرير فوراً قبل الرسم لتجنب وميض القائمة الجانبية (Zero flicker)
+  useLayoutEffect(() => {
+    const container = sidebarContentRef.current || (document.querySelector('[data-sidebar="content"]') as HTMLDivElement | null);
+    if (!container) return;
+
+    try {
+      const savedScroll = sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
+      if (savedScroll !== null) {
+        const scrollVal = parseInt(savedScroll, 10);
+        if (!isNaN(scrollVal) && scrollVal > 0) {
+          container.scrollTop = scrollVal;
+          lastScrollTopRef.current = scrollVal;
+        }
+      }
+    } catch {}
+  }, [location]);
+
+  // 2. تطبيق خاصية scrollIntoView({ block: 'nearest' }) لضمان ظهور المسار النشط تلقائياً
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const container = sidebarContentRef.current || (document.querySelector('[data-sidebar="content"]') as HTMLDivElement | null);
+      if (!container) return;
+
+      const activeEl = container.querySelector(
+        '[data-sidebar-item-active="true"], [data-active="true"]'
+      ) as HTMLElement | null;
+
+      if (activeEl) {
+        activeEl.scrollIntoView({
+          block: "nearest",
+          inline: "nearest",
+          behavior: "auto",
+        });
+        saveScrollPosition(container.scrollTop);
+      }
+    }, 60);
+
+    return () => clearTimeout(timer);
+  }, [location, saveScrollPosition]);
   // عنوان الدور المعروض في تذييل القائمة
   const roleDisplayLabel = (isEn && isQuickResponseUser)
     ? "Quick Response"
@@ -766,6 +892,12 @@ function DashboardLayoutContent({
             <div className="flex items-center justify-between gap-2 w-full min-w-0 group-data-[collapsible=icon]:hidden">
               <Link
                 href="/dashboard"
+                onClick={() => {
+                  saveScrollPosition(0);
+                  if (isMobile) {
+                    setOpenMobile(false);
+                  }
+                }}
                 className="flex items-center gap-2.5 min-w-0 flex-1 px-1.5 py-1 rounded-xl hover:bg-sidebar-accent/60 transition-colors"
                 title={orgName}
               >
@@ -800,58 +932,88 @@ function DashboardLayoutContent({
             </button>
           </SidebarHeader>
 
-          <SidebarContent className="gap-0 py-2 overflow-y-auto overflow-x-hidden">
-            {menuGroups.map((group, groupIdx) => (
-              <div key={group.label}>
-                {groupIdx > 0 && (
-                  <div className="mx-3 my-1 border-t border-sidebar-border transition-opacity duration-300 ease-in-out group-data-[collapsible=icon]:opacity-0" />
-                )}
-                {group.label && (
-                  <p className="px-4 py-1.5 text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-wider transition-all duration-300 ease-in-out group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:py-0 group-data-[collapsible=icon]:opacity-0 overflow-hidden whitespace-nowrap">
-                    {group.label}
-                  </p>
-                )}
-                <SidebarMenu className="px-2 py-0.5">
-                  {group.items.map(item => {
-                    const isActive = location === item.path;
-                    const isOrdersPath = item.path === "/disbursement-orders";
-                    const isRequestsPath = item.path === "/disbursements";
-                    const isBoardExecutivePath = item.path === "/board-executive";
-                    const isProgressReportsPath = item.path === "/progress-reports";
-                    const isRequesterApprovalsPath = item.path === "/requester-approvals";
-                    const hasActionBadge = 
-                      (isOrdersPath && Boolean(pendingDisbursements?.hasPendingOrders)) ||
-                      (isRequestsPath && Boolean(pendingDisbursements?.hasPendingRequests)) ||
-                      (isBoardExecutivePath && Boolean(pendingDisbursements?.hasPendingBoardExecutive)) ||
-                      (isProgressReportsPath && Boolean(pendingProgressReports?.hasPendingReports)) ||
-                      (isRequesterApprovalsPath && Boolean(pendingUsers && pendingUsers.length > 0));
+          <SidebarContent 
+            ref={sidebarContentRef}
+            onScroll={handleScroll}
+            className="gap-0 py-2 overflow-y-auto overflow-x-hidden"
+          >
+            {menuGroups.map((group, groupIdx) => {
+              const isGroupActive = group.items.some(item => isItemActive(item.path, location, menuItems));
+              // إذا كان القسم يحتوي على المسار النشط، يظل مفتوحاً وموسعاً دائماً (keep-open / auto-expanded)
+              const isGroupCollapsed = !isGroupActive && Boolean(collapsedGroups[group.label]);
 
-                    return (
-                      <SidebarMenuItem key={item.path}>
-                        <SidebarMenuButton
-                          isActive={isActive}
-                          onClick={() => setLocation(item.path)}
-                          tooltip={item.label}
-                          className={`h-9 transition-all duration-300 ease-in-out font-normal text-sm relative ${isActive ? 'bg-white/20 !text-white' : ''}`}
-                        >
-                          <div className="relative shrink-0 flex items-center justify-center">
-                            <item.icon
-                              className={`h-4 w-4 shrink-0 ${isActive ? "text-white" : "text-sidebar-foreground/70"}`}
-                            />
-                            {hasActionBadge ? (
-                              <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-sidebar animate-pulse" />
-                            ) : null}
-                          </div>
-                          <span className={`transition-all duration-300 ease-in-out group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 overflow-hidden whitespace-nowrap pb-1 pt-0.5 leading-normal ${isActive ? "text-white font-bold" : "text-sidebar-foreground"}`}>
-                            {item.label}
-                          </span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </div>
-            ))}
+              return (
+                <div key={group.label}>
+                  {groupIdx > 0 && (
+                    <div className="mx-3 my-1 border-t border-sidebar-border transition-opacity duration-300 ease-in-out group-data-[collapsible=icon]:opacity-0" />
+                  )}
+                  {group.label && (
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(group.label)}
+                      className="w-full flex items-center justify-between px-4 py-1.5 text-[10px] font-semibold text-sidebar-foreground/40 hover:text-sidebar-foreground/80 uppercase tracking-wider transition-all duration-200 ease-in-out group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:py-0 group-data-[collapsible=icon]:opacity-0 overflow-hidden whitespace-nowrap cursor-pointer select-none text-right"
+                      title={group.label}
+                    >
+                      <span className="truncate">{group.label}</span>
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 transition-transform duration-200 shrink-0 text-sidebar-foreground/40 ${
+                          isGroupCollapsed ? "rotate-90 rtl:-rotate-90" : "rotate-0"
+                        }`}
+                      />
+                    </button>
+                  )}
+                  <div className={isGroupCollapsed ? "hidden group-data-[collapsible=icon]:block" : "block"}>
+                    <SidebarMenu className="px-2 py-0.5">
+                      {group.items.map(item => {
+                        const isActive = isItemActive(item.path, location, menuItems);
+                        const isOrdersPath = item.path === "/disbursement-orders";
+                        const isRequestsPath = item.path === "/disbursements";
+                        const isBoardExecutivePath = item.path === "/board-executive";
+                        const isProgressReportsPath = item.path === "/progress-reports";
+                        const isRequesterApprovalsPath = item.path === "/requester-approvals";
+                        const hasActionBadge = 
+                          (isOrdersPath && Boolean(pendingDisbursements?.hasPendingOrders)) ||
+                          (isRequestsPath && Boolean(pendingDisbursements?.hasPendingRequests)) ||
+                          (isBoardExecutivePath && Boolean(pendingDisbursements?.hasPendingBoardExecutive)) ||
+                          (isProgressReportsPath && Boolean(pendingProgressReports?.hasPendingReports)) ||
+                          (isRequesterApprovalsPath && Boolean(pendingUsers && pendingUsers.length > 0));
+
+                        return (
+                          <SidebarMenuItem key={item.path}>
+                            <SidebarMenuButton
+                              isActive={isActive}
+                              data-sidebar-item-active={isActive ? "true" : undefined}
+                              onClick={() => {
+                                const currentScroll = sidebarContentRef.current?.scrollTop ?? lastScrollTopRef.current;
+                                saveScrollPosition(currentScroll);
+                                if (isMobile) {
+                                  setOpenMobile(false);
+                                }
+                                setLocation(item.path);
+                              }}
+                              tooltip={item.label}
+                              className={`h-9 transition-all duration-300 ease-in-out font-normal text-sm relative ${isActive ? 'bg-white/20 !text-white' : ''}`}
+                            >
+                              <div className="relative shrink-0 flex items-center justify-center">
+                                <item.icon
+                                  className={`h-4 w-4 shrink-0 ${isActive ? "text-white" : "text-sidebar-foreground/70"}`}
+                                />
+                                {hasActionBadge ? (
+                                  <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-sidebar animate-pulse" />
+                                ) : null}
+                              </div>
+                              <span className={`transition-all duration-300 ease-in-out group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 overflow-hidden whitespace-nowrap pb-1 pt-0.5 leading-normal ${isActive ? "text-white font-bold" : "text-sidebar-foreground"}`}>
+                                {item.label}
+                              </span>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        );
+                      })}
+                    </SidebarMenu>
+                  </div>
+                </div>
+              );
+            })}
           </SidebarContent>
 
           <SidebarFooter className="p-2.5 border-t border-sidebar-border overflow-hidden">
