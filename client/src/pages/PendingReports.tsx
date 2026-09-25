@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -101,7 +102,7 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [page, setPage] = useState(1);
+  const [page, setPage, resetPage] = usePersistedPage("pending_reports_page");
   const limit = 15;
 
   const userPermissions = (user as any)?.permissions ?? [];
@@ -269,12 +270,12 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                 <Input
                   placeholder="البحث برقم الطلب، المسجد أو الموظف..."
                   value={search}
-                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                  onChange={(e) => { setSearch(e.target.value); resetPage(); }}
                   className="pr-10"
                 />
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Select value={typeFilter} onValueChange={(val) => { setTypeFilter(val); setPage(1); }}>
+                <Select value={typeFilter} onValueChange={(val) => { setTypeFilter(val); resetPage(); }}>
                   <SelectTrigger className="w-full sm:w-48">
                     <SelectValue placeholder="نوع التقرير" />
                   </SelectTrigger>
@@ -286,7 +287,7 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                     <SelectItem value="final_report">تقرير ختامي</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
+                <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); resetPage(); }}>
                   <SelectTrigger className="w-full sm:w-48">
                     <SelectValue placeholder="الحالة الزمنية" />
                   </SelectTrigger>
@@ -576,62 +577,18 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                 </div>
 
                 {/* Footer with Pagination */}
-                <div className="px-4 py-4 bg-muted/20 border-t flex flex-col items-center justify-center gap-4">
-                  <div className="text-[11px] md:text-xs text-muted-foreground text-center">
-                    {`يعرض ${total > 0 ? (page - 1) * limit + 1 : 0} - ${Math.min(page * limit, total)} من أصل ${total} تقرير`}
-                  </div>
-                  
-                  {totalPages > 1 && (
-                    <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={() => setPage(page - 1)}
-                        disabled={page === 1}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                      
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                        if (
-                          totalPages <= 5 ||
-                          p === 1 ||
-                          p === totalPages ||
-                          (p >= page - 1 && p <= page + 1)
-                        ) {
-                          return (
-                            <Button
-                              key={p}
-                              variant={page === p ? "default" : "outline"}
-                              size="sm"
-                              className={`h-8 min-w-[32px] px-2 text-[11px] shrink-0 ${page === p ? 'gradient-primary text-white border-0' : ''}`}
-                              onClick={() => setPage(p)}
-                            >
-                              {p}
-                            </Button>
-                          );
-                        } else if (
-                          (p === page - 2 && page > 3) ||
-                          (p === page + 2 && page < totalPages - 2)
-                        ) {
-                          return <span key={p} className="px-0.5 text-muted-foreground">...</span>;
-                        }
-                        return null;
-                      })}
-
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={() => setPage(page + 1)}
-                        disabled={page === totalPages}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <EnhancedPagination
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={(newPage) => {
+                    setPage(newPage);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  totalItems={total}
+                  itemsPerPage={limit}
+                  itemName="تقرير"
+                  itemNamePlural="تقارير"
+                />
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
