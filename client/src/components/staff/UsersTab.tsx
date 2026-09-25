@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -37,15 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-  PaginationEllipsis,
-} from "@/components/ui/pagination";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import {
   Search,
   MoreVertical,
@@ -86,8 +78,9 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
   const { user: currentUser } = useAuth();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [page, setPage] = useState(1);
+  const [page, setPage, resetPage] = usePersistedPage("staff_users_page");
   const limit = 20;
+  const isFirstMount = useRef(true);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -117,8 +110,12 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
   const { data: customRoles } = trpc.permissions.getRoles.useQuery();
 
   useEffect(() => {
-    setPage(1);
-  }, [searchQuery]);
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    resetPage();
+  }, [searchQuery, resetPage]);
 
   const createUser = trpc.users.create.useMutation({
     onSuccess: (data) => {
@@ -538,65 +535,15 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
           )}
         </div>
 
-        {/* Pagination UI */}
-        {totalPages > 1 && (
-          <div className="py-6 flex justify-center overflow-x-auto">
-            <Pagination className="w-auto">
-              <PaginationContent className="flex-nowrap gap-1 sm:gap-2">
-                <PaginationItem>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="gap-1 h-9 px-2 sm:px-4"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                    <span className="hidden sm:inline">السابق</span>
-                  </Button>
-                </PaginationItem>
-                
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                    // إظهار الصفحات القريبة من الصفحة الحالية فقط إذا كان العدد كبيراً
-                    if (totalPages > 5) {
-                      if (p !== 1 && p !== totalPages && Math.abs(p - page) > 1) {
-                        if (p === 2 && page > 3) return <PaginationItem key={p}><PaginationEllipsis className="w-6" /></PaginationItem>;
-                        if (p === totalPages - 1 && page < totalPages - 2) return <PaginationItem key={p}><PaginationEllipsis className="w-6" /></PaginationItem>;
-                        return null;
-                      }
-                    }
-                    
-                    return (
-                      <PaginationItem key={p}>
-                        <PaginationLink
-                          onClick={() => setPage(p)}
-                          isActive={page === p}
-                          className="cursor-pointer w-8 h-8 sm:w-9 sm:h-9 text-xs sm:text-sm p-0 flex items-center justify-center"
-                        >
-                          {p}
-                        </PaginationLink>
-                      </PaginationItem>
-                    );
-                  })}
-                </div>
-
-                <PaginationItem>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className="gap-1 h-9 px-2 sm:px-4"
-                  >
-                    <span className="hidden sm:inline">التالي</span>
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
-        )}
+        {/* Enhanced Pagination */}
+        <EnhancedPagination
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          totalItems={totalCount}
+          itemsPerPage={limit}
+          className="mt-6"
+        />
       </div>
 
       {/* Add User Dialog */}
