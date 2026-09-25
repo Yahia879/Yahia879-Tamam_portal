@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -315,7 +316,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   const [activeTab, setActiveTab] = useState(() => initialUrlParams.projectId > 0 ? "create" : "list");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [page, setPage] = useState(1);
+  const [page, setPage, resetPage] = usePersistedPage("progress_reports_page");
   const limit = 10;
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -1628,14 +1629,14 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
-                setPage(1);
+                resetPage();
               }}
               className="pr-10"
             />
           </div>
           <Select value={statusFilter} onValueChange={(v) => {
             setStatusFilter(v);
-            setPage(1);
+            resetPage();
           }}>
             <SelectTrigger className="w-[180px]">
               <Filter className="w-4 h-4 ml-2" />
@@ -1979,66 +1980,15 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 </div>
 
                 {/* Footer with Pagination */}
-                <div className="px-4 py-4 bg-muted/20 border-t flex flex-col items-center justify-center gap-4">
-                  <div className="text-[11px] md:text-xs text-muted-foreground text-center">
-                    يعرض {(page - 1) * limit + 1} - {Math.min(page * limit, total)} من أصل {total} تقرير إنجاز
-                  </div>
-                  
-                  {totalPages > 1 && (
-                    <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1 scrollbar-hide">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={() => handlePageChange(page - 1)}
-                        disabled={page === 1}
-                      >
-                        <ChevronLeft className="h-4 w-4 rotate-180" />
-                      </Button>
-                      
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                        if (
-                          totalPages <= 5 ||
-                          p === 1 ||
-                          p === totalPages ||
-                          (p >= page - 1 && p <= page + 1)
-                        ) {
-                          return (
-                            <Button
-                              key={p}
-                              variant={page === p ? "default" : "outline"}
-                              size="sm"
-                              className={`h-8 min-w-[32px] px-2 text-[11px] shrink-0 ${page === p ? 'gradient-primary text-white border-0' : ''}`}
-                              onClick={() => handlePageChange(p)}
-                            >
-                              {p}
-                            </Button>
-                          );
-                        }
-                        
-                        if (p === 2 || p === totalPages - 1) {
-                          return (
-                            <span key={p} className="text-muted-foreground text-xs px-1">
-                              ...
-                            </span>
-                          );
-                        }
-                        
-                        return null;
-                      })}
-                      
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={() => handlePageChange(page + 1)}
-                        disabled={page === totalPages}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <EnhancedPagination
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                  totalItems={total}
+                  itemsPerPage={limit}
+                  itemName="تقرير إنجاز"
+                  itemNamePlural="تقارير إنجاز"
+                />
               </div>
             ) : (
               <div className="p-12 text-center text-muted-foreground">
