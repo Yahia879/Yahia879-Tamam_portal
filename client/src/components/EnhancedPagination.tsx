@@ -171,45 +171,21 @@ export default function EnhancedPagination({
   return (
     <div
       className={cn(
-        "px-4 py-2.5 bg-muted/20 border-t flex flex-col sm:flex-row items-center justify-between gap-3 text-xs select-none",
+        "py-3 px-4 bg-muted/15 border-t flex flex-col items-center justify-center gap-2 text-xs select-none",
         className
       )}
       dir={isEn ? "ltr" : "rtl"}
     >
-      {/* 1. ملخص عدد العناصر المعروضة بنمط عصري أنيق */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap order-2 sm:order-1">
-        <span className="w-1.5 h-1.5 rounded-full bg-primary/70 shrink-0" />
-        {totalItems !== undefined && totalItems > 0 ? (
-          isEn ? (
-            <span>
-              Showing <strong className="text-foreground font-semibold font-mono">{startItem}–{endItem}</strong> of{" "}
-              <strong className="text-foreground font-semibold font-mono">{totalItems}</strong>{" "}
-              {totalItems === 1 ? itemName : itemNamePlural}
-            </span>
-          ) : (
-            <span>
-              عرض <strong className="text-foreground font-semibold font-mono">{startItem}–{endItem}</strong> من أصل{" "}
-              <strong className="text-foreground font-semibold font-mono">{totalItems}</strong>{" "}
-              {itemName}
-            </span>
-          )
-        ) : (
-          <span>
-            {isEn ? `Page ${page} of ${totalPages}` : `صفحة ${page} من ${totalPages}`}
-          </span>
-        )}
-      </div>
-
-      {/* 2. شريط تحكم موحد فاخر (السابق | صفحة [ 1 ] من 10 | التالي) */}
+      {/* 1. شريط تحكم موحد فاخر في المنتصف تماماً (السابق | صفحة [ 1 ] من 10 | التالي) */}
       {totalPages > 1 && (
-        <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-background border border-border/80 shadow-2xs order-1 sm:order-2">
+        <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-background border border-border/80 shadow-2xs">
           {/* زر الصفحة السابقة */}
           <Button
             type="button"
             variant="ghost"
             size="sm"
             className={cn(
-              "h-8 px-2.5 gap-1.5 text-xs font-medium rounded-lg transition-all active:scale-95",
+              "h-8 px-3 gap-1.5 text-xs font-medium rounded-lg transition-all active:scale-95",
               page <= 1 ? "opacity-35 cursor-not-allowed" : "hover:bg-muted text-foreground"
             )}
             onClick={() => onPageChange(Math.max(1, page - 1))}
@@ -217,14 +193,14 @@ export default function EnhancedPagination({
             title={isEn ? "Previous page" : "الصفحة السابقة"}
           >
             <PrevIcon className="h-4 w-4" />
-            <span className="hidden sm:inline font-normal">{isEn ? "Previous" : "السابق"}</span>
+            <span className="font-normal">{isEn ? "Previous" : "السابق"}</span>
           </Button>
 
           {/* فاصل */}
           <div className="h-4 w-px bg-border/60 mx-0.5" />
 
           {/* حقل الصفحة التفاعلي الأنيق في المنتصف */}
-          <div className="flex items-center gap-1.5 px-2 text-xs font-medium">
+          <div className="flex items-center gap-1.5 px-2.5 text-xs font-medium">
             <span className="text-muted-foreground font-normal">{isEn ? "Page" : "صفحة"}</span>
             {showGoToPage ? (
               <div className="relative inline-flex items-center">
@@ -244,7 +220,7 @@ export default function EnhancedPagination({
                   }}
                   onBlur={commitPage}
                   className={cn(
-                    "h-7 w-12 text-center text-xs font-mono font-bold rounded-md bg-muted/40 hover:bg-muted/70 focus:bg-background border transition-all outline-none",
+                    "h-7 w-11 text-center text-xs font-mono font-bold rounded-md bg-muted/40 hover:bg-muted/70 focus:bg-background border transition-all outline-none",
                     "focus:border-primary focus:ring-1 focus:ring-primary/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
                     hasPendingChange
                       ? "border-primary text-primary bg-primary/5 ring-1 ring-primary/30"
@@ -280,16 +256,36 @@ export default function EnhancedPagination({
             variant="ghost"
             size="sm"
             className={cn(
-              "h-8 px-2.5 gap-1.5 text-xs font-medium rounded-lg transition-all active:scale-95",
+              "h-8 px-3 gap-1.5 text-xs font-medium rounded-lg transition-all active:scale-95",
               page >= totalPages ? "opacity-35 cursor-not-allowed" : "hover:bg-muted text-foreground"
             )}
             onClick={() => onPageChange(Math.min(totalPages, page + 1))}
             disabled={page >= totalPages}
             title={isEn ? "Next page" : "الصفحة التالية"}
           >
-            <span className="hidden sm:inline font-normal">{isEn ? "Next" : "التالي"}</span>
+            <span className="font-normal">{isEn ? "Next" : "التالي"}</span>
             <NextIcon className="h-4 w-4" />
           </Button>
+        </div>
+      )}
+
+      {/* 2. ملخص عدد العناصر المعروضة في المنتصف أسفل شريط التنقل بتناسق تام */}
+      {totalItems !== undefined && totalItems > 0 && (
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium whitespace-nowrap">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary/70 shrink-0" />
+          {isEn ? (
+            <span>
+              Showing <strong className="text-foreground font-semibold font-mono">{startItem}–{endItem}</strong> of{" "}
+              <strong className="text-foreground font-semibold font-mono">{totalItems}</strong>{" "}
+              {totalItems === 1 ? itemName : itemNamePlural}
+            </span>
+          ) : (
+            <span>
+              عرض <strong className="text-foreground font-semibold font-mono">{startItem}–{endItem}</strong> من أصل{" "}
+              <strong className="text-foreground font-semibold font-mono">{totalItems}</strong>{" "}
+              {itemName}
+            </span>
+          )}
         </div>
       )}
     </div>
