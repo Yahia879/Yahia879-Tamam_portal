@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -104,17 +105,22 @@ export default function BoardDashboard({
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [orderTypeFilter, setOrderTypeFilter] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage, resetPage] = usePersistedPage("board_dashboard_orders_page");
   const ITEMS_PER_PAGE = 20;
 
   // مؤقت البحث الذكي مع إلغاء الارتداد
+  const isSearchFirstMount = useRef(true);
   useEffect(() => {
+    if (isSearchFirstMount.current) {
+      isSearchFirstMount.current = false;
+      return;
+    }
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm);
-      setCurrentPage(1);
+      resetPage();
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, resetPage]);
 
   // حالات نافذة الرفض والمعاينة
   const [rejectingOrder, setRejectingOrder] = useState<{ id: number; orderNumber: string } | null>(null);
@@ -534,7 +540,7 @@ export default function BoardDashboard({
                       value={orderTypeFilter}
                       onValueChange={(val) => {
                         setOrderTypeFilter(val);
-                        setCurrentPage(1);
+                        resetPage();
                       }}
                     >
                       <SelectTrigger className="w-full lg:w-[180px] rounded-xl border-border/80">
@@ -552,7 +558,7 @@ export default function BoardDashboard({
                       value={selectedStatus}
                       onValueChange={(val) => {
                         setSelectedStatus(val);
-                        setCurrentPage(1);
+                        resetPage();
                       }}
                     >
                       <SelectTrigger className="w-full lg:w-[230px] rounded-xl border-border/80">
@@ -857,68 +863,20 @@ export default function BoardDashboard({
                         </Table>
                       </div>
 
-                      {/* تذييل الصفحة للترقيم والتنقل (Pagination Controls) المطابق لـ /disbursement-orders */}
-                      <div className="px-4 py-3 bg-slate-50/70 dark:bg-slate-900/70 border-t flex flex-col sm:flex-row items-center justify-between gap-4 font-semibold text-xs" dir="rtl">
-                        <div className="text-[11px] sm:text-xs text-muted-foreground text-center sm:text-right font-medium">
-                          يعرض {totalFilteredCount > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} - {Math.min(currentPage * ITEMS_PER_PAGE, totalFilteredCount)} من أصل {totalFilteredCount} أمر صرف
-                        </div>
-
-                        {totalPages > 1 && (
-                          <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 shrink-0 rounded-lg"
-                              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                              disabled={currentPage === 1}
-                              title="الصفحة السابقة"
-                            >
-                              <ChevronRight className="h-4 w-4" />
-                            </Button>
-
-                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                              if (
-                                totalPages <= 5 ||
-                                p === 1 ||
-                                p === totalPages ||
-                                (p >= currentPage - 1 && p <= currentPage + 1)
-                              ) {
-                                return (
-                                  <Button
-                                    key={p}
-                                    variant={currentPage === p ? "default" : "outline"}
-                                    size="sm"
-                                    className={`h-8 min-w-[32px] px-2 text-[11px] shrink-0 rounded-lg ${currentPage === p ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-0 font-bold' : ''}`}
-                                    onClick={() => setCurrentPage(p)}
-                                  >
-                                    {p}
-                                  </Button>
-                                );
-                              }
-
-                              if (p === 2 || p === totalPages - 1) {
-                                return (
-                                  <span key={p} className="text-muted-foreground text-xs px-1">
-                                    ...
-                                  </span>
-                                );
-                              }
-                              return null;
-                            })}
-
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 shrink-0 rounded-lg"
-                              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                              disabled={currentPage === totalPages}
-                              title="الصفحة التالية"
-                            >
-                              <ChevronLeft className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                      {/* تذييل الصفحة للترقيم والتنقل (Pagination Controls) */}
+                      <EnhancedPagination
+                        page={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={(p) => {
+                          setCurrentPage(p);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        totalItems={totalFilteredCount}
+                        itemsPerPage={ITEMS_PER_PAGE}
+                        itemName="أمر صرف"
+                        itemNamePlural="أوامر صرف"
+                        className="rounded-b-2xl border-t border-border/70"
+                      />
                     </Card>
                   ) : (
                     <div className="text-center py-10 text-muted-foreground text-sm bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-dashed">
