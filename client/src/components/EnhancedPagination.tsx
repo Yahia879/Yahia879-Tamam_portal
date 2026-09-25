@@ -1,12 +1,7 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface EnhancedPaginationProps {
@@ -22,59 +17,6 @@ export interface EnhancedPaginationProps {
   className?: string;
   showGoToPage?: boolean;
   siblingCount?: number;
-}
-
-/**
- * دالة مساعدة لحساب توزيع أرقام الصفحات مع علامات الاختصار (...)
- * smart pagination range with ellipsis
- */
-function getPaginationRange(
-  currentPage: number,
-  totalPages: number,
-  siblingCount = 1
-): (number | string)[] {
-  const totalPageNumbers = siblingCount * 2 + 5;
-
-  if (totalPages <= totalPageNumbers) {
-    return Array.from({ length: totalPages }, (_, i) => i + 1);
-  }
-
-  const leftSiblingIndex = Math.max(currentPage - siblingCount, 1);
-  const rightSiblingIndex = Math.min(currentPage + siblingCount, totalPages);
-
-  const shouldShowLeftDots = leftSiblingIndex > 2;
-  const shouldShowRightDots = rightSiblingIndex < totalPages - 2;
-
-  const firstPageIndex = 1;
-  const lastPageIndex = totalPages;
-
-  // الحالة 1: لا توجد نقاط يسار، ولكن توجد نقاط يمين (1 2 3 4 5 ... 14)
-  if (!shouldShowLeftDots && shouldShowRightDots) {
-    const leftItemCount = 3 + 2 * siblingCount;
-    const leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
-    return [...leftRange, "...", totalPages];
-  }
-
-  // الحالة 2: توجد نقاط يسار، ولكن لا توجد نقاط يمين (1 ... 10 11 12 13 14)
-  if (shouldShowLeftDots && !shouldShowRightDots) {
-    const rightItemCount = 3 + 2 * siblingCount;
-    const rightRange = Array.from(
-      { length: rightItemCount },
-      (_, i) => totalPages - rightItemCount + i + 1
-    );
-    return [firstPageIndex, "...", ...rightRange];
-  }
-
-  // الحالة 3: نقاط في كلا الجانبين (1 ... 4 5 6 ... 14)
-  if (shouldShowLeftDots && shouldShowRightDots) {
-    const middleRange = Array.from(
-      { length: rightSiblingIndex - leftSiblingIndex + 1 },
-      (_, i) => leftSiblingIndex + i
-    );
-    return [firstPageIndex, "...", ...middleRange, "...", lastPageIndex];
-  }
-
-  return Array.from({ length: totalPages }, (_, i) => i + 1);
 }
 
 /**
@@ -169,7 +111,7 @@ export function usePersistedPage(storageKey: string, defaultPage = 1) {
 }
 
 /**
- * مكوّن الترقيم الشامل والمحسن لجميع جداول النظام
+ * مكوّن الترقيم الشامل والمحسن لجميع جداول النظام (تصميم عصري ومختصر)
  */
 export default function EnhancedPagination({
   page: propPage,
@@ -183,20 +125,15 @@ export default function EnhancedPagination({
   isEn = false,
   className,
   showGoToPage = true,
-  siblingCount = 1,
 }: EnhancedPaginationProps) {
   const page = propPage ?? propCurrentPage ?? 1;
   const [jumpInput, setJumpInput] = useState<string>("");
 
   // في اتجاه RTL العربي:
-  // البداية (صفحة 1) على اليمين => ChevronsRight
   // السابق على اليمين => ChevronRight
   // التالي على اليسار => ChevronLeft
-  // النهاية (آخر صفحة) على اليسار => ChevronsLeft
-  const FirstIcon = isEn ? ChevronsLeft : ChevronsRight;
   const PrevIcon = isEn ? ChevronLeft : ChevronRight;
   const NextIcon = isEn ? ChevronRight : ChevronLeft;
-  const LastIcon = isEn ? ChevronsRight : ChevronsLeft;
 
   // التحقق من صلاحية الصفحة الحالية نسبة لعدد الصفحات
   useEffect(() => {
@@ -204,10 +141,6 @@ export default function EnhancedPagination({
       onPageChange(totalPages);
     }
   }, [page, totalPages, onPageChange]);
-
-  const paginationRange = useMemo(() => {
-    return getPaginationRange(page, totalPages, siblingCount);
-  }, [page, totalPages, siblingCount]);
 
   const handleJumpSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -230,13 +163,13 @@ export default function EnhancedPagination({
   return (
     <div
       className={cn(
-        "px-4 py-3 bg-muted/20 border-t flex flex-col md:flex-row items-center justify-between gap-3 text-xs",
+        "px-4 py-3 bg-muted/20 border-t flex flex-col sm:flex-row items-center justify-between gap-3 text-xs",
         className
       )}
       dir={isEn ? "ltr" : "rtl"}
     >
       {/* 1. نص عدد العناصر الحالي */}
-      <div className="text-[11px] md:text-xs text-muted-foreground font-medium text-center md:text-right whitespace-nowrap">
+      <div className="text-[11px] md:text-xs text-muted-foreground font-medium text-center sm:text-right whitespace-nowrap">
         {totalItems !== undefined ? (
           totalItems > 0 ? (
             isEn ? (
@@ -264,119 +197,49 @@ export default function EnhancedPagination({
         )}
       </div>
 
-      {/* 2. أزرار التنقل الذكية وأزرار البداية/النهاية */}
+      {/* 2. أزرار التنقل الذكية والمختصرة (السابق / مؤشر الصفحة / التالي) */}
       {totalPages > 1 && (
-        <div className="flex flex-wrap items-center justify-center gap-1.5 max-w-full">
-          {/* زر الانتقال المباشر للبداية (<<) */}
+        <div className="flex items-center justify-center gap-2 max-w-full">
+          {/* زر الصفحة السابقة */}
           <Button
             type="button"
             variant="outline"
-            size="icon"
-            className="h-8 w-8 shrink-0 hover:bg-muted"
-            onClick={() => onPageChange(1)}
-            disabled={page === 1}
-            title={isEn ? "First page" : "الصفحة الأولى"}
-          >
-            <FirstIcon className="h-4 w-4" />
-          </Button>
-
-          {/* زر الصفحة السابقة (<) */}
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 shrink-0 hover:bg-muted"
+            size="sm"
+            className="h-8 px-3 gap-1.5 text-xs font-medium hover:bg-muted shrink-0 transition-colors shadow-2xs"
             onClick={() => onPageChange(Math.max(1, page - 1))}
-            disabled={page === 1}
+            disabled={page <= 1}
             title={isEn ? "Previous page" : "الصفحة السابقة"}
           >
-            <PrevIcon className="h-4 w-4" />
+            <PrevIcon className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{isEn ? "Previous" : "السابق"}</span>
           </Button>
 
-          {/* أرقام الصفحات مع الاختصار الذكي */}
-          <div className="flex items-center gap-1">
-            {paginationRange.map((item, idx) => {
-              if (item === "...") {
-                const isLeftDots = idx === 1;
-                const jumpTarget = isLeftDots
-                  ? Math.max(1, page - 5)
-                  : Math.min(totalPages, page + 5);
-
-                return (
-                  <Button
-                    key={`ellipsis-${idx}`}
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 px-0 text-xs text-muted-foreground hover:text-foreground hover:bg-muted font-mono tracking-widest group"
-                    onClick={() => onPageChange(jumpTarget)}
-                    title={
-                      isEn
-                        ? `Jump 5 pages to page ${jumpTarget}`
-                        : `تخطي 5 صفحات إلى صفحة ${jumpTarget}`
-                    }
-                  >
-                    <span className="group-hover:hidden">...</span>
-                    <span className="hidden group-hover:inline text-[10px] font-bold text-primary">
-                      {isLeftDots ? (isEn ? "-5" : "5-") : (isEn ? "+5" : "5+")}
-                    </span>
-                  </Button>
-                );
-              }
-
-              const pageNum = item as number;
-              const isActive = pageNum === page;
-
-              return (
-                <Button
-                  key={pageNum}
-                  type="button"
-                  variant={isActive ? "default" : "outline"}
-                  size="sm"
-                  className={cn(
-                    "h-8 min-w-[32px] px-2 text-xs font-mono font-medium shrink-0 transition-all",
-                    isActive
-                      ? "gradient-primary text-white font-bold shadow-xs border-0 hover:opacity-95"
-                      : "hover:bg-muted"
-                  )}
-                  onClick={() => onPageChange(pageNum)}
-                >
-                  {pageNum}
-                </Button>
-              );
-            })}
+          {/* مؤشر الصفحة الحالية من إجمالي الصفحات */}
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-background border border-border/70 shadow-2xs text-xs font-medium">
+            <span className="text-muted-foreground">{isEn ? "Page" : "صفحة"}</span>
+            <span className="font-bold text-primary font-mono text-sm">{page}</span>
+            <span className="text-muted-foreground">{isEn ? "of" : "من"}</span>
+            <span className="font-semibold text-foreground font-mono">{totalPages}</span>
           </div>
 
-          {/* زر الصفحة التالية (>) */}
+          {/* زر الصفحة التالية */}
           <Button
             type="button"
             variant="outline"
-            size="icon"
-            className="h-8 w-8 shrink-0 hover:bg-muted"
+            size="sm"
+            className="h-8 px-3 gap-1.5 text-xs font-medium hover:bg-muted shrink-0 transition-colors shadow-2xs"
             onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-            disabled={page === totalPages}
+            disabled={page >= totalPages}
             title={isEn ? "Next page" : "الصفحة التالية"}
           >
-            <NextIcon className="h-4 w-4" />
-          </Button>
-
-          {/* زر الانتقال المباشر للنهاية (>>) */}
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 shrink-0 hover:bg-muted"
-            onClick={() => onPageChange(totalPages)}
-            disabled={page === totalPages}
-            title={isEn ? "Last page" : "الصفحة الأخيرة"}
-          >
-            <LastIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">{isEn ? "Next" : "التالي"}</span>
+            <NextIcon className="h-3.5 w-3.5" />
           </Button>
         </div>
       )}
 
       {/* 3. حقل إدخال رقم الصفحة المباشر (Go to Page Input) */}
-      {totalPages > 2 && showGoToPage && (
+      {totalPages > 1 && showGoToPage && (
         <form
           onSubmit={handleJumpSubmit}
           className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0"
@@ -396,21 +259,23 @@ export default function EnhancedPagination({
               }
             }}
             placeholder={String(page)}
-            className="h-8 w-14 px-1.5 text-center text-xs font-mono font-bold bg-background shadow-xs focus-visible:ring-1"
+            className="h-8 w-14 px-1.5 text-center text-xs font-mono font-bold bg-background shadow-2xs focus-visible:ring-1"
             aria-label={isEn ? "Go to page number" : "الانتقال إلى رقم الصفحة"}
           />
           <Button
             type="submit"
             variant="outline"
             size="sm"
-            className="h-8 px-2.5 text-xs font-medium hover:bg-muted shrink-0"
-            disabled={!jumpInput.trim() || parseInt(jumpInput, 10) === page}
+            className="h-8 px-2.5 text-xs font-medium hover:bg-muted shrink-0 transition-colors"
+            disabled={
+              !jumpInput.trim() ||
+              parseInt(jumpInput, 10) === page ||
+              parseInt(jumpInput, 10) < 1 ||
+              parseInt(jumpInput, 10) > totalPages
+            }
           >
             {isEn ? "Go" : "انتقال"}
           </Button>
-          <span className="text-[11px] text-muted-foreground font-mono whitespace-nowrap">
-            {isEn ? `of ${totalPages}` : `من ${totalPages}`}
-          </span>
         </form>
       )}
     </div>
