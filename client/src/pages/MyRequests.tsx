@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -98,7 +99,7 @@ export default function MyRequests() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusTab, setStatusTab] = useState<string>("all");
   const [programFilter, setProgramFilter] = useState<string>("all");
-  const [page, setPage] = useState<number>(1);
+  const [page, setPage, resetPage] = usePersistedPage("my_requests_page");
 
   // البحث المؤجل لتخفيف الاستعلامات على الخادم
   useEffect(() => {
@@ -109,9 +110,14 @@ export default function MyRequests() {
   }, [searchTerm]);
 
   // إعادة الصفحة إلى الأولى عند تغيير الفلاتر أو البحث
+  const isFiltersFirstMount = useRef(true);
   useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, statusTab, programFilter]);
+    if (isFiltersFirstMount.current) {
+      isFiltersFirstMount.current = false;
+      return;
+    }
+    resetPage();
+  }, [debouncedSearch, statusTab, programFilter, resetPage]);
 
   // جلب البرامج الفعالة
   const { data: activePrograms = [] } = trpc.programs.getActive.useQuery();
@@ -153,7 +159,7 @@ export default function MyRequests() {
     setDebouncedSearch("");
     setStatusTab("all");
     setProgramFilter("all");
-    setPage(1);
+    resetPage();
   };
 
   const isFiltering = debouncedSearch !== "" || statusTab !== "all" || programFilter !== "all";
@@ -493,73 +499,16 @@ export default function MyRequests() {
           </div>
 
           {/* Pagination Footer */}
-          {totalPages > 1 && (
-            <div className="p-3 sm:p-4 bg-muted/20 border border-border/60 rounded-2xl sm:rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
-              <div className="text-[10px] sm:text-xs text-muted-foreground text-center sm:text-right font-medium">
-                عرض {(page - 1) * PAGE_SIZE + 1} - {Math.min(page * PAGE_SIZE, total)} من أصل {total} طلب
-              </div>
-
-              <div className="flex items-center gap-1 overflow-x-auto max-w-full py-0.5">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-7.5 w-7.5 sm:h-8.5 sm:w-8.5 rounded-lg sm:rounded-xl shrink-0 cursor-pointer disabled:opacity-40"
-                  onClick={() => handlePageChange(page - 1)}
-                  disabled={page === 1 || isFetching}
-                  title="الصفحة السابقة"
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </Button>
-
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                  if (
-                    totalPages <= 5 ||
-                    p === 1 ||
-                    p === totalPages ||
-                    (p >= page - 1 && p <= page + 1)
-                  ) {
-                    return (
-                      <Button
-                        key={p}
-                        variant={page === p ? "default" : "outline"}
-                        size="sm"
-                        className={`h-7.5 min-w-[30px] sm:h-8.5 sm:min-w-[34px] px-2 text-[10px] sm:text-xs font-bold rounded-lg sm:rounded-xl shrink-0 transition-all cursor-pointer ${
-                          page === p
-                            ? "gradient-primary text-white border-0 shadow-xs"
-                            : "hover:bg-muted"
-                        }`}
-                        onClick={() => handlePageChange(p)}
-                        disabled={isFetching}
-                      >
-                        {p}
-                      </Button>
-                    );
-                  } else if (
-                    (p === page - 2 && page > 3) ||
-                    (p === page + 2 && page < totalPages - 2)
-                  ) {
-                    return (
-                      <span key={p} className="text-muted-foreground text-[10px] sm:text-xs px-1">
-                        ...
-                      </span>
-                    );
-                  }
-                  return null;
-                })}
-
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-7.5 w-7.5 sm:h-8.5 sm:w-8.5 rounded-lg sm:rounded-xl shrink-0 cursor-pointer disabled:opacity-40"
-                  onClick={() => handlePageChange(page + 1)}
-                  disabled={page === totalPages || isFetching}
-                  title="الصفحة التالية"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <EnhancedPagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            totalItems={total}
+            itemsPerPage={PAGE_SIZE}
+            itemName="طلب"
+            itemNamePlural="طلبات"
+            className="rounded-2xl sm:rounded-3xl border border-border/60"
+          />
         </div>
       ) : (
         <Card className="border border-border/60 shadow-xs rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center bg-card">
