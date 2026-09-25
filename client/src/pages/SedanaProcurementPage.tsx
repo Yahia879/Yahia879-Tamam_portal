@@ -60,7 +60,7 @@ export default function SedanaProcurementPage() {
   const requestId = parseInt(params.id || "0");
   const { user } = useAuth();
 
-  useDocumentTitle(`اعتماد نوع التأمين #${requestId} - سدانة`);
+  useDocumentTitle(`اعتماد نوع التوريد #${requestId} - سدانة`);
 
   // وضع العرض كامل الشاشة: إما القائمة الرئيسية "none" أو معاينة أمر الشراء "po" أو معاينة الخطاب "csr"
   const [fullScreenView, setFullScreenView] = useState<"none" | "po" | "csr">("none");
@@ -748,7 +748,7 @@ export default function SedanaProcurementPage() {
   // حفظ التجزئة والبيانات
   const handleSaveProcurement = (advanceStage: boolean = false) => {
     if (advanceStage && !allSuppliersAssignedMethod) {
-      toast.error("يرجى تحديد نوع التأمين لجميع الموردين قبل الانتقال للمرحلة القادمة");
+      toast.error("يرجى تحديد نوع التوريد لجميع الموردين قبل الانتقال للمرحلة القادمة");
       return;
     }
     saveProcurementMutation.mutate({
@@ -757,7 +757,7 @@ export default function SedanaProcurementPage() {
         itemsAllocation,
         itemSupplierMap,
         suppliersAllocation,
-        notes: `تحديد طرق التأمين والموردين (${contractItems.length} عقد، ${poItems.length} أمر شراء، ${csrItems.length} مسؤولية مجتمعية)`,
+        notes: `تحديد طرق التوريد والموردين (${contractItems.length} عقد، ${poItems.length} أمر شراء، ${csrItems.length} مسؤولية مجتمعية)`,
       },
       advanceToExecution: advanceStage,
     });
@@ -830,7 +830,7 @@ export default function SedanaProcurementPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base font-bold text-foreground">
-                  اعتماد نوع التأمين
+                  اعتماد نوع التوريد
                 </h1>
                 <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs">
                   طلب #{request?.requestNumber || requestId}
@@ -847,7 +847,7 @@ export default function SedanaProcurementPage() {
               size="sm"
               onClick={() => {
                 if (!allSuppliersAssignedMethod) {
-                  toast.error("يرجى تحديد نوع التأمين لجميع الموردين قبل الانتقال للمرحلة القادمة");
+                  toast.error("يرجى تحديد نوع التوريد لجميع الموردين قبل الانتقال للمرحلة القادمة");
                   return;
                 }
                 setShowConfirmModal(true);
@@ -989,13 +989,13 @@ export default function SedanaProcurementPage() {
                         {grp.isUnassigned
                           ? "هذه البنود لم تُسند لمورد بعد، يرجى اختيار مورد لها أدناه أو نقلها لمورد محدد"
                           : !currentMethod
-                          ? "لم يتم تحديد نوع التأمين لهذا المورد بعد - يرجى اختيار أحد الخيارات أدناه"
-                          : "الأصناف الموكلة لهذا المورد ونوع التأمين المعتمد له"}
+                          ? "لم يتم تحديد نوع التوريد لهذا المورد بعد - يرجى اختيار أحد الخيارات أدناه"
+                          : "الأصناف الموكلة لهذا المورد ونوع التوريد المعتمد له"}
                       </p>
                     </div>
                   </div>
 
-                  {/* تحديد النوع (طريقة التأمين للمورد بنقرة واحدة) */}
+                  {/* تحديد النوع (طريقة التوريد للمورد بنقرة واحدة) */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 shrink-0">
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs font-bold text-foreground">تحديد النوع:</span>
@@ -1117,16 +1117,16 @@ export default function SedanaProcurementPage() {
           <DialogHeader className="text-right sm:text-right pb-2 border-b">
             <DialogTitle className="text-base font-bold flex items-center gap-2 text-foreground">
               <CheckCircle2 className="w-5 h-5 text-sky-600" />
-              تأكيد اعتماد التأمين والانتقال للتنفيذ
+              تأكيد اعتماد التوريد والانتقال للتنفيذ
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground text-right sm:text-right">
-              سيتم حفظ خطة توزيع البنود والموردين واعتماد مسارات التأمين ونقل الطلب للمرحلة الخامسة (مرحلة التنفيذ).
+              سيتم حفظ خطة توزيع البنود والموردين واعتماد مسارات التوريد ونقل الطلب للمرحلة الخامسة (مرحلة التنفيذ).
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3 py-2 text-xs">
             <div className="p-3 bg-muted/40 rounded-xl space-y-2 border border-border">
-              <p className="font-bold text-foreground">ملخص توزيع مسارات التأمين المعتمدة ({allItems.length} بند):</p>
+              <p className="font-bold text-foreground">ملخص توزيع مسارات التوريد المعتمدة ({allItems.length} بند):</p>
               <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
                 <div className="bg-sky-50 dark:bg-sky-950/40 p-2 rounded border border-sky-200 dark:border-sky-800">
                   <span className="block text-sky-700 dark:text-sky-300 font-bold">{contractSuppliers.length} موردين</span>
@@ -1180,7 +1180,7 @@ export default function SedanaProcurementPage() {
               إضافة اسم مورد جديد
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground text-right sm:text-right">
-              أدخل اسم المورد أو الكيان أو الجهة المانحة لاعتمادها في مسار التأمين.
+              أدخل اسم المورد أو الكيان أو الجهة المانحة لاعتمادها في مسار التوريد.
             </DialogDescription>
           </DialogHeader>
 
@@ -1255,7 +1255,7 @@ export default function SedanaProcurementPage() {
 
         {/* عنوان التقرير */}
         <div className="bg-[#0284c7] text-white font-bold text-center py-2 px-4 rounded text-sm sm:text-base mb-4 shadow-2xs">
-          محضر توزيع بنود الطلب ومسارات التأمين والموردين
+          محضر توزيع بنود الطلب ومسارات التوريد والموردين
         </div>
 
         {/* ملخص المسارات */}
@@ -1285,7 +1285,7 @@ export default function SedanaProcurementPage() {
                 <th className="p-2 border-l border-slate-300 text-center w-20">الكمية</th>
                 <th className="p-2 border-l border-slate-300 text-center w-16">الوحدة</th>
                 <th className="p-2 border-l border-slate-300">المورد المعتمد</th>
-                <th className="p-2 border-l border-slate-300 text-center w-28">طريقة التأمين</th>
+                <th className="p-2 border-l border-slate-300 text-center w-28">طريقة التوريد</th>
                 <th className="p-2 text-center w-24">السعر التقديري</th>
               </tr>
             </thead>
