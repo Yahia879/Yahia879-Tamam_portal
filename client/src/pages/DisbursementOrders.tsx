@@ -6,6 +6,7 @@ import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -177,7 +178,7 @@ export default function DisbursementOrders() {
   };
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [page, setPage] = useState(1);
+  const [page, setPage, resetPage] = usePersistedPage("disbursement_orders_page", 1);
   const limit = 10;
 
   const [showApproveDialog, setShowApproveDialog] = useState(false);
@@ -198,13 +199,15 @@ export default function DisbursementOrders() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchTerm);
-      setPage(1); // إعادة التعيين للصفحة الأولى عند البحث
+      if (searchTerm) {
+        resetPage(); // إعادة التعيين للصفحة الأولى فقط عند وجود بحث نشط
+      }
     }, 400);
 
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm]);
+  }, [searchTerm, resetPage]);
 
   // جلب قائمة أوامر الصرف المفلترة والمسحوبة من الخادم
   const { data: ordersData, isLoading, refetch: refetchOrders } = trpc.disbursements.listOrders.useQuery({
@@ -495,7 +498,7 @@ export default function DisbursementOrders() {
                   className="pr-10"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); resetPage(); }}>
                 <SelectTrigger className="w-full lg:w-[240px]">
                   <Filter className="ml-2 h-4 w-4" />
                   <SelectValue placeholder="جميع الحالات" />
@@ -1068,67 +1071,20 @@ export default function DisbursementOrders() {
                   })}
                 </div>
 
-                {/* تذييل الصفحة مع الترقيم وخادم البحث */}
-                <div className="px-4 py-4 bg-muted/10 border-t flex flex-col items-center justify-center gap-4">
-                  <div className="text-[11px] md:text-xs text-muted-foreground text-center font-medium">
-                    يعرض {total > 0 ? (page - 1) * limit + 1 : 0} - {Math.min(page * limit, total)} من أصل {total} أمر صرف
-                  </div>
-                  
-                  {totalPages > 1 && (
-                    <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-                        disabled={page === 1}
-                      >
-                        <ChevronLeft className="h-4 w-4 text-right" />
-                      </Button>
-                      
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                        if (
-                          totalPages <= 5 ||
-                          p === 1 ||
-                          p === totalPages ||
-                          (p >= page - 1 && p <= page + 1)
-                        ) {
-                          return (
-                            <Button
-                              key={p}
-                              variant={page === p ? "default" : "outline"}
-                              size="sm"
-                              className={`h-8 min-w-[32px] px-2 text-[11px] shrink-0 ${page === p ? 'gradient-primary text-white border-0' : ''}`}
-                              onClick={() => setPage(p)}
-                            >
-                              {p}
-                            </Button>
-                          );
-                        }
-                        
-                        if (p === 2 || p === totalPages - 1) {
-                          return (
-                            <span key={p} className="text-muted-foreground text-xs px-1">
-                              ...
-                            </span>
-                          );
-                        }
-                        
-                        return null;
-                      })}
-                      
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-                        disabled={page === totalPages}
-                      >
-                        <ChevronLeft className="h-4 w-4 rotate-180" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                {/* تذييل الصفحة مع الترقيم المحسن وخادم البحث */}
+                <EnhancedPagination
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={(newPage) => {
+                    setPage(newPage);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  totalItems={total}
+                  itemsPerPage={limit}
+                  itemName="أمر صرف"
+                  itemNamePlural="أوامر صرف"
+                  className="bg-muted/10 border-t"
+                />
               </Card>
             )}
           </CardContent>
