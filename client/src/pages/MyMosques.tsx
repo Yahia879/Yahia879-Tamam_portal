@@ -1,7 +1,8 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -88,22 +89,32 @@ export default function MyMosques() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusTab, setStatusTab] = useState<string>("all");
   const [cityFilter, setCityFilter] = useState<string>("all");
-  const [page, setPage] = useState<number>(1);
+  const [page, setPage, resetPage] = usePersistedPage("my_mosques_page");
   const limit = 10;
 
   // تأخير البحث لتجنب كثرة الطلبات (Debounce)
+  const isSearchFirstMount = useRef(true);
   useEffect(() => {
+    if (isSearchFirstMount.current) {
+      isSearchFirstMount.current = false;
+      return;
+    }
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm.trim());
-      setPage(1);
+      resetPage();
     }, 350);
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, resetPage]);
 
   // إعادة ضبط الصفحة عند تغيير التبويب أو المدينة
+  const isFilterFirstMount = useRef(true);
   useEffect(() => {
-    setPage(1);
-  }, [statusTab, cityFilter]);
+    if (isFilterFirstMount.current) {
+      isFilterFirstMount.current = false;
+      return;
+    }
+    resetPage();
+  }, [statusTab, cityFilter, resetPage]);
 
   // جلب المدن المتاحة للفلترة
   const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery();
@@ -148,7 +159,7 @@ export default function MyMosques() {
     setDebouncedSearch("");
     setStatusTab("all");
     setCityFilter("all");
-    setPage(1);
+    resetPage();
   };
 
   const isFiltering = debouncedSearch !== "" || statusTab !== "all" || cityFilter !== "all";
@@ -432,80 +443,16 @@ export default function MyMosques() {
           </div>
 
           {/* Pagination Footer */}
-          {totalPages > 1 && (
-            <div className="p-3 sm:p-4 bg-muted/20 border border-border/60 rounded-2xl sm:rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
-              <div className="text-[10px] sm:text-xs text-muted-foreground text-center sm:text-right font-medium">
-                عرض{" "}
-                <span className="font-bold text-foreground font-mono">
-                  {total === 0 ? 0 : (page - 1) * limit + 1}
-                </span>{" "}
-                إلى{" "}
-                <span className="font-bold text-foreground font-mono">
-                  {Math.min(page * limit, total)}
-                </span>{" "}
-                من إجمالي{" "}
-                <span className="font-bold text-foreground font-mono">{total}</span> مسجد
-              </div>
-
-              <div className="flex items-center gap-1 overflow-x-auto max-w-full py-0.5">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => handlePageChange(page - 1)}
-                  disabled={page <= 1}
-                  className="rounded-lg sm:rounded-xl h-7.5 w-7.5 sm:h-8.5 sm:w-8.5 cursor-pointer disabled:opacity-40"
-                  title="الصفحة السابقة"
-                >
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </Button>
-
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }).map((_, index) => {
-                    const pageNum = index + 1;
-                    if (
-                      totalPages <= 5 ||
-                      pageNum === 1 ||
-                      pageNum === totalPages ||
-                      (pageNum >= page - 1 && pageNum <= page + 1)
-                    ) {
-                      return (
-                        <Button
-                          key={pageNum}
-                          variant={page === pageNum ? "default" : "ghost"}
-                          size="sm"
-                          onClick={() => handlePageChange(pageNum)}
-                          className={`rounded-lg sm:rounded-xl h-7.5 min-w-[30px] sm:h-8.5 sm:min-w-[34px] p-0 text-[10px] sm:text-xs font-bold cursor-pointer ${
-                            page === pageNum ? "gradient-primary text-white shadow-xs" : ""
-                          }`}
-                        >
-                          {pageNum}
-                        </Button>
-                      );
-                    }
-                    if (pageNum === page - 2 || pageNum === page + 2) {
-                      return (
-                        <span key={pageNum} className="text-[10px] sm:text-xs text-muted-foreground px-1">
-                          ...
-                        </span>
-                      );
-                    }
-                    return null;
-                  })}
-                </div>
-
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => handlePageChange(page + 1)}
-                  disabled={page >= totalPages}
-                  className="rounded-lg sm:rounded-xl h-7.5 w-7.5 sm:h-8.5 sm:w-8.5 cursor-pointer disabled:opacity-40"
-                  title="الصفحة التالية"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <EnhancedPagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            totalItems={total}
+            itemsPerPage={limit}
+            itemName="مسجد"
+            itemNamePlural="مساجد"
+            className="rounded-2xl sm:rounded-3xl border border-border/60"
+          />
         </div>
       ) : (
         <Card className="border border-border/60 shadow-xs rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center bg-card">
