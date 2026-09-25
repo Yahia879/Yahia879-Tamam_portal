@@ -1214,18 +1214,18 @@ export default function RequestDetailsNew() {
     }
   }
 
-  // تخصيص الإجراء النشط لمرحلة اعتماد نوع التأمين لبرنامج سدانة
+  // تخصيص الإجراء النشط لمرحلة اعتماد نوع التوريد لبرنامج سدانة
   if (request.currentStage === 'contracting' && request.programType === 'sedana' && activeAction) {
     activeAction = {
       ...activeAction,
-      title: 'اعتماد نوع التأمين',
+      title: 'اعتماد نوع التوريد',
       description: isSedanaProcurementComplete
-        ? 'تم تحديد نوع التأمين لجميع الموردين بنجاح. يمكنك الآن الانتقال للمرحلة التالية بالضغط على زر "الانتقال للمرحلة التالية".'
-        : 'يرجى تحديد نوع التأمين لكل مورد في صفحة التأمين. لا يمكن الانتقال للمرحلة التالية إلا بعد تحديد نوع التأمين لجميع الموردين.',
+        ? 'تم تحديد نوع التوريد لجميع الموردين بنجاح. يمكنك الآن الانتقال للمرحلة التالية بالضغط على زر "الانتقال للمرحلة التالية".'
+        : 'يرجى تحديد نوع التوريد لكل مورد في صفحة التوريد، لا يمكن الانتقال للمرحلة التالية إلا بعد تحديد نوع التوريد لجميع الموردين.',
       icon: 'FileSignature' as any,
       iconColor: 'text-cyan-600',
       actionButton: {
-        label: 'تحديد نوع التأمين',
+        label: 'تحديد نوع التوريد',
         onClick: () => setLocation(`/requests/${requestId}/procurement`),
       } as any,
       canPerformAction: true,
