@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -172,8 +173,9 @@ export default function Requests({
   const [creatorTypeFilter, setCreatorTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [stageFilter, setStageFilter] = useState<string>(initialStage || "all");
-  const [page, setPage] = useState(1);
+  const [page, setPage, resetPage] = usePersistedPage("requests_table_page", 1);
   const limit = 20;
+  const isFirstMount = useRef(true);
 
 
 
@@ -189,6 +191,7 @@ export default function Requests({
   // تحديث الفلاتر عند تغيير Query Params (مثلاً عند الانتقال من لوحة التحكم)
   useEffect(() => {
     const params = new URLSearchParams(searchParamsStr);
+    const hasFilterParam = params.has("program") || params.has("status") || params.has("stage");
     
     const program = params.get("program");
     if (program && (PROGRAM_LABELS[program] || program === "all")) {
@@ -209,8 +212,21 @@ export default function Requests({
       setStageFilter(stage);
     }
 
-    setPage(1);
-  }, [searchParamsStr, isAdmin]);
+    const pageParam = params.get("page");
+    if (pageParam) {
+      const parsedPage = parseInt(pageParam, 10);
+      if (!isNaN(parsedPage) && parsedPage >= 1) {
+        setPage(parsedPage);
+        return;
+      }
+    }
+
+    // لا نقوم بإعادة تعيين الصفحة إلى 1 عند أول تحميل إلا إذا كان هناك فلتر صريح في الـ URL
+    if (!isFirstMount.current && hasFilterParam) {
+      resetPage();
+    }
+    isFirstMount.current = false;
+  }, [searchParamsStr, isAdmin, resetPage, setPage]);
 
   const { data: requestsData, isLoading } = trpc.requests.search.useQuery({
     search: search || undefined,
@@ -354,7 +370,7 @@ export default function Requests({
                     value={search}
                     onChange={(e) => {
                       setSearch(e.target.value);
-                      setPage(1);
+                      resetPage();
                     }}
                     className={`h-10 w-full ${isEn ? "pl-10 pr-3" : "pr-10"}`}
                   />
@@ -365,7 +381,7 @@ export default function Requests({
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{isEn ? "Program" : "البرنامج"}</label>
                   <Select value={programFilter} onValueChange={(v) => {
                     setProgramFilter(v);
-                    setPage(1);
+                    resetPage();
                   }}>
                     <SelectTrigger className="w-full h-10 text-xs md:text-sm">
                       <SelectValue placeholder={isEn ? "Program" : "البرنامج"} />
@@ -384,7 +400,7 @@ export default function Requests({
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{isEn ? "Created By" : "منشئ الطلب"}</label>
                   <Select value={creatorTypeFilter} onValueChange={(v) => {
                     setCreatorTypeFilter(v);
-                    setPage(1);
+                    resetPage();
                   }}>
                     <SelectTrigger className="w-full h-10 text-xs md:text-sm">
                       <SelectValue placeholder={isEn ? "Created By" : "منشئ الطلب"} />
@@ -400,7 +416,7 @@ export default function Requests({
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{isEn ? "Status" : "الحالة"}</label>
                   <Select value={statusFilter} onValueChange={(v) => {
                     setStatusFilter(v);
-                    setPage(1);
+                    resetPage();
                   }}>
                     <SelectTrigger className="w-full h-10 text-xs md:text-sm">
                       <SelectValue placeholder={isEn ? "Status" : "الحالة"} />
@@ -638,67 +654,18 @@ export default function Requests({
                 </div>
               </div>
 
-              {/* Footer with Pagination */}
-              <div className="px-4 py-4 bg-muted/20 border-t flex flex-col items-center justify-center gap-4">
-                <div className="text-[11px] md:text-xs text-muted-foreground text-center">
-                  {isEn ? (
-                    `Showing ${(page - 1) * limit + 1} - ${Math.min(page * limit, total)} of ${total} requests`
-                  ) : (
-                    `يعرض ${(page - 1) * limit + 1} - ${Math.min(page * limit, total)} من أصل ${total} طلب`
-                  )}
-                </div>
-                
-                {totalPages > 1 && (
-                  <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 shrink-0"
-                      onClick={() => handlePageChange(page - 1)}
-                      disabled={page === 1}
-                    >
-                      <ChevronLeft className={`h-4 w-4 ${isEn ? "" : "rotate-180"}`} />
-                    </Button>
-                    
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                      if (
-                        totalPages <= 5 ||
-                        p === 1 ||
-                        p === totalPages ||
-                        (p >= page - 1 && p <= page + 1)
-                      ) {
-                        return (
-                          <Button
-                            key={p}
-                            variant={page === p ? "default" : "outline"}
-                            size="sm"
-                            className={`h-8 min-w-[32px] px-2 text-[11px] shrink-0 ${page === p ? 'gradient-primary text-white border-0' : ''}`}
-                            onClick={() => handlePageChange(p)}
-                          >
-                            {p}
-                          </Button>
-                        );
-                      } else if (
-                        (p === page - 2 && page > 3) ||
-                        (p === page + 2 && page < totalPages - 2)
-                      ) {
-                        return <span key={p} className="px-0.5 text-muted-foreground">...</span>;
-                      }
-                      return null;
-                    })}
-
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 shrink-0"
-                      onClick={() => handlePageChange(page + 1)}
-                      disabled={page === totalPages}
-                    >
-                      <ChevronLeft className={`h-4 w-4 ${isEn ? "rotate-180" : ""}`} />
-                    </Button>
-                  </div>
-                )}
-              </div>
+              {/* Footer with Enhanced Pagination */}
+              <EnhancedPagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                totalItems={total}
+                itemsPerPage={limit}
+                itemName={isEn ? "request" : "طلب"}
+                itemNamePlural={isEn ? "requests" : "طلبات"}
+                isEn={isEn}
+                className="bg-muted/20 border-t"
+              />
             </div>
           ) : (
             <div className="p-12 text-center">
