@@ -5,7 +5,7 @@ import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
 
 dotenv.config();
 import { getDb } from "../db";
-import { notifications, users, roles as rolesTable, suppliers, mosqueRequests, projects, notificationTriggerSettings, notificationTemplates } from "../../drizzle/schema";
+import { notifications, users, roles as rolesTable, suppliers, mosqueRequests, mosques, projects, notificationTriggerSettings, notificationTemplates } from "../../drizzle/schema";
 import { eq, desc, and, sql, inArray, ne, or, like, isNull } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 import { TRPCError } from "@trpc/server";
@@ -250,6 +250,29 @@ const DEFAULT_TEMPLATES: Record<string, string> = {
   beneficiary_survey_evaluation: "تم إغلاق طلبك رقم {رقم_الطلب} بنجاح. يسعدنا مشاركتك تقييم مستوى الخدمة المقدمة عبر الرابط المباشر.",
   beneficiary_survey_reminder: "السلام عليكم ورحمة الله وبركاته {اسم_المستفيد}، نود تذكيركم بلطف بأنه تم إغلاق طلبكم رقم {رقم_الطلب} بنجاح لدى جمعية عمارة المساجد (منارة). رأيكم واقتراحاتكم محل اهتمامنا البالغ وتسهم مباشرة في تطوير جودة خدماتنا لمسجد {اسم_المسجد}، نأمل منكم التكرم بالضغط على الرابط لتقييم الخدمة:\n\nشاكرين ومقدرين حسن تعاونكم الدائم.",
   beneficiary_survey_invite: "السلام عليكم ورحمة الله وبركاته {اسم_المستلم}، نود دعوتكم بلطف للمشاركة في استبيان قياس رضا المستفيدين لدى جمعية عمارة المساجد (منارة). رأيكم وملاحظاتكم تهمنا للغاية لتطوير خدماتنا والارتقاء برعاية بيوت الله، نأمل منكم التكرم بالضغط على الرابط أدناه لتعبئة الاستبيان:\n\nشاكرين ومقدرين حسن تعاونكم الدائم.",
+  
+  // مشغلات إشعارات برنامج سدانة (المسؤولين وموظفي النظام)
+  sedana_inquiry_submitted: "قام إمام مسجد \"{اسم_المسجد}\" بتقديم استبيان تأهيل لبرنامج سدانة وهو بانتظار المراجعة والتدقيق",
+  sedana_request_created: "تم تقديم طلب رعاية وتشغيل سدانة جديد رقم {رقم_الطلب} لمسجد \"{اسم_المسجد}\" وهو بانتظار دراسة الاحتياج المكتبي",
+  sedana_evaluation_approved: "قام المسؤول {اسم_المسؤول} باعتماد دراسة وتدقيق الاحتياج السنوي لطلب سدانة رقم {رقم_الطلب} لمسجد \"{اسم_المسجد}\"",
+  sedana_po_created: "تم إصدار أمر شراء جديد رقم \"{رقم_الأمر}\" لتأمين مستلزمات سدانة للطلب رقم {رقم_الطلب} بقيمة {القيمة} ريال",
+  sedana_csr_created: "تم إصدار خطاب مسؤولية مجتمعية رقم \"{رقم_الخطاب}\" للشريك \"{اسم_الشريك}\" لتأمين مستلزمات سدانة للطلب رقم {رقم_الطلب}",
+  sedana_inward_received: "تم تسجيل إذن إدخال مستودعي رقم \"{رقم_الإذن}\" بعدد {عدد_البنود} بنود لمستلزمات طلب سدانة رقم {رقم_الطلب} لمسجد \"{اسم_المسجد}\"",
+  sedana_outbound_created: "تم إصدار أمر صرف وتوزيع مجدول رقم \"{رقم_الأمر}\" لمستلزمات سدانة لمسجد \"{اسم_المسجد}\" ومسوغ صرف {مسوغ_الصرف}",
+  sedana_delivery_confirmed: "قام إمام مسجد \"{اسم_المسجد}\" بتأكيد استلام شحنة مستلزمات سدانة رقم \"{رقم_الشحنة}\" بنجاح مع تقييم الخدمة {التقييم} من 5 نجوم",
+  sedana_delivery_rejected: "قام إمام مسجد \"{اسم_المسجد}\" برفض استلام شحنة مستلزمات سدانة رقم \"{رقم_الشحنة}\" بسبب: {السبب}",
+  sedana_cycle_reminder: "تذكير: اقترب موعد دورة التوريد القادمة لمسجد \"{اسم_المسجد}\" لطلب سدانة رقم {رقم_الطلب}. يرجى مراجعة المخزون وتجهيز أمر الصرف",
+  sedana_handover_submitted: "تم نقل طلب سدانة رقم {رقم_الطلب} لمسجد \"{اسم_المسجد}\" إلى مرحلة التسليم النهائي بعد استيفاء التوريدات",
+
+  // مشغلات إشعارات برنامج سدانة (المستفيد / إمام المسجد)
+  beneficiary_sedana_inquiry_approved: "مرحباً {اسم_المستفيد}، يسرنا إبلاغك باعتماد تأهيل مسجد \"{اسم_المسجد}\" لبرنامج سدانة. يمكنك الآن الدخول وتوقيع الاتفاقية وتقديم طلب الاحتياج السنوي.",
+  beneficiary_sedana_inquiry_rejected: "مرحباً {اسم_المستفيد}، نود إفادتك بأنه تمت مراجعة استبيان مسجد \"{اسم_المسجد}\": {السبب}",
+  beneficiary_sedana_evaluation_approved: "السلام عليكم {اسم_المستفيد}، تم تدقيق واعتماد سلة الاحتياج السنوي ومعدلات التوريد الدوري لمسجد \"{اسم_المسجد}\" للطلب رقم {رقم_الطلب}.",
+  beneficiary_sedana_procurement_approved: "تم اعتماد مسار تأمين مستلزمات سدانة لطلبك رقم {رقم_الطلب} والانتقال لمرحلة التشغيل والتنفيذ الميداني.",
+  beneficiary_sedana_outbound_dispatched: "السلام عليكم {اسم_المستفيد}، تم تجهيز وجدولة شحنة مستلزمات سدانة رقم \"{رقم_الشحنة}\" لمسجد \"{اسم_المسجد}\" بتاريخ {تاريخ_التسليم}. يرجى التكرم بالاستلام والتأكيد فور وصولها.",
+  beneficiary_sedana_delivery_confirmed: "شكراً لتعاونكم إمام مسجد \"{اسم_المسجد}\"، تم توثيق استلام شحنة مستلزمات سدانة رقم \"{رقم_الشحنة}\" بنجاح وتقييمكم المعتمد. نسأل الله أن يتقبل من الجميع.",
+  beneficiary_sedana_cycle_reminder: "السلام عليكم {اسم_المستفيد}، نود إحاطتكم باقتراب موعد استحقاق الدفعة القادمة من مستلزمات النظافة والتعطير لمسجد \"{اسم_المسجد}\".",
+  beneficiary_sedana_handover: "تم الانتهاء من أعمال التوريد والتشغيل والانتقال لمرحلة التسليم النهائي لطلب سدانة رقم {رقم_الطلب} لمسجد \"{اسم_المسجد}\".",
 };
 
 const ALTERNATIVE_PATTERNS: Record<string, string[]> = {
@@ -624,6 +647,34 @@ export async function createNotification(data: {
         triggerId = "support_ticket_status_changed";
       } else if (data.title === "رد جديد على التذكرة" || data.message.includes("بإضافة رد جديد على تذكرة الدعم")) {
         triggerId = "support_ticket_reply_added";
+      } else if (data.title.includes("استبيان تأهيل سدانة") || data.message.includes("استبيان تأهيل لبرنامج سدانة")) {
+        triggerId = "sedana_inquiry_submitted";
+      } else if (data.title.includes("تأهيل المسجد لبرنامج سدانة") || data.message.includes("اعتماد تأهيل مسجد")) {
+        triggerId = "beneficiary_sedana_inquiry_approved";
+      } else if (data.title.includes("استبيان برنامج سدانة") || data.message.includes("مراجعة استبيان مسجد")) {
+        triggerId = "beneficiary_sedana_inquiry_rejected";
+      } else if (data.title.includes("طلب سدانة جديد") || data.message.includes("طلب رعاية وتشغيل سدانة جديد")) {
+        triggerId = "sedana_request_created";
+      } else if (data.title.includes("اعتماد دراسة احتياج") || data.message.includes("سلة الاحتياج السنوي")) {
+        triggerId = data.title.includes("مسجدك") ? "beneficiary_sedana_evaluation_approved" : "sedana_evaluation_approved";
+      } else if (data.title.includes("أمر شراء سدانة") || data.message.includes("أمر شراء جديد رقم")) {
+        triggerId = "sedana_po_created";
+      } else if (data.title.includes("خطاب شراكة مجتمعية") || data.message.includes("خطاب مسؤولية مجتمعية")) {
+        triggerId = "sedana_csr_created";
+      } else if (data.title.includes("إذن توريد وإدخال") || data.message.includes("إذن إدخال مستودعي")) {
+        triggerId = "sedana_inward_received";
+      } else if (data.title.includes("شحنة مستلزمات سدانة في الطريق") || data.message.includes("شحنة مستلزمات سدانة رقم")) {
+        triggerId = "beneficiary_sedana_outbound_dispatched";
+      } else if (data.title.includes("إصدار أمر صرف وتجهيز شحنة") || data.message.includes("أمر صرف وتوزيع مجدول")) {
+        triggerId = "sedana_outbound_created";
+      } else if (data.title.includes("تأكيد استلام") || data.title.includes("تم توثيق استلام")) {
+        triggerId = data.title.includes("شكراً") || data.title.includes("توثيق") ? "beneficiary_sedana_delivery_confirmed" : "sedana_delivery_confirmed";
+      } else if (data.title.includes("رفض استلام شحنة") || data.message.includes("برفض استلام شحنة")) {
+        triggerId = "sedana_delivery_rejected";
+      } else if (data.title.includes("دورة التوريد القادمة") || data.message.includes("الدفعة القادمة من مستلزمات")) {
+        triggerId = data.title.includes("موعد توريد") ? "beneficiary_sedana_cycle_reminder" : "sedana_cycle_reminder";
+      } else if (data.title.includes("تسليم طلب سدانة") || data.title.includes("اكتمال توريدات وتشغيل سدانة")) {
+        triggerId = data.title.includes("اكتمال") ? "beneficiary_sedana_handover" : "sedana_handover_submitted";
       }
     }
 
@@ -669,6 +720,8 @@ export async function createNotification(data: {
         data.type === "request" || 
         data.type === "request_update" ||
         data.type === "mosque" ||
+        Boolean(data.relatedType && data.relatedType.startsWith("sedana")) ||
+        (triggerId !== null && triggerId.startsWith("sedana_")) ||
         triggerId === "exception_request_submitted" ||
         (triggerId !== null && triggerId.startsWith("support_ticket_"));
 
@@ -1294,6 +1347,311 @@ export async function notifyRequestStageChangeToOfficers(
 }
 
 
+// ==========================================
+// دالة إرسال إشعارات برنامج سدانة الموحدة
+// ==========================================
+export async function notifySedanaEvent(options: {
+  event: 
+    | "sedana_inquiry_submitted"
+    | "sedana_inquiry_approved"
+    | "sedana_inquiry_rejected"
+    | "sedana_request_created"
+    | "sedana_evaluation_approved"
+    | "sedana_po_created"
+    | "sedana_csr_created"
+    | "sedana_inward_received"
+    | "sedana_outbound_created"
+    | "sedana_delivery_confirmed"
+    | "sedana_delivery_rejected"
+    | "sedana_cycle_reminder"
+    | "sedana_handover_submitted";
+  requestId?: number;
+  requestNumber?: string;
+  mosqueName?: string;
+  requesterUserId?: number;
+  actorName?: string;
+  data?: {
+    orderNumber?: string;
+    voucherCode?: string;
+    itemsCount?: number;
+    amount?: number | string;
+    reason?: string;
+    scheduledDate?: string;
+    partnerName?: string;
+    rating?: number;
+  };
+}) {
+  const db = await getDb();
+  if (!db) return;
+
+  const mosqueName = options.mosqueName || "المسجد";
+  const reqNum = options.requestNumber || (options.requestId ? `REQ-${options.requestId}` : "");
+  const actor = options.actorName || "المسؤول";
+  const extra = options.data || {};
+
+  try {
+    switch (options.event) {
+      case "sedana_inquiry_submitted": {
+        const officerIds = await getRequestNotificationOfficerIds(db, options.requesterUserId);
+        for (const userId of officerIds) {
+          await createNotification({
+            userId,
+            type: "info",
+            title: "📋 استبيان تأهيل سدانة جديد",
+            message: `قام إمام مسجد "${mosqueName}" بتقديم استبيان تأهيل لبرنامج سدانة وهو بانتظار المراجعة والتدقيق`,
+            relatedType: "sedana_inquiry",
+            relatedId: options.requestId,
+            triggerId: "sedana_inquiry_submitted",
+          });
+        }
+        break;
+      }
+
+      case "sedana_inquiry_approved": {
+        if (options.requesterUserId) {
+          await createNotification({
+            userId: options.requesterUserId,
+            type: "success",
+            title: "✅ الموافقة على تأهيل المسجد لبرنامج سدانة",
+            message: `مرحباً، يسرنا إبلاغك باعتماد تأهيل مسجد "${mosqueName}" لبرنامج سدانة. يمكنك الآن الدخول وتوقيع الاتفاقية وتقديم طلب الاحتياج السنوي.`,
+            relatedType: "sedana_inquiry",
+            relatedId: options.requestId,
+            triggerId: "beneficiary_sedana_inquiry_approved",
+          });
+        }
+        break;
+      }
+
+      case "sedana_inquiry_rejected": {
+        if (options.requesterUserId) {
+          await createNotification({
+            userId: options.requesterUserId,
+            type: "warning",
+            title: "تحديث بشأن استبيان برنامج سدانة",
+            message: `مرحباً، نود إفادتك بأنه تمت مراجعة استبيان مسجد "${mosqueName}": ${extra.reason || "يرجى مراجعة توجيه وملاحظات فريق المشاريع في البوابة."}`,
+            relatedType: "sedana_inquiry",
+            relatedId: options.requestId,
+            triggerId: "beneficiary_sedana_inquiry_rejected",
+          });
+        }
+        break;
+      }
+
+      case "sedana_request_created": {
+        const officerIds = await getRequestNotificationOfficerIds(db, options.requesterUserId);
+        for (const userId of officerIds) {
+          await createNotification({
+            userId,
+            type: "info",
+            title: "✨ طلب سدانة جديد",
+            message: `تم تقديم طلب رعاية وتشغيل سدانة جديد رقم ${reqNum} لمسجد "${mosqueName}" وهو بانتظار دراسة الاحتياج المكتبي`,
+            relatedType: "request",
+            relatedId: options.requestId,
+            triggerId: "sedana_request_created",
+          });
+        }
+        break;
+      }
+
+      case "sedana_evaluation_approved": {
+        if (options.requesterUserId) {
+          await createNotification({
+            userId: options.requesterUserId,
+            type: "success",
+            title: "📋 اعتماد دراسة احتياج مسجدك",
+            message: `السلام عليكم، تم تدقيق واعتماد سلة الاحتياج السنوي ومعدلات التوريد الدوري لمسجد "${mosqueName}" للطلب رقم ${reqNum}.`,
+            relatedType: "request",
+            relatedId: options.requestId,
+            triggerId: "beneficiary_sedana_evaluation_approved",
+          });
+        }
+        const officerIds = await getRequestNotificationOfficerIds(db);
+        for (const userId of officerIds) {
+          await createNotification({
+            userId,
+            type: "info",
+            title: "📊 اعتماد دراسة احتياج سدانة",
+            message: `قام المسؤول ${actor} باعتماد دراسة وتدقيق الاحتياج السنوي لطلب سدانة رقم ${reqNum} لمسجد "${mosqueName}"`,
+            relatedType: "request",
+            relatedId: options.requestId,
+            triggerId: "sedana_evaluation_approved",
+          });
+        }
+        break;
+      }
+
+      case "sedana_po_created": {
+        if (options.requesterUserId) {
+          await createNotification({
+            userId: options.requesterUserId,
+            type: "info",
+            title: "🛒 اعتماد مسار تأمين مستلزمات المسجد",
+            message: `تم اعتماد مسار تأمين مستلزمات سدانة لطلبك رقم ${reqNum} والانتقال لمرحلة التشغيل والتنفيذ الميداني.`,
+            relatedType: "request",
+            relatedId: options.requestId,
+            triggerId: "beneficiary_sedana_procurement_approved",
+          });
+        }
+        const officerIds = await getRequestNotificationOfficerIds(db);
+        for (const userId of officerIds) {
+          await createNotification({
+            userId,
+            type: "info",
+            title: "🛒 إصدار أمر شراء سدانة",
+            message: `تم إصدار أمر شراء جديد رقم "${extra.orderNumber || "PO-SED"}" لتأمين مستلزمات سدانة للطلب رقم ${reqNum}${extra.amount ? ` بقيمة ${extra.amount} ريال` : ""}`,
+            relatedType: "sedana_procurement",
+            relatedId: options.requestId,
+            triggerId: "sedana_po_created",
+          });
+        }
+        break;
+      }
+
+      case "sedana_inward_received": {
+        const officerIds = await getRequestNotificationOfficerIds(db);
+        for (const userId of officerIds) {
+          await createNotification({
+            userId,
+            type: "info",
+            title: "📥 إذن توريد وإدخال مستودعي",
+            message: `تم تسجيل إذن إدخال مستودعي رقم "${extra.orderNumber || ""}" بعدد ${extra.itemsCount || 0} بنود لمستلزمات طلب سدانة رقم ${reqNum} لمسجد "${mosqueName}"`,
+            relatedType: "sedana_execution",
+            relatedId: options.requestId,
+            triggerId: "sedana_inward_received",
+          });
+        }
+        break;
+      }
+
+      case "sedana_outbound_created": {
+        if (options.requesterUserId) {
+          await createNotification({
+            userId: options.requesterUserId,
+            type: "info",
+            title: "🚚 شحنة مستلزمات سدانة في الطريق لمسجدك",
+            message: `السلام عليكم، تم تجهيز وجدولة شحنة مستلزمات سدانة رقم "${extra.orderNumber || ""}" لمسجد "${mosqueName}"${extra.scheduledDate ? ` بتاريخ ${extra.scheduledDate}` : ""}. يرجى التكرم بالاستلام والتأكيد فور وصولها.`,
+            relatedType: "sedana_execution",
+            relatedId: options.requestId,
+            triggerId: "beneficiary_sedana_outbound_dispatched",
+          });
+        }
+        const officerIds = await getRequestNotificationOfficerIds(db);
+        for (const userId of officerIds) {
+          await createNotification({
+            userId,
+            type: "info",
+            title: "📦 إصدار أمر صرف وتجهيز شحنة",
+            message: `تم إصدار أمر صرف وتوزيع مجدول رقم "${extra.orderNumber || ""}" لمستلزمات سدانة لمسجد "${mosqueName}" ومسوغ صرف ${extra.voucherCode || ""}`,
+            relatedType: "sedana_execution",
+            relatedId: options.requestId,
+            triggerId: "sedana_outbound_created",
+          });
+        }
+        break;
+      }
+
+      case "sedana_delivery_confirmed": {
+        if (options.requesterUserId) {
+          await createNotification({
+            userId: options.requesterUserId,
+            type: "success",
+            title: "🎉 شكراً لك - تم توثيق استلام المستلزمات",
+            message: `شكراً لتعاونكم إمام مسجد "${mosqueName}"، تم توثيق استلام شحنة مستلزمات سدانة رقم "${extra.orderNumber || ""}" بنجاح وتقييمكم المعتمد. نسأل الله أن يتقبل من الجميع.`,
+            relatedType: "sedana_execution",
+            relatedId: options.requestId,
+            triggerId: "beneficiary_sedana_delivery_confirmed",
+          });
+        }
+        const officerIds = await getRequestNotificationOfficerIds(db);
+        for (const userId of officerIds) {
+          await createNotification({
+            userId,
+            type: "success",
+            title: "✅ تأكيد استلام مستلزمات سدانة",
+            message: `قام إمام مسجد "${mosqueName}" بتأكيد استلام شحنة مستلزمات سدانة رقم "${extra.orderNumber || ""}" بنجاح مع تقييم الخدمة (${extra.rating || 5} من 5 نجوم)`,
+            relatedType: "sedana_execution",
+            relatedId: options.requestId,
+            triggerId: "sedana_delivery_confirmed",
+          });
+        }
+        break;
+      }
+
+      case "sedana_delivery_rejected": {
+        const officerIds = await getRequestNotificationOfficerIds(db);
+        for (const userId of officerIds) {
+          await createNotification({
+            userId,
+            type: "warning",
+            title: "⚠️ رفض استلام شحنة سدانة",
+            message: `قام إمام مسجد "${mosqueName}" برفض استلام شحنة مستلزمات سدانة رقم "${extra.orderNumber || ""}" بسبب: ${extra.reason || "عدم المطابقة"}`,
+            relatedType: "sedana_execution",
+            relatedId: options.requestId,
+            triggerId: "sedana_delivery_rejected",
+          });
+        }
+        break;
+      }
+
+      case "sedana_handover_submitted": {
+        if (options.requesterUserId) {
+          await createNotification({
+            userId: options.requesterUserId,
+            type: "success",
+            title: "🎉 اكتمال توريدات وتشغيل سدانة",
+            message: `تم الانتهاء من أعمال التوريد والتشغيل والانتقال لمرحلة التسليم النهائي لطلب سدانة رقم ${reqNum} لمسجد "${mosqueName}".`,
+            relatedType: "request",
+            relatedId: options.requestId,
+            triggerId: "beneficiary_sedana_handover",
+          });
+        }
+        const officerIds = await getRequestNotificationOfficerIds(db);
+        for (const userId of officerIds) {
+          await createNotification({
+            userId,
+            type: "info",
+            title: "📋 نقل طلب سدانة لمرحلة التسليم",
+            message: `تم نقل طلب سدانة رقم ${reqNum} لمسجد "${mosqueName}" إلى مرحلة التسليم النهائي بعد استيفاء التوريدات`,
+            relatedType: "request",
+            relatedId: options.requestId,
+            triggerId: "sedana_handover_submitted",
+          });
+        }
+        break;
+      }
+
+      case "sedana_cycle_reminder": {
+        if (options.requesterUserId) {
+          await createNotification({
+            userId: options.requesterUserId,
+            type: "info",
+            title: "🔔 موعد توريد الدفعة الدورية القادمة",
+            message: `السلام عليكم، نود إحاطتكم باقتراب موعد استحقاق الدفعة القادمة من مستلزمات النظافة والتعطير لمسجد "${mosqueName}".`,
+            relatedType: "sedana_execution",
+            relatedId: options.requestId,
+            triggerId: "beneficiary_sedana_cycle_reminder",
+          });
+        }
+        const officerIds = await getRequestNotificationOfficerIds(db);
+        for (const userId of officerIds) {
+          await createNotification({
+            userId,
+            type: "warning",
+            title: "⏰ تذكير بموعد التوريد الدوري القادم",
+            message: `تذكير: اقترب موعد دورة التوريد القادمة لمسجد "${mosqueName}" لطلب سدانة رقم ${reqNum}. يرجى مراجعة المخزون وتجهيز أمر الصرف`,
+            relatedType: "sedana_execution",
+            relatedId: options.requestId,
+            triggerId: "sedana_cycle_reminder",
+          });
+        }
+        break;
+      }
+    }
+  } catch (error) {
+    console.error("Error in notifySedanaEvent:", error);
+  }
+}
+
 // مساعد لإعادة محاولة استعلامات قاعدة البيانات تلقائياً في حال حدوث Deadlock أو Lock Wait Timeout بسبب التزامن
 async function withDeadlockRetry<T>(fn: () => Promise<T>, maxRetries = 3, baseDelayMs = 50): Promise<T> {
   let lastError: any;
@@ -1328,6 +1686,7 @@ export const notificationsRouter = router({
         page: z.number().default(1),
         limit: z.number().default(20),
         unreadOnly: z.boolean().default(false),
+        category: z.enum(["all", "sedana", "requests", "financial", "unread"]).default("all").optional(),
       })
     )
     .query(async ({ ctx, input }) => {
@@ -1338,14 +1697,45 @@ export const notificationsRouter = router({
 
       const offset = (input.page - 1) * input.limit;
 
-      const conditions = [eq(notifications.userId, ctx.user.id)];
-      if (input.unreadOnly) {
+      const conditions: any[] = [eq(notifications.userId, ctx.user.id)];
+      if (input.unreadOnly || input.category === "unread") {
         conditions.push(eq(notifications.isRead, false));
       }
 
-      // Removed restrictive title/message filtering for request officers to ensure all notifications (e.g. comments, status changes, assignments) are visible.
+      if (input.category === "sedana") {
+        conditions.push(
+          or(
+            like(notifications.relatedType, "%sedana%"),
+            like(notifications.title, "%سدانة%"),
+            like(notifications.message, "%سدانة%")
+          )
+        );
+      } else if (input.category === "financial") {
+        conditions.push(
+          or(
+            eq(notifications.type, "financial" as any),
+            like(notifications.relatedType, "%disbursement%"),
+            like(notifications.relatedType, "%contract%"),
+            like(notifications.relatedType, "%quotation%"),
+            like(notifications.relatedType, "%supplier%")
+          )
+        );
+      } else if (input.category === "requests") {
+        conditions.push(
+          and(
+            or(
+              eq(notifications.relatedType, "request"),
+              eq(notifications.relatedType, "mosque"),
+              eq(notifications.relatedType, "request_evaluation"),
+              eq(notifications.type, "request"),
+              eq(notifications.type, "request_update")
+            ),
+            sql`NOT (${notifications.relatedType} LIKE '%sedana%' OR ${notifications.title} LIKE '%سدانة%' OR ${notifications.message} LIKE '%سدانة%')`
+          )
+        );
+      }
 
-      const [notificationsList, countResult] = await Promise.all([
+      const [notificationsList, countResult, sedanaCountResult, unreadCountResult] = await Promise.all([
         db
           .select()
           .from(notifications)
@@ -1357,6 +1747,23 @@ export const notificationsRouter = router({
           .select({ count: sql<number>`count(*)` })
           .from(notifications)
           .where(and(...conditions)),
+        db
+          .select({ count: sql<number>`count(*)` })
+          .from(notifications)
+          .where(
+            and(
+              eq(notifications.userId, ctx.user.id),
+              or(
+                like(notifications.relatedType, "%sedana%"),
+                like(notifications.title, "%سدانة%"),
+                like(notifications.message, "%سدانة%")
+              )
+            )
+          ),
+        db
+          .select({ count: sql<number>`count(*)` })
+          .from(notifications)
+          .where(and(eq(notifications.userId, ctx.user.id), eq(notifications.isRead, false))),
       ]);
 
       return {
@@ -1364,6 +1771,102 @@ export const notificationsRouter = router({
         total: countResult[0]?.count || 0,
         page: input.page,
         totalPages: Math.ceil((countResult[0]?.count || 0) / input.limit),
+        sedanaCount: sedanaCountResult[0]?.count || 0,
+        unreadCount: unreadCountResult[0]?.count || 0,
+      };
+    }),
+
+  // إرسال إشعار يدوي أو تذكير خاص ببرنامج سدانة
+  sendSedanaNotification: protectedProcedure
+    .input(
+      z.object({
+        requestId: z.number(),
+        type: z.enum([
+          "shipment_dispatched",
+          "delivery_reminder",
+          "receipt_confirmed",
+          "cycle_reminder",
+          "custom"
+        ]),
+        customTitle: z.string().optional(),
+        customMessage: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      }
+
+      const [reqRow] = await db
+        .select({
+          request: mosqueRequests,
+          mosque: mosques,
+          requester: users,
+        })
+        .from(mosqueRequests)
+        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+        .leftJoin(users, eq(mosqueRequests.userId, users.id))
+        .where(eq(mosqueRequests.id, input.requestId))
+        .limit(1);
+
+      if (!reqRow || !reqRow.request) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "طلب سدانة غير موجود" });
+      }
+
+      const req = reqRow.request;
+      const mosque = reqRow.mosque;
+      const mosqueName = mosque?.name || "المسجد";
+      const requesterUserId = req.userId;
+
+      if (!requesterUserId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "لا يوجد مستخدم مقدم للطلب لإرسال الإشعار له" });
+      }
+
+      let title = input.customTitle || "إشعار من برنامج سدانة";
+      let message = input.customMessage || "يرجى متابعة طلب سدانة لمسجدكم";
+      let triggerId: string | undefined = undefined;
+
+      switch (input.type) {
+        case "shipment_dispatched":
+          title = "🚚 شحنة مستلزمات سدانة في الطريق لمسجدك";
+          message = `السلام عليكم، تم تجهيز وجدولة شحنة مستلزمات سدانة لمسجد "${mosqueName}". يرجى التكرم بالاستلام وتأكيد الاستلام عبر البوابة فور وصول المندوب.`;
+          triggerId = "beneficiary_sedana_outbound_dispatched";
+          break;
+        case "delivery_reminder":
+          title = "⏰ تذكير بتأكيد استلام مستلزمات سدانة";
+          message = `السلام عليكم، نود تذكيركم بلطف بتأكيد استلام شحنة مستلزمات سدانة لمسجد "${mosqueName}" عبر بوابة تمام لتوثيق التسليم واكتمال الدورة.`;
+          triggerId = "beneficiary_sedana_outbound_dispatched";
+          break;
+        case "cycle_reminder":
+          title = "🔔 موعد توريد الدفعة الدورية القادمة";
+          message = `السلام عليكم، نود إحاطتكم باقتراب موعد استحقاق الدفعة القادمة من مستلزمات النظافة والتعطير لمسجد "${mosqueName}".`;
+          triggerId = "beneficiary_sedana_cycle_reminder";
+          break;
+        case "receipt_confirmed":
+          title = "🎉 شكراً لك - تم توثيق استلام المستلزمات";
+          message = `شكراً لتعاونكم إمام مسجد "${mosqueName}"، تم توثيق استلام شحنة مستلزمات سدانة بنجاح. نسأل الله أن يتقبل من الجميع.`;
+          triggerId = "beneficiary_sedana_delivery_confirmed";
+          break;
+        case "custom":
+          title = input.customTitle || "تنبيه من برنامج سدانة";
+          message = input.customMessage || `تنبيه خاص بطلب سدانة لمسجد "${mosqueName}"`;
+          break;
+      }
+
+      await createNotification({
+        userId: requesterUserId,
+        type: "info",
+        title,
+        message,
+        relatedType: "sedana_execution",
+        relatedId: req.id,
+        triggerId,
+      });
+
+      return {
+        success: true,
+        message: "تم إرسال إشعار سدانة للمستفيد بنجاح عبر القنوات المحددة",
       };
     }),
 
