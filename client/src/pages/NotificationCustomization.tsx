@@ -91,6 +91,10 @@ const RequestNotificationsTooltip = () => (
             <span className="font-semibold block text-amber-600 dark:text-amber-400 mb-0.5">استبيانات رضا المستفيدين والتذكير:</span>
             إرسال رابط استبيان قياس الرضا للمستفيدين والداعمين، ورسائل التذكير بالتقييم بعد إغلاق الطلب.
           </div>
+          <div className="bg-muted/50 p-2 rounded-lg border-r-4 border-emerald-600">
+            <span className="font-semibold block text-emerald-600 dark:text-emerald-400 mb-0.5">برنامج سدانة والمستودع الافتراضي:</span>
+            اعتماد التقييم، أوامر الشراء، توريد البنود للمستودع، أوامر الصرف والتسليم وتوثيق الاستلام.
+          </div>
         </div>
       </div>
     </div>
@@ -837,12 +841,12 @@ export default function NotificationCustomization() {
       ]
     },
 
-    // === برنامج سدانة (المستفيد / إمام المسجد) ===
+    // === مشغلات برنامج سدانة للمستفيد (ضمن قسم الطلبات والمراحل) ===
     {
       id: "beneficiary_sedana_inquiry_approved",
-      category: "sedana",
-      categoryNameAr: "برنامج سدانة",
-      nameAr: "الموافقة على تأهيل المسجد لبرنامج سدانة",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "سدانة: اعتماد استبيان الاحتياج لمسجدك",
       description: "إشعار إمام المسجد باعتماد وتأهيل مسجده لبرنامج سدانة وتوقيع الاتفاقية",
       defaultTemplate: "مرحباً {اسم_المستفيد}، يسرنا إبلاغك باعتماد تأهيل مسجد \"{اسم_المسجد}\" لبرنامج سدانة. يمكنك الآن الدخول وتوقيع الاتفاقية وتقديم طلب الاحتياج السنوي.",
       variables: [
@@ -852,9 +856,9 @@ export default function NotificationCustomization() {
     },
     {
       id: "beneficiary_sedana_inquiry_rejected",
-      category: "sedana",
-      categoryNameAr: "برنامج سدانة",
-      nameAr: "تحديث/توجيه بشأن استبيان سدانة",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "سدانة: تحديث/توجيه بشأن استبيان سدانة",
       description: "إشعار إمام المسجد بنتائج مراجعة استبيان سدانة وتوجيه الفريق",
       defaultTemplate: "مرحباً {اسم_المستفيد}، نود إفادتك بأنه تمت مراجعة استبيان مسجد \"{اسم_المسجد}\": {السبب}",
       variables: [
@@ -865,9 +869,9 @@ export default function NotificationCustomization() {
     },
     {
       id: "beneficiary_sedana_evaluation_approved",
-      category: "sedana",
-      categoryNameAr: "برنامج سدانة",
-      nameAr: "اعتماد دراسة وتدقيق الاحتياج السنوي",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "سدانة: اعتماد دراسة وتدقيق الاحتياج السنوي",
       description: "إشعار المستفيد باعتماد سلة الاحتياج ومعدلات التوريد الدوري لمسجده",
       defaultTemplate: "السلام عليكم {اسم_المستفيد}، تم تدقيق واعتماد سلة الاحتياج السنوي ومعدلات التوريد الدوري لمسجد \"{اسم_المسجد}\" للطلب رقم {رقم_الطلب}.",
       variables: [
@@ -878,9 +882,9 @@ export default function NotificationCustomization() {
     },
     {
       id: "beneficiary_sedana_procurement_approved",
-      category: "sedana",
-      categoryNameAr: "برنامج سدانة",
-      nameAr: "اعتماد مسار تأمين مستلزمات سدانة",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "سدانة: اعتماد مسار تأمين مستلزمات سدانة",
       description: "إشعار المستفيد باكتمال إجراءات التأمين والانتقال للتشغيل والتنفيذ",
       defaultTemplate: "تم اعتماد مسار تأمين مستلزمات سدانة لطلبك رقم {رقم_الطلب} والانتقال لمرحلة التشغيل والتنفيذ الميداني.",
       variables: [
@@ -890,9 +894,9 @@ export default function NotificationCustomization() {
     },
     {
       id: "beneficiary_sedana_outbound_dispatched",
-      category: "sedana",
-      categoryNameAr: "برنامج سدانة",
-      nameAr: "انطلاق وجدولة شحنة مستلزمات سدانة",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "سدانة: انطلاق وجدولة شحنة مستلزمات سدانة",
       description: "إشعار إمام المسجد بجدولة وتجهيز شحنة المواد النظافة والتعطير في طريقها للمسجد",
       defaultTemplate: "السلام عليكم {اسم_المستفيد}، تم تجهيز وجدولة شحنة مستلزمات سدانة رقم \"{رقم_الشحنة}\" لمسجد \"{اسم_المسجد}\" بتاريخ {تاريخ_التسليم}. يرجى التكرم بالاستلام والتأكيد فور وصولها.",
       variables: [
@@ -904,9 +908,9 @@ export default function NotificationCustomization() {
     },
     {
       id: "beneficiary_sedana_delivery_confirmed",
-      category: "sedana",
-      categoryNameAr: "برنامج سدانة",
-      nameAr: "شكر وتوثيق استلام شحنة سدانة",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "سدانة: شكر وتوثيق استلام شحنة سدانة",
       description: "رسالة شكر وتوثيق للمستفيد بعد توقيعه وتأكيده استلام شحنة المواد",
       defaultTemplate: "شكراً لتعاونكم إمام مسجد \"{اسم_المسجد}\"، تم توثيق استلام شحنة مستلزمات سدانة رقم \"{رقم_الشحنة}\" بنجاح وتقييمكم المعتمد. نسأل الله أن يتقبل من الجميع.",
       variables: [
@@ -916,9 +920,9 @@ export default function NotificationCustomization() {
     },
     {
       id: "beneficiary_sedana_cycle_reminder",
-      category: "sedana",
-      categoryNameAr: "برنامج سدانة",
-      nameAr: "تذكير بموعد الدفعة الدورية القادمة",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "سدانة: تذكير بموعد الدفعة الدورية القادمة",
       description: "إشعار المستفيد باقتراب موعد استحقاق التوريد الدوري الجديد للمسجد",
       defaultTemplate: "السلام عليكم {اسم_المستفيد}، نود إحاطتكم باقتراب موعد استحقاق الدفعة القادمة من مستلزمات النظافة والتعطير لمسجد \"{اسم_المسجد}\".",
       variables: [
@@ -928,9 +932,9 @@ export default function NotificationCustomization() {
     },
     {
       id: "beneficiary_sedana_handover",
-      category: "sedana",
-      categoryNameAr: "برنامج سدانة",
-      nameAr: "اكتمال توريدات وتشغيل سدانة",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "سدانة: اكتمال توريدات وتشغيل سدانة",
       description: "إشعار المستفيد باستيفاء كافة بنود التوريد ونقل الطلب لمرحلة التسليم النهائي",
       defaultTemplate: "تم الانتهاء من أعمال التوريد والتشغيل والانتقال لمرحلة التسليم النهائي لطلب سدانة رقم {رقم_الطلب} لمسجد \"{اسم_المسجد}\".",
       variables: [
@@ -1317,11 +1321,11 @@ export default function NotificationCustomization() {
       ]
     },
 
-    // === مشغلات برنامج سدانة (الموظفين والأدوار) ===
+    // === مشغلات برنامج سدانة والمستودع الافتراضي (ضمن قسم الطلبات والمساجد) ===
     {
       id: "sedana_inquiry_submitted",
-      category: "sedana",
-      nameAr: "تقديم استبيان تأهيل سدانة جديد من إمام المسجد",
+      category: "request",
+      nameAr: "سدانة: تقديم استبيان تأهيل سدانة جديد من إمام المسجد",
       description: "قام إمام المسجد بتقديم استبيان تأهيل جديد لمسجده بانتظار المراجعة والتدقيق",
       defaultTemplate: "قام إمام مسجد \"{اسم_المسجد}\" بتقديم استبيان تأهيل لبرنامج سدانة وهو بانتظار المراجعة والتدقيق",
       variables: [
@@ -1330,8 +1334,8 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_request_created",
-      category: "sedana",
-      nameAr: "تقديم طلب سدانة جديد",
+      category: "request",
+      nameAr: "سدانة: تقديم طلب سدانة جديد",
       description: "تم تقديم طلب رعاية وتشغيل سدانة جديد بانتظار دراسة وتدقيق الاحتياج المكتبي",
       defaultTemplate: "تم تقديم طلب رعاية وتشغيل سدانة جديد رقم {رقم_الطلب} لمسجد \"{اسم_المسجد}\" وهو بانتظار دراسة الاحتياج المكتبي",
       variables: [
@@ -1341,8 +1345,8 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_evaluation_approved",
-      category: "sedana",
-      nameAr: "اعتماد دراسة وتدقيق الاحتياج السنوي (سدانة)",
+      category: "request",
+      nameAr: "سدانة: اعتماد دراسة وتدقيق الاحتياج السنوي",
       description: "قام المسؤول باعتماد الخطة السنوية والكميات الدورية للطلب",
       defaultTemplate: "قام المسؤول {اسم_المسؤول} باعتماد دراسة وتدقيق الاحتياج السنوي لطلب سدانة رقم {رقم_الطلب} لمسجد \"{اسم_المسجد}\"",
       variables: [
@@ -1353,8 +1357,8 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_po_created",
-      category: "sedana",
-      nameAr: "إصدار أمر شراء مستلزمات سدانة",
+      category: "request",
+      nameAr: "سدانة: إصدار أمر شراء مستلزمات سدانة",
       description: "تم إصدار أمر شراء معتمد لتأمين مستلزمات سدانة",
       defaultTemplate: "تم إصدار أمر شراء جديد رقم \"{رقم_الأمر}\" لتأمين مستلزمات سدانة للطلب رقم {رقم_الطلب} بقيمة {القيمة} ريال",
       variables: [
@@ -1365,8 +1369,8 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_csr_created",
-      category: "sedana",
-      nameAr: "إصدار خطاب مسؤولية مجتمعية (شريك سدانة)",
+      category: "request",
+      nameAr: "سدانة: إصدار خطاب مسؤولية مجتمعية (شريك سدانة)",
       description: "تم إصدار خطاب شراكة مجتمعية موجه لشركاء الدعم لتأمين المستلزمات",
       defaultTemplate: "تم إصدار خطاب مسؤولية مجتمعية رقم \"{رقم_الخطاب}\" للشريك \"{اسم_الشريك}\" لتأمين مستلزمات سدانة للطلب رقم {رقم_الطلب}",
       variables: [
@@ -1377,8 +1381,8 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_inward_received",
-      category: "sedana",
-      nameAr: "تسجيل إذن إدخال مستودعي لمستلزمات سدانة",
+      category: "request",
+      nameAr: "سدانة: تسجيل إذن إدخال مستودعي لمستلزمات سدانة",
       description: "تم توريد وإدخال بضائع ومواد إلى المستودع الافتراضي بعد صرف المستحقات",
       defaultTemplate: "تم تسجيل إذن إدخال مستودعي رقم \"{رقم_الإذن}\" بعدد {عدد_البنود} بنود لمستلزمات طلب سدانة رقم {رقم_الطلب} لمسجد \"{اسم_المسجد}\"",
       variables: [
@@ -1390,8 +1394,8 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_outbound_created",
-      category: "sedana",
-      nameAr: "إصدار أمر صرف وتجهيز شحنة سدانة",
+      category: "request",
+      nameAr: "سدانة: إصدار أمر صرف وتجهيز شحنة سدانة",
       description: "تم تجهيز وجدولة أمر خروج مواد مع مسوغ الصرف لتسليمها للمسجد",
       defaultTemplate: "تم إصدار أمر صرف وتوزيع مجدول رقم \"{رقم_الأمر}\" لمستلزمات سدانة لمسجد \"{اسم_المسجد}\" ومسوغ صرف {مسوغ_الصرف}",
       variables: [
@@ -1402,8 +1406,8 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_delivery_confirmed",
-      category: "sedana",
-      nameAr: "تأكيد إمام المسجد استلام شحنة سدانة بنجاح",
+      category: "request",
+      nameAr: "سدانة: تأكيد إمام المسجد استلام شحنة سدانة بنجاح",
       description: "قام إمام المسجد بتوقيع إثبات الاستلام وتقييم جودة الخدمة",
       defaultTemplate: "قام إمام مسجد \"{اسم_المسجد}\" بتأكيد استلام شحنة مستلزمات سدانة رقم \"{رقم_الشحنة}\" بنجاح مع تقييم الخدمة {التقييم} من 5 نجوم",
       variables: [
@@ -1414,8 +1418,8 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_delivery_rejected",
-      category: "sedana",
-      nameAr: "رفض إمام المسجد استلام شحنة سدانة",
+      category: "request",
+      nameAr: "سدانة: رفض إمام المسجد استلام شحنة سدانة",
       description: "إشعار تحذيري برفض إمام المسجد استلام المواد مع بيان السبب",
       defaultTemplate: "قام إمام مسجد \"{اسم_المسجد}\" برفض استلام شحنة مستلزمات سدانة رقم \"{رقم_الشحنة}\" بسبب: {السبب}",
       variables: [
@@ -1426,8 +1430,8 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_cycle_reminder",
-      category: "sedana",
-      nameAr: "تذكير دوري بحلول دورة التوريد القادمة للمسجد",
+      category: "request",
+      nameAr: "سدانة: تذكير دوري بحلول دورة التوريد القادمة للمسجد",
       description: "تنبيه موظفي العمليات بحلول موعد التوريد المجدول القادم لتجهيز المواد",
       defaultTemplate: "تذكير: اقترب موعد دورة التوريد القادمة لمسجد \"{اسم_المسجد}\" لطلب سدانة رقم {رقم_الطلب}. يرجى مراجعة المخزون وتجهيز أمر الصرف",
       variables: [
@@ -1437,8 +1441,8 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_handover_submitted",
-      category: "sedana",
-      nameAr: "تسليم طلب سدانة ونقله لمرحلة التسليم النهائي",
+      category: "request",
+      nameAr: "سدانة: تسليم طلب سدانة ونقله لمرحلة التسليم النهائي",
       description: "تم التحقق من استيفاء الدفعات والتوريدات ونقل الطلب لمرحلة التسليم",
       defaultTemplate: "تم نقل طلب سدانة رقم {رقم_الطلب} لمسجد \"{اسم_المسجد}\" إلى مرحلة التسليم النهائي بعد استيفاء التوريدات",
       variables: [
@@ -2017,7 +2021,7 @@ export default function NotificationCustomization() {
         {/* علامات تبويب التخصيص */}
         <Tabs defaultValue="roles" className="w-full space-y-6" dir="rtl">
           <div className="flex justify-center w-full mb-8">
-            <TabsList className="bg-slate-100/80 dark:bg-slate-900/60 p-2 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 flex gap-2.5 w-full max-w-3xl shadow-inner backdrop-blur-md">
+            <TabsList className="bg-slate-100/80 dark:bg-slate-900/60 p-2 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 flex gap-2.5 w-full max-w-2xl shadow-inner backdrop-blur-md">
               <TabsTrigger 
                 value="roles" 
                 className="flex-1 rounded-xl py-3 px-3 sm:px-6 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
@@ -2038,13 +2042,6 @@ export default function NotificationCustomization() {
               >
                 <HeartHandshake className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
                 <span>إشعارات المستفيد</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="sedana" 
-                className="flex-1 rounded-xl py-3 px-3 sm:px-6 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-emerald-600 dark:data-[state=active]:text-emerald-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
-              >
-                <Boxes className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-emerald-600 dark:text-emerald-400" />
-                <span>برنامج سدانة</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -2278,63 +2275,6 @@ export default function NotificationCustomization() {
                           </TableRow>
                         );
                       })}
-
-                      {/* === قسم برنامج سدانة والمستودع الافتراضي === */}
-                      <TableRow className="bg-slate-50/50 dark:bg-slate-900/30 hover:bg-transparent">
-                        <TableCell colSpan={3} className="py-3 pr-4 sm:pr-6 text-right font-bold text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm border-b border-border/40 border-t">
-                          قسم برنامج سدانة والمستودع الافتراضي
-                        </TableCell>
-                      </TableRow>
-                      {NOTIFICATION_TRIGGERS.filter(t => t.category === "sedana").map(trig => {
-                        const inAppState = getTriggerChannelState(trig.id, 'in_app');
-                        const emailState = getTriggerChannelState(trig.id, 'email');
-                        const whatsappState = getTriggerChannelState(trig.id, 'whatsapp');
-                        const smsState = getTriggerChannelState(trig.id, 'sms');
-
-                        return (
-                          <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
-                            <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
-                              <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
-                              {renderTruncatedPreview(trig.id)}
-                            </TableCell>
-                            <TableCell className="text-center py-3 sm:py-4">
-                              <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      className="h-7 w-7 text-emerald-600 dark:text-emerald-400 bg-emerald-50/70 hover:bg-emerald-100/90 hover:text-emerald-700 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40 border border-emerald-100/30 dark:border-emerald-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
-                                      onClick={() => handleOpenEditTemplateModal(trig)}
-                                      type="button"
-                                    >
-                                      <Pencil className="w-3.5 h-3.5" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">
-                                    <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </TableCell>
-                            <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
-                              <ChannelToggles
-                                inApp={inAppState.enabled}
-                                whatsapp={whatsappState.enabled}
-                                sms={smsState.enabled}
-                                email={emailState.enabled}
-                                onToggle={(channel, val) => handleToggleTriggerSetting(trig.id, channel, val)}
-                                inherited={{
-                                  inApp: inAppState.isInherited,
-                                  whatsapp: whatsappState.isInherited,
-                                  sms: smsState.isInherited,
-                                  email: emailState.isInherited,
-                                }}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -2454,10 +2394,6 @@ export default function NotificationCustomization() {
                   triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "request")
                 },
                 {
-                  title: "قسم برنامج سدانة والمستودع الافتراضي",
-                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "sedana")
-                },
-                {
                   title: "قسم طلبات الاستثناء",
                   triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "exceptions")
                 },
@@ -2557,205 +2493,6 @@ export default function NotificationCustomization() {
                 </Card>
               );
             })()}
-          </TabsContent>
-
-          {/* تبويب: برنامج سدانة والمستودع الافتراضي */}
-          <TabsContent value="sedana" className="space-y-6 focus-visible:outline-none">
-            {/* بطاقة تعريفية وترحيبية بقسم سدانة */}
-            <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-500/20 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                  <Boxes className="w-6 h-6" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base sm:text-lg font-bold text-foreground">نظام إشعارات برنامج سدانة والمستودع الافتراضي</h2>
-                    <Badge variant="outline" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 font-bold text-xs">
-                      سدانة
-                    </Badge>
-                  </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    التحكم الكامل في صيغ وقوالب الإشعارات وتفعيل قنوات الإرسال المحددة (النظام الداخلي، WhatsApp، SMS، البريد) لأئمة المساجد وفرق العمليات.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* الجزء 1: إشعارات أئمة المساجد والمستفيدين */}
-            <Card className="border border-border/50 shadow-sm overflow-hidden rounded-xl">
-              <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-4 sm:p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-sm sm:text-base md:text-lg font-bold text-foreground flex items-center gap-2">
-                      <HeartHandshake className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                      <span>إشعارات أئمة المساجد والمستفيدين (برنامج سدانة)</span>
-                    </CardTitle>
-                    <CardDescription className="text-[11px] sm:text-xs md:text-sm mt-1 leading-relaxed">
-                      الرسائل والتنبيهات الموجهة مباشرة إلى إمام المسجد، بما في ذلك تأكيدات الاستبيانات، مواعيد الشحنات الميدانية، تذكير دورات التوريد القادمة، وتوثيق الاستلام.
-                    </CardDescription>
-                  </div>
-                  <Badge variant="outline" className="text-xs font-bold text-emerald-700 bg-emerald-50 border-emerald-300">
-                    {BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "sedana").length} أحداث
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="w-full overflow-x-auto scrollbar-thin">
-                  <Table className="min-w-[600px]">
-                    <TableHeader>
-                      <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
-                        <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pr-4 sm:pr-6">
-                          الحدث / المشغل
-                        </TableHead>
-                        <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">
-                          تعديل الصياغة
-                        </TableHead>
-                        <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pl-4 sm:pl-6">
-                          قنوات الإرسال المحددة للحدث
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody className="divide-y divide-border/40">
-                      {BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "sedana").map((trig) => {
-                        const inAppState = getBeneficiaryChannelState(trig.id, 'in_app');
-                        const emailState = getBeneficiaryChannelState(trig.id, 'email');
-                        const whatsappState = getBeneficiaryChannelState(trig.id, 'whatsapp');
-                        const smsState = getBeneficiaryChannelState(trig.id, 'sms');
-
-                        return (
-                          <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
-                            <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
-                              <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
-                              {renderTruncatedPreview(trig.id)}
-                            </TableCell>
-                            <TableCell className="text-center py-3 sm:py-4">
-                              <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      className="h-7 w-7 text-emerald-600 dark:text-emerald-400 bg-emerald-50/70 hover:bg-emerald-100/90 hover:text-emerald-700 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40 border border-emerald-100/30 dark:border-emerald-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
-                                      onClick={() => handleOpenEditTemplateModal(trig)}
-                                      type="button"
-                                    >
-                                      <Pencil className="w-3.5 h-3.5" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">
-                                    <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </TableCell>
-                            <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
-                              <ChannelToggles
-                                inApp={inAppState}
-                                whatsapp={whatsappState}
-                                sms={smsState}
-                                email={emailState}
-                                onToggle={(channel, val) => handleToggleBeneficiaryChannel(trig.id, channel, val)}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* الجزء 2: إشعارات فريق العمليات وإدارة المستودع */}
-            <Card className="border border-border/50 shadow-sm overflow-hidden rounded-xl">
-              <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-4 sm:p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-sm sm:text-base md:text-lg font-bold text-foreground flex items-center gap-2">
-                      <Boxes className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                      <span>إشعارات فريق العمليات والمستودع الميداني (برنامج سدانة)</span>
-                    </CardTitle>
-                    <CardDescription className="text-[11px] sm:text-xs md:text-sm mt-1 leading-relaxed">
-                      إشعارات موجهة لمنسوبي المؤسسة عند تقديم استبيان، اعتماد التقييم، أوامر الشراء، توريد بنود للمستودع الافتراضي، أوامر الصرف والتسليم، وتوثيق أو رفض الاستلام.
-                    </CardDescription>
-                  </div>
-                  <Badge variant="outline" className="text-xs font-bold text-emerald-700 bg-emerald-50 border-emerald-300">
-                    {NOTIFICATION_TRIGGERS.filter(t => t.category === "sedana").length} أحداث
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="w-full overflow-x-auto scrollbar-thin">
-                  <Table className="min-w-[600px]">
-                    <TableHeader>
-                      <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
-                        <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pr-4 sm:pr-6">
-                          الحدث / المشغل
-                        </TableHead>
-                        <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">
-                          تعديل الصياغة
-                        </TableHead>
-                        <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pl-4 sm:pl-6">
-                          قنوات الإرسال المحددة للحدث
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody className="divide-y divide-border/40">
-                      {NOTIFICATION_TRIGGERS.filter(t => t.category === "sedana").map((trig) => {
-                        const inAppState = getTriggerChannelState(trig.id, 'in_app');
-                        const emailState = getTriggerChannelState(trig.id, 'email');
-                        const whatsappState = getTriggerChannelState(trig.id, 'whatsapp');
-                        const smsState = getTriggerChannelState(trig.id, 'sms');
-
-                        return (
-                          <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
-                            <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
-                              <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
-                              {renderTruncatedPreview(trig.id)}
-                            </TableCell>
-                            <TableCell className="text-center py-3 sm:py-4">
-                              <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      className="h-7 w-7 text-emerald-600 dark:text-emerald-400 bg-emerald-50/70 hover:bg-emerald-100/90 hover:text-emerald-700 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40 border border-emerald-100/30 dark:border-emerald-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
-                                      onClick={() => handleOpenEditTemplateModal(trig)}
-                                      type="button"
-                                    >
-                                      <Pencil className="w-3.5 h-3.5" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">
-                                    <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </TableCell>
-                            <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
-                              <ChannelToggles
-                                inApp={inAppState.enabled}
-                                whatsapp={whatsappState.enabled}
-                                sms={smsState.enabled}
-                                email={emailState.enabled}
-                                onToggle={(channel, val) => handleToggleTriggerSetting(trig.id, channel, val)}
-                                inherited={{
-                                  inApp: inAppState.isInherited,
-                                  whatsapp: whatsappState.isInherited,
-                                  sms: smsState.isInherited,
-                                  email: emailState.isInherited,
-                                }}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
         </Tabs>
