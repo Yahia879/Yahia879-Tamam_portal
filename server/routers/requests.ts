@@ -53,7 +53,7 @@ import {
   PREREQUISITE_ERROR_MESSAGES,
   type PrerequisiteType,
 } from "@shared/constants";
-import { notifyRequestCreation, notifyUsersByRole, createNotification, notifyRequestStageChangeToOfficers, notifyQuotationApproval, sendEmailNotification } from "./notifications";
+import { notifyRequestCreation, notifyUsersByRole, createNotification, notifyRequestStageChangeToOfficers, notifyQuotationApproval, sendEmailNotification, notifySedanaEvent } from "./notifications";
 import { generateProjectNumber, createProjectForSedanaRequest } from "./projects";
 
 export function getSurveyBaseUrl(_req?: any): string {
@@ -2780,6 +2780,23 @@ export const requestsRouter = router({
         } catch (logErr) {
           console.error("Evaluation log error:", logErr);
         }
+
+        // إرسال إشعار اعتماد دراسة احتياج سدانة
+        try {
+          const [mosqueRow] = request.mosqueId 
+            ? await db.select({ name: mosques.name }).from(mosques).where(eq(mosques.id, request.mosqueId)).limit(1) 
+            : [null];
+          notifySedanaEvent({
+            event: "sedana_evaluation_approved",
+            requestId: request.id,
+            requestNumber: request.requestNumber || `REQ-${request.id}`,
+            mosqueName: mosqueRow?.name || "المسجد",
+            requesterUserId: request.userId || undefined,
+            actorName: ctx.user.name,
+          }).catch(err => console.error("Sedana evaluation notif error:", err));
+        } catch (notifErr) {
+          console.error("Error triggering evaluation notification:", notifErr);
+        }
       }
 
       return {
@@ -3041,6 +3058,27 @@ export const requestsRouter = router({
           });
         } catch (trackErr) {
           // ignore tracking error
+        }
+
+        // إرسال إشعار اعتماد تأمين سدانة والانتقال للتنفيذ
+        try {
+          const [mosqueRow] = request.mosqueId 
+            ? await db.select({ name: mosques.name }).from(mosques).where(eq(mosques.id, request.mosqueId)).limit(1) 
+            : [null];
+          notifySedanaEvent({
+            event: "sedana_po_created",
+            requestId: request.id,
+            requestNumber: request.requestNumber || `REQ-${request.id}`,
+            mosqueName: mosqueRow?.name || "المسجد",
+            requesterUserId: request.userId || undefined,
+            actorName: ctx.user.name,
+            data: {
+              orderNumber: activePO?.orderNumber,
+              amount: activePO?.totalAmount,
+            },
+          }).catch(err => console.error("Sedana procurement notif error:", err));
+        } catch (notifErr) {
+          console.error("Error triggering procurement notification:", notifErr);
         }
       }
 
