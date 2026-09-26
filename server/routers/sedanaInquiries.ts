@@ -4,7 +4,7 @@ import { getDb } from "../db";
 import { sedanaInquiries, users, mosques } from "../../drizzle/schema";
 import { eq, desc, and, or, sql, like } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { createNotification } from "./notifications";
+import { createNotification, notifySedanaEvent } from "./notifications";
 
 export const sedanaInquiriesRouter = router({
   // تقديم استبيان تأهيل سدانة من قبل الإمام
@@ -74,6 +74,24 @@ export const sedanaInquiriesRouter = router({
         additionalNotes: input.additionalNotes || null,
         status: "pending",
       });
+
+      // إرسال إشعار لمسؤولي ومكتب المشاريع
+      try {
+        const [mosqueRow] = await db
+          .select({ name: mosques.name })
+          .from(mosques)
+          .where(eq(mosques.id, input.mosqueId))
+          .limit(1);
+        notifySedanaEvent({
+          event: "sedana_inquiry_submitted",
+          requestId: (result as any)?.insertId,
+          mosqueName: mosqueRow?.name || "المسجد",
+          requesterUserId: ctx.user.id,
+          actorName: ctx.user.name,
+        }).catch(err => console.error("Sedana inquiry notif error:", err));
+      } catch (e) {
+        console.error("Error triggering inquiry notification:", e);
+      }
 
       return {
         success: true,
@@ -247,27 +265,24 @@ export const sedanaInquiriesRouter = router({
         })
         .where(eq(sedanaInquiries.id, input.id));
 
-      // إرسال إشعار للمستفيد
+      // إرسال إشعار للمستفيد عبر نظام إشعارات سدانة الموحد
       try {
-        if (input.status === "approved") {
-          await createNotification({
-            userId: inquiry.userId,
-            type: "system",
-            title: "الموافقة على تأهيل المسجد لبرنامج سدانة",
-            message: `تم اعتماد تأهيل مسجدكم لبرنامج سدانة بعد مراجعة الفريق! يمكنك الآن الدخول وتوقيع الاتفاقية وإكمال رفع الطلب.`,
-            relatedType: "sedana_inquiry",
-            relatedId: inquiry.id,
-          });
-        } else {
-          await createNotification({
-            userId: inquiry.userId,
-            type: "system",
-            title: "تحديث بشأن استبيان برنامج سدانة",
-            message: input.actionNotes || "تمت مراجعة استبيان سدانة، ويرجى الاطلاع على توجيه فريق المشاريع في صفحة الطلب.",
-            relatedType: "sedana_inquiry",
-            relatedId: inquiry.id,
-          });
-        }
+        const [mosqueRow] = await db
+          .select({ name: mosques.name })
+          .from(mosques)
+          .where(eq(mosques.id, inquiry.mosqueId))
+          .limit(1);
+
+        notifySedanaEvent({
+          event: input.status === "approved" ? "sedana_inquiry_approved" : "sedana_inquiry_rejected",
+          requestId: inquiry.id,
+          mosqueName: mosqueRow?.name || "المسجد",
+          requesterUserId: inquiry.userId,
+          actorName: ctx.user.name,
+          data: {
+            reason: input.actionNotes || undefined,
+          },
+        }).catch(err => console.error("Sedana inquiry review notif error:", err));
       } catch (notifErr) {
         console.error("Error creating notification for sedana inquiry review:", notifErr);
       }
