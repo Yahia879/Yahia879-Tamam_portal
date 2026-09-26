@@ -1452,7 +1452,7 @@ export default function NotificationCustomization() {
     }
   ];
 
-  const [selectedTriggerRoleId, setSelectedTriggerRoleId] = useState("field_team");
+  const [selectedTriggerRoleId, setSelectedTriggerRoleId] = useState("super_admin");
 
   // حاله المودال وتعديل القوالب
   const [selectedTriggerForEdit, setSelectedTriggerForEdit] = useState<any>(null);

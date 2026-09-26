@@ -1438,7 +1438,7 @@ export async function notifySedanaEvent(options: {
       }
 
       case "sedana_request_created": {
-        const officerIds = await getRequestNotificationOfficerIds(db, options.requesterUserId);
+        const officerIds = await getRequestNotificationOfficerIds(db);
         for (const userId of officerIds) {
           await createNotification({
             userId,

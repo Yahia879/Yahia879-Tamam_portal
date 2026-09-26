@@ -407,10 +407,37 @@ export const requestsRouter = router({
         } catch (projErr) {
           console.error("[Request Create] Failed to auto-create project for Sedana request:", projErr);
         }
-      }
 
-      // إرسال إشعار عند إنشاء طلب جديد
-      await notifyRequestCreation(requestId, requestNumber, ctx.user.id);
+        // إشعار تأكيد لمقدم الطلب إذا كان مستفيداً
+        if (ctx.user.role === "service_requester") {
+          await createNotification({
+            userId: ctx.user.id,
+            type: "request",
+            title: "طلب جديد",
+            message: "تم إنشاء طلب جديد وهو بانتظار المعالجة",
+            relatedType: "request",
+            relatedId: requestId,
+            triggerId: "beneficiary_request_created",
+          });
+        }
+
+        // إرسال إشعار سدانة المخصص لمسؤولي وموظفي النظام: تم تقديم طلب رعاية وتشغيل جديد
+        try {
+          await notifySedanaEvent({
+            event: "sedana_request_created",
+            requestId,
+            requestNumber,
+            mosqueName: mosqueData?.name || "المسجد",
+            requesterUserId: ctx.user.id,
+            actorName: ctx.user.name,
+          });
+        } catch (sedanaNotifErr) {
+          console.error("[Request Create] Failed to notify Sedana request creation:", sedanaNotifErr);
+        }
+      } else {
+        // إرسال إشعار عند إنشاء طلب جديد عادي
+        await notifyRequestCreation(requestId, requestNumber, ctx.user.id);
+      }
 
       return { success: true, requestId, projectId: createdProjectId, requestNumber, message: "تم تقديم الطلب بنجاح" };
     }),
