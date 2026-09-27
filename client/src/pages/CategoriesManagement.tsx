@@ -62,6 +62,7 @@ export default function CategoriesManagement() {
     monthlyLimit: 0,
     quarterlyLimit: 0,
     semiAnnualLimit: 0,
+    oneTimeLimit: 0,
     unit: "شهر",
     defaultQuantity: 0,
   });
@@ -217,10 +218,12 @@ export default function CategoriesManagement() {
           monthlyLimit: Number(sedanaForm.monthlyLimit) || 0,
           quarterlyLimit: Number(sedanaForm.quarterlyLimit) || 0,
           semiAnnualLimit: Number(sedanaForm.semiAnnualLimit) || 0,
+          oneTimeLimit: Number(sedanaForm.oneTimeLimit) || 0,
           limits: {
             'شهري': Number(sedanaForm.monthlyLimit) || 0,
             'ربع سنوي': Number(sedanaForm.quarterlyLimit) || 0,
             'نصف سنوي': Number(sedanaForm.semiAnnualLimit) || 0,
+            'مرة واحدة': Number(sedanaForm.oneTimeLimit) || 0,
           },
           unit: sedanaForm.unit,
           defaultQuantity: Number(sedanaForm.defaultQuantity) || 0,
@@ -264,10 +267,12 @@ export default function CategoriesManagement() {
           monthlyLimit: Number(sedanaForm.monthlyLimit) || 0,
           quarterlyLimit: Number(sedanaForm.quarterlyLimit) || 0,
           semiAnnualLimit: Number(sedanaForm.semiAnnualLimit) || 0,
+          oneTimeLimit: Number(sedanaForm.oneTimeLimit) || 0,
           limits: {
             'شهري': Number(sedanaForm.monthlyLimit) || 0,
             'ربع سنوي': Number(sedanaForm.quarterlyLimit) || 0,
             'نصف سنوي': Number(sedanaForm.semiAnnualLimit) || 0,
+            'مرة واحدة': Number(sedanaForm.oneTimeLimit) || 0,
           },
           unit: sedanaForm.unit,
           defaultQuantity: Number(sedanaForm.defaultQuantity) || 0,
@@ -301,6 +306,7 @@ export default function CategoriesManagement() {
       monthlyLimit: 0,
       quarterlyLimit: 0,
       semiAnnualLimit: 0,
+      oneTimeLimit: 0,
       unit: "شهر",
       defaultQuantity: 0,
     });
@@ -320,6 +326,7 @@ export default function CategoriesManagement() {
       monthlyLimit: limits['شهري'] ?? (meta.monthlyLimit || 0),
       quarterlyLimit: limits['ربع سنوي'] ?? (meta.quarterlyLimit || 0),
       semiAnnualLimit: limits['نصف سنوي'] ?? (meta.semiAnnualLimit || 0),
+      oneTimeLimit: limits['مرة واحدة'] ?? (meta.oneTimeLimit || 0),
       unit: meta.unit || "شهر",
       defaultQuantity: meta.defaultQuantity || 0,
     });
@@ -578,6 +585,22 @@ export default function CategoriesManagement() {
                                         <span className="text-[11px] text-muted-foreground">{sedanaForm.unit}</span>
                                       </div>
                                     </div>
+
+                                    <div className="flex items-center justify-between gap-3 text-xs">
+                                      <span className="font-semibold text-slate-600 dark:text-slate-400 w-24 text-right">4. مرة واحدة:</span>
+                                      <div className="flex-1 flex items-center gap-1.5">
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          placeholder="0"
+                                          value={sedanaForm.oneTimeLimit}
+                                          onChange={(e) => setSedanaForm({ ...sedanaForm, oneTimeLimit: Number(e.target.value) })}
+                                          className="h-8 text-right font-mono text-xs"
+                                          dir="rtl"
+                                        />
+                                        <span className="text-[11px] text-muted-foreground">{sedanaForm.unit}</span>
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
                               </>
@@ -673,6 +696,10 @@ export default function CategoriesManagement() {
                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40">
                                           <span className="text-[10px] font-sans text-muted-foreground">نصف سنوي:</span>
                                           <strong>{value.metadata?.limits?.['نصف سنوي'] ?? value.metadata?.semiAnnualLimit ?? 0}</strong>
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40">
+                                          <span className="text-[10px] font-sans text-muted-foreground">مرة واحدة:</span>
+                                          <strong>{value.metadata?.limits?.['مرة واحدة'] ?? value.metadata?.oneTimeLimit ?? 0}</strong>
                                         </span>
                                       </div>
                                     </TableCell>
@@ -798,6 +825,10 @@ export default function CategoriesManagement() {
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40">
                                       <span className="text-[10px] font-sans text-muted-foreground">نصف سنوي:</span>
                                       <strong>{value.metadata?.limits?.['نصف سنوي'] ?? value.metadata?.semiAnnualLimit ?? 0}</strong>
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40">
+                                      <span className="text-[10px] font-sans text-muted-foreground">مرة واحدة:</span>
+                                      <strong>{value.metadata?.limits?.['مرة واحدة'] ?? value.metadata?.oneTimeLimit ?? 0}</strong>
                                     </span>
                                   </div>
                                 </div>
@@ -937,6 +968,22 @@ export default function CategoriesManagement() {
                             placeholder="0"
                             value={sedanaForm.semiAnnualLimit}
                             onChange={(e) => setSedanaForm({ ...sedanaForm, semiAnnualLimit: Number(e.target.value) })}
+                            className="h-8 text-right font-mono text-xs"
+                            dir="rtl"
+                          />
+                          <span className="text-[11px] text-muted-foreground">{sedanaForm.unit}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3 text-xs">
+                        <span className="font-semibold text-slate-600 dark:text-slate-400 w-24 text-right">4. مرة واحدة:</span>
+                        <div className="flex-1 flex items-center gap-1.5">
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            value={sedanaForm.oneTimeLimit}
+                            onChange={(e) => setSedanaForm({ ...sedanaForm, oneTimeLimit: Number(e.target.value) })}
                             className="h-8 text-right font-mono text-xs"
                             dir="rtl"
                           />
