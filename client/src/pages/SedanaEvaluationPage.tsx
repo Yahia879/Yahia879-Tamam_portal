@@ -198,7 +198,7 @@ export default function SedanaEvaluationPage() {
                 جدول إحصائيات دراسة وتدقيق الاحتياج السنوي
               </h3>
               <p className="text-xs text-muted-foreground">
-                تدقيق الكميات المطلوبة ومقارنتها بالمعيار القياسي المعتمد لمسجد بمساحة {mosqueArea} م² وسعة {worshippers} مصلٍ
+                تدقيق وتعديل الكميات المطلوبة والمعتمدة لمسجد بمساحة {mosqueArea} م² وسعة {worshippers} مصلٍ
               </p>
             </div>
           </div>

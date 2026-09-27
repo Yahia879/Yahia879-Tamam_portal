@@ -326,7 +326,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
             <span>جدول دراسة وتدقيق الاحتياج السنوي (سدانة)</span>
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            تدقيق وتعديل الأصناف والكميات المطلوبة والمعتمدة ومقارنتها بالمعيار القياسي
+            تدقيق وتعديل الأصناف والكميات المطلوبة والمعتمدة
           </p>
         </div>
 
@@ -422,9 +422,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
               <th className="p-3 min-w-[200px]">اسم الصنف</th>
               <th className="p-3 w-28 text-center">التصنيف</th>
               <th className="p-3 w-32 text-center">دورية التوريد</th>
-              <th className="p-3 w-28 text-center">الكمية المطلوبة</th>
-              <th className="p-3 w-28 text-center">المعيار القياسي</th>
-              <th className="p-3 w-32 text-center">الكمية المعتمدة</th>
+              <th className="p-3 w-48 text-center">الكمية المطلوبة والمعتمدة</th>
               {canEvaluate && !isAlreadyApproved && (
                 <th className="p-3 w-12 text-center">إجراء</th>
               )}
@@ -536,62 +534,57 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
                     )}
                   </td>
 
-                  {/* 4. الكمية المطلوبة - قابلة للتعديل مباشرة في الجدول */}
-                  <td className="p-3 text-center align-top pt-3">
+                  {/* 4. الكمية المطلوبة والمعتمدة (مدمجة في خانة واحدة) */}
+                  <td className="p-3 text-center align-top pt-2.5">
                     {canEvaluate && !isAlreadyApproved ? (
-                      <div className="flex items-center justify-center gap-1">
-                        <Input
-                          type="number"
-                          min="0"
-                          value={item.quantity}
-                          onChange={(e) =>
-                            handleUpdateItem(item.id, { quantity: Number(e.target.value) || 0 })
-                          }
-                          className="h-8 text-xs text-center w-20 mx-auto bg-background border-border/80"
-                        />
-                        <span className="text-[10px] text-muted-foreground font-normal shrink-0">{item.unit}</span>
+                      <div className="flex flex-col gap-1.5 w-44 mx-auto bg-muted/20 p-2 rounded-lg border border-border/60">
+                        {/* الكمية المطلوبة */}
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span className="text-[11px] text-muted-foreground font-medium shrink-0">المطلوبة:</span>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              min="0"
+                              value={item.quantity}
+                              onChange={(e) =>
+                                handleUpdateItem(item.id, { quantity: Number(e.target.value) || 0 })
+                              }
+                              className="h-7 text-xs text-center w-16 bg-background border-border/80 font-medium"
+                            />
+                            <span className="text-[10px] text-muted-foreground shrink-0 w-8 text-right truncate" title={item.unit}>{item.unit}</span>
+                          </div>
+                        </div>
+
+                        {/* الكمية المعتمدة */}
+                        <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-border/50">
+                          <span className="text-[11px] font-bold text-cyan-700 dark:text-cyan-400 shrink-0">المعتمدة:</span>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              min="0"
+                              value={approvedVal}
+                              onChange={(e) => handleApprovedQuantityChange(item.id, Number(e.target.value))}
+                              className="h-7 text-xs text-center w-16 font-bold text-cyan-600 bg-background border-cyan-300 dark:border-cyan-800"
+                            />
+                            <span className="text-[10px] text-muted-foreground shrink-0 w-8 text-right truncate" title={item.unit}>{item.unit}</span>
+                          </div>
+                        </div>
                       </div>
                     ) : (
-                      <span className="font-bold text-foreground">
-                        {item.quantity}{' '}
-                        <span className="text-[10px] text-muted-foreground font-normal">{item.unit}</span>
-                      </span>
-                    )}
-                  </td>
-
-                  {/* 5. المعيار القياسي */}
-                  <td className="p-3 text-center align-top pt-3.5 text-muted-foreground">
-                    {evalItem ? (
-                      <>
-                        <span className="font-medium">{evalItem.standardQty}</span>{' '}
-                        <span className="text-[10px]">{evalItem.unit}</span>
-                      </>
-                    ) : (
-                      <span className="text-[10px]">-</span>
-                    )}
-                  </td>
-
-                  {/* 6. الكمية المعتمدة - قابلة للتعديل مباشرة في الجدول */}
-                  <td className="p-3 text-center align-top pt-3">
-                    {canEvaluate && !isAlreadyApproved ? (
-                      <div className="flex items-center justify-center gap-1">
-                        <Input
-                          type="number"
-                          min="0"
-                          value={approvedVal}
-                          onChange={(e) => handleApprovedQuantityChange(item.id, Number(e.target.value))}
-                          className="h-8 text-xs text-center w-20 mx-auto font-bold text-cyan-600 bg-background border-border/80"
-                        />
-                        <span className="text-[10px] text-muted-foreground font-normal shrink-0">{item.unit}</span>
+                      <div className="flex flex-col items-center gap-1 py-1">
+                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                          <span>المطلوبة:</span>
+                          <span className="font-semibold text-foreground">{item.quantity} {item.unit}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-600">
+                          <span>المعتمدة:</span>
+                          <span>{approvedVal} {item.unit}</span>
+                        </div>
                       </div>
-                    ) : (
-                      <strong className="font-bold text-cyan-600">
-                        {approvedVal} {item.unit}
-                      </strong>
                     )}
                   </td>
 
-                  {/* 7. إجراء الحذف فقط (تمت إزالة زر القلم كما طُلب) */}
+                  {/* 5. إجراء الحذف فقط */}
                   {canEvaluate && !isAlreadyApproved && (
                     <td className="p-3 text-center align-top pt-3">
                       <Button
@@ -613,7 +606,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
             {itemsList.length === 0 && (
               <tr>
                 <td
-                  colSpan={canEvaluate && !isAlreadyApproved ? 7 : 6}
+                  colSpan={canEvaluate && !isAlreadyApproved ? 5 : 4}
                   className="p-6 text-center text-muted-foreground text-xs"
                 >
                   لا توجد بنود مسجلة حالياً في دراسة الاحتياج. يمكنك إضافة بنود جديدة من الأزرار.
