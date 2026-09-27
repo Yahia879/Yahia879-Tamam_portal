@@ -1214,6 +1214,8 @@ export const disbursementOrders = mysqlTable("disbursement_orders", {
   executiveNotesReply: text("executiveNotesReply"),
   executiveNotesRepliedBy: int("executiveNotesRepliedBy").references(() => users.id, { onDelete: "set null" }),
   executiveNotesRepliedAt: datetime("executiveNotesRepliedAt"),
+  lastNoteSide: varchar("lastNoteSide", { length: 20 }), // 'board' | 'finance'
+  notesCount: int("notesCount").default(0),
 
   // الاستثناء والتوقيع
   isException: boolean("isException").default(false).notNull(),
@@ -1230,6 +1232,22 @@ export const disbursementOrders = mysqlTable("disbursement_orders", {
 }, (table) => ({
   reqFk: foreignKey({ columns: [table.disbursementRequestId], foreignColumns: [disbursementRequests.id], name: "do_req_fk" }),
 }));
+
+// سجل الملاحظات والردود التفاعلية غير المحدودة لأوامر الصرف
+export const disbursementOrderNotes = mysqlTable("disbursement_order_notes", {
+  id: int("id").autoincrement().primaryKey(),
+  orderId: int("orderId").notNull().references(() => disbursementOrders.id, { onDelete: "cascade" }),
+  userId: int("userId").references(() => users.id, { onDelete: "set null" }),
+  userName: varchar("userName", { length: 255 }),
+  userRole: varchar("userRole", { length: 100 }),
+  side: varchar("side", { length: 50 }).notNull().default("board"), // 'board' (رئيس المجلس / صاحب الصلاحية) | 'finance' (الإدارة المالية / مسؤولو الصرف)
+  content: text("content").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type DisbursementOrderNote = typeof disbursementOrderNotes.$inferSelect;
+export type InsertDisbursementOrderNote = typeof disbursementOrderNotes.$inferInsert;
+
 
 // تقارير الإنجاز
 export const progressReports = mysqlTable("progress_reports", {

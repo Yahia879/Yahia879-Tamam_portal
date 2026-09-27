@@ -5,6 +5,7 @@ import { getDb } from "../db";
 import {
   disbursementRequests,
   disbursementOrders,
+  disbursementOrderNotes,
   disbursementRequestStatuses,
   disbursementOrderStatuses,
   projects,
@@ -23,7 +24,7 @@ import {
   receiptVouchers,
   quantitySchedules,
 } from "../../drizzle/schema";
-import { eq, desc, and, sql, isNull, isNotNull, or, like, inArray, ne } from "drizzle-orm";
+import { eq, desc, asc, count, and, sql, isNull, isNotNull, or, like, inArray, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { createNotification, notifyDisbursementRequestCreation, notifyDisbursementOrderCreation, notifyDisbursementOrderApproval, notifyDisbursementOrderRejection } from "./notifications";
 import { triggerBeneficiarySatisfactionSurvey } from "./requests";
@@ -1940,6 +1941,8 @@ export const disbursementsRouter = router({
           executiveNotesReply: disbursementOrders.executiveNotesReply,
           executiveNotesRepliedBy: disbursementOrders.executiveNotesRepliedBy,
           executiveNotesRepliedAt: disbursementOrders.executiveNotesRepliedAt,
+          lastNoteSide: disbursementOrders.lastNoteSide,
+          notesCount: disbursementOrders.notesCount,
           exceptionApprovedBy: disbursementOrders.exceptionApprovedBy,
           rejectionReason: disbursementOrders.rejectionReason,
           rejectedAt: disbursementOrders.rejectedAt,
@@ -3291,7 +3294,193 @@ export const disbursementsRouter = router({
       return { success: true, message: "تم اعتماد أمر الصرف بنجاح" };
     }),
 
-  // تحديث أو إضافة ملاحظات وتوجيهات رئيس المجلس لأمر الصرف (قبل الاعتماد أو الرفض)
+  // جلب سجل الملاحظات والردود غير المحدودة لأمر الصرف
+  getOrderNotes: protectedProcedure
+    .input(z.object({ orderId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [order] = await db
+        .select({
+          id: disbursementOrders.id,
+          orderNumber: disbursementOrders.orderNumber,
+          status: disbursementOrders.status,
+          amount: disbursementOrders.amount,
+          beneficiaryName: disbursementOrders.beneficiaryName,
+          executiveNotes: disbursementOrders.executiveNotes,
+          executiveNotesReply: disbursementOrders.executiveNotesReply,
+          executiveNotesRepliedBy: disbursementOrders.executiveNotesRepliedBy,
+          executiveNotesRepliedAt: disbursementOrders.executiveNotesRepliedAt,
+          lastNoteSide: disbursementOrders.lastNoteSide,
+          notesCount: disbursementOrders.notesCount,
+        })
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.id, input.orderId))
+        .limit(1);
+
+      if (!order) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
+      }
+
+      const notes = await db
+        .select({
+          id: disbursementOrderNotes.id,
+          orderId: disbursementOrderNotes.orderId,
+          userId: disbursementOrderNotes.userId,
+          userName: disbursementOrderNotes.userName,
+          userRole: disbursementOrderNotes.userRole,
+          side: disbursementOrderNotes.side,
+          content: disbursementOrderNotes.content,
+          createdAt: disbursementOrderNotes.createdAt,
+          dbUserName: users.name,
+          dbUserRole: users.role,
+        })
+        .from(disbursementOrderNotes)
+        .leftJoin(users, eq(disbursementOrderNotes.userId, users.id))
+        .where(eq(disbursementOrderNotes.orderId, input.orderId))
+        .orderBy(asc(disbursementOrderNotes.createdAt), asc(disbursementOrderNotes.id));
+
+      const formattedNotes = notes.map((n) => ({
+        id: n.id,
+        orderId: n.orderId,
+        userId: n.userId,
+        userName: n.userName || n.dbUserName || (n.side === "board" ? "صاحب الصلاحية" : "الإدارة المالية"),
+        userRole: n.userRole || n.dbUserRole || (n.side === "board" ? "board_chairman" : "financial"),
+        side: (n.side || "board") as "board" | "finance",
+        content: n.content,
+        createdAt: n.createdAt ? new Date(n.createdAt).toISOString() : new Date().toISOString(),
+      }));
+
+      // في حال كانت السجلات فارغة وكان هناك ملاحظة سابقة في الجدول الأساسي
+      if (formattedNotes.length === 0 && order.executiveNotes) {
+        let repliedUserName = "الإدارة المالية";
+        if (order.executiveNotesRepliedBy) {
+          const [replier] = await db
+            .select({ name: users.name })
+            .from(users)
+            .where(eq(users.id, order.executiveNotesRepliedBy));
+          if (replier?.name) repliedUserName = replier.name;
+        }
+
+        formattedNotes.push({
+          id: -1,
+          orderId: order.id,
+          userId: null,
+          userName: "صاحب الصلاحية",
+          userRole: "board_chairman",
+          side: "board" as const,
+          content: order.executiveNotes,
+          createdAt: new Date().toISOString(),
+        });
+
+        if (order.executiveNotesReply) {
+          formattedNotes.push({
+            id: -2,
+            orderId: order.id,
+            userId: order.executiveNotesRepliedBy,
+            userName: repliedUserName,
+            userRole: "financial",
+            side: "finance" as const,
+            content: order.executiveNotesReply,
+            createdAt: order.executiveNotesRepliedAt ? new Date(order.executiveNotesRepliedAt).toISOString() : new Date().toISOString(),
+          });
+        }
+      }
+
+      return {
+        order,
+        notes: formattedNotes,
+      };
+    }),
+
+  // إضافة ملاحظات أو ردود غير محدودة لأمر الصرف (تواصل متبادل مستمر بين المجلس والمالية)
+  addOrderNote: protectedProcedure
+    .input(
+      z.object({
+        orderId: z.number(),
+        content: z.string().min(1, "نص الملاحظة أو الرد مطلوب"),
+        side: z.enum(["board", "finance"]).optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [order] = await db
+        .select()
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.id, input.orderId))
+        .limit(1);
+
+      if (!order) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
+      }
+
+      if (order.status === "executed" || order.status === "rejected") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن إضافة ملاحظات أو ردود بعد تنفيذ أو رفض أمر الصرف" });
+      }
+
+      const content = input.content.trim();
+      if (!content) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن إرسال نص فارغ" });
+      }
+
+      const isBoardRole = ["board_chairman", "board_chairman_view", "super_admin", "system_admin"].includes(ctx.user.role);
+      const side = input.side || (isBoardRole ? "board" : "finance");
+
+      const senderName = ctx.user.name || (side === "board" ? "صاحب الصلاحية" : "المسؤول");
+      const senderRole = ctx.user.role || (side === "board" ? "board_chairman" : "financial");
+
+      // إدراج الملاحظة / الرد في السجل الدائم
+      await db.insert(disbursementOrderNotes).values({
+        orderId: input.orderId,
+        userId: ctx.user.id,
+        userName: senderName,
+        userRole: senderRole,
+        side: side,
+        content: content,
+        createdAt: new Date(),
+      });
+
+      const [countRes] = await db
+        .select({ count: count() })
+        .from(disbursementOrderNotes)
+        .where(eq(disbursementOrderNotes.orderId, input.orderId));
+      const newCount = Number(countRes?.count || 1);
+
+      // تحديث بيانات أمر الصرف للعرض السريع والتوافق
+      if (side === "board") {
+        await db
+          .update(disbursementOrders)
+          .set({
+            executiveNotes: content,
+            lastNoteSide: "board",
+            notesCount: newCount,
+            updatedAt: new Date(),
+          })
+          .where(eq(disbursementOrders.id, input.orderId));
+      } else {
+        await db
+          .update(disbursementOrders)
+          .set({
+            executiveNotesReply: content,
+            executiveNotesRepliedBy: ctx.user.id,
+            executiveNotesRepliedAt: new Date(),
+            lastNoteSide: "finance",
+            notesCount: newCount,
+            updatedAt: new Date(),
+          })
+          .where(eq(disbursementOrders.id, input.orderId));
+      }
+
+      return {
+        success: true,
+        message: side === "board" ? "تم إرسال الملاحظات والتوجيهات بنجاح" : "تم إرسال الرد بنجاح",
+      };
+    }),
+
+  // تحديث أو إضافة ملاحظات وتوجيهات رئيس المجلس لأمر الصرف (غير محدود)
   updateOrderNotes: protectedProcedure
     .input(
       z.object({
@@ -3313,23 +3502,49 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
       }
 
-      // لا يمكن إضافة أو تعديل الملاحظات إذا كان الأمر قد اعتُمد ونُفّذ أو رُفض مسبقاً
       if (order.status === "executed" || order.status === "rejected") {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن تعديل الملاحظات بعد اعتماد أو رفض أمر الصرف" });
+        throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن تعديل الملاحظات بعد تنفيذ أو رفض أمر الصرف" });
       }
+
+      const noteText = input.notes.trim();
+      if (!noteText) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "نص الملاحظة لا يمكن أن يكون فارغاً" });
+      }
+
+      const senderName = ctx.user.name || "صاحب الصلاحية";
+      const senderRole = ctx.user.role || "board_chairman";
+
+      // حفظ الملاحظة في السجل الدائم
+      await db.insert(disbursementOrderNotes).values({
+        orderId: input.orderId,
+        userId: ctx.user.id,
+        userName: senderName,
+        userRole: senderRole,
+        side: "board",
+        content: noteText,
+        createdAt: new Date(),
+      });
+
+      const [countRes] = await db
+        .select({ count: count() })
+        .from(disbursementOrderNotes)
+        .where(eq(disbursementOrderNotes.orderId, input.orderId));
+      const newCount = Number(countRes?.count || 1);
 
       await db
         .update(disbursementOrders)
         .set({
-          executiveNotes: input.notes.trim() || null,
+          executiveNotes: noteText,
+          lastNoteSide: "board",
+          notesCount: newCount,
           updatedAt: new Date(),
         })
         .where(eq(disbursementOrders.id, input.orderId));
 
-      return { success: true, message: "تم حفظ وتحديث الملاحظات بنجاح" };
+      return { success: true, message: "تم حفظ وإرسال الملاحظات بنجاح" };
     }),
 
-  // الرد على ملاحظات وتوجيهات رئيس المجلس لأمر الصرف
+  // الرد على ملاحظات وتوجيهات رئيس المجلس لأمر الصرف (غير محدود وبدون قيود المرة الواحدة)
   replyToOrderNotes: protectedProcedure
     .input(
       z.object({
@@ -3351,15 +3566,6 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
       }
 
-      // لا يمكن تعديل الرد أو إضافة رد آخر إذا تم الرد مسبقاً
-      if (order.executiveNotesReply && order.executiveNotesReply.trim()) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "تم الرد على الملاحظات مسبقاً ولا يمكن تعديل الرد أو إضافة أكثر من رد",
-        });
-      }
-
-      // لا يمكن الرد على الملاحظات إذا كان الأمر قد نُفّذ أو رُفض مسبقاً
       if (order.status === "executed" || order.status === "rejected") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن الرد على الملاحظات بعد تنفيذ أو رفض أمر الصرف" });
       }
@@ -3369,12 +3575,34 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "نص الرد لا يمكن أن يكون فارغاً" });
       }
 
+      const senderName = ctx.user.name || "الإدارة المالية";
+      const senderRole = ctx.user.role || "financial";
+
+      // حفظ الرد في السجل الدائم دون أي تقييد لعدد الردود
+      await db.insert(disbursementOrderNotes).values({
+        orderId: input.orderId,
+        userId: ctx.user.id,
+        userName: senderName,
+        userRole: senderRole,
+        side: "finance",
+        content: replyText,
+        createdAt: new Date(),
+      });
+
+      const [countRes] = await db
+        .select({ count: count() })
+        .from(disbursementOrderNotes)
+        .where(eq(disbursementOrderNotes.orderId, input.orderId));
+      const newCount = Number(countRes?.count || 1);
+
       await db
         .update(disbursementOrders)
         .set({
           executiveNotesReply: replyText,
           executiveNotesRepliedBy: ctx.user.id,
           executiveNotesRepliedAt: new Date(),
+          lastNoteSide: "finance",
+          notesCount: newCount,
           updatedAt: new Date(),
         })
         .where(eq(disbursementOrders.id, input.orderId));

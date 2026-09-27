@@ -6,13 +6,13 @@ import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let pool: mysql.Pool | null = null;
-let _migrationChecked = false;
+let _migrationPromise: Promise<void> | null = null;
 
-async function ensureSchemaUpdated(p: mysql.Pool) {
-  if (_migrationChecked) return;
-  _migrationChecked = true;
-  try {
-    const promisePool = p.promise();
+export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
+  if (_migrationPromise) return _migrationPromise;
+  _migrationPromise = (async () => {
+    try {
+      const promisePool = p.promise();
     const [cols] = await promisePool.query("SHOW COLUMNS FROM disbursement_orders") as any[];
     const colNames = Array.isArray(cols) ? cols.map((c: any) => c.Field) : [];
     if (!colNames.includes("executiveNotes")) {
@@ -51,6 +51,88 @@ async function ensureSchemaUpdated(p: mysql.Pool) {
     if (!colNames.includes("requestId")) {
       await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN requestId INT DEFAULT NULL");
     }
+    if (!colNames.includes("lastNoteSide")) {
+      await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN lastNoteSide VARCHAR(20) DEFAULT NULL");
+    }
+    if (!colNames.includes("notesCount")) {
+      await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN notesCount INT DEFAULT 0");
+    }
+
+    // إنشاء جدول الملاحظات والردود غير المحدودة إذا لم يكن موجوداً
+    await promisePool.query(`
+      CREATE TABLE IF NOT EXISTS disbursement_order_notes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        orderId INT NOT NULL,
+        userId INT NULL,
+        userName VARCHAR(255) NULL,
+        userRole VARCHAR(100) NULL,
+        side VARCHAR(50) NOT NULL DEFAULT 'board',
+        content TEXT NOT NULL,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_don_order_id (orderId)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // نقل الملاحظات السابقة إلى الجدول الجديد إذا لم تكن منقولة
+    await promisePool.query(`
+      INSERT INTO disbursement_order_notes (orderId, userId, userName, userRole, side, content, createdAt)
+      SELECT 
+        o.id, 
+        NULL, 
+        'صاحب الصلاحية', 
+        'board_chairman', 
+        'board', 
+        o.executiveNotes, 
+        COALESCE(o.updatedAt, o.createdAt)
+      FROM disbursement_orders o
+      WHERE o.executiveNotes IS NOT NULL 
+        AND TRIM(o.executiveNotes) != ''
+        AND NOT EXISTS (
+          SELECT 1 FROM disbursement_order_notes n 
+          WHERE n.orderId = o.id AND n.side = 'board'
+        );
+    `);
+
+    await promisePool.query(`
+      INSERT INTO disbursement_order_notes (orderId, userId, userName, userRole, side, content, createdAt)
+      SELECT 
+        o.id, 
+        o.executiveNotesRepliedBy, 
+        COALESCE(u.name, 'الإدارة المالية'), 
+        COALESCE(u.role, 'financial'), 
+        'finance', 
+        o.executiveNotesReply, 
+        COALESCE(o.executiveNotesRepliedAt, o.updatedAt, o.createdAt)
+      FROM disbursement_orders o
+      LEFT JOIN users u ON o.executiveNotesRepliedBy = u.id
+      WHERE o.executiveNotesReply IS NOT NULL 
+        AND TRIM(o.executiveNotesReply) != ''
+        AND NOT EXISTS (
+          SELECT 1 FROM disbursement_order_notes n 
+          WHERE n.orderId = o.id AND n.side = 'finance'
+        );
+    `);
+
+    // تحديث إجمالي عدد الملاحظات والجهة الأخيرة لكل أمر
+    await promisePool.query(`
+      UPDATE disbursement_orders o
+      JOIN (
+        SELECT orderId, COUNT(*) as cnt
+        FROM disbursement_order_notes
+        GROUP BY orderId
+      ) don ON o.id = don.orderId
+      SET o.notesCount = don.cnt;
+    `);
+
+    await promisePool.query(`
+      UPDATE disbursement_orders o
+      SET o.lastNoteSide = CASE
+        WHEN o.executiveNotesReply IS NOT NULL AND TRIM(o.executiveNotesReply) != '' THEN 'finance'
+        WHEN o.executiveNotes IS NOT NULL AND TRIM(o.executiveNotes) != '' THEN 'board'
+        ELSE NULL
+      END
+      WHERE o.lastNoteSide IS NULL AND (o.executiveNotes IS NOT NULL OR o.executiveNotesReply IS NOT NULL);
+    `);
 
     const [projCols] = await promisePool.query("SHOW COLUMNS FROM projects") as any[];
     const projColNames = Array.isArray(projCols) ? projCols.map((c: any) => c.Field) : [];
@@ -61,7 +143,9 @@ async function ensureSchemaUpdated(p: mysql.Pool) {
     // ملاحظة: طلبات سدانة تُدار بشكل مستقل ولا يتم إنشاء مشاريع لها في جدول projects
   } catch (err) {
     console.warn("[Database] ensureSchemaUpdated warning:", err);
-  }
+    }
+  })();
+  return _migrationPromise;
 }
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
@@ -76,7 +160,7 @@ export async function getDb() {
         connection.query("SET time_zone = '+00:00'");
       });
       _db = drizzle(pool);
-      ensureSchemaUpdated(pool).catch(() => {});
+      await ensureSchemaUpdated(pool).catch(() => {});
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;

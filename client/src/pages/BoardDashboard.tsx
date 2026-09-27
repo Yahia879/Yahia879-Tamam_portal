@@ -41,6 +41,7 @@ import {
   ChevronLeft, ChevronRight, Info, Printer, ExternalLink, MessageSquare, Loader2,
   Bell, PenLine, RotateCcw
 } from "lucide-react";
+import { DisbursementOrderNotesDialog } from "@/components/DisbursementOrderNotesDialog";
 
 const CHART_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"];
 
@@ -257,6 +258,17 @@ export default function BoardDashboard({
     orderId: 0,
     orderNumber: "",
     notes: "",
+  });
+
+  const [notesConversationModal, setNotesConversationModal] = useState<{
+    open: boolean;
+    orderId: number;
+    orderNumber: string;
+    orderStatus?: string;
+  }>({
+    open: false,
+    orderId: 0,
+    orderNumber: "",
   });
 
   const updateNotesMutation = trpc.disbursements.updateOrderNotes.useMutation({
@@ -657,34 +669,34 @@ export default function BoardDashboard({
                                     <div className="space-y-0.5">
                                       <div className="font-bold text-xs text-foreground max-w-[280px] truncate flex items-center gap-1.5">
                                         <span>{order.title}</span>
-                                        {order.executiveNotes && (
+                                        {(order.executiveNotes || (order as any).notesCount > 0) && (
                                           <button
                                             type="button"
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              setViewJustificationModal({
+                                              setNotesConversationModal({
                                                 open: true,
-                                                title: "ملاحظات وتوجيهات أمر الصرف",
-                                                subtitle: `الملاحظات والتوجيهات المدونة على أمر الصرف رقم (${order.orderNumber})`,
+                                                orderId: order.orderId || order.id,
                                                 orderNumber: order.orderNumber,
-                                                reason: order.executiveNotes || "",
-                                                reply: (order as any).executiveNotesReply || null,
-                                                repliedByName: (order as any).executiveNotesRepliedByName || null,
-                                                repliedAt: (order as any).executiveNotesRepliedAt || null,
+                                                orderStatus: (order as any).orderStatus || (order as any).status,
                                               });
                                             }}
                                             className={`inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold shrink-0 cursor-pointer shadow-2xs transition-colors ${
-                                              (order as any).executiveNotesReply
+                                              (order as any).lastNoteSide === "finance" || (order as any).executiveNotesReply
                                                 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30"
                                                 : "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/30"
                                             }`}
                                           >
-                                            {(order as any).executiveNotesReply ? (
+                                            {(order as any).lastNoteSide === "finance" || (order as any).executiveNotesReply ? (
                                               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                                             ) : (
                                               <MessageSquare className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                                             )}
-                                            <span>{(order as any).executiveNotesReply ? "تم الرد على الملاحظة" : "ملاحظات"}</span>
+                                            <span>
+                                              {(order as any).lastNoteSide === "finance" || (order as any).executiveNotesReply
+                                                ? `تم الرد عدد الملاحظات ${(order as any).notesCount || 1}`
+                                                : (order as any).notesCount > 1 ? `ملاحظات (${(order as any).notesCount})` : "ملاحظات"}
+                                            </span>
                                           </button>
                                         )}
                                       </div>
@@ -765,39 +777,43 @@ export default function BoardDashboard({
                                           </>
                                         )}
 
-                                        {/* خيار إضافة الملاحظات يظهر فقط إذا لم تكن هناك ملاحظات سابقة وقبل الاعتماد أو الرفض */}
-                                        {canPerformActions && isNeedsApproval && !order.executiveNotes && (
+                                        {/* خيار إضافة ومتابعة الملاحظات والتوجيهات (غير محدود ومتاح دائماً قبل الاعتماد والرفض) */}
+                                        {canPerformActions && isNeedsApproval && (
                                           <DropdownMenuItem
-                                            onClick={() => setNotesModal({
+                                            onClick={() => setNotesConversationModal({
                                               open: true,
                                               orderId: order.orderId || order.id,
                                               orderNumber: order.orderNumber,
-                                              notes: "",
+                                              orderStatus: (order as any).orderStatus || (order as any).status,
                                             })}
                                             className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 focus:bg-amber-50 dark:focus:bg-amber-950/30 transition-colors"
                                           >
                                             <MessageSquare className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                                            <span>إضافة ملاحظات</span>
+                                            <span>
+                                              {order.executiveNotes || (order as any).notesCount > 0
+                                                ? ((order as any).lastNoteSide === "finance" || (order as any).executiveNotesReply ? "عرض الملاحظات والرد" : "متابعة الملاحظات")
+                                                : "إضافة ملاحظات"}
+                                              {(order as any).notesCount > 0 ? ` (${(order as any).notesCount})` : ""}
+                                            </span>
                                           </DropdownMenuItem>
                                         )}
 
-                                        {/* خيار عرض الملاحظات فقط (بدون إمكانية التعديل) */}
-                                        {order.executiveNotes && (
+                                        {/* خيار عرض الملاحظات والردود للأوامر غير النشطة أو بعد الاعتماد */}
+                                        {!isNeedsApproval && (order.executiveNotes || (order as any).notesCount > 0) && (
                                           <DropdownMenuItem
-                                            onClick={() => setViewJustificationModal({
+                                            onClick={() => setNotesConversationModal({
                                               open: true,
-                                              title: "ملاحظات وتوجيهات أمر الصرف",
-                                              subtitle: `الملاحظات والتوجيهات المدونة على أمر الصرف رقم (${order.orderNumber})`,
+                                              orderId: order.orderId || order.id,
                                               orderNumber: order.orderNumber,
-                                              reason: order.executiveNotes || "",
-                                              reply: (order as any).executiveNotesReply || null,
-                                              repliedByName: (order as any).executiveNotesRepliedByName || null,
-                                              repliedAt: (order as any).executiveNotesRepliedAt || null,
+                                              orderStatus: (order as any).orderStatus || (order as any).status,
                                             })}
                                             className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 focus:bg-amber-50 dark:focus:bg-amber-950/30 transition-colors"
                                           >
                                             <MessageSquare className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                                            <span>{(order as any).executiveNotesReply ? "عرض الملاحظات والرد" : "عرض الملاحظات"}</span>
+                                            <span>
+                                              سجل الملاحظات والردود
+                                              {(order as any).notesCount > 0 ? ` (${(order as any).notesCount})` : ""}
+                                            </span>
                                           </DropdownMenuItem>
                                         )}
 
@@ -1854,59 +1870,20 @@ export default function BoardDashboard({
           </DialogContent>
         </Dialog>
 
-        {/* ==================== 📝 نافذة إضافة الملاحظات (تظهر قبل الاعتماد/الرفض ولمرة واحدة) ==================== */}
-        <Dialog open={notesModal.open} onOpenChange={(open) => setNotesModal((prev) => ({ ...prev, open }))}>
-          <DialogContent dir="rtl" className="sm:max-w-[640px] rounded-3xl p-6 sm:p-7 text-right">
-            <DialogHeader className="text-right sm:text-right border-b pb-4">
-              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg sm:text-xl font-bold text-right sm:text-right">
-                <MessageSquare className="w-5 h-5 text-amber-600 shrink-0" />
-                <span>إضافة ملاحظات وتوجيهات لأمر الصرف</span>
-              </DialogTitle>
-              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 text-right sm:text-right font-medium leading-relaxed">
-                تدوين ملاحظات وتوجيهات خاصة بأمر الصرف رقم ({notesModal.orderNumber}) ليتم إظهارها في شاشة أوامر الصرف.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 py-4 text-right">
-              <div className="space-y-2">
-                <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 block text-right">
-                  نص الملاحظات والتوجيهات:
-                </label>
-                <Textarea
-                  value={notesModal.notes}
-                  onChange={(e) => setNotesModal((prev) => ({ ...prev, notes: e.target.value }))}
-                  placeholder="اكتب ملاحظاتك وتوجيهاتك هنا..."
-                  rows={6}
-                  className="rounded-2xl text-xs sm:text-sm p-4 border-slate-200 dark:border-slate-700 resize-none leading-relaxed min-h-[140px] text-right"
-                  dir="rtl"
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="flex flex-row justify-start items-center gap-3 pt-3 border-t border-border/60">
-              <Button
-                onClick={() => {
-                  updateNotesMutation.mutate({
-                    orderId: notesModal.orderId,
-                    notes: notesModal.notes,
-                  });
-                }}
-                disabled={updateNotesMutation.isPending}
-                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white shadow-sm cursor-pointer"
-              >
-                {updateNotesMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
-                <span>إرسال الملاحظات</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setNotesModal({ open: false, orderId: 0, orderNumber: "", notes: "" })}
-                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 cursor-pointer"
-              >
-                إلغاء
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {/* ==================== 📝 نافذة الملاحظات والتوجيهات التفاعلية غير المحدودة ==================== */}
+        <DisbursementOrderNotesDialog
+          open={notesConversationModal.open}
+          onOpenChange={(open) => setNotesConversationModal((prev) => ({ ...prev, open }))}
+          orderId={notesConversationModal.orderId}
+          orderNumber={notesConversationModal.orderNumber}
+          orderStatus={notesConversationModal.orderStatus}
+          side="board"
+          onSuccess={() => {
+            refetch();
+            utils.board.getExecutiveStats.invalidate();
+            utils.disbursements.invalidate();
+          }}
+        />
 
         {/* ==================== ⚡ نافذة تأكيد الاعتماد من صاحب الصلاحية ==================== */}
         <Dialog open={!!confirmApproveOrder} onOpenChange={(open) => !open && setConfirmApproveOrder(null)}>
