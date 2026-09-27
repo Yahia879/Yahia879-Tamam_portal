@@ -393,7 +393,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                           })
                         }
                       >
-                        <SelectTrigger size="sm" className="h-8 text-xs w-24 mx-auto bg-background border-input font-medium">
+                        <SelectTrigger size="sm" className="h-8 text-xs w-28 mx-auto bg-background border-input font-medium">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent dir="rtl">
