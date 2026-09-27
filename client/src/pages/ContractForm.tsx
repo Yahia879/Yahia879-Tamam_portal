@@ -711,7 +711,10 @@ export default function ContractForm() {
       let agreedPeriodicLabel = '';
       let suggestedPeriodQty = 1;
 
-      if (frequency === 'شهري' && monthlyLimit && Number(monthlyLimit) > 0) {
+      if (frequency === 'مرة واحدة') {
+        suggestedPeriodQty = Number(item.totalQuantity) || 1;
+        agreedPeriodicLabel = `توريد مرة واحدة: ${suggestedPeriodQty} ${item.unit}`;
+      } else if (frequency === 'شهري' && monthlyLimit && Number(monthlyLimit) > 0) {
         suggestedPeriodQty = Number(monthlyLimit);
         agreedPeriodicLabel = `متفق عليه شهرياً: ${monthlyLimit} ${item.unit}`;
       } else if (frequency === 'ربع سنوي' && quarterlyLimit && Number(quarterlyLimit) > 0) {
