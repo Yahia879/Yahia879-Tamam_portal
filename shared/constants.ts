@@ -302,7 +302,7 @@ export function getStageLabel(stage: string, track?: string, programType?: strin
     if (stage === 'submitted') return 'دراسة وتدقيق الاحتياج';
     if (stage === 'initial_review') return 'دراسة وتدقيق الاحتياج';
     if (stage === 'technical_eval') return 'دراسة وتدقيق الاحتياج';
-    if (stage === 'contracting') return 'اعتماد نوع التأمين';
+    if (stage === 'contracting') return 'اعتماد نوع التوريد';
     if (stage === 'execution') return 'التشغيل والتنفيذ';
   }
   return STAGE_LABELS[stage as keyof typeof STAGE_LABELS] || stage;
@@ -658,13 +658,13 @@ export function getNextStage(currentStage: string, track: 'standard' | 'quick_re
     return 'contracting';
   }
   if (programType === 'sedana') {
-    const sedanaStages = ['submitted', 'boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'];
+    const sedanaStages = ['submitted', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'];
     const currentIndex = sedanaStages.indexOf(currentStage);
     if (currentIndex >= 0 && currentIndex < sedanaStages.length - 1) {
       return sedanaStages[currentIndex + 1];
     }
-    if (currentStage === 'initial_review' || currentStage === 'technical_eval') {
-      return 'boq_preparation';
+    if (currentStage === 'initial_review' || currentStage === 'technical_eval' || currentStage === 'boq_preparation') {
+      return 'financial_eval_and_approval';
     }
     return null;
   }
@@ -1030,9 +1030,11 @@ export function getPrerequisites(
   // لبرنامج سدانة: دراسة وتدقيق الاحتياج مكتبية في المرحلة الأولى ولا تتطلب تقارير مسبقة
   if (programType === 'sedana') {
     if (
+      key === 'submitted_to_financial_eval_and_approval' ||
       key === 'submitted_to_boq_preparation' ||
-      key === 'initial_review_to_boq_preparation' ||
-      key === 'technical_eval_to_boq_preparation' ||
+      key === 'initial_review_to_financial_eval_and_approval' ||
+      key === 'technical_eval_to_financial_eval_and_approval' ||
+      key === 'boq_preparation_to_financial_eval_and_approval' ||
       key === 'field_visit_to_technical_eval' ||
       key === 'initial_review_to_technical_eval'
     ) {
@@ -1254,15 +1256,14 @@ export const FAST_RESPONSE_WORKFLOW = [
 ] as const;
 
 // مسار سدانة (Sedana Workflow)
-// يتخطى مرحلة الزيارة الميدانية والتقييم الفني المنفصل، ويبدأ بدراسة وتدقيق الاحتياج المكتبي
+// يتخطى مرحلة الزيارة الميدانية والتقييم الفني وإعداد جدول الكميات، ويبدأ بدراسة وتدقيق الاحتياج المكتبي ثم التقييم المالي واعتماد العرض
 export const SEDANA_WORKFLOW = [
   { id: "submitted", label: "دراسة وتدقيق الاحتياج", order: 1 },
-  { id: "boq_preparation", label: "جدول الكميات", order: 2 },
-  { id: "financial_eval_and_approval", label: "التقييم المالي واعتماد العرض", order: 3 },
-  { id: "contracting", label: "اعتماد نوع التأمين", order: 4 },
-  { id: "execution", label: "التشغيل والتنفيذ", order: 5 },
-  { id: "handover", label: "الاستلام والتسليم", order: 6 },
-  { id: "closed", label: "الإغلاق", order: 7 },
+  { id: "financial_eval_and_approval", label: "التقييم المالي واعتماد العرض", order: 2 },
+  { id: "contracting", label: "اعتماد نوع التوريد", order: 3 },
+  { id: "execution", label: "التشغيل والتنفيذ", order: 4 },
+  { id: "handover", label: "الاستلام والتسليم", order: 5 },
+  { id: "closed", label: "الإغلاق", order: 6 },
 ] as const;
 
 // دالة لاختيار Workflow المناسب حسب نوع الطلب

@@ -467,6 +467,7 @@ export default function FinancialApproval() {
         requestId: parseInt(selectedRequestId),
         itemVendorSelections: selections,
         approvalNotes,
+        advanceStage: true,
       });
     } else {
       approveMutation.mutate({

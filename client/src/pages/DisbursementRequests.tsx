@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
 import { numberToArabicText } from "@shared/tafqeet";
 import DashboardLayout from "@/components/DashboardLayout";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -223,7 +224,7 @@ export default function DisbursementRequests() {
   const [paymentTypeFilter, setPaymentTypeFilter] = useState<string>("all");
   const [requestTypeFilter, setRequestTypeFilter] = useState<string>("all");
   
-  const [page, setPage] = useState(1);
+  const [page, setPage, resetPage] = usePersistedPage("disbursement_requests_page");
   const limit = 10;
   
   // نوافذ الحوار
@@ -596,9 +597,14 @@ export default function DisbursementRequests() {
   };
 
   // إعادة تعيين الصفحة الأولى عند تغيير الفلاتر أو البحث
+  const isFirstMount = useRef(true);
   useEffect(() => {
-    setPage(1);
-  }, [searchTerm, statusFilter, paymentTypeFilter, requestTypeFilter]);
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    resetPage();
+  }, [searchTerm, statusFilter, paymentTypeFilter, requestTypeFilter, resetPage]);
 
   const total = requestsData?.total || 0;
   const totalPages = Math.ceil(total / limit);
@@ -1252,66 +1258,18 @@ export default function DisbursementRequests() {
                 </div>
 
                 {/* Footer with Pagination */}
-                <div className="px-4 py-4 bg-muted/20 border-t flex flex-col items-center justify-center gap-4">
-                  <div className="text-[11px] md:text-xs text-muted-foreground text-center">
-                    يعرض {total > 0 ? (page - 1) * limit + 1 : 0} - {Math.min(page * limit, total)} من أصل {total} طلب صرف
-                  </div>
-                  
-                  {totalPages > 1 && (
-                    <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-                        disabled={page === 1}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                        if (
-                          totalPages <= 5 ||
-                          p === 1 ||
-                          p === totalPages ||
-                          (p >= page - 1 && p <= page + 1)
-                        ) {
-                          return (
-                            <Button
-                              key={p}
-                              variant={page === p ? "default" : "outline"}
-                              size="sm"
-                              className={`h-8 min-w-[32px] px-2 text-[11px] shrink-0 ${page === p ? 'gradient-primary text-white border-0' : ''}`}
-                              onClick={() => setPage(p)}
-                            >
-                              {p}
-                            </Button>
-                          );
-                        }
-                        
-                        if (p === 2 || p === totalPages - 1) {
-                          return (
-                            <span key={p} className="text-muted-foreground text-xs px-1">
-                              ...
-                            </span>
-                          );
-                        }
-                        
-                        return null;
-                      })}
-                      
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-                        disabled={page === totalPages}
-                      >
-                        <ChevronLeft className="h-4 w-4 rotate-180" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <EnhancedPagination
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={(newPage) => {
+                    setPage(newPage);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  totalItems={total}
+                  itemsPerPage={limit}
+                  itemName="طلب صرف"
+                  itemNamePlural="طلبات صرف"
+                />
               </CardContent>
             </Card>
           </TabsContent>

@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
+import EnhancedPagination from "@/components/EnhancedPagination";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Bell, Shield, Smartphone, MessageSquare, Mail, Users, Info, ArrowRight, Pencil, X, HeartHandshake, Search, CheckCircle2, XCircle, SlidersHorizontal, Filter } from "lucide-react";
+import { Bell, Shield, Smartphone, MessageSquare, Mail, Users, Info, ArrowRight, Pencil, X, HeartHandshake, Search, CheckCircle2, XCircle, SlidersHorizontal, Filter, Boxes, Sparkles, Truck, Package } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc";
@@ -89,6 +90,10 @@ const RequestNotificationsTooltip = () => (
           <div className="bg-muted/50 p-2 rounded-lg border-r-4 border-amber-600">
             <span className="font-semibold block text-amber-600 dark:text-amber-400 mb-0.5">استبيانات رضا المستفيدين والتذكير:</span>
             إرسال رابط استبيان قياس الرضا للمستفيدين والداعمين، ورسائل التذكير بالتقييم بعد إغلاق الطلب.
+          </div>
+          <div className="bg-muted/50 p-2 rounded-lg border-r-4 border-emerald-600">
+            <span className="font-semibold block text-emerald-600 dark:text-emerald-400 mb-0.5">برنامج سدانة والمستودع الافتراضي:</span>
+            اعتماد التقييم، أوامر الشراء، توريد البنود للمستودع، أوامر الصرف والتسليم وتوثيق الاستلام.
           </div>
         </div>
       </div>
@@ -213,67 +218,14 @@ const Pagination = ({
   if (totalPages <= 1) return null;
   
   return (
-    <div className="flex items-center justify-between border-t border-border/40 px-4 py-3.5 bg-slate-50/30 dark:bg-slate-900/5 sm:px-6">
-      <div className="flex flex-1 justify-between sm:hidden">
-        <button
-          onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
-          disabled={currentPage === 1}
-          className="relative inline-flex items-center rounded-md border border-border bg-background px-4 py-2 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
-        >
-          السابق
-        </button>
-        <button
-          onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
-          disabled={currentPage === totalPages}
-          className="relative ml-3 inline-flex items-center rounded-md border border-border bg-background px-4 py-2 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
-        >
-          التالي
-        </button>
-      </div>
-      <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between" dir="rtl">
-        <div>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            عرض الصفحة <span className="font-semibold text-foreground">{currentPage}</span> من{" "}
-            <span className="font-semibold text-foreground">{totalPages}</span>
-          </p>
-        </div>
-        <div>
-          <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm gap-1" aria-label="Pagination">
-            <button
-              onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
-              disabled={currentPage === 1}
-              className="relative inline-flex items-center rounded-lg border border-border/60 bg-background p-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50 transition-colors"
-            >
-              السابق
-            </button>
-            {Array.from({ length: totalPages }).map((_, idx) => {
-              const pageNum = idx + 1;
-              const isActive = pageNum === currentPage;
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => onPageChange(pageNum)}
-                  className={`relative inline-flex items-center rounded-lg px-3.5 py-2 text-xs font-semibold transition-all duration-200 ${
-                    isActive
-                      ? "bg-teal-600 text-white shadow-sm"
-                      : "border border-border/60 bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-            <button
-              onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="relative inline-flex items-center rounded-lg border border-border/60 bg-background p-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50 transition-colors"
-            >
-              التالي
-            </button>
-          </nav>
-        </div>
-      </div>
-    </div>
+    <EnhancedPagination
+      page={currentPage}
+      totalPages={totalPages}
+      onPageChange={onPageChange}
+      itemName="عنصر"
+      itemNamePlural="عناصر"
+      className="border-t border-border/40 bg-slate-50/30 dark:bg-slate-900/5 px-4 py-3 sm:px-6"
+    />
   );
 };
 
@@ -590,7 +542,7 @@ export default function NotificationCustomization() {
       categoryNameAr: "المساجد",
       nameAr: "تأكيد إضافة مسجد جديد",
       description: "إشعار تأكيد للمستفيد عند قيامه بإضافة مسجد جديد في النظام وهو قيد المراجعة",
-      defaultTemplate: "تم تسجيل المسجد {اسم_المسجد} بنجاح، وهو الآن قيد المراجعة والتدقيق من قبل الإدارة.",
+      defaultTemplate: "تم تسجيل {اسم_المسجد} بنجاح، وهو الآن قيد المراجعة والتدقيق من قبل الإدارة.",
       variables: [
         { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
       ]
@@ -601,7 +553,7 @@ export default function NotificationCustomization() {
       categoryNameAr: "المساجد",
       nameAr: "اعتماد وقبول طلب تسجيل المسجد",
       description: "إشعار المستفيد عند قيام الإدارة بالموافقة على اعتماد مسجده المسجل",
-      defaultTemplate: "تم قبول واعتماد طلب تسجيل المسجد الخاص بك: {اسم_المسجد}. يمكنك الآن تقديم طلبات الخدمات الخاصة به.",
+      defaultTemplate: "تم قبول واعتماد طلب تسجيل {اسم_المسجد}. يمكنك الآن تقديم طلبات الخدمات الخاصة به.",
       variables: [
         { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
       ]
@@ -612,7 +564,7 @@ export default function NotificationCustomization() {
       categoryNameAr: "المساجد",
       nameAr: "رفض طلب تسجيل المسجد",
       description: "إشعار المستفيد في حال رفض طلب تسجيل المسجد مع ذكر السبب",
-      defaultTemplate: "نعتذر منك، تم رفض طلب تسجيل المسجد {اسم_المسجد} بسبب: {السبب}. يمكنك مراجعة البيانات وتقديم الطلب مجدداً.",
+      defaultTemplate: "نعتذر منك، تم رفض طلب تسجيل {اسم_المسجد} بسبب: {السبب}. يمكنك مراجعة البيانات وتقديم الطلب مجدداً.",
       variables: [
         { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
         { placeholder: "{السبب}", nameAr: "سبب الرفض" }
@@ -626,7 +578,7 @@ export default function NotificationCustomization() {
       categoryNameAr: "الطلبات والمراحل",
       nameAr: "تأكيد استلام طلب خدمة جديد",
       description: "إشعار تأكيد فوري للمستفيد عند تقديم طلب خدمة جديد لمسجده",
-      defaultTemplate: "تم استلام طلبك رقم {رقم_الطلب} لمسجد {اسم_المسجد} بنجاح، وهو الآن قيد المراجعة والتدقيق.",
+      defaultTemplate: "تم استلام طلبك رقم {رقم_الطلب} لـ {اسم_المسجد} بنجاح، وهو الآن قيد المراجعة والتدقيق.",
       variables: [
         { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
         { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
@@ -866,7 +818,7 @@ export default function NotificationCustomization() {
       categoryNameAr: "الاستبيانات والتقييم",
       nameAr: "طلب تقييم رضا المستفيد بعد اكتمال الطلب",
       description: "دعوة المستفيد لتقييم جودة الخدمة المنفذة لمسجده وإبداء رأيه وملاحظاته",
-      defaultTemplate: "السلام عليكم {اسم_المستفيد}، نرجو التكرم بتقييم مستوى الخدمة المقدمة لمسجد {اسم_المسجد} للطلب رقم {رقم_الطلب} عبر الرابط المرفق.",
+      defaultTemplate: "السلام عليكم {اسم_المستفيد}، نرجو التكرم بتقييم مستوى الخدمة المقدمة لـ {اسم_المسجد} للطلب رقم {رقم_الطلب} عبر الرابط المرفق.",
       variables: [
         { placeholder: "{اسم_المستفيد}", nameAr: "اسم المستفيد" },
         { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
@@ -880,12 +832,114 @@ export default function NotificationCustomization() {
       categoryNameAr: "الاستبيانات والتقييم",
       nameAr: "الرسالة التذكيرية لتقييم رضا المستفيد",
       description: "رسالة تذكيرية لطيفة للمستفيد الذي لم يستكمل تقييم الرضا بعد إغلاق الطلب",
-      defaultTemplate: "تذكير: نود مشاركتكم في تقييم الخدمة لمسجد {اسم_المسجد} للطلب رقم {رقم_الطلب} لتطوير خدماتنا ومساعدتنا على التحسين المستمر.",
+      defaultTemplate: "تذكير: نود مشاركتكم في تقييم الخدمة لـ {اسم_المسجد} للطلب رقم {رقم_الطلب} لتطوير خدماتنا ومساعدتنا على التحسين المستمر.",
       variables: [
         { placeholder: "{اسم_المستفيد}", nameAr: "اسم المستفيد" },
         { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
         { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
         { placeholder: "{رابط_الاستبيان}", nameAr: "رابط التقييم" }
+      ]
+    },
+
+    // === مشغلات برنامج سدانة للمستفيد (ضمن قسم الطلبات والمراحل) ===
+    {
+      id: "beneficiary_sedana_inquiry_approved",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "اعتماد استبيان الاحتياج",
+      description: "إشعار إمام المسجد باعتماد وتأهيل مسجده لبرنامج سدانة وتوقيع الاتفاقية",
+      defaultTemplate: "مرحباً {اسم_المستفيد}، يسرنا إبلاغك باعتماد تأهيل {اسم_المسجد} لبرنامج سدانة. يمكنك الآن الدخول وتوقيع الاتفاقية وتقديم طلب الاحتياج السنوي.",
+      variables: [
+        { placeholder: "{اسم_المستفيد}", nameAr: "اسم المستفيد" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
+      ]
+    },
+    {
+      id: "beneficiary_sedana_inquiry_rejected",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "تحديث وتوجيه بشأن استبيان الاحتياج",
+      description: "إشعار إمام المسجد بنتائج مراجعة استبيان سدانة وتوجيه الفريق",
+      defaultTemplate: "مرحباً {اسم_المستفيد}، نود إفادتك بأنه تمت مراجعة استبيان {اسم_المسجد}: {السبب}",
+      variables: [
+        { placeholder: "{اسم_المستفيد}", nameAr: "اسم المستفيد" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
+        { placeholder: "{السبب}", nameAr: "السبب أو التوجيه" }
+      ]
+    },
+    {
+      id: "beneficiary_sedana_evaluation_approved",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "اعتماد دراسة وتدقيق الاحتياج السنوي",
+      description: "إشعار المستفيد باعتماد سلة الاحتياج ومعدلات التوريد الدوري لمسجده",
+      defaultTemplate: "السلام عليكم {اسم_المستفيد}، تم تدقيق واعتماد سلة الاحتياج السنوي ومعدلات التوريد الدوري لـ {اسم_المسجد} للطلب رقم {رقم_الطلب}.",
+      variables: [
+        { placeholder: "{اسم_المستفيد}", nameAr: "اسم المستفيد" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "beneficiary_sedana_procurement_approved",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "اعتماد مسار تأمين المستلزمات",
+      description: "إشعار المستفيد باكتمال إجراءات التأمين والانتقال للتشغيل والتنفيذ",
+      defaultTemplate: "تم اعتماد مسار تأمين مستلزمات سدانة لطلبك رقم {رقم_الطلب} والانتقال لمرحلة التشغيل والتنفيذ الميداني.",
+      variables: [
+        { placeholder: "{اسم_المستفيد}", nameAr: "اسم المستفيد" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "beneficiary_sedana_outbound_dispatched",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "انطلاق وجدولة شحنة المستلزمات",
+      description: "إشعار إمام المسجد بجدولة وتجهيز شحنة المواد النظافة والتعطير في طريقها للمسجد",
+      defaultTemplate: "السلام عليكم {اسم_المستفيد}، تم تجهيز وجدولة شحنة مستلزمات سدانة رقم \"{رقم_الشحنة}\" لـ {اسم_المسجد} بتاريخ {تاريخ_التسليم}. يرجى التكرم بالاستلام والتأكيد فور وصولها.",
+      variables: [
+        { placeholder: "{اسم_المستفيد}", nameAr: "اسم المستفيد" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
+        { placeholder: "{رقم_الشحنة}", nameAr: "رقم الشحنة" },
+        { placeholder: "{تاريخ_التسليم}", nameAr: "تاريخ التسليم" }
+      ]
+    },
+    {
+      id: "beneficiary_sedana_delivery_confirmed",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "شكر وتوثيق استلام الشحنة",
+      description: "رسالة شكر وتوثيق للمستفيد بعد توقيعه وتأكيده استلام شحنة المواد",
+      defaultTemplate: "شكراً لتعاونكم إمام {اسم_المسجد}، تم توثيق استلام شحنة مستلزمات سدانة رقم \"{رقم_الشحنة}\" بنجاح وتقييمكم المعتمد. نسأل الله أن يتقبل من الجميع.",
+      variables: [
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
+        { placeholder: "{رقم_الشحنة}", nameAr: "رقم الشحنة" }
+      ]
+    },
+    {
+      id: "beneficiary_sedana_cycle_reminder",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "تذكير بموعد الدفعة الدورية القادمة",
+      description: "إشعار المستفيد باقتراب موعد استحقاق التوريد الدوري الجديد للمسجد",
+      defaultTemplate: "السلام عليكم {اسم_المستفيد}، نود إحاطتكم باقتراب موعد استحقاق الدفعة القادمة من مستلزمات النظافة والتعطير لـ {اسم_المسجد}.",
+      variables: [
+        { placeholder: "{اسم_المستفيد}", nameAr: "اسم المستفيد" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
+      ]
+    },
+    {
+      id: "beneficiary_sedana_handover",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "اكتمال التوريدات والتشغيل النهائي",
+      description: "إشعار المستفيد باستيفاء كافة بنود التوريد ونقل الطلب لمرحلة التسليم النهائي",
+      defaultTemplate: "تم الانتهاء من أعمال التوريد والتشغيل والانتقال لمرحلة التسليم النهائي للطلب رقم {رقم_الطلب} لـ {اسم_المسجد}.",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
       ]
     }
   ];
@@ -919,7 +973,7 @@ export default function NotificationCustomization() {
       category: "request",
       nameAr: "إضافة مسجد جديد بانتظار الموافقة",
       description: "تم إضافة مسجد جديد وهو بانتظار الموافقة",
-      defaultTemplate: "تم إضافة مسجد جديد {اسم_المسجد} وهو بانتظار الموافقة",
+      defaultTemplate: "تم تسجيل {اسم_المسجد} وهو بانتظار الموافقة",
       variables: [
         { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
       ]
@@ -929,7 +983,7 @@ export default function NotificationCustomization() {
       category: "request",
       nameAr: "قبول طلب تسجيل مسجد",
       description: "تم قبول طلب تسجيل المسجد الخاص بك: مسجد رحمان",
-      defaultTemplate: "تم قبول طلب تسجيل المسجد الخاص بك: {اسم_المسجد}",
+      defaultTemplate: "تم قبول طلب تسجيل {اسم_المسجد}",
       variables: [
         { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
       ]
@@ -1265,10 +1319,140 @@ export default function NotificationCustomization() {
         { placeholder: "{السبب}", nameAr: "السبب" },
         { placeholder: "{رقم_طلب_الصرف}", nameAr: "رقم طلب الصرف (اختياري عند الارتباط بطلب)" }
       ]
+    },
+
+    // === مشغلات برنامج سدانة والمستودع الافتراضي (ضمن قسم الطلبات والمساجد) ===
+    {
+      id: "sedana_inquiry_submitted",
+      category: "request",
+      nameAr: "تقديم استبيان احتياج جديد من إمام المسجد",
+      description: "قام إمام المسجد بتقديم استبيان تأهيل جديد لمسجده بانتظار المراجعة والتدقيق",
+      defaultTemplate: "قام إمام {اسم_المسجد} بتقديم استبيان احتياج جديد وهو بانتظار المراجعة والتدقيق",
+      variables: [
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
+      ]
+    },
+    {
+      id: "sedana_request_created",
+      category: "request",
+      nameAr: "تقديم طلب رعاية وتشغيل جديد",
+      description: "تم تقديم طلب رعاية وتشغيل جديد بانتظار دراسة وتدقيق الاحتياج المكتبي",
+      defaultTemplate: "تم تقديم طلب رعاية وتشغيل جديد رقم {رقم_الطلب} لـ {اسم_المسجد} وهو بانتظار دراسة الاحتياج المكتبي",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
+      ]
+    },
+    {
+      id: "sedana_evaluation_approved",
+      category: "request",
+      nameAr: "اعتماد دراسة وتدقيق الاحتياج السنوي",
+      description: "قام المسؤول باعتماد الخطة السنوية والكميات الدورية للطلب",
+      defaultTemplate: "قام المسؤول {اسم_المسؤول} باعتماد دراسة وتدقيق الاحتياج السنوي للطلب رقم {رقم_الطلب} لـ {اسم_المسجد}",
+      variables: [
+        { placeholder: "{اسم_المسؤول}", nameAr: "اسم المسؤول" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
+      ]
+    },
+    {
+      id: "sedana_po_created",
+      category: "request",
+      nameAr: "إصدار أمر شراء مستلزمات",
+      description: "تم إصدار أمر شراء معتمد لتأمين المستلزمات",
+      defaultTemplate: "تم إصدار أمر شراء جديد رقم \"{رقم_الأمر}\" لتأمين المستلزمات للطلب رقم {رقم_الطلب} بقيمة {القيمة} ريال",
+      variables: [
+        { placeholder: "{رقم_الأمر}", nameAr: "رقم أمر الشراء" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{القيمة}", nameAr: "القيمة" }
+      ]
+    },
+    {
+      id: "sedana_csr_created",
+      category: "request",
+      nameAr: "إصدار خطاب مسؤولية مجتمعية للشريك",
+      description: "تم إصدار خطاب شراكة مجتمعية موجه لشركاء الدعم لتأمين المستلزمات",
+      defaultTemplate: "تم إصدار خطاب مسؤولية مجتمعية رقم \"{رقم_الخطاب}\" للشريك \"{اسم_الشريك}\" لتأمين المستلزمات للطلب رقم {رقم_الطلب}",
+      variables: [
+        { placeholder: "{رقم_الخطاب}", nameAr: "رقم الخطاب" },
+        { placeholder: "{اسم_الشريك}", nameAr: "اسم الشريك" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "sedana_inward_received",
+      category: "request",
+      nameAr: "تسجيل إذن إدخال مستودعي للمستلزمات",
+      description: "تم توريد وإدخال بضائع ومواد إلى المستودع الافتراضي بعد صرف المستحقات",
+      defaultTemplate: "تم تسجيل إذن إدخال مستودعي رقم \"{رقم_الإذن}\" بعدد {عدد_البنود} بنود لمستلزمات الطلب رقم {رقم_الطلب} لـ {اسم_المسجد}",
+      variables: [
+        { placeholder: "{رقم_الإذن}", nameAr: "رقم إذن الإدخال" },
+        { placeholder: "{عدد_البنود}", nameAr: "عدد البنود" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
+      ]
+    },
+    {
+      id: "sedana_outbound_created",
+      category: "request",
+      nameAr: "إصدار أمر صرف وتجهيز الشحنة",
+      description: "تم تجهيز وجدولة أمر خروج مواد مع مسوغ الصرف لتسليمها للمسجد",
+      defaultTemplate: "تم إصدار أمر صرف وتوزيع مجدول رقم \"{رقم_الأمر}\" للمستلزمات لـ {اسم_المسجد} ومسوغ صرف {مسوغ_الصرف}",
+      variables: [
+        { placeholder: "{رقم_الأمر}", nameAr: "رقم أمر الصرف/الشحنة" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
+        { placeholder: "{مسوغ_الصرف}", nameAr: "مسوغ الصرف" }
+      ]
+    },
+    {
+      id: "sedana_delivery_confirmed",
+      category: "request",
+      nameAr: "تأكيد إمام المسجد استلام الشحنة بنجاح",
+      description: "قام إمام المسجد بتوقيع إثبات الاستلام وتقييم جودة الخدمة",
+      defaultTemplate: "قام إمام {اسم_المسجد} بتأكيد استلام شحنة المستلزمات رقم \"{رقم_الشحنة}\" بنجاح مع تقييم الخدمة {التقييم} من 5 نجوم",
+      variables: [
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
+        { placeholder: "{رقم_الشحنة}", nameAr: "رقم الشحنة" },
+        { placeholder: "{التقييم}", nameAr: "التقييم (من 5 نجوم)" }
+      ]
+    },
+    {
+      id: "sedana_delivery_rejected",
+      category: "request",
+      nameAr: "رفض إمام المسجد استلام الشحنة",
+      description: "إشعار تحذيري برفض إمام المسجد استلام المواد مع بيان السبب",
+      defaultTemplate: "قام إمام {اسم_المسجد} برفض استلام شحنة المستلزمات رقم \"{رقم_الشحنة}\" بسبب: {السبب}",
+      variables: [
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
+        { placeholder: "{رقم_الشحنة}", nameAr: "رقم الشحنة" },
+        { placeholder: "{السبب}", nameAr: "سبب الرفض" }
+      ]
+    },
+    {
+      id: "sedana_cycle_reminder",
+      category: "request",
+      nameAr: "تذكير دوري بحلول دورة التوريد القادمة",
+      description: "تنبيه موظفي العمليات بحلول موعد التوريد المجدول القادم لتجهيز المواد",
+      defaultTemplate: "تذكير: اقترب موعد دورة التوريد القادمة لـ {اسم_المسجد} للطلب رقم {رقم_الطلب}. يرجى مراجعة المخزون وتجهيز أمر الصرف",
+      variables: [
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "sedana_handover_submitted",
+      category: "request",
+      nameAr: "تسليم الطلب ونقله لمرحلة التسليم النهائي",
+      description: "تم التحقق من استيفاء الدفعات والتوريدات ونقل الطلب لمرحلة التسليم",
+      defaultTemplate: "تم نقل الطلب رقم {رقم_الطلب} لـ {اسم_المسجد} إلى مرحلة التسليم النهائي بعد استيفاء التوريدات",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
+      ]
     }
   ];
 
-  const [selectedTriggerRoleId, setSelectedTriggerRoleId] = useState("field_team");
+  const [selectedTriggerRoleId, setSelectedTriggerRoleId] = useState("super_admin");
 
   // حاله المودال وتعديل القوالب
   const [selectedTriggerForEdit, setSelectedTriggerForEdit] = useState<any>(null);
@@ -1508,7 +1692,15 @@ export default function NotificationCustomization() {
     "{القيمة}": "50,000",
     "{اسم_المستلم}": "عيسى بن محمد علي عسيري",
     "{صفة_المستفيد}": "إمام مسجد",
-    "{رابط_الاستبيان}": "https://manara.org/survey/123"
+    "{رابط_الاستبيان}": "https://manara.org/survey/123",
+    "{رقم_الأمر}": "PO-SED-0012",
+    "{رقم_الشحنة}": "OUT-SED-0005",
+    "{رقم_الإذن}": "IN-SED-0003",
+    "{تاريخ_التسليم}": "2026/09/20",
+    "{اسم_الشريك}": "شركة المراعي لخدمة المجتمع",
+    "{مسوغ_الصرف}": "DV-SED-001",
+    "{عدد_البنود}": "4",
+    "{التقييم}": "5",
   };
 
   const getTemplatePreview = (triggerId: string) => {

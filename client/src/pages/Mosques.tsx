@@ -22,14 +22,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-} from "@/components/ui/pagination";
 import { Link } from "wouter";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
@@ -78,7 +72,7 @@ export default function Mosques() {
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [page, setPage] = useState(1);
+  const [page, setPage, resetPage] = usePersistedPage("mosques_table_page");
   const limit = 10;
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -279,14 +273,14 @@ export default function Mosques() {
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
-                    setPage(1);
+                    resetPage();
                   }}
                   className="pr-10 h-10"
                 />
               </div>
               <Select value={cityFilter} onValueChange={(val) => {
                 setCityFilter(val);
-                setPage(1);
+                resetPage();
               }}>
                 <SelectTrigger className="w-full h-10">
                   <SelectValue placeholder="المدينة" />
@@ -301,7 +295,7 @@ export default function Mosques() {
               <PermissionGuard permission="mosques.approve">
                 <Select value={statusFilter} onValueChange={(val) => {
                   setStatusFilter(val);
-                  setPage(1);
+                  resetPage();
                 }}>
                   <SelectTrigger className="w-full h-10">
                     <SelectValue placeholder="حالة الاعتماد" />
@@ -559,63 +553,18 @@ export default function Mosques() {
                 </div>
 
                 {/* Pagination UI */}
-                {totalPages > 1 && (
-                  <div className="py-6 flex justify-center border-t border-border/40 bg-slate-50/20 dark:bg-slate-900/10">
-                    <Pagination className="w-auto">
-                      <PaginationContent className="flex-nowrap gap-1 sm:gap-2">
-                        <PaginationItem>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setPage((p) => Math.max(1, p - 1))}
-                            disabled={page === 1}
-                            className="gap-1 h-9 px-2 sm:px-4"
-                          >
-                            <ChevronRight className="h-4 w-4" />
-                            <span className="hidden sm:inline">السابق</span>
-                          </Button>
-                        </PaginationItem>
-                        
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                            if (totalPages > 5) {
-                              if (p !== 1 && p !== totalPages && Math.abs(p - page) > 1) {
-                                if (p === 2 && page > 3) return <PaginationItem key={p}><PaginationEllipsis className="w-6" /></PaginationItem>;
-                                if (p === totalPages - 1 && page < totalPages - 2) return <PaginationItem key={p}><PaginationEllipsis className="w-6" /></PaginationItem>;
-                                return null;
-                              }
-                            }
-                            
-                            return (
-                              <PaginationItem key={p}>
-                                <PaginationLink
-                                  onClick={() => setPage(p)}
-                                  isActive={page === p}
-                                  className="cursor-pointer w-8 h-8 sm:w-9 sm:h-9 text-xs sm:text-sm p-0 flex items-center justify-center"
-                                >
-                                  {p}
-                                </PaginationLink>
-                              </PaginationItem>
-                            );
-                          })}
-                        </div>
-
-                        <PaginationItem>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                            disabled={page === totalPages}
-                            className="gap-1 h-9 px-2 sm:px-4"
-                          >
-                            <span className="hidden sm:inline">التالي</span>
-                            <ChevronLeft className="h-4 w-4" />
-                          </Button>
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  </div>
-                )}
+                <EnhancedPagination
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={(newPage) => {
+                    setPage(newPage);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  totalItems={total}
+                  itemsPerPage={limit}
+                  itemName="مسجد"
+                  itemNamePlural="مساجد"
+                />
               </>
             ) : (
               <div className="p-8 text-center">

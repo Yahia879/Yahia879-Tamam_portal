@@ -53,7 +53,7 @@ import {
   PREREQUISITE_ERROR_MESSAGES,
   type PrerequisiteType,
 } from "@shared/constants";
-import { notifyRequestCreation, notifyUsersByRole, createNotification, notifyRequestStageChangeToOfficers, notifyQuotationApproval, sendEmailNotification } from "./notifications";
+import { notifyRequestCreation, notifyUsersByRole, createNotification, notifyRequestStageChangeToOfficers, notifyQuotationApproval, sendEmailNotification, notifySedanaEvent } from "./notifications";
 import { generateProjectNumber, createProjectForSedanaRequest } from "./projects";
 
 export function getSurveyBaseUrl(_req?: any): string {
@@ -407,10 +407,37 @@ export const requestsRouter = router({
         } catch (projErr) {
           console.error("[Request Create] Failed to auto-create project for Sedana request:", projErr);
         }
-      }
 
-      // إرسال إشعار عند إنشاء طلب جديد
-      await notifyRequestCreation(requestId, requestNumber, ctx.user.id);
+        // إشعار تأكيد لمقدم الطلب إذا كان مستفيداً
+        if (ctx.user.role === "service_requester") {
+          await createNotification({
+            userId: ctx.user.id,
+            type: "request",
+            title: "طلب جديد",
+            message: "تم إنشاء طلب جديد وهو بانتظار المعالجة",
+            relatedType: "request",
+            relatedId: requestId,
+            triggerId: "beneficiary_request_created",
+          });
+        }
+
+        // إرسال إشعار سدانة المخصص لمسؤولي وموظفي النظام: تم تقديم طلب رعاية وتشغيل جديد
+        try {
+          await notifySedanaEvent({
+            event: "sedana_request_created",
+            requestId,
+            requestNumber,
+            mosqueName: mosqueData?.name || "المسجد",
+            requesterUserId: ctx.user.id,
+            actorName: ctx.user.name,
+          });
+        } catch (sedanaNotifErr) {
+          console.error("[Request Create] Failed to notify Sedana request creation:", sedanaNotifErr);
+        }
+      } else {
+        // إرسال إشعار عند إنشاء طلب جديد عادي
+        await notifyRequestCreation(requestId, requestNumber, ctx.user.id);
+      }
 
       return { success: true, requestId, projectId: createdProjectId, requestNumber, message: "تم تقديم الطلب بنجاح" };
     }),
@@ -790,12 +817,13 @@ export const requestsRouter = router({
         conditions.push(eq(mosqueRequests.programType, input.programType));
       }
       if (input.boqPreparationsView) {
-        // استبعاد تام لطلبات الاستجابة السريعة (الطلبات السريعة)
+        // استبعاد تام لطلبات الاستجابة السريعة وطلبات برنامج سدانة (لا تتطلب إعداد جدول كميات)
         conditions.push(
           sql`(${mosqueRequests.requestTrack} IS NULL OR ${mosqueRequests.requestTrack} != 'quick_response')`,
           sql`(${mosqueRequests.technicalEvalDecision} IS NULL OR ${mosqueRequests.technicalEvalDecision} != 'quick_response')`,
           ne(mosqueRequests.status, "rejected"),
-          sql`(${mosqueRequests.technicalEvalDecision} IS NULL OR ${mosqueRequests.technicalEvalDecision} != 'apologize')`
+          sql`(${mosqueRequests.technicalEvalDecision} IS NULL OR ${mosqueRequests.technicalEvalDecision} != 'apologize')`,
+          sql`(${mosqueRequests.programType} IS NULL OR ${mosqueRequests.programType} != 'sedana')`
         );
 
         // إظهار الطلبات التي بحاجة لوضع جدول الكميات (مرحلة إعداد جدول الكميات) أو التي أُعدت لها جداول كميات (سجلات في quantity_schedules)
@@ -1280,7 +1308,7 @@ export const requestsRouter = router({
       const isQuickResponse = requestTrack === 'quick_response' || request[0].technicalEvalDecision === 'quick_response';
       const isDonation = request[0].technicalEvalDecision === 'convert_to_donation';
       const isSedana = request[0].programType === 'sedana';
-      const sedanaStages = ["submitted", "boq_preparation", "financial_eval_and_approval", "contracting", "execution", "handover", "closed"];
+      const sedanaStages = ["submitted", "financial_eval_and_approval", "contracting", "execution", "handover", "closed"];
       const stages = isQuickResponse 
         ? quickResponseStages 
         : isDonation 
@@ -1293,8 +1321,8 @@ export const requestsRouter = router({
       
       // السماح فقط بالتقدم للمرحلة التالية (وليس القفز)
       if (newIndex !== currentIndex + 1) {
-        if (isSedana && ['submitted', 'initial_review', 'field_visit', 'technical_eval'].includes(oldStage) && input.newStage === 'boq_preparation') {
-          // السماح بالانتقال المباشر لجدول الكميات في سدانة
+        if (isSedana && ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'boq_preparation'].includes(oldStage) && input.newStage === 'financial_eval_and_approval') {
+          // السماح بالانتقال المباشر للتقييم المالي في سدانة
         } else {
           throw new TRPCError({ 
             code: "BAD_REQUEST", 
@@ -1376,24 +1404,7 @@ export const requestsRouter = router({
         }
       }
 
-      // التحقق من تسعير كافة البنود عند الانتقال لمرحلة التقييم المالي واعتماد العرض لبرنامج سدانة
-      if (input.newStage === 'financial_eval_and_approval' && (isSedana || request[0].programType === 'sedana')) {
-        const boqItems = await db.select().from(quantitySchedules)
-          .where(eq(quantitySchedules.requestId, input.requestId));
-        if (boqItems.length === 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "لا يمكن الانتقال إلى مرحلة التقييم المالي واعتماد العرض قبل إعداد جدول الكميات وتسعير البنود",
-          });
-        }
-        const unpriced = boqItems.filter(b => !b.unitPrice || Number(b.unitPrice) <= 0);
-        if (unpriced.length > 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `لا يمكن الانتقال إلى مرحلة التقييم المالي واعتماد العرض إلا بعد تسعير جميع البنود (${unpriced.length} بند غير مسعر)`,
-          });
-        }
-      }
+
 
       // التحقق من الشروط المسبقة للانتقال
       // ملاحظة: لا يمكن تجاوز الشروط الحرجة (المراجعة الأولية، الزيارة الميدانية) حتى مع skipPrerequisites
@@ -1433,22 +1444,12 @@ export const requestsRouter = router({
           }
           // التحقق من وجود جدول الكميات وتسعير البنود
           else if (prereq.type === 'boq_created') {
-            const boqItems = await db.select().from(quantitySchedules)
-              .where(eq(quantitySchedules.requestId, input.requestId));
-            if (boqItems.length === 0) {
-              isMet = false;
-            } else if (isSedana || request[0].programType === 'sedana') {
-              const unpriced = boqItems.filter(b => !b.unitPrice || Number(b.unitPrice) <= 0);
-              if (unpriced.length > 0) {
-                isMet = false;
-                throw new TRPCError({
-                  code: "BAD_REQUEST",
-                  message: `لا يمكن الانتقال إلى مرحلة التقييم المالي واعتماد العرض إلا بعد تسعير جميع البنود (${unpriced.length} بند غير مسعر)`,
-                });
-              }
+            if (isSedana || request[0].programType === 'sedana') {
               isMet = true;
             } else {
-              isMet = true;
+              const boqItems = await db.select().from(quantitySchedules)
+                .where(eq(quantitySchedules.requestId, input.requestId));
+              isMet = boqItems.length > 0;
             }
           }
           // التحقق من وجود عروض أسعار مستلمة
@@ -2747,8 +2748,8 @@ export const requestsRouter = router({
       if (input.shouldAdvanceStage) {
         updateData.technicalEvalDecision = 'convert_to_project';
         updateData.technicalEvalJustification = input.notes || 'تم اعتماد خطة التشغيل والرعاية السنوية عبر التقييم الفني المكتبي الذكي.';
-        if (['submitted', 'initial_review', 'field_visit', 'technical_eval'].includes(request.currentStage)) {
-          updateData.currentStage = 'boq_preparation';
+        if (['submitted', 'initial_review', 'field_visit', 'technical_eval', 'boq_preparation'].includes(request.currentStage)) {
+          updateData.currentStage = 'financial_eval_and_approval';
         }
         updateData.status = 'in_progress';
       }
@@ -2779,6 +2780,23 @@ export const requestsRouter = router({
 
         } catch (logErr) {
           console.error("Evaluation log error:", logErr);
+        }
+
+        // إرسال إشعار اعتماد دراسة احتياج سدانة
+        try {
+          const [mosqueRow] = request.mosqueId 
+            ? await db.select({ name: mosques.name }).from(mosques).where(eq(mosques.id, request.mosqueId)).limit(1) 
+            : [null];
+          notifySedanaEvent({
+            event: "sedana_evaluation_approved",
+            requestId: request.id,
+            requestNumber: request.requestNumber || `REQ-${request.id}`,
+            mosqueName: mosqueRow?.name || "المسجد",
+            requesterUserId: request.userId || undefined,
+            actorName: ctx.user.name,
+          }).catch(err => console.error("Sedana evaluation notif error:", err));
+        } catch (notifErr) {
+          console.error("Error triggering evaluation notification:", notifErr);
         }
       }
 
@@ -3041,6 +3059,27 @@ export const requestsRouter = router({
           });
         } catch (trackErr) {
           // ignore tracking error
+        }
+
+        // إرسال إشعار اعتماد تأمين سدانة والانتقال للتنفيذ
+        try {
+          const [mosqueRow] = request.mosqueId 
+            ? await db.select({ name: mosques.name }).from(mosques).where(eq(mosques.id, request.mosqueId)).limit(1) 
+            : [null];
+          notifySedanaEvent({
+            event: "sedana_po_created",
+            requestId: request.id,
+            requestNumber: request.requestNumber || `REQ-${request.id}`,
+            mosqueName: mosqueRow?.name || "المسجد",
+            requesterUserId: request.userId || undefined,
+            actorName: ctx.user.name,
+            data: {
+              orderNumber: activePO?.orderNumber,
+              amount: activePO?.totalAmount,
+            },
+          }).catch(err => console.error("Sedana procurement notif error:", err));
+        } catch (notifErr) {
+          console.error("Error triggering procurement notification:", notifErr);
         }
       }
 

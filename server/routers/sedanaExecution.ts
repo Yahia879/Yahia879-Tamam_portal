@@ -4,6 +4,7 @@ import { getDb } from "../db";
 import { mosqueRequests, mosques, users, quantitySchedules, requestHistory, requestStageTracking, disbursementOrders, projects, payments, contractsEnhanced, contractPayments } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNotNull, inArray, or } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { notifySedanaEvent } from "./notifications";
 
 export const sedanaExecutionRouter = router({
   // ==========================================
@@ -180,7 +181,9 @@ export const sedanaExecutionRouter = router({
           const totalQty = parseFloat(b.quantity || "1");
           let cycleQty = matchedBasket?.monthlyLimit || matchedBasket?.periodLimits?.[frequency];
           if (!cycleQty) {
-            if (frequency.includes("شهر") || frequency === "شهري") {
+            if (frequency.includes("مرة") || frequency === "مرة واحدة") {
+              cycleQty = totalQty;
+            } else if (frequency.includes("شهر") || frequency === "شهري") {
               cycleQty = totalQty >= 5 ? 1 : totalQty;
             } else if (frequency.includes("ربع") || frequency === "ربع سنوي") {
               cycleQty = Math.ceil(totalQty / 4) || 1;
@@ -214,7 +217,9 @@ export const sedanaExecutionRouter = router({
           const totalQty = parseFloat(it.approvedQty || it.requestedQty || "1");
           let cycleQty = it.cycleQuantity || matchedBasket?.monthlyLimit;
           if (!cycleQty) {
-            if (frequency.includes("شهر") || frequency === "شهري") {
+            if (frequency.includes("مرة") || frequency === "مرة واحدة") {
+              cycleQty = totalQty;
+            } else if (frequency.includes("شهر") || frequency === "شهري") {
               cycleQty = totalQty >= 5 ? 1 : totalQty;
             } else if (frequency.includes("ربع") || frequency === "ربع سنوي") {
               cycleQty = Math.ceil(totalQty / 4) || 1;
@@ -246,7 +251,9 @@ export const sedanaExecutionRouter = router({
           const totalQty = parseFloat(b.quantity || "1");
           let cycleQty = b.monthlyLimit || b.periodLimits?.[frequency];
           if (!cycleQty) {
-            if (frequency.includes("شهر") || frequency === "شهري") {
+            if (frequency.includes("مرة") || frequency === "مرة واحدة") {
+              cycleQty = totalQty;
+            } else if (frequency.includes("شهر") || frequency === "شهري") {
               cycleQty = totalQty >= 5 ? 1 : totalQty;
             } else if (frequency.includes("ربع") || frequency === "ربع سنوي") {
               cycleQty = Math.ceil(totalQty / 4) || 1;
@@ -363,6 +370,7 @@ export const sedanaExecutionRouter = router({
 
       // دالة حساب عدد الأيام لفترة الدورية
       const getFrequencyDays = (freq: string): number => {
+        if (freq.includes("مرة") || freq === "مرة واحدة") return 365;
         if (freq.includes("ربع") || freq === "ربع سنوي") return 90;
         if (freq.includes("نصف") || freq === "نصف سنوي") return 180;
         if (freq.includes("سنو") || freq === "سنوي") return 365;
@@ -953,13 +961,13 @@ export const sedanaExecutionRouter = router({
       } else if (hasContractInsurance) {
         if (reqContracts.length === 0) {
           canHandover = false;
-          blockedReason = "تم تحديد نوع التأمين لـ مورد أو أكثر بعقد في مرحلة اعتماد نوع التأمين، ولكن لم يتم إنشاء العقد وجدولة الدفعات وسدادها بعد. يجب سداد كافة الدفعات المجدولة أولاً.";
+          blockedReason = "تم تحديد نوع التوريد لـ مورد أو أكثر بعقد في مرحلة اعتماد نوع التوريد، ولكن لم يتم إنشاء العقد وجدولة الدفعات وسدادها بعد. يجب سداد كافة الدفعات المجدولة أولاً.";
         } else if (scheduledBatchesTotal === 0 && totalPaymentsCount === 0) {
           canHandover = false;
-          blockedReason = "تم تحديد نوع التأمين لـ مورد أو أكثر بعقد، ولكن لا توجد دفعات مجدولة مسددة في العقد. يجب جدولة وسداد كافة الدفعات المجدولة أولاً.";
+          blockedReason = "تم تحديد نوع التوريد لـ مورد أو أكثر بعقد، ولكن لا توجد دفعات مجدولة مسددة في العقد. يجب جدولة وسداد كافة الدفعات المجدولة أولاً.";
         } else if (scheduledBatchesUnpaid > 0) {
           canHandover = false;
-          blockedReason = `لا يمكن تسليم الطلب: تم تحديد نوع التأمين لـ مورد أو أكثر بعقد في مرحلة اعتماد نوع التأمين، ويوجد ${scheduledBatchesUnpaid} دفعة مجدولة في عقدهم بحالة غير مسددة. يجب سداد كافة الدفعات المجدولة أولاً.`;
+          blockedReason = `لا يمكن تسليم الطلب: تم تحديد نوع التوريد لـ مورد أو أكثر بعقد في مرحلة اعتماد نوع التوريد، ويوجد ${scheduledBatchesUnpaid} دفعة مجدولة في عقدهم بحالة غير مسددة. يجب سداد كافة الدفعات المجدولة أولاً.`;
         } else if (unpaidPaymentsCount > 0) {
           canHandover = false;
           blockedReason = `لا يمكن تسليم الطلب: توجد ${unpaidPaymentsCount} دفعة/أمر صرف لم يتم سدادها بعد (حالتها غير مسددة). يجب سداد كافة المستحقات قبل تسليم الطلب.`;
@@ -1239,6 +1247,27 @@ export const sedanaExecutionRouter = router({
         console.error("Log error:", e);
       }
 
+      // إرسال إشعار تسجيل أمر الإدخال المستودعي
+      try {
+        const [mosqueRow] = req.mosqueId 
+          ? await db.select({ name: mosques.name }).from(mosques).where(eq(mosques.id, req.mosqueId)).limit(1) 
+          : [null];
+        notifySedanaEvent({
+          event: "sedana_inward_received",
+          requestId: req.id,
+          requestNumber: req.requestNumber || `REQ-${req.id}`,
+          mosqueName: mosqueRow?.name || "المسجد",
+          requesterUserId: req.userId || undefined,
+          actorName: ctx.user.name,
+          data: {
+            orderNumber,
+            itemsCount: input.items.length,
+          },
+        }).catch(err => console.error("Sedana inward notif error:", err));
+      } catch (notifErr) {
+        console.error("Error triggering inward notification:", notifErr);
+      }
+
       return {
         success: true,
         order: newInwardOrder,
@@ -1342,6 +1371,7 @@ export const sedanaExecutionRouter = router({
         .where(eq(quantitySchedules.requestId, req.id));
 
       const getFrequencyDays = (freq: string): number => {
+        if (freq.includes("مرة") || freq === "مرة واحدة") return 365;
         if (freq.includes("ربع") || freq === "ربع سنوي") return 90;
         if (freq.includes("نصف") || freq === "نصف سنوي") return 180;
         if (freq.includes("سنو") || freq === "سنوي") return 365;
@@ -1483,6 +1513,28 @@ export const sedanaExecutionRouter = router({
         console.error("Log error:", e);
       }
 
+      // إرسال إشعار إصدار أمر الصرف والتوزيع
+      try {
+        const [mosqueRow] = req.mosqueId 
+          ? await db.select({ name: mosques.name }).from(mosques).where(eq(mosques.id, req.mosqueId)).limit(1) 
+          : [null];
+        notifySedanaEvent({
+          event: "sedana_outbound_created",
+          requestId: req.id,
+          requestNumber: req.requestNumber || `REQ-${req.id}`,
+          mosqueName: mosqueRow?.name || "المسجد",
+          requesterUserId: req.userId || undefined,
+          actorName: ctx.user.name,
+          data: {
+            orderNumber,
+            voucherCode: disbursementVoucherCode,
+            scheduledDate: input.scheduledDate,
+          },
+        }).catch(err => console.error("Sedana outbound notif error:", err));
+      } catch (notifErr) {
+        console.error("Error triggering outbound notification:", notifErr);
+      }
+
       return {
         success: true,
         order: newOutbound,
@@ -1610,6 +1662,28 @@ export const sedanaExecutionRouter = router({
         });
       } catch (e) {
         console.error("Log error:", e);
+      }
+
+      // إشعار المستفيد بجدولة وانطلاق الشحنة بعد اعتماد المسؤول
+      try {
+        const [mosqueRow] = req.mosqueId 
+          ? await db.select({ name: mosques.name }).from(mosques).where(eq(mosques.id, req.mosqueId)).limit(1) 
+          : [null];
+        notifySedanaEvent({
+          event: "sedana_outbound_created",
+          requestId: req.id,
+          requestNumber: req.requestNumber || `REQ-${req.id}`,
+          mosqueName: mosqueRow?.name || "المسجد",
+          requesterUserId: req.userId || undefined,
+          actorName: ctx.user.name,
+          data: {
+            orderNumber: out.orderNumber,
+            voucherCode: out.disbursementVoucherCode,
+            scheduledDate: out.scheduledDate,
+          },
+        }).catch(err => console.error("Sedana supervisor outbound notif error:", err));
+      } catch (notifErr) {
+        console.error("Error triggering supervisor outbound notification:", notifErr);
       }
 
       return {
@@ -1846,6 +1920,27 @@ export const sedanaExecutionRouter = router({
         console.error("Log error:", e);
       }
 
+      // إرسال إشعار توثيق واستلام البنود
+      try {
+        const [mosqueRow] = req.mosqueId 
+          ? await db.select({ name: mosques.name }).from(mosques).where(eq(mosques.id, req.mosqueId)).limit(1) 
+          : [null];
+        notifySedanaEvent({
+          event: "sedana_delivery_confirmed",
+          requestId: req.id,
+          requestNumber: req.requestNumber || `REQ-${req.id}`,
+          mosqueName: mosqueRow?.name || "المسجد",
+          requesterUserId: req.userId || undefined,
+          actorName: ctx.user.name,
+          data: {
+            orderNumber: deliveries[targetIndex].deliveryNumber,
+            rating: input.satisfactionRating || 5,
+          },
+        }).catch(err => console.error("Sedana delivery confirmed notif error:", err));
+      } catch (notifErr) {
+        console.error("Error triggering delivery confirmed notification:", notifErr);
+      }
+
       return {
         success: true,
         message: "تم تأكيد الاستلام وتوثيق العملية إلكترونياً بنجاح",
@@ -1967,6 +2062,27 @@ export const sedanaExecutionRouter = router({
         });
       } catch (e) {
         console.error("Log error:", e);
+      }
+
+      // إرسال إشعار توثيق واستلام أمر الإخراج
+      try {
+        const [mosqueRow] = req.mosqueId 
+          ? await db.select({ name: mosques.name }).from(mosques).where(eq(mosques.id, req.mosqueId)).limit(1) 
+          : [null];
+        notifySedanaEvent({
+          event: "sedana_delivery_confirmed",
+          requestId: req.id,
+          requestNumber: req.requestNumber || `REQ-${req.id}`,
+          mosqueName: mosqueRow?.name || "المسجد",
+          requesterUserId: req.userId || undefined,
+          actorName: recipientName,
+          data: {
+            orderNumber: outbounds[targetOutIndex].orderNumber,
+            rating: input.satisfactionRating || 5,
+          },
+        }).catch(err => console.error("Sedana outbound receipt confirmed notif error:", err));
+      } catch (notifErr) {
+        console.error("Error triggering outbound receipt confirmed notification:", notifErr);
       }
 
       return {
@@ -2114,6 +2230,27 @@ export const sedanaExecutionRouter = router({
         });
       } catch (e) {
         console.error("Log error:", e);
+      }
+
+      // إرسال إشعار تحذيري للمسؤولين برفض الاستلام مع السبب
+      try {
+        const [mosqueRow] = req.mosqueId 
+          ? await db.select({ name: mosques.name }).from(mosques).where(eq(mosques.id, req.mosqueId)).limit(1) 
+          : [null];
+        notifySedanaEvent({
+          event: "sedana_delivery_rejected",
+          requestId: req.id,
+          requestNumber: req.requestNumber || `REQ-${req.id}`,
+          mosqueName: mosqueRow?.name || "المسجد",
+          requesterUserId: req.userId || undefined,
+          actorName: ctx.user.name || "إمام المسجد",
+          data: {
+            orderNumber: outbounds[targetOutIndex].orderNumber,
+            reason: input.reason,
+          },
+        }).catch(err => console.error("Sedana delivery rejected notif error:", err));
+      } catch (notifErr) {
+        console.error("Error triggering delivery rejected notification:", notifErr);
       }
 
       return {
@@ -2484,19 +2621,19 @@ export const sedanaExecutionRouter = router({
           if (reqContracts.length === 0) {
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: "لا يمكن تسليم الطلب: تم تحديد نوع التأمين لـ مورد أو أكثر بعقد في مرحلة اعتماد نوع التأمين، ولكن لم يتم تحرير العقد وجدولة وسداد الدفعات بعد.",
+              message: "لا يمكن تسليم الطلب: تم تحديد نوع التوريد لـ مورد أو أكثر بعقد في مرحلة اعتماد نوع التوريد، ولكن لم يتم تحرير العقد وجدولة وسداد الدفعات بعد.",
             });
           }
           if (scheduledBatchesTotal === 0 && totalPayments === 0) {
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: "لا يمكن تسليم الطلب: تم تحديد نوع التأمين لـ مورد أو أكثر بعقد، ولكن لا توجد دفعات مجدولة مسددة في العقد.",
+              message: "لا يمكن تسليم الطلب: تم تحديد نوع التوريد لـ مورد أو أكثر بعقد، ولكن لا توجد دفعات مجدولة مسددة في العقد.",
             });
           }
           if (scheduledBatchesUnpaid > 0) {
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: `لا يمكن تسليم الطلب: تم تحديد نوع التأمين لـ مورد أو أكثر بعقد في مرحلة اعتماد نوع التأمين، وتوجد ${scheduledBatchesUnpaid} دفعة مجدولة في عقدهم بحالة غير مسددة. يجب سداد كافة الدفعات المجدولة أولاً.`,
+              message: `لا يمكن تسليم الطلب: تم تحديد نوع التوريد لـ مورد أو أكثر بعقد في مرحلة اعتماد نوع التوريد، وتوجد ${scheduledBatchesUnpaid} دفعة مجدولة في عقدهم بحالة غير مسددة. يجب سداد كافة الدفعات المجدولة أولاً.`,
             });
           }
           if (unpaidCount > 0) {
@@ -2550,6 +2687,23 @@ export const sedanaExecutionRouter = router({
         });
       } catch (e) {
         // ignore duplicate
+      }
+
+      // إرسال إشعار نقل سدانة لمرحلة التسليم
+      try {
+        const [mosqueRow] = req.mosqueId 
+          ? await db.select({ name: mosques.name }).from(mosques).where(eq(mosques.id, req.mosqueId)).limit(1) 
+          : [null];
+        notifySedanaEvent({
+          event: "sedana_handover_submitted",
+          requestId: req.id,
+          requestNumber: req.requestNumber || `REQ-${req.id}`,
+          mosqueName: mosqueRow?.name || "المسجد",
+          requesterUserId: req.userId || undefined,
+          actorName: ctx.user.name,
+        }).catch(err => console.error("Sedana handover notif error:", err));
+      } catch (notifErr) {
+        console.error("Error triggering handover notification:", notifErr);
       }
 
       return {

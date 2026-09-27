@@ -121,18 +121,18 @@ export function getActiveAction(
   if (requestData?.programType === 'sedana') {
     if (['submitted', 'initial_review', 'technical_eval'].includes(currentStage)) {
       title = "دراسة وتدقيق الاحتياج السنوي (سدانة)";
-      description = "راجع بنود سلة الاحتياجات السنوية للمسجد واضبط الكميات المعتمدة في الجدول أدناه لاعتمادها والانتقال لجدول الكميات.";
+      description = "راجع بنود سلة الاحتياجات السنوية للمسجد واضبط الكميات المعتمدة في الجدول أدناه لاعتمادها والانتقال للتقييم المالي واعتماد العرض.";
       actionButton = {
-        label: "الانتقال لجدول الكميات",
-        nextStage: "boq_preparation",
+        label: "الانتقال للتقييم المالي واعتماد العرض",
+        nextStage: "financial_eval_and_approval",
       };
     } else if (currentStage === 'contracting') {
-      title = "اعتماد نوع التأمين";
-      description = "اختر مسار تأمين بنود المشروع لكل مورد: عقد توريد وخدمات، أمر شراء داخلي لإدارة المشتريات، أو خطاب مسؤولية مجتمعية.";
+      title = "اعتماد نوع التوريد";
+      description = "اختر مسار توريد بنود المشروع لكل مورد: عقد توريد وخدمات، أمر شراء داخلي لإدارة المشتريات، أو خطاب مسؤولية مجتمعية.";
       icon = "FileSignature";
       iconColor = "text-cyan-600";
       actionButton = {
-        label: "تحديد نوع التأمين",
+        label: "تحديد نوع التوريد",
         redirectUrl: "/requests/:requestId/procurement",
       };
     }

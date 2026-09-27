@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { 
   HeartHandshake, 
   Star, 
@@ -131,7 +132,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   const [logSearchQuery, setLogSearchQuery] = useState("");
   const [logStatusFilter, setLogStatusFilter] = useState<"all" | "pending" | "evaluated">("all");
   const [logProgramFilter, setLogProgramFilter] = useState<string>("all");
-  const [logPage, setLogPage] = useState(1);
+  const [logPage, setLogPage, resetLogPage] = usePersistedPage("beneficiary_satisfaction_logs_page");
   const [sendingReminderId, setSendingReminderId] = useState<number | null>(null);
 
   // حالات العرض الفرعي في تبويب السجلات
@@ -147,7 +148,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
   const [contactSearchQuery, setContactSearchQuery] = useState("");
   const [contactCategoryFilter, setContactCategoryFilter] = useState<"all" | "approved_beneficiary" | "donor" | "inquiry">("all");
-  const [contactPage, setContactPage] = useState(1);
+  const [contactPage, setContactPage, resetContactPage] = usePersistedPage("beneficiary_satisfaction_contacts_page");
   const [sendingSurveyKey, setSendingSurveyKey] = useState<string | null>(null);
 
   // استعلام سجلات إرسال الاستبيانات
@@ -1050,7 +1051,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                           value={logSearchQuery}
                           onChange={(e) => {
                             setLogSearchQuery(e.target.value);
-                            setLogPage(1);
+                            resetLogPage();
                           }}
                           className="pr-9 pl-9 h-10 rounded-xl text-xs text-right"
                           dir="rtl"
@@ -1060,7 +1061,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                             type="button"
                             onClick={() => {
                               setLogSearchQuery("");
-                              setLogPage(1);
+                              resetLogPage();
                             }}
                             className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                           >
@@ -1075,7 +1076,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                           value={logStatusFilter} 
                           onValueChange={(val: any) => {
                             setLogStatusFilter(val);
-                            setLogPage(1);
+                            resetLogPage();
                           }}
                           dir="rtl"
                         >
@@ -1096,7 +1097,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                           value={logProgramFilter} 
                           onValueChange={(val) => {
                             setLogProgramFilter(val);
-                            setLogPage(1);
+                            resetLogPage();
                           }}
                           dir="rtl"
                         >
@@ -1384,33 +1385,16 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
                     {/* Pagination */}
                     {logsData && logsData.totalPages > 1 && (
-                      <div className="p-4 border-t border-border/80 flex items-center justify-between flex-wrap gap-2 text-xs font-mono" dir="rtl">
-                        <span className="text-muted-foreground font-sans">
-                          الصفحة <span className="font-mono font-bold text-foreground">{logsData.page}</span> من <span className="font-mono font-bold text-foreground">{logsData.totalPages}</span> (إجمالي <span className="font-mono font-bold text-foreground">{logsData.total}</span> سجل)
-                        </span>
-                        <div className="flex items-center gap-1 font-sans">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={logsData.page <= 1}
-                            onClick={() => setLogPage((p) => Math.max(1, p - 1))}
-                            className="h-8 px-2.5 text-xs gap-1"
-                          >
-                            <ChevronRight className="w-3.5 h-3.5" />
-                            <span>السابق</span>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={logsData.page >= logsData.totalPages}
-                            onClick={() => setLogPage((p) => Math.min(logsData.totalPages, p + 1))}
-                            className="h-8 px-2.5 text-xs gap-1"
-                          >
-                            <span>التالي</span>
-                            <ChevronLeft className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </div>
+                      <EnhancedPagination
+                        page={logPage}
+                        totalPages={logsData.totalPages}
+                        onPageChange={(p) => setLogPage(p)}
+                        totalItems={logsData.total}
+                        itemsPerPage={15}
+                        itemName="استبيان"
+                        itemNamePlural="استبيانات"
+                        className="rounded-b-2xl border-t border-border/80"
+                      />
                     )}
                   </CardContent>
                 </Card>
@@ -1432,7 +1416,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                           value={contactSearchQuery}
                           onChange={(e) => {
                             setContactSearchQuery(e.target.value);
-                            setContactPage(1);
+                            resetContactPage();
                           }}
                           className="pr-9 pl-9 h-10 rounded-xl text-xs text-right"
                           dir="rtl"
@@ -1442,7 +1426,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                             type="button"
                             onClick={() => {
                               setContactSearchQuery("");
-                              setContactPage(1);
+                              resetContactPage();
                             }}
                             className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                           >
@@ -1457,7 +1441,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                           value={contactCategoryFilter} 
                           onValueChange={(val: any) => {
                             setContactCategoryFilter(val);
-                            setContactPage(1);
+                            resetContactPage();
                           }}
                           dir="rtl"
                         >
@@ -1652,33 +1636,16 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
                     {/* Pagination لجهات الاتصال */}
                     {contactsData && contactsData.totalPages > 1 && (
-                      <div className="p-4 border-t border-border/80 flex items-center justify-between flex-wrap gap-2 text-xs font-mono" dir="rtl">
-                        <span className="text-muted-foreground font-sans">
-                          الصفحة <span className="font-mono font-bold text-foreground">{contactsData.page}</span> من <span className="font-mono font-bold text-foreground">{contactsData.totalPages}</span> (إجمالي <span className="font-mono font-bold text-foreground">{contactsData.total}</span> جهة)
-                        </span>
-                        <div className="flex items-center gap-1 font-sans">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={contactsData.page <= 1}
-                            onClick={() => setContactPage((p) => Math.max(1, p - 1))}
-                            className="h-8 px-2.5 text-xs gap-1"
-                          >
-                            <ChevronRight className="w-3.5 h-3.5" />
-                            <span>السابق</span>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={contactsData.page >= contactsData.totalPages}
-                            onClick={() => setContactPage((p) => Math.min(contactsData.totalPages, p + 1))}
-                            className="h-8 px-2.5 text-xs gap-1"
-                          >
-                            <span>التالي</span>
-                            <ChevronLeft className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </div>
+                      <EnhancedPagination
+                        page={contactPage}
+                        totalPages={contactsData.totalPages}
+                        onPageChange={(p) => setContactPage(p)}
+                        totalItems={contactsData.total}
+                        itemsPerPage={15}
+                        itemName="جهة"
+                        itemNamePlural="جهات"
+                        className="rounded-b-2xl border-t border-border/80"
+                      />
                     )}
                   </CardContent>
                 </Card>

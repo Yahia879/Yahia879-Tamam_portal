@@ -2438,19 +2438,29 @@ export default function RequesterApprovals() {
                     </div>
                   </div>
 
-                  {/* حقل تسجيل الملاحظات / سبب الرفض */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-foreground">
-                      {actionDecision === "rejected" ? "سبب الرفض" : "الملاحظات والمبررات"} <span className={actionDecision === "rejected" ? "text-rose-600" : "text-cyan-600"}>*</span>
-                    </Label>
-                    <Textarea
-                      rows={3}
-                      placeholder={actionDecision === "rejected" ? "اكتب سبب ومبررات الرفض بالتفصيل..." : "أسباب القرار أو ما تم الاتفاق عليه مع الإمام..."}
-                      value={actionNotes}
-                      onChange={(e) => setActionNotes(e.target.value)}
-                      className="text-xs resize-none rounded-xl"
-                    />
-                  </div>
+                  {/* حقل تسجيل سبب الرفض (يظهر فقط عند اختيار الرفض) */}
+                  {actionDecision === "rejected" && (
+                    <div className="space-y-1.5 animate-in fade-in duration-200">
+                      <Label className="text-xs font-bold text-foreground">
+                        سبب الرفض <span className="text-rose-600">*</span>
+                      </Label>
+                      <Textarea
+                        rows={3}
+                        placeholder="اكتب سبب ومبررات الرفض بالتفصيل..."
+                        value={actionNotes}
+                        onChange={(e) => setActionNotes(e.target.value)}
+                        className="text-xs resize-none rounded-xl"
+                      />
+                    </div>
+                  )}
+
+                  {/* رسالة توضيحية عند القبول والتأهيل المباشر */}
+                  {actionDecision === "approved" && (
+                    <div className="p-3.5 rounded-2xl bg-cyan-100/60 dark:bg-cyan-900/30 border border-cyan-200 dark:border-cyan-800/60 text-xs text-cyan-950 dark:text-cyan-200 flex items-center gap-2.5 animate-in fade-in duration-200">
+                      <CheckCircle2 className="w-4 h-4 text-cyan-600 shrink-0" />
+                      <span>سيتم تأكيد قبول وتأهيل المسجد مباشرة دون الحاجة لكتابة أي ملاحظات، مع إتاحة إكمال الطلب لمقدمه فوراً.</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -2470,17 +2480,20 @@ export default function RequesterApprovals() {
                 <Button
                   type="button"
                   size="sm"
-                  disabled={reviewSedanaInquiryMutation.isPending || !actionNotes.trim()}
+                  disabled={
+                    reviewSedanaInquiryMutation.isPending ||
+                    (actionDecision === "rejected" && !actionNotes.trim())
+                  }
                   onClick={() => {
-                    if (!actionNotes.trim()) {
-                      toast.error(actionDecision === "rejected" ? "يرجى كتابة سبب الرفض" : "يرجى كتابة الملاحظات ومبررات القرار");
+                    if (actionDecision === "rejected" && !actionNotes.trim()) {
+                      toast.error("يرجى كتابة سبب ومبررات الرفض");
                       return;
                     }
                     reviewSedanaInquiryMutation.mutate({
                       id: inq.id,
                       status: actionDecision,
                       actionType: actionDecision === "approved" ? "enable_sedana" : "reject",
-                      actionNotes: actionNotes.trim(),
+                      actionNotes: actionDecision === "approved" ? undefined : actionNotes.trim(),
                       redirectProgram: null,
                     });
                   }}
@@ -2498,7 +2511,7 @@ export default function RequesterApprovals() {
                   ) : (
                     <>
                       {actionDecision === "approved" ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                      <span>{actionDecision === "approved" ? "اعتماد التأهيل" : "تأكيد الرفض"}</span>
+                      <span>{actionDecision === "approved" ? "تأكيد القبول مباشرة" : "تأكيد الرفض"}</span>
                     </>
                   )}
                 </Button>

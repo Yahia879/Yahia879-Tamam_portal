@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { usePermission } from "@/hooks/usePermission";
@@ -96,7 +97,7 @@ export default function Reports({ embedded = false }: { embedded?: boolean }) {
   const [programFilter, setProgramFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [timeRange, setTimeRange] = useState("year");
-  const [page, setPage] = useState(1);
+  const [page, setPage, resetPage] = usePersistedPage("reports_page");
 
   // حساب التواريخ بناءً على الفترة الزمنية
   const dateRange = useMemo(() => {
@@ -208,7 +209,7 @@ export default function Reports({ embedded = false }: { embedded?: boolean }) {
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
             <div className="flex flex-wrap gap-4">
-              <Select value={programFilter} onValueChange={(v) => { setProgramFilter(v); setPage(1); }}>
+              <Select value={programFilter} onValueChange={(v) => { setProgramFilter(v); resetPage(); }}>
                 <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="البرنامج" />
                 </SelectTrigger>
@@ -220,7 +221,7 @@ export default function Reports({ embedded = false }: { embedded?: boolean }) {
                 </SelectContent>
               </Select>
 
-              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); resetPage(); }}>
                 <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="الحالة" />
                 </SelectTrigger>
@@ -232,7 +233,7 @@ export default function Reports({ embedded = false }: { embedded?: boolean }) {
                 </SelectContent>
               </Select>
 
-              <Select value={timeRange} onValueChange={setTimeRange}>
+              <Select value={timeRange} onValueChange={(v) => { setTimeRange(v); resetPage(); }}>
                 <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="الفترة الزمنية" />
                 </SelectTrigger>
@@ -516,37 +517,19 @@ export default function Reports({ embedded = false }: { embedded?: boolean }) {
             </div>
 
             {/* Pagination */}
-            {!requestsLoading && requestsData && requestsData.total > 10 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between border-t border-border/60 mt-4 pt-4 gap-4">
-                <div className="text-xs text-muted-foreground font-semibold">
-                  يتم عرض {(page - 1) * 10 + 1} - {Math.min(page * 10, requestsData.total)} من أصل {requestsData.total} طلب
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="h-8 flex items-center gap-1.5 hover:bg-muted/80 transition-colors rounded-lg text-xs"
-                  >
-                    <ChevronRight className="w-3.5 h-3.5" />
-                    السابق
-                  </Button>
-                  <div className="text-xs font-bold px-3 py-1.5 rounded-md bg-muted text-muted-foreground border border-border/40">
-                    صفحة {page} من {Math.ceil(requestsData.total / 10)}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(p => p + 1)}
-                    disabled={page >= Math.ceil(requestsData.total / 10)}
-                    className="h-8 flex items-center gap-1.5 hover:bg-muted/80 transition-colors rounded-lg text-xs"
-                  >
-                    التالي
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              </div>
+            {!requestsLoading && requestsData && requestsData.total > 0 && (
+              <EnhancedPagination
+                page={page}
+                totalPages={Math.ceil(requestsData.total / 10)}
+                onPageChange={(p) => {
+                  setPage(p);
+                }}
+                totalItems={requestsData.total}
+                itemsPerPage={10}
+                itemName="طلب"
+                itemNamePlural="طلبات"
+                className="mt-4 rounded-xl border border-border/50 shadow-xs"
+              />
             )}
           </CardContent>
         </Card>

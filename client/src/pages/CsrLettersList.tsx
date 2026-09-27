@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -99,17 +100,19 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage, resetCurrentPage] = usePersistedPage("csr_letters_page", 1);
   const limit = 10;
 
   // Debounce للبحث
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm);
-      setCurrentPage(1);
+      if (searchTerm) {
+        resetCurrentPage();
+      }
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, resetCurrentPage]);
 
   const utils = trpc.useUtils();
 
@@ -308,7 +311,7 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
                   value={statusFilter}
                   onValueChange={(val) => {
                     setStatusFilter(val);
-                    setCurrentPage(1);
+                    resetCurrentPage();
                   }}
                 >
                   <SelectTrigger className="h-9 text-xs">
@@ -543,67 +546,19 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
             )}
 
             {/* عناصر التنقل بين الصفحات */}
-            {total > 0 && (
-              <div className="p-3.5 border-t flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground bg-muted/10 font-sans">
-                <div className="flex items-center gap-2">
-                  <span>
-                    عرض <span className="font-bold text-foreground">{(currentPage - 1) * limit + 1}</span> إلى{" "}
-                    <span className="font-bold text-foreground">{Math.min(currentPage * limit, total)}</span> من إجمالي{" "}
-                    <span className="font-bold text-foreground">{total}</span> خطاب مسؤولية مجتمعية
-                  </span>
-                </div>
-
-                {totalPages > 1 && (
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                      className="h-8 px-2.5 text-xs font-bold gap-1 cursor-pointer"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                      <span>السابق</span>
-                    </Button>
-
-                    <div className="flex items-center gap-1 mx-1">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1)
-                        .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
-                        .map((p, idx, arr) => {
-                          const prev = arr[idx - 1];
-                          const showEllipsis = prev && p - prev > 1;
-                          return (
-                            <div key={p} className="flex items-center gap-1">
-                              {showEllipsis && <span className="px-1 text-muted-foreground">...</span>}
-                              <Button
-                                size="sm"
-                                variant={p === currentPage ? "default" : "outline"}
-                                onClick={() => setCurrentPage(p)}
-                                className={`h-8 w-8 p-0 text-xs font-bold cursor-pointer ${
-                                  p === currentPage ? "bg-sky-600 hover:bg-sky-700 text-white" : ""
-                                }`}
-                              >
-                                {p}
-                              </Button>
-                            </div>
-                          );
-                        })}
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
-                      className="h-8 px-2.5 text-xs font-bold gap-1 cursor-pointer"
-                    >
-                      <span>التالي</span>
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
+            <EnhancedPagination
+              page={currentPage}
+              totalPages={totalPages}
+              onPageChange={(p) => {
+                setCurrentPage(p);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              totalItems={total}
+              itemsPerPage={limit}
+              itemName="خطاب مسؤولية مجتمعية"
+              itemNamePlural="خطابات مسؤولية مجتمعية"
+              className="bg-muted/10 border-t p-3.5"
+            />
           </CardContent>
         </Card>
 

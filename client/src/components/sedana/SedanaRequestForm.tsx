@@ -43,11 +43,6 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
   selectedFile,
   onSelectFile,
 }) => {
-  // خيار فحص المياه (متصل بالتحلية)
-  const isConnectedToDesalination: boolean =
-    formData.isConnectedToDesalination !== undefined
-      ? Boolean(formData.isConnectedToDesalination)
-      : true;
 
   // جلب تصنيفات سدانة من قاعدة البيانات
   const { data: sedanaCategoryData } = trpc.categories.getCategoryByType.useQuery({ type: 'sedana_items' });
@@ -90,6 +85,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           'شهري': Number(meta.monthlyLimit) || 0,
           'ربع سنوي': Number(meta.quarterlyLimit) || 0,
           'نصف سنوي': Number(meta.semiAnnualLimit) || 0,
+          'مرة واحدة': Number(meta.oneTimeLimit) || 0,
         };
         return {
           id: `item_${v.id}_${Date.now()}_${index}`,
@@ -100,6 +96,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           monthlyLimit: Number(meta.monthlyLimit) || 0,
           quarterlyLimit: Number(meta.quarterlyLimit) || 0,
           semiAnnualLimit: Number(meta.semiAnnualLimit) || 0,
+          oneTimeLimit: Number(meta.oneTimeLimit) || 0,
           periodLimits,
           quantity: 0,
           unit: meta.unit || 'قطعة',
@@ -107,23 +104,6 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
         };
       });
 
-      if (!isConnectedToDesalination && initialDbItems.length > 0) {
-        const waterIndex = initialDbItems.findIndex((i) => i.category === 'سقيا الماء');
-        const tankerItem: SedanaBasketItem = {
-          id: 'water_tankers',
-          category: 'سقيا الماء',
-          name: 'صهاريج مياه (وايت ماء 19 طن)',
-          description: '',
-          quantity: 0,
-          unit: 'صهريج',
-          frequency: 'شهري',
-        };
-        if (waterIndex !== -1) {
-          initialDbItems.splice(waterIndex + 1, 0, tankerItem);
-        } else {
-          initialDbItems.push(tankerItem);
-        }
-      }
 
       setBasketItems(initialDbItems);
       onFieldChange('basketItems', initialDbItems);
@@ -143,6 +123,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       'شهري': Number(meta.monthlyLimit) || 0,
       'ربع سنوي': Number(meta.quarterlyLimit) || 0,
       'نصف سنوي': Number(meta.semiAnnualLimit) || 0,
+      'مرة واحدة': Number(meta.oneTimeLimit) || 0,
     };
 
     handleUpdateItem(rowId, {
@@ -152,6 +133,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       monthlyLimit: Number(meta.monthlyLimit) || 0,
       quarterlyLimit: Number(meta.quarterlyLimit) || 0,
       semiAnnualLimit: Number(meta.semiAnnualLimit) || 0,
+      oneTimeLimit: Number(meta.oneTimeLimit) || 0,
       periodLimits,
       unit: meta.unit || 'قطعة',
     });
@@ -168,6 +150,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       'شهري': Number(meta.monthlyLimit) || 0,
       'ربع سنوي': Number(meta.quarterlyLimit) || 0,
       'نصف سنوي': Number(meta.semiAnnualLimit) || 0,
+      'مرة واحدة': Number(meta.oneTimeLimit) || 0,
     };
 
     const newItem: SedanaBasketItem = {
@@ -179,6 +162,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       monthlyLimit: Number(meta.monthlyLimit) || 0,
       quarterlyLimit: Number(meta.quarterlyLimit) || 0,
       semiAnnualLimit: Number(meta.semiAnnualLimit) || 0,
+      oneTimeLimit: Number(meta.oneTimeLimit) || 0,
       periodLimits,
       quantity: 0,
       unit: meta.unit || 'قطعة',
@@ -188,37 +172,6 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
     updateBasketItems((prev) => [...prev, newItem]);
   };
 
-  // تحديث خيار فحص المياه والتفعيل التلقائي لصهاريج المياه
-  const handleToggleDesalination = (connected: boolean) => {
-    onFieldChange('isConnectedToDesalination', connected);
-    if (!connected) {
-      // إذا "لا": تفعيل صهاريج المياه تلقائياً
-      updateBasketItems((prev) => {
-        const hasTanker = prev.some((i) => i.id === 'water_tankers');
-        if (hasTanker) return prev;
-        const waterIdx = prev.findIndex((i) => i.category === 'سقيا الماء');
-        const newItem: SedanaBasketItem = {
-          id: 'water_tankers',
-          category: 'سقيا الماء',
-          name: 'صهاريج مياه (وايت ماء 19 طن)',
-          description: '',
-          quantity: 0,
-          unit: 'صهريج',
-          frequency: 'شهري',
-        };
-        const next = [...prev];
-        if (waterIdx !== -1) {
-          next.splice(waterIdx + 1, 0, newItem);
-        } else {
-          next.push(newItem);
-        }
-        return next;
-      });
-    } else {
-      // إذا "نعم": إزالة بند صهاريج المياه تلقائياً
-      updateBasketItems((prev) => prev.filter((i) => i.id !== 'water_tankers'));
-    }
-  };
 
   // تعديل صنف في السلة
   const handleUpdateItem = (id: string, patch: Partial<SedanaBasketItem>) => {
@@ -276,56 +229,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
 
   return (
     <div className="space-y-4 text-right" dir="rtl">
-      {/* 1. خيار فحص المياه: هل المسجد متصل بالتحلية؟ */}
-      <div className="p-3.5 sm:p-4 rounded-xl border border-border/80 bg-card space-y-2.5 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h3 className="font-bold text-xs sm:text-sm text-foreground">
-              فحص شبكة المياه
-            </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              هل المسجد متصل بالتحلية؟ (إذا كان غير متصل، يتم تفعيل بند صهاريج المياه تلقائياً)
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 h-8 w-full sm:w-60">
-            <button
-              type="button"
-              onClick={() => handleToggleDesalination(true)}
-              className={`flex-1 h-full rounded-md border text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
-                isConnectedToDesalination
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-muted/30 hover:bg-muted/50 border-border/70 text-muted-foreground'
-              }`}
-            >
-              {isConnectedToDesalination && <Check className="w-3.5 h-3.5" />}
-              <span>نعم (متصل)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleToggleDesalination(false)}
-              className={`flex-1 h-full rounded-md border text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
-                !isConnectedToDesalination
-                  ? 'bg-amber-600 text-white border-amber-600'
-                  : 'bg-muted/30 hover:bg-muted/50 border-border/70 text-muted-foreground'
-              }`}
-            >
-              {!isConnectedToDesalination && <Check className="w-3.5 h-3.5" />}
-              <span>لا (غير متصل)</span>
-            </button>
-          </div>
-        </div>
-
-        {/* تنبيه تفعيل صهاريج المياه عند اختيار لا */}
-        {!isConnectedToDesalination && (
-          <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/25 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-200">
-            ✓ المسجد غير متصل بالتحلية: تم تفعيل بند <strong>صهاريج المياه (وايت ماء)</strong> تلقائياً في سلة الاحتياجات السنوية أدناه.
-          </div>
-        )}
-      </div>
-
-      {/* 2. جدول بنود الباقة السنوية (سلة الاحتياجات) */}
+      {/* 1. جدول بنود الباقة السنوية (سلة الاحتياجات) */}
       <div className="p-4 rounded-xl border border-border/80 bg-card space-y-3.5 shadow-xs">
         <div className="flex items-center justify-between pb-2 border-b border-border/60">
           <div>
@@ -495,7 +399,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                           })
                         }
                       >
-                        <SelectTrigger size="sm" className="h-8 text-xs w-24 mx-auto bg-background border-input font-medium">
+                        <SelectTrigger size="sm" className="h-8 text-xs w-28 mx-auto bg-background border-input font-medium">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent dir="rtl">
@@ -541,19 +445,19 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
         </div>
       </div>
 
-      {/* 3. حقل رفع صور مستودع المسجد الحالي (اختياري) */}
+      {/* 2. إدراج مرفقات (اختياري) */}
       <div className="p-4 rounded-xl border border-border/80 bg-card space-y-3 shadow-xs">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="font-bold text-sm sm:text-base text-foreground">
-              صور مستودع المسجد الحالي (المرفقات)
+              إدراج مرفقات
             </h3>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground border border-border/70">
               اختياري
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            (اختياري - ليس إلزامياً) يمكنك إرفاق صور واضحة لمستودع المسجد أو خزانة الأدوات والمواد إن وُجدت للمساعدة في دراسة الاحتياج، أو المتابعة دون إرفاق
+            يرجى إدراج المرفقات المطلوبة (اختياري - يمكنك المتابعة دون إرفاق)
           </p>
         </div>
 
@@ -597,7 +501,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           >
             <Upload className="w-6 h-6 text-muted-foreground mx-auto mb-1.5" />
             <p className="font-bold text-xs text-foreground">
-              اضغط لرفع صور مستودع المسجد (اختياري) أو اسحب الملف هنا
+              يرجى إدراج المرفقات المطلوبة (اختياري) أو اسحب الملف هنا
             </p>
             <p className="text-[11px] text-muted-foreground mt-0.5">
               اختياري - يدعم الصور (JPG, PNG, WEBP) ومستندات PDF بحد أقصى 10 ميجابايت

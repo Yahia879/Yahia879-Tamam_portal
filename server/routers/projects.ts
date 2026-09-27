@@ -2,7 +2,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { projects, projectMosques, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, disbursementOrders, requestEvaluations, projectFinancialDetails, receiptVouchers, userPermissions, requestNumberSequence, requestHistory, auditLogs, progressReports } from "../../drizzle/schema";
-import { eq, desc, asc, and, sql, inArray, or, ne, like, isNull } from "drizzle-orm";
+import { eq, desc, asc, and, sql, inArray, notInArray, or, ne, like, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { checkPermission } from "../permissions";
 import { notifyProjectManagerAssigned, notifyQuotationCreation, notifyQuotationApproval } from "./notifications";
@@ -3040,6 +3040,7 @@ export const projectsRouter = router({
         supplierName: z.string().optional(),
       })),
       approvalNotes: z.string().optional(),
+      advanceStage: z.boolean().optional().default(false),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -3047,16 +3048,45 @@ export const projectsRouter = router({
 
       const quotationIds = Array.from(new Set(input.itemVendorSelections.map(s => s.quotationId)));
 
-      // 1. اعتماد كافة عروض الأسعار المختارة
-      for (const qId of quotationIds) {
+      // الحصول على المشروع المرتبط بالطلب إن وجد لضمان شمولية البحث والتحديث
+      const [proj] = await db
+        .select({ id: projects.id })
+        .from(projects)
+        .where(eq(projects.requestId, input.requestId))
+        .limit(1);
+      const projId = proj?.id;
+
+      const quotesWhereCondition = projId
+        ? or(eq(quotations.requestId, input.requestId), eq(quotations.projectId, projId))
+        : eq(quotations.requestId, input.requestId);
+
+      // 1. تحديث حالات عروض الأسعار بدقة: المختارة تصبح accepted وغير المختارة تعود إلى pending
+      if (quotationIds.length > 0) {
         await db
           .update(quotations)
           .set({ status: "accepted" })
-          .where(eq(quotations.id, qId));
+          .where(and(
+            quotesWhereCondition,
+            inArray(quotations.id, quotationIds)
+          ));
+
+        await db
+          .update(quotations)
+          .set({ status: "pending" })
+          .where(and(
+            quotesWhereCondition,
+            notInArray(quotations.id, quotationIds)
+          ));
       }
 
-      // 2. تحديث جدول الكميات للطلب
+      // 2. تحديث جدول الكميات للطلب وعكس الأسعار الجديدة
       let totalApprovedBaseCost = 0;
+      const selectedBoqIds = input.itemVendorSelections.map(s => s.boqItemId);
+
+      const boqWhereCondition = projId
+        ? or(eq(quantitySchedules.requestId, input.requestId), eq(quantitySchedules.projectId, projId))
+        : eq(quantitySchedules.requestId, input.requestId);
+
       for (const sel of input.itemVendorSelections) {
         totalApprovedBaseCost += sel.totalPrice;
         await db
@@ -3068,11 +3098,49 @@ export const projectsRouter = router({
           })
           .where(and(
             eq(quantitySchedules.id, sel.boqItemId),
-            eq(quantitySchedules.requestId, input.requestId)
+            boqWhereCondition
           ));
       }
 
-      // 3. تحديث التكلفة الفعلية للطلب في programData
+      // تصفير أسعار أي بنود لم تعد معتمدة في هذا التحديث
+      if (selectedBoqIds.length > 0) {
+        await db
+          .update(quantitySchedules)
+          .set({
+            unitPrice: "0",
+            totalPrice: "0",
+            updatedAt: new Date(),
+          })
+          .where(and(
+            boqWhereCondition,
+            notInArray(quantitySchedules.id, selectedBoqIds)
+          ));
+      }
+
+      // جلب بيانات عروض الأسعار كاملة لربط معرفات الموردين وأسمائهم
+      const allReqQuotes = await db
+        .select({
+          id: quotations.id,
+          quotationNumber: quotations.quotationNumber,
+          supplierId: quotations.supplierId,
+          supplierName: suppliers.name,
+        })
+        .from(quotations)
+        .leftJoin(suppliers, eq(quotations.supplierId, suppliers.id))
+        .where(quotesWhereCondition);
+
+      const quoteMap = new Map(allReqQuotes.map(q => [q.id, q]));
+
+      const enrichedSelections = input.itemVendorSelections.map(sel => {
+        const q = quoteMap.get(sel.quotationId);
+        return {
+          ...sel,
+          supplierId: q?.supplierId || (sel as any).supplierId,
+          supplierName: q?.supplierName || sel.supplierName || `مورد عرض #${q?.quotationNumber || sel.quotationId}`,
+        };
+      });
+
+      // 3. تحديث التكلفة الفعلية والترسية وخريطة الموردين للطلب في programData
       const [request] = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
       if (request) {
         let pData: any = {};
@@ -3089,14 +3157,57 @@ export const projectsRouter = router({
         }
         pData.actualMosqueCost = totalApprovedBaseCost;
         pData.baseCost = totalApprovedBaseCost;
-        pData.awardedItemVendors = input.itemVendorSelections;
+        pData.awardedItemVendors = enrichedSelections;
 
-        // جلب عرض السعر الأول كعرض رئيسي مختار
-        const [primaryQuote] = await db
-          .select()
-          .from(quotations)
-          .where(eq(quotations.id, quotationIds[0]))
-          .limit(1);
+        // مزامنة فورية مع sedanaProcurement لضمان ظهور الموردين والبنود المحدثة في صفحة اعتماد التوريد والعقود
+        const sedanaProc = pData.sedanaProcurement || {};
+        const newItemSupplierMap: Record<string, any> = {};
+
+        enrichedSelections.forEach(sel => {
+          newItemSupplierMap[sel.boqItemId] = {
+            supplierId: sel.supplierId,
+            supplierName: sel.supplierName,
+            quotationId: sel.quotationId,
+            unitPrice: sel.unitPrice,
+            totalPrice: sel.totalPrice,
+          };
+        });
+
+        // تنظيف تخصيص الموردين السابقين الذين لم تعد لديهم أي بنود
+        const validSupplierKeys = new Set<string>();
+        enrichedSelections.forEach(sel => {
+          if (sel.supplierId) validSupplierKeys.add(`sup_${sel.supplierId}`);
+          if (sel.supplierName) validSupplierKeys.add(`name_${sel.supplierName}`);
+        });
+
+        const updatedSuppliersAlloc: Record<string, string> = {};
+        if (sedanaProc.suppliersAllocation) {
+          for (const [key, val] of Object.entries(sedanaProc.suppliersAllocation)) {
+            if (validSupplierKeys.has(key)) {
+              updatedSuppliersAlloc[key] = val as string;
+            }
+          }
+        }
+
+        // تنظيف تخصيص البنود غير المعتمدة
+        const updatedItemsAlloc: Record<string, string> = {};
+        if (sedanaProc.itemsAllocation) {
+          for (const [key, val] of Object.entries(sedanaProc.itemsAllocation)) {
+            if (newItemSupplierMap[key]) {
+              updatedItemsAlloc[key] = val as string;
+            }
+          }
+        }
+
+        pData.sedanaProcurement = {
+          ...sedanaProc,
+          itemSupplierMap: newItemSupplierMap,
+          suppliersAllocation: updatedSuppliersAlloc,
+          itemsAllocation: updatedItemsAlloc,
+          updatedAt: new Date().toISOString(),
+        };
+
+        const primaryQuote = quoteMap.get(quotationIds[0]);
 
         const updateData: any = {
           programData: pData,
@@ -3104,15 +3215,19 @@ export const projectsRouter = router({
           updatedAt: new Date(),
         };
 
-        if (primaryQuote && !request.selectedQuotationId) {
+        if (primaryQuote) {
           updateData.selectedQuotationId = primaryQuote.quotationNumber;
         }
 
-        // إذا كان الطلب في مرحلة التقييم المالي، يتم تحويله لمرحلة التعاقد
-        if (request.currentStage === "financial_eval_and_approval") {
-          updateData.currentStage = "contracting";
-          updateData.status = "approved";
-          updateData.approvedAt = new Date();
+        // لا يتم الانتقال للمرحلة التالية إلا إذا تم طلب ذلك صراحةً (من صفحة الاعتماد المالي فقط وليس من إدارة عروض الأسعار)
+        if (input.advanceStage) {
+          if (request.currentStage === "financial_eval_and_approval") {
+            updateData.currentStage = "contracting";
+            updateData.status = "approved";
+            updateData.approvedAt = new Date();
+          } else if (request.currentStage === "contracting") {
+            updateData.status = "approved";
+          }
         }
 
         await db
@@ -3121,23 +3236,18 @@ export const projectsRouter = router({
           .where(eq(mosqueRequests.id, input.requestId));
 
         // تحديث التكلفة الفعلية في المشروع المرتبط إن وجد
-        const [proj] = await db
-          .select()
-          .from(projects)
-          .where(eq(projects.requestId, input.requestId))
-          .limit(1);
         if (proj) {
-          const isFinancialStage = request.currentStage === "financial_eval_and_approval";
+          const isAdvancingFromFinancial = input.advanceStage && request.currentStage === "financial_eval_and_approval";
           await db
             .update(projects)
             .set({
               actualCost: totalApprovedBaseCost.toString(),
-              ...(isFinancialStage ? { completionPercentage: 50, status: "in_progress" as const } : {}),
+              ...(isAdvancingFromFinancial ? { completionPercentage: 50, status: "in_progress" as const } : {}),
               updatedAt: new Date(),
             })
             .where(eq(projects.id, proj.id));
 
-          if (isFinancialStage) {
+          if (isAdvancingFromFinancial) {
             await db.update(projectPhases)
               .set({ status: 'completed', completionPercentage: 100 })
               .where(and(eq(projectPhases.projectId, proj.id), eq(projectPhases.phaseOrder, 3)));
@@ -3148,23 +3258,21 @@ export const projectsRouter = router({
           }
         }
 
-        // إضافة سجل في تاريخ الطلب إذا كان في مرحلة الاعتماد المالي
-        if (request.currentStage === "financial_eval_and_approval") {
-          const notes = input.approvalNotes 
-            ? `الاعتماد المالي وترسية عروض الأسعار: ${totalApprovedBaseCost.toLocaleString("ar-SA")} ريال (${quotationIds.length} مورد). ${input.approvalNotes}`
-            : `الاعتماد المالي وترسية عروض الأسعار: ${totalApprovedBaseCost.toLocaleString("ar-SA")} ريال (${quotationIds.length} مورد)`;
+        // إضافة سجل في تاريخ الطلب
+        const notes = input.approvalNotes 
+          ? `تحديث واعتماد وترسية عروض الأسعار: ${totalApprovedBaseCost.toLocaleString("ar-SA")} ريال (${quotationIds.length} مورد). ${input.approvalNotes}`
+          : `تحديث واعتماد وترسية عروض الأسعار: ${totalApprovedBaseCost.toLocaleString("ar-SA")} ريال (${quotationIds.length} مورد)`;
 
-          await db.insert(requestHistory).values({
-            requestId: input.requestId,
-            userId: ctx.user.id,
-            fromStage: request.currentStage,
-            toStage: "contracting",
-            fromStatus: request.status,
-            toStatus: "approved",
-            action: "financial_approval",
-            notes,
-          });
-        }
+        await db.insert(requestHistory).values({
+          requestId: input.requestId,
+          userId: ctx.user.id,
+          fromStage: request.currentStage,
+          toStage: (input.advanceStage && request.currentStage === "financial_eval_and_approval") ? "contracting" : request.currentStage,
+          fromStatus: request.status,
+          toStatus: input.advanceStage ? "approved" : request.status,
+          action: "financial_approval",
+          notes,
+        });
 
         // إرسال إشعارات اعتماد العروض للموردين
         for (const qId of quotationIds) {

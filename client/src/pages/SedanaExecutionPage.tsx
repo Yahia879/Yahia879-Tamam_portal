@@ -71,6 +71,10 @@ import {
   Filter,
   Lock,
   FileSpreadsheet,
+  Bell,
+  MessageSquare,
+  Smartphone,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import { usePermission } from "@/hooks/usePermission";
@@ -254,6 +258,23 @@ export default function SedanaExecutionPage() {
   // عرض تفاصيل استلام أمر الإخراج المكتمل
   const [selectedOutboundToView, setSelectedOutboundToView] = useState<any | null>(null);
   const [isViewOutboundModalOpen, setIsViewOutboundModalOpen] = useState(false);
+
+  // إرسال إشعار مباشر أو تذكير للإمام
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [selectedNotifType, setSelectedNotifType] = useState<"cycle_reminder" | "shipment_dispatched" | "delivery_reminder" | "receipt_confirmed" | "custom">("cycle_reminder");
+  const [customNotifTitle, setCustomNotifTitle] = useState("");
+  const [customNotifMessage, setCustomNotifMessage] = useState("");
+
+  const sendSedanaNotifMutation = trpc.notifications.sendSedanaNotification.useMutation({
+    onSuccess: (res: any) => {
+      toast.success(res.message || "تم إرسال الإشعار للإمام بنجاح");
+      setIsNotificationModalOpen(false);
+      setCustomNotifMessage("");
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "فشل إرسال الإشعار");
+    },
+  });
 
   // الطفرات
   const createInwardMutation = trpc.sedanaExecution.createInwardOrder.useMutation({
@@ -764,6 +785,18 @@ export default function SedanaExecutionPage() {
                   <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                     إدارة إدخال البنود الموردة، جدولة أوامر الإخراج ومسوغات الصرف، وإصدار أوامر التسليم الميداني لمسجد <span className="font-bold text-foreground">{mosque?.name || "المسجد"}</span> {req?.requestNumber ? `(#${req.requestNumber})` : ""}
                   </p>
+                </div>
+
+                <div className="flex items-center gap-2 mt-2 md:mt-0 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsNotificationModalOpen(true)}
+                    className="h-8 px-3 text-xs font-bold gap-1.5 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 bg-card cursor-pointer shadow-2xs"
+                  >
+                    <Bell className="w-3.5 h-3.5" />
+                    <span>إرسال إشعار للإمام</span>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -2129,6 +2162,121 @@ export default function SedanaExecutionPage() {
                   <>
                     <PackageCheck className="w-4 h-4" />
                     <span>تأكيد وتسليم الطلب الآن</span>
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* مودال إرسال إشعار للمستفيد / الإمام */}
+        <Dialog open={isNotificationModalOpen} onOpenChange={setIsNotificationModalOpen}>
+          <DialogContent className="max-w-md" dir="rtl">
+            <DialogHeader>
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
+                  <Bell className="w-5 h-5" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-bold">إرسال إشعار رسمي للإمام</DialogTitle>
+                  <DialogDescription className="text-xs mt-0.5">
+                    إرسال تنبيه أو تذكير مباشر لإمام مسجد <span className="font-semibold text-foreground">{mosque?.name || "المسجد"}</span>
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">نوع الإشعار والنموذج المعتمد</Label>
+                <Select value={selectedNotifType} onValueChange={(v: any) => setSelectedNotifType(v)}>
+                  <SelectTrigger className="text-xs h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl" className="text-xs">
+                    <SelectItem value="cycle_reminder">
+                      🔔 موعد توريد الدفعة الدورية القادمة لمستلزمات المسجد
+                    </SelectItem>
+                    <SelectItem value="shipment_dispatched">
+                      🚚 شحنة مستلزمات سدانة في الطريق لمسجدك
+                    </SelectItem>
+                    <SelectItem value="delivery_reminder">
+                      ⏰ تذكير بتأكيد استلام مستلزمات سدانة
+                    </SelectItem>
+                    <SelectItem value="receipt_confirmed">
+                      🎉 شكر وتأكيد توثيق استلام المواد
+                    </SelectItem>
+                    <SelectItem value="custom">
+                      ✏️ إشعار / رسالة مخصصة
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedNotifType === "custom" && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">عنوان الإشعار</Label>
+                  <Input
+                    placeholder="عنوان الإشعار المخصص..."
+                    value={customNotifTitle}
+                    onChange={(e) => setCustomNotifTitle(e.target.value)}
+                    className="text-xs h-9"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">
+                  {selectedNotifType === "custom" ? "نص الرسالة" : "ملاحظة أو نص مخصص إضافي (اختياري)"}
+                </Label>
+                <Textarea
+                  placeholder="يمكنك كتابة نص مخصص ليتم إلحاقه بنص الإشعار المرسل للإمام..."
+                  value={customNotifMessage}
+                  onChange={(e) => setCustomNotifMessage(e.target.value)}
+                  className="text-xs min-h-[75px] resize-none"
+                />
+              </div>
+
+              <div className="rounded-lg bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/50 p-3 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-start gap-2">
+                <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  يتم إرسال الإشعار آلياً لإمام المسجد عبر كافة القنوات المفعلة له في النظام (إشعار النظام، SMS، واتساب، البريد).
+                </span>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsNotificationModalOpen(false)}
+                disabled={sendSedanaNotifMutation.isPending}
+                className="text-xs cursor-pointer"
+              >
+                إلغاء
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  sendSedanaNotifMutation.mutate({
+                    requestId,
+                    type: selectedNotifType,
+                    customTitle: customNotifTitle.trim() || undefined,
+                    customMessage: customNotifMessage.trim() || undefined,
+                  });
+                }}
+                disabled={sendSedanaNotifMutation.isPending}
+                className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer gap-1.5 shadow-2xs"
+              >
+                {sendSedanaNotifMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>جاري الإرسال...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>إرسال الإشعار الآن</span>
                   </>
                 )}
               </Button>

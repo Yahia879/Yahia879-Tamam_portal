@@ -711,7 +711,10 @@ export default function ContractForm() {
       let agreedPeriodicLabel = '';
       let suggestedPeriodQty = 1;
 
-      if (frequency === 'شهري' && monthlyLimit && Number(monthlyLimit) > 0) {
+      if (frequency === 'مرة واحدة') {
+        suggestedPeriodQty = Number(item.totalQuantity) || 1;
+        agreedPeriodicLabel = `توريد مرة واحدة: ${suggestedPeriodQty} ${item.unit}`;
+      } else if (frequency === 'شهري' && monthlyLimit && Number(monthlyLimit) > 0) {
         suggestedPeriodQty = Number(monthlyLimit);
         agreedPeriodicLabel = `متفق عليه شهرياً: ${monthlyLimit} ${item.unit}`;
       } else if (frequency === 'ربع سنوي' && quarterlyLimit && Number(quarterlyLimit) > 0) {
@@ -2173,7 +2176,7 @@ export default function ContractForm() {
             <div>
               <span className="font-bold block">تنبيه: الطلب لم يصل بعد إلى مرحلة التشغيل والتنفيذ</span>
               <span className="text-xs text-amber-700 dark:text-amber-300">
-                طلب سدانة حالياً في مرحلة "{(requestDetails as any).currentStage === 'contracting' ? 'اعتماد نوع التأمين' : (requestDetails as any).currentStage}". يرجى استكمال خطة التأمين والانتقال لمرحلة "التشغيل والتنفيذ" قبل إبرام العقود.
+                طلب سدانة حالياً في مرحلة "{(requestDetails as any).currentStage === 'contracting' ? 'اعتماد نوع التوريد' : (requestDetails as any).currentStage}". يرجى استكمال خطة التوريد والانتقال لمرحلة "التشغيل والتنفيذ" قبل إبرام العقود.
               </span>
             </div>
           </div>

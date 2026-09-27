@@ -29,7 +29,6 @@ const stageSteps = [
 
 const sedanaStageSteps = [
   { key: "submitted", label: "تقديم وتدقيق الاحتياج" },
-  { key: "boq_preparation", label: "تجزئة الشراء والموردين" },
   { key: "financial_eval_and_approval", label: "الهندسة المالية والتمويل" },
   { key: "execution", label: "التشغيل والتنفيذ" },
   { key: "closed", label: "الإغلاق" },

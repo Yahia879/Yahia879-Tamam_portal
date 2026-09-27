@@ -42,6 +42,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 import BoqFormDialog from "@/components/BoqFormDialog";
+import { SedanaExportPdfModal } from "@/components/sedana/SedanaExportPdfModal";
 import {
   Receipt,
   Search,
@@ -160,7 +161,7 @@ export default function Quotations() {
   });
 
   // جلب تفاصيل الطلب المحدد برقم ID إذا تم تمريره عبر الرابط
-  const { data: singleRequestData } = trpc.requests.getById.useQuery(
+  const { data: singleRequestData, refetch: refetchSingleRequest } = trpc.requests.getById.useQuery(
     { id: parseInt(selectedRequestId) },
     { enabled: !!selectedRequestId && !isNaN(parseInt(selectedRequestId)) }
   );
@@ -222,8 +223,8 @@ export default function Quotations() {
       const targetReq = (singleRequestData as any).request || singleRequestData;
       if (targetReq && targetReq.id) {
         // إذا كان الطلب المحدد قد تم اعتماده مسبقاً وانتقل لمرحلة أخرى (وليس في مرحلة التقييم المالي)،
-        // فلا يتم عرضه كطلب نشط في عروض الأسعار
-        if (targetReq.currentStage && targetReq.currentStage !== "financial_eval_and_approval") {
+        // فلا يتم عرضه كطلب نشط في عروض الأسعار باستثناء طلبات سدانة أو الطلب المفتوح برابط مباشر
+        if (targetReq.currentStage && targetReq.currentStage !== "financial_eval_and_approval" && targetReq.programType !== "sedana") {
           return allRequestsList;
         }
 
@@ -257,6 +258,10 @@ export default function Quotations() {
     if (singleRequestData && selectedRequestId) {
       const targetReq = (singleRequestData as any).request || singleRequestData;
       if (targetReq && targetReq.currentStage && targetReq.currentStage !== "financial_eval_and_approval") {
+        // لطلبات سدانة: السماح بالوصول لصفحة عروض الأسعار حتى لو انتقل الطلب لمرحلة التعاقد (تحديد نوع التوريد)
+        if (targetReq.programType === "sedana") {
+          return;
+        }
         toast.info(`الطلب ${targetReq.requestNumber || selectedRequestId} تم اعتماد وترسية عروضه وانتقل لمرحلة ${targetReq.currentStage === "contracting" ? "التعاقد" : targetReq.currentStage}`);
         setSelectedRequestId("");
         window.history.replaceState({}, "", "/quotations");
@@ -276,7 +281,9 @@ export default function Quotations() {
   );
 
   const currentSelectedRequest = useMemo(() => {
-    return (singleRequestData as any)?.request || displayedRequestsList.find((r: any) => r.id.toString() === selectedRequestId);
+    const fromSingle = (singleRequestData as any)?.request || singleRequestData;
+    if (fromSingle && (fromSingle.id || fromSingle.requestNumber)) return fromSingle;
+    return displayedRequestsList.find((r: any) => r.id.toString() === selectedRequestId);
   }, [singleRequestData, displayedRequestsList, selectedRequestId]);
 
   const isSedanaProgram = currentSelectedRequest?.programType === 'sedana';
@@ -319,6 +326,7 @@ export default function Quotations() {
   const [sedanaItemSearch, setSedanaItemSearch] = useState("");
   const [sedanaFilterStatus, setSedanaFilterStatus] = useState<"all" | "unassigned" | "assigned" | "multiple">("all");
   const [sedanaViewMode, setSedanaViewMode] = useState<"matrix" | "table">("matrix");
+  const [showExportPdfModal, setShowExportPdfModal] = useState(false);
 
   // إعادة ضبط التحديدات عند تغيير الطلب المحدد
   useEffect(() => {
@@ -332,14 +340,12 @@ export default function Quotations() {
     if (!isSedanaProgram) return false;
     const stage = currentSelectedRequest?.currentStage;
     if (stage && stage !== "financial_eval_and_approval") return true;
-    const awarded = (currentSelectedRequest as any)?.programData?.awardedItemVendors;
-    if (Array.isArray(awarded) && awarded.length > 0) return true;
-    if (typeof awarded === "string") {
-      try {
-        const parsed = JSON.parse(awarded);
-        if (Array.isArray(parsed) && parsed.length > 0) return true;
-      } catch {}
+    let pData: any = currentSelectedRequest?.programData;
+    while (typeof pData === "string") {
+      try { pData = JSON.parse(pData); } catch { break; }
     }
+    const awarded = pData?.awardedItemVendors;
+    if (Array.isArray(awarded) && awarded.length > 0) return true;
     return allQuotations.some((q: any) => q.status === "accepted" || q.status === "approved");
   }, [isSedanaProgram, currentSelectedRequest, allQuotations]);
 
@@ -348,16 +354,15 @@ export default function Quotations() {
   // طفرة اعتماد عروض أسعار متعددة الموردين بحسب البنود
   const approveSedanaMultiVendorMutation = trpc.projects.approveSedanaMultiVendorQuotations.useMutation({
     onSuccess: () => {
-      toast.success("تم اعتماد وترسية عروض الموردين وحفظ تفكيك التوريد بنجاح، وتم نقل الطلب لمرحلة التعاقد");
+      toast.success("تم اعتماد وترسية عروض الموردين وحفظ التغييرات بنجاح");
       utils.requests.search.invalidate();
-      utils.requests.getById.invalidate();
-      utils.projects.getQuotationsByRequest.invalidate();
+      if (selectedRequestId) {
+        utils.requests.getById.invalidate({ id: parseInt(selectedRequestId) });
+        utils.projects.getQuotationsByRequest.invalidate({ requestId: parseInt(selectedRequestId) });
+      }
+      refetchSingleRequest();
       refetchQuotations();
       refetchBOQ();
-
-      // إزالة الطلب من صفحة عروض الأسعار ومسح المعرّف من الرابط
-      setSelectedRequestId("");
-      window.history.replaceState({}, "", "/quotations");
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء اعتماد عروض الموردين");
@@ -367,57 +372,52 @@ export default function Quotations() {
   // المزامنة التلقائية للموردين المعتمدين مسبقاً أو المقترحين لكل بند
   useEffect(() => {
     if (isSedanaProgram && boqData?.items && allQuotations.length > 0) {
-      // 1. استعادة الترسية السابقة المحفوظة في بيانات الطلب إن وجدت
-      let awarded = (currentSelectedRequest as any)?.programData?.awardedItemVendors;
-      if (typeof awarded === "string") {
-        try { awarded = JSON.parse(awarded); } catch {}
-      }
-      if (Array.isArray(awarded) && awarded.length > 0) {
-        setSelectedWinningVendors(prev => {
-          const updated = { ...prev };
-          let changed = false;
+      setSelectedWinningVendors(prev => {
+        // إذا كان المستخدم قد اختار موردين بالفعل أثناء عمله بالصفحة، لا نقوم بإعادة الكتابة عليها
+        if (Object.keys(prev).length > 0) return prev;
+
+        const initial: Record<number, number> = {};
+        // 1. استعادة الترسية السابقة المحفوظة في بيانات الطلب إن وجدت
+        let pData: any = currentSelectedRequest?.programData;
+        while (typeof pData === "string") {
+          try { pData = JSON.parse(pData); } catch { break; }
+        }
+        let awarded = pData?.awardedItemVendors;
+        if (Array.isArray(awarded) && awarded.length > 0) {
           awarded.forEach((sel: any) => {
-            if (sel.boqItemId && sel.quotationId && !updated[sel.boqItemId]) {
-              updated[sel.boqItemId] = sel.quotationId;
-              changed = true;
+            if (sel.boqItemId && sel.quotationId) {
+              initial[sel.boqItemId] = sel.quotationId;
             }
           });
-          return changed ? updated : prev;
-        });
-      }
+        }
 
-      // 2. مزامنة عروض الأسعار المعتمدة مسبقاً أو تحديد العرض الوحيد
-      setSelectedWinningVendors(prev => {
-        const updated = { ...prev };
-        let changed = false;
+        // 2. للبنود التي لم يتم تحديدها، فحص العروض المعتمدة أو العرض الوحيد
         boqData.items.forEach((item: any) => {
-          if (!updated[item.id]) {
-            // أولاً: البحث عن عرض معتمد مسبقاً لهذا البند
+          if (!initial[item.id]) {
             const acceptedQuote = allQuotations.find((q: any) => {
               if (q.status !== 'accepted' && q.status !== 'approved') return false;
               const offer = getOfferForItem(item, q, boqData.items.length);
               return offer !== null;
             });
             if (acceptedQuote) {
-              updated[item.id] = acceptedQuote.id;
-              changed = true;
+              initial[item.id] = acceptedQuote.id;
             } else {
-              // ثانياً: إذا كان هناك مورد واحد فقط قدم سعراً لهذا البند، يتم تحديده تلقائياً لتسهيل الاعتماد
               const offers = allQuotations.filter((q: any) => {
                 const offer = getOfferForItem(item, q, boqData.items.length);
                 return offer !== null;
               });
               if (offers.length === 1) {
-                updated[item.id] = offers[0].id;
-                changed = true;
+                initial[item.id] = offers[0].id;
               }
             }
           }
         });
-        return changed ? updated : prev;
+
+        return initial;
       });
     }
   }, [isSedanaProgram, boqData?.items, allQuotations, currentSelectedRequest]);
+
 
   // دالة موحدة لاستخراج عرض المورد الفعلي لبند معين (تقبل السعر 0 وتستبعد البنود غير المسعرة)
   const getOfferForItem = (item: any, quotation: any, totalBoqItemsCount: number = 1) => {
@@ -1932,14 +1932,25 @@ export default function Quotations() {
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {isSedanaProgram ? (
-                  <Button
-                    onClick={() => setShowAddDialog(true)}
-                    size="sm"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-3 gap-1 shadow-xs"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    إضافة عرض سعر
-                  </Button>
+                  <>
+                    <Button
+                      onClick={() => setShowExportPdfModal(true)}
+                      size="sm"
+                      variant="outline"
+                      className="border-emerald-600 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 font-bold text-xs h-8 px-3 gap-1.5 shadow-xs transition-colors"
+                    >
+                      <FileDown className="h-3.5 w-3.5 text-emerald-600" />
+                      تصدير ملف PDF للبنود
+                    </Button>
+                    <Button
+                      onClick={() => setShowAddDialog(true)}
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-3 gap-1 shadow-xs"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      إضافة عرض سعر
+                    </Button>
+                  </>
                 ) : (
                   <>
                     {hasAcceptedQuotation ? (
@@ -2585,23 +2596,18 @@ export default function Quotations() {
 
                         <Button
                           onClick={handleApproveItemSelections}
-                          disabled={approveSedanaMultiVendorMutation.isPending || assignedItemsCount === 0 || isSedanaAlreadyAwarded}
-                          className={cn(
-                            "font-bold text-xs h-10 px-5 shadow-sm transition-all",
-                            isSedanaAlreadyAwarded
-                              ? "bg-slate-200 dark:bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-300 dark:border-slate-700"
-                              : "bg-emerald-600 hover:bg-emerald-700 text-white"
-                          )}
+                          disabled={approveSedanaMultiVendorMutation.isPending || assignedItemsCount === 0}
+                          className="font-bold text-xs h-10 px-5 shadow-sm transition-all bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
                         >
                           {approveSedanaMultiVendorMutation.isPending ? (
                             <>
                               <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                              جاري الاعتماد والترسية...
+                              جاري حفظ وتحديث الترسية...
                             </>
                           ) : isSedanaAlreadyAwarded ? (
                             <>
-                              <CheckCircle2 className="h-4 w-4 ml-2 text-emerald-600" />
-                              تم اعتماد وترسية عروض الأسعار
+                              <CheckCircle2 className="h-4 w-4 ml-2" />
+                              تحديث واعتماد وترسية عروض الأسعار ({assignedItemsCount} بند)
                             </>
                           ) : (
                             <>
@@ -3643,6 +3649,16 @@ export default function Quotations() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* نافذة تصدير بنود التسعير كملف PDF لطلبات سدانة حصراً */}
+        {isSedanaProgram && (
+          <SedanaExportPdfModal
+            open={showExportPdfModal}
+            onOpenChange={setShowExportPdfModal}
+            request={currentSelectedRequest}
+            items={boqData?.items || []}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
