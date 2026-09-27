@@ -420,7 +420,6 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
 const getMenuItems = (role: string) => getMenuGroups(role).flatMap(g => g.items);
 
 const SIDEBAR_SCROLL_KEY = "tamam_sidebar_scroll_top";
-const SIDEBAR_COLLAPSED_GROUPS_KEY = "tamam_sidebar_collapsed_groups";
 
 // دالة مساعدة لتحديد ما إذا كان المسار يتبع لعنصر في القائمة (بما في ذلك المسارات الفرعية)
 const isItemActive = (itemPath: string, currentPath: string, allItems: MenuItem[]): boolean => {
@@ -709,26 +708,6 @@ function DashboardLayoutContent({
   const lastScrollTopRef = useRef<number>(0);
   const scrollTimeoutRef = useRef<number | null>(null);
 
-  // حالة الأقسام المطوية مع الحفظ في sessionStorage
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
-    try {
-      const saved = sessionStorage.getItem(SIDEBAR_COLLAPSED_GROUPS_KEY);
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
-
-  const toggleGroup = useCallback((groupLabel: string) => {
-    setCollapsedGroups(prev => {
-      const next = { ...prev, [groupLabel]: !prev[groupLabel] };
-      try {
-        sessionStorage.setItem(SIDEBAR_COLLAPSED_GROUPS_KEY, JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-  }, []);
-
   const saveScrollPosition = useCallback((scrollTop: number) => {
     lastScrollTopRef.current = scrollTop;
     try {
@@ -938,31 +917,20 @@ function DashboardLayoutContent({
             className="gap-0 py-2 overflow-y-auto overflow-x-hidden"
           >
             {menuGroups.map((group, groupIdx) => {
-              const isGroupActive = group.items.some(item => isItemActive(item.path, location, menuItems));
-              // إذا كان القسم يحتوي على المسار النشط، يظل مفتوحاً وموسعاً دائماً (keep-open / auto-expanded)
-              const isGroupCollapsed = !isGroupActive && Boolean(collapsedGroups[group.label]);
-
               return (
                 <div key={group.label}>
                   {groupIdx > 0 && (
                     <div className="mx-3 my-1 border-t border-sidebar-border transition-opacity duration-300 ease-in-out group-data-[collapsible=icon]:opacity-0" />
                   )}
                   {group.label && (
-                    <button
-                      type="button"
-                      onClick={() => toggleGroup(group.label)}
-                      className="w-full flex items-center justify-between px-4 py-1.5 text-[10px] font-semibold text-sidebar-foreground/40 hover:text-sidebar-foreground/80 uppercase tracking-wider transition-all duration-200 ease-in-out group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:py-0 group-data-[collapsible=icon]:opacity-0 overflow-hidden whitespace-nowrap cursor-pointer select-none text-right"
+                    <div
+                      className="w-full flex items-center px-4 py-1.5 text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-wider transition-all duration-200 ease-in-out group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:py-0 group-data-[collapsible=icon]:opacity-0 overflow-hidden whitespace-nowrap select-none text-right"
                       title={group.label}
                     >
                       <span className="truncate">{group.label}</span>
-                      <ChevronDown
-                        className={`w-3.5 h-3.5 transition-transform duration-200 shrink-0 text-sidebar-foreground/40 ${
-                          isGroupCollapsed ? "rotate-90 rtl:-rotate-90" : "rotate-0"
-                        }`}
-                      />
-                    </button>
+                    </div>
                   )}
-                  <div className={isGroupCollapsed ? "hidden group-data-[collapsible=icon]:block" : "block"}>
+                  <div>
                     <SidebarMenu className="px-2 py-0.5">
                       {group.items.map(item => {
                         const isActive = isItemActive(item.path, location, menuItems);
