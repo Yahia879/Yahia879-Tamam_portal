@@ -624,21 +624,6 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
         </div>
       )}
 
-      {/* ملاحظات الموظف */}
-      <div className="pt-2">
-        <label className="text-xs font-semibold text-foreground mb-1 block">
-          ملاحظات وتوصيات التقييم المكتبي
-        </label>
-        <Textarea
-          rows={2}
-          value={officeNotes}
-          onChange={(e) => setOfficeNotes(e.target.value)}
-          disabled={!canEvaluate || isAlreadyApproved}
-          className="text-xs resize-none bg-background border-border/80"
-          placeholder="ملاحظات فنية حول دراسة الاحتياج وضبط الكميات..."
-        />
-      </div>
-
       {/* أزرار الحفظ والاعتماد */}
       {canEvaluate && !isAlreadyApproved && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 border-t border-border/70">
