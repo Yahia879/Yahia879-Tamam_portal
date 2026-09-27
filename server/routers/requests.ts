@@ -1404,24 +1404,7 @@ export const requestsRouter = router({
         }
       }
 
-      // التحقق من تسعير كافة البنود عند الانتقال لمرحلة التقييم المالي واعتماد العرض لبرنامج سدانة
-      if (input.newStage === 'financial_eval_and_approval' && (isSedana || request[0].programType === 'sedana')) {
-        const boqItems = await db.select().from(quantitySchedules)
-          .where(eq(quantitySchedules.requestId, input.requestId));
-        if (boqItems.length === 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "لا يمكن الانتقال إلى مرحلة التقييم المالي واعتماد العرض قبل إعداد جدول الكميات وتسعير البنود",
-          });
-        }
-        const unpriced = boqItems.filter(b => !b.unitPrice || Number(b.unitPrice) <= 0);
-        if (unpriced.length > 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `لا يمكن الانتقال إلى مرحلة التقييم المالي واعتماد العرض إلا بعد تسعير جميع البنود (${unpriced.length} بند غير مسعر)`,
-          });
-        }
-      }
+
 
       // التحقق من الشروط المسبقة للانتقال
       // ملاحظة: لا يمكن تجاوز الشروط الحرجة (المراجعة الأولية، الزيارة الميدانية) حتى مع skipPrerequisites
@@ -1461,22 +1444,12 @@ export const requestsRouter = router({
           }
           // التحقق من وجود جدول الكميات وتسعير البنود
           else if (prereq.type === 'boq_created') {
-            const boqItems = await db.select().from(quantitySchedules)
-              .where(eq(quantitySchedules.requestId, input.requestId));
-            if (boqItems.length === 0) {
-              isMet = false;
-            } else if (isSedana || request[0].programType === 'sedana') {
-              const unpriced = boqItems.filter(b => !b.unitPrice || Number(b.unitPrice) <= 0);
-              if (unpriced.length > 0) {
-                isMet = false;
-                throw new TRPCError({
-                  code: "BAD_REQUEST",
-                  message: `لا يمكن الانتقال إلى مرحلة التقييم المالي واعتماد العرض إلا بعد تسعير جميع البنود (${unpriced.length} بند غير مسعر)`,
-                });
-              }
+            if (isSedana || request[0].programType === 'sedana') {
               isMet = true;
             } else {
-              isMet = true;
+              const boqItems = await db.select().from(quantitySchedules)
+                .where(eq(quantitySchedules.requestId, input.requestId));
+              isMet = boqItems.length > 0;
             }
           }
           // التحقق من وجود عروض أسعار مستلمة
