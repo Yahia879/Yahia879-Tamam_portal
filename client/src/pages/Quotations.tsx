@@ -2219,7 +2219,7 @@ export default function Quotations() {
                               <TableRow className="bg-muted/40 border-b-2 border-slate-300 dark:border-slate-700">
                                 <TableHead className="w-12 text-center font-bold">#</TableHead>
                                 <TableHead className="font-bold min-w-[220px]">البند والمواصفات</TableHead>
-                                <TableHead className="text-center font-bold min-w-[100px]">الكمية</TableHead>
+                                <TableHead className="text-center font-bold min-w-[100px]">{isSedanaProgram ? "الكمية المعتمدة" : "الكمية"}</TableHead>
                                 
                                 {/* أعمدة الموردين المشاركين في المصفوفة */}
                                 {participatingVendors.map(vendor => (
@@ -2398,7 +2398,7 @@ export default function Quotations() {
                               <TableHead className="font-bold">البند</TableHead>
                               <TableHead className="font-bold">الوصف والتصنيف</TableHead>
                               <TableHead className="font-bold">الوحدة</TableHead>
-                              <TableHead className="text-center font-bold">الكمية</TableHead>
+                              <TableHead className="text-center font-bold">{isSedanaProgram ? "الكمية المعتمدة" : "الكمية"}</TableHead>
                               <TableHead className="font-bold min-w-[280px]">المورد وعرض السعر المعتمد</TableHead>
                               <TableHead className="text-center font-bold">سعر الوحدة</TableHead>
                               <TableHead className="text-center font-bold">الإجمالي</TableHead>
@@ -3137,7 +3137,7 @@ export default function Quotations() {
                           <TableHead className="w-14 text-center font-bold">#</TableHead>
                           <TableHead className="min-w-[220px] max-w-[450px] font-bold text-right">البند</TableHead>
                           <TableHead className="w-24 text-center font-bold">الوحدة</TableHead>
-                          <TableHead className="w-28 text-center font-bold">الكمية</TableHead>
+                          <TableHead className="w-28 text-center font-bold">{isSedanaProgram ? "الكمية المعتمدة" : "الكمية"}</TableHead>
                           <TableHead className="w-40 text-center font-bold">
                             <span className="inline-flex items-center justify-center gap-1">سعر الوحدة (<SaudiRiyal className="w-3.5 h-3.5" />)</span>
                           </TableHead>

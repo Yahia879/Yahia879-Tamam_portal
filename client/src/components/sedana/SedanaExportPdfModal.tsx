@@ -138,13 +138,17 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
         }
         if (!frequency) frequency = "سنوي";
 
+        const approvedQty = basketMatch && approvedItemsMap[basketMatch.id] !== undefined
+          ? approvedItemsMap[basketMatch.id]
+          : (item.quantity ?? basketMatch?.quantity ?? 1);
+
         return {
           id: item.id || `boq-${index}`,
           name: item.itemName || basketMatch?.name || `بند رقم ${index + 1}`,
           description: item.itemDescription || basketMatch?.description || "",
           category: item.category || basketMatch?.category || "بنود تشغيلية",
           unit: item.unit || basketMatch?.unit || "عدد",
-          quantity: item.quantity ?? basketMatch?.quantity ?? 1,
+          quantity: approvedQty,
           frequency,
         };
       });
@@ -521,7 +525,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
                       <TableHead className="font-bold min-w-[200px]">البند والمواصفات</TableHead>
                       <TableHead className="font-bold text-center min-w-[120px]">التصنيف</TableHead>
                       <TableHead className="font-bold text-center min-w-[110px]">دورية التوريد</TableHead>
-                      <TableHead className="font-bold text-center min-w-[90px]">الكمية</TableHead>
+                      <TableHead className="font-bold text-center min-w-[90px]">الكمية المعتمدة</TableHead>
                       <TableHead className="font-bold text-center min-w-[90px]">الوحدة</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -782,7 +786,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
                 <th style={{ border: "1px solid #0f766e", padding: "10px 12px", textAlign: "right" }}>
                   بيان البند والمواصفات
                 </th>
-                <th style={{ border: "1px solid #0f766e", padding: "10px 8px", width: "70px" }}>الكمية</th>
+                <th style={{ border: "1px solid #0f766e", padding: "10px 8px", width: "85px" }}>الكمية المعتمدة</th>
                 <th style={{ border: "1px solid #0f766e", padding: "10px 8px", width: "65px" }}>الوحدة</th>
                 <th style={{ border: "1px solid #0f766e", padding: "10px 8px", width: "120px" }}>
                   سعر الوحدة (ر.س)

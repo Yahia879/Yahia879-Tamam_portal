@@ -2756,6 +2756,59 @@ export const requestsRouter = router({
 
       await db.update(mosqueRequests).set(updateData).where(eq(mosqueRequests.id, input.requestId));
 
+      // مزامنة جدول الكميات (quantitySchedules) بالكميات المعتمدة
+      try {
+        const basket = input.basketItems || currentProgramData.basketItems || [];
+        if (Array.isArray(basket) && basket.length > 0) {
+          const existingBoq = await db
+            .select()
+            .from(quantitySchedules)
+            .where(eq(quantitySchedules.requestId, input.requestId));
+
+          for (const item of basket) {
+            const approvedQty = input.approvedItems[item.id] !== undefined
+              ? input.approvedItems[item.id]
+              : (Number(item.quantity) || 1);
+
+            // البحث عن البند إما بالكود أو بالاسم
+            const existingRow = existingBoq.find(
+              (b) => b.boqCode === `BOQ-SED-${item.id}` || b.itemName === item.name
+            );
+
+            if (existingRow) {
+              const uPrice = Number(existingRow.unitPrice) || 0;
+              await db
+                .update(quantitySchedules)
+                .set({
+                  quantity: String(approvedQty),
+                  unit: item.unit || existingRow.unit || 'عدد',
+                  itemDescription: item.frequency ? `دورية التوريد: ${item.frequency}` : existingRow.itemDescription,
+                  category: item.category || existingRow.category || 'بنود سدانة التشغيلية',
+                  totalPrice: String(uPrice * approvedQty),
+                  updatedAt: new Date(),
+                })
+                .where(eq(quantitySchedules.id, existingRow.id));
+            } else {
+              await db.insert(quantitySchedules).values({
+                requestId: input.requestId,
+                mosqueId: request.mosqueId || null,
+                boqCode: `BOQ-SED-${item.id || Math.random().toString(36).substring(7)}`,
+                boqName: 'جدول كميات سدانة السنوي',
+                itemName: item.name || 'بند سدانة',
+                itemDescription: `دورية التوريد: ${item.frequency || 'سنوي'}`,
+                unit: item.unit || 'عدد',
+                quantity: String(approvedQty),
+                unitPrice: '0',
+                totalPrice: '0',
+                category: item.category || 'بنود سدانة التشغيلية',
+              });
+            }
+          }
+        }
+      } catch (boqSyncErr) {
+        console.error("Error syncing quantity schedules with approved items:", boqSyncErr);
+      }
+
       if (input.shouldAdvanceStage) {
         // تسجيل التقييم الفني وتاريخ الطلب
         try {

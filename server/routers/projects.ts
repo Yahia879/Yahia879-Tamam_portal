@@ -1843,10 +1843,10 @@ export const projectsRouter = router({
         .where(and(...conditions))
       let itemsList = rawItems;
 
-      // إذا لم تكن هناك بنود في جدول الكميات وكان هناك requestId، نفحص إذا كان ينبغي مزامنة البنود من الطلب
-      if (itemsList.length === 0 && input.requestId) {
+      // فحص ومزامنة جدول الكميات مع بنود سدانة والكميات المعتمدة للطلب
+      if (input.requestId) {
         const [request] = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
-        if (request && request.programData) {
+        if (request && (request.programType === 'sedana' || request.programData)) {
           let pData: any = {};
           try {
             pData = request.programData;
@@ -1861,52 +1861,102 @@ export const projectsRouter = router({
             pData = {};
           }
 
-          const basketItems: any[] = pData.basketItems || [];
-          const approvedItems: Record<string, number> = pData.approvedPlan?.approvedItems || {};
+          const basketItems: any[] = pData?.basketItems || [];
+          const approvedItems: Record<string, number> = pData?.approvedPlan?.approvedItems || {};
 
           if (Array.isArray(basketItems) && basketItems.length > 0) {
-            for (const item of basketItems) {
-              const qty = approvedItems[item.id] !== undefined ? approvedItems[item.id] : (Number(item.quantity) || 1);
-              await db.insert(quantitySchedules).values({
-                requestId: input.requestId,
-                mosqueId: request.mosqueId || null,
-                boqCode: `BOQ-SED-${item.id || Math.random().toString(36).substring(7)}`,
-                boqName: 'جدول كميات سدانة السنوي',
-                itemName: item.name || 'بند سدانة',
-                itemDescription: `دورية التوريد: ${item.frequency || 'سنوي'}`,
-                unit: item.unit || 'عدد',
-                quantity: String(qty),
-                unitPrice: '0',
-                totalPrice: '0',
-                category: item.category || 'بنود سدانة التشغيلية',
-              });
+            let boqUpdated = false;
+
+            if (itemsList.length === 0) {
+              for (const item of basketItems) {
+                const qty = approvedItems[item.id] !== undefined ? approvedItems[item.id] : (Number(item.quantity) || 1);
+                await db.insert(quantitySchedules).values({
+                  requestId: input.requestId,
+                  mosqueId: request.mosqueId || null,
+                  boqCode: `BOQ-SED-${item.id || Math.random().toString(36).substring(7)}`,
+                  boqName: 'جدول كميات سدانة السنوي',
+                  itemName: item.name || 'بند سدانة',
+                  itemDescription: `دورية التوريد: ${item.frequency || 'سنوي'}`,
+                  unit: item.unit || 'عدد',
+                  quantity: String(qty),
+                  unitPrice: '0',
+                  totalPrice: '0',
+                  category: item.category || 'بنود سدانة التشغيلية',
+                });
+              }
+              boqUpdated = true;
+            } else {
+              // إذا كانت البنود موجودة بالفعل في جدول الكميات، نتحقق من مطابقة الكمية مع الكمية المعتمدة
+              for (const item of basketItems) {
+                const targetQty = approvedItems[item.id] !== undefined 
+                  ? approvedItems[item.id] 
+                  : (Number(item.quantity) || 1);
+                
+                const existingRow = itemsList.find(
+                  (b) => b.boqCode === `BOQ-SED-${item.id}` || b.itemName === item.name
+                );
+
+                if (existingRow) {
+                  const currentQty = parseFloat(String(existingRow.quantity || 0));
+                  if (currentQty !== targetQty) {
+                    const uPrice = Number(existingRow.unitPrice) || 0;
+                    await db
+                      .update(quantitySchedules)
+                      .set({
+                        quantity: String(targetQty),
+                        totalPrice: String(uPrice * targetQty),
+                        updatedAt: new Date(),
+                      })
+                      .where(eq(quantitySchedules.id, existingRow.id));
+                    boqUpdated = true;
+                  }
+                } else {
+                  // إذا وجد بند في السلة ولم يكن مضافاً في جدول الكميات
+                  await db.insert(quantitySchedules).values({
+                    requestId: input.requestId,
+                    mosqueId: request.mosqueId || null,
+                    boqCode: `BOQ-SED-${item.id || Math.random().toString(36).substring(7)}`,
+                    boqName: 'جدول كميات سدانة السنوي',
+                    itemName: item.name || 'بند سدانة',
+                    itemDescription: `دورية التوريد: ${item.frequency || 'سنوي'}`,
+                    unit: item.unit || 'عدد',
+                    quantity: String(targetQty),
+                    unitPrice: '0',
+                    totalPrice: '0',
+                    category: item.category || 'بنود سدانة التشغيلية',
+                  });
+                  boqUpdated = true;
+                }
+              }
             }
 
-            // إعادة جلب البنود المضافة حديثاً
-            itemsList = await db
-              .select({
-                id: quantitySchedules.id,
-                requestId: quantitySchedules.requestId,
-                projectId: quantitySchedules.projectId,
-                mosqueId: quantitySchedules.mosqueId,
-                boqCode: quantitySchedules.boqCode,
-                boqName: quantitySchedules.boqName,
-                itemName: quantitySchedules.itemName,
-                itemDescription: quantitySchedules.itemDescription,
-                unit: quantitySchedules.unit,
-                quantity: quantitySchedules.quantity,
-                unitPrice: quantitySchedules.unitPrice,
-                totalPrice: quantitySchedules.totalPrice,
-                category: quantitySchedules.category,
-                createdAt: quantitySchedules.createdAt,
-                updatedAt: quantitySchedules.updatedAt,
-                mosqueName: mosques.name,
-                mosqueCity: mosques.city,
-              })
-              .from(quantitySchedules)
-              .leftJoin(mosques, eq(quantitySchedules.mosqueId, mosques.id))
-              .where(and(...conditions))
-              .orderBy(quantitySchedules.category, quantitySchedules.itemName);
+            if (boqUpdated) {
+              // إعادة جلب البنود المضافة أو المحدثة
+              itemsList = await db
+                .select({
+                  id: quantitySchedules.id,
+                  requestId: quantitySchedules.requestId,
+                  projectId: quantitySchedules.projectId,
+                  mosqueId: quantitySchedules.mosqueId,
+                  boqCode: quantitySchedules.boqCode,
+                  boqName: quantitySchedules.boqName,
+                  itemName: quantitySchedules.itemName,
+                  itemDescription: quantitySchedules.itemDescription,
+                  unit: quantitySchedules.unit,
+                  quantity: quantitySchedules.quantity,
+                  unitPrice: quantitySchedules.unitPrice,
+                  totalPrice: quantitySchedules.totalPrice,
+                  category: quantitySchedules.category,
+                  createdAt: quantitySchedules.createdAt,
+                  updatedAt: quantitySchedules.updatedAt,
+                  mosqueName: mosques.name,
+                  mosqueCity: mosques.city,
+                })
+                .from(quantitySchedules)
+                .leftJoin(mosques, eq(quantitySchedules.mosqueId, mosques.id))
+                .where(and(...conditions))
+                .orderBy(quantitySchedules.category, quantitySchedules.itemName);
+            }
           }
         }
       }
