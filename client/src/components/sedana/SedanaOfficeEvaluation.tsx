@@ -697,7 +697,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
       {isAlreadyApproved && (
         <div className="p-3 rounded-xl bg-cyan-50 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-800 text-xs text-cyan-800 dark:text-cyan-300 font-medium flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-cyan-600 shrink-0" />
-          <span>تم اعتماد الاحتياج السنوي ونقل الطلب لمرحلة جدول الكميات (BOQ) بنجاح.</span>
+          <span>تم اعتماد الاحتياج السنوي ونقل الطلب لمرحلة التقييم المالي واعتماد العرض بنجاح.</span>
         </div>
       )}
     </div>
