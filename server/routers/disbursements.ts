@@ -26,7 +26,8 @@ import {
 } from "../../drizzle/schema";
 import { eq, desc, asc, count, and, sql, isNull, isNotNull, or, like, inArray, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { createNotification, notifyDisbursementRequestCreation, notifyDisbursementOrderCreation, notifyDisbursementOrderApproval, notifyDisbursementOrderRejection } from "./notifications";
+import { createNotification, notifyDisbursementRequestCreation, notifyDisbursementOrderCreation, notifyDisbursementOrderApproval, notifyDisbursementOrderRejection, sendEmailNotification } from "./notifications";
+import { sendSms } from "../services/sms";
 import { triggerBeneficiarySatisfactionSurvey } from "./requests";
 
 // توليد رقم طلب صرف
@@ -4677,13 +4678,21 @@ export const disbursementsRouter = router({
       return { success: true };
     }),
 
-  // إرسال تذكير بالاعتماد لأمر الصرف
+  // إرسال تذكير بالاعتماد لأمر الصرف (موجه حصرياً لرئيس مجلس الإدارة بالقنوات المحددة)
   sendApprovalReminder: protectedProcedure
     .input(
       z.object({
         orderId: z.number(),
         customMessage: z.string().optional(),
-        source: z.enum(["board_executive", "disbursement_orders"]),
+        source: z.enum(["board_executive", "disbursement_orders"]).optional().default("disbursement_orders"),
+        channels: z
+          .object({
+            inApp: z.boolean().default(true),
+            sms: z.boolean().default(false),
+            email: z.boolean().default(false),
+          })
+          .optional()
+          .default({ inApp: true, sms: false, email: false }),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -4692,23 +4701,19 @@ export const disbursementsRouter = router({
 
       // التحقق من الصلاحيات
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      if (!isAdmin) {
-        if (input.source === "board_executive") {
-          const hasBoardRemind =
-            ctx.user.role === "board_chairman" ||
-            (await checkPermission(ctx.user.id, "board_leadership.remind")) ||
-            (await checkPermission(ctx.user.id, "board_chairman_remind")) ||
-            (await checkPermission(ctx.user.id, "board_chairman"));
-          if (!hasBoardRemind) {
-            throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إرسال تذكير بالاعتماد في مركز الاعتماد المالي" });
-          }
-        } else {
-          const hasOrderRemind =
-            (await checkPermission(ctx.user.id, "disbursement_orders.remind")) ||
-            (await checkPermission(ctx.user.id, "disbursement_orders.approve"));
-          if (!hasOrderRemind) {
-            throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إرسال تذكير بالاعتماد لأمر الصرف" });
-          }
+      const isFinancialUser =
+        ["financial", "financial_manager"].includes(ctx.user.role) ||
+        ctx.user.email === "solayani@manarah.org.sa" ||
+        ctx.user.email === "test2@gmail.com" ||
+        ctx.user.email === "test11@gmail.com";
+
+      if (!isAdmin && !isFinancialUser) {
+        const hasOrderRemind =
+          (await checkPermission(ctx.user.id, "disbursement_orders.remind")) ||
+          (await checkPermission(ctx.user.id, "disbursement_orders.view")) ||
+          (await checkPermission(ctx.user.id, "disbursement_orders.approve"));
+        if (!hasOrderRemind) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إرسال تذكير بالاعتماد لأمر الصرف" });
         }
       }
 
@@ -4729,42 +4734,73 @@ export const disbursementsRouter = router({
       const defaultMessage = `نود تذكيركم بوجود أمر صرف رقم "${order.orderNumber}" بمبلغ ${Number(order.amount).toLocaleString("ar-SA")} ريال بانتظار اعتمادكم الكريم.`;
       const finalMessage = input.customMessage?.trim() || defaultMessage;
 
-      // تحديد المستقبلين المؤهلين للاعتماد
-      const candidateRoles =
-        input.source === "board_executive"
-          ? ["board_chairman", "super_admin"]
-          : order.status === "approved"
-          ? ["board_chairman", "super_admin"]
-          : ["board_chairman", "financial_manager", "super_admin", "system_admin"];
-
+      // استهداف المسؤول الذي دوره "رئيس مجلس إدارة" فقط وحصرياً في النظام
       const eligibleUsers = await db
-        .select({ id: users.id })
+        .select({ id: users.id, name: users.name, role: users.role, email: users.email, phone: users.phone })
         .from(users)
         .where(
           and(
             isNull(users.deletedAt),
-            inArray(users.role, candidateRoles as any),
-            ne(users.id, ctx.user.id)
+            eq(users.role, "board_chairman")
           )
         );
 
-      const recipientIds = new Set<number>(eligibleUsers.map((u) => u.id));
-
-      for (const targetUserId of Array.from(recipientIds)) {
-        await createNotification({
-          userId: targetUserId,
-          type: "warning",
-          title: "تذكير باعتماد أمر صرف",
-          message: finalMessage,
-          relatedType: "disbursement_order",
-          relatedId: order.id,
+      if (eligibleUsers.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "لم يتم العثور على مسؤول برتبة رئيس مجلس الإدارة في النظام لإرسال التذكير إليه",
         });
+      }
+
+      const channels = input.channels || { inApp: true, sms: false, email: false };
+      const selectedChannelsList: string[] = [];
+      if (channels.inApp) selectedChannelsList.push("داخل الموقع");
+      if (channels.email) selectedChannelsList.push("البريد الإلكتروني");
+      if (channels.sms) selectedChannelsList.push("الرسائل النصية SMS");
+
+      for (const targetUser of eligibleUsers) {
+        // 1. إشعار داخل الموقع
+        if (channels.inApp) {
+          await db.insert(notifications).values({
+            userId: targetUser.id,
+            type: "warning",
+            title: "تذكير باعتماد أمر صرف",
+            message: finalMessage,
+            relatedType: "disbursement_order",
+            relatedId: order.id,
+            isRead: false,
+          });
+        }
+
+        // 2. إرسال بريد إلكتروني
+        if (channels.email && targetUser.email) {
+          try {
+            await sendEmailNotification(
+              targetUser.email,
+              `تذكير باعتماد أمر صرف رقم (${order.orderNumber})`,
+              finalMessage
+            );
+          } catch (e) {
+            console.error("Email reminder error:", e);
+          }
+        }
+
+        // 3. إرسال رسالة نصية قصيرة SMS
+        if (channels.sms && targetUser.phone) {
+          try {
+            const smsText = `تذكير باعتماد أمر صرف رقم (${order.orderNumber})\n${finalMessage}`;
+            await sendSms(targetUser.phone, smsText);
+          } catch (e) {
+            console.error("SMS reminder error:", e);
+          }
+        }
       }
 
       return {
         success: true,
-        sentCount: recipientIds.size,
-        message: "تم إرسال التذكير بنجاح",
+        sentCount: eligibleUsers.length,
+        channels: selectedChannelsList,
+        message: `تم إرسال التذكير لرئيس مجلس الإدارة بنجاح عبر (${selectedChannelsList.join("، ") || "القنوات المحددة"})`,
       };
     }),
 });

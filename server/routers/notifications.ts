@@ -1,5 +1,8 @@
 import { z } from "zod";
 import nodemailer from "nodemailer";
+import dns from "dns";
+import { promisify } from "util";
+const dnsLookup = promisify(dns.lookup);
 import dotenv from "dotenv";
 import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
 
@@ -27,10 +30,10 @@ export const NOTIFICATION_TYPES = {
 export type NotificationType = "info" | "success" | "warning" | "error" | "request_update" | "system" | "mosque" | "request";
 
 let transporter: nodemailer.Transporter | null = null;
+let lastResolvedIp: string | null = null;
+let lastResolvedTime = 0;
 
-function getTransporter() {
-  if (transporter) return transporter;
-
+async function getTransporter() {
   const host = process.env.SMTP_HOST;
   const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 587;
   const secure = process.env.SMTP_SECURE === "true";
@@ -39,23 +42,41 @@ function getTransporter() {
   const service = process.env.SMTP_SERVICE;
 
   const defaultTimeouts = {
-    connectionTimeout: 5000,
-    greetingTimeout: 5000,
-    socketTimeout: 8000,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   };
 
   if (service) {
-    transporter = nodemailer.createTransport({
-      service,
-      auth: {
-        user,
-        pass,
-      },
-      ...defaultTimeouts,
-    });
-  } else if (host) {
-    transporter = nodemailer.createTransport({
-      host,
+    if (!transporter) {
+      transporter = nodemailer.createTransport({
+        service,
+        auth: {
+          user,
+          pass,
+        },
+        ...defaultTimeouts,
+      });
+    }
+    return transporter;
+  }
+
+  if (host) {
+    let connectHost = host;
+    try {
+      const now = Date.now();
+      if (!lastResolvedIp || now - lastResolvedTime > 5 * 60 * 1000) {
+        const { address } = await dnsLookup(host);
+        lastResolvedIp = address;
+        lastResolvedTime = now;
+      }
+      connectHost = lastResolvedIp;
+    } catch (e) {
+      console.warn("DNS lookup failed, using host directly:", e);
+    }
+
+    return nodemailer.createTransport({
+      host: connectHost,
       port,
       secure,
       auth: {
@@ -63,12 +84,14 @@ function getTransporter() {
         pass,
       },
       tls: {
+        servername: host,
         rejectUnauthorized: false,
-        minVersion: "TLSv1.2",
       },
       ...defaultTimeouts,
     });
-  } else {
+  }
+
+  if (!transporter) {
     transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -123,9 +146,10 @@ export async function sendEmailNotification(
       `,
     };
 
-    const sendMailPromise = getTransporter().sendMail(mailOptions);
+    const t = await getTransporter();
+    const sendMailPromise = t.sendMail(mailOptions);
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("SMTP timeout (6s)")), 6000)
+      setTimeout(() => reject(new Error("SMTP timeout (15s)")), 15000)
     );
     const info: any = await Promise.race([sendMailPromise, timeoutPromise]);
     console.log(`Email sent successfully to ${to}: ${info?.messageId || "ok"}`);

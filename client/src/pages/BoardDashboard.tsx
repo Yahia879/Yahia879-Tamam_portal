@@ -798,7 +798,7 @@ export default function BoardDashboard({
                                           </DropdownMenuItem>
                                         )}
 
-                                        {/* خيار عرض الملاحظات والردود للأوامر غير النشطة أو بعد الاعتماد */}
+{/* خيار عرض الملاحظات والردود للأوامر غير النشطة أو بعد الاعتماد */}
                                         {!isNeedsApproval && (order.executiveNotes || (order as any).notesCount > 0) && (
                                           <DropdownMenuItem
                                             onClick={() => setNotesConversationModal({

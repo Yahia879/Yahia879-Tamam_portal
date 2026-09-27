@@ -71,6 +71,8 @@ import {
   Send,
   CheckCircle2,
   Bell,
+  Mail,
+  Smartphone,
   PenLine,
   RotateCcw,
 } from "lucide-react";
@@ -300,11 +302,21 @@ export default function DisbursementOrders() {
     order: any | null;
     isCustomizing: boolean;
     customMessage: string;
+    channels: {
+      inApp: boolean;
+      sms: boolean;
+      email: boolean;
+    };
   }>({
     open: false,
     order: null,
     isCustomizing: false,
     customMessage: "",
+    channels: {
+      inApp: true,
+      email: true,
+      sms: false,
+    },
   });
 
   const sendReminderMutation = trpc.disbursements.sendApprovalReminder.useMutation({
@@ -315,6 +327,11 @@ export default function DisbursementOrders() {
         order: null,
         isCustomizing: false,
         customMessage: "",
+        channels: {
+          inApp: true,
+          email: true,
+          sms: false,
+        },
       });
     },
     onError: (err) => {
@@ -793,8 +810,31 @@ export default function DisbursementOrders() {
                                         )}
 
 
-                                        <DropdownMenuItem
-                                          onClick={() => {
+                                       {(order.status === "approved" || order.status === "pending" || order.status === "pending_executive") && (
+                                         <DropdownMenuItem
+                                           onClick={() => {
+                                             const defMsg = `نود تذكيركم بوجود أمر صرف رقم "${order.orderNumber}" بمبلغ ${Number(order.amount || 0).toLocaleString("ar-SA")} ريال بانتظار اعتمادكم الكريم.`;
+                                             setReminderModal({
+                                                open: true,
+                                                order,
+                                                isCustomizing: false,
+                                                customMessage: defMsg,
+                                                channels: {
+                                                  inApp: true,
+                                                  email: true,
+                                                  sms: false,
+                                                },
+                                              });
+                                           }}
+                                           className="flex items-center gap-2 cursor-pointer text-amber-700 dark:text-amber-400 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-semibold"
+                                         >
+                                           <Bell className="h-4 w-4 text-amber-600" />
+                                           <span>إرسال تذكير بالاعتماد</span>
+                                         </DropdownMenuItem>
+                                       )}
+
+                                        <DropdownMenuItem
+                                          onClick={() => {
                                             navigate(`/disbursement-orders/${order.id}/print`);
                                           }}
                                           className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50 font-semibold"
@@ -1046,8 +1086,31 @@ export default function DisbursementOrders() {
                                       )}
 
 
-                                      <DropdownMenuItem
-                                        onClick={() => {
+                                      {(order.status === "approved" || order.status === "pending" || order.status === "pending_executive") && (
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            const defMsg = `نود تذكيركم بوجود أمر صرف رقم "${order.orderNumber}" بمبلغ ${Number(order.amount || 0).toLocaleString("ar-SA")} ريال بانتظار اعتمادكم الكريم.`;
+                                            setReminderModal({
+                                              open: true,
+                                              order,
+                                              isCustomizing: false,
+                                              customMessage: defMsg,
+                                              channels: {
+                                                inApp: true,
+                                                email: true,
+                                                sms: false,
+                                              },
+                                            });
+                                          }}
+                                          className="flex items-center gap-2 cursor-pointer text-amber-700 dark:text-amber-400 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-semibold"
+                                        >
+                                          <Bell className="h-4 w-4 text-amber-600" />
+                                          <span>إرسال تذكير بالاعتماد</span>
+                                        </DropdownMenuItem>
+                                      )}
+
+                                      <DropdownMenuItem
+                                        onClick={() => {
                                           navigate(`/disbursement-orders/${order.id}/print`);
                                         }}
                                         className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50 font-semibold"
@@ -1562,6 +1625,11 @@ export default function DisbursementOrders() {
                 order: null,
                 isCustomizing: false,
                 customMessage: "",
+                channels: {
+                  inApp: true,
+                  email: true,
+                  sms: false,
+                },
               });
             }
           }}
@@ -1573,7 +1641,7 @@ export default function DisbursementOrders() {
                 <span>إرسال تذكير بالاعتماد</span>
               </DialogTitle>
               <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 font-medium">
-                إرسال إشعار تذكيري لصاحب الصلاحية لاعتماد أمر الصرف رقم ({reminderModal.order?.orderNumber})
+                إرسال إشعار تذكيري لرئيس مجلس الإدارة لاعتماد أمر الصرف رقم ({reminderModal.order?.orderNumber})
               </DialogDescription>
             </DialogHeader>
 
@@ -1644,6 +1712,98 @@ export default function DisbursementOrders() {
                     />
                   )}
                 </div>
+
+                {/* تحديد قنوات إرسال الإشعار لرئيس مجلس الإدارة */}
+                <div className="space-y-2 pt-2 border-t border-border/60">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                    حدد وجهات وقنوات الإرسال لرئيس مجلس الإدارة:
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {/* 1. داخل الموقع */}
+                    <div
+                      onClick={() =>
+                        setReminderModal((prev) => ({
+                          ...prev,
+                          channels: { ...prev.channels, inApp: !prev.channels.inApp },
+                        }))
+                      }
+                      className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-bold cursor-pointer transition-all select-none ${
+                        reminderModal.channels.inApp
+                          ? "bg-amber-500/15 border-amber-500/40 text-amber-900 dark:text-amber-300 shadow-2xs"
+                          : "bg-muted/30 border-border/70 text-muted-foreground hover:bg-muted/50"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={reminderModal.channels.inApp}
+                        onChange={() => {}}
+                        className="rounded text-amber-600 focus:ring-amber-500 h-4 w-4 shrink-0 pointer-events-none"
+                      />
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <Bell className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span className="truncate">داخل الموقع</span>
+                      </div>
+                    </div>
+
+                    {/* 2. بريد إلكتروني */}
+                    <div
+                      onClick={() =>
+                        setReminderModal((prev) => ({
+                          ...prev,
+                          channels: { ...prev.channels, email: !prev.channels.email },
+                        }))
+                      }
+                      className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-bold cursor-pointer transition-all select-none ${
+                        reminderModal.channels.email
+                          ? "bg-amber-500/15 border-amber-500/40 text-amber-900 dark:text-amber-300 shadow-2xs"
+                          : "bg-muted/30 border-border/70 text-muted-foreground hover:bg-muted/50"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={reminderModal.channels.email}
+                        onChange={() => {}}
+                        className="rounded text-amber-600 focus:ring-amber-500 h-4 w-4 shrink-0 pointer-events-none"
+                      />
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <Mail className="w-4 h-4 text-blue-600 shrink-0" />
+                        <span className="truncate">بريد إلكتروني</span>
+                      </div>
+                    </div>
+
+                    {/* 3. رسالة SMS */}
+                    <div
+                      onClick={() =>
+                        setReminderModal((prev) => ({
+                          ...prev,
+                          channels: { ...prev.channels, sms: !prev.channels.sms },
+                        }))
+                      }
+                      className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-bold cursor-pointer transition-all select-none ${
+                        reminderModal.channels.sms
+                          ? "bg-amber-500/15 border-amber-500/40 text-amber-900 dark:text-amber-300 shadow-2xs"
+                          : "bg-muted/30 border-border/70 text-muted-foreground hover:bg-muted/50"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={reminderModal.channels.sms}
+                        onChange={() => {}}
+                        className="rounded text-amber-600 focus:ring-amber-500 h-4 w-4 shrink-0 pointer-events-none"
+                      />
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <Smartphone className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span className="truncate">رسالة SMS</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {!reminderModal.channels.inApp && !reminderModal.channels.email && !reminderModal.channels.sms && (
+                    <p className="text-[11px] text-destructive font-semibold">
+                      * يرجى تحديد قناة إرسال واحدة على الأقل لإرسال التذكير.
+                    </p>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1651,14 +1811,22 @@ export default function DisbursementOrders() {
               <Button
                 onClick={() => {
                   if (!reminderModal.order) return;
+                  if (!reminderModal.channels.inApp && !reminderModal.channels.email && !reminderModal.channels.sms) {
+                    toast.warning("يرجى اختيار قناة إرسال واحدة على الأقل");
+                    return;
+                  }
                   sendReminderMutation.mutate({
                     orderId: reminderModal.order.id,
                     customMessage: reminderModal.isCustomizing ? reminderModal.customMessage : undefined,
                     source: "disbursement_orders",
+                    channels: reminderModal.channels,
                   });
                 }}
-                disabled={sendReminderMutation.isPending}
-                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white shadow-sm cursor-pointer"
+                disabled={
+                  sendReminderMutation.isPending ||
+                  (!reminderModal.channels.inApp && !reminderModal.channels.email && !reminderModal.channels.sms)
+                }
+                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white shadow-sm cursor-pointer disabled:opacity-60"
               >
                 {sendReminderMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Bell className="w-4 h-4 ml-1.5" />}
                 <span>إرسال التذكير</span>
@@ -1670,6 +1838,11 @@ export default function DisbursementOrders() {
                   order: null,
                   isCustomizing: false,
                   customMessage: "",
+                  channels: {
+                    inApp: true,
+                    email: true,
+                    sms: false,
+                  },
                 })}
                 className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 cursor-pointer"
               >
