@@ -635,6 +635,16 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
               </Button>
               <Button
                 type="button"
+                variant="outline"
+                onClick={handlePrint}
+                disabled={isExporting || selectedItemsList.length === 0}
+                className="h-9 px-3 text-xs font-semibold gap-1.5 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+              >
+                <Printer className="w-4 h-4" />
+                <span>طباعة مباشرة</span>
+              </Button>
+              <Button
+                type="button"
                 onClick={handleExportPdf}
                 disabled={isExporting || selectedItemsList.length === 0}
                 className="h-9 px-4 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 gap-2"
@@ -656,7 +666,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* قالب المستند المخصص للتصدير (بسيط، غير معجوق، مع شعار الجمعية والبنود فقط) */}
+      {/* قالب المستند المخصص للتصدير (بسيط، غير معجوق، مع التركيز على شعار الجمعية والبنود) */}
       <div
         style={{
           position: "fixed",
@@ -680,7 +690,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
             lineHeight: "1.4",
           }}
         >
-          {/* Header البسيط: شعار الجمعية على اليمين، عنوان الوثيقة بالوسط، بيانات المسجد والطلب على اليسار */}
+          {/* ترويسة بسيطة وواضحة: شعار الجمعية مع الاسم وعنوان جدول الأسعار */}
           <div
             style={{
               display: "flex",
@@ -688,69 +698,101 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
               alignItems: "center",
               paddingBottom: "16px",
               borderBottom: "2px solid #059669",
-              marginBottom: "20px",
+              marginBottom: "18px",
             }}
           >
             {/* الشعار واسم الجمعية */}
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <img
-                src={logoUrl}
-                alt="شعار الجمعية"
-                crossOrigin="anonymous"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = "/logo.png";
-                }}
-                style={{ height: "60px", maxHeight: "60px", objectFit: "contain" }}
-              />
+            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              {logoBase64 ? (
+                <img
+                  src={logoBase64}
+                  alt="شعار الجمعية"
+                  style={{
+                    height: "65px",
+                    maxHeight: "65px",
+                    maxWidth: "180px",
+                    objectFit: "contain",
+                  }}
+                />
+              ) : null}
               <div>
-                <div style={{ fontSize: "16px", fontWeight: "bold", color: "#065f46" }}>
+                <div style={{ fontSize: "17px", fontWeight: "bold", color: "#065f46" }}>
                   {orgName}
                 </div>
-                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
                   برنامج سدانة للعناية بالمساجد
                 </div>
               </div>
             </div>
 
-            {/* عنوان المستند بالوسط */}
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "18px", fontWeight: "bold", color: "#0f172a" }}>
+            {/* عنوان الوثيقة */}
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: "19px", fontWeight: "bold", color: "#0f172a" }}>
                 جدول بنود التسعير
               </div>
-              <div style={{ fontSize: "11px", color: "#059669", fontWeight: "bold", marginTop: "2px" }}>
+              <div style={{ fontSize: "11.5px", color: "#059669", fontWeight: "bold", marginTop: "3px" }}>
                 استدراج عروض أسعار للموردين
               </div>
             </div>
+          </div>
 
-            {/* بيانات الطلب والمسجد */}
-            <div style={{ textAlign: "left", fontSize: "11px", color: "#475569" }}>
-              <div><strong>رقم الطلب:</strong> <span style={{ direction: "ltr", display: "inline-block", fontWeight: "bold", color: "#0f172a" }}>{requestInfo.requestNumber}</span></div>
-              <div style={{ marginTop: "3px" }}><strong>المسجد:</strong> <span style={{ color: "#0f172a", fontWeight: "bold" }}>{requestInfo.mosqueName}</span></div>
-              <div style={{ marginTop: "3px" }}><strong>المدينة:</strong> {requestInfo.mosqueCity}</div>
-              <div style={{ marginTop: "3px" }}><strong>التاريخ:</strong> {requestInfo.date}</div>
+          {/* شريط معلومات أساسي وأنيق بسطر واحد دون أي تعقيد */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              backgroundColor: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: "6px",
+              padding: "10px 18px",
+              marginBottom: "22px",
+              fontSize: "12px",
+              color: "#334155",
+            }}
+          >
+            <div>
+              <span style={{ color: "#64748b" }}>المسجد: </span>
+              <strong style={{ color: "#0f172a" }}>{requestInfo.mosqueName}</strong>
+              {requestInfo.mosqueCity && (
+                <span style={{ color: "#64748b" }}> ({requestInfo.mosqueCity})</span>
+              )}
+            </div>
+            <div>
+              <span style={{ color: "#64748b" }}>رقم الطلب: </span>
+              <strong style={{ color: "#0f172a", direction: "ltr", display: "inline-block" }}>
+                {requestInfo.requestNumber}
+              </strong>
+            </div>
+            <div>
+              <span style={{ color: "#64748b" }}>التاريخ: </span>
+              <strong style={{ color: "#0f172a" }}>{requestInfo.date}</strong>
             </div>
           </div>
 
-          {/* جدول البنود المباشر والبسيط */}
+          {/* جدول البنود المباشر والمريح بصرياً وبدون خانات معجوقة */}
           <table
             style={{
               width: "100%",
               borderCollapse: "collapse",
               marginBottom: "24px",
-              fontSize: "11px",
+              fontSize: "12px",
             }}
           >
             <thead>
               <tr style={{ backgroundColor: "#059669", color: "#ffffff", textAlign: "center" }}>
-                <th style={{ border: "1px solid #047857", padding: "8px 4px", width: "35px" }}>#</th>
-                <th style={{ border: "1px solid #047857", padding: "8px 8px", textAlign: "right" }}>البند والمواصفات</th>
-                <th style={{ border: "1px solid #047857", padding: "8px 6px", width: "100px" }}>التصنيف</th>
-                <th style={{ border: "1px solid #047857", padding: "8px 4px", width: "80px" }}>دورية التوريد</th>
-                <th style={{ border: "1px solid #047857", padding: "8px 4px", width: "55px" }}>الكمية</th>
-                <th style={{ border: "1px solid #047857", padding: "8px 4px", width: "55px" }}>الوحدة</th>
-                <th style={{ border: "1px solid #047857", padding: "8px 6px", width: "95px" }}>سعر الوحدة (ر.س)</th>
-                <th style={{ border: "1px solid #047857", padding: "8px 6px", width: "95px" }}>الإجمالي (ر.س)</th>
-                <th style={{ border: "1px solid #047857", padding: "8px 6px", width: "100px" }}>ملاحظات المورد</th>
+                <th style={{ border: "1px solid #047857", padding: "10px 6px", width: "40px" }}>م</th>
+                <th style={{ border: "1px solid #047857", padding: "10px 12px", textAlign: "right" }}>
+                  بيان البند والمواصفات
+                </th>
+                <th style={{ border: "1px solid #047857", padding: "10px 8px", width: "70px" }}>الكمية</th>
+                <th style={{ border: "1px solid #047857", padding: "10px 8px", width: "65px" }}>الوحدة</th>
+                <th style={{ border: "1px solid #047857", padding: "10px 8px", width: "120px" }}>
+                  سعر الوحدة (ر.س)
+                </th>
+                <th style={{ border: "1px solid #047857", padding: "10px 8px", width: "120px" }}>
+                  الإجمالي (ر.س)
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -759,61 +801,110 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
                   key={item.id}
                   style={{
                     backgroundColor: idx % 2 === 0 ? "#ffffff" : "#f8fafc",
-                    borderBottom: "1px solid #e2e8f0",
+                    borderBottom: "1px solid #cbd5e1",
                   }}
                 >
-                  <td style={{ border: "1px solid #cbd5e1", padding: "7px 4px", textAlign: "center", fontWeight: "bold" }}>
+                  <td
+                    style={{
+                      border: "1px solid #cbd5e1",
+                      padding: "10px 6px",
+                      textAlign: "center",
+                      fontWeight: "bold",
+                      color: "#475569",
+                    }}
+                  >
                     {idx + 1}
                   </td>
-                  <td style={{ border: "1px solid #cbd5e1", padding: "7px 8px", textAlign: "right" }}>
-                    <div style={{ fontWeight: "bold", color: "#0f172a" }}>{item.name}</div>
+                  <td style={{ border: "1px solid #cbd5e1", padding: "10px 12px", textAlign: "right" }}>
+                    <div style={{ fontWeight: "bold", color: "#0f172a", fontSize: "12.5px" }}>
+                      {item.name}
+                      {item.frequency && (
+                        <span
+                          style={{
+                            fontSize: "10.5px",
+                            fontWeight: "normal",
+                            color: "#059669",
+                            marginRight: "8px",
+                            backgroundColor: "#ecfdf5",
+                            padding: "2px 6px",
+                            borderRadius: "4px",
+                            border: "1px solid #a7f3d0",
+                          }}
+                        >
+                          توريد {item.frequency}
+                        </span>
+                      )}
+                    </div>
                     {item.description && (
-                      <div style={{ fontSize: "9.5px", color: "#64748b", marginTop: "2px" }}>
+                      <div style={{ fontSize: "10.5px", color: "#64748b", marginTop: "4px" }}>
                         {item.description}
                       </div>
                     )}
                   </td>
-                  <td style={{ border: "1px solid #cbd5e1", padding: "7px 4px", textAlign: "center", color: "#334155" }}>
-                    {item.category}
+                  <td
+                    style={{
+                      border: "1px solid #cbd5e1",
+                      padding: "10px 6px",
+                      textAlign: "center",
+                      fontWeight: "bold",
+                      fontSize: "13px",
+                      color: "#0f172a",
+                    }}
+                  >
+                    {typeof item.quantity === "number"
+                      ? item.quantity.toLocaleString("ar-SA")
+                      : item.quantity}
                   </td>
-                  <td style={{ border: "1px solid #cbd5e1", padding: "7px 4px", textAlign: "center", color: "#047857", fontWeight: "bold" }}>
-                    {item.frequency}
-                  </td>
-                  <td style={{ border: "1px solid #cbd5e1", padding: "7px 4px", textAlign: "center", fontWeight: "bold" }}>
-                    {typeof item.quantity === "number" ? item.quantity.toLocaleString("ar-SA") : item.quantity}
-                  </td>
-                  <td style={{ border: "1px solid #cbd5e1", padding: "7px 4px", textAlign: "center", color: "#64748b" }}>
+                  <td
+                    style={{
+                      border: "1px solid #cbd5e1",
+                      padding: "10px 6px",
+                      textAlign: "center",
+                      color: "#475569",
+                    }}
+                  >
                     {item.unit}
                   </td>
-                  <td style={{ border: "1px solid #cbd5e1", padding: "7px 4px", textAlign: "center" }}>
-                    <div style={{ minHeight: "16px" }}></div>
+                  <td
+                    style={{
+                      border: "1px solid #cbd5e1",
+                      padding: "10px 6px",
+                      textAlign: "center",
+                      backgroundColor: "#fafafa",
+                    }}
+                  >
+                    {/* خانة فارغة لكتابة سعر الوحدة */}
                   </td>
-                  <td style={{ border: "1px solid #cbd5e1", padding: "7px 4px", textAlign: "center" }}>
-                    <div style={{ minHeight: "16px" }}></div>
-                  </td>
-                  <td style={{ border: "1px solid #cbd5e1", padding: "7px 4px", textAlign: "center" }}>
-                    <div style={{ minHeight: "16px" }}></div>
+                  <td
+                    style={{
+                      border: "1px solid #cbd5e1",
+                      padding: "10px 6px",
+                      textAlign: "center",
+                      backgroundColor: "#fafafa",
+                    }}
+                  >
+                    {/* خانة فارغة لكتابة الإجمالي */}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          {/* تذييل بسيط جداً وأنيق للإجمالي وختم المورد */}
+          {/* تذييل بسيط وأنيق للإجمالي وختم المورد */}
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              padding: "14px 20px",
+              padding: "16px 24px",
               border: "1px solid #cbd5e1",
               borderRadius: "6px",
               backgroundColor: "#f8fafc",
-              fontSize: "12px",
+              fontSize: "12.5px",
             }}
           >
             <div>
-              <span style={{ color: "#475569" }}>إجمالي العرض (شامل الضريبة): </span>
+              <span style={{ color: "#475569" }}>إجمالي العرض (شامل ضريبة القيمة المضافة): </span>
               <strong style={{ color: "#0f172a" }}>................................................ ر.س</strong>
             </div>
 
