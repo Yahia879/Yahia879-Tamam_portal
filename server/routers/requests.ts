@@ -817,12 +817,13 @@ export const requestsRouter = router({
         conditions.push(eq(mosqueRequests.programType, input.programType));
       }
       if (input.boqPreparationsView) {
-        // استبعاد تام لطلبات الاستجابة السريعة (الطلبات السريعة)
+        // استبعاد تام لطلبات الاستجابة السريعة وطلبات برنامج سدانة (لا تتطلب إعداد جدول كميات)
         conditions.push(
           sql`(${mosqueRequests.requestTrack} IS NULL OR ${mosqueRequests.requestTrack} != 'quick_response')`,
           sql`(${mosqueRequests.technicalEvalDecision} IS NULL OR ${mosqueRequests.technicalEvalDecision} != 'quick_response')`,
           ne(mosqueRequests.status, "rejected"),
-          sql`(${mosqueRequests.technicalEvalDecision} IS NULL OR ${mosqueRequests.technicalEvalDecision} != 'apologize')`
+          sql`(${mosqueRequests.technicalEvalDecision} IS NULL OR ${mosqueRequests.technicalEvalDecision} != 'apologize')`,
+          sql`(${mosqueRequests.programType} IS NULL OR ${mosqueRequests.programType} != 'sedana')`
         );
 
         // إظهار الطلبات التي بحاجة لوضع جدول الكميات (مرحلة إعداد جدول الكميات) أو التي أُعدت لها جداول كميات (سجلات في quantity_schedules)
@@ -1307,7 +1308,7 @@ export const requestsRouter = router({
       const isQuickResponse = requestTrack === 'quick_response' || request[0].technicalEvalDecision === 'quick_response';
       const isDonation = request[0].technicalEvalDecision === 'convert_to_donation';
       const isSedana = request[0].programType === 'sedana';
-      const sedanaStages = ["submitted", "boq_preparation", "financial_eval_and_approval", "contracting", "execution", "handover", "closed"];
+      const sedanaStages = ["submitted", "financial_eval_and_approval", "contracting", "execution", "handover", "closed"];
       const stages = isQuickResponse 
         ? quickResponseStages 
         : isDonation 
@@ -1320,8 +1321,8 @@ export const requestsRouter = router({
       
       // السماح فقط بالتقدم للمرحلة التالية (وليس القفز)
       if (newIndex !== currentIndex + 1) {
-        if (isSedana && ['submitted', 'initial_review', 'field_visit', 'technical_eval'].includes(oldStage) && input.newStage === 'boq_preparation') {
-          // السماح بالانتقال المباشر لجدول الكميات في سدانة
+        if (isSedana && ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'boq_preparation'].includes(oldStage) && input.newStage === 'financial_eval_and_approval') {
+          // السماح بالانتقال المباشر للتقييم المالي في سدانة
         } else {
           throw new TRPCError({ 
             code: "BAD_REQUEST", 
@@ -2774,8 +2775,8 @@ export const requestsRouter = router({
       if (input.shouldAdvanceStage) {
         updateData.technicalEvalDecision = 'convert_to_project';
         updateData.technicalEvalJustification = input.notes || 'تم اعتماد خطة التشغيل والرعاية السنوية عبر التقييم الفني المكتبي الذكي.';
-        if (['submitted', 'initial_review', 'field_visit', 'technical_eval'].includes(request.currentStage)) {
-          updateData.currentStage = 'boq_preparation';
+        if (['submitted', 'initial_review', 'field_visit', 'technical_eval', 'boq_preparation'].includes(request.currentStage)) {
+          updateData.currentStage = 'financial_eval_and_approval';
         }
         updateData.status = 'in_progress';
       }
