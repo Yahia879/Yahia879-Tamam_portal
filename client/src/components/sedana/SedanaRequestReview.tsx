@@ -98,11 +98,11 @@ export const SedanaRequestReview: React.FC<SedanaRequestReviewProps> = ({
           </div>
         </div>
 
-        {/* مرفق صور المستودع إن وجد */}
+        {/* المرفقات إن وجدت */}
         {warehousePhoto && (
           <div className="flex items-center gap-2 p-2.5 rounded-lg bg-cyan-50/40 dark:bg-cyan-950/20 border border-cyan-200 text-xs text-cyan-800 dark:text-cyan-300">
             <Paperclip className="w-3.5 h-3.5 shrink-0 text-cyan-600" />
-            <span>مرفق صور مستودع المسجد: <strong>{warehousePhoto}</strong></span>
+            <span>المرفقات المرفوعة: <strong>{warehousePhoto}</strong></span>
             <CheckCircle2 className="w-3.5 h-3.5 mr-auto text-cyan-600" />
           </div>
         )}

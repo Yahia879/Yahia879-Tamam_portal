@@ -445,19 +445,19 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
         </div>
       </div>
 
-      {/* 2. حقل رفع صور مستودع المسجد الحالي (اختياري) */}
+      {/* 2. إدراج مرفقات (اختياري) */}
       <div className="p-4 rounded-xl border border-border/80 bg-card space-y-3 shadow-xs">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="font-bold text-sm sm:text-base text-foreground">
-              صور مستودع المسجد الحالي (المرفقات)
+              إدراج مرفقات
             </h3>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground border border-border/70">
               اختياري
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            (اختياري - ليس إلزامياً) يمكنك إرفاق صور واضحة لمستودع المسجد أو خزانة الأدوات والمواد إن وُجدت للمساعدة في دراسة الاحتياج، أو المتابعة دون إرفاق
+            يرجى إدراج المرفقات المطلوبة (اختياري - يمكنك المتابعة دون إرفاق)
           </p>
         </div>
 
@@ -501,7 +501,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           >
             <Upload className="w-6 h-6 text-muted-foreground mx-auto mb-1.5" />
             <p className="font-bold text-xs text-foreground">
-              اضغط لرفع صور مستودع المسجد (اختياري) أو اسحب الملف هنا
+              يرجى إدراج المرفقات المطلوبة (اختياري) أو اسحب الملف هنا
             </p>
             <p className="text-[11px] text-muted-foreground mt-0.5">
               اختياري - يدعم الصور (JPG, PNG, WEBP) ومستندات PDF بحد أقصى 10 ميجابايت
