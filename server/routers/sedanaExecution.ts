@@ -181,7 +181,9 @@ export const sedanaExecutionRouter = router({
           const totalQty = parseFloat(b.quantity || "1");
           let cycleQty = matchedBasket?.monthlyLimit || matchedBasket?.periodLimits?.[frequency];
           if (!cycleQty) {
-            if (frequency.includes("شهر") || frequency === "شهري") {
+            if (frequency.includes("مرة") || frequency === "مرة واحدة") {
+              cycleQty = totalQty;
+            } else if (frequency.includes("شهر") || frequency === "شهري") {
               cycleQty = totalQty >= 5 ? 1 : totalQty;
             } else if (frequency.includes("ربع") || frequency === "ربع سنوي") {
               cycleQty = Math.ceil(totalQty / 4) || 1;
@@ -215,7 +217,9 @@ export const sedanaExecutionRouter = router({
           const totalQty = parseFloat(it.approvedQty || it.requestedQty || "1");
           let cycleQty = it.cycleQuantity || matchedBasket?.monthlyLimit;
           if (!cycleQty) {
-            if (frequency.includes("شهر") || frequency === "شهري") {
+            if (frequency.includes("مرة") || frequency === "مرة واحدة") {
+              cycleQty = totalQty;
+            } else if (frequency.includes("شهر") || frequency === "شهري") {
               cycleQty = totalQty >= 5 ? 1 : totalQty;
             } else if (frequency.includes("ربع") || frequency === "ربع سنوي") {
               cycleQty = Math.ceil(totalQty / 4) || 1;
@@ -247,7 +251,9 @@ export const sedanaExecutionRouter = router({
           const totalQty = parseFloat(b.quantity || "1");
           let cycleQty = b.monthlyLimit || b.periodLimits?.[frequency];
           if (!cycleQty) {
-            if (frequency.includes("شهر") || frequency === "شهري") {
+            if (frequency.includes("مرة") || frequency === "مرة واحدة") {
+              cycleQty = totalQty;
+            } else if (frequency.includes("شهر") || frequency === "شهري") {
               cycleQty = totalQty >= 5 ? 1 : totalQty;
             } else if (frequency.includes("ربع") || frequency === "ربع سنوي") {
               cycleQty = Math.ceil(totalQty / 4) || 1;
@@ -364,6 +370,7 @@ export const sedanaExecutionRouter = router({
 
       // دالة حساب عدد الأيام لفترة الدورية
       const getFrequencyDays = (freq: string): number => {
+        if (freq.includes("مرة") || freq === "مرة واحدة") return 365;
         if (freq.includes("ربع") || freq === "ربع سنوي") return 90;
         if (freq.includes("نصف") || freq === "نصف سنوي") return 180;
         if (freq.includes("سنو") || freq === "سنوي") return 365;
@@ -1364,6 +1371,7 @@ export const sedanaExecutionRouter = router({
         .where(eq(quantitySchedules.requestId, req.id));
 
       const getFrequencyDays = (freq: string): number => {
+        if (freq.includes("مرة") || freq === "مرة واحدة") return 365;
         if (freq.includes("ربع") || freq === "ربع سنوي") return 90;
         if (freq.includes("نصف") || freq === "نصف سنوي") return 180;
         if (freq.includes("سنو") || freq === "سنوي") return 365;
