@@ -930,18 +930,6 @@ export default function RequestDetailsNew() {
       return;
     }
     
-    // التحقق من تسعير كافة البنود لطلب سدانة قبل الانتقال إلى التقييم المالي واعتماد العرض
-    if (nextStage === 'financial_eval_and_approval' && request.programType === 'sedana') {
-      if (!hasBoqItems) {
-        toast.error("لا يمكن الانتقال إلى مرحلة التقييم المالي واعتماد العرض قبل إعداد جدول الكميات وتسعير البنود");
-        return;
-      }
-      if (unpricedBoqItems.length > 0) {
-        toast.error(`لا يمكن الانتقال إلى مرحلة التقييم المالي واعتماد العرض إلا بعد تسعير جميع البنود (${unpricedBoqItems.length} بند غير مسعر)`);
-        return;
-      }
-    }
-
     // التحقق من اكتمال تحديد نوع التأمين لبرنامج سدانة
     if (request.programType === 'sedana' && request.currentStage === 'contracting') {
       if (!isSedanaProcurementComplete) {
@@ -1916,14 +1904,14 @@ export default function RequestDetailsNew() {
                         )
                           ? {
                               label: request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage)
-                                ? "الانتقال لجدول الكميات"
+                                ? "الانتقال للتقييم المالي واعتماد العرض"
                                  : (request.programType === 'sedana' && (request.currentStage === 'execution' || request.currentStage === 'handover')
                                    ? "المستودع الافتراضي والتنفيذ المجدول"
                                    : (request.programType === 'sedana' && request.currentStage === 'contracting'
                                      ? "تحديد نوع التأمين"
                                      : translatedAction.actionButton.label)),
                                onClick: request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage)
-                                 ? () => updateStageMutation.mutate({ requestId, newStage: 'boq_preparation' as any })
+                                 ? () => updateStageMutation.mutate({ requestId, newStage: 'financial_eval_and_approval' as any })
                                  : (request.programType === 'sedana' && (request.currentStage === 'execution' || request.currentStage === 'handover')
                                    ? () => setLocation(`/requests/${requestId}/sedana-execution`)
                                    : (request.programType === 'sedana' && request.currentStage === 'contracting'
@@ -2038,41 +2026,7 @@ export default function RequestDetailsNew() {
                   );
                 })()}
 
-                {/* تنبيه حالة تسعير بنود سدانة لمرحلة إعداد جدول الكميات */}
-                {request.programType === 'sedana' && request.currentStage === 'boq_preparation' && (
-                  <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs ${
-                    unpricedBoqItems.length > 0 || !hasBoqItems
-                      ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200"
-                      : "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200"
-                  }`}>
-                    <div className="flex items-center gap-2.5">
-                      <AlertCircle className={`w-5 h-5 shrink-0 ${unpricedBoqItems.length > 0 || !hasBoqItems ? "text-amber-600" : "text-emerald-600"}`} />
-                      <div>
-                        <span className="font-bold block text-sm">
-                          {!hasBoqItems
-                            ? "لم يتم إعداد بنود جدول الكميات بعد"
-                            : unpricedBoqItems.length > 0
-                            ? `تنبيه: يوجد ${unpricedBoqItems.length} بند غير مسعر في جدول الكميات`
-                            : "تم تسعير جميع بنود جدول الكميات بنجاح"}
-                        </span>
-                        <span className="text-muted-foreground">
-                          {!hasBoqItems || unpricedBoqItems.length > 0
-                            ? "لا يمكن الانتقال لمرحلة التقييم المالي واعتماد العرض إلا بعد إدخال أسعار الوحدات لجميع البنود."
-                            : "جميع بنود جدول الكميات مسعرة، يمكنك الآن الانتقال لمرحلة التقييم المالي واعتماد العرض."}
-                        </span>
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant={unpricedBoqItems.length > 0 || !hasBoqItems ? "outline" : "default"}
-                      onClick={() => setBoqOpen(true)}
-                      className="text-xs h-8 font-bold gap-1.5 shrink-0"
-                    >
-                      <Calculator className="w-3.5 h-3.5" />
-                      فتح جدول الكميات للتسعير
-                    </Button>
-                  </div>
-                )}
+
 
 
 
