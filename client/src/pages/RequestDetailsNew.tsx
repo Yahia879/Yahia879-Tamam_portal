@@ -786,6 +786,27 @@ export default function RequestDetailsNew() {
   );
   const hasApprovedQuotation = quotationsResult?.quotations?.some((q: any) => q.status === 'accepted' || q.status === 'approved');
 
+  // التحقق من اكتمال الترسية لجميع بنود سدانة
+  const isSedanaFullyAwarded = useMemo(() => {
+    if (request?.programType !== 'sedana') return !!hasApprovedQuotation;
+    let pData: any = {};
+    try {
+      pData = typeof request.programData === 'string' ? JSON.parse(request.programData) : (request.programData || {});
+    } catch (_) {
+      pData = {};
+    }
+    const awarded = pData?.awardedItemVendors;
+    const items = boqResult?.items || [];
+    if (items.length > 0) {
+      if (Array.isArray(awarded) && awarded.length >= items.length) {
+        return true;
+      }
+      const allPriced = items.every((it: any) => parseFloat(String(it.unitPrice || 0)) > 0);
+      if (allPriced && (hasApprovedQuotation || (Array.isArray(awarded) && awarded.length > 0))) return true;
+    }
+    return !!hasApprovedQuotation && isSedanaBoqPricingComplete;
+  }, [request?.programType, request?.programData, boqResult?.items, hasApprovedQuotation, isSedanaBoqPricingComplete]);
+
   // Check disbursement request status for donation opportunity
   const { data: disbursementStatus } = trpc.disbursements.checkRequestDisbursementStatus.useQuery(
     { requestId },
@@ -798,6 +819,7 @@ export default function RequestDetailsNew() {
   const updateStageMutation = trpc.requests.updateStage.useMutation({
     onSuccess: () => {
       utils.requests.getById.invalidate({ id: requestId });
+      utils.requests.search.invalidate();
       toast.success("تم الانتقال إلى المرحلة التالية بنجاح");
     },
     onError: (error) => {
@@ -907,9 +929,16 @@ export default function RequestDetailsNew() {
     // إذا كان الطلب في مرحلة التقييم المالي، تحقق من اعتماد عرض سعر قبل الانتقال للتعاقد
     if (request.currentStage === 'financial_eval_and_approval') {
       const nextStage = getNextStage(request.currentStage);
-      if (nextStage === 'contracting' && !hasApprovedQuotation) {
-        toast.error("لا يمكن الانتقال إلى مرحلة التعاقد قبل اعتماد عرض سعر");
-        return;
+      if (nextStage === 'contracting') {
+        if (request.programType === 'sedana') {
+          if (!isSedanaFullyAwarded) {
+            toast.error("لا يمكن الانتقال لمرحلة اعتماد نوع التوريد إلا بعد اعتماد وترسية عروض الأسعار لجميع البنود");
+            return;
+          }
+        } else if (!hasApprovedQuotation) {
+          toast.error("لا يمكن الانتقال إلى مرحلة التعاقد قبل اعتماد عرض سعر");
+          return;
+        }
       }
     }
 
@@ -1905,19 +1934,34 @@ export default function RequestDetailsNew() {
                           ? {
                               label: request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage)
                                 ? "الانتقال للتقييم المالي واعتماد العرض"
-                                 : (request.programType === 'sedana' && (request.currentStage === 'execution' || request.currentStage === 'handover')
-                                   ? "المستودع الافتراضي والتنفيذ المجدول"
-                                   : (request.programType === 'sedana' && request.currentStage === 'contracting'
-                                     ? "تحديد نوع التوريد"
-                                     : translatedAction.actionButton.label)),
+                                : (request.programType === 'sedana' && request.currentStage === 'financial_eval_and_approval'
+                                  ? "الانتقال للمرحلة التالية"
+                                  : (request.programType === 'sedana' && (request.currentStage === 'execution' || request.currentStage === 'handover')
+                                    ? "المستودع الافتراضي والتنفيذ المجدول"
+                                    : (request.programType === 'sedana' && request.currentStage === 'contracting'
+                                      ? "تحديد نوع التوريد"
+                                      : translatedAction.actionButton.label))),
                                onClick: request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage)
                                  ? () => updateStageMutation.mutate({ requestId, newStage: 'financial_eval_and_approval' as any })
-                                 : (request.programType === 'sedana' && (request.currentStage === 'execution' || request.currentStage === 'handover')
-                                   ? () => setLocation(`/requests/${requestId}/sedana-execution`)
-                                   : (request.programType === 'sedana' && request.currentStage === 'contracting'
-                                     ? () => setLocation(`/requests/${requestId}/procurement`)
-                                     : (translatedAction.actionButton as any).onClick || handleStageTransition)),
-                               disabled: !translatedAction.canPerformAction || updateStageMutation.isPending || (request.currentStage === 'initial_review' && request.programType !== 'sedana' && !request.reviewCompleted),
+                                 : (request.programType === 'sedana' && request.currentStage === 'financial_eval_and_approval'
+                                   ? () => {
+                                       if (!isSedanaFullyAwarded) {
+                                         toast.error("يرجى ترسية واعتماد عروض أسعار لجميع بنود جدول الكميات أولاً من صفحة عروض الأسعار");
+                                         setLocation(`/quotations?requestId=${requestId}`);
+                                         return;
+                                       }
+                                       updateStageMutation.mutate({ requestId, newStage: 'contracting' as any });
+                                     }
+                                   : (request.programType === 'sedana' && (request.currentStage === 'execution' || request.currentStage === 'handover')
+                                     ? () => setLocation(`/requests/${requestId}/sedana-execution`)
+                                     : (request.programType === 'sedana' && request.currentStage === 'contracting'
+                                       ? () => setLocation(`/requests/${requestId}/procurement`)
+                                       : (translatedAction.actionButton as any).onClick || handleStageTransition))),
+                               disabled: !translatedAction.canPerformAction || 
+                                         updateStageMutation.isPending || 
+                                         (request.currentStage === 'initial_review' && request.programType !== 'sedana' && !request.reviewCompleted) ||
+                                         (request.programType === 'sedana' && request.currentStage === 'financial_eval_and_approval' && !isSedanaFullyAwarded),
+                               variant: (request.programType === 'sedana' && request.currentStage === 'financial_eval_and_approval' && !isSedanaFullyAwarded) ? ('secondary' as const) : ('default' as const),
                             }
                           : undefined
                       }

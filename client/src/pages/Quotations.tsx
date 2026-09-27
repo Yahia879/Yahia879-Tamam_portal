@@ -223,8 +223,8 @@ export default function Quotations() {
       const targetReq = (singleRequestData as any).request || singleRequestData;
       if (targetReq && targetReq.id) {
         // إذا كان الطلب المحدد قد تم اعتماده مسبقاً وانتقل لمرحلة أخرى (وليس في مرحلة التقييم المالي)،
-        // فلا يتم عرضه كطلب نشط في عروض الأسعار باستثناء طلبات سدانة أو الطلب المفتوح برابط مباشر
-        if (targetReq.currentStage && targetReq.currentStage !== "financial_eval_and_approval" && targetReq.programType !== "sedana") {
+        // فلا يتم عرضه كطلب نشط في عروض الأسعار
+        if (targetReq.currentStage && targetReq.currentStage !== "financial_eval_and_approval") {
           return allRequestsList;
         }
 
@@ -258,11 +258,10 @@ export default function Quotations() {
     if (singleRequestData && selectedRequestId) {
       const targetReq = (singleRequestData as any).request || singleRequestData;
       if (targetReq && targetReq.currentStage && targetReq.currentStage !== "financial_eval_and_approval") {
-        // لطلبات سدانة: السماح بالوصول لصفحة عروض الأسعار حتى لو انتقل الطلب لمرحلة التعاقد (تحديد نوع التوريد)
-        if (targetReq.programType === "sedana") {
-          return;
-        }
-        toast.info(`الطلب ${targetReq.requestNumber || selectedRequestId} تم اعتماد وترسية عروضه وانتقل لمرحلة ${targetReq.currentStage === "contracting" ? "التعاقد" : targetReq.currentStage}`);
+        const stageLabel = targetReq.programType === "sedana" && targetReq.currentStage === "contracting"
+          ? "اعتماد نوع التوريد"
+          : (targetReq.currentStage === "contracting" ? "التعاقد" : targetReq.currentStage);
+        toast.info(`الطلب ${targetReq.requestNumber || selectedRequestId} تم اعتماد وترسية عروضه وانتقل لمرحلة ${stageLabel}`);
         setSelectedRequestId("");
         window.history.replaceState({}, "", "/quotations");
       }
@@ -354,15 +353,14 @@ export default function Quotations() {
   // طفرة اعتماد عروض أسعار متعددة الموردين بحسب البنود
   const approveSedanaMultiVendorMutation = trpc.projects.approveSedanaMultiVendorQuotations.useMutation({
     onSuccess: () => {
-      toast.success("تم اعتماد وترسية عروض الموردين وحفظ التغييرات بنجاح");
+      toast.success("تم اعتماد وترسية عروض الأسعار بنجاح، وانتقل الطلب إلى مرحلة اعتماد نوع التوريد");
       utils.requests.search.invalidate();
       if (selectedRequestId) {
         utils.requests.getById.invalidate({ id: parseInt(selectedRequestId) });
         utils.projects.getQuotationsByRequest.invalidate({ requestId: parseInt(selectedRequestId) });
       }
-      refetchSingleRequest();
-      refetchQuotations();
-      refetchBOQ();
+      setSelectedRequestId("");
+      window.history.replaceState({}, "", "/quotations");
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء اعتماد عروض الموردين");
@@ -543,6 +541,7 @@ export default function Quotations() {
     approveSedanaMultiVendorMutation.mutate({
       requestId: parseInt(selectedRequestId),
       itemVendorSelections: selections,
+      advanceStage: true,
     });
   };
 

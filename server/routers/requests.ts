@@ -1465,7 +1465,19 @@ export const requestsRouter = router({
                 eq(quotations.requestId, input.requestId),
                 inArray(quotations.status, ['accepted', 'approved'])
               )).limit(1);
-            isMet = acceptedQuotes.length > 0;
+
+            let sedanaAwarded = false;
+            if (isSedana || request[0]?.programType === 'sedana') {
+              let pData: any = request[0]?.programData;
+              while (typeof pData === "string") {
+                try { pData = JSON.parse(pData); } catch { break; }
+              }
+              if (pData?.awardedItemVendors && Array.isArray(pData.awardedItemVendors) && pData.awardedItemVendors.length > 0) {
+                sedanaAwarded = true;
+              }
+            }
+
+            isMet = acceptedQuotes.length > 0 || sedanaAwarded;
           }
           // التحقق من وجود عقد موقع/معتمد
           else if (prereq.type === 'contract_signed') {

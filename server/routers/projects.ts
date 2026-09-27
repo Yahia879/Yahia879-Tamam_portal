@@ -3269,9 +3269,10 @@ export const projectsRouter = router({
           updateData.selectedQuotationId = primaryQuote.quotationNumber;
         }
 
-        // لا يتم الانتقال للمرحلة التالية إلا إذا تم طلب ذلك صراحةً (من صفحة الاعتماد المالي فقط وليس من إدارة عروض الأسعار)
-        if (input.advanceStage) {
-          if (request.currentStage === "financial_eval_and_approval") {
+        // عند اعتماد وترسية عروض الأسعار لطلبات سدانة أو عند طلب الانتقال للمرحلة التالية
+        const shouldAdvanceToContracting = input.advanceStage || request.programType === 'sedana';
+        if (shouldAdvanceToContracting) {
+          if (request.currentStage === "financial_eval_and_approval" || ['submitted', 'initial_review', 'technical_eval', 'boq_preparation'].includes(request.currentStage)) {
             updateData.currentStage = "contracting";
             updateData.status = "approved";
             updateData.approvedAt = new Date();
@@ -3317,9 +3318,9 @@ export const projectsRouter = router({
           requestId: input.requestId,
           userId: ctx.user.id,
           fromStage: request.currentStage,
-          toStage: (input.advanceStage && request.currentStage === "financial_eval_and_approval") ? "contracting" : request.currentStage,
+          toStage: shouldAdvanceToContracting ? (updateData.currentStage || "contracting") : request.currentStage,
           fromStatus: request.status,
-          toStatus: input.advanceStage ? "approved" : request.status,
+          toStatus: shouldAdvanceToContracting ? "approved" : request.status,
           action: "financial_approval",
           notes,
         });
