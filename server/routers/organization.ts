@@ -1,3 +1,7 @@
+import path from "path";
+import fs from "fs";
+import axios from "axios";
+import { isOneDriveConfigured, getAccessToken } from "../storage";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
@@ -69,6 +73,98 @@ export const organizationRouter = router({
     }
     
     return settings[0];
+  }),
+
+  // جلب شعار الجمعية بصيغة Base64 لتصدير ملفات الـ PDF بشكل نظيف ودون مشاكل Tainted Canvas
+  getLogoBase64: publicProcedure.query(async () => {
+    const db = await getDb();
+    let logoUrl = "";
+    let orgName = "جمعية منارة للعناية بالمساجد";
+
+    if (db) {
+      try {
+        const settings = await db.select().from(organizationSettings).limit(1);
+        if (settings.length > 0) {
+          logoUrl = settings[0].logoUrl || "";
+          orgName = settings[0].officialReportsName || settings[0].organizationName || orgName;
+        }
+      } catch (err) {
+        console.warn("[getLogoBase64] Failed to fetch settings:", err);
+      }
+    }
+
+    // محاولة جلب الصورة وتحويلها إلى Base64
+    let base64 = "";
+    if (logoUrl) {
+      try {
+        const fileKey = logoUrl.replace(/^\/uploads\//, "");
+        const localPath = path.join(process.cwd(), "uploads", fileKey);
+
+        // 1. إذا كان الملف موجوداً محلياً
+        if (fs.existsSync(localPath)) {
+          const fileBuf = await fs.promises.readFile(localPath);
+          const ext = path.extname(localPath).replace(".", "").toLowerCase() || "png";
+          base64 = `data:image/${ext === "svg" ? "svg+xml" : ext};base64,${fileBuf.toString("base64")}`;
+        } else if (isOneDriveConfigured()) {
+          // 2. إذا كان على OneDrive
+          const token = await getAccessToken();
+          const upn = process.env.ONEDRIVE_USER_PRINCIPAL_NAME;
+          const metadataUrl = `https://graph.microsoft.com/v1.0/users/${upn}/drive/root:/${fileKey}`;
+          const metaRes = await axios.get(metadataUrl, {
+            headers: { Authorization: `Bearer ${token}` },
+            timeout: 10000,
+          });
+          const downloadUrl = metaRes.data?.["@microsoft.graph.downloadUrl"];
+          if (downloadUrl) {
+            const fileRes = await axios.get(downloadUrl, {
+              responseType: "arraybuffer",
+              timeout: 15000,
+            });
+            const fileBuf = Buffer.from(fileRes.data);
+
+            // حفظه محلياً في الكاش لتسريع الطلبات القادمة
+            try {
+              const dir = path.dirname(localPath);
+              if (!fs.existsSync(dir)) await fs.promises.mkdir(dir, { recursive: true });
+              await fs.promises.writeFile(localPath, fileBuf);
+            } catch (writeErr) {
+              console.warn("[getLogoBase64] Failed to cache file locally:", writeErr);
+            }
+
+            const ext = path.extname(fileKey).replace(".", "").toLowerCase() || "png";
+            base64 = `data:image/${ext === "svg" ? "svg+xml" : ext};base64,${fileBuf.toString("base64")}`;
+          }
+        } else if (logoUrl.startsWith("http://") || logoUrl.startsWith("https://")) {
+          // 3. رابط خارجي
+          const fileRes = await axios.get(logoUrl, {
+            responseType: "arraybuffer",
+            timeout: 15000,
+          });
+          const contentType = fileRes.headers["content-type"] || "image/png";
+          base64 = `data:${contentType};base64,${Buffer.from(fileRes.data).toString("base64")}`;
+        }
+      } catch (err: any) {
+        console.warn("[getLogoBase64] Error fetching remote logo:", err?.message);
+      }
+    }
+
+    // 4. الاحتياطي الأخير: قراءة شعار النظام الافتراضي من مجلد public
+    if (!base64) {
+      try {
+        const publicLogoPath = path.join(process.cwd(), "client", "public", "logo.png");
+        if (fs.existsSync(publicLogoPath)) {
+          const buf = await fs.promises.readFile(publicLogoPath);
+          base64 = `data:image/png;base64,${buf.toString("base64")}`;
+        }
+      } catch (err) {
+        console.warn("[getLogoBase64] Failed to load fallback logo.png:", err);
+      }
+    }
+
+    return {
+      logoBase64: base64,
+      organizationName: orgName,
+    };
   }),
 
   // تحديث إعدادات الجمعية
