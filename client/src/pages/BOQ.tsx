@@ -110,6 +110,14 @@ export default function BOQ() {
     { enabled: !!selectedRequestId }
   );
 
+  // إعادة توجيه طلبات سدانة (لا تتطلب جدول كميات)
+  useEffect(() => {
+    if (selectedRequestId && requestDetails?.programType === "sedana") {
+      toast.info("طلبات برنامج سدانة لا تتطلب إعداد جدول كميات");
+      navigate(`/requests/${selectedRequestId}`);
+    }
+  }, [selectedRequestId, requestDetails?.programType, navigate]);
+
   const isContractingOrLater = Boolean(
     requestDetails?.currentStage &&
     (getStageOrder(requestDetails.currentStage) >= getStageOrder("contracting") ||
@@ -276,7 +284,7 @@ export default function BOQ() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">جميع البرامج</SelectItem>
-                        {Object.entries(PROGRAM_LABELS).map(([key, label]) => (
+                        {Object.entries(PROGRAM_LABELS).filter(([key]) => key !== "sedana").map(([key, label]) => (
                           <SelectItem key={key} value={key}>{label}</SelectItem>
                         ))}
                       </SelectContent>
