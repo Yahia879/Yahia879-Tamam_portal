@@ -166,14 +166,14 @@ describe('Sedana Program - Benchmarks & Office Evaluation Engine', () => {
 });
 
 describe('Sedana Workflow - Simplified Direct Evaluation', () => {
-  it('should exclude field_visit and technical_eval and initial_review from Sedana workflow, starting with office evaluation', () => {
+  it('should exclude field_visit, technical_eval, initial_review, and boq_preparation from Sedana workflow', () => {
     const sedanaWorkflow = getWorkflowForRequest('standard', 'sedana');
     expect(sedanaWorkflow.some((s: any) => s.id === 'field_visit')).toBe(false);
     expect(sedanaWorkflow.some((s: any) => s.id === 'technical_eval')).toBe(false);
     expect(sedanaWorkflow.some((s: any) => s.id === 'initial_review')).toBe(false);
+    expect(sedanaWorkflow.some((s: any) => s.id === 'boq_preparation')).toBe(false);
     expect(sedanaWorkflow.map((s: any) => s.id)).toEqual([
       'submitted',
-      'boq_preparation',
       'financial_eval_and_approval',
       'contracting',
       'execution',
@@ -181,24 +181,25 @@ describe('Sedana Workflow - Simplified Direct Evaluation', () => {
       'closed',
     ]);
 
-    // Ensure standard workflow still has field_visit, technical_eval, and initial_review
+    // Ensure standard workflow still has field_visit, technical_eval, initial_review, and boq_preparation
     const standardWorkflow = getWorkflowForRequest('standard');
     expect(standardWorkflow.some((s: any) => s.id === 'initial_review')).toBe(true);
     expect(standardWorkflow.some((s: any) => s.id === 'field_visit')).toBe(true);
     expect(standardWorkflow.some((s: any) => s.id === 'technical_eval')).toBe(true);
+    expect(standardWorkflow.some((s: any) => s.id === 'boq_preparation')).toBe(true);
   });
 
-  it('should transition directly from submitted (دراسة وتدقيق الاحتياج) to boq_preparation for Sedana', () => {
+  it('should transition directly from submitted (دراسة وتدقيق الاحتياج) to financial_eval_and_approval for Sedana', () => {
     const nextStage = getNextStage('submitted', 'standard', 'sedana');
-    expect(nextStage).toBe('boq_preparation');
+    expect(nextStage).toBe('financial_eval_and_approval');
 
     // For standard requests, submitted still transitions to initial_review
     const standardNextStage = getNextStage('submitted', 'standard');
     expect(standardNextStage).toBe('initial_review');
   });
 
-  it('should require no prerequisites when transitioning from submitted to boq_preparation in Sedana', () => {
-    const prereqs = getPrerequisites('submitted', 'boq_preparation', 'standard', undefined, 'sedana');
+  it('should require no prerequisites when transitioning from submitted to financial_eval_and_approval in Sedana', () => {
+    const prereqs = getPrerequisites('submitted', 'financial_eval_and_approval', 'standard', undefined, 'sedana');
     expect(prereqs).toEqual([]);
   });
 
