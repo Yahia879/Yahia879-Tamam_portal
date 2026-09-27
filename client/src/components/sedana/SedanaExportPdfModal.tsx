@@ -373,35 +373,21 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl w-[95vw] md:max-w-5xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden border-teal-300 dark:border-teal-800 shadow-2xl">
+        <DialogContent className="max-w-4xl w-[95vw] md:max-w-5xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden border-border shadow-2xl bg-card">
           {/* Header */}
-          <DialogHeader className="p-5 pb-4 bg-gradient-to-r from-teal-50 via-teal-50/60 to-white dark:from-teal-950/40 dark:via-teal-900/20 dark:to-slate-900 border-b border-teal-200 dark:border-teal-800/80">
-            <div className="flex items-start justify-between gap-3">
+          <DialogHeader className="p-5 pb-4 bg-muted/30 dark:bg-slate-900/40 border-b border-border">
+            <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/20 shrink-0">
-                  <FileSpreadsheet className="w-6 h-6" />
+                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shadow-xs shrink-0">
+                  <FileSpreadsheet className="w-5 h-5" />
                 </div>
                 <div>
                   <DialogTitle className="text-lg md:text-xl font-extrabold text-foreground flex items-center gap-2">
                     <span>تصدير بنود التسعير كملف PDF للموردين</span>
-                    <Badge className="bg-teal-600 text-white text-[11px] font-bold py-0.5 px-2">
+                    <Badge variant="outline" className="text-[11px] font-bold py-0.5 px-2 bg-background">
                       برنامج سدانة
                     </Badge>
                   </DialogTitle>
-                  <DialogDescription className="text-xs text-muted-foreground mt-1">
-                    حدد البنود المطلوبة لتوليد ملف PDF نظيف ومباشر موجه للموردين
-                  </DialogDescription>
-                </div>
-              </div>
-
-              {/* بطاقة معلومات سريعة */}
-              <div className="hidden sm:flex flex-col items-end text-xs text-muted-foreground bg-white/80 dark:bg-slate-900/80 p-2 rounded-lg border border-teal-200/60 dark:border-teal-800/40 shadow-xs">
-                <div className="flex items-center gap-1.5 font-bold text-foreground">
-                  <Building2 className="w-3.5 h-3.5 text-teal-600" />
-                  <span>{requestInfo.mosqueName}</span>
-                </div>
-                <div className="text-[11px] mt-0.5">
-                  رقم الطلب: <span className="font-mono font-bold text-teal-700 dark:text-teal-400">{requestInfo.requestNumber}</span>
                 </div>
               </div>
             </div>
