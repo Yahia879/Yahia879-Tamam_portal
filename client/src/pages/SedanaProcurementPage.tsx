@@ -224,18 +224,19 @@ export default function SedanaProcurementPage() {
 
   // استخراج الترسية المحفوظة للأصناف في programData إن وجدت
   const awardedItemVendors = useMemo(() => {
-    let raw = (request as any)?.programData?.awardedItemVendors;
-    if (typeof raw === "string") {
-      try { raw = JSON.parse(raw); } catch {}
+    let pData = (request as any)?.programData;
+    while (typeof pData === "string") {
+      try { pData = JSON.parse(pData); } catch { break; }
     }
+    const raw = pData?.awardedItemVendors;
     return Array.isArray(raw) ? raw : [];
   }, [request]);
 
   // استخراج أوامر الشراء المسجلة مسبقاً للطلب إن وجدت
   const savedPurchaseOrders: any[] = useMemo(() => {
-    let raw = (request as any)?.programData;
-    if (typeof raw === "string") {
-      try { raw = JSON.parse(raw); } catch {}
+    let raw: any = (request as any)?.programData;
+    while (typeof raw === "string") {
+      try { raw = JSON.parse(raw); } catch { break; }
     }
     const proc = raw?.sedanaProcurement;
     const list = Array.isArray(proc?.purchaseOrders) ? [...proc.purchaseOrders] : [];
@@ -355,27 +356,47 @@ export default function SedanaProcurementPage() {
 
     try {
       let pData = request.programData as any;
-      if (typeof pData === "string") {
+      while (typeof pData === "string") {
         try {
           pData = JSON.parse(pData);
         } catch {
           pData = {};
+          break;
         }
       }
 
       const savedProc = pData?.sedanaProcurement;
 
-      // 1. استرجاع خريطة الموردين أو تهيئتها
+      // 1. استرجاع خريطة الموردين أو تهيئتها ودمج أحدث ترسية معتمدة للبنود
+      let initialMap: Record<string, { supplierId?: number; supplierName: string; quotationId?: number; unitPrice?: number; totalPrice?: number }> = {};
       if (savedProc?.itemSupplierMap && Object.keys(savedProc.itemSupplierMap).length > 0) {
-        setItemSupplierMap(savedProc.itemSupplierMap);
-        const customNames = Object.values(savedProc.itemSupplierMap)
+        initialMap = { ...savedProc.itemSupplierMap };
+      }
+
+      // دمج الترسية المحدثة من عروض الأسعار إن وُجدت لضمان ظهور أي تعديلات جديدة
+      if (awardedItemVendors.length > 0) {
+        awardedItemVendors.forEach((award: any) => {
+          if (award?.boqItemId && award?.supplierName) {
+            initialMap[award.boqItemId] = {
+              supplierId: award.supplierId,
+              supplierName: award.supplierName,
+              quotationId: award.quotationId,
+              unitPrice: parseFloat(award.unitPrice || 0),
+              totalPrice: parseFloat(award.totalPrice || 0),
+            };
+          }
+        });
+      }
+
+      if (Object.keys(initialMap).length > 0) {
+        setItemSupplierMap(initialMap);
+        const customNames = Object.values(initialMap)
           .map((v: any) => v.supplierName)
           .filter(Boolean);
         if (customNames.length > 0) {
           setCustomSuppliers(prev => Array.from(new Set([...prev, ...customNames])));
         }
       } else {
-        const initialMap: Record<string, { supplierId?: number; supplierName: string; quotationId?: number; unitPrice?: number; totalPrice?: number }> = {};
 
         allItems.forEach((it: any) => {
           // فحص الترسية المحفوظة
