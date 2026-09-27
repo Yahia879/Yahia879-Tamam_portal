@@ -260,14 +260,14 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
     const toastId = toast.loading("جارٍ تجهيز ملف PDF للبنود المحددة...");
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       const element = printRef.current;
 
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false, // منع خطأ Tainted canvases may not be exported تماماً
         backgroundColor: "#ffffff",
         logging: false,
         width: element.offsetWidth,
@@ -327,6 +327,39 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
     } finally {
       setIsExporting(false);
     }
+  };
+
+  // طباعة مباشرة عبر متصفح الويب
+  const handlePrint = () => {
+    if (!printRef.current) return;
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast.error("يرجى السماح بالنوافذ المنبثقة للطباعة المباشرة");
+      return;
+    }
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+        <head>
+          <meta charset="utf-8">
+          <title>بنود_تسعير_سدانة_${requestInfo.requestNumber || requestInfo.id}</title>
+          <style>
+            @page { size: A4 portrait; margin: 12mm 15mm; }
+            * { box-sizing: border-box; }
+            body { margin: 0; padding: 0; font-family: Arial, 'Cairo', 'Segoe UI', Tahoma, sans-serif; }
+          </style>
+        </head>
+        <body>
+          ${printRef.current.innerHTML}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 400);
   };
 
   const isAllFilteredSelected =
