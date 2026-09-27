@@ -1926,21 +1926,16 @@ export default function RequestDetailsNew() {
                           ? {
                               label: "الانتقال إلى التقييم المالي واعتماد العرض",
                               onClick: () => {
-                                if (!hasBoqItems) {
+                                if (request.programType !== 'sedana' && !hasBoqItems) {
                                   toast.error("لا يمكن الانتقال إلى التقييم المالي واعتماد العرض قبل إعداد جدول الكميات وتسعير البنود");
                                   return;
                                 }
-                                if (request.programType === 'sedana' && unpricedBoqItems.length > 0) {
-                                  toast.error(`لا يمكن الانتقال إلى مرحلة التقييم المالي واعتماد العرض إلا بعد تسعير جميع البنود (${unpricedBoqItems.length} بند غير مسعر)`);
-                                  return;
-                                }
+
                                 updateStageMutation.mutate({ requestId, newStage: 'financial_eval_and_approval' as any });
                               },
-                              variant: isSedanaBoqPricingComplete ? ('default' as const) : ('secondary' as const),
-                              disabled: !hasBoqItems || (request.programType === 'sedana' && unpricedBoqItems.length > 0) || updateStageMutation.isPending,
-                              title: request.programType === 'sedana' && unpricedBoqItems.length > 0
-                                ? `يرجى تسعير جميع البنود (${unpricedBoqItems.length} بند غير مسعر) في جدول الكميات قبل الانتقال للتقييم المالي`
-                                : undefined,
+                              variant: 'default' as const,
+                              disabled: (request.programType !== 'sedana' && !hasBoqItems) || updateStageMutation.isPending,
+                              title: undefined,
                             }
                         : request.currentStage === 'financial_eval_and_approval' && translatedAction.canPerformAction && !isFieldTeam && !isQuickResponseUser
                           ? {
