@@ -30,7 +30,6 @@ import {
   Layers,
   FileSpreadsheet,
   AlertCircle,
-  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -100,6 +99,9 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
     const mosqueDistrict = mosque?.district || programData?.mosqueDistrict || "";
     const requestNumber = request?.requestNumber || `REQ-${request?.id || "---"}`;
 
+    const today = new Date();
+    const englishDate = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;
+
     return {
       id: request?.id,
       requestNumber,
@@ -108,6 +110,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
       mosqueDistrict,
       programData,
       date: new Date().toLocaleDateString("ar-SA"),
+      englishDate,
     };
   }, [request]);
 
@@ -248,7 +251,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
     });
   };
 
-  // توليد وتنزيل ملف الـ PDF النظيف والبسيط
+  // توليد وتنزيل ملف الـ PDF عالي الدقة وبخط Cairo
   const handleExportPdf = async () => {
     if (selectedItemsList.length === 0) {
       toast.error("يرجى تحديد بند واحد على الأقل للتصدير");
@@ -261,22 +264,41 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
     }
 
     setIsExporting(true);
-    const toastId = toast.loading("جارٍ تجهيز ملف PDF للبنود المحددة...");
+    const toastId = toast.loading("جارٍ تجهيز ملف PDF عالي الدقة للبنود المحددة...");
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      // انتظار تحميل الخطوط لضمان رسم خط Cairo بدقة
+      if (document.fonts) {
+        await document.fonts.ready;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       const element = printRef.current;
 
       const canvas = await html2canvas(element, {
-        scale: 2,
+        scale: 3, // دقة فائقة (High DPI) لوضوح كامل للنصوص والجدول
         useCORS: true,
-        allowTaint: false, // منع خطأ Tainted canvases may not be exported تماماً
+        allowTaint: false,
         backgroundColor: "#ffffff",
         logging: false,
         width: element.offsetWidth,
         height: element.offsetHeight,
+        windowWidth: element.offsetWidth,
+        windowHeight: element.offsetHeight,
         onclone: (clonedDoc) => {
+          // حقن خط Cairo وتطبيقه على كل عناصر المستند
+          const style = clonedDoc.createElement("style");
+          style.innerHTML = `
+            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap');
+            * {
+              font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+              -webkit-font-smoothing: antialiased;
+              -moz-osx-font-smoothing: grayscale;
+              text-rendering: optimizeLegibility;
+            }
+          `;
+          clonedDoc.head.appendChild(style);
+
           const styleTags = clonedDoc.getElementsByTagName("style");
           for (let i = 0; i < styleTags.length; i++) {
             let css = styleTags[i].innerHTML;
@@ -290,7 +312,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
         },
       });
 
-      const imgData = canvas.toDataURL("image/jpeg", 0.96);
+      const imgData = canvas.toDataURL("image/jpeg", 1.0);
       const pdf = new jsPDF("p", "mm", "a4");
 
       const imgProps = pdf.getImageProperties(imgData);
@@ -302,14 +324,14 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
       let position = 0;
 
       // إضافة الصفحة الأولى
-      pdf.addImage(imgData, "JPEG", 0, position, pdfWidth, pdfHeight);
+      pdf.addImage(imgData, "JPEG", 0, position, pdfWidth, pdfHeight, undefined, "FAST");
       heightLeft -= pageHeight;
 
       // إضافة باقي الصفحات إن وجد
       while (heightLeft > 0) {
         position = heightLeft - pdfHeight;
         pdf.addPage();
-        pdf.addImage(imgData, "JPEG", 0, position, pdfWidth, pdfHeight);
+        pdf.addImage(imgData, "JPEG", 0, position, pdfWidth, pdfHeight, undefined, "FAST");
         heightLeft -= pageHeight;
       }
 
@@ -331,39 +353,6 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
     } finally {
       setIsExporting(false);
     }
-  };
-
-  // طباعة مباشرة عبر متصفح الويب
-  const handlePrint = () => {
-    if (!printRef.current) return;
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      toast.error("يرجى السماح بالنوافذ المنبثقة للطباعة المباشرة");
-      return;
-    }
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html dir="rtl" lang="ar">
-        <head>
-          <meta charset="utf-8">
-          <title>بنود_تسعير_سدانة_${requestInfo.requestNumber || requestInfo.id}</title>
-          <style>
-            @page { size: A4 portrait; margin: 12mm 15mm; }
-            * { box-sizing: border-box; }
-            body { margin: 0; padding: 0; font-family: Arial, 'Cairo', 'Segoe UI', Tahoma, sans-serif; }
-          </style>
-        </head>
-        <body>
-          ${printRef.current.innerHTML}
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 400);
   };
 
   const isAllFilteredSelected =
@@ -625,16 +614,6 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
               </Button>
               <Button
                 type="button"
-                variant="outline"
-                onClick={handlePrint}
-                disabled={isExporting || selectedItemsList.length === 0}
-                className="h-9 px-3 text-xs font-semibold gap-1.5 border-teal-300 dark:border-teal-700 text-teal-800 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950/40"
-              >
-                <Printer className="w-4 h-4" />
-                <span>طباعة مباشرة</span>
-              </Button>
-              <Button
-                type="button"
                 onClick={handleExportPdf}
                 disabled={isExporting || selectedItemsList.length === 0}
                 className="h-9 px-4 text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white shadow-md shadow-teal-600/20 gap-2"
@@ -675,12 +654,12 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
             width: "820px",
             backgroundColor: "#ffffff",
             padding: "36px 40px",
-            fontFamily: "Arial, 'Cairo', 'Segoe UI', Tahoma, sans-serif",
+            fontFamily: "'Cairo', system-ui, -apple-system, sans-serif",
             color: "#0f172a",
             lineHeight: "1.4",
           }}
         >
-          {/* ترويسة بسيطة وواضحة: شعار الجمعية مع الاسم وعنوان جدول الأسعار بألوان الهوية */}
+          {/* ترويسة بسيطة وواضحة: شعار الجمعية مع الاسم وعنوان جدول الأسعار والتاريخ بألوان الهوية */}
           <div
             style={{
               display: "flex",
@@ -688,7 +667,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
               alignItems: "center",
               paddingBottom: "16px",
               borderBottom: "2px solid #0D9488",
-              marginBottom: "18px",
+              marginBottom: "22px",
             }}
           >
             {/* الشعار واسم الجمعية */}
@@ -706,54 +685,29 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
                 />
               ) : null}
               <div>
-                <div style={{ fontSize: "17px", fontWeight: "bold", color: "#0f766e" }}>
+                <div style={{ fontSize: "17px", fontWeight: "bold", color: "#0f766e", fontFamily: "'Cairo', sans-serif" }}>
                   {orgName}
                 </div>
-                <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+                <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px", fontFamily: "'Cairo', sans-serif" }}>
                   برنامج سدانة للعناية بالمساجد
                 </div>
               </div>
             </div>
 
-            {/* عنوان الوثيقة */}
-            <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: "19px", fontWeight: "bold", color: "#0f172a" }}>
+            {/* عنوان الوثيقة مع التاريخ أسفل استدراج عروض الأسعار بالأرقام الإنجليزية */}
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "20px", fontWeight: "800", color: "#0f172a", fontFamily: "'Cairo', sans-serif" }}>
                 جدول بنود التسعير
               </div>
-              <div style={{ fontSize: "11.5px", color: "#0D9488", fontWeight: "bold", marginTop: "3px" }}>
+              <div style={{ fontSize: "12px", color: "#0D9488", fontWeight: "bold", marginTop: "3px", fontFamily: "'Cairo', sans-serif" }}>
                 استدراج عروض أسعار للموردين
               </div>
-            </div>
-          </div>
-
-          {/* شريط معلومات أساسي وأنيق بسطر واحد دون أي تعقيد وبدون أي نصوص إضافية */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              backgroundColor: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              borderRadius: "6px",
-              padding: "10px 18px",
-              marginBottom: "22px",
-              fontSize: "12px",
-              color: "#334155",
-            }}
-          >
-            <div>
-              <span style={{ color: "#64748b" }}>المسجد: </span>
-              <strong style={{ color: "#0f172a" }}>{requestInfo.mosqueName}</strong>
-            </div>
-            <div>
-              <span style={{ color: "#64748b" }}>رقم الطلب: </span>
-              <strong style={{ color: "#0f172a", direction: "ltr", display: "inline-block" }}>
-                {requestInfo.requestNumber}
-              </strong>
-            </div>
-            <div>
-              <span style={{ color: "#64748b" }}>التاريخ: </span>
-              <strong style={{ color: "#0f172a" }}>{requestInfo.date}</strong>
+              <div style={{ fontSize: "11px", color: "#64748b", fontWeight: "600", marginTop: "4px", fontFamily: "'Cairo', sans-serif" }}>
+                <span>التاريخ: </span>
+                <span style={{ direction: "ltr", display: "inline-block" }}>
+                  {requestInfo.englishDate}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -764,6 +718,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
               borderCollapse: "collapse",
               marginBottom: "24px",
               fontSize: "12px",
+              fontFamily: "'Cairo', sans-serif",
             }}
           >
             <thead>
@@ -885,6 +840,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
               borderRadius: "6px",
               backgroundColor: "#f8fafc",
               fontSize: "12.5px",
+              fontFamily: "'Cairo', sans-serif",
             }}
           >
             <div>
