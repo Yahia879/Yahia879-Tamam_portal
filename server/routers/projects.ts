@@ -718,6 +718,7 @@ export const projectsRouter = router({
           requestNumber: mosqueRequests.requestNumber,
           programType: mosqueRequests.programType,
           currentStage: mosqueRequests.currentStage,
+          approvedBudget: mosqueRequests.approvedBudget,
           mosqueName: mosques.name,
           mosqueCity: mosques.city,
           programData: mosqueRequests.programData,
@@ -725,6 +726,41 @@ export const projectsRouter = router({
         .from(mosqueRequests)
         .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
         .where(eq(mosqueRequests.id, project.requestId!));
+
+      // بالنسبة لمشروع سدانة: الميزانية والتكلفة الفعلية هما مجموع عروض الأسعار المعتمدة بعد أن يصبح الطلب في مرحلة اعتماد نوع التوريد
+      const isSedana = project.programType === "sedana" || request?.programType === "sedana";
+      if (isSedana && request) {
+        const isContractingOrBeyond = ['contracting', 'execution', 'handover', 'closed'].includes(request.currentStage);
+        if (isContractingOrBeyond) {
+          let approvedCost = "";
+          if (request.approvedBudget && parseFloat(request.approvedBudget) > 0) {
+            approvedCost = request.approvedBudget;
+          } else {
+            let pData: any = request.programData;
+            while (typeof pData === "string") {
+              try { pData = JSON.parse(pData); } catch { break; }
+            }
+            if (pData?.actualMosqueCost && Number(pData.actualMosqueCost) > 0) {
+              approvedCost = String(pData.actualMosqueCost);
+            } else if (pData?.baseCost && Number(pData.baseCost) > 0) {
+              approvedCost = String(pData.baseCost);
+            }
+          }
+
+          if (approvedCost && (project.budget !== approvedCost || project.actualCost !== approvedCost)) {
+            await db
+              .update(projects)
+              .set({
+                budget: approvedCost,
+                actualCost: approvedCost,
+                updatedAt: new Date(),
+              })
+              .where(eq(projects.id, project.id));
+            project.budget = approvedCost;
+            project.actualCost = approvedCost;
+          }
+        }
+      }
 
       // جلب مراحل المشروع
       const phases = input.lightweight ? [] : await db
@@ -1844,8 +1880,8 @@ export const projectsRouter = router({
       let itemsList = rawItems;
 
       // فحص ومزامنة جدول الكميات مع بنود سدانة والكميات المعتمدة للطلب
-      if (input.requestId) {
-        const [request] = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+      if (queryRequestId) {
+        const [request] = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, queryRequestId)).limit(1);
         if (request && (request.programType === 'sedana' || request.programData)) {
           let pData: any = {};
           try {
@@ -3286,12 +3322,13 @@ export const projectsRouter = router({
           .set(updateData)
           .where(eq(mosqueRequests.id, input.requestId));
 
-        // تحديث التكلفة الفعلية في المشروع المرتبط إن وجد
+        // تحديث الميزانية والتكلفة الفعلية في المشروع المرتبط إن وجد
         if (proj) {
           const isAdvancingFromFinancial = input.advanceStage && request.currentStage === "financial_eval_and_approval";
           await db
             .update(projects)
             .set({
+              budget: totalApprovedBaseCost.toString(),
               actualCost: totalApprovedBaseCost.toString(),
               ...(isAdvancingFromFinancial ? { completionPercentage: 50, status: "in_progress" as const } : {}),
               updatedAt: new Date(),

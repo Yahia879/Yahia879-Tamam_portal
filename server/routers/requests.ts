@@ -1623,13 +1623,44 @@ export const requestsRouter = router({
         }
       }
 
-      // تحديث تقدم المشروع المرتبط عند الانتقال لمرحلة التعاقد
+      // تحديث تقدم المشروع المرتبط عند الانتقال لمرحلة التعاقد (اعتماد نوع التوريد)
       if (input.newStage === 'contracting') {
         const [project] = await db.select().from(projects).where(eq(projects.requestId, input.requestId)).limit(1);
         if (project) {
-          // تحديث نسبة إنجاز المشروع إلى 50% (3/6) وتحديث الحالة
+          const updateProjectFields: any = { completionPercentage: 50, status: 'in_progress' };
+
+          // لبرنامج سدانة: الميزانية والتكلفة الفعلية هما مجموع عروض الأسعار المعتمدة بعد أن يصبح الطلب في مرحلة اعتماد نوع التوريد
+          if (isSedana || project.programType === 'sedana') {
+            let sedanaApprovedCost = "";
+            if (request[0].approvedBudget && parseFloat(request[0].approvedBudget) > 0) {
+              sedanaApprovedCost = request[0].approvedBudget;
+            } else {
+              let pData: any = request[0].programData;
+              while (typeof pData === "string") {
+                try { pData = JSON.parse(pData); } catch { break; }
+              }
+              if (pData?.actualMosqueCost && Number(pData.actualMosqueCost) > 0) {
+                sedanaApprovedCost = String(pData.actualMosqueCost);
+              } else if (pData?.baseCost && Number(pData.baseCost) > 0) {
+                sedanaApprovedCost = String(pData.baseCost);
+              } else {
+                const boqItems = await db.select().from(quantitySchedules).where(
+                  or(eq(quantitySchedules.requestId, input.requestId), eq(quantitySchedules.projectId, project.id))
+                );
+                const bSum = boqItems.reduce((acc, it) => acc + (parseFloat(it.totalPrice || "0") || 0), 0);
+                if (bSum > 0) sedanaApprovedCost = String(bSum);
+              }
+            }
+
+            if (sedanaApprovedCost) {
+              updateProjectFields.budget = sedanaApprovedCost;
+              updateProjectFields.actualCost = sedanaApprovedCost;
+            }
+          }
+
+          // تحديث نسبة إنجاز المشروع إلى 50% (3/6) وتحديث الحالة والقيم
           await db.update(projects)
-            .set({ completionPercentage: 50, status: 'in_progress' })
+            .set(updateProjectFields)
             .where(eq(projects.id, project.id));
 
           // تحديث المراحل: إكمال المرحلة الثالثة وبدء المرحلة الرابعة
@@ -4107,9 +4138,14 @@ export const requestsRouter = router({
       // تحديث تقدم المشروع المرتبط: 3/6 مراحل مكتملة
       const [linkedProject] = await db.select().from(projects).where(eq(projects.requestId, input.requestId)).limit(1);
       if (linkedProject) {
-        // تحديث نسبة إنجاز المشروع إلى 50% (3/6) وتحديث الحالة
+        // تحديث نسبة إنجاز المشروع إلى 50% (3/6) وتحديث الحالة والميزانية والتكلفة الفعلية لسدانة
+        const projectUpdate: any = { completionPercentage: 50, status: 'in_progress' };
+        if (request[0].programType === 'sedana' || linkedProject.programType === 'sedana') {
+          projectUpdate.budget = finalAmount.toString();
+          projectUpdate.actualCost = finalAmount.toString();
+        }
         await db.update(projects)
-          .set({ completionPercentage: 50, status: 'in_progress' })
+          .set(projectUpdate)
           .where(eq(projects.id, linkedProject.id));
 
         // تحديث المراحل: إكمال المرحلة الثالثة (اعتماد عرض السعر المناسب) وبدء المرحلة الرابعة (التعاقد)

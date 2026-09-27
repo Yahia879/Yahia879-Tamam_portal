@@ -228,6 +228,46 @@ export default function ProjectDetailsPage() {
     projectId: parseInt(id || "0") 
   }, { enabled: !!id });
 
+  // الميزانية والتكلفة الفعلية لبرنامج سدانة: كلاهما مجموع عروض الأسعار المعتمدة بعد أن يصبح الطلب في مرحلة "اعتماد نوع التوريد"
+  const sedanaApprovedCost = useMemo(() => {
+    if (!isSedanaProgram) return null;
+    const stage = project?.request?.currentStage;
+    const isContractingOrBeyond = stage && ['contracting', 'execution', 'handover', 'closed'].includes(stage);
+    
+    // قبل مرحلة اعتماد نوع التوريد لا يتم تعيين أو إظهار هذه القيم
+    if (!isContractingOrBeyond) {
+      return null;
+    }
+
+    // 1. القيمة المسجلة في ميزانية أو التكلفة الفعلية للمشروع
+    if (project?.budget && parseFloat(project.budget) > 0) return project.budget;
+    if (project?.actualCost && parseFloat(project.actualCost) > 0) return project.actualCost;
+
+    // 2. الميزانية المعتمدة في الطلب
+    if (project?.request?.approvedBudget && parseFloat(project.request.approvedBudget) > 0) {
+      return project.request.approvedBudget;
+    }
+
+    // 3. إجمالي جدول الكميات المسعر
+    if (boqData && boqData.total > 0) {
+      return boqData.total.toString();
+    }
+
+    // 4. التكلفة المحفوظة في بيانات برنامج سدانة
+    let pData: any = project?.request?.programData;
+    while (typeof pData === 'string') {
+      try { pData = JSON.parse(pData); } catch { break; }
+    }
+    if (pData?.actualMosqueCost && Number(pData.actualMosqueCost) > 0) {
+      return String(pData.actualMosqueCost);
+    }
+    if (pData?.baseCost && Number(pData.baseCost) > 0) {
+      return String(pData.baseCost);
+    }
+
+    return null;
+  }, [isSedanaProgram, project, boqData]);
+
   // تحديث مرحلة المشروع
   const updatePhaseMutation = trpc.projects.updatePhase.useMutation({
     onSuccess: () => {
@@ -907,16 +947,23 @@ export default function ProjectDetailsPage() {
                             <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent side="top">
-                            <p>الميزانية هي قيمة الإجمالي الكلي لجدول الكميات وتظهر بعد مرحلة التقييم المالي واعتماد العرض</p>
+                            <p>
+                              {isSedanaProgram
+                                ? "الميزانية المعتمدة لمشروع سدانة تمثل مجموع عروض الأسعار بعد اعتماد نوع التوريد"
+                                : "الميزانية هي قيمة الإجمالي الكلي لجدول الكميات وتظهر بعد مرحلة التقييم المالي واعتماد العرض"}
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
                       <p className="font-bold text-xs sm:text-base text-foreground truncate font-sans">
-                        {(!project.request || project.isMultiMosque || isSedanaProgram || BUDGET_VISIBLE_STAGES.includes(project.request.currentStage))
-                          ? (boqData && boqData.total > 0
-                              ? formatCurrency(boqData.total.toString())
-                              : (project.budget ? formatCurrency(project.budget) : "غير محدد"))
-                          : "غير محدد"
+                        {isSedanaProgram
+                          ? (sedanaApprovedCost ? formatCurrency(sedanaApprovedCost) : "غير محدد")
+                          : ((!project.request || project.isMultiMosque || BUDGET_VISIBLE_STAGES.includes(project.request.currentStage))
+                              ? (boqData && boqData.total > 0
+                                  ? formatCurrency(boqData.total.toString())
+                                  : (project.budget ? formatCurrency(project.budget) : "غير محدد"))
+                              : "غير محدد"
+                            )
                         }
                       </p>
                     </div>
@@ -939,12 +986,19 @@ export default function ProjectDetailsPage() {
                             <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent side="top">
-                            <p>التكلفة النهائية المتفق عليها في العقد والتي تشمل نسبة الجمعية</p>
+                            <p>
+                              {isSedanaProgram
+                                ? "التكلفة الفعلية لمشروع سدانة تمثل مجموع عروض الأسعار المعتمدة بعد اعتماد نوع التوريد"
+                                : "التكلفة النهائية المتفق عليها في العقد والتي تشمل نسبة الجمعية"}
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
                       <p className="font-bold text-xs sm:text-base text-foreground truncate font-sans">
-                        {formatCurrency(project.actualCost)}
+                        {isSedanaProgram
+                          ? (sedanaApprovedCost ? formatCurrency(sedanaApprovedCost) : "غير محدد")
+                          : formatCurrency(project.actualCost)
+                        }
                       </p>
                     </div>
                   </div>
