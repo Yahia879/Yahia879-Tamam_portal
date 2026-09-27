@@ -6,7 +6,7 @@ export type SedanaCategory =
   | 'البلاستيكيات'
   | 'أدوات المسجد العامة';
 
-export type SedanaDeliveryFrequency = 'شهري' | 'ربع سنوي' | 'نصف سنوي';
+export type SedanaDeliveryFrequency = 'شهري' | 'ربع سنوي' | 'نصف سنوي' | 'مرة واحدة';
 
 export interface SedanaBasketItem {
   id: string;
@@ -59,6 +59,7 @@ export const DELIVERY_FREQUENCIES: SedanaDeliveryFrequency[] = [
   'شهري',
   'ربع سنوي',
   'نصف سنوي',
+  'مرة واحدة',
 ];
 
 export const getDefaultBasketItems = (
