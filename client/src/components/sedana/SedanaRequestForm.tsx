@@ -85,6 +85,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           'شهري': Number(meta.monthlyLimit) || 0,
           'ربع سنوي': Number(meta.quarterlyLimit) || 0,
           'نصف سنوي': Number(meta.semiAnnualLimit) || 0,
+          'مرة واحدة': Number(meta.oneTimeLimit) || 0,
         };
         return {
           id: `item_${v.id}_${Date.now()}_${index}`,
@@ -95,6 +96,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           monthlyLimit: Number(meta.monthlyLimit) || 0,
           quarterlyLimit: Number(meta.quarterlyLimit) || 0,
           semiAnnualLimit: Number(meta.semiAnnualLimit) || 0,
+          oneTimeLimit: Number(meta.oneTimeLimit) || 0,
           periodLimits,
           quantity: 0,
           unit: meta.unit || 'قطعة',
@@ -121,6 +123,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       'شهري': Number(meta.monthlyLimit) || 0,
       'ربع سنوي': Number(meta.quarterlyLimit) || 0,
       'نصف سنوي': Number(meta.semiAnnualLimit) || 0,
+      'مرة واحدة': Number(meta.oneTimeLimit) || 0,
     };
 
     handleUpdateItem(rowId, {
@@ -130,6 +133,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       monthlyLimit: Number(meta.monthlyLimit) || 0,
       quarterlyLimit: Number(meta.quarterlyLimit) || 0,
       semiAnnualLimit: Number(meta.semiAnnualLimit) || 0,
+      oneTimeLimit: Number(meta.oneTimeLimit) || 0,
       periodLimits,
       unit: meta.unit || 'قطعة',
     });
@@ -146,6 +150,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       'شهري': Number(meta.monthlyLimit) || 0,
       'ربع سنوي': Number(meta.quarterlyLimit) || 0,
       'نصف سنوي': Number(meta.semiAnnualLimit) || 0,
+      'مرة واحدة': Number(meta.oneTimeLimit) || 0,
     };
 
     const newItem: SedanaBasketItem = {
@@ -157,6 +162,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       monthlyLimit: Number(meta.monthlyLimit) || 0,
       quarterlyLimit: Number(meta.quarterlyLimit) || 0,
       semiAnnualLimit: Number(meta.semiAnnualLimit) || 0,
+      oneTimeLimit: Number(meta.oneTimeLimit) || 0,
       periodLimits,
       quantity: 0,
       unit: meta.unit || 'قطعة',
