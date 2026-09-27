@@ -933,7 +933,7 @@ export default function RequestDetailsNew() {
     // التحقق من اكتمال تحديد نوع التأمين لبرنامج سدانة
     if (request.programType === 'sedana' && request.currentStage === 'contracting') {
       if (!isSedanaProcurementComplete) {
-        toast.error("لا يمكن الانتقال للمرحلة التالية إلا بعد تحديد نوع التأمين لجميع الموردين في صفحة التأمين");
+        toast.error("لا يمكن الانتقال للمرحلة التالية إلا بعد تحديد نوع التوريد لجميع الموردين في صفحة اعتماد التوريد");
         setLocation(`/requests/${requestId}/procurement`);
         return;
       }
@@ -1908,7 +1908,7 @@ export default function RequestDetailsNew() {
                                  : (request.programType === 'sedana' && (request.currentStage === 'execution' || request.currentStage === 'handover')
                                    ? "المستودع الافتراضي والتنفيذ المجدول"
                                    : (request.programType === 'sedana' && request.currentStage === 'contracting'
-                                     ? "تحديد نوع التأمين"
+                                     ? "تحديد نوع التوريد"
                                      : translatedAction.actionButton.label)),
                                onClick: request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage)
                                  ? () => updateStageMutation.mutate({ requestId, newStage: 'financial_eval_and_approval' as any })
@@ -1948,7 +1948,7 @@ export default function RequestDetailsNew() {
                               label: "الانتقال للمرحلة التالية",
                               onClick: () => {
                                 if (!isSedanaProcurementComplete) {
-                                  toast.error("لا يمكن الانتقال للمرحلة التالية إلا بعد تحديد نوع التأمين لجميع الموردين في صفحة التأمين");
+                                  toast.error("لا يمكن الانتقال للمرحلة التالية إلا بعد تحديد نوع التوريد لجميع الموردين في صفحة اعتماد التوريد");
                                   setLocation(`/requests/${requestId}/procurement`);
                                   return;
                                 }
@@ -1956,7 +1956,7 @@ export default function RequestDetailsNew() {
                               },
                               variant: isSedanaProcurementComplete ? ('default' as const) : ('secondary' as const),
                               disabled: !isSedanaProcurementComplete || updateStageMutation.isPending,
-                              title: !isSedanaProcurementComplete ? "يرجى تحديد نوع التأمين لجميع الموردين في صفحة التأمين أولاً" : undefined,
+                              title: !isSedanaProcurementComplete ? "يرجى تحديد نوع التوريد لجميع الموردين أولاً" : undefined,
                             }
                           : request.currentStage === 'contracting' && request.programType !== 'sedana' && hasApprovedContract && (canTransitionStage(user?.role || '', 'contracting') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
                           ? {
