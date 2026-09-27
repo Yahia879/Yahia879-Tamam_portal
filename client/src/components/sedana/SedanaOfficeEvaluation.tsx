@@ -168,6 +168,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
       'شهري': Number(meta.monthlyLimit) || 0,
       'ربع سنوي': Number(meta.quarterlyLimit) || 0,
       'نصف سنوي': Number(meta.semiAnnualLimit) || 0,
+      'مرة واحدة': Number(meta.oneTimeLimit) || 0,
     };
 
     handleUpdateItem(itemId, {
@@ -177,6 +178,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
       monthlyLimit: Number(meta.monthlyLimit) || 0,
       quarterlyLimit: Number(meta.quarterlyLimit) || 0,
       semiAnnualLimit: Number(meta.semiAnnualLimit) || 0,
+      oneTimeLimit: Number(meta.oneTimeLimit) || 0,
       periodLimits,
       unit: meta.unit || 'قطعة',
     });
@@ -201,6 +203,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
       'شهري': Number(meta.monthlyLimit) || 0,
       'ربع سنوي': Number(meta.quarterlyLimit) || 0,
       'نصف سنوي': Number(meta.semiAnnualLimit) || 0,
+      'مرة واحدة': Number(meta.oneTimeLimit) || 0,
     };
 
     const newId = `item_${availableOption.id}_${Date.now()}`;
@@ -215,6 +218,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
       monthlyLimit: Number(meta.monthlyLimit) || 0,
       quarterlyLimit: Number(meta.quarterlyLimit) || 0,
       semiAnnualLimit: Number(meta.semiAnnualLimit) || 0,
+      oneTimeLimit: Number(meta.oneTimeLimit) || 0,
       periodLimits,
       quantity: defaultQty,
       unit: meta.unit || 'قطعة',
