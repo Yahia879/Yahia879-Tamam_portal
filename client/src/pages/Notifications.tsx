@@ -51,7 +51,7 @@ export default function Notifications() {
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const [page, setPage] = usePersistedPage("notifications_page");
-  const [category, setCategory] = useState<"all" | "sedana" | "requests" | "financial" | "unread">("all");
+  const category = "all";
   const limit = 10;
 
   // حالة اللغة الخاصة بدور الاستجابة السريعة (quick_response)
@@ -168,57 +168,6 @@ export default function Notifications() {
           </div>
         </div>
 
-        {/* شريط التصنيفات والفلترة السريعة */}
-        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 no-scrollbar border-b border-border/40">
-          {[
-            { id: "all", labelAr: "جميع الإشعارات", labelEn: "All", count: data?.total },
-            { 
-              id: "sedana", 
-              labelAr: "برنامج سدانة", 
-              labelEn: "Sedana Program", 
-              count: data?.sedanaCount, 
-              badgeColor: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" 
-            },
-            { id: "requests", labelAr: "الطلبات والمشاريع", labelEn: "Requests & Mosques" },
-            { id: "financial", labelAr: "المالية والعقود", labelEn: "Financial" },
-            { 
-              id: "unread", 
-              labelAr: "غير مقروءة", 
-              labelEn: "Unread", 
-              count: unreadCountData, 
-              badgeColor: "bg-amber-500/15 text-amber-700 dark:text-amber-400" 
-            },
-          ].map((tab) => {
-            const isActive = category === tab.id;
-            return (
-              <Button
-                key={tab.id}
-                variant={isActive ? "default" : "ghost"}
-                size="sm"
-                onClick={() => {
-                  setCategory(tab.id as any);
-                  setPage(1);
-                }}
-                className={`h-8 sm:h-9 text-xs font-semibold rounded-lg shrink-0 gap-1.5 transition-all ${
-                  isActive 
-                    ? "shadow-xs" 
-                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <span>{isEn ? tab.labelEn : tab.labelAr}</span>
-                {tab.count !== undefined && tab.count !== null && tab.count > 0 && (
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                    isActive 
-                      ? "bg-primary-foreground/20 text-primary-foreground" 
-                      : tab.badgeColor || "bg-muted text-muted-foreground"
-                  }`}>
-                    {tab.count}
-                  </span>
-                )}
-              </Button>
-            );
-          })}
-        </div>
 
         {error && (
           <div className="bg-destructive/10 text-destructive p-3 sm:p-4 rounded-lg flex items-center gap-2 sm:gap-3">
@@ -411,20 +360,10 @@ export default function Notifications() {
               </div>
             ) : (
               <div className="p-8 sm:p-12 text-center">
-                {category === "sedana" ? (
-                  <>
-                    <Boxes className="w-10 h-10 sm:w-12 sm:h-12 text-emerald-500/40 mx-auto mb-3 sm:mb-4" />
-                    <p className="text-sm font-medium text-foreground">لا توجد إشعارات لبرنامج سدانة حالياً</p>
-                    <p className="text-xs text-muted-foreground mt-1">ستظهر هنا تنبيهات أوامر التوريد، التوزيع، وإثباتات الاستلام للمساجد</p>
-                  </>
-                ) : (
-                  <>
-                    <Bell className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      {isEn ? "No notifications" : "لا توجد إشعارات"}
-                    </p>
-                  </>
-                )}
+                <Bell className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  {isEn ? "No notifications" : "لا توجد إشعارات"}
+                </p>
               </div>
             )}
           </CardContent>

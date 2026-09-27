@@ -501,7 +501,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           >
             <Upload className="w-6 h-6 text-muted-foreground mx-auto mb-1.5" />
             <p className="font-bold text-xs text-foreground">
-              يرجى إدراج المرفقات المطلوبة (اختياري) أو اسحب الملف هنا
+              يرجى إدراج المرفقات المطلوبة (اختياري)
             </p>
             <p className="text-[11px] text-muted-foreground mt-0.5">
               اختياري - يدعم الصور (JPG, PNG, WEBP) ومستندات PDF بحد أقصى 10 ميجابايت

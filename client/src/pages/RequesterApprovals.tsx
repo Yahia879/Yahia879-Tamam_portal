@@ -2454,13 +2454,6 @@ export default function RequesterApprovals() {
                     </div>
                   )}
 
-                  {/* رسالة توضيحية عند القبول والتأهيل المباشر */}
-                  {actionDecision === "approved" && (
-                    <div className="p-3.5 rounded-2xl bg-cyan-100/60 dark:bg-cyan-900/30 border border-cyan-200 dark:border-cyan-800/60 text-xs text-cyan-950 dark:text-cyan-200 flex items-center gap-2.5 animate-in fade-in duration-200">
-                      <CheckCircle2 className="w-4 h-4 text-cyan-600 shrink-0" />
-                      <span>سيتم تأكيد قبول وتأهيل المسجد مباشرة دون الحاجة لكتابة أي ملاحظات، مع إتاحة إكمال الطلب لمقدمه فوراً.</span>
-                    </div>
-                  )}
                 </div>
               </div>
 
