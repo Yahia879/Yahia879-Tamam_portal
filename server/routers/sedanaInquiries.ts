@@ -233,7 +233,7 @@ export const sedanaInquiriesRouter = router({
         id: z.number(),
         status: z.enum(["approved", "rejected"]),
         actionType: z.enum(["enable_sedana", "redirect_alternative", "reject"]).default("enable_sedana"),
-        actionNotes: z.string().min(1, "يرجى تسجيل ملاحظات المكالمة الهاتفية والتوجيه"),
+        actionNotes: z.string().optional().nullable(),
         redirectProgram: z.string().optional().nullable(),
       })
     )
@@ -241,6 +241,10 @@ export const sedanaInquiriesRouter = router({
       const db = await getDb();
       if (!db) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "تعذر الاتصال بقاعدة البيانات" });
+      }
+
+      if (input.status === "rejected" && (!input.actionNotes || !input.actionNotes.trim())) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "يرجى تسجيل سبب ومبررات الرفض" });
       }
 
       const [inquiry] = await db
@@ -258,7 +262,7 @@ export const sedanaInquiriesRouter = router({
         .set({
           status: input.status,
           actionType: input.actionType,
-          actionNotes: input.actionNotes,
+          actionNotes: input.actionNotes?.trim() || null,
           redirectProgram: input.redirectProgram || null,
           reviewedBy: ctx.user.id,
           reviewedAt: new Date(),
@@ -280,7 +284,7 @@ export const sedanaInquiriesRouter = router({
           requesterUserId: inquiry.userId,
           actorName: ctx.user.name,
           data: {
-            reason: input.actionNotes || undefined,
+            reason: input.actionNotes?.trim() || undefined,
           },
         }).catch(err => console.error("Sedana inquiry review notif error:", err));
       } catch (notifErr) {
