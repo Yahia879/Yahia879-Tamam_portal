@@ -1990,6 +1990,133 @@ export const notificationsRouter = router({
       return { success: true };
     }),
 
+  // جلب المستفيدين لإرسال إشعار مباشر
+  getBeneficiaryRecipients: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) {
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+    }
+
+    const beneficiaries = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        phone: users.phone,
+        city: users.city,
+        requesterType: users.requesterType,
+        status: users.status,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(
+        and(
+          eq(users.role, "service_requester"),
+          isNull(users.deletedAt)
+        )
+      )
+      .orderBy(desc(users.createdAt));
+
+    return beneficiaries;
+  }),
+
+  // إرسال إشعار مخصص لشخص محدد عبر قنوات محددة
+  sendCustomNotification: adminProcedure
+    .input(
+      z.object({
+        recipientId: z.number(),
+        title: z.string().min(1, "عنوان الإشعار مطلوب"),
+        message: z.string().min(1, "نص الرسالة مطلوب"),
+        channels: z.object({
+          in_app: z.boolean().default(false),
+          whatsapp: z.boolean().default(false),
+          email: z.boolean().default(false),
+          sms: z.boolean().default(false),
+        }),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "تعذر الاتصال بقاعدة البيانات" });
+      }
+
+      const [recipient] = await db
+        .select()
+        .from(users)
+        .where(and(eq(users.id, input.recipientId), isNull(users.deletedAt)))
+        .limit(1);
+
+      if (!recipient) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "المستخدم المحدد غير موجود" });
+      }
+
+      const { in_app, whatsapp, email, sms } = input.channels;
+      if (!in_app && !whatsapp && !email && !sms) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "يرجى تحديد قناة إرسال واحدة على الأقل" });
+      }
+
+      const warnings: string[] = [];
+
+      // 1. إشعار داخل الموقع
+      if (in_app) {
+        await db.insert(notifications).values({
+          userId: recipient.id,
+          type: "general",
+          title: input.title,
+          message: input.message,
+          relatedType: "custom_direct",
+          isRead: false,
+        });
+      }
+
+      // 2. واتساب
+      if (whatsapp) {
+        if (recipient.phone) {
+          sendWhatsApp(recipient.phone, input.title, input.message).catch((err) => {
+            console.error("Custom WhatsApp send error:", err);
+          });
+        } else {
+          warnings.push("لم يتم الإرسال عبر واتساب لعدم توفر رقم جوال للمستقبل");
+        }
+      }
+
+      // 3. البريد الإلكتروني
+      if (email) {
+        if (recipient.email) {
+          sendEmailNotification(recipient.email, input.title, input.message).catch((err) => {
+            console.error("Custom Email send error:", err);
+          });
+        } else {
+          warnings.push("لم يتم الإرسال عبر البريد الإلكتروني لعدم توفر عنوان بريد للمستقبل");
+        }
+      }
+
+      // 4. الرسائل النصية القصيرة SMS
+      if (sms) {
+        if (recipient.phone) {
+          const smsMessage = `${input.title}\n\n${input.message}`;
+          sendSms(recipient.phone, smsMessage).catch((err) => {
+            console.error("Custom SMS send error:", err);
+          });
+        } else {
+          warnings.push("لم يتم الإرسال عبر الرسائل النصية لعدم توفر رقم جوال للمستقبل");
+        }
+      }
+
+      return {
+        success: true,
+        recipientName: recipient.name,
+        sentChannels: {
+          in_app: Boolean(in_app),
+          whatsapp: Boolean(whatsapp && recipient.phone),
+          email: Boolean(email && recipient.email),
+          sms: Boolean(sms && recipient.phone),
+        },
+        warnings,
+      };
+    }),
+
   // حذف إشعار
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))
