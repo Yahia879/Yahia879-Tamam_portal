@@ -344,6 +344,8 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
     (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
 
+  const isSuperAdmin = user?.role === "super_admin" || user?.role === "system_admin";
+
   const utils = trpc.useUtils();
   // التحقق من الصلاحيات
   const hasAddPermission = usePermission("progress_reports.add");
@@ -1092,14 +1094,17 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   const checkPendingMyAction = (report: any) => {
     if (!user || !report) return false;
     
-    // المرحلة الأولى: بانتظار اعتماد مدير المشروع (فقط لمدير المشروع المعين للمشروع)
+    // المرحلة الأولى: بانتظار اعتماد مدير المشروع (فقط لمدير المشروع المعين للمشروع أو مدير النظام)
     if (report.status === "pending" || report.status === "submitted" || report.status === "draft") {
-      return Boolean(report.projectManagerId && Number(report.projectManagerId) === Number(user.id));
+      return Boolean(
+        (report.projectManagerId && Number(report.projectManagerId) === Number(user.id)) ||
+        isSuperAdmin
+      );
     }
     
-    // المرحلة الثانية: بانتظار اعتماد المدير التنفيذي (فقط للمدير التنفيذي)
+    // المرحلة الثانية: بانتظار اعتماد المدير التنفيذي (للمدير التنفيذي أو مدير النظام)
     if (report.status === "pending_executive") {
-      return Boolean(isExecutiveDirector);
+      return Boolean(isExecutiveDirector || isSuperAdmin);
     }
     return false;
   };
@@ -1846,7 +1851,11 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
                                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                                  <span>{report.status === "pending_executive" ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتمادك (مدير المشروع)"}</span>
+                                  <span>
+                                    {report.status === "pending_executive" 
+                                      ? (isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي") 
+                                      : (isProjectManager ? "بانتظار اعتمادك (مدير المشروع)" : "بانتظار اعتماد مدير المشروع")}
+                                  </span>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
