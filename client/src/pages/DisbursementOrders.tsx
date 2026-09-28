@@ -369,16 +369,18 @@ export default function DisbursementOrders() {
     user?.email === "ceo@manarah.org.sa" ||
     user?.email === "test10@gmail.com";
 
+  const isSuperAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+
   // ترتيب الأوامر بحيث تظهر الأوامر التي بانتظار اعتماد المستخدم أولاً
   const sortedOrders = useMemo(() => {
     if (!ordersData?.orders) return [];
 
     return [...ordersData.orders].sort((a: any, b: any) => {
       const checkPendingMyAction = (o: any) => {
-        if ((o.status === "pending" || o.status === "edited" || o.status === "draft") && isFinancialUser) {
+        if ((o.status === "pending" || o.status === "edited" || o.status === "draft") && (isFinancialUser || isSuperAdmin)) {
           return true;
         }
-        if (o.status === "pending_executive" && isExecutiveDirector) {
+        if (o.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin)) {
           return true;
         }
         return false;
@@ -392,7 +394,7 @@ export default function DisbursementOrders() {
 
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-  }, [ordersData?.orders, isFinancialUser, isExecutiveDirector]);
+  }, [ordersData?.orders, isFinancialUser, isExecutiveDirector, isSuperAdmin]);
 
   const filteredOrders = sortedOrders;
 
@@ -575,12 +577,12 @@ export default function DisbursementOrders() {
                     <TableBody>
                       {filteredOrders?.map((order) => {
                         const isPendingMyAction = 
-                          ((order.status === "pending" || order.status === "edited" || order.status === "draft") && isFinancialUser) ||
-                          (order.status === "pending_executive" && isExecutiveDirector);
+                          ((order.status === "pending" || order.status === "edited" || order.status === "draft") && (isFinancialUser || isSuperAdmin)) ||
+                          (order.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin));
 
                         return (
                           <TableRow 
-                            key={order.id}
+                            key={order.id} 
                             className={isPendingMyAction ? "bg-emerald-100/75 dark:bg-emerald-950/60 hover:bg-emerald-200/70 dark:hover:bg-emerald-900/70 border-r-4 border-r-emerald-700 dark:border-r-emerald-400 transition-all shadow-xs" : ""}
                           >
                             <TableCell className="py-2.5 px-3 font-sans text-xs text-right font-bold whitespace-nowrap">
@@ -598,7 +600,11 @@ export default function DisbursementOrders() {
                                       </TooltipTrigger>
                                       <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
                                         <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                                        <span>{order.status === "pending_executive" ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتمادك (الإدارة المالية)"}</span>
+                                        <span>
+                                          {order.status === "pending_executive" 
+                                            ? (isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي") 
+                                            : (isFinancialUser ? "بانتظار اعتمادك (الإدارة المالية)" : "بانتظار الاعتماد المالي")}
+                                        </span>
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
@@ -875,8 +881,8 @@ export default function DisbursementOrders() {
                 <div className="md:hidden grid gap-4 p-4 bg-muted/5" dir="rtl">
                   {filteredOrders?.map((order) => {
                     const isPendingMyAction = 
-                      ((order.status === "pending" || order.status === "edited" || order.status === "draft") && isFinancialUser) ||
-                      (order.status === "pending_executive" && isExecutiveDirector);
+                      ((order.status === "pending" || order.status === "edited" || order.status === "draft") && (isFinancialUser || isSuperAdmin)) ||
+                      (order.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin));
 
                     return (
                       <Card 
@@ -904,7 +910,11 @@ export default function DisbursementOrders() {
                                     </TooltipTrigger>
                                     <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
                                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                                      <span>{order.status === "pending_executive" ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتمادك (الإدارة المالية)"}</span>
+                                      <span>
+                                        {order.status === "pending_executive" 
+                                          ? (isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي") 
+                                          : (isFinancialUser ? "بانتظار اعتمادك (الإدارة المالية)" : "بانتظار الاعتماد المالي")}
+                                      </span>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
