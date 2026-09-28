@@ -2062,7 +2062,7 @@ export const notificationsRouter = router({
       if (in_app) {
         await db.insert(notifications).values({
           userId: recipient.id,
-          type: "general",
+          type: "info",
           title: input.title,
           message: input.message,
           relatedType: "custom_direct",
