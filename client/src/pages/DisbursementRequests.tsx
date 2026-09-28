@@ -446,6 +446,7 @@ export default function DisbursementRequests() {
   const canCreateOrder = hasApprovePermission;
   const canApproveOrder = permOrdersApprove || permOrdersSign || hasApprovePermission;
   const canExecuteOrder = ["super_admin", "system_admin", "financial"].includes(user?.role || "");
+  const isSuperAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
   const isExecutiveDirector = 
     ["general_manager", "executive_director"].includes(user?.role || "") ||
     (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
@@ -616,10 +617,10 @@ export default function DisbursementRequests() {
 
     return list.sort((a, b) => {
       const checkPendingMyAction = (req: any) => {
-        if ((req.status === "pending" || req.status === "draft") && req.requestedBy === user?.id) {
+        if ((req.status === "pending" || req.status === "draft") && (req.requestedBy === user?.id || isSuperAdmin)) {
           return true;
         }
-        if (req.status === "pending_executive" && isExecutiveDirector) {
+        if (req.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin)) {
           return true;
         }
         return false;
@@ -636,7 +637,7 @@ export default function DisbursementRequests() {
       const dateB = b.requestedAt ? new Date(b.requestedAt).getTime() : b.id;
       return dateB - dateA;
     });
-  }, [requestsData?.requests, user?.id, isExecutiveDirector, canApproveRequest]);
+  }, [requestsData?.requests, user?.id, isExecutiveDirector, isSuperAdmin, canApproveRequest]);
 
   const paginatedRequests = sortedRequests;
 
@@ -813,8 +814,8 @@ export default function DisbursementRequests() {
 
                           const isConverted = !!request.orderId || request.status === "paid" || request.status === "approved";
                           const isPendingMyAction = 
-                            ((request.status === "pending" || request.status === "draft") && request.requestedBy === user?.id) ||
-                            (request.status === "pending_executive" && isExecutiveDirector);
+                            ((request.status === "pending" || request.status === "draft") && (request.requestedBy === user?.id || isSuperAdmin)) ||
+                            (request.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin));
 
                           return (
                             <TableRow 
@@ -836,7 +837,11 @@ export default function DisbursementRequests() {
                                         </TooltipTrigger>
                                         <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
                                           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                                          <span>{request.status === "pending_executive" ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتمادك (مُعد الطلب)"}</span>
+                                          <span>
+                                            {request.status === "pending_executive" 
+                                              ? (isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي") 
+                                              : (request.requestedBy === user?.id ? "بانتظار اعتمادك (مُعد الطلب)" : "بانتظار اعتماد مُعد الطلب")}
+                                          </span>
                                         </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
@@ -1097,8 +1102,8 @@ export default function DisbursementRequests() {
 
                         const isConverted = !!request.orderId || request.status === "paid" || request.status === "approved";
                         const isPendingMyAction = 
-                          ((request.status === "pending" || request.status === "draft") && request.requestedBy === user?.id) ||
-                          (request.status === "pending_executive" && isExecutiveDirector);
+                          ((request.status === "pending" || request.status === "draft") && (request.requestedBy === user?.id || isSuperAdmin)) ||
+                          (request.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin));
 
                         return (
                           <div 
@@ -1124,7 +1129,11 @@ export default function DisbursementRequests() {
                                     </TooltipTrigger>
                                     <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
                                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                                      <span>{request.status === "pending_executive" ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتمادك (مُعد الطلب)"}</span>
+                                      <span>
+                                        {request.status === "pending_executive" 
+                                          ? (isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي") 
+                                          : (request.requestedBy === user?.id ? "بانتظار اعتمادك (مُعد الطلب)" : "بانتظار اعتماد مُعد الطلب")}
+                                      </span>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
