@@ -8,11 +8,12 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Bell, Shield, Smartphone, MessageSquare, Mail, Users, Info, ArrowRight, Pencil, X, HeartHandshake, Search, CheckCircle2, XCircle, SlidersHorizontal, Filter, Boxes, Sparkles, Truck, Package } from "lucide-react";
+import { Bell, Shield, Smartphone, MessageSquare, Mail, Users, Info, ArrowRight, Pencil, X, HeartHandshake, Search, CheckCircle2, XCircle, SlidersHorizontal, Filter, Boxes, Sparkles, Truck, Package, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import DirectNotificationTab from "@/components/DirectNotificationTab";
 
 const RequestNotificationsTooltip = () => (
   <div className="space-y-3 text-right max-w-sm sm:max-w-md text-foreground" dir="rtl">
@@ -2021,27 +2022,34 @@ export default function NotificationCustomization() {
         {/* علامات تبويب التخصيص */}
         <Tabs defaultValue="roles" className="w-full space-y-6" dir="rtl">
           <div className="flex justify-center w-full mb-8">
-            <TabsList className="bg-slate-100/80 dark:bg-slate-900/60 p-2 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 flex gap-2.5 w-full max-w-2xl shadow-inner backdrop-blur-md">
+            <TabsList className="bg-slate-100/80 dark:bg-slate-900/60 p-2 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 flex flex-wrap sm:flex-nowrap gap-2 sm:gap-2.5 w-full max-w-4xl shadow-inner backdrop-blur-md">
               <TabsTrigger 
                 value="roles" 
-                className="flex-1 rounded-xl py-3 px-3 sm:px-6 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
+                className="flex-1 rounded-xl py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
               >
                 <Shield className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
                 <span>تخصيص حسب الأدوار</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="users" 
-                className="flex-1 rounded-xl py-3 px-3 sm:px-6 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
+                className="flex-1 rounded-xl py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
               >
                 <Users className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
                 <span>تخصيص حسب الأشخاص</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="beneficiary" 
-                className="flex-1 rounded-xl py-3 px-3 sm:px-6 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
+                className="flex-1 rounded-xl py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
               >
                 <HeartHandshake className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
                 <span>إشعارات المستفيد</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="direct_send" 
+                className="flex-1 rounded-xl py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
+              >
+                <Send className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
+                <span>إرسال إشعار مباشر</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -2493,6 +2501,11 @@ export default function NotificationCustomization() {
                 </Card>
               );
             })()}
+          </TabsContent>
+
+          {/* تبويب: إرسال إشعار مباشر ومخصص */}
+          <TabsContent value="direct_send" className="space-y-6 focus-visible:outline-none">
+            <DirectNotificationTab dbRoles={dbRoles} />
           </TabsContent>
 
         </Tabs>
