@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { 
   FileText, 
   Plus, 
@@ -449,7 +450,10 @@ export default function Requests({
               <div className="overflow-x-auto">
                 <div className="min-w-0 md:min-w-[1100px]">
                   {/* Table Header (Desktop Only) */}
-                  <div className="hidden md:grid grid-cols-[36px_minmax(180px,1.4fr)_minmax(120px,0.9fr)_minmax(130px,1fr)_minmax(115px,0.85fr)_minmax(130px,1fr)_minmax(140px,1.1fr)_minmax(110px,0.8fr)_44px] gap-3.5 px-4 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider items-center">
+                  <div className={cn(
+                    "hidden md:grid grid-cols-[36px_minmax(180px,1.4fr)_minmax(120px,0.9fr)_minmax(130px,1fr)_minmax(115px,0.85fr)_minmax(130px,1fr)_minmax(140px,1.1fr)_minmax(110px,0.8fr)_44px] gap-3.5 px-4 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider items-center",
+                    isEn ? "border-l-4 border-l-transparent" : "border-r-4 border-r-transparent"
+                  )}>
                     <div className="w-9"></div>
                     <div className="truncate">{isEn ? "Request" : "الطلب"}</div>
                     <div className="truncate">{isEn ? "Caption" : "التسمية التوضيحية"}</div>
@@ -465,10 +469,23 @@ export default function Requests({
                   <div className="divide-y divide-border">
                     {requests.map((request: any) => {
                       const status = statusConfig[request.status] || statusConfig.pending;
+                      const isSedana = request.programType?.toLowerCase() === "sedana";
                       return (
                         <div
                           key={request.id}
-                          className={`grid grid-cols-1 md:grid-cols-[36px_minmax(180px,1.4fr)_minmax(120px,0.9fr)_minmax(130px,1fr)_minmax(115px,0.85fr)_minmax(130px,1fr)_minmax(140px,1.1fr)_minmax(110px,0.8fr)_44px] gap-3 md:gap-3.5 px-4 py-3.5 hover:bg-muted/30 transition-colors items-center ${canViewDetails ? "cursor-pointer" : "cursor-default"}`}
+                          className={cn(
+                            "grid grid-cols-1 md:grid-cols-[36px_minmax(180px,1.4fr)_minmax(120px,0.9fr)_minmax(130px,1fr)_minmax(115px,0.85fr)_minmax(130px,1fr)_minmax(140px,1.1fr)_minmax(110px,0.8fr)_44px] gap-3 md:gap-3.5 px-4 py-3.5 transition-colors items-center",
+                            canViewDetails ? "cursor-pointer" : "cursor-default",
+                            isSedana 
+                              ? cn(
+                                  "bg-blue-50/60 hover:bg-blue-100/60 dark:bg-blue-950/25 dark:hover:bg-blue-950/45",
+                                  isEn ? "border-l-4 border-l-blue-600 dark:border-l-blue-400" : "border-r-4 border-r-blue-600 dark:border-r-blue-400"
+                                )
+                              : cn(
+                                  "hover:bg-muted/30",
+                                  isEn ? "border-l-4 border-l-transparent" : "border-r-4 border-r-transparent"
+                                )
+                          )}
                           onClick={() => canViewDetails && navigate(`/requests/${request.id}`)}
                         >
                           {/* Desktop: Program Icon */}
@@ -476,6 +493,10 @@ export default function Requests({
                             {request.isMultiMosque || request.programData?.isMultiMosque ? (
                               <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs" title="مشروع مباشر لعدة مساجد">
                                 <MultiMosquesIcon className="w-4.5 h-4.5" />
+                              </div>
+                            ) : isSedana ? (
+                              <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-300 dark:border-blue-700 shadow-xs" title={isEn ? "Sedana Program" : "برنامج سدانة"}>
+                                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                               </div>
                             ) : (
                               <ProgramIcon program={request.programType} size="md" />
@@ -489,6 +510,10 @@ export default function Requests({
                                 {request.isMultiMosque || request.programData?.isMultiMosque ? (
                                   <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs">
                                     <MultiMosquesIcon className="w-4.5 h-4.5" />
+                                  </div>
+                                ) : isSedana ? (
+                                  <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-300 dark:border-blue-700 shadow-xs" title={isEn ? "Sedana Program" : "برنامج سدانة"}>
+                                    <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                   </div>
                                 ) : (
                                   <ProgramIcon program={request.programType} size="md" />
@@ -513,6 +538,12 @@ export default function Requests({
                                             ? (request.mosqueName?.trim().toLowerCase().startsWith("mosque") ? `Request ${request.mosqueName}` : `Mosque Request ${request.mosqueName || ""}`)
                                             : (request.mosqueName?.trim().startsWith("مسجد") ? `طلب ${request.mosqueName}` : `طلب مسجد ${request.mosqueName || ""}`))}
                                   </p>
+                                  {isSedana && (
+                                    <Badge variant="outline" className="bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0">
+                                      <Sparkles className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400" />
+                                      <span>{isEn ? "Sedana" : "سدانة"}</span>
+                                    </Badge>
+                                  )}
                                   {Boolean(request.reviewNotes) && (
                                     <span 
                                       className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shrink-0" 
@@ -603,12 +634,18 @@ export default function Requests({
 
                           {/* Mobile Card Row: Location + Officer + Project + Stage + Status */}
                           <div className="md:hidden flex flex-col gap-2.5">
-                            <div className="flex items-center gap-1.5 text-xs text-foreground bg-muted/50 p-2 rounded-md">
+                            <div className={cn(
+                              "flex items-center gap-1.5 text-xs text-foreground p-2 rounded-md",
+                              isSedana ? "bg-white/80 dark:bg-blue-900/30 border border-blue-200/60 dark:border-blue-800/40" : "bg-muted/50"
+                            )}>
                               <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                               <span className="truncate">{request.multiMosqueNames || request.mosqueName || "—"}</span>
                             </div>
 
-                            <div className="flex items-center justify-between text-xs bg-muted/30 px-2.5 py-1.5 rounded-md">
+                            <div className={cn(
+                              "flex items-center justify-between text-xs px-2.5 py-1.5 rounded-md",
+                              isSedana ? "bg-white/60 dark:bg-blue-900/20 border border-blue-200/40 dark:border-blue-800/30" : "bg-muted/30"
+                            )}>
                               <span className="flex items-center gap-1 text-muted-foreground">
                                 <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                                 <span>{isEn ? "Officer:" : "اسم المسؤول:"}</span>
