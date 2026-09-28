@@ -780,6 +780,7 @@ export const usersRouter = router({
         id: users.id,
         name: users.name,
         email: users.email,
+        phone: users.phone,
         role: sql<string>`coalesce(${userRoleAssignments.roleId}, ${users.role})`,
         status: users.status,
         receiveBeneficiaryNotifications: users.receiveBeneficiaryNotifications,
