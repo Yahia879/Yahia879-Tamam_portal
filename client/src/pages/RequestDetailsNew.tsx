@@ -402,6 +402,7 @@ export default function RequestDetailsNew() {
   // Fetch request data
   const { data: request, isLoading, refetch } = trpc.requests.getById.useQuery({ id: requestId });
   const history = request?.history || [];
+  const isPendingClosure = request?.closureStatus === 'pending_confirmation';
 
   // جلب تخصيص النموذج الخاص بالبرنامج لعرض الحقول المخصصة والمحدثة
   const { data: serviceFormConfig } = trpc.forms.getServiceFormConfig.useQuery(
@@ -948,6 +949,7 @@ export default function RequestDetailsNew() {
     if (request?.currentStage === 'contracting' && request?.programType !== 'sedana' && linkedContract && !updateStageMutation.isPending) {
       const contract = linkedContract as any;
       if (contract.status === 'approved' || contract.status === 'active') {
+        if (request?.closureStatus === 'pending_confirmation') return;
         console.log('[Request Workflow] Approved contract detected, transitioning to execution stage');
         updateStageMutation.mutate({ requestId, newStage: 'execution' as any });
       }
@@ -957,6 +959,11 @@ export default function RequestDetailsNew() {
   // Handler for stage transition
   const handleStageTransition = () => {
     if (!request || !activeAction) return;
+    
+    if (request.closureStatus === 'pending_confirmation') {
+      toast.error(isEn ? "Cannot progress request stages while awaiting closure confirmation" : "لا يمكن الانتقال بين المراحل أو متابعة الطلب أثناء انتظار قرار إغلاق الطلب من المدير التنفيذي");
+      return;
+    }
     
     // إذا كان هناك openModal أو كان المسار يحتوي على /boq، افتح نافذة منبثقة
     if ((activeAction.actionButton as any)?.openModal === 'boq' || activeAction.actionButton?.redirectUrl?.includes('/boq')) {
@@ -1664,84 +1671,69 @@ export default function RequestDetailsNew() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-4 sm:py-8">
         {/* بنر بانتظار تأكيد إغلاق الطلب من المدير التنفيذي */}
-        {request.closureStatus === 'pending_confirmation' && isExecutiveDirector && (
-          <div className="mb-6 p-5 sm:p-6 rounded-2xl bg-amber-500/10 border-2 border-amber-400 dark:border-amber-700/60 shadow-sm animate-in fade-in duration-300">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shrink-0 mt-0.5">
-                  <ShieldAlert className="w-6 h-6" />
-                </div>
-                <div className="space-y-1.5 flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="font-extrabold text-base sm:text-lg text-amber-900 dark:text-amber-200">
-                      {isEn ? "Request Closure Awaiting Executive Director Confirmation" : "الطلب بانتظار تأكيد الإغلاق من المدير التنفيذي"}
-                    </h4>
-                    <Badge variant="outline" className="border-amber-400 text-amber-800 dark:text-amber-300 bg-amber-100/60 dark:bg-amber-950/60 text-xs font-bold animate-pulse">
-                      {isEn ? "Pending Confirmation" : "⚠️ بانتظار الاعتماد"}
-                    </Badge>
-                  </div>
-                  <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed">
-                    {isEn
-                      ? "The system admin has requested to close this request. In accordance with the closure policy, the request will not be finalized until confirmed by the Executive Director."
-                      : "قام مدير النظام بطلب إغلاق هذا الطلب. وفقاً لسياسة الإغلاق المعتمدة، لا يتم إغلاق الطلب نهائياً إلا بعد تأكيد وموافقة المدير التنفيذي."}
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-2">
-                    {request.closureRequestedByUser?.name && (
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <User className="w-3.5 h-3.5" />
-                        <span>{isEn ? "Requested by:" : "طالب الإغلاق:"}</span>
-                        <span className="font-semibold text-foreground">{request.closureRequestedByUser.name}</span>
-                      </div>
-                    )}
-                    {request.closureRequestedAt && (
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>{isEn ? "Request Date:" : "تاريخ طلب الإغلاق:"}</span>
-                        <span className="font-semibold text-foreground">
-                          {new Date(request.closureRequestedAt).toLocaleString(isEn ? "en-US" : "ar-SA")}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {request.closureReason && (
-                    <div className="mt-2.5 p-3 rounded-xl bg-background/80 dark:bg-background/40 border border-amber-300/60 dark:border-amber-800/60">
-                      <p className="text-xs font-bold text-amber-900 dark:text-amber-200 mb-1 flex items-center gap-1.5">
-                        <FileText className="w-3.5 h-3.5 text-amber-600" />
-                        <span>{isEn ? "Closure Reason:" : "سبب ومبررات طلب الإغلاق:"}</span>
-                      </p>
-                      <p className="text-xs text-foreground font-medium whitespace-pre-wrap leading-relaxed">
-                        {request.closureReason}
-                      </p>
-                    </div>
-                  )}
-                </div>
+        {isPendingClosure && (
+          <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-amber-500/10 border-2 border-amber-400 dark:border-amber-700/60 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in duration-300">
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                <ShieldAlert className="w-5 h-5" />
               </div>
-
-              {isExecutiveDirector && (
-                <div className="flex flex-row md:flex-col gap-2 shrink-0 justify-end md:justify-center">
-                  <Button
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 shadow-sm"
-                    onClick={() => setShowConfirmCloseModal(true)}
-                    disabled={confirmCloseMutation.isPending}
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>{isEn ? "Confirm Final Closure" : "تأكيد الإغلاق النهائي"}</span>
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    className="border-red-300 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40 font-bold gap-2"
-                    onClick={() => setShowRejectCloseModal(true)}
-                    disabled={rejectCloseMutation.isPending}
-                  >
-                    <XCircle className="w-4 h-4" />
-                    <span>{isEn ? "Reject Closure" : "رفض الإغلاق"}</span>
-                  </Button>
+              <div className="min-w-0 space-y-0.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="font-bold text-sm sm:text-base text-foreground">
+                    {isEn ? "Request Closure Awaiting Executive Director Confirmation" : "الطلب بانتظار تأكيد الإغلاق من المدير التنفيذي"}
+                  </h4>
+                  <Badge variant="outline" className="border-amber-400 text-amber-800 dark:text-amber-300 bg-amber-100/60 dark:bg-amber-950/60 text-[10px] font-bold">
+                    {isEn ? "Pending Confirmation" : "⚠️ معلّق بانتظار التأكيد"}
+                  </Badge>
                 </div>
-              )}
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {isEn
+                    ? "A closure request has been submitted and is awaiting the Executive Director's decision. Further stage progression is paused."
+                    : "تم طلب إغلاق هذا الطلب وهو بانتظار قرار المدير التنفيذي (تأكيد أو رفض). مراحل وسير عمل الطلب معلقة مؤقتاً."}
+                </p>
+                {(request.closureRequestedByUser?.name || request.closureReason) && (
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs pt-0.5 text-muted-foreground">
+                    {request.closureRequestedByUser?.name && (
+                      <span>
+                        <strong className="text-foreground">{isEn ? "Requested by: " : "طالب الإغلاق: "}</strong>
+                        {request.closureRequestedByUser.name}
+                      </span>
+                    )}
+                    {request.closureReason && (
+                      <span>
+                        <strong className="text-foreground">{isEn ? "Reason: " : "السبب: "}</strong>
+                        {request.closureReason}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
+
+            {isExecutiveDirector && (
+              <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                <Button
+                  size="sm"
+                  className="h-9 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1.5 shadow-xs cursor-pointer"
+                  onClick={() => setShowConfirmCloseModal(true)}
+                  disabled={confirmCloseMutation.isPending}
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{isEn ? "Confirm Closure" : "تأكيد الإغلاق"}</span>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-4 border-rose-300 text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-950/40 font-bold gap-1.5 cursor-pointer"
+                  onClick={() => setShowRejectCloseModal(true)}
+                  disabled={rejectCloseMutation.isPending}
+                >
+                  <XCircle className="w-4 h-4" />
+                  <span>{isEn ? "Reject Closure" : "رفض الإغلاق"}</span>
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -1940,7 +1932,7 @@ export default function RequestDetailsNew() {
                   setSelectedDecision('convert_to_project');
                   setShowTechnicalEvalDialog(true);
                 }}
-                disabled={technicalEvalMutation.isPending}
+                disabled={technicalEvalMutation.isPending || isPendingClosure}
               >
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0">
@@ -1960,7 +1952,7 @@ export default function RequestDetailsNew() {
                   setSelectedDecision('suspend');
                   setShowTechnicalEvalDialog(true);
                 }}
-                disabled={technicalEvalMutation.isPending}
+                disabled={technicalEvalMutation.isPending || isPendingClosure}
               >
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900 flex items-center justify-center shrink-0">
@@ -2041,7 +2033,7 @@ export default function RequestDetailsNew() {
                   onClick={() => {
                     updateStatusMutation.mutate({ requestId, newStatus: 'suspended' });
                   }}
-                  disabled={updateStatusMutation.isPending}
+                  disabled={updateStatusMutation.isPending || isPendingClosure}
                 >
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900 flex items-center justify-center shrink-0">
@@ -2135,7 +2127,7 @@ export default function RequestDetailsNew() {
                           : undefined
                       }
                       actionButton={
-                        translatedAction.canPerformAction &&
+                        (translatedAction.canPerformAction || isPendingClosure) &&
                         translatedAction.actionButton &&
                         !(showQuickResponseReportShortcut && translatedAction.actionButton.openModal === 'quick_response_report') &&
                         (
@@ -2144,36 +2136,41 @@ export default function RequestDetailsNew() {
                           translatedAction.actionButton.openModal === 'quick_response_report'
                         )
                           ? {
-                              label: request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage)
-                                ? "الانتقال للتقييم المالي واعتماد العرض"
-                                : (request.programType === 'sedana' && request.currentStage === 'financial_eval_and_approval'
-                                  ? "الانتقال للمرحلة التالية"
-                                  : (request.programType === 'sedana' && (request.currentStage === 'execution' || request.currentStage === 'handover')
-                                    ? "المستودع الافتراضي والتنفيذ المجدول"
-                                    : (request.programType === 'sedana' && request.currentStage === 'contracting'
-                                      ? "تحديد نوع التوريد"
-                                      : translatedAction.actionButton.label))),
-                               onClick: request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage)
-                                 ? () => updateStageMutation.mutate({ requestId, newStage: 'financial_eval_and_approval' as any })
-                                 : (request.programType === 'sedana' && request.currentStage === 'financial_eval_and_approval'
-                                   ? () => {
-                                       if (!isSedanaFullyAwarded) {
-                                         toast.error("يرجى ترسية واعتماد عروض أسعار لجميع بنود جدول الكميات أولاً من صفحة عروض الأسعار");
-                                         setLocation(`/quotations?requestId=${requestId}`);
-                                         return;
-                                       }
-                                       updateStageMutation.mutate({ requestId, newStage: 'contracting' as any });
-                                     }
-                                   : (request.programType === 'sedana' && (request.currentStage === 'execution' || request.currentStage === 'handover')
-                                     ? () => setLocation(`/requests/${requestId}/sedana-execution`)
-                                     : (request.programType === 'sedana' && request.currentStage === 'contracting'
-                                       ? () => setLocation(`/requests/${requestId}/procurement`)
-                                       : (translatedAction.actionButton as any).onClick || handleStageTransition))),
-                               disabled: !translatedAction.canPerformAction || 
-                                         updateStageMutation.isPending || 
-                                         (request.currentStage === 'initial_review' && request.programType !== 'sedana' && !request.reviewCompleted) ||
-                                         (request.programType === 'sedana' && request.currentStage === 'financial_eval_and_approval' && !isSedanaFullyAwarded),
-                               variant: (request.programType === 'sedana' && request.currentStage === 'financial_eval_and_approval' && !isSedanaFullyAwarded) ? ('secondary' as const) : ('default' as const),
+                              label: isPendingClosure
+                                ? (isEn ? "Stage Progression Paused (Awaiting Closure Decision)" : "مراحل الطلب متوقفة (بانتظار تأكيد الإغلاق)")
+                                : (request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage)
+                                  ? "الانتقال للتقييم المالي واعتماد العرض"
+                                  : (request.programType === 'sedana' && request.currentStage === 'financial_eval_and_approval'
+                                    ? "الانتقال للمرحلة التالية"
+                                    : (request.programType === 'sedana' && (request.currentStage === 'execution' || request.currentStage === 'handover')
+                                      ? "المستودع الافتراضي والتنفيذ المجدول"
+                                      : (request.programType === 'sedana' && request.currentStage === 'contracting'
+                                        ? "تحديد نوع التوريد"
+                                        : translatedAction.actionButton.label)))),
+                              onClick: isPendingClosure
+                                ? () => toast.warning(isEn ? "Request workflow is paused awaiting executive closure confirmation" : "مراحل وسير عمل الطلب متوقفة بانتظار قرار إغلاق الطلب من المدير التنفيذي")
+                                : (request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage)
+                                  ? () => updateStageMutation.mutate({ requestId, newStage: 'financial_eval_and_approval' as any })
+                                  : (request.programType === 'sedana' && request.currentStage === 'financial_eval_and_approval'
+                                    ? () => {
+                                        if (!isSedanaFullyAwarded) {
+                                          toast.error("يرجى ترسية واعتماد عروض أسعار لجميع بنود جدول الكميات أولاً من صفحة عروض الأسعار");
+                                          setLocation(`/quotations?requestId=${requestId}`);
+                                          return;
+                                        }
+                                        updateStageMutation.mutate({ requestId, newStage: 'contracting' as any });
+                                      }
+                                    : (request.programType === 'sedana' && (request.currentStage === 'execution' || request.currentStage === 'handover')
+                                      ? () => setLocation(`/requests/${requestId}/sedana-execution`)
+                                      : (request.programType === 'sedana' && request.currentStage === 'contracting'
+                                        ? () => setLocation(`/requests/${requestId}/procurement`)
+                                        : (translatedAction.actionButton as any).onClick || handleStageTransition)))),
+                              disabled: isPendingClosure || 
+                                        !translatedAction.canPerformAction || 
+                                        updateStageMutation.isPending || 
+                                        (request.currentStage === 'initial_review' && request.programType !== 'sedana' && !request.reviewCompleted) ||
+                                        (request.programType === 'sedana' && request.currentStage === 'financial_eval_and_approval' && !isSedanaFullyAwarded),
+                              variant: isPendingClosure ? ('secondary' as const) : ((request.programType === 'sedana' && request.currentStage === 'financial_eval_and_approval' && !isSedanaFullyAwarded) ? ('secondary' as const) : ('default' as const)),
                             }
                           : undefined
                       }
@@ -2190,8 +2187,8 @@ export default function RequestDetailsNew() {
                                 updateStageMutation.mutate({ requestId, newStage: 'financial_eval_and_approval' as any });
                               },
                               variant: 'default' as const,
-                              disabled: (request.programType !== 'sedana' && !hasBoqItems) || updateStageMutation.isPending,
-                              title: undefined,
+                              disabled: isPendingClosure || (request.programType !== 'sedana' && !hasBoqItems) || updateStageMutation.isPending,
+                              title: isPendingClosure ? "مراحل الطلب معلقة بانتظار قرار إغلاق من المدير التنفيذي" : undefined,
                             }
                         : request.currentStage === 'financial_eval_and_approval' && translatedAction.canPerformAction && !isFieldTeam && !isQuickResponseUser
                           ? {
@@ -2211,14 +2208,16 @@ export default function RequestDetailsNew() {
                                 updateStageMutation.mutate({ requestId, newStage: 'execution' as any });
                               },
                               variant: isSedanaProcurementComplete ? ('default' as const) : ('secondary' as const),
-                              disabled: !isSedanaProcurementComplete || updateStageMutation.isPending,
-                              title: !isSedanaProcurementComplete ? "يرجى تحديد نوع التوريد لجميع الموردين أولاً" : undefined,
+                              disabled: isPendingClosure || !isSedanaProcurementComplete || updateStageMutation.isPending,
+                              title: isPendingClosure ? "مراحل الطلب معلقة بانتظار قرار إغلاق من المدير التنفيذي" : (!isSedanaProcurementComplete ? "يرجى تحديد نوع التوريد لجميع الموردين أولاً" : undefined),
                             }
                           : request.currentStage === 'contracting' && request.programType !== 'sedana' && hasApprovedContract && (canTransitionStage(user?.role || '', 'contracting') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
                           ? {
                               label: "الانتقال إلى مرحلة التنفيذ",
                               onClick: () => updateStageMutation.mutate({ requestId, newStage: 'execution' as any }),
                               variant: 'default' as const,
+                              disabled: isPendingClosure || updateStageMutation.isPending,
+                              title: isPendingClosure ? "مراحل الطلب معلقة بانتظار قرار إغلاق من المدير التنفيذي" : undefined,
                             }
                           : request.currentStage === 'execution' && (canTransitionStage(user?.role || '', 'execution') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
                             ? request.requestTrack === 'quick_response'
@@ -2234,7 +2233,7 @@ export default function RequestDetailsNew() {
                                     label: "إغلاق الطلب",
                                     onClick: () => setShowCloseRequestModal(true),
                                     variant: 'default' as const,
-                                    disabled: !isDonationDisbursementExecuted,
+                                    disabled: isPendingClosure || !isDonationDisbursementExecuted,
                                     title: !isDonationDisbursementExecuted
                                       ? "لا يمكن إغلاق الطلب: يجب أن يكون أمر الصرف المرتبط بفرصة التبرع بحالة 'منفذ' أولاً"
                                       : undefined,
@@ -2243,7 +2242,7 @@ export default function RequestDetailsNew() {
                                     label: "الانتقال إلى مرحلة الاستلام",
                                     onClick: () => updateStageMutation.mutate({ requestId, newStage: 'handover' as any }),
                                     variant: 'default' as const,
-                                    disabled: cannotTransitionToHandover,
+                                    disabled: isPendingClosure || cannotTransitionToHandover || updateStageMutation.isPending,
                                     title: cannotTransitionToHandover
                                       ? !hasPayments
                                         ? "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع"
@@ -2299,6 +2298,7 @@ export default function RequestDetailsNew() {
                     <input
                       type="checkbox"
                       id="review-completed"
+                      disabled={isPendingClosure || updateReviewCompletedMutation.isPending}
                       checked={request.reviewCompleted || false}
                       onChange={(e) => {
                         updateReviewCompletedMutation.mutate({
@@ -2320,12 +2320,12 @@ export default function RequestDetailsNew() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
                   {/* الاستجابة السريعة */}
                   <button 
-                    className="group p-3 rounded-xl border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-400 transition-all text-right disabled:opacity-50 dark:bg-purple-950/20 dark:border-purple-900 dark:hover:bg-purple-950/40 shadow-sm"
+                    className={`group p-3 rounded-xl border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-400 transition-all text-right disabled:opacity-50 dark:bg-purple-950/20 dark:border-purple-900 dark:hover:bg-purple-950/40 shadow-sm ${isPendingClosure ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}`}
                     onClick={() => {
                       setSelectedDecision('quick_response');
                       setShowTechnicalEvalDialog(true);
                     }}
-                    disabled={technicalEvalMutation.isPending}
+                    disabled={technicalEvalMutation.isPending || isPendingClosure}
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center shrink-0">
@@ -2340,12 +2340,12 @@ export default function RequestDetailsNew() {
 
                   {/* التحويل إلى مشروع */}
                   <button 
-                    className="group p-3 rounded-xl border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 transition-all text-right disabled:opacity-50 dark:bg-green-950/20 dark:border-green-900 dark:hover:bg-green-950/40 shadow-sm"
+                    className={`group p-3 rounded-xl border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 transition-all text-right disabled:opacity-50 dark:bg-green-950/20 dark:border-green-900 dark:hover:bg-green-950/40 shadow-sm ${isPendingClosure ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}`}
                     onClick={() => {
                       setSelectedDecision('convert_to_project');
                       setShowTechnicalEvalDialog(true);
                     }}
-                    disabled={technicalEvalMutation.isPending}
+                    disabled={technicalEvalMutation.isPending || isPendingClosure}
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-9 h-9 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0">
@@ -2360,12 +2360,12 @@ export default function RequestDetailsNew() {
 
                   {/* تحويل إلى فرصة تبرع */}
                   <button 
-                    className="group p-3 rounded-xl border-2 border-pink-200 bg-pink-50 hover:bg-pink-100 hover:border-pink-400 transition-all text-right disabled:opacity-50 dark:bg-pink-950/20 dark:border-pink-900/50 shadow-sm"
+                    className={`group p-3 rounded-xl border-2 border-pink-200 bg-pink-50 hover:bg-pink-100 hover:border-pink-400 transition-all text-right disabled:opacity-50 dark:bg-pink-950/20 dark:border-pink-900/50 shadow-sm ${isPendingClosure ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}`}
                     onClick={() => {
                       setSelectedDecision('convert_to_donation');
                       setShowTechnicalEvalDialog(true);
                     }}
-                    disabled={technicalEvalMutation.isPending}
+                    disabled={technicalEvalMutation.isPending || isPendingClosure}
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-9 h-9 rounded-lg bg-pink-100 dark:bg-pink-900 flex items-center justify-center shrink-0">
@@ -2380,12 +2380,12 @@ export default function RequestDetailsNew() {
 
                   {/* التعليق المؤقت */}
                   <button 
-                    className="group p-3 rounded-xl border-2 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:border-amber-400 transition-all text-right disabled:opacity-50 dark:bg-amber-950/20 dark:border-amber-900 dark:hover:bg-amber-950/40 shadow-sm"
+                    className={`group p-3 rounded-xl border-2 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:border-amber-400 transition-all text-right disabled:opacity-50 dark:bg-amber-950/20 dark:border-amber-900 dark:hover:bg-amber-950/40 shadow-sm ${isPendingClosure ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}`}
                     onClick={() => {
                       setSelectedDecision('suspend');
                       setShowTechnicalEvalDialog(true);
                     }}
-                    disabled={technicalEvalMutation.isPending}
+                    disabled={technicalEvalMutation.isPending || isPendingClosure}
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900 flex items-center justify-center shrink-0">
@@ -2400,7 +2400,7 @@ export default function RequestDetailsNew() {
 
                   {/* إغلاق الطلب */}
                   <button 
-                    className="group p-3 rounded-xl border-2 border-red-200 bg-red-50/70 hover:bg-red-100/70 hover:border-red-400 transition-all text-right disabled:opacity-50 dark:bg-red-950/20 dark:border-red-900/50 shadow-sm"
+                    className={`group p-3 rounded-xl border-2 border-red-200 bg-red-50/70 hover:bg-red-100/70 hover:border-red-400 transition-all text-right disabled:opacity-50 dark:bg-red-950/20 dark:border-red-900/50 shadow-sm ${isPendingClosure ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}`}
                     onClick={() => {
                       setSelectedDecision('apologize');
                       setClosureType('apology');
@@ -2408,7 +2408,7 @@ export default function RequestDetailsNew() {
                       setJustification('');
                       setShowTechnicalEvalDialog(true);
                     }}
-                    disabled={technicalEvalMutation.isPending}
+                    disabled={technicalEvalMutation.isPending || isPendingClosure}
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-9 h-9 rounded-lg bg-red-100 dark:bg-red-900/60 flex items-center justify-center shrink-0">
