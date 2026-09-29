@@ -207,7 +207,7 @@ export function ActiveActionCard({
                     isCyan && (!actionButton.variant || actionButton.variant === 'default')
                       ? 'bg-cyan-600 hover:bg-cyan-700 text-white font-bold shadow-md cursor-pointer'
                       : ''
-                  }`}
+                  } ${actionButton.disabled ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}`}
                 >
                   {actionButton.label}
                 </Button>
@@ -229,7 +229,7 @@ export function ActiveActionCard({
                     isCyan && secondaryButton.variant === 'default'
                       ? 'bg-cyan-600 hover:bg-cyan-700 text-white font-bold shadow-sm cursor-pointer'
                       : ''
-                  }`}
+                  } ${secondaryButton.disabled ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}`}
                 >
                   {secondaryButton.label}
                 </Button>
