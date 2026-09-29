@@ -352,11 +352,13 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   const hasEditPermission = usePermission("progress_reports.edit");
   const hasApprovePermission = usePermission("progress_reports.approve");
   const hasExceptionApprove = usePermission("progress_reports.exception_approve");
+  const hasRevokeApprovalPermission = usePermission("progress_reports.revoke_approval");
 
   const canCreateReport = hasAddPermission;
   const canEditReport = hasEditPermission;
   const canReviewReport = hasApprovePermission;
   const canExceptionApprove = hasExceptionApprove;
+  const canRevokeApproval = hasRevokeApprovalPermission || user?.role === "super_admin";
   
   const [newReport, setNewReport] = useState({
     projectId: initialUrlParams.projectId || 0,
@@ -1725,7 +1727,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                         )}
 
                         {/* إلغاء الاعتماد (للتقارير المعتمدة فقط) */}
-                        {report.status === "approved" && (isProjectManager || isExecutiveDirector || user?.role === "super_admin" || canExceptionApprove) && (
+                        {report.status === "approved" && canRevokeApproval && (
                           <DropdownMenuItem
                             onClick={() => {
                               setSelectedReport(report);
@@ -2210,14 +2212,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               )}
 
               {/* زر إلغاء الاعتماد */}
-              {selectedReport && selectedReport.status === "approved" && (
-                user?.role === "super_admin" ||
-                user?.role === "system_admin" ||
-                isExecutiveDirector ||
-                canExceptionApprove ||
-                canReviewReport ||
-                (selectedReport.projectManagerId && Number(selectedReport.projectManagerId) === Number(user?.id))
-              ) && (
+              {selectedReport && selectedReport.status === "approved" && canRevokeApproval && (
                 <Button
                   variant="destructive"
                   onClick={() => {
