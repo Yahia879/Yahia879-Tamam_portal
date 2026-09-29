@@ -27,7 +27,11 @@ import {
   Tag,
   StickyNote,
   Sparkles,
-  User
+  User,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  ShieldAlert,
 } from "lucide-react";
 import { Link, useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -169,25 +173,67 @@ export default function Requests({
     return dept;
   };
   
+  const utils = trpc.useUtils();
   const [search, setSearch] = useState("");
   const [programFilter, setProgramFilter] = useState<string>("all");
   const [creatorTypeFilter, setCreatorTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [stageFilter, setStageFilter] = useState<string>(initialStage || "all");
+  const [closureFilter, setClosureFilter] = useState<"all" | "pending_confirmation">("all");
   const [page, setPage, resetPage] = usePersistedPage("requests_table_page", 1);
   const limit = 20;
   const isFirstMount = useRef(true);
 
-
-
   const isEn = user?.role === "quick_response" && lang === "en";
   const userPermissions = (user as any)?.permissions ?? [];
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const isExecutiveDirector = ["executive_director", "general_manager"].includes(user?.role || "");
   const canViewDetails = isAdmin || 
                          userPermissions.includes("requests.view_details") || 
                          userPermissions.includes("requests.manage_as_field_team") ||
                          userPermissions.includes("requests.manage_as_quick_response") ||
                          userPermissions.includes("requests.upload_final_report");
+
+  // عدد الطلبات التي بانتظار تأكيد الإغلاق من المدير التنفيذي
+  const { data: pendingClosureData } = trpc.requests.getPendingClosureCount.useQuery(undefined, {
+    enabled: isExecutiveDirector,
+    refetchInterval: 15000,
+  });
+  const pendingClosureCount = isExecutiveDirector ? (pendingClosureData?.count || 0) : 0;
+
+  // حالات نافذة تأكيد أو رفض الإغلاق
+  const [selectedClosureRequest, setSelectedClosureRequest] = useState<any | null>(null);
+  const [showClosureModal, setShowClosureModal] = useState(false);
+  const [closureRejectionReason, setCloseRejectionReason] = useState("");
+  const [isRejecting, setIsRejecting] = useState(false);
+
+  const confirmCloseMutation = trpc.requests.confirmClose.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setShowClosureModal(false);
+      setSelectedClosureRequest(null);
+      utils.requests.search.invalidate();
+      utils.requests.getPendingClosureCount.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const rejectCloseMutation = trpc.requests.rejectClose.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setShowClosureModal(false);
+      setSelectedClosureRequest(null);
+      setCloseRejectionReason("");
+      setIsRejecting(false);
+      utils.requests.search.invalidate();
+      utils.requests.getPendingClosureCount.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   // تحديث الفلاتر عند تغيير Query Params (مثلاً عند الانتقال من لوحة التحكم)
   useEffect(() => {
@@ -235,6 +281,7 @@ export default function Requests({
     excludeSedana: !isAdmin,
     status: statusFilter !== "all" ? statusFilter as any : undefined,
     currentStage: stageFilter !== "all" ? stageFilter as any : undefined,
+    closureStatusFilter: closureFilter !== "all" ? closureFilter : undefined,
     assignedTo: initialAssignedToMe ? user?.id : undefined,
     creatorType: creatorTypeFilter !== "all" ? creatorTypeFilter as any : undefined,
     page,
@@ -354,6 +401,41 @@ export default function Requests({
             </Card>
           ))}
         </div>
+
+        {/* بنر التنبيه للطلبات التي بانتظار تأكيد الإغلاق من المدير التنفيذي */}
+        {isExecutiveDirector && pendingClosureCount > 0 && (
+          <div className="p-4 bg-gradient-to-l from-amber-500/15 via-amber-500/10 to-orange-500/10 border-2 border-amber-400 dark:border-amber-600 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <AlertTriangle className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm sm:text-base text-foreground">
+                  يوجد {pendingClosureCount} {pendingClosureCount === 1 ? "طلب بحاجة" : "طلبات بحاجة"} إلى تأكيد الإغلاق من قِبل المدير التنفيذي
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  قام مدير النظام بطلب إغلاق هذه الطلبات، ولا تُغلق نهائياً إلا بعد تأكيد واعتماد المدير التنفيذي
+                </p>
+              </div>
+            </div>
+            <Button
+              variant={closureFilter === "pending_confirmation" ? "default" : "outline"}
+              size="sm"
+              className={cn(
+                "font-bold text-xs shrink-0 rounded-xl px-4 h-9 cursor-pointer",
+                closureFilter === "pending_confirmation" 
+                  ? "bg-amber-600 hover:bg-amber-700 text-white" 
+                  : "border-amber-400 text-amber-900 hover:bg-amber-100 dark:text-amber-200 dark:border-amber-700"
+              )}
+              onClick={() => {
+                setClosureFilter(closureFilter === "pending_confirmation" ? "all" : "pending_confirmation");
+                resetPage();
+              }}
+            >
+              {closureFilter === "pending_confirmation" ? "عرض جميع الطلبات" : "فلترة الطلبات بانتظار التأكيد"}
+            </Button>
+          </div>
+        )}
 
         {/* Filters */}
         <Card className="border-0 shadow-sm">
@@ -476,7 +558,12 @@ export default function Requests({
                           className={cn(
                             "grid grid-cols-1 md:grid-cols-[36px_minmax(180px,1.4fr)_minmax(120px,0.9fr)_minmax(130px,1fr)_minmax(115px,0.85fr)_minmax(130px,1fr)_minmax(140px,1.1fr)_minmax(110px,0.8fr)_44px] gap-3 md:gap-3.5 px-4 py-3.5 transition-colors items-center",
                             canViewDetails ? "cursor-pointer" : "cursor-default",
-                            isSedana 
+                            request.closureStatus === "pending_confirmation" && isExecutiveDirector
+                              ? cn(
+                                  "bg-amber-50/80 hover:bg-amber-100/80 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 shadow-xs",
+                                  isEn ? "border-l-4 border-l-amber-500" : "border-r-4 border-r-amber-500"
+                                )
+                              : isSedana 
                               ? cn(
                                   "bg-blue-50/60 hover:bg-blue-100/60 dark:bg-blue-950/25 dark:hover:bg-blue-950/45",
                                   isEn ? "border-l-4 border-l-blue-600 dark:border-l-blue-400" : "border-r-4 border-r-blue-600 dark:border-r-blue-400"
@@ -542,6 +629,16 @@ export default function Requests({
                                     <Badge variant="outline" className="bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0">
                                       <Sparkles className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400" />
                                       <span>{isEn ? "Sedana" : "سدانة"}</span>
+                                    </Badge>
+                                  )}
+                                  {request.closureStatus === "pending_confirmation" && isExecutiveDirector && (
+                                    <Badge 
+                                      variant="outline" 
+                                      className="bg-amber-100 text-amber-900 border-amber-400 dark:bg-amber-950/70 dark:text-amber-200 dark:border-amber-600 text-[10px] py-0 px-2 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0 animate-pulse"
+                                      title="طلب إغلاق بانتظار تأكيد واعتماد المدير التنفيذي"
+                                    >
+                                      <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                      <span>⚠️ بانتظار تأكيد الإغلاق</span>
                                     </Badge>
                                   )}
                                   {Boolean(request.reviewNotes) && (
@@ -625,11 +722,26 @@ export default function Requests({
                           </div>
 
                           {/* Status (Desktop) */}
-                          <div className="hidden md:flex items-center min-w-0">
+                          <div className="hidden md:flex flex-col items-start gap-1 min-w-0">
                             <span className={`inline-flex items-center gap-1.5 text-[10px] md:text-xs font-medium px-2.5 py-0.5 rounded-full border ${status.bg} ${status.color} shrink-0`}>
                               {status.icon}
                               <span>{translateStatus(request.status)}</span>
                             </span>
+                            {request.closureStatus === "pending_confirmation" && isExecutiveDirector && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 px-2 text-[10px] bg-amber-500/15 border-amber-500/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/25 font-bold shadow-2xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedClosureRequest(request);
+                                  setShowClosureModal(true);
+                                }}
+                              >
+                                <ShieldAlert className="w-3 h-3 ml-1 text-amber-600 dark:text-amber-400" />
+                                {isEn ? "Confirm/Reject" : "تأكيد/رفض"}
+                              </Button>
+                            )}
                           </div>
 
                           {/* Mobile Card Row: Location + Officer + Project + Stage + Status */}
@@ -672,6 +784,22 @@ export default function Requests({
                                 {translateStatus(request.status)}
                               </span>
                             </div>
+
+                            {request.closureStatus === "pending_confirmation" && isExecutiveDirector && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full mt-1 bg-amber-500/10 border-amber-500/30 text-amber-800 hover:bg-amber-500/20 font-bold text-xs flex items-center justify-center gap-1.5"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedClosureRequest(request);
+                                  setShowClosureModal(true);
+                                }}
+                              >
+                                <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                                <span>{isEn ? "Closure Confirmation Decision" : "اتخاذ قرار بشأن إغلاق الطلب"}</span>
+                              </Button>
+                            )}
                           </div>
 
                           {/* Desktop Action */}
@@ -728,6 +856,146 @@ export default function Requests({
             </div>
           )}
         </Card>
+
+        {/* نافذة تأكيد أو رفض إغلاق الطلب (للمدير التنفيذي) */}
+        <Dialog open={showClosureModal} onOpenChange={(open) => {
+          if (!open) {
+            setShowClosureModal(false);
+            setSelectedClosureRequest(null);
+            setCloseRejectionReason("");
+            setIsRejecting(false);
+          }
+        }}>
+          <DialogContent className="max-w-lg" dir={isEn ? "ltr" : "rtl"}>
+            <DialogHeader>
+              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                <ShieldAlert className="w-5 h-5" />
+                <DialogTitle className="text-lg font-bold">
+                  {isEn ? "Request Closure Decision" : "قرار تأكيد أو رفض إغلاق الطلب"}
+                </DialogTitle>
+              </div>
+            </DialogHeader>
+
+            {selectedClosureRequest && (
+              <div className="space-y-4 pt-2">
+                {/* معلومات الطلب */}
+                <div className="p-3 bg-muted/50 rounded-lg space-y-1.5 text-sm border">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{isEn ? "Request #:" : "رقم الطلب:"}</span>
+                    <span className="font-bold">{selectedClosureRequest.requestNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{isEn ? "Mosque:" : "المسجد:"}</span>
+                    <span className="font-semibold">{selectedClosureRequest.mosqueName || selectedClosureRequest.projectName || "—"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{isEn ? "Current Stage:" : "المرحلة الحالية:"}</span>
+                    <Badge variant="outline" className="text-xs">
+                      {translateStage(selectedClosureRequest.currentStage, selectedClosureRequest.requestTrack)}
+                    </Badge>
+                  </div>
+                  {selectedClosureRequest.closureReason && (
+                    <div className="pt-2 border-t border-border mt-2">
+                      <span className="text-muted-foreground block text-xs mb-1 font-medium">
+                        {isEn ? "Closure Reason from Admin:" : "سبب طلب الإغلاق المقدم من مدير النظام:"}
+                      </span>
+                      <p className="text-xs bg-amber-500/10 text-amber-900 dark:text-amber-200 p-2 rounded border border-amber-500/20 whitespace-pre-wrap">
+                        {selectedClosureRequest.closureReason}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* تنبيه بالصلاحية */}
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-800 dark:text-amber-300">
+                  <p className="font-semibold mb-1">
+                    {isEn ? "Executive Director Confirmation Required" : "مطلوب تأكيد المدير التنفيذي:"}
+                  </p>
+                  <p>
+                    {isEn 
+                      ? "Confirming closure will mark this request as closed and completed immediately. Rejecting closure will keep the request in its current stage without closing."
+                      : "تأكيد الإغلاق سينقل الطلب نهائياً إلى حالة مكتمل ومغلق. رفض الإغلاق سيبقي الطلب في مرحلته الحالية دون أي إغلاق."}
+                  </p>
+                </div>
+
+                {/* وضع الرفض مع كتابة السبب */}
+                {isRejecting ? (
+                  <div className="space-y-3 p-3 bg-red-50/50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/50 rounded-lg">
+                    <Label className="text-xs font-bold text-red-700 dark:text-red-400">
+                      {isEn ? "Reason for rejecting closure (Required):" : "سبب رفض الإغلاق (مطلوب):"}
+                    </Label>
+                    <Textarea
+                      placeholder={isEn ? "Please specify why the request should not be closed..." : "اكتب سبب رفض إغلاق الطلب واستمراره..."}
+                      value={closureRejectionReason}
+                      onChange={(e) => setCloseRejectionReason(e.target.value)}
+                      className="text-xs min-h-[80px]"
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setIsRejecting(false);
+                          setCloseRejectionReason("");
+                        }}
+                      >
+                        {isEn ? "Cancel" : "إلغاء"}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        disabled={!closureRejectionReason.trim() || rejectCloseMutation.isPending}
+                        onClick={() => {
+                          rejectCloseMutation.mutate({
+                            requestId: selectedClosureRequest.id,
+                            reason: closureRejectionReason.trim(),
+                          });
+                        }}
+                      >
+                        {rejectCloseMutation.isPending ? (isEn ? "Rejecting..." : "جاري الرفض...") : (isEn ? "Confirm Rejection" : "تأكيد رفض الإغلاق")}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row gap-2.5 justify-end pt-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowClosureModal(false);
+                        setSelectedClosureRequest(null);
+                      }}
+                    >
+                      {isEn ? "Close Window" : "إغلاق النافذة"}
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/50 gap-1.5"
+                      onClick={() => setIsRejecting(true)}
+                      disabled={confirmCloseMutation.isPending}
+                    >
+                      <XCircle className="w-4 h-4" />
+                      <span>{isEn ? "Reject Closure" : "رفض الإغلاق"}</span>
+                    </Button>
+
+                    <Button
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 font-bold"
+                      disabled={confirmCloseMutation.isPending}
+                      onClick={() => {
+                        confirmCloseMutation.mutate({
+                          requestId: selectedClosureRequest.id,
+                        });
+                      }}
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>{confirmCloseMutation.isPending ? (isEn ? "Confirming..." : "جاري التأكيد...") : (isEn ? "Confirm Final Closure" : "تأكيد الإغلاق النهائي")}</span>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
