@@ -1303,6 +1303,14 @@ export const requestsRouter = router({
       const oldStage = request[0].currentStage;
       const requestTrack = request[0].requestTrack || 'standard';
 
+      // منع الانتقال بين المراحل إذا كان الطلب بانتظار تأكيد الإغلاق
+      if (request[0].closureStatus === 'pending_confirmation') {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يمكن تعديل مرحلة الطلب أو المتابعة أثناء انتظار قرار تأكيد الإغلاق من المدير التنفيذي",
+        });
+      }
+
       // التحقق من صلاحية تحويل المرحلة حسب المرحلة الحالية والدور
       const allowedRoles = STAGE_TRANSITION_PERMISSIONS[oldStage] || [];
       const { calculateUserPermissions } = await import("../permissions");
