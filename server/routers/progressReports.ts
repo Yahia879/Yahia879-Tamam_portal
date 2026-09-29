@@ -1053,9 +1053,6 @@ export const progressReportsRouter = router({
       }
 
       const reasonFormatted = input.reason ? `تم إلغاء الاعتماد: ${input.reason.trim()}` : "تم إلغاء اعتماد التقرير";
-      const linkedRejectionReason = input.reason?.trim()
-        ? `تم إلغاء اعتماد تقرير الإنجاز المرتبط (${report.reportNumber}): ${input.reason.trim()}`
-        : `تم إلغاء اعتماد تقرير الإنجاز المرتبط (${report.reportNumber})`;
 
       await db
         .update(progressReports)
@@ -1068,17 +1065,9 @@ export const progressReportsRouter = router({
         })
         .where(eq(progressReports.id, input.id));
 
-      // إلغاء ورفض طلبات وأوامر الصرف المرتبطة بهذا التقرير تلقائياً
-      await cancelLinkedDisbursements(
-        db,
-        report,
-        linkedRejectionReason,
-        ctx.user.id
-      );
-
       return {
         success: true,
-        message: "تم إلغاء اعتماد التقرير بنجاح وتغيير حالته إلى (ملغى اعتماده)، وتم رفض طلبات وأوامر الصرف المرتبطة به تلقائياً",
+        message: "تم إلغاء اعتماد التقرير بنجاح وتغيير حالته إلى (ملغى اعتماده)",
       };
     }),
 
