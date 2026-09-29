@@ -140,6 +140,31 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
       await promisePool.query("ALTER TABLE projects ADD COLUMN programType VARCHAR(50) DEFAULT NULL");
     }
 
+    // أعمدة إغلاق الطلب (حصر الإغلاق بمدير النظام وتأكيد المدير التنفيذي)
+    const [reqCols] = await promisePool.query("SHOW COLUMNS FROM mosque_requests") as any[];
+    const reqColNames = Array.isArray(reqCols) ? reqCols.map((c: any) => c.Field) : [];
+    if (!reqColNames.includes("closureStatus")) {
+      await promisePool.query("ALTER TABLE mosque_requests ADD COLUMN closureStatus VARCHAR(50) DEFAULT NULL");
+    }
+    if (!reqColNames.includes("closureRequestedBy")) {
+      await promisePool.query("ALTER TABLE mosque_requests ADD COLUMN closureRequestedBy INT DEFAULT NULL");
+    }
+    if (!reqColNames.includes("closureRequestedAt")) {
+      await promisePool.query("ALTER TABLE mosque_requests ADD COLUMN closureRequestedAt DATETIME DEFAULT NULL");
+    }
+    if (!reqColNames.includes("closureReason")) {
+      await promisePool.query("ALTER TABLE mosque_requests ADD COLUMN closureReason TEXT DEFAULT NULL");
+    }
+    if (!reqColNames.includes("closureConfirmedBy")) {
+      await promisePool.query("ALTER TABLE mosque_requests ADD COLUMN closureConfirmedBy INT DEFAULT NULL");
+    }
+    if (!reqColNames.includes("closureConfirmedAt")) {
+      await promisePool.query("ALTER TABLE mosque_requests ADD COLUMN closureConfirmedAt DATETIME DEFAULT NULL");
+    }
+    if (!reqColNames.includes("closureRejectionReason")) {
+      await promisePool.query("ALTER TABLE mosque_requests ADD COLUMN closureRejectionReason TEXT DEFAULT NULL");
+    }
+
     // ملاحظة: طلبات سدانة تُدار بشكل مستقل ولا يتم إنشاء مشاريع لها في جدول projects
   } catch (err) {
     console.warn("[Database] ensureSchemaUpdated warning:", err);
