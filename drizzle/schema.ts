@@ -302,6 +302,15 @@ export const mosqueRequests = mysqlTable("mosque_requests", {
   satisfactionRating: int("satisfactionRating"),
   evaluatedAt: timestamp("evaluatedAt"),
 
+  // إجراءات إغلاق الطلب (حصر الإغلاق بمدير النظام وتأكيد المدير التنفيذي)
+  closureStatus: varchar("closureStatus", { length: 50 }), // pending_confirmation, confirmed, rejected
+  closureRequestedBy: int("closureRequestedBy").references(() => users.id, { onDelete: "set null" }),
+  closureRequestedAt: datetime("closureRequestedAt"),
+  closureReason: text("closureReason"),
+  closureConfirmedBy: int("closureConfirmedBy").references(() => users.id, { onDelete: "set null" }),
+  closureConfirmedAt: datetime("closureConfirmedAt"),
+  closureRejectionReason: text("closureRejectionReason"),
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
