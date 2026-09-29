@@ -258,6 +258,7 @@ const searchRequestsSchema = z.object({
   currentStage: z.enum(requestStages).optional(),
   boqPreparationsView: z.boolean().optional(),
   boqStatusFilter: z.enum(["all", "pending_boq", "pending_quotation", "approved_quotation"]).optional(),
+  closureStatusFilter: z.enum(["all", "pending_confirmation", "confirmed", "rejected"]).optional(),
   status: z.enum(requestStatuses).optional(),
   priority: z.enum(["urgent", "medium", "normal"]).optional(),
   mosqueId: z.number().optional(),
@@ -606,6 +607,18 @@ export const requestsRouter = router({
         finalReportAssignedToUser = assignedUserResult[0] || null;
       }
 
+      // الحصول على بيانات طالب الإغلاق ومؤكد الإغلاق
+      let closureRequestedByUser = null;
+      if (request.closureRequestedBy) {
+        const [u] = await db.select({ id: users.id, name: users.name, role: users.role }).from(users).where(eq(users.id, request.closureRequestedBy)).limit(1);
+        closureRequestedByUser = u || null;
+      }
+      let closureConfirmedByUser = null;
+      if (request.closureConfirmedBy) {
+        const [u] = await db.select({ id: users.id, name: users.name, role: users.role }).from(users).where(eq(users.id, request.closureConfirmedBy)).limit(1);
+        closureConfirmedByUser = u || null;
+      }
+
       // الحصول على المرفقات
       const attachments = await db.select().from(requestAttachments).where(eq(requestAttachments.requestId, input.id));
 
@@ -732,6 +745,8 @@ export const requestsRouter = router({
         fieldVisitAssignedToUser,
         assignedToUser,
         finalReportAssignedToUser,
+        closureRequestedByUser,
+        closureConfirmedByUser,
       };
     }),
 
@@ -930,6 +945,9 @@ export const requestsRouter = router({
         } else if (input.creatorType === "officer") {
           conditions.push(ne(users.role, "service_requester"));
         }
+      }
+      if (input.closureStatusFilter && input.closureStatusFilter !== "all") {
+        conditions.push(eq(mosqueRequests.closureStatus, input.closureStatusFilter));
       }
 
       const offset = (input.page - 1) * input.limit;
@@ -1590,12 +1608,74 @@ export const requestsRouter = router({
         }
       }
 
+      // التحقق من صلاحيات إغلاق الطلب وحصره بمدير النظام وتأكيد المدير التنفيذي
+      if (input.newStage === 'closed') {
+        const isSuperAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+        const isExecutive = ["executive_director", "general_manager"].includes(ctx.user.role);
+
+        if (!isSuperAdmin && !isExecutive) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "إغلاق الطلب محصور بمدير النظام/المدير العام فقط ويتطلب تأكيد المدير التنفيذي",
+          });
+        }
+
+        // إذا كان المستخدم مدير نظام والطلب ليس في حالة انتظار التأكيد، يتم تحويله لآلية انتظار تأكيد المدير التنفيذي
+        if (isSuperAdmin && !isExecutive && request[0].closureStatus !== "pending_confirmation") {
+          await db.update(mosqueRequests).set({
+            closureStatus: "pending_confirmation",
+            closureRequestedBy: ctx.user.id,
+            closureRequestedAt: new Date(),
+            closureReason: input.notes || "طلب إغلاق الطلب من مدير النظام",
+            closureRejectionReason: null,
+          }).where(eq(mosqueRequests.id, input.requestId));
+
+          await db.insert(requestHistory).values({
+            requestId: input.requestId,
+            userId: ctx.user.id,
+            fromStage: request[0].currentStage,
+            toStage: request[0].currentStage,
+            fromStatus: request[0].status,
+            toStatus: request[0].status,
+            action: "closure_requested",
+            notes: `طلب مدير النظام إغلاق الطلب: ${input.notes || "لا توجد ملاحظات إضافية"} (بانتظار تأكيد المدير التنفيذي)`,
+          });
+
+          // إرسال إشعار للمدير التنفيذي
+          const execUsers = await db.select({ id: users.id })
+            .from(users)
+            .where(inArray(users.role, ["executive_director", "general_manager"]));
+          
+          for (const execUser of execUsers) {
+            await createNotification({
+              userId: execUser.id,
+              title: "⚠️ طلب تأكيد إغلاق طلب",
+              message: `طلب مدير النظام (${ctx.user.name || "مدير النظام"}) إغلاق الطلب رقم ${request[0].requestNumber}. بانتظار اعتمادك وتأكيدك.`,
+              type: "request_update",
+              relatedType: "request",
+              relatedId: input.requestId,
+            });
+          }
+
+          return { 
+            success: true, 
+            message: "تم إرسال طلب إغلاق الطلب إلى المدير التنفيذي للتأكيد والاعتماد النهائي" 
+          };
+        }
+      }
+
       const updateData: any = {
         currentStage: input.newStage,
         status: input.newStage === "closed" ? "completed" : "in_progress",
         currentResponsible: currentResponsible,
         currentResponsibleDepartment: currentResponsibleDepartment,
       };
+
+      if (input.newStage === "closed") {
+        updateData.closureStatus = "confirmed";
+        updateData.closureConfirmedBy = ctx.user.id;
+        updateData.closureConfirmedAt = new Date();
+      }
 
       if (input.finalReportAssignedTo !== undefined) {
         updateData.finalReportAssignedTo = input.finalReportAssignedTo;
@@ -1862,6 +1942,246 @@ export const requestsRouter = router({
       }
 
       return { success: true, message: `تم تحويل الطلب إلى مرحلة ${newStageName} بنجاح` };
+    }),
+
+  // طلب إغلاق الطلب (محصور بمدير النظام/المدير العام)
+  requestClose: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      reason: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const isSuperAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      if (!isSuperAdmin) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "إمكانية إغلاق الطلب محصورة بمدير النظام / المدير العام فقط",
+        });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [request] = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+      if (!request) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      if (request.currentStage === "closed" || request.status === "completed") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "هذا الطلب مغلق ومكتمل بالفعل" });
+      }
+
+      if (request.closureStatus === "pending_confirmation") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "هذا الطلب بانتظار تأكيد الإغلاق من المدير التنفيذي بالفعل" });
+      }
+
+      const effectiveReason = input.reason?.trim() || "إغلاق الطلب بناءً على قرار مدير النظام";
+
+      await db.update(mosqueRequests).set({
+        closureStatus: "pending_confirmation",
+        closureRequestedBy: ctx.user.id,
+        closureRequestedAt: new Date(),
+        closureReason: effectiveReason,
+        closureRejectionReason: null,
+      }).where(eq(mosqueRequests.id, input.requestId));
+
+      await db.insert(requestHistory).values({
+        requestId: input.requestId,
+        userId: ctx.user.id,
+        fromStage: request.currentStage,
+        toStage: request.currentStage,
+        fromStatus: request.status,
+        toStatus: request.status,
+        action: "closure_requested",
+        notes: `طلب مدير النظام إغلاق الطلب: ${input.reason} (بانتظار تأكيد المدير التنفيذي)`,
+      });
+
+      // إرسال إشعار للمدير التنفيذي
+      const execUsers = await db.select({ id: users.id })
+        .from(users)
+        .where(inArray(users.role, ["executive_director", "general_manager"]));
+      
+      for (const execUser of execUsers) {
+        await createNotification({
+          userId: execUser.id,
+          title: "⚠️ طلب تأكيد إغلاق طلب",
+          message: `طلب مدير النظام (${ctx.user.name || "مدير النظام"}) إغلاق الطلب رقم ${request.requestNumber}. السبب: "${input.reason}". بانتظار اعتمادك وتأكيدك.`,
+          type: "request_update",
+          relatedType: "request",
+          relatedId: input.requestId,
+        });
+      }
+
+      return {
+        success: true,
+        message: "تم إرسال طلب إغلاق الطلب إلى المدير التنفيذي للتأكيد والاعتماد النهائي بنجاح",
+      };
+    }),
+
+  // تأكيد إغلاق الطلب نهائياً (محصور بالمدير التنفيذي)
+  confirmClose: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const isAllowed = ["executive_director", "general_manager"].includes(ctx.user.role);
+      if (!isAllowed) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "تأكيد إغلاق الطلب محصور بالمدير التنفيذي فقط",
+        });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [request] = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+      if (!request) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      if (request.currentStage === "closed" || request.status === "completed") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "الطلب مغلق بالفعل" });
+      }
+
+      const oldStage = request.currentStage;
+      const oldStatus = request.status;
+
+      await db.update(mosqueRequests).set({
+        currentStage: "closed",
+        status: "completed",
+        completedAt: new Date(),
+        closureStatus: "confirmed",
+        closureConfirmedBy: ctx.user.id,
+        closureConfirmedAt: new Date(),
+        currentResponsibleDepartment: "مكتب المشاريع",
+      }).where(eq(mosqueRequests.id, input.requestId));
+
+      await db.insert(requestHistory).values({
+        requestId: input.requestId,
+        userId: ctx.user.id,
+        fromStage: oldStage,
+        toStage: "closed",
+        fromStatus: oldStatus,
+        toStatus: "completed",
+        action: "closure_confirmed",
+        notes: `تم تأكيد إغلاق الطلب نهائياً من قِبل المدير التنفيذي (${ctx.user.name || "المدير التنفيذي"})${input.notes ? `: ${input.notes}` : ""}`,
+      });
+
+      // إرسال استبيان رضا المستفيدين
+      await triggerBeneficiarySatisfactionSurvey(input.requestId);
+
+      // إشعار لمقدم الطلب إذا كان طالب خدمة
+      if (request.userId) {
+        const [ownerUser] = await db.select({ role: users.role }).from(users).where(eq(users.id, request.userId)).limit(1);
+        if (ownerUser && ownerUser.role === "service_requester") {
+          await createNotification({
+            userId: request.userId,
+            title: "✨ تم إغلاق الطلب بنجاح",
+            message: `يسعدنا إعلامك باكتمال واغلاق طلبك رقم ${request.requestNumber} رسمياً. شكراً لثقتك بمنارة.`,
+            type: "request_update",
+            relatedType: "request",
+            relatedId: input.requestId,
+            triggerId: "beneficiary_stage_closed",
+          });
+        }
+      }
+
+      // إشعار لمدير النظام الذي طلب الإغلاق
+      if (request.closureRequestedBy && request.closureRequestedBy !== ctx.user.id) {
+        await createNotification({
+          userId: request.closureRequestedBy,
+          title: "✅ تم تأكيد إغلاق الطلب",
+          message: `قام المدير التنفيذي (${ctx.user.name || "المدير التنفيذي"}) بتأكيد واعتماد إغلاق الطلب رقم ${request.requestNumber} نهائياً.`,
+          type: "request_update",
+          relatedType: "request",
+          relatedId: input.requestId,
+        });
+      }
+
+      return {
+        success: true,
+        message: "تم تأكيد واعتماد إغلاق الطلب نهائياً بنجاح",
+      };
+    }),
+
+  // رفض إغلاق الطلب (محصور بالمدير التنفيذي)
+  rejectClose: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      reason: z.string().min(3, "يرجى كتابة سبب رفض الإغلاق"),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const isAllowed = ["executive_director", "general_manager"].includes(ctx.user.role);
+      if (!isAllowed) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "رفض إغلاق الطلب محصور بالمدير التنفيذي فقط",
+        });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [request] = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+      if (!request) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      if (request.closureStatus !== "pending_confirmation") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "هذا الطلب ليس بانتظار تأكيد الإغلاق" });
+      }
+
+      await db.update(mosqueRequests).set({
+        closureStatus: "rejected",
+        closureRejectionReason: input.reason,
+      }).where(eq(mosqueRequests.id, input.requestId));
+
+      await db.insert(requestHistory).values({
+        requestId: input.requestId,
+        userId: ctx.user.id,
+        fromStage: request.currentStage,
+        toStage: request.currentStage,
+        fromStatus: request.status,
+        toStatus: request.status,
+        action: "closure_rejected",
+        notes: `قام المدير التنفيذي (${ctx.user.name || "المدير التنفيذي"}) برفض إغلاق الطلب. سبب الرفض: ${input.reason}`,
+      });
+
+      // إشعار لمدير النظام الذي طلب الإغلاق
+      if (request.closureRequestedBy) {
+        await createNotification({
+          userId: request.closureRequestedBy,
+          title: "❌ تم رفض إغلاق الطلب",
+          message: `قام المدير التنفيذي (${ctx.user.name || "المدير التنفيذي"}) برفض طلب إغلاق الطلب رقم ${request.requestNumber}. سبب الرفض: "${input.reason}". والطلب مستمر في مرحلته الحالية.`,
+          type: "request_update",
+          relatedType: "request",
+          relatedId: input.requestId,
+        });
+      }
+
+      return {
+        success: true,
+        message: "تم رفض طلب الإغلاق وإبقاء الطلب في مرحلته الحالية بنجاح",
+      };
+    }),
+
+  // الحصول على عدد الطلبات التي بانتظار تأكيد الإغلاق (حصرياً للمدير التنفيذي)
+  getPendingClosureCount: protectedProcedure
+    .query(async ({ ctx }) => {
+      const isAllowed = ["executive_director", "general_manager"].includes(ctx.user.role);
+      if (!isAllowed) return { count: 0 };
+
+      const db = await getDb();
+      if (!db) return { count: 0 };
+
+      const [res] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.closureStatus, "pending_confirmation"));
+
+      return { count: res?.count || 0 };
     }),
 
   // تحديث حالة الطلب
@@ -3436,11 +3756,6 @@ export const requestsRouter = router({
         }
       }
 
-      // إذا كان القرار هو الاعتذار، تحديد تاريخ الإغلاق
-      if (input.decision === 'apologize') {
-        updateData.completedAt = new Date();
-      }
-
       await db.update(mosqueRequests).set(updateData).where(eq(mosqueRequests.id, input.requestId));
 
       // إضافة سجل في جدول التقييمات الفنية
@@ -3652,9 +3967,11 @@ export const requestsRouter = router({
 
       return {
         success: true, 
-        message: `تم ${option.name} بنجاح`,
-        nextStage: option.nextStage,
-        newStatus: option.resultStatus,
+        message: input.decision === 'apologize' 
+          ? "تم إرسال طلب إغلاق الطلب (الاعتذار) إلى المدير التنفيذي للتأكيد والاعتماد النهائي بنجاح"
+          : `تم ${option.name} بنجاح`,
+        nextStage: input.decision === 'apologize' ? request[0].currentStage : option.nextStage,
+        newStatus: input.decision === 'apologize' ? request[0].status : option.resultStatus,
       };
     }),
 
