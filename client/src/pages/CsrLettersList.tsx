@@ -86,9 +86,7 @@ export interface CsrLettersViewProps {
 }
 
 export function CsrLettersView({ requestId, projectId, isEmbedded = false }: CsrLettersViewProps) {
-  if (!isEmbedded) {
-    useDocumentTitle("خطابات المسؤولية المجتمعية - سدانة");
-  }
+  useDocumentTitle(isEmbedded ? null : "خطابات المسؤولية المجتمعية - سدانة");
   const { user } = useAuth();
   const [, navigate] = useLocation();
 
