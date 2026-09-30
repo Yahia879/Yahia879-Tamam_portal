@@ -1191,10 +1191,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
       }
     }
 
-    // إسناد الصلاحيات الافتراضية لأوامر الشراء والخطاب المجتمعي (متاحة افتراضياً فقط للإدارة المالية والمدراء)
+    // إسناد الصلاحيات الافتراضية لأوامر الشراء والخطاب المجتمعي (متاحة افتراضياً حصراً للإدارة المالية فقط دون مدراء النظام)
     const ordersAndLettersDefaultRolePerms: Record<string, string[]> = {
-      super_admin: ["orders_and_letters.view", "orders_and_letters.approve", "orders_and_letters.create_disbursement", "orders_and_letters.export"],
-      system_admin: ["orders_and_letters.view", "orders_and_letters.approve", "orders_and_letters.create_disbursement", "orders_and_letters.export"],
       financial: ["orders_and_letters.view", "orders_and_letters.approve", "orders_and_letters.create_disbursement", "orders_and_letters.export"],
     };
 
@@ -1249,6 +1247,11 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
       'progress_reports.exception_approve',
       'disbursements.exception_approve',
       'disbursement_orders.exception_approve',
+      'orders_and_letters',
+      'orders_and_letters.view',
+      'orders_and_letters.approve',
+      'orders_and_letters.create_disbursement',
+      'orders_and_letters.export',
     ];
     const allPerms = await db.select({ id: permissions.id }).from(permissions);
     // يحصلان أيضاً على جميع الصلاحيات الموسعة (باستثناء appointments.view_own والصلاحيات المستبعدة)
@@ -1375,6 +1378,11 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
       'progress_reports.exception_approve',
       'disbursements.exception_approve',
       'disbursement_orders.exception_approve',
+      'orders_and_letters',
+      'orders_and_letters.view',
+      'orders_and_letters.approve',
+      'orders_and_letters.create_disbursement',
+      'orders_and_letters.export',
     ];
     const allAvailablePerms = await db.select({ id: permissions.id }).from(permissions);
     allAvailablePerms.forEach(p => {
