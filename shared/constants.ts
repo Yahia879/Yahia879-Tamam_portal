@@ -31,7 +31,7 @@ export const ROLE_LABELS: Record<string, string> = {
   project_manager: 'مدير المشروع',
   corporate_comm: 'الاتصال المؤسسي',
   service_requester: 'طالب الخدمة',
-  procurement_officer: 'مسؤول المشتريات (برنامج سدانة)',
+  procurement_officer: 'مسؤول المشتريات',
 };
 
 // الأدوار الداخلية (الموظفين)
