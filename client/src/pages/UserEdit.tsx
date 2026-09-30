@@ -24,7 +24,7 @@ const ROLE_OPTIONS = [
   { value: "project_manager", label: "مدير المشروع" },
   { value: "corporate_comm", label: "الاتصال المؤسسي" },
   { value: "service_requester", label: "طالب الخدمة" },
-  { value: "procurement_officer", label: "مسؤول المشتريات (برنامج سدانة)" },
+  { value: "procurement_officer", label: "مسؤول المشتريات" },
 ];
 
 const STATUS_OPTIONS = [
