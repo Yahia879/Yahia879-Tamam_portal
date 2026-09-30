@@ -77,6 +77,7 @@ import {
   Filter,
   X,
   SlidersHorizontal,
+  Shield,
 } from "lucide-react";
 
 import { Handshake } from "lucide-react";
@@ -115,6 +116,26 @@ export default function Quotations() {
     navigate("/requester");
     return null;
   }
+
+  // تحديد تصنيف دور المستخدم وصلاحيات مسؤول المشتريات والاعتماد
+  const customRoleNameAr = (user as any)?.customRole?.nameAr || "";
+  const customRoleNameEn = ((user as any)?.customRole?.nameEn || "").toLowerCase();
+
+  const isProcurementOfficer =
+    user?.role === "procurement_officer" ||
+    customRoleNameAr === "مسؤول المشتريات" ||
+    customRoleNameEn === "procurement officer";
+
+  const isExecDirector =
+    ["general_manager", "executive_director"].includes(user?.role || "") ||
+    customRoleNameAr === "المدير التنفيذي" ||
+    customRoleNameEn === "executive director";
+
+  const isSystemAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+
+  // اعتماد عروض الأسعار يظل من اختصاص المدير التنفيذي فقط دون مسؤول المشتريات
+  const canApproveQuotations = !isProcurementOfficer && (isExecDirector || isSystemAdmin);
+
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showAddLinkDialog, setShowAddLinkDialog] = useState(false);
   const [linkName, setLinkName] = useState("");
@@ -216,42 +237,72 @@ export default function Quotations() {
   const allRequestsList = requests?.requests || [];
 
   const displayedRequestsList = useMemo(() => {
-    if (!selectedRequestId) return allRequestsList;
-    const foundInList = allRequestsList.filter((r: any) => r.id.toString() === selectedRequestId);
-    if (foundInList.length > 0) return foundInList;
-    if (singleRequestData) {
-      const targetReq = (singleRequestData as any).request || singleRequestData;
-      if (targetReq && targetReq.id) {
-        // إذا كان الطلب المحدد قد تم اعتماده مسبقاً وانتقل لمرحلة أخرى (وليس في مرحلة التقييم المالي)،
-        // فلا يتم عرضه كطلب نشط في عروض الأسعار
-        if (targetReq.currentStage && targetReq.currentStage !== "financial_eval_and_approval") {
-          return allRequestsList;
+    let list = allRequestsList;
+    // لمسؤول المشتريات: تقتصر القائمة حصراً على طلبات برنامج سدانة
+    if (isProcurementOfficer) {
+      list = list.filter((r: any) => r.programType === "sedana");
+    }
+    // في حال تم فتح الصفحة برابط طلب محدد غير موجود بالقائمة المفلترة، نضيفه للقائمة
+    if (selectedRequestId && singleRequestData) {
+      const exists = list.some((r: any) => r.id.toString() === selectedRequestId);
+      if (!exists) {
+        const targetReq = (singleRequestData as any).request || singleRequestData;
+        if (targetReq && targetReq.id) {
+          if (!isProcurementOfficer || targetReq.programType === "sedana") {
+            const reqUser = (singleRequestData as any).requester || (singleRequestData as any).user;
+            const reqName = reqUser?.name || targetReq.requesterName || (singleRequestData as any).requesterName;
+            const mosqueNameStr = typeof targetReq.mosqueName === "string" 
+              ? targetReq.mosqueName 
+              : (targetReq.mosque?.name || null);
+
+            return [{
+              ...targetReq,
+              id: targetReq.id,
+              requestNumber: targetReq.requestNumber || `REQ-${targetReq.id}`,
+              mosqueName: mosqueNameStr,
+              programType: targetReq.programType || "other",
+              createdAt: targetReq.createdAt || new Date().toISOString(),
+              requesterName: reqName,
+              user: reqUser,
+              requester: reqUser,
+              isMultiMosque: (singleRequestData as any).isMultiMosque || targetReq.isMultiMosque,
+              multiMosques: (singleRequestData as any).multiMosques || targetReq.multiMosques,
+              projectName: (singleRequestData as any).projectName || targetReq.projectName,
+            }, ...list];
+          }
         }
-
-        const reqUser = (singleRequestData as any).requester || (singleRequestData as any).user;
-        const reqName = reqUser?.name || targetReq.requesterName || (singleRequestData as any).requesterName;
-        const mosqueNameStr = typeof targetReq.mosqueName === "string" 
-          ? targetReq.mosqueName 
-          : (targetReq.mosque?.name || null);
-
-        return [{
-          ...targetReq,
-          id: targetReq.id,
-          requestNumber: targetReq.requestNumber || `REQ-${targetReq.id}`,
-          mosqueName: mosqueNameStr,
-          programType: targetReq.programType || "other",
-          createdAt: targetReq.createdAt || new Date().toISOString(),
-          requesterName: reqName,
-          user: reqUser,
-          requester: reqUser,
-          isMultiMosque: (singleRequestData as any).isMultiMosque || targetReq.isMultiMosque,
-          multiMosques: (singleRequestData as any).multiMosques || targetReq.multiMosques,
-          projectName: (singleRequestData as any).projectName || targetReq.projectName,
-        }];
       }
     }
-    return allRequestsList;
-  }, [allRequestsList, selectedRequestId, singleRequestData]);
+    return list;
+  }, [allRequestsList, selectedRequestId, singleRequestData, isProcurementOfficer]);
+
+  const activeSelectedRequest = useMemo(() => {
+    if (!selectedRequestId) return null;
+    return displayedRequestsList.find((r: any) => r.id.toString() === selectedRequestId) || 
+      (singleRequestData ? ((singleRequestData as any).request || singleRequestData) : null);
+  }, [selectedRequestId, displayedRequestsList, singleRequestData]);
+
+  // لمسؤول المشتريات: التحديد التلقائي لأول طلب سدانة متاح عند الدخول
+  useEffect(() => {
+    if (isProcurementOfficer && !selectedRequestId && allRequestsList.length > 0) {
+      const firstSedana = allRequestsList.find((r: any) => r.programType === "sedana");
+      if (firstSedana) {
+        setSelectedRequestId(firstSedana.id.toString());
+      }
+    }
+  }, [isProcurementOfficer, selectedRequestId, allRequestsList]);
+
+  // لمسؤول المشتريات: التحقق من أن الطلب المحدد من برنامج سدانة فقط
+  useEffect(() => {
+    if (isProcurementOfficer && singleRequestData) {
+      const targetReq = (singleRequestData as any).request || singleRequestData;
+      if (targetReq && targetReq.programType && targetReq.programType !== "sedana") {
+        toast.error("صلاحيات مسؤول المشتريات مقتصرة على عروض أسعار برنامج سدانة فقط");
+        setSelectedRequestId("");
+        window.history.replaceState({}, "", "/quotations");
+      }
+    }
+  }, [isProcurementOfficer, singleRequestData]);
 
   // إذا تم فتح الصفحة برابط يحتوي على معرف طلب قد تم اعتماده مسبقاً وانتقل لمرحلة أخرى
   useEffect(() => {
@@ -1798,19 +1849,131 @@ export default function Quotations() {
         {/* العنوان */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">عروض الأسعار</h1>
-            <p className="text-muted-foreground">إدارة عروض الأسعار من الموردين</p>
+            <h1 className="text-2xl font-bold">
+              {isProcurementOfficer ? "عروض أسعار برنامج سدانة – مسؤول المشتريات" : "عروض الأسعار"}
+            </h1>
+            <p className="text-muted-foreground">
+              {isProcurementOfficer 
+                ? "استعراض وإدخال عروض الأسعار لمساجد برنامج سدانة (الاعتماد من اختصاص المدير التنفيذي فقط)" 
+                : "إدارة عروض الأسعار من الموردين"}
+            </p>
           </div>
+          {isProcurementOfficer && (
+            <div className="flex items-center gap-2">
+              <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 px-3 py-1 text-xs font-semibold">
+                مسؤول المشتريات – برنامج سدانة
+              </Badge>
+            </div>
+          )}
         </div>
+
+        {/* تنبيه دور مسؤول المشتريات */}
+        {isProcurementOfficer && (
+          <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/80 dark:bg-amber-950/30 dark:border-amber-900/60 text-amber-900 dark:text-amber-200 flex items-start gap-3 shadow-xs">
+            <Shield className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+            <div className="text-xs space-y-1">
+              <p className="font-bold text-sm">شاشة مخصصة لمسؤول المشتريات (برنامج سدانة):</p>
+              <p>• الصلاحيات المتاحة: استعراض عروض الأسعار (Quotations) وإمكانية إضافة وإدخال عروض الأسعار للبرنامج.</p>
+              <p className="font-semibold text-amber-800 dark:text-amber-300">• ملاحظة هامة: اعتماد عروض الأسعار يظل من اختصاص المدير التنفيذي فقط دون مسؤول المشتريات.</p>
+            </div>
+          </div>
+        )}
+
+        {/* محدد طلبات سدانة السريع والمباشر */}
+        <Card className="border-2 border-emerald-500/30 bg-gradient-to-r from-emerald-50/60 via-background to-background dark:from-emerald-950/20 shadow-sm">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-emerald-600 text-white hover:bg-emerald-700 text-xs px-2.5 py-0.5">
+                    {isProcurementOfficer ? "برنامج سدانة" : "تحديد الطلب النشط"}
+                  </Badge>
+                  <h3 className="text-base font-bold text-foreground">
+                    {isProcurementOfficer ? "اختر طلب سدانة لإدارة عروض أسعاره:" : "تحديد الطلب المراد إدارة عروض أسعاره:"}
+                  </h3>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  تتم إدارة عروض الأسعار لكل طلب بشكل منفصل بناءً على جدول كمياته وبنوده الخاصة.
+                </p>
+              </div>
+
+              {/* القائمة المنسدلة لاختيار الطلب */}
+              <div className="flex items-center gap-2 min-w-[280px] sm:min-w-[340px]">
+                <Select
+                  value={selectedRequestId || ""}
+                  onValueChange={(val) => {
+                    setSelectedRequestId(val);
+                    if (val) {
+                      window.history.replaceState({}, "", `/quotations?requestId=${val}`);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full h-10 border-emerald-300 dark:border-emerald-800 bg-background font-medium text-xs sm:text-sm">
+                    <SelectValue placeholder="-- اختر الطلب من القائمة --" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60" dir="rtl">
+                    {displayedRequestsList.map((req: any) => (
+                      <SelectItem key={req.id} value={req.id.toString()}>
+                        <div className="flex items-center gap-2 text-right">
+                          <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                            {req.requestNumber}
+                          </span>
+                          <span className="text-muted-foreground">-</span>
+                          <span>{getMosqueDisplayName(req)}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* تفاصيل الطلب المحدد حالياً */}
+            {activeSelectedRequest ? (
+              <div className="mt-4 pt-3.5 border-t border-emerald-200/60 dark:border-emerald-900/40 flex flex-wrap items-center justify-between gap-3 bg-emerald-500/5 -mx-4 -mb-4 p-4 rounded-b-lg">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
+                  <span className="text-muted-foreground font-medium">الطلب النشط حالياً:</span>
+                  <Badge variant="outline" className="font-mono bg-white dark:bg-slate-900 font-bold text-foreground border-emerald-300">
+                    {activeSelectedRequest.requestNumber}
+                  </Badge>
+                  <span className="font-bold text-foreground">
+                    {getMosqueDisplayName(activeSelectedRequest)}
+                  </span>
+                  {activeSelectedRequest.mosqueCity && (
+                    <span className="text-muted-foreground">
+                      ({activeSelectedRequest.mosqueCity})
+                    </span>
+                  )}
+                  <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 text-[11px]">
+                    مرحلة التقييم المالي
+                  </Badge>
+                </div>
+                <div className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>عروض الأسعار وجدول الكميات أدناه مخصصة لهذا الطلب</span>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 pt-3.5 border-t border-dashed border-amber-300 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>يرجى اختيار أحد طلبات سدانة من القائمة أعلاه أو من جدول الطلبات أدناه لبدء إدخال واستعراض عروض الأسعار له.</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* قائمة الطلبات في مرحلة التقييم المالي */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              الطلبات في مرحلة التقييم المالي
+              {isProcurementOfficer ? "جميع طلبات برنامج سدانة المتاحة للتقييم المالي" : "الطلبات في مرحلة التقييم المالي"}
             </CardTitle>
-            <CardDescription>اختر الطلب لعرض جدول الكميات وعروض الأسعار</CardDescription>
+            <CardDescription>
+              {isProcurementOfficer 
+                ? "انقر على أي طلب لتحديده واستعراض جدول الكميات وإدخال عروض الأسعار الخاصة به" 
+                : "اختر الطلب لعرض جدول الكميات وعروض الأسعار"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {selectedRequestId && (
@@ -1868,25 +2031,38 @@ export default function Quotations() {
                           <Button
                             variant={selectedRequestId === request.id.toString() ? "default" : "outline"}
                             size="sm"
+                            className={selectedRequestId === request.id.toString() ? "bg-emerald-600 hover:bg-emerald-700 text-white font-bold" : ""}
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedRequestId(request.id.toString());
+                              window.history.replaceState({}, "", `/quotations?requestId=${request.id}`);
                             }}
                           >
-                            <Eye className="h-4 w-4 ml-1" />
-                            {selectedRequestId === request.id.toString() ? "محدد" : "عرض"}
+                            {selectedRequestId === request.id.toString() ? (
+                              <>
+                                <CheckCircle2 className="h-4 w-4 ml-1 text-white" />
+                                محدد حالياً
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="h-4 w-4 ml-1" />
+                                تحديد الطلب
+                              </>
+                            )}
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/requests/${request.id}`);
-                            }}
-                          >
-                            <FileText className="h-4 w-4 ml-1" />
-                            تفاصيل الطلب
-                          </Button>
+                          {!isProcurementOfficer && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/requests/${request.id}`);
+                              }}
+                            >
+                              <FileText className="h-4 w-4 ml-1" />
+                              تفاصيل الطلب
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -1896,7 +2072,11 @@ export default function Quotations() {
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>لا توجد طلبات مطابقة للبحث</p>
+                <p>
+                  {isProcurementOfficer 
+                    ? "لا توجد طلبات لبرنامج سدانة حالياً في مرحلة التقييم المالي" 
+                    : "لا توجد طلبات مطابقة للبحث"}
+                </p>
               </div>
             )}
             {selectedRequestId && (
@@ -2593,28 +2773,35 @@ export default function Quotations() {
                           </span>
                         </div>
 
-                        <Button
-                          onClick={handleApproveItemSelections}
-                          disabled={approveSedanaMultiVendorMutation.isPending || assignedItemsCount === 0}
-                          className="font-bold text-xs h-10 px-5 shadow-sm transition-all bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
-                        >
-                          {approveSedanaMultiVendorMutation.isPending ? (
-                            <>
-                              <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                              جاري حفظ وتحديث الترسية...
-                            </>
-                          ) : isSedanaAlreadyAwarded ? (
-                            <>
-                              <CheckCircle2 className="h-4 w-4 ml-2" />
-                              تحديث واعتماد وترسية عروض الأسعار ({assignedItemsCount} بند)
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle2 className="h-4 w-4 ml-2" />
-                              اعتماد وترسية عروض الأسعار ({assignedItemsCount} بند)
-                            </>
-                          )}
-                        </Button>
+                        {canApproveQuotations ? (
+                          <Button
+                            onClick={handleApproveItemSelections}
+                            disabled={approveSedanaMultiVendorMutation.isPending || assignedItemsCount === 0}
+                            className="font-bold text-xs h-10 px-5 shadow-sm transition-all bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                          >
+                            {approveSedanaMultiVendorMutation.isPending ? (
+                              <>
+                                <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                                جاري حفظ وتحديث الترسية...
+                              </>
+                            ) : isSedanaAlreadyAwarded ? (
+                              <>
+                                <CheckCircle2 className="h-4 w-4 ml-2" />
+                                تحديث واعتماد وترسية عروض الأسعار ({assignedItemsCount} بند)
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle2 className="h-4 w-4 ml-2" />
+                                اعتماد وترسية عروض الأسعار ({assignedItemsCount} بند)
+                              </>
+                            )}
+                          </Button>
+                        ) : (
+                          <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-800 dark:text-amber-300 text-xs font-semibold">
+                            <Shield className="w-4 h-4 text-amber-600 shrink-0" />
+                            <span>اعتماد وترسية عروض الأسعار من اختصاص المدير التنفيذي فقط</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -2912,7 +3099,8 @@ export default function Quotations() {
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex gap-2 justify-start">
-                                    <PermissionGuard permission="quotations.approve">
+                                    {canApproveQuotations ? (
+                                        <PermissionGuard permission="quotations.approve">
                                       {(quotation.status === "pending" || quotation.status === "negotiating") && (
                                         <>
                                           <Button
@@ -2961,6 +3149,11 @@ export default function Quotations() {
                                         </Button>
                                       )}
                                     </PermissionGuard>
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground py-1 px-2 bg-muted/40 rounded">
+                                          الاعتماد للمدير التنفيذي فقط
+                                        </span>
+                                      )}
                                   </div>
                                 </TableCell>
                               </TableRow>
