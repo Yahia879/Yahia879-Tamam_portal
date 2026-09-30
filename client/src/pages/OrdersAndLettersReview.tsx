@@ -118,10 +118,11 @@ export default function OrdersAndLettersReview() {
     updateUrl(activeTab, "");
   };
 
-  // جلب الطلبات للاختيار منها
+  // جلب طلبات برنامج سدانة حصراً للاختيار منها
   const { data: requestsData, isLoading: isRequestsLoading, refetch: refetchRequests } =
     trpc.requests.search.useQuery({
-      limit: 150,
+      programType: "sedana",
+      limit: 200,
     });
 
   // جلب تفاصيل الطلب المحدد برقم ID إذا وجد
@@ -162,13 +163,32 @@ export default function OrdersAndLettersReview() {
     return "طلب غير محدد";
   };
 
-  // قائمة الطلبات المفلترة بالبحث
+  // قائمة طلبات برنامج سدانة المفلترة بالبحث
   const filteredRequests = useMemo(() => {
-    const list = requestsData?.requests || [];
-    if (!searchQuery.trim()) return list;
+    const rawList = requestsData?.requests || [];
+    // حصر القائمة قطعياً فقط بطلبات سدانة
+    const sedanaList = rawList.filter((r: any) => {
+      let pData: any = r.programData;
+      while (typeof pData === "string") {
+        try {
+          pData = JSON.parse(pData);
+        } catch {
+          break;
+        }
+      }
+      return (
+        r.programType === "sedana" ||
+        r.isSedana ||
+        pData?.isSedana ||
+        pData?.sedanaProcurement ||
+        pData?.basketItems
+      );
+    });
+
+    if (!searchQuery.trim()) return sedanaList;
 
     const query = searchQuery.trim().toLowerCase();
-    return list.filter((r: any) => {
+    return sedanaList.filter((r: any) => {
       const idMatch = String(r.id).includes(query);
       const reqNumMatch = r.requestNumber?.toLowerCase().includes(query);
       const mosqueMatch = r.mosqueName?.toLowerCase().includes(query) || r.mosque?.name?.toLowerCase().includes(query);
@@ -280,10 +300,10 @@ export default function OrdersAndLettersReview() {
               <div>
                 <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                   <Building2 className="w-5 h-5 text-primary" />
-                  <span>تحديد الطلب للمراجعة</span>
+                  <span>تحديد طلب (برنامج سدانة)</span>
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm mt-0.5">
-                  حدد طلباً لعرض أوامر الشراء والخطابات المجتمعية الخاصة به، أو تابع بدون تحديد لعرض كافة السجلات
+                  حدد طلب سدانة لمراجعة أوامر الشراء والخطابات المجتمعية الخاصة به، أو تابع بدون تحديد لعرض كافة السجلات
                 </CardDescription>
               </div>
               {selectedRequestId && (
