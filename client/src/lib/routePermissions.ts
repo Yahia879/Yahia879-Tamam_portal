@@ -54,6 +54,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
     "dashboard", "suppliers", "quotations", "financial_approval",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers", "financial_report",
     "contracts", "purchase_orders", "csr_letters", "sedana_warehouse",
+    "orders_and_letters", "orders_and_letters.view",
   ],
 
   financial_manager: [
@@ -156,9 +157,10 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/financial-approval": ["financial_approval.view", "financial_approval.approve"],
   "/boq-preparations": ["quotations", "requests.view_details", "requests.view", "boq", "boq.add", "boq.edit", "boq.delete"],
 
-  // ── العقود وأوامر الشراء والمسؤولية المجتمعية والمسؤول المالي ──
-  "/financial-officer": ["purchase_orders.view", "purchase_orders", "csr_letters.view", "csr_letters"],
-  "/financial-tasks": ["purchase_orders.view", "purchase_orders", "csr_letters.view", "csr_letters"],
+  // ── العقود وأوامر الشراء والمسؤولية المجتمعية والمراجعة الموحدة ──
+  "/orders-and-letters": ["orders_and_letters.view", "orders_and_letters"],
+  "/financial-officer": ["orders_and_letters.view", "orders_and_letters"],
+  "/financial-tasks": ["orders_and_letters.view", "orders_and_letters"],
   "/contracts": "contracts",
   "/contracts/new": "contracts",
   "/purchase-orders": ["purchase_orders.view", "purchase_orders"],
@@ -256,6 +258,9 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   pattern: RegExp;
   permission: string | string[];
 }> = [
+  // أوامر الشراء والخطاب المجتمعي والمراجعة الموحدة
+  { pattern: /^\/orders-and-letters\/[^/]+$/, permission: ["orders_and_letters.view", "orders_and_letters"] },
+
   // تخصيص نماذج الخدمات والتسجيل
   { pattern: /^\/forms-customization\/services\/[^/]+$/, permission: "forms_customization.services" },
   { pattern: /^\/forms-customization\/registration\/[^/]+$/, permission: ["forms_customization.registration", "settings_center"] },
