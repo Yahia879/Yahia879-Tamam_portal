@@ -439,6 +439,17 @@ export function hasRouteAccess(
   userPermissions: string[],
   hasCustomRole: boolean,
 ): boolean {
+  // مسار أوامر الشراء والخطاب المجتمعي متاح افتراضياً حصراً للإدارة المالية (حتى مدراء النظام ليس لهم وصول تلقائي إلا إذا مُنحوا الصلاحية صراحةً)
+  const isOrdersAndLettersRoute =
+    pathname === "/orders-and-letters" ||
+    pathname.startsWith("/orders-and-letters/") ||
+    pathname === "/financial-officer" ||
+    pathname === "/financial-tasks";
+  if (isOrdersAndLettersRoute) {
+    if (userRole === "financial") return true;
+    return userPermissions.includes("orders_and_letters") || userPermissions.includes("orders_and_letters.view");
+  }
+
   // super_admin و system_admin لهما كل الصلاحيات دائماً إلا إذا سُحبت صلاحية معينة صراحةً
   if (userRole === "super_admin" || userRole === "system_admin") {
     if (userPermissions.includes("*") || userPermissions.length === 0) return true;
