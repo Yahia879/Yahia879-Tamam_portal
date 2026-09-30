@@ -104,9 +104,9 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
 
   // صلاحيات أوامر الشراء
   const canAddOrder = usePermission("purchase_orders.add");
-  const canApprove = usePermission("purchase_orders.approve");
-  const canCreateDisbursement = usePermission("purchase_orders.create_disbursement");
-  const canExport = usePermission("purchase_orders.export");
+  const canApprove = usePermission("purchase_orders.approve") || usePermission("orders_and_letters.approve");
+  const canCreateDisbursement = usePermission("purchase_orders.create_disbursement") || usePermission("orders_and_letters.create_disbursement");
+  const canExport = usePermission("purchase_orders.export") || usePermission("orders_and_letters.export");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
