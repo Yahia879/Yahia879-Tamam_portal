@@ -75,6 +75,7 @@ const getRoleLabelAr = (role: string) => {
     "board_chairman": "رئيس مجلس الإدارة",
     "board_member": "عضو مجلس الإدارة",
     "procurement_officer": "مسؤول المشتريات",
+    "financial_officer": "المسؤول المالي",
   };
   return rolesAr[role] || role;
 };
