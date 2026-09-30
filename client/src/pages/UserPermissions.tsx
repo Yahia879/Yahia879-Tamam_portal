@@ -74,7 +74,7 @@ const getRoleLabelAr = (role: string) => {
     "service_requester": "طالب خدمة",
     "board_chairman": "رئيس مجلس الإدارة",
     "board_member": "عضو مجلس الإدارة",
-    "procurement_officer": "مسؤول المشتريات (برنامج سدانة)",
+    "procurement_officer": "مسؤول المشتريات",
   };
   return rolesAr[role] || role;
 };
