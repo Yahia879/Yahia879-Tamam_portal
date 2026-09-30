@@ -31,6 +31,7 @@ export const ROLE_LABELS: Record<string, string> = {
   project_manager: 'مدير المشروع',
   corporate_comm: 'الاتصال المؤسسي',
   service_requester: 'طالب الخدمة',
+  procurement_officer: 'مسؤول المشتريات (برنامج سدانة)',
 };
 
 // الأدوار الداخلية (الموظفين)
@@ -48,6 +49,7 @@ export const INTERNAL_ROLES = [
   'financial',
   'project_manager',
   'corporate_comm',
+  'procurement_officer',
 ];
 
 // ==================== البرامج ====================
