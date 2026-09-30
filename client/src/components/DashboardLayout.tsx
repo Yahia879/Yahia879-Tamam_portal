@@ -81,6 +81,23 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
     customRoleNameAr === "المدير التنفيذي" ||
     customRoleNameEn?.toLowerCase() === "executive director";
 
+  const isProcurementOfficer =
+    role === "procurement_officer" ||
+    customRoleNameAr === "مسؤول المشتريات" ||
+    customRoleNameEn?.toLowerCase() === "procurement officer";
+
+  // تخصيص شاشة واحدة فقط لمسؤول المشتريات (برنامج سدانة - عروض الأسعار)
+  if (isProcurementOfficer) {
+    return [
+      {
+        label: isEn ? "Sadana Program" : "برنامج سدانة",
+        items: [
+          { icon: Receipt, label: isEn ? "Quotations" : "عروض الأسعار", path: "/quotations" },
+        ],
+      },
+    ];
+  }
+
   // الرئيسية
   const mainItems: MenuItem[] = [];
   if (["super_admin", "system_admin"].includes(role) || isExecDirector || role !== "service_requester") {
@@ -235,6 +252,28 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     ["general_manager", "executive_director"].includes(role) ||
     customRoleNameAr === "المدير التنفيذي" ||
     customRoleNameEn?.toLowerCase() === "executive director";
+
+  const isProcurementOfficer =
+    role === "procurement_officer" ||
+    customRoleNameAr === "مسؤول المشتريات" ||
+    customRoleNameEn?.toLowerCase() === "procurement officer" ||
+    (!permissions.includes("*") &&
+      !permissions.includes("quotations.approve") &&
+      (permissions.includes("quotations") || permissions.includes("quotations.view") || permissions.includes("quotations.add")) &&
+      !permissions.includes("requests.view") &&
+      !permissions.includes("projects.view"));
+
+  // تخصيص شاشة واحدة فقط لمسؤول المشتريات (برنامج سدانة - عروض الأسعار)
+  if (isProcurementOfficer) {
+    return [
+      {
+        label: isEn ? "Sadana Program" : "برنامج سدانة",
+        items: [
+          { icon: Receipt, label: isEn ? "Quotations" : "عروض الأسعار", path: "/quotations" },
+        ],
+      },
+    ];
+  }
 
   // الرئيسية
   const mainItems: MenuItem[] = [];
