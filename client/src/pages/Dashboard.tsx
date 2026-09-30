@@ -212,16 +212,6 @@ export default function Dashboard() {
       navigate("/quotations", { replace: true });
       return;
     }
-
-    if (
-      (user.role === "financial_officer" ||
-      customRoleNameAr === "المسؤول المالي" ||
-      customRoleNameEn === "financial officer") &&
-      !hasDashboardPermission
-    ) {
-      navigate("/financial-officer", { replace: true });
-      return;
-    }
   }, [user, navigate, customRoleNameAr, customRoleNameEn]);
 
   // جلب إعدادات مهلة المستفيدين (SLA)
