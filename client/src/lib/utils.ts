@@ -66,10 +66,18 @@ export function formatErrorMessage(error: unknown, fallbackMessage: string = "ح
 
   // 4. أخطاء التحقق من المدخلات (Zod validation error array)
   try {
-    if (rawMessage.startsWith("[") && rawMessage.endsWith("]")) {
-      const parsed = JSON.parse(rawMessage);
+    const trimmed = rawMessage.trim();
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map((item: any) => item.message || "بيانات غير صالحة").join(" \n");
+        return parsed.map((item: any) => item.message || "بيانات غير صالحة").filter(Boolean).join("، ");
+      }
+    }
+    const jsonMatch = trimmed.match(/\[\s*\{[\s\S]*\}\s*\]/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((item: any) => item.message || "بيانات غير صالحة").filter(Boolean).join("، ");
       }
     }
   } catch {

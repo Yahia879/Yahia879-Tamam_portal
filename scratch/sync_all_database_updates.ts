@@ -149,7 +149,7 @@ async function main() {
     await modifyColumnIfNeeded(
       'users',
       'role',
-      "enum('super_admin','system_admin','general_manager','executive_director','projects_office','field_team','quick_response','financial','project_manager','corporate_comm','service_requester') NOT NULL DEFAULT 'service_requester'"
+      "enum('super_admin','system_admin','board_chairman','board_member','general_manager','executive_director','projects_office','project_manager','field_team','financial','financial_manager','quick_response','corporate_comm','service_requester','partner') NOT NULL DEFAULT 'service_requester'"
     );
     await ensureColumn('contracts_enhanced', 'currentStep', 'int DEFAULT 1');
     await ensureColumn('progress_reports', 'milestones', 'longtext DEFAULT NULL');
@@ -357,13 +357,13 @@ async function main() {
       if (existing.length === 0) {
         console.log(`➕ Inserting custom permission: ${p.id} (${p.nameAr})`);
         await connection.query(
-          `INSERT INTO permissions (id, moduleId, action, nameAr, nameEn)
+          `INSERT INTO permissions (id, module_id, action, name_ar, name_en)
            VALUES (?, ?, ?, ?, ?)`,
           [p.id, p.moduleId, p.action, p.nameAr, p.nameEn]
         );
       } else {
         await connection.query(
-          `UPDATE permissions SET nameAr = ?, nameEn = ?, moduleId = ?, action = ? WHERE id = ?`,
+          `UPDATE permissions SET name_ar = ?, name_en = ?, module_id = ?, action = ? WHERE id = ?`,
           [p.nameAr, p.nameEn, p.moduleId, p.action, p.id]
         );
       }

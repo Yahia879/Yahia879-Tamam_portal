@@ -67,6 +67,7 @@ import ProjectProgressMilestonesTab from "@/components/ProjectProgressMilestones
 import ProjectFinancialsTab from "@/components/ProjectFinancialsTab";
 import { normalizeArabic } from "@/components/ProjectSearchSelect";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
+import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -178,6 +179,17 @@ export default function ProjectDetailsPage() {
 
   // التحقق الحصري من برنامج سدانة
   const isSedanaProgram = project?.programType === "sedana" || project?.request?.programType === "sedana";
+
+  // التحقق مما إذا كان الطلب المرتبط بالمشروع مغلقاً نهائياً
+  const isRequestClosed = Boolean(
+    (project as any)?.isRequestClosed ||
+    project?.request?.currentStage === "closed" ||
+    (project as any)?.request?.status === "completed" ||
+    (project as any)?.request?.closureStatus === "confirmed" ||
+    (project as any)?.requestStage === "closed" ||
+    (project as any)?.requestStatus === "completed" ||
+    (project as any)?.requestClosureStatus === "confirmed"
+  );
 
   useEffect(() => {
     if (financialsOnly && !isSedanaProgram) {
@@ -1950,9 +1962,19 @@ export default function ProjectDetailsPage() {
                                       <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-blue-600 hover:bg-blue-50 rounded-lg"
-                                        onClick={() => navigate(`/contracts/${contract.id}/edit`)}
-                                        title="تعديل العقد"
+                                        disabled={isRequestClosed}
+                                        className={cn(
+                                          "h-8 w-8 rounded-lg",
+                                          isRequestClosed
+                                            ? "text-muted-foreground/40 cursor-not-allowed hover:bg-transparent"
+                                            : "text-blue-600 hover:bg-blue-50 cursor-pointer"
+                                        )}
+                                        onClick={() => {
+                                          if (!isRequestClosed) {
+                                            navigate(`/contracts/${contract.id}/edit`);
+                                          }
+                                        }}
+                                        title={isRequestClosed ? "لا يمكن تعديل العقد لأن الطلب المرتبط مغلق" : "تعديل العقد"}
                                       >
                                         <Edit className="h-4 w-4" />
                                       </Button>
@@ -1982,7 +2004,7 @@ export default function ProjectDetailsPage() {
                       </div>
                     )}
 
-                    {showApproveContractButton && (
+                    {showApproveContractButton && !isRequestClosed && (
                       <div className="mt-6 flex justify-center">
                         <Button 
                           className="gradient-primary text-white shadow-md hover:shadow-lg transition-all gap-2 rounded-xl h-10 px-6 font-bold text-xs sm:text-sm"
@@ -2022,9 +2044,19 @@ export default function ProjectDetailsPage() {
                     {!isPaymentsLocked && (
                       <Button 
                         className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9" 
-                        onClick={() => navigate(`/disbursements/new/${project.id}`)}
-                        disabled={isContractFullyAllocated}
-                        title={isContractFullyAllocated ? "تم الوصول للحد الأقصى لقيمة العقد" : ""}
+                        onClick={() => {
+                          if (!isRequestClosed) {
+                            navigate(`/disbursements/new/${project.id}`);
+                          }
+                        }}
+                        disabled={isContractFullyAllocated || isRequestClosed}
+                        title={
+                          isRequestClosed
+                            ? "لا يمكن إضافة دفعات لأن الطلب المرتبط بالمشروع مغلق"
+                            : isContractFullyAllocated
+                            ? "تم الوصول للحد الأقصى لقيمة العقد"
+                            : ""
+                        }
                       >
                         <Plus className="w-4 h-4 ml-1.5" />
                         إضافة دفعة
@@ -2050,6 +2082,15 @@ export default function ProjectDetailsPage() {
                       </div>
                     ) : project.payments && project.payments.length > 0 ? (
                       <>
+                        {isRequestClosed && (
+                          <Alert className="bg-amber-50/70 border-amber-200 text-amber-900 dark:bg-amber-950/20 dark:border-amber-900/50 mb-5 text-right rounded-2xl">
+                            <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                            <AlertTitle className="font-bold text-amber-800 dark:text-amber-400 text-sm">الطلب المرتبط بالمشروع مغلق</AlertTitle>
+                            <AlertDescription className="text-amber-700 dark:text-amber-300 text-xs mt-1 leading-relaxed">
+                              تم إغلاق الطلب المرتبط بهذا المشروع نهائياً، وتم إيقاف عمليات إنشاء طلبات الصرف وتقارير الإنجاز وتعديل أو إضافة الدفعات.
+                            </AlertDescription>
+                          </Alert>
+                        )}
                         {project.payments.some(payment => payment.source !== "manual" && (
                           payment.completionPercentage === null || 
                           payment.completionPercentage === undefined || 
@@ -2255,21 +2296,29 @@ export default function ProjectDetailsPage() {
                                         index === 0 ? (
                                           <Button
                                             size="sm"
-                                            disabled={hasDisbursement}
+                                            disabled={hasDisbursement || isRequestClosed}
                                             className={`h-8 px-2.5 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${
-                                              hasDisbursement
+                                              hasDisbursement || isRequestClosed
                                                 ? "bg-slate-100 text-slate-400 dark:bg-slate-800/80 dark:text-slate-500 border border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-75 shadow-none"
                                                 : "bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
                                             }`}
                                             onClick={() => {
-                                              if (!hasDisbursement) {
+                                              if (!hasDisbursement && !isRequestClosed) {
                                                 navigate(`/disbursements/new-linked?projectId=${project.id}&paymentId=${payment.id}&paymentNumber=${payment.paymentNumber || 1}&isAdvance=true`);
                                               }
                                             }}
-                                            title={hasDisbursement ? "تم إنشاء طلب صرف لهذه الدفعة مسبقاً" : "إنشاء طلب صرف للدفعة الأولى"}
+                                            title={
+                                              isRequestClosed
+                                                ? "لا يمكن إنشاء طلب صرف لأن الطلب المرتبط بالمشروع مغلق"
+                                                : hasDisbursement
+                                                ? "تم إنشاء طلب صرف لهذه الدفعة مسبقاً"
+                                                : "إنشاء طلب صرف للدفعة الأولى"
+                                            }
                                           >
                                             {hasDisbursement ? (
                                               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                            ) : isRequestClosed ? (
+                                              <Lock className="w-3.5 h-3.5 text-slate-400" />
                                             ) : (
                                               <CreditCard className="w-3.5 h-3.5" />
                                             )}
@@ -2278,21 +2327,29 @@ export default function ProjectDetailsPage() {
                                         ) : (
                                           <Button
                                             size="sm"
-                                            disabled={hasReport}
+                                            disabled={hasReport || isRequestClosed}
                                             className={`h-8 px-2.5 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${
-                                              hasReport
+                                              hasReport || isRequestClosed
                                                 ? "bg-slate-100 text-slate-400 dark:bg-slate-800/80 dark:text-slate-500 border border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-75 shadow-none"
                                                 : "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"
                                             }`}
                                             onClick={() => {
-                                              if (!hasReport) {
+                                              if (!hasReport && !isRequestClosed) {
                                                 navigate(`/progress-reports?projectId=${project.id}&paymentId=${payment.id}&paymentNumber=${payment.paymentNumber || (index + 1)}`);
                                               }
                                             }}
-                                            title={hasReport ? "تم إنشاء تقرير إنجاز لهذه الدفعة مسبقاً" : "إنشاء تقرير إنجاز لهذه الدفعة"}
+                                            title={
+                                              isRequestClosed
+                                                ? "لا يمكن إنشاء تقرير إنجاز لأن الطلب المرتبط بالمشروع مغلق"
+                                                : hasReport
+                                                ? "تم إنشاء تقرير إنجاز لهذه الدفعة مسبقاً"
+                                                : "إنشاء تقرير إنجاز لهذه الدفعة"
+                                            }
                                           >
                                             {hasReport ? (
                                               <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500" />
+                                            ) : isRequestClosed ? (
+                                              <Lock className="w-3.5 h-3.5 text-slate-400" />
                                             ) : (
                                               <FileText className="w-3.5 h-3.5" />
                                             )}
@@ -2304,9 +2361,19 @@ export default function ProjectDetailsPage() {
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          className="h-8 w-8 text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer"
-                                          onClick={() => navigate(`/payments/edit/${payment.id}`)}
-                                          title="تعديل الدفعة"
+                                          disabled={isRequestClosed}
+                                          className={cn(
+                                            "h-8 w-8 rounded-lg",
+                                            isRequestClosed
+                                              ? "text-muted-foreground/40 cursor-not-allowed hover:bg-transparent"
+                                              : "text-blue-600 hover:bg-blue-50 cursor-pointer"
+                                          )}
+                                          onClick={() => {
+                                            if (!isRequestClosed) {
+                                              navigate(`/payments/edit/${payment.id}`);
+                                            }
+                                          }}
+                                          title={isRequestClosed ? "لا يمكن تعديل الدفعة لأن الطلب المرتبط بالمشروع مغلق" : "تعديل الدفعة"}
                                         >
                                           <Edit className="h-4 w-4" />
                                         </Button>

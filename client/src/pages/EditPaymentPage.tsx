@@ -95,6 +95,12 @@ export default function EditPaymentPage() {
   );
 
   const isPaid = Boolean(payment?.isPaid || payment?.status === "paid" || Number(payment?.paidAmount || 0) > 0);
+  const isRequestClosed = Boolean(
+    (projectDetails as any)?.isRequestClosed ||
+    projectDetails?.request?.currentStage === "closed" ||
+    (projectDetails as any)?.request?.status === "completed" ||
+    (projectDetails as any)?.request?.closureStatus === "confirmed"
+  );
   
   // جلب المشاريع
   const { data: projects } = trpc.projects.getAll.useQuery({});
@@ -469,6 +475,10 @@ export default function EditPaymentPage() {
       toast.error("لا يمكن تعديل دفعة مسددة نهائياً");
       return;
     }
+    if (isRequestClosed) {
+      toast.error("لا يمكن تعديل الدفعة لأن الطلب المرتبط بالمشروع مغلق نهائياً");
+      return;
+    }
     if (!formData.projectId) {
       toast.error("يرجى اختيار المشروع");
       return;
@@ -567,7 +577,7 @@ export default function EditPaymentPage() {
             </div>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
-            <Button onClick={handleSubmit} disabled={updateMutation.isPending || isPaid} className="w-full sm:w-auto shadow-sm">
+            <Button onClick={handleSubmit} disabled={updateMutation.isPending || isPaid || isRequestClosed} className="w-full sm:w-auto shadow-sm">
               {updateMutation.isPending ? <Loader2 className="h-4 w-4 ml-2 animate-spin" /> : <Send className="h-4 w-4 ml-2" />}
               حفظ التعديلات
             </Button>
@@ -580,6 +590,15 @@ export default function EditPaymentPage() {
             <AlertTitle className="font-bold">تنبيه: هذه الدفعة مسددة ومقفلة</AlertTitle>
             <AlertDescription>
               تم سداد هذه الدفعة (أو تم تنفيذ أوامر صرف عليها). لا يمكن تعديل بياناتها أو مبالغها نهائياً حفاظاً على السلامة المالية والمحاسبية.
+            </AlertDescription>
+          </Alert>
+        )}
+        {isRequestClosed && (
+          <Alert className="bg-amber-500/10 border-amber-500/30 text-amber-800 dark:text-amber-300">
+            <Lock className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="font-bold">تنبيه: الطلب المرتبط بالمشروع مغلق</AlertTitle>
+            <AlertDescription>
+              تم إغلاق الطلب المرتبط بهذا المشروع نهائياً. لا يمكن تعديل بيانات هذه الدفعة.
             </AlertDescription>
           </Alert>
         )}

@@ -322,6 +322,7 @@ export const projectsRouter = router({
     .input(z.object({
       search: z.string().optional(),
       status: z.enum(["planning", "in_progress", "on_hold", "completed", "cancelled"]).optional(),
+      excludeClosedRequests: z.boolean().optional(),
       limit: z.number().min(1).max(1000).default(100),
       offset: z.number().min(0).default(0),
     }).optional())
@@ -353,6 +354,19 @@ export const projectsRouter = router({
       const filters = [];
       if (input?.status) {
         filters.push(eq(projects.status, input.status));
+      }
+
+      if (input?.excludeClosedRequests) {
+        filters.push(
+          or(
+            isNull(projects.requestId),
+            and(
+              ne(mosqueRequests.currentStage, "closed"),
+              ne(mosqueRequests.status, "completed"),
+              or(isNull(mosqueRequests.closureStatus), ne(mosqueRequests.closureStatus, "confirmed"))
+            )
+          )
+        );
       }
 
       if (input?.search && input.search.trim()) {
@@ -391,6 +405,8 @@ export const projectsRouter = router({
           managerId: projects.managerId,
           managerName: users.name,
           requestStage: mosqueRequests.currentStage,
+          requestStatus: mosqueRequests.status,
+          requestClosureStatus: mosqueRequests.closureStatus,
           technicalEvalDecision: mosqueRequests.technicalEvalDecision,
           programType: sql<string>`COALESCE(${projects.programType}, ${mosqueRequests.programType})`.as('programType'),
           mosqueName: mosques.name,
@@ -736,6 +752,8 @@ export const projectsRouter = router({
           requestNumber: mosqueRequests.requestNumber,
           programType: mosqueRequests.programType,
           currentStage: mosqueRequests.currentStage,
+          status: mosqueRequests.status,
+          closureStatus: mosqueRequests.closureStatus,
           approvedBudget: mosqueRequests.approvedBudget,
           mosqueName: mosques.name,
           mosqueCity: mosques.city,
@@ -1297,8 +1315,17 @@ export const projectsRouter = router({
         }
       }
 
+      const isRequestClosed = Boolean(
+        request && (
+          request.currentStage === "closed" ||
+          request.status === "completed" ||
+          request.closureStatus === "confirmed"
+        )
+      );
+
       return {
         ...project,
+        isRequestClosed,
         request: request ? {
           ...request,
           programData: parsedProgramData,

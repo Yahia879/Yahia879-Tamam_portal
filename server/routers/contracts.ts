@@ -200,6 +200,57 @@ export const contractsRouter = router({
           .orderBy(desc(contractsEnhanced.createdAt))
           .limit(limit)
           .offset((page - 1) * limit);
+
+        // جمع كافة معرفات الطلبات والمشاريع المرتبطة لمعرفة ما إذا كان الطلب مغلقاً
+        const directReqIds = contracts.map(c => c.requestId).filter((id): id is number => typeof id === "number" && id > 0);
+        const pIds = contracts.map(c => c.projectId).filter((id): id is number => typeof id === "number" && id > 0);
+        
+        const projectReqMap = new Map<number, number>();
+        if (pIds.length > 0) {
+          const projs = await db
+            .select({ id: projects.id, requestId: projects.requestId })
+            .from(projects)
+            .where(inArray(projects.id, pIds));
+          for (const p of projs) {
+            if (p.requestId) {
+              projectReqMap.set(p.id, p.requestId);
+            }
+          }
+        }
+
+        const allReqIds = Array.from(new Set([
+          ...directReqIds,
+          ...Array.from(projectReqMap.values()),
+        ]));
+
+        const closedReqIdSet = new Set<number>();
+        if (allReqIds.length > 0) {
+          const reqs = await db
+            .select({
+              id: mosqueRequests.id,
+              currentStage: mosqueRequests.currentStage,
+              status: mosqueRequests.status,
+              closureStatus: mosqueRequests.closureStatus,
+            })
+            .from(mosqueRequests)
+            .where(inArray(mosqueRequests.id, allReqIds));
+          
+          for (const r of reqs) {
+            const isClosed = r.currentStage === 'closed' || r.status === 'completed' || r.closureStatus === 'confirmed';
+            if (isClosed) {
+              closedReqIdSet.add(r.id);
+            }
+          }
+        }
+
+        const enrichedContracts = contracts.map(c => {
+          const effReqId = c.requestId || (c.projectId ? projectReqMap.get(c.projectId) : undefined);
+          const isRequestClosed = effReqId ? closedReqIdSet.has(effReqId) : false;
+          return {
+            ...c,
+            isRequestClosed,
+          };
+        });
         
         // جلب العدد الإجمالي
         const [countResult] = await db
@@ -207,7 +258,7 @@ export const contractsRouter = router({
           .from(contractsEnhanced);
         
         return {
-          contracts,
+          contracts: enrichedContracts,
           total: countResult?.count || 0,
           page,
           limit,
@@ -296,6 +347,7 @@ export const contractsRouter = router({
           signatory: signatories,
           projectName: projects.name,
           introTemplate: contractTemplates.introTemplate,
+          projectRequestId: projects.requestId,
         })
         .from(contractsEnhanced)
         .leftJoin(signatories, eq(contractsEnhanced.signatoryId, signatories.id))
@@ -620,6 +672,23 @@ export const contractsRouter = router({
         }
       }
 
+      const effectiveReqId = contract.requestId || contractData.projectRequestId;
+      let isRequestClosed = false;
+      if (effectiveReqId) {
+        const [linkedReq] = await db
+          .select({
+            id: mosqueRequests.id,
+            currentStage: mosqueRequests.currentStage,
+            status: mosqueRequests.status,
+            closureStatus: mosqueRequests.closureStatus,
+          })
+          .from(mosqueRequests)
+          .where(eq(mosqueRequests.id, effectiveReqId));
+        if (linkedReq) {
+          isRequestClosed = linkedReq.currentStage === "closed" || linkedReq.status === "completed" || linkedReq.closureStatus === "confirmed";
+        }
+      }
+
       return {
         contract: {
           ...contract,
@@ -631,7 +700,9 @@ export const contractsRouter = router({
           introTemplate: contractData.introTemplate || null,
           managementAmount: computedMgmtAmt,
           financialDetail,
+          isRequestClosed,
         },
+        isRequestClosed,
         payments: paymentsList,
         organizationSettings: orgSettings,
         clauseValues,
@@ -1067,6 +1138,30 @@ export const contractsRouter = router({
 
         if (!canEditApproved) {
           throw new Error("ليس لديك صلاحية تعديل العقود المعتمدة");
+        }
+      }
+
+      // التحقق مما إذا كان الطلب المرتبط مغلقاً
+      let effReqId = ((updateData as any).requestId as number | undefined) || contract.requestId;
+      if (!effReqId && contract.projectId) {
+        const [proj] = await db
+          .select({ requestId: projects.requestId })
+          .from(projects)
+          .where(eq(projects.id, contract.projectId))
+          .limit(1);
+        if (proj?.requestId) effReqId = proj.requestId;
+      }
+      if (effReqId) {
+        const [linkedReq] = await db
+          .select({ currentStage: mosqueRequests.currentStage, status: mosqueRequests.status, closureStatus: mosqueRequests.closureStatus })
+          .from(mosqueRequests)
+          .where(eq(mosqueRequests.id, effReqId))
+          .limit(1);
+        if (linkedReq && (linkedReq.currentStage === "closed" || linkedReq.status === "completed" || linkedReq.closureStatus === "confirmed")) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "لا يمكن تعديل العقد لأن الطلب المرتبط بالمشروع مغلق نهائياً",
+          });
         }
       }
       

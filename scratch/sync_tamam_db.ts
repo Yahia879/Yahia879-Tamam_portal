@@ -140,7 +140,7 @@ async function runOnDatabase(dbName: string) {
     await modifyColumnIfNeeded(
       'users',
       'role',
-      "enum('super_admin','system_admin','general_manager','executive_director','projects_office','field_team','quick_response','financial','project_manager','corporate_comm','service_requester') NOT NULL DEFAULT 'service_requester'"
+      "enum('super_admin','system_admin','board_chairman','board_member','general_manager','executive_director','projects_office','field_team','quick_response','financial','financial_manager','project_manager','corporate_comm','service_requester') NOT NULL DEFAULT 'service_requester'"
     );
     await ensureColumn('contracts_enhanced', 'currentStep', 'int DEFAULT 1');
     await ensureColumn('progress_reports', 'milestones', 'longtext DEFAULT NULL');
@@ -366,6 +366,7 @@ async function runOnDatabase(dbName: string) {
 
 async function main() {
   await runOnDatabase('tamamgatemanarah_portal');
+  await runOnDatabase('test_temam');
 }
 
 main().catch(console.error);

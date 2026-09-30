@@ -67,21 +67,27 @@ export function ProjectSearchSelect({
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // جلب المشاريع تلقائياً في حال لم يتم تمريرها كمصفوفة
+  // جلب المشاريع تلقائياً في حال لم يتم تمريرها كمصفوفة (مع استبعاد المشاريع ذات الطلبات المغلقة)
   const shouldFetch = !passedProjects;
   const { data: fetchedProjects, isLoading: isQueryLoading } = trpc.projects.getAll.useQuery(
-    {},
+    { excludeClosedRequests: true },
     { enabled: shouldFetch }
   );
 
   const projectsList: ProjectItem[] = useMemo(() => {
-    if (passedProjects && Array.isArray(passedProjects)) {
-      return passedProjects;
-    }
-    if (fetchedProjects && Array.isArray(fetchedProjects)) {
-      return fetchedProjects;
-    }
-    return [];
+    const rawList = (passedProjects && Array.isArray(passedProjects))
+      ? passedProjects
+      : (fetchedProjects && Array.isArray(fetchedProjects))
+        ? fetchedProjects
+        : [];
+
+    return rawList.filter((p: any) => {
+      const isClosed =
+        p.requestStage === 'closed' ||
+        p.requestStatus === 'completed' ||
+        p.requestClosureStatus === 'confirmed';
+      return !isClosed;
+    });
   }, [passedProjects, fetchedProjects]);
 
   const isLoading = isExternalLoading || (shouldFetch && isQueryLoading);

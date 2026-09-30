@@ -953,9 +953,27 @@ export const disbursementsRouter = router({
 
   // جلب فرص التبرع النشطة
   getActiveDonations: permissionProcedure("disbursements.view")
-    .query(async () => {
+    .input(z.object({
+      excludeClosedRequests: z.boolean().optional(),
+    }).optional())
+    .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const whereConditions = [eq(donationOpportunities.status, 'active')];
+
+      if (input?.excludeClosedRequests) {
+        whereConditions.push(
+          or(
+            isNull(donationOpportunities.requestId),
+            and(
+              ne(mosqueRequests.currentStage, "closed"),
+              ne(mosqueRequests.status, "completed"),
+              or(isNull(mosqueRequests.closureStatus), ne(mosqueRequests.closureStatus, "confirmed"))
+            )
+          )!
+        );
+      }
 
       const list = await db
         .select({
@@ -966,10 +984,13 @@ export const disbursementsRouter = router({
           status: donationOpportunities.status,
           requestId: donationOpportunities.requestId,
           requestNumber: mosqueRequests.requestNumber,
+          requestStage: mosqueRequests.currentStage,
+          requestStatus: mosqueRequests.status,
+          requestClosureStatus: mosqueRequests.closureStatus,
         })
         .from(donationOpportunities)
         .leftJoin(mosqueRequests, eq(donationOpportunities.requestId, mosqueRequests.id))
-        .where(eq(donationOpportunities.status, 'active'))
+        .where(whereConditions.length > 1 ? and(...whereConditions) : whereConditions[0])
         .orderBy(desc(donationOpportunities.createdAt));
 
       return list;

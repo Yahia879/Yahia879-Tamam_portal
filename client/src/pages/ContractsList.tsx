@@ -454,10 +454,12 @@ export default function ContractsList() {
     (p: any) => p.requestStage === 'contracting' && !excludedProjectIds.has(p.id)
   );
 
-  // تصفية طلبات سدانة التي تم تحديد نوع التأمين فيها كـ "عقد" لموردين (لا تظهر إلا بعد الوصول لمرحلة "التشغيل والتنفيذ")
+  // تصفية طلبات سدانة التي تم تحديد نوع التأمين فيها كـ "عقد" لموردين (لا تظهر إلا بعد الوصول لمرحلة "التشغيل والتنفيذ" وغير مغلقة)
   const eligibleSedanaRequests = useMemo(() => {
     const list = (sedanaRequestsData?.requests || []).filter((req: any) =>
-      ['execution', 'handover', 'closed'].includes(req.currentStage)
+      ['execution', 'handover'].includes(req.currentStage) &&
+      req.status !== 'completed' &&
+      req.closureStatus !== 'confirmed'
     );
     const allContracts = allContractsData?.contracts || [];
 
@@ -859,8 +861,18 @@ export default function ContractsList() {
                                           <Button
                                             variant="outline"
                                             size="sm"
-                                            className="text-xs h-7 px-2.5 border-amber-600 text-amber-600 hover:bg-amber-50 font-bold"
-                                            onClick={() => navigate(`/contracts/${contract.id}/edit`)}
+                                            disabled={contract.isRequestClosed}
+                                            className={`text-xs h-7 px-2.5 font-bold ${
+                                              contract.isRequestClosed
+                                                ? "opacity-50 cursor-not-allowed border-slate-300 text-slate-400 bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-50"
+                                                : "border-amber-600 text-amber-600 hover:bg-amber-50"
+                                            }`}
+                                            onClick={() => {
+                                              if (!contract.isRequestClosed) {
+                                                navigate(`/contracts/${contract.id}/edit`);
+                                              }
+                                            }}
+                                            title={contract.isRequestClosed ? "لا يمكن تعديل العقد لأن الطلب المرتبط بالمشروع مغلق نهائياً" : ""}
                                           >
                                             <Edit className="h-3 w-3 ml-1" />
                                             {contract.status === "approved"
@@ -937,8 +949,18 @@ export default function ContractsList() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="flex-1 sm:flex-none text-xs sm:text-sm border-amber-600 text-amber-600 hover:bg-amber-50 font-bold"
-                                onClick={() => navigate(`/contracts/${contract.id}/edit`)}
+                                disabled={contract.isRequestClosed}
+                                className={`flex-1 sm:flex-none text-xs sm:text-sm font-bold ${
+                                  contract.isRequestClosed
+                                    ? "opacity-50 cursor-not-allowed border-slate-300 text-slate-400 bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-50"
+                                    : "border-amber-600 text-amber-600 hover:bg-amber-50"
+                                }`}
+                                onClick={() => {
+                                  if (!contract.isRequestClosed) {
+                                    navigate(`/contracts/${contract.id}/edit`);
+                                  }
+                                }}
+                                title={contract.isRequestClosed ? "لا يمكن تعديل العقد لأن الطلب المرتبط بالمشروع مغلق نهائياً" : ""}
                               >
                                 <Edit className="h-3.5 w-3.5 ml-1" />
                                 {contract.status === "approved" ? "تعديل العقد المعتمد" : (contract.status === "draft" ? "إكمال العقد" : "تعديل")}

@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, formatErrorMessage } from "@/lib/utils";
 import { 
   FileText, 
   Plus, 
@@ -214,9 +214,11 @@ export default function Requests({
       setSelectedClosureRequest(null);
       utils.requests.search.invalidate();
       utils.requests.getPendingClosureCount.invalidate();
+      utils.projects.getAll.invalidate();
+      utils.disbursements.getActiveDonations.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(formatErrorMessage(error, "فشل تأكيد إغلاق الطلب"));
     },
   });
 
@@ -229,9 +231,11 @@ export default function Requests({
       setIsRejecting(false);
       utils.requests.search.invalidate();
       utils.requests.getPendingClosureCount.invalidate();
+      utils.projects.getAll.invalidate();
+      utils.disbursements.getActiveDonations.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(formatErrorMessage(error, "يرجى كتابة سبب وتوجيه واضح لرفض الإغلاق (3 أحرف على الأقل)"));
     },
   });
 
@@ -944,11 +948,16 @@ export default function Requests({
                       <Button
                         variant="destructive"
                         size="sm"
-                        disabled={!closureRejectionReason.trim() || rejectCloseMutation.isPending}
+                        disabled={closureRejectionReason.trim().length < 3 || rejectCloseMutation.isPending}
                         onClick={() => {
+                          const reason = closureRejectionReason.trim();
+                          if (reason.length < 3) {
+                            toast.error("يرجى كتابة سبب وتوجيه واضح لرفض الإغلاق (3 أحرف على الأقل)");
+                            return;
+                          }
                           rejectCloseMutation.mutate({
                             requestId: selectedClosureRequest.id,
-                            reason: closureRejectionReason.trim(),
+                            reason,
                           });
                         }}
                       >

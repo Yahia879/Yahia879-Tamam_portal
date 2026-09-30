@@ -633,14 +633,36 @@ export default function NewLinkedDisbursementRequest() {
     formData.amountsSpent
   ]);
   
-  // جلب المشاريع
-  const { data: projects } = trpc.projects.getAll.useQuery({});
+  // جلب المشاريع (مع استبعاد المشاريع التي طلبها المرتبط مغلق)
+  const { data: projects } = trpc.projects.getAll.useQuery({ excludeClosedRequests: true });
   
-  // جلب فرص التبرع النشطة
+  // جلب فرص التبرع النشطة (مع استبعاد الفرص التي طلبها المرتبط مغلق)
   const { data: donationOpportunities } = trpc.disbursements.getActiveDonations.useQuery(
-    undefined,
+    { excludeClosedRequests: true },
     { enabled: isDonationLinked }
   );
+
+  // استبعاد أي مشروع يكون طلبه المرتبط مغلقاً أو مكتملاً
+  const activeProjects = useMemo(() => {
+    return (projects || []).filter((p: any) => {
+      const isClosed =
+        p.requestStage === 'closed' ||
+        p.requestStatus === 'completed' ||
+        p.requestClosureStatus === 'confirmed';
+      return !isClosed;
+    });
+  }, [projects]);
+
+  // استبعاد أي فرصة تبرع يكون طلبها المرتبط مغلقاً أو مكتملاً
+  const activeDonationOpportunities = useMemo(() => {
+    return (donationOpportunities || []).filter((opp: any) => {
+      const isClosed =
+        opp.requestStage === 'closed' ||
+        opp.requestStatus === 'completed' ||
+        opp.requestClosureStatus === 'confirmed';
+      return !isClosed;
+    });
+  }, [donationOpportunities]);
   
   // جلب الموردين النشطين
   const { data: allSuppliers } = trpc.suppliers.getActiveSuppliers.useQuery({ includeUnapproved: true });
@@ -1814,7 +1836,7 @@ export default function NewLinkedDisbursementRequest() {
                         value={formData.donationOpportunityId.toString()}
                         onValueChange={(value) => {
                           const oppId = parseInt(value);
-                          const selectedOpp = donationOpportunities?.find((o: any) => o.id === oppId);
+                          const selectedOpp = activeDonationOpportunities?.find((o: any) => o.id === oppId);
                           const parsedAmount = selectedOpp ? parseFloat(selectedOpp.targetAmount) : 0;
                           setFormData({ 
                             ...formData, 
@@ -1832,7 +1854,7 @@ export default function NewLinkedDisbursementRequest() {
                           <SelectValue placeholder="اختر فرصة التبرع للربط بها" />
                         </SelectTrigger>
                         <SelectContent dir="rtl">
-                          {donationOpportunities?.map((opp: any) => (
+                          {activeDonationOpportunities?.map((opp: any) => (
                             <SelectItem key={opp.id} value={opp.id.toString()} className="text-right">
                               {opp.title} - {opp.requestNumber}
                             </SelectItem>
@@ -1907,7 +1929,7 @@ export default function NewLinkedDisbursementRequest() {
                   <div className="space-y-2 text-right">
                     <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المشروع *</Label>
                     <ProjectSearchSelect
-                      projects={projects}
+                      projects={activeProjects}
                       value={formData.projectId > 0 ? formData.projectId.toString() : ""}
                       onValueChange={(value) => {
                         setFormData({ ...formData, projectId: parseInt(value) || 0, contractId: 0, fundingSourceName: "" });

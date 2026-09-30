@@ -536,7 +536,18 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     return { total, draft, submitted, reviewed, approved, avgProgress };
   })();
 
-  const { data: projectsData } = trpc.projects.getAll.useQuery({});
+  const { data: projectsData } = trpc.projects.getAll.useQuery({ excludeClosedRequests: true });
+
+  // استبعاد أي مشروع طلبه المرتبط مغلق أو مكتمل
+  const activeProjects = useMemo(() => {
+    return (projectsData || []).filter((p: any) => {
+      const isClosed =
+        p.requestStage === 'closed' ||
+        p.requestStatus === 'completed' ||
+        p.requestClosureStatus === 'confirmed';
+      return !isClosed;
+    });
+  }, [projectsData]);
 
   // جلب تفاصيل المشروع المحدد للتحقق من جدولة الدفعات
   const { data: projectDetails, isLoading: isProjectDetailsLoading } = trpc.projects.getById.useQuery(
@@ -1171,7 +1182,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 <div className="space-y-2">
                   <Label className="font-semibold text-foreground">المشروع <span className="text-red-500">*</span></Label>
                   <ProjectSearchSelect
-                    projects={projectsData}
+                    projects={activeProjects}
                     value={newReport.projectId > 0 ? newReport.projectId.toString() : ""}
                     disabled={!!editingReportId}
                     onValueChange={(v) => {

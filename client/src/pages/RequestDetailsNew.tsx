@@ -30,6 +30,7 @@ import { MultiMosquesIcon } from "@/components/MultiMosquesIcon";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
 import BoqTab from "@/components/BoqTab";
 import { toast } from "sonner";
+import { formatErrorMessage } from "@/lib/utils";
 import { getAllFieldsForProgram } from "@/lib/programFields";
 import { SedanaDetailsView } from "@/components/sedana/SedanaDetailsView";
 import { SedanaOfficeEvaluation } from "@/components/sedana/SedanaOfficeEvaluation";
@@ -848,7 +849,7 @@ export default function RequestDetailsNew() {
       utils.requests.getPendingClosureCount.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(formatErrorMessage(error, "فشل طلب إغلاق الطلب"));
     },
   });
 
@@ -859,9 +860,11 @@ export default function RequestDetailsNew() {
       utils.requests.getById.invalidate({ id: requestId });
       utils.requests.search.invalidate();
       utils.requests.getPendingClosureCount.invalidate();
+      utils.projects.getAll.invalidate();
+      utils.disbursements.getActiveDonations.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(formatErrorMessage(error, "فشل تأكيد إغلاق الطلب"));
     },
   });
 
@@ -873,9 +876,11 @@ export default function RequestDetailsNew() {
       utils.requests.getById.invalidate({ id: requestId });
       utils.requests.search.invalidate();
       utils.requests.getPendingClosureCount.invalidate();
+      utils.projects.getAll.invalidate();
+      utils.disbursements.getActiveDonations.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(formatErrorMessage(error, "يرجى كتابة سبب وتوجيه واضح لرفض الإغلاق (3 أحرف على الأقل)"));
     },
   });
 
@@ -5144,6 +5149,11 @@ export default function RequestDetailsNew() {
                 onChange={(e) => setCloseRejectionReason(e.target.value)}
                 className="text-xs min-h-[90px]"
               />
+              {closureRejectionReason.trim().length > 0 && closureRejectionReason.trim().length < 3 && (
+                <p className="text-[11px] text-rose-600 font-semibold pt-1">
+                  * يرجى كتابة سبب وتوجيه واضح لرفض الإغلاق (3 أحرف على الأقل).
+                </p>
+              )}
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
@@ -5160,11 +5170,16 @@ export default function RequestDetailsNew() {
               <Button
                 variant="destructive"
                 className="font-bold gap-1.5"
-                disabled={!closureRejectionReason.trim() || rejectCloseMutation.isPending}
+                disabled={closureRejectionReason.trim().length < 3 || rejectCloseMutation.isPending}
                 onClick={() => {
+                  const reason = closureRejectionReason.trim();
+                  if (reason.length < 3) {
+                    toast.error("يرجى كتابة سبب وتوجيه واضح لرفض الإغلاق (3 أحرف على الأقل)");
+                    return;
+                  }
                   rejectCloseMutation.mutate({
                     requestId,
-                    reason: closureRejectionReason.trim(),
+                    reason,
                   });
                 }}
               >

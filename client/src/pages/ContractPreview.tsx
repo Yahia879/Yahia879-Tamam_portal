@@ -623,6 +623,7 @@ export default function ContractPreview() {
   }
 
   const { contract, payments, organizationSettings: orgSettings, clauseValues } = data;
+  const isRequestClosed = Boolean((data as any)?.isRequestClosed || (contract as any)?.isRequestClosed);
   const resolvedProjectName = (data as any)?.projectName || (contract as any)?.projectName || (contract as any)?.contractTitle || "";
 
   const executiveDirectorSignatureUrl = 
@@ -744,7 +745,7 @@ export default function ContractPreview() {
                 />
               </label>
             )}
-            {(contract.status === "draft" || contract.status === "pending_approval") && canApproveContract && (
+            {(contract.status === "draft" || contract.status === "pending_approval") && canApproveContract && !isRequestClosed && (
               <Button
                 onClick={() => approveMutation.mutate({ id: contractId! })}
                 disabled={approveMutation.isPending}
@@ -762,8 +763,18 @@ export default function ContractPreview() {
             {(contract.status === "draft" || contract.status === "pending_approval" || (contract.status === "approved" && canEditApprovedContract)) && canApproveContract && (
               <Button
                 variant="outline"
-                onClick={() => navigate(`/contracts/${contract.id}/edit`)}
-                className="flex-1 sm:flex-none border-amber-600 text-amber-600 hover:bg-amber-50"
+                disabled={isRequestClosed}
+                onClick={() => {
+                  if (!isRequestClosed) {
+                    navigate(`/contracts/${contract.id}/edit`);
+                  }
+                }}
+                className={`flex-1 sm:flex-none font-bold ${
+                  isRequestClosed
+                    ? "opacity-50 cursor-not-allowed border-slate-300 text-slate-400 bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-50"
+                    : "border-amber-600 text-amber-600 hover:bg-amber-50"
+                }`}
+                title={isRequestClosed ? "لا يمكن تعديل العقد لأن الطلب المرتبط مغلق نهائياً" : ""}
               >
                 <Edit className="h-4 w-4 ml-2" />
                 {contract.status === "approved" ? "تعديل العقد المعتمد" : "التعديل على الخطوات السابقة"}
