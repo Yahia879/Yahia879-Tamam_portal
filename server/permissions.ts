@@ -1403,6 +1403,11 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     'progress_reports.exception_approve',
     'disbursements.exception_approve',
     'disbursement_orders.exception_approve',
+    'orders_and_letters',
+    'orders_and_letters.view',
+    'orders_and_letters.approve',
+    'orders_and_letters.create_disbursement',
+    'orders_and_letters.export',
   ];
   for (const perm of permissionsToExpand) {
     const expanded = PERMISSION_EXPANSION[perm];
