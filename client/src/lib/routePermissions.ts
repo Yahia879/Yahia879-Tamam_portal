@@ -82,6 +82,10 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 
   service_requester: [], // طالب الخدمة لا يملك صلاحيات إدارية
+
+  procurement_officer: [
+    "quotations", "quotations.view", "quotations.add"
+  ],
 };
 
 // ─────────────────────────────────────────
@@ -486,6 +490,13 @@ export function hasRouteAccess(
 export function getUserHomeRoute(user: any): string {
   if (!user) return "/login";
   if (user.role === "service_requester") return "/requester";
+  if (
+    user.role === "procurement_officer" ||
+    (user as any)?.customRole?.nameAr === "مسؤول المشتريات" ||
+    ((user as any)?.customRole?.nameEn || "").toLowerCase() === "procurement officer"
+  ) {
+    return "/quotations";
+  }
 
   // جميع الموظفين والمستخدمين الإداريين صفحتهم الرئيسية هي لوحة التحكم المخصصة لدورهم
   return "/dashboard";
