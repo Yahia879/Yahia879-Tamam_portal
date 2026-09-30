@@ -511,8 +511,8 @@ export const requestsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض هذا الطلب" });
       }
 
-      // مسؤول المشتريات مقتصر فقط على طلبات برنامج سدانة
-      if (ctx.user.role === "procurement_officer" && request.programType !== "sedana") {
+      // مسؤول المشتريات مقتصر افتراضياً على طلبات برنامج سدانة، إلا إذا تم منحه صلاحية requests.view_details صراحة
+      if (ctx.user.role === "procurement_officer" && request.programType !== "sedana" && !hasDetailsPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "صلاحيات مسؤول المشتريات مقتصرة على طلبات برنامج سدانة فقط" });
       }
 
@@ -814,10 +814,12 @@ export const requestsRouter = router({
       const isSuperOrSystemAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role || "");
       const isProcurementOfficer = ctx.user.role === "procurement_officer";
 
-      if (isProcurementOfficer) {
-        // مسؤول المشتريات مخصص لبرنامج سدانة فقط
+      const hasGeneralRequestsView = userPermissions.includes("requests.view") || userPermissions.includes("requests.view_details") || userPermissions.includes("*");
+
+      if (isProcurementOfficer && !hasGeneralRequestsView) {
+        // مسؤول المشتريات مخصص لبرنامج سدانة فقط افتراضياً
         conditions.push(eq(mosqueRequests.programType, "sedana"));
-      } else if (input.excludeSedana || (!isSuperOrSystemAdmin && !input.programType)) {
+      } else if (input.excludeSedana || (!isSuperOrSystemAdmin && !input.programType && !isProcurementOfficer)) {
         if (!isSuperOrSystemAdmin || input.excludeSedana) {
           conditions.push(
             sql`(${mosqueRequests.programType} IS NULL OR ${mosqueRequests.programType} != 'sedana')`
