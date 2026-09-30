@@ -2938,9 +2938,24 @@ export const projectsRouter = router({
       discountAmount: z.number().nullable().optional(),
       documentUrl: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من صلاحيات مسؤول المشتريات: مقتصر فقط على برنامج سدانة
+      if (ctx.user.role === "procurement_officer") {
+        if (!input.requestId) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "رقم الطلب مطلوب لإضافة عرض السعر" });
+        }
+        const [req] = await db
+          .select({ programType: mosqueRequests.programType })
+          .from(mosqueRequests)
+          .where(eq(mosqueRequests.id, input.requestId))
+          .limit(1);
+        if (req && req.programType !== "sedana") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "صلاحيات مسؤول المشتريات مقتصرة على عروض أسعار برنامج سدانة فقط" });
+        }
+      }
 
       const quotationNumber = generateQuotationNumber();
 
@@ -2979,9 +2994,21 @@ export const projectsRouter = router({
   // جلب عروض الأسعار للطلب
   getQuotationsByRequest: protectedProcedure
     .input(z.object({ requestId: z.number() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من صلاحيات مسؤول المشتريات: مقتصر فقط على برنامج سدانة
+      if (ctx.user.role === "procurement_officer") {
+        const [req] = await db
+          .select({ programType: mosqueRequests.programType })
+          .from(mosqueRequests)
+          .where(eq(mosqueRequests.id, input.requestId))
+          .limit(1);
+        if (req && req.programType !== "sedana") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "صلاحيات مسؤول المشتريات مقتصرة على عروض أسعار برنامج سدانة فقط" });
+        }
+      }
 
       const quotationsList = await db
         .select({
@@ -3025,9 +3052,20 @@ export const projectsRouter = router({
       id: z.number(),
       status: z.enum(["pending", "negotiating", "accepted", "rejected", "expired"]),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // اعتماد أو رفض عروض الأسعار يظل من اختصاص المدير التنفيذي فقط دون مسؤول المشتريات
+      if (input.status === "accepted" || input.status === "rejected") {
+        const isExecOrAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role);
+        if (!isExecOrAdmin || ctx.user.role === "procurement_officer") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "اعتماد أو رفض عروض الأسعار من اختصاص المدير التنفيذي فقط دون مسؤول المشتريات"
+          });
+        }
+      }
 
       const [quotation] = await db
         .select()
@@ -3111,9 +3149,18 @@ export const projectsRouter = router({
       approvedAmount: z.string().optional(), // المبلغ المعتمد مباشرة
       notes: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // اعتماد عروض الأسعار يظل من اختصاص المدير التنفيذي فقط دون مسؤول المشتريات
+      const isExecOrAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role);
+      if (!isExecOrAdmin || ctx.user.role === "procurement_officer") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "اعتماد عروض الأسعار من اختصاص المدير التنفيذي فقط دون مسؤول المشتريات"
+        });
+      }
 
       // جلب بيانات العرض
       const [quotation] = await db
@@ -3176,6 +3223,15 @@ export const projectsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // اعتماد وترسية عروض الأسعار يظل من اختصاص المدير التنفيذي فقط دون مسؤول المشتريات
+      const isExecOrAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role);
+      if (!isExecOrAdmin || ctx.user.role === "procurement_officer") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "اعتماد وترسية عروض الأسعار من اختصاص المدير التنفيذي فقط دون مسؤول المشتريات"
+        });
+      }
 
       const quotationIds = Array.from(new Set(input.itemVendorSelections.map(s => s.quotationId)));
 
