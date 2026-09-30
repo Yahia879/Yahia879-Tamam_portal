@@ -59,6 +59,7 @@ import {
   PieChart,
   HeartHandshake,
   ShoppingCart,
+  ShoppingBag,
   Boxes,
 } from "lucide-react";
 import { CSSProperties, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -178,6 +179,7 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
 
     if (["super_admin", "system_admin"].includes(role)) {
       const inventoryItems = [
+        { icon: ShoppingBag, label: "أوامر الشراء والخطاب المجتمعي", path: "/orders-and-letters" },
         { icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" },
         { icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" },
         { icon: Boxes, label: "المستودع الافتراضي", path: "/sedana-warehouse" },
@@ -186,17 +188,15 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
         label: isEn ? "Inventory Management" : "إدارة المخزون",
         items: inventoryItems,
       });
+    } else if (role === "financial") {
+      const inventoryItems = [
+        { icon: ShoppingBag, label: "أوامر الشراء والخطاب المجتمعي", path: "/orders-and-letters" },
+      ];
+      groups.push({
+        label: isEn ? "Inventory Management" : "إدارة المخزون",
+        items: inventoryItems,
+      });
     }
-  }
-
-  // المسؤول المالي
-  if (role === "financial_officer") {
-    groups.push({
-      label: isEn ? "Financial Tasks" : "المهام المالية",
-      items: [
-        { icon: ShoppingCart, label: "أوامر الشراء والخطاب المجتمعي", path: "/financial-officer" },
-      ],
-    });
   }
 
   // الاستجابة السريعة
@@ -268,14 +268,9 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     customRoleNameAr === "مسؤول المشتريات" ||
     customRoleNameEn?.toLowerCase() === "procurement officer";
 
-  const isFinancialOfficer =
-    role === "financial_officer" ||
-    customRoleNameAr === "المسؤول المالي" ||
-    customRoleNameEn?.toLowerCase() === "financial officer";
-
-  // الرئيسية: تظهر لمسؤول المشتريات أو المسؤول المالي فقط إذا تم تفعيل صلاحية dashboard له صراحة، وتظهر للمدراء وباقي الأدوار
+  // الرئيسية: تظهر لمسؤول المشتريات فقط إذا تم تفعيل صلاحية dashboard له صراحة، وتظهر للمدراء وباقي الأدوار
   const mainItems: MenuItem[] = [];
-  const canSeeDashboard = (isProcurementOfficer || isFinancialOfficer)
+  const canSeeDashboard = isProcurementOfficer
     ? (has("dashboard") || has("dashboard.view") || has("*"))
     : (["super_admin", "system_admin"].includes(role) || isExecDirector || has("dashboard") || has("dashboard.view") || role !== "service_requester");
 
@@ -346,9 +341,6 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
 
   // 3. المشتريات والمالية
   const finItems: MenuItem[] = [];
-  if (isFinancialOfficer || (has("purchase_orders") && has("csr_letters"))) {
-    finItems.push({ icon: ShoppingCart, label: "أوامر الشراء والخطاب المجتمعي", path: "/financial-officer" });
-  }
   if (has("suppliers"))           finItems.push({ icon: Truck,       label: "الموردون",        path: "/suppliers" });
   if (has("boq") || has("boq.add") || has("boq.edit") || has("boq.delete")) {
     finItems.push({ icon: Calculator,    label: "إعداد جداول الكميات",   path: "/boq-preparations" });
@@ -367,21 +359,24 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   
   if (finItems.length > 0) {
     groups.push({ 
-      label: isEn ? "Procurement & Finance" : (isFinancialOfficer ? "المهام المالية" : "المشتريات والمالية"), 
+      label: isEn ? "Procurement & Finance" : "المشتريات والمالية", 
       items: finItems 
     });
   }
 
   // 4. إدارة المخزون
-  if (["super_admin", "system_admin"].includes(role) || (!isFinancialOfficer && (has("purchase_orders") || has("csr_letters") || has("sedana_warehouse")))) {
+  if (["super_admin", "system_admin"].includes(role) || (has("orders_and_letters") || has("orders_and_letters.view") || has("purchase_orders") || has("csr_letters") || has("sedana_warehouse") || role === "financial")) {
     const inventoryItems: MenuItem[] = [];
-    if (has("purchase_orders") || has("purchase_orders.view")) {
+    if (["super_admin", "system_admin"].includes(role) || has("orders_and_letters") || has("orders_and_letters.view") || role === "financial") {
+      inventoryItems.push({ icon: ShoppingBag, label: "أوامر الشراء والخطاب المجتمعي", path: "/orders-and-letters" });
+    }
+    if (["super_admin", "system_admin"].includes(role) || has("purchase_orders") || has("purchase_orders.view")) {
       inventoryItems.push({ icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" });
     }
-    if (has("csr_letters") || has("csr_letters.view")) {
+    if (["super_admin", "system_admin"].includes(role) || has("csr_letters") || has("csr_letters.view")) {
       inventoryItems.push({ icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" });
     }
-    if (has("sedana_warehouse") || has("sedana_warehouse.view")) {
+    if (["super_admin", "system_admin"].includes(role) || has("sedana_warehouse") || has("sedana_warehouse.view")) {
       inventoryItems.push({ icon: Boxes, label: "المستودع الافتراضي", path: "/sedana-warehouse" });
     }
     if (inventoryItems.length > 0) {
