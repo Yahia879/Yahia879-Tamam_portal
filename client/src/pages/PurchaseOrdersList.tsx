@@ -96,9 +96,7 @@ export interface PurchaseOrdersViewProps {
 }
 
 export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }: PurchaseOrdersViewProps) {
-  if (!isEmbedded) {
-    useDocumentTitle("أوامر الشراء - سدانة");
-  }
+  useDocumentTitle(isEmbedded ? null : "أوامر الشراء - سدانة");
   const { user } = useAuth();
   const [, navigate] = useLocation();
 
