@@ -731,22 +731,42 @@ export default function NewLinkedDisbursementRequest() {
 
       const titleLower = (report.title || "").toLowerCase();
       const numUpper = (report.reportNumber || "").toUpperCase();
-      const workSummary = (report.workSummary || "").toLowerCase();
-      
-      const isVisit = 
-        titleLower.includes("زيارة") || 
-        titleLower.includes("visit") || 
+      const workSummaryRaw = report.workSummary || "";
+      const workSummaryLower = workSummaryRaw.toLowerCase();
+
+      // استبعاد تقارير الزيارة الميدانية
+      const isVisit =
+        titleLower.includes("زيارة") ||
+        titleLower.includes("visit") ||
         numUpper.includes("VISIT") ||
-        workSummary.includes("الزيارة الميدانية") ||
-        workSummary.includes("تقرير زيارة");
-        
+        workSummaryLower.includes("الزيارة الميدانية") ||
+        workSummaryLower.includes("تقرير زيارة");
       if (isVisit) return false;
 
-      // استخراج معرف الدفعة من ملخص الأعمال
-      const paymentMatch = (report.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
+      // استبعاد التقارير الشهرية والربعية ونصف الشهرية وأي تقرير دوري آخر
+      // (هذه التقارير لا تكون مرتبطة بدفعة ولا تُستخدم لإنشاء طلبات صرف)
+      const isPeriodic =
+        titleLower.startsWith("التقرير الشهري") ||
+        titleLower.startsWith("التقرير الربعي") ||
+        titleLower.startsWith("تقرير نصف شهري") ||
+        titleLower.startsWith("التقرير نصف الشهري") ||
+        workSummaryLower.includes("تقرير شهري لفترة التنفيذ") ||
+        workSummaryLower.includes("تقرير ربعي لفترة التنفيذ") ||
+        workSummaryLower.includes("فترة التقرير الشهري") ||
+        workSummaryLower.includes("فترة التقرير الربعي");
+      if (isPeriodic) return false;
+
+      // فقط تقارير الإنجاز المرتبطة بدفعة تحتوي على [معرف الدفعة:] في workSummary
+      // أو تقارير مُعلَّمة كـ isAdvance (دفعة مقدمة)
+      const hasPaymentRef = /\[معرف الدفعة:\s*[^\]]+\]/.test(workSummaryRaw);
+      const isAdvanceReport = report.isAdvance === true;
+
+      if (!hasPaymentRef && !isAdvanceReport) return false;
+
+      // إذا كان مرتبطاً بدفعة، تحقق: هل هذه الدفعة عندها طلب صرف غير ملغي؟
+      const paymentMatch = workSummaryRaw.match(/\[معرف الدفعة:\s*([^\]]+)\]/);
       if (paymentMatch) {
         const rawPaymentId = paymentMatch[1].trim();
-        // تحقق: هل هذه الدفعة عندها طلب صرف غير ملغي؟
         if (paymentIdsWithActiveDisbursement.has(rawPaymentId)) {
           return false;
         }
