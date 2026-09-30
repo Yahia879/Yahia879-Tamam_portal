@@ -310,25 +310,17 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   ],
   "orders_and_letters.view": [
     "orders_and_letters.view",
-    "purchase_orders.view",
-    "csr_letters.view",
   ],
   "orders_and_letters.approve": [
     "orders_and_letters.approve",
-    "purchase_orders.approve",
-    "csr_letters.approve",
   ],
   "orders_and_letters.create_disbursement": [
     "orders_and_letters.create_disbursement",
-    "purchase_orders.create_disbursement",
-    "csr_letters.create_disbursement",
     "disbursement_orders.view",
     "disbursement_orders.create_direct",
   ],
   "orders_and_letters.export": [
     "orders_and_letters.export",
-    "purchase_orders.export",
-    "csr_letters.export",
   ],
 };
 
@@ -1071,33 +1063,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
       }
     }
 
-    // إسناد الصلاحيات الافتراضية لأوامر الشراء والخطاب المجتمعي للأدوار الأساسية إن لم تكن مسندة
-    // مفعلة تلقائياً فقط للإدارة المالية والمدراء العامين
-    const ordersLettersDefaultRolePerms: Record<string, string[]> = {
-      super_admin: ["orders_and_letters.view", "orders_and_letters.approve", "orders_and_letters.create_disbursement", "orders_and_letters.export"],
-      system_admin: ["orders_and_letters.view", "orders_and_letters.approve", "orders_and_letters.create_disbursement", "orders_and_letters.export"],
-      financial: ["orders_and_letters.view", "orders_and_letters.approve", "orders_and_letters.create_disbursement", "orders_and_letters.export"],
-    };
-
-    for (const [rId, pIds] of Object.entries(ordersLettersDefaultRolePerms)) {
-      for (const pId of pIds) {
-        const [existing] = await db.select({ id: rolePermissions.id })
-          .from(rolePermissions)
-          .where(and(
-            eq(rolePermissions.roleId, rId),
-            eq(rolePermissions.permissionId, pId)
-          ))
-          .limit(1);
-
-        if (!existing) {
-          await db.insert(rolePermissions).values({
-            roleId: rId,
-            permissionId: pId
-          }).catch(() => {});
-        }
-      }
-    }
-
     // إسناد الصلاحيات الافتراضية لأوامر الشراء للأدوار الأساسية إن لم تكن مسندة
     const poDefaultRolePerms: Record<string, string[]> = {
       super_admin: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
@@ -1105,7 +1070,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
       general_manager: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
       executive_director: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
       financial_manager: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
-      financial: ["purchase_orders.view", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
       projects_office: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
       project_manager: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.export"],
     };
@@ -1136,7 +1100,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
       general_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
       executive_director: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
       financial_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
-      financial: ["csr_letters.view", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
       projects_office: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
       project_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.export"],
     };
