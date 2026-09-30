@@ -189,6 +189,16 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
     }
   }
 
+  // المسؤول المالي
+  if (role === "financial_officer") {
+    groups.push({
+      label: isEn ? "Financial Tasks" : "المهام المالية",
+      items: [
+        { icon: ShoppingCart, label: "أوامر الشراء والخطاب المجتمعي", path: "/financial-officer" },
+      ],
+    });
+  }
+
   // الاستجابة السريعة
   if (role === "quick_response") {
     groups.push({
@@ -258,9 +268,14 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     customRoleNameAr === "مسؤول المشتريات" ||
     customRoleNameEn?.toLowerCase() === "procurement officer";
 
-  // الرئيسية: تظهر لمسؤول المشتريات فقط إذا تم تفعيل صلاحية dashboard له صراحة، وتظهر للمدراء وباقي الأدوار
+  const isFinancialOfficer =
+    role === "financial_officer" ||
+    customRoleNameAr === "المسؤول المالي" ||
+    customRoleNameEn?.toLowerCase() === "financial officer";
+
+  // الرئيسية: تظهر لمسؤول المشتريات أو المسؤول المالي فقط إذا تم تفعيل صلاحية dashboard له صراحة، وتظهر للمدراء وباقي الأدوار
   const mainItems: MenuItem[] = [];
-  const canSeeDashboard = isProcurementOfficer
+  const canSeeDashboard = (isProcurementOfficer || isFinancialOfficer)
     ? (has("dashboard") || has("dashboard.view") || has("*"))
     : (["super_admin", "system_admin"].includes(role) || isExecDirector || has("dashboard") || has("dashboard.view") || role !== "service_requester");
 
@@ -331,6 +346,9 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
 
   // 3. المشتريات والمالية
   const finItems: MenuItem[] = [];
+  if (isFinancialOfficer || (has("purchase_orders") && has("csr_letters"))) {
+    finItems.push({ icon: ShoppingCart, label: "أوامر الشراء والخطاب المجتمعي", path: "/financial-officer" });
+  }
   if (has("suppliers"))           finItems.push({ icon: Truck,       label: "الموردون",        path: "/suppliers" });
   if (has("boq") || has("boq.add") || has("boq.edit") || has("boq.delete")) {
     finItems.push({ icon: Calculator,    label: "إعداد جداول الكميات",   path: "/boq-preparations" });
@@ -349,13 +367,13 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   
   if (finItems.length > 0) {
     groups.push({ 
-      label: isEn ? "Procurement & Finance" : "المشتريات والمالية", 
+      label: isEn ? "Procurement & Finance" : (isFinancialOfficer ? "المهام المالية" : "المشتريات والمالية"), 
       items: finItems 
     });
   }
 
-  // 4. إدارة المخزون (فقط لمدراء النظام)
-  if (["super_admin", "system_admin"].includes(role)) {
+  // 4. إدارة المخزون
+  if (["super_admin", "system_admin"].includes(role) || (!isFinancialOfficer && (has("purchase_orders") || has("csr_letters") || has("sedana_warehouse")))) {
     const inventoryItems: MenuItem[] = [];
     if (has("purchase_orders") || has("purchase_orders.view")) {
       inventoryItems.push({ icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" });
