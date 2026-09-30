@@ -17,7 +17,8 @@ export const userRoles = [
   "financial",        // الإدارة المالية
   "project_manager",  // مدير المشروع
   "corporate_comm",   // الاتصال المؤسسي
-  "service_requester" // طالب الخدمة
+  "service_requester", // طالب الخدمة
+  "procurement_officer", // مسؤول المشتريات
 ] as const;
 
 // المراحل الرئيسية للطلبات (11 مرحلة)
