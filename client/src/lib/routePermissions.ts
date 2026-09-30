@@ -490,10 +490,13 @@ export function hasRouteAccess(
 export function getUserHomeRoute(user: any): string {
   if (!user) return "/login";
   if (user.role === "service_requester") return "/requester";
+  const userPerms: string[] = (user as any)?.permissions ?? [];
+  const hasDashboard = userPerms.includes("dashboard") || userPerms.includes("dashboard.view") || userPerms.includes("*");
   if (
-    user.role === "procurement_officer" ||
+    (user.role === "procurement_officer" ||
     (user as any)?.customRole?.nameAr === "مسؤول المشتريات" ||
-    ((user as any)?.customRole?.nameEn || "").toLowerCase() === "procurement officer"
+    ((user as any)?.customRole?.nameEn || "").toLowerCase() === "procurement officer") &&
+    !hasDashboard
   ) {
     return "/quotations";
   }
