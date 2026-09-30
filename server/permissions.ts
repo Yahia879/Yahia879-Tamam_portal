@@ -497,8 +497,9 @@ async function ensureRequestsPermissionsExist(db: any) {
     const defaultMappings: Record<string, string[]> = {
       board_chairman: ["board_chairman"],
       board_member: ["board_member"],
-      general_manager: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide"],
-      executive_director: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide"],
+      general_manager: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "quotations.view", "quotations.approve"],
+      executive_director: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "quotations.view", "quotations.approve"],
+      procurement_officer: ["quotations.view", "quotations.create"],
       projects_office: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide"],
       field_team: ["requests.view", "requests.manage_as_field_team"],
       quick_response: ["requests.view", "requests.manage_as_quick_response"],
@@ -524,6 +525,7 @@ async function ensureRequestsPermissionsExist(db: any) {
       quick_response: "فريق الاستجابة السريعة",
       corporate_comm: "الاتصال المؤسسي",
       service_requester: "طالب خدمة",
+      procurement_officer: "مسؤول المشتريات",
     };
 
     for (const [roleId, permIds] of Object.entries(defaultMappings)) {
@@ -1192,6 +1194,10 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   // إسناد صلاحيات تلقائية للأدوار الأساسية إذا لزم الأمر
   if (userData?.role === "service_requester" && !hasCustomRole) {
     rolePermissionsData.push("requests.create", "requests.view");
+  }
+
+  if (userData?.role === "procurement_officer" && !hasCustomRole) {
+    rolePermissionsData.push("quotations.view", "quotations.create");
   }
 
   if (userData?.role === "board_chairman" || roleIds.includes("board_chairman")) {
