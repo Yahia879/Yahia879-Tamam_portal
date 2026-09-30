@@ -704,25 +704,9 @@ export default function NewLinkedDisbursementRequest() {
     { enabled: formData.projectId > 0 }
   );
 
-  // تصفية التقارير لاستبعاد تقارير الزيارة الميدانية وإبقاء تقارير الإنجاز المعتمدة فقط لهذا المشروع
-  // وكذلك استبعاد أي تقرير مرتبط بدفعة لديها طلب صرف غير ملغي (حتى لو كان التقرير الأصلي قد أُلغي)
+  // تصفية التقارير لاستبعاد تقارير الزيارة الميدانية والتقارير الدورية (الشهرية والربعية) وإبقاء تقارير الإنجاز المعتمدة لهذا المشروع
   const approvedReports = useMemo(() => {
     if (!rawApprovedReports || !formData.projectId) return [];
-
-    // بناء مجموعة من معرفات الدفعات التي لديها طلب صرف نشط (غير ملغي)
-    const paymentIdsWithActiveDisbursement = new Set<string>();
-    if (projectRequests?.requests) {
-      for (const req of projectRequests.requests) {
-        if (req.status === "cancelled") continue;
-        if (req.contractPaymentId) {
-          paymentIdsWithActiveDisbursement.add(`cp-${req.contractPaymentId}`);
-        }
-        if ((req as any).paymentId) {
-          paymentIdsWithActiveDisbursement.add(`manual-${(req as any).paymentId}`);
-          paymentIdsWithActiveDisbursement.add(`disb-${(req as any).paymentId}`);
-        }
-      }
-    }
 
     return rawApprovedReports.filter((report: any) => {
       // التأكد بشكل قاطع من أن التقرير معتمد فقط وتابع لنفس المشروع
@@ -756,36 +740,9 @@ export default function NewLinkedDisbursementRequest() {
         workSummaryLower.includes("فترة التقرير الربعي");
       if (isPeriodic) return false;
 
-      // فقط تقارير الإنجاز المرتبطة بدفعة تحتوي على [معرف الدفعة:] في workSummary
-      // أو تقارير مُعلَّمة كـ isAdvance (دفعة مقدمة)
-      const hasPaymentRef = /\[معرف الدفعة:\s*[^\]]+\]/.test(workSummaryRaw);
-      const isAdvanceReport = report.isAdvance === true;
-
-      if (!hasPaymentRef && !isAdvanceReport) return false;
-
-      // إذا كان مرتبطاً بدفعة، تحقق: هل هذه الدفعة عندها طلب صرف غير ملغي؟
-      const paymentMatch = workSummaryRaw.match(/\[معرف الدفعة:\s*([^\]]+)\]/);
-      if (paymentMatch) {
-        const rawPaymentId = paymentMatch[1].trim();
-        if (paymentIdsWithActiveDisbursement.has(rawPaymentId)) {
-          return false;
-        }
-        // تحقق إضافي بالرقم فقط (بدون prefix)
-        const numericId = parseInt(rawPaymentId.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
-        if (numericId > 0) {
-          if (
-            paymentIdsWithActiveDisbursement.has(`cp-${numericId}`) ||
-            paymentIdsWithActiveDisbursement.has(`manual-${numericId}`) ||
-            paymentIdsWithActiveDisbursement.has(`disb-${numericId}`)
-          ) {
-            return false;
-          }
-        }
-      }
-
       return true;
     });
-  }, [rawApprovedReports, formData.projectId, projectRequests]);
+  }, [rawApprovedReports, formData.projectId]);
 
   // إلغاء تحديد التقرير في حال تغير المشروع أو لم يعد التقرير معتمداً
   useEffect(() => {
@@ -916,10 +873,8 @@ export default function NewLinkedDisbursementRequest() {
     }
     
     return projectRequests.requests.some((req: any) => {
-      if (req.status === "rejected") return false;
-      return isManual 
-        ? req.paymentId === paymentIdNumeric 
-        : req.contractPaymentId === paymentIdNumeric;
+      if (req.status === "rejected" || req.status === "cancelled") return false;
+      return req.contractPaymentId === paymentIdNumeric || req.paymentId === paymentIdNumeric;
     });
   };
 
@@ -966,13 +921,10 @@ export default function NewLinkedDisbursementRequest() {
   // دالة للتحقق مما إذا كانت دفعة معينة قد تم صرفها مسبقاً
   const isPaymentDisbursed = (payment: any) => {
     if (!projectRequests || !projectRequests.requests || !payment) return false;
-    const isManual = String(payment.id).startsWith("manual-");
     const numId = parseInt(String(payment.id).replace(/^(cp-|disb-|manual-)/i, "")) || 0;
     return projectRequests.requests.some((req: any) => {
-      if (req.status === "rejected") return false;
-      return isManual 
-        ? req.paymentId === numId 
-        : req.contractPaymentId === numId;
+      if (req.status === "rejected" || req.status === "cancelled") return false;
+      return req.contractPaymentId === numId || req.paymentId === numId;
     });
   };
 
