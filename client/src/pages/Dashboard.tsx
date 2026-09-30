@@ -194,13 +194,22 @@ export default function Dashboard() {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  // توجيه طالب الخدمة فقط إلى بوابته الخاصة
+  // توجيه طالب الخدمة أو مسؤول المشتريات إلى شاشته المخصصة
   useEffect(() => {
     if (!user) return;
     if (user.role === "service_requester") {
       navigate("/requester", { replace: true });
+      return;
     }
-  }, [user, navigate]);
+    if (
+      user.role === "procurement_officer" ||
+      customRoleNameAr === "مسؤول المشتريات" ||
+      customRoleNameEn === "procurement officer"
+    ) {
+      navigate("/quotations", { replace: true });
+      return;
+    }
+  }, [user, navigate, customRoleNameAr, customRoleNameEn]);
 
   // جلب إعدادات مهلة المستفيدين (SLA)
   const { data: slaSettingsData } = trpc.escalation.getSettings.useQuery();
