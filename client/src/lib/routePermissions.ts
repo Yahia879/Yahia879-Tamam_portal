@@ -53,7 +53,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   financial: [
     "dashboard", "suppliers", "quotations", "financial_approval",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers", "financial_report",
-    "contracts", "purchase_orders", "csr_letters", "sedana_warehouse",
+    "contracts", "sedana_warehouse",
     "orders_and_letters", "orders_and_letters.view",
   ],
 
