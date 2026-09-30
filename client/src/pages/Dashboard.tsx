@@ -201,10 +201,13 @@ export default function Dashboard() {
       navigate("/requester", { replace: true });
       return;
     }
+    const userPermissions: string[] = (user as any)?.permissions ?? [];
+    const hasDashboardPermission = userPermissions.includes("dashboard") || userPermissions.includes("dashboard.view") || userPermissions.includes("*");
     if (
-      user.role === "procurement_officer" ||
+      (user.role === "procurement_officer" ||
       customRoleNameAr === "مسؤول المشتريات" ||
-      customRoleNameEn === "procurement officer"
+      customRoleNameEn === "procurement officer") &&
+      !hasDashboardPermission
     ) {
       navigate("/quotations", { replace: true });
       return;
