@@ -156,7 +156,9 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/financial-approval": ["financial_approval.view", "financial_approval.approve"],
   "/boq-preparations": ["quotations", "requests.view_details", "requests.view", "boq", "boq.add", "boq.edit", "boq.delete"],
 
-  // ── العقود وأوامر الشراء والمسؤولية المجتمعية ──
+  // ── العقود وأوامر الشراء والمسؤولية المجتمعية والمسؤول المالي ──
+  "/financial-officer": ["purchase_orders.view", "purchase_orders", "csr_letters.view", "csr_letters"],
+  "/financial-tasks": ["purchase_orders.view", "purchase_orders", "csr_letters.view", "csr_letters"],
   "/contracts": "contracts",
   "/contracts/new": "contracts",
   "/purchase-orders": ["purchase_orders.view", "purchase_orders"],
