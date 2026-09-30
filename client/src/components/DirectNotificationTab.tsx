@@ -51,13 +51,8 @@ export default function DirectNotificationTab({
   const [page, setPage] = useState(1);
   const itemsPerPage = 8;
 
-  // القنوات الأربعة
-  const [channels, setChannels] = useState({
-    in_app: true,
-    whatsapp: true,
-    email: false,
-    sms: false
-  });
+  // طريقة الإرسال المحددة (منصة واحدة فقط)
+  const [selectedChannel, setSelectedChannel] = useState<"in_app" | "email" | "sms">("in_app");
 
   // حقول الرسالة
   const [title, setTitle] = useState("إشعار من إدارة البوابة");
@@ -80,7 +75,6 @@ export default function DirectNotificationTab({
     onSuccess: (res) => {
       const sentChannelsList: string[] = [];
       if (res.sentChannels.in_app) sentChannelsList.push("الموقع");
-      if (res.sentChannels.whatsapp) sentChannelsList.push("واتساب");
       if (res.sentChannels.email) sentChannelsList.push("البريد");
       if (res.sentChannels.sms) sentChannelsList.push("SMS");
 
@@ -182,23 +176,20 @@ export default function DirectNotificationTab({
     }
   };
 
-  const hasChannel = channels.in_app || channels.whatsapp || channels.email || channels.sms;
+  // إخفاء حقل العنوان عند اختيار الإرسال عبر SMS، وإظهاره فقط عند اختيار الموقع أو البريد الإلكتروني
+  const requiresTitle = selectedChannel !== "sms";
+
   const isFormValid =
     selectedRecipient !== null &&
-    title.trim().length > 0 &&
     message.trim().length > 0 &&
-    hasChannel;
+    (!requiresTitle || title.trim().length > 0);
 
   const handleSend = () => {
     if (!selectedRecipient) {
       toast.error("يرجى تحديد المستقبل أولاً من الجدول أعلاه");
       return;
     }
-    if (!hasChannel) {
-      toast.error("يرجى اختيار طريقة إرسال واحدة على الأقل من الطرق الأربعة");
-      return;
-    }
-    if (!title.trim()) {
+    if (requiresTitle && !title.trim()) {
       toast.error("يرجى إدخال عنوان الإشعار");
       return;
     }
@@ -209,9 +200,14 @@ export default function DirectNotificationTab({
 
     sendMutation.mutate({
       recipientId: selectedRecipient.id,
-      title: title.trim(),
+      title: requiresTitle ? title.trim() : "إشعار من إدارة البوابة",
       message: message.trim(),
-      channels
+      channels: {
+        in_app: selectedChannel === "in_app",
+        whatsapp: false,
+        email: selectedChannel === "email",
+        sms: selectedChannel === "sms"
+      }
     });
   };
 
@@ -292,25 +288,25 @@ export default function DirectNotificationTab({
           ) : (
             <>
               <div className="w-full overflow-x-auto scrollbar-thin">
-                <Table className="min-w-[650px]">
+                <Table className="min-w-[700px]">
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
-                      <TableHead className="w-16 text-center py-3 text-xs sm:text-sm font-bold text-foreground">
+                      <TableHead className="w-14 text-center py-3 px-3 text-xs sm:text-sm font-bold text-foreground">
                         تحديد
                       </TableHead>
-                      <TableHead className="text-right font-bold py-3 text-xs sm:text-sm text-foreground">
+                      <TableHead className="text-right font-bold py-3 px-4 text-xs sm:text-sm text-foreground">
                         الاسم
                       </TableHead>
-                      <TableHead className="text-right font-bold py-3 text-xs sm:text-sm text-foreground">
+                      <TableHead className="text-right font-bold py-3 px-4 text-xs sm:text-sm text-foreground">
                         {activeCategory === "beneficiary" ? "الصفة / الحساب" : "الدور الوظيفي"}
                       </TableHead>
-                      <TableHead className="text-right font-bold py-3 text-xs sm:text-sm text-foreground">
+                      <TableHead className="text-right font-bold py-3 px-5 text-xs sm:text-sm text-foreground min-w-[140px]">
                         رقم الجوال
                       </TableHead>
-                      <TableHead className="text-right font-bold py-3 text-xs sm:text-sm text-foreground">
+                      <TableHead className="text-right font-bold py-3 px-5 text-xs sm:text-sm text-foreground min-w-[220px]">
                         البريد الإلكتروني
                       </TableHead>
-                      <TableHead className="text-center font-bold py-3 text-xs sm:text-sm text-foreground pl-4">
+                      <TableHead className="text-center font-bold py-3 px-4 text-xs sm:text-sm text-foreground w-20">
                         الحالة
                       </TableHead>
                     </TableRow>
@@ -330,7 +326,7 @@ export default function DirectNotificationTab({
                           }`}
                         >
                           {/* مؤشر الراديو للاختيار الفردي */}
-                          <TableCell className="text-center py-3">
+                          <TableCell className="text-center py-3 px-3">
                             <div
                               className={`w-4 h-4 mx-auto rounded-full border-2 flex items-center justify-center transition-all ${
                                 isSelected
@@ -343,7 +339,7 @@ export default function DirectNotificationTab({
                           </TableCell>
 
                           {/* الاسم */}
-                          <TableCell className="py-3 text-xs sm:text-sm font-semibold text-foreground">
+                          <TableCell className="py-3 px-4 text-xs sm:text-sm font-semibold text-foreground">
                             {recipient.name}
                             {recipient.city && (
                               <span className="text-[10px] text-muted-foreground mr-1.5 font-normal">
@@ -353,7 +349,7 @@ export default function DirectNotificationTab({
                           </TableCell>
 
                           {/* الدور أو الصفة */}
-                          <TableCell className="py-3 text-xs sm:text-sm">
+                          <TableCell className="py-3 px-4 text-xs sm:text-sm">
                             <Badge
                               variant="outline"
                               className={`text-[10px] py-0.5 px-2 rounded-full border font-bold ${recipient.roleBadgeColor}`}
@@ -363,17 +359,21 @@ export default function DirectNotificationTab({
                           </TableCell>
 
                           {/* رقم الجوال */}
-                          <TableCell className="py-3 text-xs sm:text-sm text-muted-foreground font-mono" dir="ltr">
-                            {recipient.phone || "—"}
+                          <TableCell className="py-3 px-5 text-xs sm:text-sm text-muted-foreground text-right">
+                            <span dir="ltr" className="font-mono inline-block">
+                              {recipient.phone || "—"}
+                            </span>
                           </TableCell>
 
                           {/* البريد الإلكتروني */}
-                          <TableCell className="py-3 text-xs sm:text-sm text-muted-foreground">
-                            {recipient.email || "—"}
+                          <TableCell className="py-3 px-5 text-xs sm:text-sm text-muted-foreground text-right">
+                            <span dir="ltr" className="inline-block truncate max-w-[220px]" title={recipient.email || undefined}>
+                              {recipient.email || "—"}
+                            </span>
                           </TableCell>
 
                           {/* الحالة */}
-                          <TableCell className="text-center py-3 pl-4">
+                          <TableCell className="text-center py-3 px-4">
                             <Badge
                               variant="secondary"
                               className="text-[10px] py-0.5 px-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold"
@@ -409,10 +409,10 @@ export default function DirectNotificationTab({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <CardTitle className="text-sm sm:text-base md:text-lg font-bold text-foreground">
-                كتابة الرسالة وطرق الإرسال
+                كتابة الرسالة وتحديد منصة الإرسال
               </CardTitle>
               <CardDescription className="text-[11px] sm:text-xs md:text-sm mt-1 leading-relaxed">
-                اختر طرق الإرسال المناسبة من بين الطرق الأربعة، ثم اكتب عنوان ونص الرسالة للإرسال.
+                اختر منصة الإرسال (منصة واحدة فقط)، ثم اكتب نص الرسالة للإرسال.
               </CardDescription>
             </div>
 
@@ -443,93 +443,92 @@ export default function DirectNotificationTab({
         </CardHeader>
 
         <CardContent className="p-4 sm:p-6 space-y-5">
-          {/* طرق الإرسال الأربعة */}
+          {/* منصة الإرسال (منصة واحدة فقط) */}
           <div className="space-y-2">
             <label className="text-xs sm:text-sm font-bold text-foreground block">
-              طرق الإرسال (حدد طريقة واحدة أو أكثر):
+              منصة الإرسال (حدد منصة واحدة فقط):
             </label>
 
-            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {/* 1. الموقع */}
               <button
                 type="button"
-                onClick={() => setChannels((c) => ({ ...c, in_app: !c.in_app }))}
-                className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-all active:scale-95 ${
-                  channels.in_app
-                    ? "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/30 shadow-xs"
-                    : "bg-muted/40 text-muted-foreground border-border/40 hover:bg-muted"
+                onClick={() => setSelectedChannel("in_app")}
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all active:scale-[0.98] ${
+                  selectedChannel === "in_app"
+                    ? "bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/50 ring-2 ring-teal-500/20 shadow-xs"
+                    : "bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/70 hover:text-foreground"
                 }`}
               >
-                <Bell className="w-4 h-4" />
-                <span>إشعار الموقع (In-App)</span>
-                {channels.in_app && <Check className="w-3 h-3 text-teal-600 dark:text-teal-400" />}
+                <div className="flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                  <span>إشعار الموقع (In-App)</span>
+                </div>
+                <span className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
+                  selectedChannel === "in_app" ? "border-teal-600 bg-teal-600" : "border-muted-foreground/40 bg-transparent"
+                }`}>
+                  {selectedChannel === "in_app" && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                </span>
               </button>
 
-              {/* 2. واتساب */}
+              {/* 2. البريد الإلكتروني */}
               <button
                 type="button"
-                onClick={() => setChannels((c) => ({ ...c, whatsapp: !c.whatsapp }))}
-                className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-all active:scale-95 ${
-                  channels.whatsapp
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 shadow-xs"
-                    : "bg-muted/40 text-muted-foreground border-border/40 hover:bg-muted"
+                onClick={() => setSelectedChannel("email")}
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all active:scale-[0.98] ${
+                  selectedChannel === "email"
+                    ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/50 ring-2 ring-blue-500/20 shadow-xs"
+                    : "bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/70 hover:text-foreground"
                 }`}
               >
-                <MessageSquare className="w-4 h-4" />
-                <span>رسائل واتساب (WhatsApp)</span>
-                {channels.whatsapp && <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />}
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span>البريد الإلكتروني (Email)</span>
+                </div>
+                <span className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
+                  selectedChannel === "email" ? "border-blue-600 bg-blue-600" : "border-muted-foreground/40 bg-transparent"
+                }`}>
+                  {selectedChannel === "email" && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                </span>
               </button>
 
-              {/* 3. البريد الإلكتروني */}
+              {/* 3. الرسائل النصية */}
               <button
                 type="button"
-                onClick={() => setChannels((c) => ({ ...c, email: !c.email }))}
-                className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-all active:scale-95 ${
-                  channels.email
-                    ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 shadow-xs"
-                    : "bg-muted/40 text-muted-foreground border-border/40 hover:bg-muted"
+                onClick={() => setSelectedChannel("sms")}
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all active:scale-[0.98] ${
+                  selectedChannel === "sms"
+                    ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/50 ring-2 ring-amber-500/20 shadow-xs"
+                    : "bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/70 hover:text-foreground"
                 }`}
               >
-                <Mail className="w-4 h-4" />
-                <span>البريد الإلكتروني (Email)</span>
-                {channels.email && <Check className="w-3 h-3 text-blue-600 dark:text-blue-400" />}
-              </button>
-
-              {/* 4. الرسائل النصية */}
-              <button
-                type="button"
-                onClick={() => setChannels((c) => ({ ...c, sms: !c.sms }))}
-                className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-all active:scale-95 ${
-                  channels.sms
-                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 shadow-xs"
-                    : "bg-muted/40 text-muted-foreground border-border/40 hover:bg-muted"
-                }`}
-              >
-                <Smartphone className="w-4 h-4" />
-                <span>الرسائل النصية (SMS)</span>
-                {channels.sms && <Check className="w-3 h-3 text-amber-600 dark:text-amber-400" />}
+                <div className="flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span>الرسائل النصية (SMS)</span>
+                </div>
+                <span className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
+                  selectedChannel === "sms" ? "border-amber-600 bg-amber-600" : "border-muted-foreground/40 bg-transparent"
+                }`}>
+                  {selectedChannel === "sms" && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                </span>
               </button>
             </div>
-
-            {!hasChannel && (
-              <p className="text-[11px] text-red-500 font-semibold mt-1">
-                * يجب تحديد وسيلة إرسال واحدة على الأقل من الطرق الأربعة.
-              </p>
-            )}
           </div>
 
-          {/* عنوان الإشعار */}
-          <div className="space-y-1.5">
-            <label className="text-xs sm:text-sm font-bold text-foreground block">
-              عنوان الإشعار:
-            </label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="مثال: تنبيه إداري، تذكير بمتابعة الطلب..."
-              className="text-xs sm:text-sm rounded-xl border-border/70 bg-background"
-            />
-          </div>
+          {/* عنوان الإشعار - يظهر فقط إذا تم تحديد قنوات تحتاج عنواناً مثل إشعار الموقع أو البريد، ويختفي تلقائياً عند تحديد SMS فقط */}
+          {requiresTitle && (
+            <div className="space-y-1.5 transition-all animate-in fade-in duration-200">
+              <label className="text-xs sm:text-sm font-bold text-foreground block">
+                عنوان الإشعار:
+              </label>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="مثال: تنبيه إداري، تذكير بمتابعة الطلب..."
+                className="text-xs sm:text-sm rounded-xl border-border/70 bg-background"
+              />
+            </div>
+          )}
 
           {/* نص الرسالة المخصصة */}
           <div className="space-y-1.5">

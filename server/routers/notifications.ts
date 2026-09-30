@@ -2025,7 +2025,7 @@ export const notificationsRouter = router({
     .input(
       z.object({
         recipientId: z.number(),
-        title: z.string().min(1, "عنوان الإشعار مطلوب"),
+        title: z.string().optional().default("إشعار من إدارة البوابة"),
         message: z.string().min(1, "نص الرسالة مطلوب"),
         channels: z.object({
           in_app: z.boolean().default(false),
@@ -2057,13 +2057,14 @@ export const notificationsRouter = router({
       }
 
       const warnings: string[] = [];
+      const effectiveTitle = input.title?.trim() || "إشعار من إدارة البوابة";
 
       // 1. إشعار داخل الموقع
       if (in_app) {
         await db.insert(notifications).values({
           userId: recipient.id,
           type: "info",
-          title: input.title,
+          title: effectiveTitle,
           message: input.message,
           relatedType: "custom_direct",
           isRead: false,
@@ -2073,7 +2074,7 @@ export const notificationsRouter = router({
       // 2. واتساب
       if (whatsapp) {
         if (recipient.phone) {
-          sendWhatsApp(recipient.phone, input.title, input.message).catch((err) => {
+          sendWhatsApp(recipient.phone, effectiveTitle, input.message).catch((err) => {
             console.error("Custom WhatsApp send error:", err);
           });
         } else {
@@ -2084,7 +2085,7 @@ export const notificationsRouter = router({
       // 3. البريد الإلكتروني
       if (email) {
         if (recipient.email) {
-          sendEmailNotification(recipient.email, input.title, input.message).catch((err) => {
+          sendEmailNotification(recipient.email, effectiveTitle, input.message).catch((err) => {
             console.error("Custom Email send error:", err);
           });
         } else {
@@ -2092,10 +2093,10 @@ export const notificationsRouter = router({
         }
       }
 
-      // 4. الرسائل النصية القصيرة SMS
+      // 4. الرسائل النصية القصيرة SMS (إرسال نص الرسالة فقط بدون العنوان)
       if (sms) {
         if (recipient.phone) {
-          const smsMessage = `${input.title}\n\n${input.message}`;
+          const smsMessage = input.message;
           sendSms(recipient.phone, smsMessage).catch((err) => {
             console.error("Custom SMS send error:", err);
           });

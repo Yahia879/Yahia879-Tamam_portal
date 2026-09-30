@@ -320,8 +320,9 @@ export const contractsRouter = router({
             inArray(quotations.status, ["accepted", "approved"])
           ))
           .limit(1);
-        if (appQ?.totalAmount) {
-          const qVal = parseFloat(String(appQ.totalAmount));
+        const approvedVal = appQ?.finalAmount || appQ?.approvedAmount || appQ?.totalAmount;
+        if (approvedVal) {
+          const qVal = parseFloat(String(approvedVal));
           if (qVal > 0) {
             contract.contractAmount = String(qVal);
             contract.contractAmountText = numberToArabicText(qVal);
@@ -729,8 +730,9 @@ export const contractsRouter = router({
             inArray(quotations.status, ["accepted", "approved"])
           ))
           .limit(1);
-        if (appQ?.totalAmount) {
-          const qVal = parseFloat(String(appQ.totalAmount));
+        const approvedVal = appQ?.finalAmount || appQ?.approvedAmount || appQ?.totalAmount;
+        if (approvedVal) {
+          const qVal = parseFloat(String(approvedVal));
           if (qVal > 0) {
             effectiveContractAmount = qVal;
           }
@@ -1091,8 +1093,9 @@ export const contractsRouter = router({
             inArray(quotations.status, ["accepted", "approved"])
           ))
           .limit(1);
-        if (appQ?.totalAmount) {
-          const qVal = parseFloat(String(appQ.totalAmount));
+        const approvedVal = appQ?.finalAmount || appQ?.approvedAmount || appQ?.totalAmount;
+        if (approvedVal) {
+          const qVal = parseFloat(String(approvedVal));
           if (qVal > 0) {
             approvedQuotationAmt = qVal;
           }
