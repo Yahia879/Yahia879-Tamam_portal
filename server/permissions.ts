@@ -2466,6 +2466,11 @@ export const permissionsRouter = router({
           'progress_reports.exception_approve',
           'disbursements.exception_approve',
           'disbursement_orders.exception_approve',
+          'orders_and_letters',
+          'orders_and_letters.view',
+          'orders_and_letters.approve',
+          'orders_and_letters.create_disbursement',
+          'orders_and_letters.export',
         ];
         const allPerms = await db.select({ id: permissions.id }).from(permissions);
         allPerms.forEach(p => {
@@ -2537,6 +2542,11 @@ export const permissionsRouter = router({
         'progress_reports.exception_approve',
         'disbursements.exception_approve',
         'disbursement_orders.exception_approve',
+        'orders_and_letters',
+        'orders_and_letters.view',
+        'orders_and_letters.approve',
+        'orders_and_letters.create_disbursement',
+        'orders_and_letters.export',
       ];
       for (const perm of permsArray) {
         const expanded = PERMISSION_EXPANSION[perm];
