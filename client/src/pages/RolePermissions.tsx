@@ -45,6 +45,7 @@ import {
   BarChart3,
   ShieldAlert,
   ShoppingCart,
+  ShoppingBag,
   Boxes
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
@@ -272,6 +273,14 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية في قسم أوامر الشراء والخطاب المجتمعي إلا إذا كانت صلاحية العرض مفعلة
+    if (permId.startsWith("orders_and_letters.") && permId !== "orders_and_letters.view") {
+      if (!selectedPerms.includes("orders_and_letters.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض أوامر الشراء والخطاب المجتمعي' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية في قسم أوامر الشراء إلا إذا كانت صلاحية العرض مفعلة
     if (permId.startsWith("purchase_orders.") && permId !== "purchase_orders.view") {
       if (!selectedPerms.includes("purchase_orders.view")) {
@@ -395,6 +404,11 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض أوامر الصرف'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات أوامر الصرف الأخرى
         if (permId === "disbursement_orders.view") {
           next = next.filter(id => !id.startsWith("disbursement_orders."));
+        }
+
+        // عند إلغاء تفعيل صلاحية 'عرض أوامر الشراء والخطاب المجتمعي'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات أوامر الشراء والخطابات الأخرى
+        if (permId === "orders_and_letters.view") {
+          next = next.filter(id => !id.startsWith("orders_and_letters."));
         }
 
         // عند إلغاء تفعيل صلاحية 'عرض أوامر الشراء'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات أوامر الشراء الأخرى
@@ -948,6 +962,17 @@ export default function RolePermissions() {
       title: "إدارة المخزون",
       modules: [
         {
+          id: "orders_and_letters",
+          nameAr: "أوامر الشراء والخطاب المجتمعي",
+          icon: ShoppingBag,
+          permissions: [
+            { id: "orders_and_letters.view", nameAr: "عرض أوامر الشراء والخطاب المجتمعي" },
+            { id: "orders_and_letters.approve", nameAr: "اعتماد أوامر الشراء والخطابات" },
+            { id: "orders_and_letters.create_disbursement", nameAr: "إنشاء أمر صرف للطلب" },
+            { id: "orders_and_letters.export", nameAr: "تصدير البيانات إكسيل" },
+          ]
+        },
+        {
           id: "purchase_orders",
           nameAr: "أوامر الشراء",
           icon: ShoppingCart,
@@ -1032,6 +1057,7 @@ export default function RolePermissions() {
     {
       title: "إدارة المخزون",
       modules: [
+        { id: "orders_and_letters", nameAr: "أوامر الشراء والخطاب المجتمعي", icon: ShoppingBag, perms: ["view", "approve", "create_disbursement", "export"] },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound", "confirm_receipt", "print", "export"] },
@@ -1104,6 +1130,7 @@ export default function RolePermissions() {
     {
       title: "إدارة المخزون",
       modules: [
+        { id: "orders_and_letters", nameAr: "أوامر الشراء والخطاب المجتمعي", icon: ShoppingBag, perms: ["view", "approve", "create_disbursement", "export"] },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound", "confirm_receipt", "print", "export"] },
@@ -1289,6 +1316,12 @@ export default function RolePermissions() {
         template_edit: "تعديل قالب العقد",
         template_delete: "حذف قالب العقد",
         clause_add: "إضافة بند للعقد"
+      },
+      orders_and_letters: {
+        view: "عرض أوامر الشراء والخطاب المجتمعي",
+        approve: "اعتماد أوامر الشراء والخطابات",
+        create_disbursement: "إنشاء أمر صرف للطلب",
+        export: "تصدير البيانات إكسيل",
       },
       purchase_orders: {
         view: "عرض أوامر الشراء",
