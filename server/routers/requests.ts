@@ -511,9 +511,15 @@ export const requestsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض هذا الطلب" });
       }
 
-      // طلبات سدانة لا يُسمح بعرض تفاصيلها إلا لـ super_admin و system_admin (أو صاحب الطلب)
-      if (request.programType === "sedana" && !isOwner && !["super_admin", "system_admin"].includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "طلبات سدانة مخصصة لمديري النظام فقط" });
+      // مسؤول المشتريات مقتصر فقط على طلبات برنامج سدانة
+      if (ctx.user.role === "procurement_officer" && request.programType !== "sedana") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "صلاحيات مسؤول المشتريات مقتصرة على طلبات برنامج سدانة فقط" });
+      }
+
+      // طلبات سدانة يُسمح بعرضها لمديري النظام والمدير التنفيذي ومسؤول المشتريات (أو صاحب الطلب)
+      const allowedSedanaRoles = ["super_admin", "system_admin", "general_manager", "executive_director", "procurement_officer"];
+      if (request.programType === "sedana" && !isOwner && !allowedSedanaRoles.includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "طلبات سدانة مخصصة للمخولين فقط" });
       }
 
       // الحصول على بيانات المسجد (قد يكون null في حالة برنامج بنيان أو طلب سريع مخصص)
@@ -804,9 +810,14 @@ export const requestsRouter = router({
       
       // الأدوار الإدارية أو من يملك صلاحية requests.view_details يرون جميع الطلبات (لا تضيف شروط)
 
-      // شرط حجب طلبات برنامج "سدانة" عن غير super_admin و system_admin
-      const isSuperOrSystemAdmin = ["super_admin", "system_admin"].includes(ctx.user.role || "");
-      if (input.excludeSedana || (!isSuperOrSystemAdmin && !input.programType)) {
+      // شرط برنامج "سدانة"
+      const isSuperOrSystemAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role || "");
+      const isProcurementOfficer = ctx.user.role === "procurement_officer";
+
+      if (isProcurementOfficer) {
+        // مسؤول المشتريات مخصص لبرنامج سدانة فقط
+        conditions.push(eq(mosqueRequests.programType, "sedana"));
+      } else if (input.excludeSedana || (!isSuperOrSystemAdmin && !input.programType)) {
         if (!isSuperOrSystemAdmin || input.excludeSedana) {
           conditions.push(
             sql`(${mosqueRequests.programType} IS NULL OR ${mosqueRequests.programType} != 'sedana')`
