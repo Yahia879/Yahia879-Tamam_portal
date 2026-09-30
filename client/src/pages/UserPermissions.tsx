@@ -53,6 +53,7 @@ import {
   HeartHandshake,
   ShieldAlert,
   ShoppingCart,
+  ShoppingBag,
   Boxes
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
@@ -75,7 +76,6 @@ const getRoleLabelAr = (role: string) => {
     "board_chairman": "رئيس مجلس الإدارة",
     "board_member": "عضو مجلس الإدارة",
     "procurement_officer": "مسؤول المشتريات",
-    "financial_officer": "المسؤول المالي",
   };
   return rolesAr[role] || role;
 };
@@ -371,6 +371,38 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية في قسم أوامر الشراء والخطاب المجتمعي إلا إذا كانت صلاحية العرض مفعلة
+    if (permId.startsWith("orders_and_letters.") && permId !== "orders_and_letters.view") {
+      if (!isChecked("orders_and_letters.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض أوامر الشراء والخطاب المجتمعي' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية في قسم أوامر الشراء إلا إذا كانت صلاحية العرض مفعلة
+    if (permId.startsWith("purchase_orders.") && permId !== "purchase_orders.view") {
+      if (!isChecked("purchase_orders.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض أوامر الشراء' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية في قسم المسؤولية المجتمعية إلا إذا كانت صلاحية العرض مفعلة
+    if (permId.startsWith("csr_letters.") && permId !== "csr_letters.view") {
+      if (!isChecked("csr_letters.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض خطابات المسؤولية المجتمعية' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية في قسم المستودع الافتراضي إلا إذا كانت صلاحية العرض مفعلة
+    if (permId.startsWith("sedana_warehouse.") && permId !== "sedana_warehouse.view") {
+      if (!isChecked("sedana_warehouse.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض المستودع الافتراضي' أولاً");
+        return;
+      }
+    }
+
 
 
     const defaultState = rolePermissions?.includes(permId) || false;
@@ -494,6 +526,9 @@ export default function UserPermissions() {
         if (permId === "disbursement_orders.view") {
           cascadeRevoke("disbursement_orders.");
         }
+        if (permId === "orders_and_letters.view") {
+          cascadeRevoke("orders_and_letters.");
+        }
         if (permId === "purchase_orders.view") {
           cascadeRevoke("purchase_orders.");
         }
@@ -576,6 +611,7 @@ export default function UserPermissions() {
         }
 
         if (
+          permIds.includes("orders_and_letters.create_disbursement") ||
           permIds.includes("purchase_orders.create_disbursement") ||
           permIds.includes("csr_letters.create_disbursement")
         ) {
@@ -767,6 +803,12 @@ export default function UserPermissions() {
         template_delete: "حذف قالب العقد",
         clause_add: "إضافة بند للعقد"
       },
+      orders_and_letters: {
+        view: "عرض أوامر الشراء والخطاب المجتمعي",
+        approve: "اعتماد أوامر الشراء والخطابات",
+        create_disbursement: "إنشاء أمر صرف للطلب",
+        export: "تصدير البيانات إكسيل",
+      },
       purchase_orders: {
         view: "عرض أوامر الشراء",
         add: "إنشاء أمر شراء جديد",
@@ -957,6 +999,7 @@ export default function UserPermissions() {
     {
       title: "إدارة المخزون",
       modules: [
+        { id: "orders_and_letters", nameAr: "أوامر الشراء والخطاب المجتمعي", icon: ShoppingBag, perms: ["view", "approve", "create_disbursement", "export"] },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound", "confirm_receipt", "print", "export"] },
