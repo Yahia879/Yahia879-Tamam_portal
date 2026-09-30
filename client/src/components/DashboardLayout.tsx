@@ -256,28 +256,15 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   const isProcurementOfficer =
     role === "procurement_officer" ||
     customRoleNameAr === "مسؤول المشتريات" ||
-    customRoleNameEn?.toLowerCase() === "procurement officer" ||
-    (!permissions.includes("*") &&
-      !permissions.includes("quotations.approve") &&
-      (permissions.includes("quotations") || permissions.includes("quotations.view") || permissions.includes("quotations.add")) &&
-      !permissions.includes("requests.view") &&
-      !permissions.includes("projects.view"));
+    customRoleNameEn?.toLowerCase() === "procurement officer";
 
-  // تخصيص شاشة واحدة فقط لمسؤول المشتريات (برنامج سدانة - عروض الأسعار)
-  if (isProcurementOfficer) {
-    return [
-      {
-        label: isEn ? "Sadana Program" : "برنامج سدانة",
-        items: [
-          { icon: Receipt, label: isEn ? "Quotations" : "عروض الأسعار", path: "/quotations" },
-        ],
-      },
-    ];
-  }
-
-  // الرئيسية
+  // الرئيسية: تظهر لمسؤول المشتريات فقط إذا تم تفعيل صلاحية dashboard له صراحة، وتظهر للمدراء وباقي الأدوار
   const mainItems: MenuItem[] = [];
-  if (["super_admin", "system_admin"].includes(role) || isExecDirector || has("dashboard") || has("dashboard.view") || role !== "service_requester") {
+  const canSeeDashboard = isProcurementOfficer
+    ? (has("dashboard") || has("dashboard.view") || has("*"))
+    : (["super_admin", "system_admin"].includes(role) || isExecDirector || has("dashboard") || has("dashboard.view") || role !== "service_requester");
+
+  if (canSeeDashboard) {
     mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
   }
   if (has("board_chairman") || has("board_chairman_view")) {
@@ -361,8 +348,12 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   }
   
   if (finItems.length > 0) {
+    // إذا كان مسؤول المشتريات لم يُفعل له سوى عروض الأسعار فقط ولم تُفعل له أي أقسام أخرى، تظهر تحت اسم برنامج سدانة
+    const isOnlySedanaQuotations = isProcurementOfficer && finItems.length === 1 && finItems[0].path === "/quotations" && groups.length === 0;
     groups.push({ 
-      label: isEn ? "Procurement & Finance" : "المشتريات والمالية", 
+      label: isOnlySedanaQuotations 
+        ? (isEn ? "Sadana Program" : "برنامج سدانة")
+        : (isEn ? "Procurement & Finance" : "المشتريات والمالية"), 
       items: finItems 
     });
   }
