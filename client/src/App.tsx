@@ -47,6 +47,7 @@ import PurchaseOrdersList from "./pages/PurchaseOrdersList";
 import CreatePurchaseOrderPage from "./pages/CreatePurchaseOrderPage";
 import CsrLettersList from "./pages/CsrLettersList";
 import CreateCsrLetterPage from "./pages/CreateCsrLetterPage";
+import FinancialOfficerTasks from "./pages/FinancialOfficerTasks";
 import RequestForm from "./pages/RequestForm";
 import TrackRequest from "./pages/TrackRequest";
 import MosqueServiceRequest from "./pages/MosqueServiceRequest";
@@ -405,7 +406,9 @@ function Router() {
       <Route path="/contract-templates/:id/preview">{() => <AdminRoute component={TemplatePreview} />}</Route>
       <Route path="/contract-templates/:id/print">{() => <AdminRoute component={TemplatePrint} />}</Route>
       
-      {/* أوامر الشراء والمسؤولية المجتمعية */}
+      {/* أوامر الشراء والمسؤولية المجتمعية وشاشة المسؤول المالي الموحدة */}
+      <Route path="/financial-officer">{() => <AdminRoute component={FinancialOfficerTasks} />}</Route>
+      <Route path="/financial-tasks">{() => <AdminRoute component={FinancialOfficerTasks} />}</Route>
       <Route path="/purchase-orders/new">{() => <AdminRoute component={CreatePurchaseOrderPage} />}</Route>
       <Route path="/requests/:id/new-purchase-order">{() => <AdminRoute component={CreatePurchaseOrderPage} />}</Route>
       <Route path="/purchase-orders">{() => <AdminRoute component={PurchaseOrdersList} />}</Route>
