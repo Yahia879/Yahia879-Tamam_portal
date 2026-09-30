@@ -174,7 +174,7 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
               <HeartHandshake className="w-5 h-5" />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-              {isEmbedded ? "الخطابات المجتمعية الخاصة بالطلب" : "خطابات المسؤولية المجتمعية"}
+              {requestId ? "الخطابات المجتمعية الخاصة بالطلب" : (isEmbedded ? "الخطاب المجتمعي" : "خطابات المسؤولية المجتمعية")}
             </h1>
             <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs">
               برنامج سدانة
@@ -186,7 +186,7 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
             )}
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            {isEmbedded
+            {requestId
               ? "استعراض وإدارة وطباعة الخطابات الرسمية الموجهة للشركات والجهات المانحة لهذا المشروع والطلب"
               : "إدارة واستعراض وطباعة الخطابات الرسمية الموجهة للشركات والجهات المانحة لتأمين احتياجات المساجد"}
           </p>
