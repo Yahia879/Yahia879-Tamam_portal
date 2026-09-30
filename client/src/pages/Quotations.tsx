@@ -77,7 +77,6 @@ import {
   Filter,
   X,
   SlidersHorizontal,
-  Shield,
 } from "lucide-react";
 
 import { Handshake } from "lucide-react";
@@ -237,72 +236,42 @@ export default function Quotations() {
   const allRequestsList = requests?.requests || [];
 
   const displayedRequestsList = useMemo(() => {
-    let list = allRequestsList;
-    // لمسؤول المشتريات: تقتصر القائمة حصراً على طلبات برنامج سدانة
-    if (isProcurementOfficer) {
-      list = list.filter((r: any) => r.programType === "sedana");
-    }
-    // في حال تم فتح الصفحة برابط طلب محدد غير موجود بالقائمة المفلترة، نضيفه للقائمة
-    if (selectedRequestId && singleRequestData) {
-      const exists = list.some((r: any) => r.id.toString() === selectedRequestId);
-      if (!exists) {
-        const targetReq = (singleRequestData as any).request || singleRequestData;
-        if (targetReq && targetReq.id) {
-          if (!isProcurementOfficer || targetReq.programType === "sedana") {
-            const reqUser = (singleRequestData as any).requester || (singleRequestData as any).user;
-            const reqName = reqUser?.name || targetReq.requesterName || (singleRequestData as any).requesterName;
-            const mosqueNameStr = typeof targetReq.mosqueName === "string" 
-              ? targetReq.mosqueName 
-              : (targetReq.mosque?.name || null);
-
-            return [{
-              ...targetReq,
-              id: targetReq.id,
-              requestNumber: targetReq.requestNumber || `REQ-${targetReq.id}`,
-              mosqueName: mosqueNameStr,
-              programType: targetReq.programType || "other",
-              createdAt: targetReq.createdAt || new Date().toISOString(),
-              requesterName: reqName,
-              user: reqUser,
-              requester: reqUser,
-              isMultiMosque: (singleRequestData as any).isMultiMosque || targetReq.isMultiMosque,
-              multiMosques: (singleRequestData as any).multiMosques || targetReq.multiMosques,
-              projectName: (singleRequestData as any).projectName || targetReq.projectName,
-            }, ...list];
-          }
-        }
-      }
-    }
-    return list;
-  }, [allRequestsList, selectedRequestId, singleRequestData, isProcurementOfficer]);
-
-  const activeSelectedRequest = useMemo(() => {
-    if (!selectedRequestId) return null;
-    return displayedRequestsList.find((r: any) => r.id.toString() === selectedRequestId) || 
-      (singleRequestData ? ((singleRequestData as any).request || singleRequestData) : null);
-  }, [selectedRequestId, displayedRequestsList, singleRequestData]);
-
-  // لمسؤول المشتريات: التحديد التلقائي لأول طلب سدانة متاح عند الدخول
-  useEffect(() => {
-    if (isProcurementOfficer && !selectedRequestId && allRequestsList.length > 0) {
-      const firstSedana = allRequestsList.find((r: any) => r.programType === "sedana");
-      if (firstSedana) {
-        setSelectedRequestId(firstSedana.id.toString());
-      }
-    }
-  }, [isProcurementOfficer, selectedRequestId, allRequestsList]);
-
-  // لمسؤول المشتريات: التحقق من أن الطلب المحدد من برنامج سدانة فقط
-  useEffect(() => {
-    if (isProcurementOfficer && singleRequestData) {
+    if (!selectedRequestId) return allRequestsList;
+    const foundInList = allRequestsList.filter((r: any) => r.id.toString() === selectedRequestId);
+    if (foundInList.length > 0) return foundInList;
+    if (singleRequestData) {
       const targetReq = (singleRequestData as any).request || singleRequestData;
-      if (targetReq && targetReq.programType && targetReq.programType !== "sedana") {
-        toast.error("صلاحيات مسؤول المشتريات مقتصرة على عروض أسعار برنامج سدانة فقط");
-        setSelectedRequestId("");
-        window.history.replaceState({}, "", "/quotations");
+      if (targetReq && targetReq.id) {
+        // إذا كان الطلب المحدد قد تم اعتماده مسبقاً وانتقل لمرحلة أخرى (وليس في مرحلة التقييم المالي)،
+        // فلا يتم عرضه كطلب نشط في عروض الأسعار
+        if (targetReq.currentStage && targetReq.currentStage !== "financial_eval_and_approval") {
+          return allRequestsList;
+        }
+
+        const reqUser = (singleRequestData as any).requester || (singleRequestData as any).user;
+        const reqName = reqUser?.name || targetReq.requesterName || (singleRequestData as any).requesterName;
+        const mosqueNameStr = typeof targetReq.mosqueName === "string" 
+          ? targetReq.mosqueName 
+          : (targetReq.mosque?.name || null);
+
+        return [{
+          ...targetReq,
+          id: targetReq.id,
+          requestNumber: targetReq.requestNumber || `REQ-${targetReq.id}`,
+          mosqueName: mosqueNameStr,
+          programType: targetReq.programType || "other",
+          createdAt: targetReq.createdAt || new Date().toISOString(),
+          requesterName: reqName,
+          user: reqUser,
+          requester: reqUser,
+          isMultiMosque: (singleRequestData as any).isMultiMosque || targetReq.isMultiMosque,
+          multiMosques: (singleRequestData as any).multiMosques || targetReq.multiMosques,
+          projectName: (singleRequestData as any).projectName || targetReq.projectName,
+        }];
       }
     }
-  }, [isProcurementOfficer, singleRequestData]);
+    return allRequestsList;
+  }, [allRequestsList, selectedRequestId, singleRequestData]);
 
   // إذا تم فتح الصفحة برابط يحتوي على معرف طلب قد تم اعتماده مسبقاً وانتقل لمرحلة أخرى
   useEffect(() => {
@@ -1854,66 +1823,14 @@ export default function Quotations() {
           </div>
         </div>
 
-        {/* محدد الطلب */}
-        <Card className="border border-border/80 shadow-xs">
-          <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-foreground">
-                  تحديد الطلب:
-                </span>
-                {activeSelectedRequest && (
-                  <Badge variant="outline" className="font-mono font-bold text-foreground border-primary/40">
-                    {activeSelectedRequest.requestNumber} - {getMosqueDisplayName(activeSelectedRequest)}
-                  </Badge>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2 min-w-[260px] sm:min-w-[320px]">
-                <Select
-                  value={selectedRequestId || ""}
-                  onValueChange={(val) => {
-                    setSelectedRequestId(val);
-                    if (val) {
-                      window.history.replaceState({}, "", `/quotations?requestId=${val}`);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-full h-9 bg-background font-medium text-xs">
-                    <SelectValue placeholder="-- اختر الطلب --" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60" dir="rtl">
-                    {displayedRequestsList.map((req: any) => (
-                      <SelectItem key={req.id} value={req.id.toString()}>
-                        <div className="flex items-center gap-2 text-right">
-                          <span className="font-mono font-bold text-foreground">
-                            {req.requestNumber}
-                          </span>
-                          <span className="text-muted-foreground">-</span>
-                          <span>{getMosqueDisplayName(req)}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        
         {/* قائمة الطلبات في مرحلة التقييم المالي */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              {isProcurementOfficer ? "جميع طلبات برنامج سدانة المتاحة للتقييم المالي" : "الطلبات في مرحلة التقييم المالي"}
+              الطلبات في مرحلة التقييم المالي
             </CardTitle>
-            <CardDescription>
-              {isProcurementOfficer 
-                ? "انقر على أي طلب لتحديده واستعراض جدول الكميات وإدخال عروض الأسعار الخاصة به" 
-                : "اختر الطلب لعرض جدول الكميات وعروض الأسعار"}
-            </CardDescription>
+            <CardDescription>اختر الطلب لعرض جدول الكميات وعروض الأسعار</CardDescription>
           </CardHeader>
           <CardContent>
             {selectedRequestId && (
@@ -1971,38 +1888,25 @@ export default function Quotations() {
                           <Button
                             variant={selectedRequestId === request.id.toString() ? "default" : "outline"}
                             size="sm"
-                            className={selectedRequestId === request.id.toString() ? "bg-emerald-600 hover:bg-emerald-700 text-white font-bold" : ""}
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedRequestId(request.id.toString());
-                              window.history.replaceState({}, "", `/quotations?requestId=${request.id}`);
                             }}
                           >
-                            {selectedRequestId === request.id.toString() ? (
-                              <>
-                                <CheckCircle2 className="h-4 w-4 ml-1 text-white" />
-                                محدد حالياً
-                              </>
-                            ) : (
-                              <>
-                                <Eye className="h-4 w-4 ml-1" />
-                                تحديد الطلب
-                              </>
-                            )}
+                            <Eye className="h-4 w-4 ml-1" />
+                            {selectedRequestId === request.id.toString() ? "محدد" : "عرض"}
                           </Button>
-                          {!isProcurementOfficer && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/requests/${request.id}`);
-                              }}
-                            >
-                              <FileText className="h-4 w-4 ml-1" />
-                              تفاصيل الطلب
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/requests/${request.id}`);
+                            }}
+                          >
+                            <FileText className="h-4 w-4 ml-1" />
+                            تفاصيل الطلب
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -2012,11 +1916,7 @@ export default function Quotations() {
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>
-                  {isProcurementOfficer 
-                    ? "لا توجد طلبات لبرنامج سدانة حالياً في مرحلة التقييم المالي" 
-                    : "لا توجد طلبات مطابقة للبحث"}
-                </p>
+                <p>لا توجد طلبات مطابقة للبحث</p>
               </div>
             )}
             {selectedRequestId && (
