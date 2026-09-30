@@ -3914,6 +3914,7 @@ export const disbursementsRouter = router({
           requestedAt: disbursementRequests.requestedAt,
           approvedAt: disbursementRequests.approvedAt,
           contractPaymentId: disbursementRequests.contractPaymentId,
+          paymentId: disbursementRequests.paymentId,
         })
         .from(disbursementRequests)
         .where(and(

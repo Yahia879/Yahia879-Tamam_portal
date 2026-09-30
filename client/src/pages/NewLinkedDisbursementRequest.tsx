@@ -698,9 +698,32 @@ export default function NewLinkedDisbursementRequest() {
     { enabled: formData.projectId > 0 }
   );
 
+  // جلب طلبات الصرف الحالية للمشروع للتحقق من عدم التكرار
+  const { data: projectRequests } = trpc.disbursements.getRequestsByProject.useQuery(
+    { projectId: formData.projectId },
+    { enabled: formData.projectId > 0 }
+  );
+
   // تصفية التقارير لاستبعاد تقارير الزيارة الميدانية وإبقاء تقارير الإنجاز المعتمدة فقط لهذا المشروع
+  // وكذلك استبعاد أي تقرير مرتبط بدفعة لديها طلب صرف غير ملغي (حتى لو كان التقرير الأصلي قد أُلغي)
   const approvedReports = useMemo(() => {
     if (!rawApprovedReports || !formData.projectId) return [];
+
+    // بناء مجموعة من معرفات الدفعات التي لديها طلب صرف نشط (غير ملغي)
+    const paymentIdsWithActiveDisbursement = new Set<string>();
+    if (projectRequests?.requests) {
+      for (const req of projectRequests.requests) {
+        if (req.status === "cancelled") continue;
+        if (req.contractPaymentId) {
+          paymentIdsWithActiveDisbursement.add(`cp-${req.contractPaymentId}`);
+        }
+        if ((req as any).paymentId) {
+          paymentIdsWithActiveDisbursement.add(`manual-${(req as any).paymentId}`);
+          paymentIdsWithActiveDisbursement.add(`disb-${(req as any).paymentId}`);
+        }
+      }
+    }
+
     return rawApprovedReports.filter((report: any) => {
       // التأكد بشكل قاطع من أن التقرير معتمد فقط وتابع لنفس المشروع
       if (report.status !== "approved") return false;
@@ -717,9 +740,32 @@ export default function NewLinkedDisbursementRequest() {
         workSummary.includes("الزيارة الميدانية") ||
         workSummary.includes("تقرير زيارة");
         
-      return !isVisit;
+      if (isVisit) return false;
+
+      // استخراج معرف الدفعة من ملخص الأعمال
+      const paymentMatch = (report.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
+      if (paymentMatch) {
+        const rawPaymentId = paymentMatch[1].trim();
+        // تحقق: هل هذه الدفعة عندها طلب صرف غير ملغي؟
+        if (paymentIdsWithActiveDisbursement.has(rawPaymentId)) {
+          return false;
+        }
+        // تحقق إضافي بالرقم فقط (بدون prefix)
+        const numericId = parseInt(rawPaymentId.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
+        if (numericId > 0) {
+          if (
+            paymentIdsWithActiveDisbursement.has(`cp-${numericId}`) ||
+            paymentIdsWithActiveDisbursement.has(`manual-${numericId}`) ||
+            paymentIdsWithActiveDisbursement.has(`disb-${numericId}`)
+          ) {
+            return false;
+          }
+        }
+      }
+
+      return true;
     });
-  }, [rawApprovedReports, formData.projectId]);
+  }, [rawApprovedReports, formData.projectId, projectRequests]);
 
   // إلغاء تحديد التقرير في حال تغير المشروع أو لم يعد التقرير معتمداً
   useEffect(() => {
@@ -731,11 +777,6 @@ export default function NewLinkedDisbursementRequest() {
     }
   }, [approvedReports, selectedReportId]);
 
-  // جلب طلبات الصرف الحالية للمشروع للتحقق من عدم التكرار
-  const { data: projectRequests } = trpc.disbursements.getRequestsByProject.useQuery(
-    { projectId: formData.projectId },
-    { enabled: formData.projectId > 0 }
-  );
 
   // جلب البيانات المالية وسندات القبض للمشروع المحدد للتحقق الذكي من رصيد مدفوعات الداعم
   const { data: projectFinancials } = trpc.projects.getFinancialData.useQuery(
