@@ -25,7 +25,6 @@ const ROLE_OPTIONS = [
   { value: "corporate_comm", label: "الاتصال المؤسسي" },
   { value: "service_requester", label: "طالب الخدمة" },
   { value: "procurement_officer", label: "مسؤول المشتريات" },
-  { value: "financial_officer", label: "المسؤول المالي" },
 ];
 
 const STATUS_OPTIONS = [
