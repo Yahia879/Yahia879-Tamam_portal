@@ -301,8 +301,35 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "board_leadership.board_chairman": ["board_chairman", "board_chairman_view"],
   "board_leadership.board_chairman_view": ["board_chairman_view"],
   "board_leadership.board_member": ["board_member"],
-  "board_leadership.remind": ["board_leadership.remind", "board_chairman_remind"],
-  board_chairman_remind: ["board_leadership.remind", "board_chairman_remind"],
+  // أوامر الشراء والخطاب المجتمعي
+  orders_and_letters: [
+    "orders_and_letters.view",
+    "orders_and_letters.approve",
+    "orders_and_letters.create_disbursement",
+    "orders_and_letters.export",
+  ],
+  "orders_and_letters.view": [
+    "orders_and_letters.view",
+    "purchase_orders.view",
+    "csr_letters.view",
+  ],
+  "orders_and_letters.approve": [
+    "orders_and_letters.approve",
+    "purchase_orders.approve",
+    "csr_letters.approve",
+  ],
+  "orders_and_letters.create_disbursement": [
+    "orders_and_letters.create_disbursement",
+    "purchase_orders.create_disbursement",
+    "csr_letters.create_disbursement",
+    "disbursement_orders.view",
+    "disbursement_orders.create_direct",
+  ],
+  "orders_and_letters.export": [
+    "orders_and_letters.export",
+    "purchase_orders.export",
+    "csr_letters.export",
+  ],
 };
 
 /**
@@ -783,6 +810,20 @@ async function ensureAllCustomPermissionsExist(db: any) {
       console.log("Inserted missing custom module: requesters");
     }
 
+    // Ensure 'orders_and_letters' module exists in the modules table
+    const [existingOrdersLettersModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "orders_and_letters")).limit(1);
+    if (!existingOrdersLettersModule) {
+      await db.insert(modules).values({
+        id: "orders_and_letters",
+        nameAr: "أوامر الشراء والخطاب المجتمعي",
+        nameEn: "Purchase Orders & CSR Letters",
+        icon: "ShoppingBag",
+        displayOrder: 8,
+        isActive: true
+      });
+      console.log("Inserted missing custom module: orders_and_letters");
+    }
+
     // Ensure 'purchase_orders' module exists in the modules table
     const [existingPoModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "purchase_orders")).limit(1);
     if (!existingPoModule) {
@@ -983,6 +1024,10 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "receipt_vouchers.edit", moduleId: "disbursements", action: "edit", nameAr: "تعديل سند القبض", nameEn: "Edit Receipt Voucher" },
       { id: "receipt_vouchers.exception_approve", moduleId: "disbursements", action: "exception_approve", nameAr: "استثناء اعتماد السند", nameEn: "Exception Approve Receipt Voucher" },
       { id: "requests.create_quick_request", moduleId: "requests", action: "create_quick_request", nameAr: "إنشاء طلب سريع", nameEn: "Create Quick Request" },
+      { id: "orders_and_letters.view", moduleId: "orders_and_letters", action: "view", nameAr: "عرض أوامر الشراء والخطاب المجتمعي", nameEn: "View Orders & CSR Letters" },
+      { id: "orders_and_letters.approve", moduleId: "orders_and_letters", action: "approve", nameAr: "اعتماد أوامر الشراء والخطابات", nameEn: "Approve Orders & CSR Letters" },
+      { id: "orders_and_letters.create_disbursement", moduleId: "orders_and_letters", action: "create_disbursement", nameAr: "إنشاء أمر صرف للطلب", nameEn: "Create Disbursement for Order/Letter" },
+      { id: "orders_and_letters.export", moduleId: "orders_and_letters", action: "export", nameAr: "تصدير البيانات إكسيل", nameEn: "Export Orders & Letters" },
       { id: "purchase_orders.view", moduleId: "purchase_orders", action: "view", nameAr: "عرض أوامر الشراء", nameEn: "View Purchase Orders" },
       { id: "purchase_orders.add", moduleId: "purchase_orders", action: "add", nameAr: "إنشاء أمر شراء جديد", nameEn: "Create Purchase Order" },
       { id: "purchase_orders.approve", moduleId: "purchase_orders", action: "approve", nameAr: "اعتماد أوامر الشراء", nameEn: "Approve Purchase Orders" },
@@ -1026,6 +1071,33 @@ async function ensureAllCustomPermissionsExist(db: any) {
       }
     }
 
+    // إسناد الصلاحيات الافتراضية لأوامر الشراء والخطاب المجتمعي للأدوار الأساسية إن لم تكن مسندة
+    // مفعلة تلقائياً فقط للإدارة المالية والمدراء العامين
+    const ordersLettersDefaultRolePerms: Record<string, string[]> = {
+      super_admin: ["orders_and_letters.view", "orders_and_letters.approve", "orders_and_letters.create_disbursement", "orders_and_letters.export"],
+      system_admin: ["orders_and_letters.view", "orders_and_letters.approve", "orders_and_letters.create_disbursement", "orders_and_letters.export"],
+      financial: ["orders_and_letters.view", "orders_and_letters.approve", "orders_and_letters.create_disbursement", "orders_and_letters.export"],
+    };
+
+    for (const [rId, pIds] of Object.entries(ordersLettersDefaultRolePerms)) {
+      for (const pId of pIds) {
+        const [existing] = await db.select({ id: rolePermissions.id })
+          .from(rolePermissions)
+          .where(and(
+            eq(rolePermissions.roleId, rId),
+            eq(rolePermissions.permissionId, pId)
+          ))
+          .limit(1);
+
+        if (!existing) {
+          await db.insert(rolePermissions).values({
+            roleId: rId,
+            permissionId: pId
+          }).catch(() => {});
+        }
+      }
+    }
+
     // إسناد الصلاحيات الافتراضية لأوامر الشراء للأدوار الأساسية إن لم تكن مسندة
     const poDefaultRolePerms: Record<string, string[]> = {
       super_admin: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
@@ -1034,7 +1106,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
       executive_director: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
       financial_manager: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
       financial: ["purchase_orders.view", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
-      financial_officer: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
       projects_office: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
       project_manager: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.export"],
     };
@@ -1066,7 +1137,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
       executive_director: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
       financial_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
       financial: ["csr_letters.view", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
-      financial_officer: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
       projects_office: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
       project_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.export"],
     };
@@ -1121,26 +1191,30 @@ async function ensureAllCustomPermissionsExist(db: any) {
       }
     }
 
-    // التأكد من وجود دور المسؤول المالي في جدول الأدوار
-    const [existingFoRole] = await db.select({ id: roles.id }).from(roles).where(eq(roles.id, "financial_officer")).limit(1);
-    if (!existingFoRole) {
-      await db.insert(roles).values({
-        id: "financial_officer",
-        nameAr: "المسؤول المالي",
-        nameEn: "financial_officer",
-        description: JSON.stringify([
-          "purchase_orders.view",
-          "purchase_orders.add",
-          "purchase_orders.approve",
-          "purchase_orders.create_disbursement",
-          "purchase_orders.export",
-          "csr_letters.view",
-          "csr_letters.add",
-          "csr_letters.approve",
-          "csr_letters.create_disbursement",
-          "csr_letters.export",
-        ]),
-      }).catch(() => {});
+    // إسناد الصلاحيات الافتراضية لأوامر الشراء والخطاب المجتمعي (متاحة افتراضياً فقط للإدارة المالية والمدراء)
+    const ordersAndLettersDefaultRolePerms: Record<string, string[]> = {
+      super_admin: ["orders_and_letters.view", "orders_and_letters.approve", "orders_and_letters.create_disbursement", "orders_and_letters.export"],
+      system_admin: ["orders_and_letters.view", "orders_and_letters.approve", "orders_and_letters.create_disbursement", "orders_and_letters.export"],
+      financial: ["orders_and_letters.view", "orders_and_letters.approve", "orders_and_letters.create_disbursement", "orders_and_letters.export"],
+    };
+
+    for (const [rId, pIds] of Object.entries(ordersAndLettersDefaultRolePerms)) {
+      for (const pId of pIds) {
+        const [existing] = await db.select({ id: rolePermissions.id })
+          .from(rolePermissions)
+          .where(and(
+            eq(rolePermissions.roleId, rId),
+            eq(rolePermissions.permissionId, pId)
+          ))
+          .limit(1);
+
+        if (!existing) {
+          await db.insert(rolePermissions).values({
+            roleId: rId,
+            permissionId: pId
+          }).catch(() => {});
+        }
+      }
     }
   } catch (err) {
     console.error("Error in ensureAllCustomPermissionsExist:", err);
@@ -1224,18 +1298,12 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     rolePermissionsData.push("quotations.view", "quotations.create");
   }
 
-  if (userData?.role === "financial_officer" && !hasCustomRole) {
+  if (userData?.role === "financial" && !hasCustomRole) {
     rolePermissionsData.push(
-      "purchase_orders.view",
-      "purchase_orders.add",
-      "purchase_orders.approve",
-      "purchase_orders.create_disbursement",
-      "purchase_orders.export",
-      "csr_letters.view",
-      "csr_letters.add",
-      "csr_letters.approve",
-      "csr_letters.create_disbursement",
-      "csr_letters.export"
+      "orders_and_letters.view",
+      "orders_and_letters.approve",
+      "orders_and_letters.create_disbursement",
+      "orders_and_letters.export"
     );
   }
 
@@ -1592,6 +1660,16 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.has("sedana_warehouse.export")
   ) {
     allPermissions.add("sedana_warehouse");
+  }
+
+  // أوامر الشراء والخطاب المجتمعي
+  if (
+    allPermissions.has("orders_and_letters.view") ||
+    allPermissions.has("orders_and_letters.approve") ||
+    allPermissions.has("orders_and_letters.create_disbursement") ||
+    allPermissions.has("orders_and_letters.export")
+  ) {
+    allPermissions.add("orders_and_letters");
   }
   if (
     allPermissions.has("progress_reports.view") ||
