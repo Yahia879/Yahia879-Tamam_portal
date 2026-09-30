@@ -90,7 +90,7 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
   if (isProcurementOfficer) {
     return [
       {
-        label: isEn ? "Sadana Program" : "برنامج سدانة",
+        label: isEn ? "Procurement" : "المشتريات",
         items: [
           { icon: Receipt, label: isEn ? "Quotations" : "عروض الأسعار", path: "/quotations" },
         ],
@@ -348,12 +348,8 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   }
   
   if (finItems.length > 0) {
-    // إذا كان مسؤول المشتريات لم يُفعل له سوى عروض الأسعار فقط ولم تُفعل له أي أقسام أخرى، تظهر تحت اسم برنامج سدانة
-    const isOnlySedanaQuotations = isProcurementOfficer && finItems.length === 1 && finItems[0].path === "/quotations" && groups.length === 0;
     groups.push({ 
-      label: isOnlySedanaQuotations 
-        ? (isEn ? "Sadana Program" : "برنامج سدانة")
-        : (isEn ? "Procurement & Finance" : "المشتريات والمالية"), 
+      label: isEn ? "Procurement & Finance" : "المشتريات والمالية", 
       items: finItems 
     });
   }
