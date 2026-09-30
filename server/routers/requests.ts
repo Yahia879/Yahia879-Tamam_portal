@@ -813,20 +813,23 @@ export const requestsRouter = router({
       // شرط برنامج "سدانة"
       const isSuperOrSystemAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role || "");
       const isProcurementOfficer = ctx.user.role === "procurement_officer";
-
+      const isFinancialOrInventory = ctx.user.role === "financial" || userPermissions.includes("orders_and_letters") || userPermissions.includes("orders_and_letters.view") || userPermissions.includes("purchase_orders.view") || userPermissions.includes("csr_letters.view");
+      const canViewSedana = isSuperOrSystemAdmin || isProcurementOfficer || isFinancialOrInventory;
       const hasGeneralRequestsView = userPermissions.includes("requests.view") || userPermissions.includes("requests.view_details") || userPermissions.includes("*");
 
       if (isProcurementOfficer && !hasGeneralRequestsView) {
         // مسؤول المشتريات مخصص لبرنامج سدانة فقط افتراضياً
         conditions.push(eq(mosqueRequests.programType, "sedana"));
-      } else if (input.excludeSedana || (!isSuperOrSystemAdmin && !input.programType && !isProcurementOfficer)) {
+      } else if (input.programType === "sedana") {
+        if (!canViewSedana) {
+          conditions.push(sql`1 = 0`);
+        }
+      } else if (input.excludeSedana || (!isSuperOrSystemAdmin && !input.programType && !isProcurementOfficer && !isFinancialOrInventory)) {
         if (!isSuperOrSystemAdmin || input.excludeSedana) {
           conditions.push(
             sql`(${mosqueRequests.programType} IS NULL OR ${mosqueRequests.programType} != 'sedana')`
           );
         }
-      } else if (!isSuperOrSystemAdmin && input.programType === "sedana") {
-        conditions.push(sql`1 = 0`);
       }
 
       if (input.search) {
