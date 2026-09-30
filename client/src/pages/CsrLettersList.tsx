@@ -93,9 +93,9 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
   const [, navigate] = useLocation();
 
   const canAdd = usePermission("csr_letters.add");
-  const canApprove = usePermission("csr_letters.approve");
-  const canCreateDisbursement = usePermission("csr_letters.create_disbursement");
-  const canExport = usePermission("csr_letters.export");
+  const canApprove = usePermission("csr_letters.approve") || usePermission("orders_and_letters.approve");
+  const canCreateDisbursement = usePermission("csr_letters.create_disbursement") || usePermission("orders_and_letters.create_disbursement");
+  const canExport = usePermission("csr_letters.export") || usePermission("orders_and_letters.export");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
