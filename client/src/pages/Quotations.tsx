@@ -1849,56 +1849,27 @@ export default function Quotations() {
         {/* العنوان */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">
-              {isProcurementOfficer ? "عروض أسعار برنامج سدانة – مسؤول المشتريات" : "عروض الأسعار"}
-            </h1>
-            <p className="text-muted-foreground">
-              {isProcurementOfficer 
-                ? "استعراض وإدخال عروض الأسعار لمساجد برنامج سدانة (الاعتماد من اختصاص المدير التنفيذي فقط)" 
-                : "إدارة عروض الأسعار من الموردين"}
-            </p>
+            <h1 className="text-2xl font-bold">عروض الأسعار</h1>
+            <p className="text-muted-foreground">إدارة عروض الأسعار من الموردين</p>
           </div>
-          {isProcurementOfficer && (
-            <div className="flex items-center gap-2">
-              <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 px-3 py-1 text-xs font-semibold">
-                مسؤول المشتريات – برنامج سدانة
-              </Badge>
-            </div>
-          )}
         </div>
 
-        {/* تنبيه دور مسؤول المشتريات */}
-        {isProcurementOfficer && (
-          <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/80 dark:bg-amber-950/30 dark:border-amber-900/60 text-amber-900 dark:text-amber-200 flex items-start gap-3 shadow-xs">
-            <Shield className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
-            <div className="text-xs space-y-1">
-              <p className="font-bold text-sm">شاشة مخصصة لمسؤول المشتريات (برنامج سدانة):</p>
-              <p>• الصلاحيات المتاحة: استعراض عروض الأسعار (Quotations) وإمكانية إضافة وإدخال عروض الأسعار للبرنامج.</p>
-              <p className="font-semibold text-amber-800 dark:text-amber-300">• ملاحظة هامة: اعتماد عروض الأسعار يظل من اختصاص المدير التنفيذي فقط دون مسؤول المشتريات.</p>
-            </div>
-          </div>
-        )}
-
-        {/* محدد طلبات سدانة السريع والمباشر */}
-        <Card className="border-2 border-emerald-500/30 bg-gradient-to-r from-emerald-50/60 via-background to-background dark:from-emerald-950/20 shadow-sm">
-          <CardContent className="p-4 sm:p-5">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-emerald-600 text-white hover:bg-emerald-700 text-xs px-2.5 py-0.5">
-                    {isProcurementOfficer ? "برنامج سدانة" : "تحديد الطلب النشط"}
+        {/* محدد الطلب */}
+        <Card className="border border-border/80 shadow-xs">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-foreground">
+                  تحديد الطلب:
+                </span>
+                {activeSelectedRequest && (
+                  <Badge variant="outline" className="font-mono font-bold text-foreground border-primary/40">
+                    {activeSelectedRequest.requestNumber} - {getMosqueDisplayName(activeSelectedRequest)}
                   </Badge>
-                  <h3 className="text-base font-bold text-foreground">
-                    {isProcurementOfficer ? "اختر طلب سدانة لإدارة عروض أسعاره:" : "تحديد الطلب المراد إدارة عروض أسعاره:"}
-                  </h3>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  تتم إدارة عروض الأسعار لكل طلب بشكل منفصل بناءً على جدول كمياته وبنوده الخاصة.
-                </p>
+                )}
               </div>
 
-              {/* القائمة المنسدلة لاختيار الطلب */}
-              <div className="flex items-center gap-2 min-w-[280px] sm:min-w-[340px]">
+              <div className="flex items-center gap-2 min-w-[260px] sm:min-w-[320px]">
                 <Select
                   value={selectedRequestId || ""}
                   onValueChange={(val) => {
@@ -1908,14 +1879,14 @@ export default function Quotations() {
                     }
                   }}
                 >
-                  <SelectTrigger className="w-full h-10 border-emerald-300 dark:border-emerald-800 bg-background font-medium text-xs sm:text-sm">
-                    <SelectValue placeholder="-- اختر الطلب من القائمة --" />
+                  <SelectTrigger className="w-full h-9 bg-background font-medium text-xs">
+                    <SelectValue placeholder="-- اختر الطلب --" />
                   </SelectTrigger>
                   <SelectContent className="max-h-60" dir="rtl">
                     {displayedRequestsList.map((req: any) => (
                       <SelectItem key={req.id} value={req.id.toString()}>
                         <div className="flex items-center gap-2 text-right">
-                          <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                          <span className="font-mono font-bold text-foreground">
                             {req.requestNumber}
                           </span>
                           <span className="text-muted-foreground">-</span>
@@ -1927,41 +1898,10 @@ export default function Quotations() {
                 </Select>
               </div>
             </div>
-
-            {/* تفاصيل الطلب المحدد حالياً */}
-            {activeSelectedRequest ? (
-              <div className="mt-4 pt-3.5 border-t border-emerald-200/60 dark:border-emerald-900/40 flex flex-wrap items-center justify-between gap-3 bg-emerald-500/5 -mx-4 -mb-4 p-4 rounded-b-lg">
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
-                  <span className="text-muted-foreground font-medium">الطلب النشط حالياً:</span>
-                  <Badge variant="outline" className="font-mono bg-white dark:bg-slate-900 font-bold text-foreground border-emerald-300">
-                    {activeSelectedRequest.requestNumber}
-                  </Badge>
-                  <span className="font-bold text-foreground">
-                    {getMosqueDisplayName(activeSelectedRequest)}
-                  </span>
-                  {activeSelectedRequest.mosqueCity && (
-                    <span className="text-muted-foreground">
-                      ({activeSelectedRequest.mosqueCity})
-                    </span>
-                  )}
-                  <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 text-[11px]">
-                    مرحلة التقييم المالي
-                  </Badge>
-                </div>
-                <div className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>عروض الأسعار وجدول الكميات أدناه مخصصة لهذا الطلب</span>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-4 pt-3.5 border-t border-dashed border-amber-300 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>يرجى اختيار أحد طلبات سدانة من القائمة أعلاه أو من جدول الطلبات أدناه لبدء إدخال واستعراض عروض الأسعار له.</span>
-              </div>
-            )}
           </CardContent>
         </Card>
 
+        
         {/* قائمة الطلبات في مرحلة التقييم المالي */}
         <Card>
           <CardHeader>
@@ -2796,12 +2736,7 @@ export default function Quotations() {
                               </>
                             )}
                           </Button>
-                        ) : (
-                          <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-800 dark:text-amber-300 text-xs font-semibold">
-                            <Shield className="w-4 h-4 text-amber-600 shrink-0" />
-                            <span>اعتماد وترسية عروض الأسعار من اختصاص المدير التنفيذي فقط</span>
-                          </div>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -3150,9 +3085,7 @@ export default function Quotations() {
                                       )}
                                     </PermissionGuard>
                                       ) : (
-                                        <span className="text-xs text-muted-foreground py-1 px-2 bg-muted/40 rounded">
-                                          الاعتماد للمدير التنفيذي فقط
-                                        </span>
+                                        <span className="text-muted-foreground">-</span>
                                       )}
                                   </div>
                                 </TableCell>
