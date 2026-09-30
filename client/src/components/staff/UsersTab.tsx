@@ -67,7 +67,7 @@ const ROLE_OPTIONS = [
   { value: "field_team", label: "فريق ميداني" },
   { value: "quick_response", label: "استجابة سريعة" },
   { value: "corporate_comm", label: "علاقات مؤسسية" },
-  { value: "procurement_officer", label: "مسؤول المشتريات (برنامج سدانة)" },
+  { value: "procurement_officer", label: "مسؤول المشتريات" },
 ];
 
 export interface UsersTabProps {
@@ -243,7 +243,7 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
       quick_response: "فريق الاستجابة السريعة",
       corporate_comm: "الاتصال المؤسسي",
       service_requester: "طالب خدمة",
-      procurement_officer: "مسؤول المشتريات (برنامج سدانة)",
+      procurement_officer: "مسؤول المشتريات",
     };
 
     let label = "";
