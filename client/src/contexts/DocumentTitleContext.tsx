@@ -107,6 +107,8 @@ const ROUTE_TITLE_MAP: { pattern: RegExp; title: string }[] = [
   { pattern: /^\/contracts\/[^/]+\/?$/, title: "تفاصيل العقد" },
   { pattern: /^\/contract-templates\/?$/, title: "نماذج العقود" },
   { pattern: /^\/contract-templates\/[^/]+\/preview\/?$/, title: "معاينة نموذج العقد" },
+  { pattern: /^\/financial-officer\/?$/, title: "مهام المسؤول المالي" },
+  { pattern: /^\/financial-tasks\/?$/, title: "مهام المسؤول المالي" },
   { pattern: /^\/purchase-orders\/new\/?$/, title: "إنشاء أمر شراء جديد" },
   { pattern: /^\/purchase-orders\/?$/, title: "أوامر الشراء الداخلية" },
   { pattern: /^\/csr-letters\/new\/?$/, title: "إنشاء خطاب مسؤولية مجتمعية" },
