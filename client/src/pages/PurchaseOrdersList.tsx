@@ -191,7 +191,7 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
               <ShoppingCart className="w-5 h-5" />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-              {isEmbedded ? "أوامر الشراء الخاصة بالطلب" : "أوامر الشراء الداخلية"}
+              {requestId ? "أوامر الشراء الخاصة بالطلب" : (isEmbedded ? "أوامر الشراء" : "أوامر الشراء الداخلية")}
             </h1>
             <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs">
               برنامج سدانة
@@ -203,7 +203,7 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
             )}
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            {isEmbedded 
+            {requestId 
               ? "استعراض وإدارة وطباعة أوامر الشراء المعتمدة والصادرة لهذا المشروع والطلب"
               : "إدارة واستعراض وطباعة أوامر الشراء الصادرة لتأمين احتياجات المساجد والمشاريع"}
           </p>
