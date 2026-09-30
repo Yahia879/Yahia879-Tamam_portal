@@ -1034,6 +1034,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       executive_director: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
       financial_manager: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
       financial: ["purchase_orders.view", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
+      financial_officer: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
       projects_office: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
       project_manager: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.export"],
     };
@@ -1065,6 +1066,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       executive_director: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
       financial_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
       financial: ["csr_letters.view", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
+      financial_officer: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
       projects_office: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
       project_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.export"],
     };
@@ -1117,6 +1119,28 @@ async function ensureAllCustomPermissionsExist(db: any) {
           }).catch(() => {});
         }
       }
+    }
+
+    // التأكد من وجود دور المسؤول المالي في جدول الأدوار
+    const [existingFoRole] = await db.select({ id: roles.id }).from(roles).where(eq(roles.id, "financial_officer")).limit(1);
+    if (!existingFoRole) {
+      await db.insert(roles).values({
+        id: "financial_officer",
+        nameAr: "المسؤول المالي",
+        nameEn: "financial_officer",
+        description: JSON.stringify([
+          "purchase_orders.view",
+          "purchase_orders.add",
+          "purchase_orders.approve",
+          "purchase_orders.create_disbursement",
+          "purchase_orders.export",
+          "csr_letters.view",
+          "csr_letters.add",
+          "csr_letters.approve",
+          "csr_letters.create_disbursement",
+          "csr_letters.export",
+        ]),
+      }).catch(() => {});
     }
   } catch (err) {
     console.error("Error in ensureAllCustomPermissionsExist:", err);
@@ -1198,6 +1222,21 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
   if (userData?.role === "procurement_officer" && !hasCustomRole) {
     rolePermissionsData.push("quotations.view", "quotations.create");
+  }
+
+  if (userData?.role === "financial_officer" && !hasCustomRole) {
+    rolePermissionsData.push(
+      "purchase_orders.view",
+      "purchase_orders.add",
+      "purchase_orders.approve",
+      "purchase_orders.create_disbursement",
+      "purchase_orders.export",
+      "csr_letters.view",
+      "csr_letters.add",
+      "csr_letters.approve",
+      "csr_letters.create_disbursement",
+      "csr_letters.export"
+    );
   }
 
   if (userData?.role === "board_chairman" || roleIds.includes("board_chairman")) {
