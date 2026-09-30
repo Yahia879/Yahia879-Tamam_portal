@@ -897,27 +897,6 @@ export default function NewLinkedDisbursementRequest() {
   }, [projectDetails?.payments]);
 
   // قائمة تقارير الإنجاز المعتمدة مع إدراج الدفعة المقدمة كخيار أول
-  const combinedReportsList = useMemo(() => {
-    const list: any[] = [];
-    if (advancePayment) {
-      list.push({
-        id: "advance",
-        reportNumber: "دفعة مقدمة",
-        title: advancePayment.description || "الدفعة الأولى",
-        actualProgress: 0,
-        plannedProgress: 0,
-        budgetSpent: advancePayment.amount,
-        agreedPaymentAmount: advancePayment.amount,
-        isAdvance: true,
-        hint: "دفعة مقدمة من دون تقرير إنجاز",
-      });
-    }
-    if (approvedReports && approvedReports.length > 0) {
-      list.push(...approvedReports);
-    }
-    return list;
-  }, [advancePayment, approvedReports]);
-
   // دالة للتحقق مما إذا كانت دفعة معينة قد تم صرفها مسبقاً
   const isPaymentDisbursed = (payment: any) => {
     if (!projectRequests || !projectRequests.requests || !payment) return false;
@@ -959,6 +938,29 @@ export default function NewLinkedDisbursementRequest() {
     
     return false;
   };
+
+  // قائمة تقارير الإنجاز المعتمدة مع إدراج الدفعة المقدمة كخيار أول في حال عدم وجود تقرير إنجاز معتمد لها
+  const combinedReportsList = useMemo(() => {
+    const list: any[] = [];
+    const hasAdvanceReport = advancePayment && approvedReports?.some((r: any) => isPaymentMatchingReport(advancePayment, r));
+    if (advancePayment && !hasAdvanceReport) {
+      list.push({
+        id: "advance",
+        reportNumber: "دفعة مقدمة",
+        title: advancePayment.description || "الدفعة الأولى",
+        actualProgress: 0,
+        plannedProgress: 0,
+        budgetSpent: advancePayment.amount,
+        agreedPaymentAmount: advancePayment.amount,
+        isAdvance: true,
+        hint: "دفعة مقدمة من دون تقرير إنجاز",
+      });
+    }
+    if (approvedReports && approvedReports.length > 0) {
+      list.push(...approvedReports);
+    }
+    return list;
+  }, [advancePayment, approvedReports]);
 
   const selectedReport = approvedReports?.find((r: any) => r.id === selectedReportId);
   
