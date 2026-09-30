@@ -95,13 +95,7 @@ export default function EditPaymentPage() {
   );
 
   const isPaid = Boolean(payment?.isPaid || payment?.status === "paid" || Number(payment?.paidAmount || 0) > 0);
-  const isRequestClosed = Boolean(
-    (projectDetails as any)?.isRequestClosed ||
-    projectDetails?.request?.currentStage === "closed" ||
-    (projectDetails as any)?.request?.status === "completed" ||
-    (projectDetails as any)?.request?.closureStatus === "confirmed"
-  );
-  
+
   // جلب المشاريع
   const { data: projects } = trpc.projects.getAll.useQuery({});
   
@@ -122,6 +116,13 @@ export default function EditPaymentPage() {
   const { data: projectDetails } = trpc.projects.getById.useQuery(
     { id: formData.projectId },
     { enabled: formData.projectId > 0 }
+  );
+
+const isRequestClosed = Boolean(
+    (projectDetails as any)?.isRequestClosed ||
+    projectDetails?.request?.currentStage === "closed" ||
+    (projectDetails as any)?.request?.status === "completed" ||
+    (projectDetails as any)?.request?.closureStatus === "confirmed"
   );
   
   // جلب تفاصيل العقد
