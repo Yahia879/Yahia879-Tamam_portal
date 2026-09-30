@@ -165,6 +165,30 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
       await promisePool.query("ALTER TABLE mosque_requests ADD COLUMN closureRejectionReason TEXT DEFAULT NULL");
     }
 
+    // تحديث enum role في جدول users ليشمل مسؤول المشتريات (procurement_officer)
+    try {
+      await promisePool.query(`
+        ALTER TABLE users MODIFY COLUMN role ENUM(
+          'super_admin',
+          'system_admin',
+          'board_chairman',
+          'board_member',
+          'general_manager',
+          'executive_director',
+          'projects_office',
+          'field_team',
+          'quick_response',
+          'financial',
+          'project_manager',
+          'corporate_comm',
+          'service_requester',
+          'procurement_officer'
+        ) NOT NULL DEFAULT 'service_requester';
+      `);
+    } catch (roleEnumErr) {
+      console.warn("[Database] Could not update users.role enum (might already be up to date):", roleEnumErr);
+    }
+
     // ملاحظة: طلبات سدانة تُدار بشكل مستقل ولا يتم إنشاء مشاريع لها في جدول projects
   } catch (err) {
     console.warn("[Database] ensureSchemaUpdated warning:", err);
