@@ -450,25 +450,6 @@ export function hasRouteAccess(
     return userPermissions.includes("orders_and_letters") || userPermissions.includes("orders_and_letters.view");
   }
 
-  // الصفحات المفصولة (أوامر الشراء والمسؤولية المجتمعية) تتطلب الصلاحية صراحةً ولا تُمنح تلقائياً حتى لمدراء النظام
-  const isPurchaseOrdersRoute = pathname === "/purchase-orders" || pathname.startsWith("/purchase-orders/");
-  if (isPurchaseOrdersRoute) {
-    return (
-      userPermissions.includes("purchase_orders") ||
-      userPermissions.includes("purchase_orders.view") ||
-      userPermissions.includes("purchase_orders.add")
-    );
-  }
-
-  const isCsrLettersRoute = pathname === "/csr-letters" || pathname.startsWith("/csr-letters/");
-  if (isCsrLettersRoute) {
-    return (
-      userPermissions.includes("csr_letters") ||
-      userPermissions.includes("csr_letters.view") ||
-      userPermissions.includes("csr_letters.add")
-    );
-  }
-
   // super_admin و system_admin لهما كل الصلاحيات دائماً إلا إذا سُحبت صلاحية معينة صراحةً
   if (userRole === "super_admin" || userRole === "system_admin") {
     if (userPermissions.includes("*") || userPermissions.length === 0) return true;
