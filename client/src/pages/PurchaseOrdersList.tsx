@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { usePermission } from "@/hooks/usePermission";
+import { usePermission, useAnyPermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
 import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { Button } from "@/components/ui/button";
@@ -102,9 +102,9 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
 
   // صلاحيات أوامر الشراء
   const canAddOrder = usePermission("purchase_orders.add");
-  const canApprove = usePermission("purchase_orders.approve") || usePermission("orders_and_letters.approve");
-  const canCreateDisbursement = usePermission("purchase_orders.create_disbursement") || usePermission("orders_and_letters.create_disbursement");
-  const canExport = usePermission("purchase_orders.export") || usePermission("orders_and_letters.export");
+  const canApprove = useAnyPermission(["purchase_orders.approve", "orders_and_letters.approve"]);
+  const canCreateDisbursement = useAnyPermission(["purchase_orders.create_disbursement", "orders_and_letters.create_disbursement"]);
+  const canExport = useAnyPermission(["purchase_orders.export", "orders_and_letters.export"]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
