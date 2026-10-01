@@ -1175,6 +1175,14 @@ async function ensureAllCustomPermissionsExist(db: any) {
       }
     }
 
+    // التأكد من عدم وجود صلاحيات أوامر الشراء والخطاب المجتمعي لمدراء النظام تلقائياً
+    await db.delete(rolePermissions).where(
+      and(
+        inArray(rolePermissions.roleId, ['system_admin', 'super_admin']),
+        sql`${rolePermissions.permissionId} LIKE 'orders_and_letters%'`
+      )
+    ).catch(() => {});
+
     // إسناد الصلاحيات الافتراضية لأوامر الشراء والخطاب المجتمعي (متاحة افتراضياً حصراً للإدارة المالية فقط دون مدراء النظام)
     const ordersAndLettersDefaultRolePerms: Record<string, string[]> = {
       financial: ["orders_and_letters.view", "orders_and_letters.approve", "orders_and_letters.create_disbursement", "orders_and_letters.export"],
@@ -2181,7 +2189,8 @@ export const permissionsRouter = router({
       let targetPermIds: string[] = [];
 
       if (permList === "*") {
-        targetPermIds = allPermIds;
+        const excludedAdminPerms = EXCLUDED_ADMIN_PERMISSIONS;
+        targetPermIds = allPermIds.filter(pId => !excludedAdminPerms.includes(pId));
       } else if (Array.isArray(permList)) {
         targetPermIds = allPermIds.filter(pId =>
           permList.some((key: string) => pId === key || pId.startsWith(key + "."))
