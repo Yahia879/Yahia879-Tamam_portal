@@ -2302,7 +2302,7 @@ export default function RequestDetailsNew() {
                           : []
                       }
                       revertButton={
-                        canRevertStage && !isPendingClosure && !isFieldTeam && !isQuickResponseUser
+                        canRevertStage && translatedAction.canPerformAction && !isPendingClosure && !isFieldTeam && !isQuickResponseUser
                           ? {
                               label: "الرجوع للمرحلة السابقة",
                               onClick: () => setShowRevertStageModal(true),
