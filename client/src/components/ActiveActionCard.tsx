@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { LucideIcon, FileText, Eye } from "lucide-react";
+import { LucideIcon, FileText, Eye, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface ActiveActionCardProps {
@@ -43,6 +43,13 @@ interface ActiveActionCardProps {
     label: string;
     onClick: () => void;
   }>;
+  revertButton?: {
+    label: string;
+    onClick: () => void;
+    variant?: "default" | "destructive" | "outline" | "secondary" | "ghost";
+    disabled?: boolean;
+    title?: string;
+  };
   progress?: {
     current: number;
     total: number;
@@ -63,6 +70,7 @@ export function ActiveActionCard({
   fieldReportButton,
   commitmentFormButton,
   additionalActions,
+  revertButton,
   progress,
 }: ActiveActionCardProps) {
   const isCyan = programType === 'sedana';
@@ -236,6 +244,33 @@ export function ActiveActionCard({
               </motion.div>
             )}
           </motion.div>
+
+          {/* Revert Button (الرجوع للمرحلة السابقة) */}
+          {revertButton && (
+            <motion.div
+              className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.3 }}
+            >
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+              >
+                <Button
+                  size="sm"
+                  variant={revertButton.variant || "ghost"}
+                  onClick={revertButton.onClick}
+                  disabled={revertButton.disabled}
+                  title={revertButton.title}
+                  className="w-full h-9 sm:h-10 text-xs sm:text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/5 gap-1.5 font-medium"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  {revertButton.label}
+                </Button>
+              </motion.div>
+            </motion.div>
+          )}
 
           {/* Additional Actions */}
           {additionalActions && additionalActions.length > 0 && (
