@@ -51,6 +51,7 @@ import {
   TECHNICAL_EVAL_OPTION_LABELS,
   getPrerequisites,
   PREREQUISITE_ERROR_MESSAGES,
+  canTransitionStage,
   type PrerequisiteType,
 } from "@shared/constants";
 import { notifyRequestCreation, notifyUsersByRole, createNotification, notifyRequestStageChangeToOfficers, notifyQuotationApproval, sendEmailNotification, notifySedanaEvent } from "./notifications";
@@ -4601,11 +4602,7 @@ export const requestsRouter = router({
       reason: z.string().min(5, "يجب ذكر سبب الرجوع (خمسة أحرف على الأقل)"),
     }))
     .mutation(async ({ input, ctx }) => {
-      // فقط المدراء يمكنهم الرجوع
-      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية الرجوع للمرحلة السابقة" });
-      }
-
+      // التحقق من صلاحية الرجوع: نفس الأشخاص الذين يمكنهم تقديم المراحل يمكنهم الرجوع
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
@@ -4615,6 +4612,11 @@ export const requestsRouter = router({
       }
 
       const currentStage = request[0].currentStage;
+
+      if (!canTransitionStage(ctx.user.role, currentStage)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية الرجوع للمرحلة السابقة" });
+      }
+
       
       // المراحل التي لا يمكن الرجوع منها (بعد بلوغ مرحلة التعاقد يتوقف زر السابق نهائياً)
       const nonRevertableStages = ['submitted', 'contracting', 'execution', 'handover', 'closed'];
