@@ -506,6 +506,11 @@ export const requestsRouter = router({
                              await checkPermission(ctx.user.id, "requests.manage_as_field_team") ||
                              await checkPermission(ctx.user.id, "requests.manage_as_quick_response") ||
                              await checkPermission(ctx.user.id, "pending_reports.view") ||
+                             await checkPermission(ctx.user.id, "orders_and_letters.view") ||
+                             await checkPermission(ctx.user.id, "orders_and_letters") ||
+                             await checkPermission(ctx.user.id, "purchase_orders.view") ||
+                             await checkPermission(ctx.user.id, "csr_letters.view") ||
+                             ["financial", "financial_manager"].includes(ctx.user.role) ||
                              (ctx.user.role === 'corporate_comm' && isFinalReportAssignee);
 
       if (!isOwner && !isAssigned && !isFinalReportAssignee && !hasDetailsPerm) {
@@ -517,9 +522,13 @@ export const requestsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "صلاحيات مسؤول المشتريات مقتصرة على طلبات برنامج سدانة فقط" });
       }
 
-      // طلبات سدانة يُسمح بعرضها لمديري النظام والمدير التنفيذي ومسؤول المشتريات (أو صاحب الطلب)
-      const allowedSedanaRoles = ["super_admin", "system_admin", "general_manager", "executive_director", "procurement_officer"];
-      if (request.programType === "sedana" && !isOwner && !allowedSedanaRoles.includes(ctx.user.role)) {
+      // طلبات سدانة يُسمح بعرضها لمديري النظام والمدير التنفيذي ومسؤول المشتريات والإدارة المالية (أو صاحب الطلب أو من يملك صلاحية أوامر الشراء والخطابات)
+      const allowedSedanaRoles = ["super_admin", "system_admin", "general_manager", "executive_director", "procurement_officer", "financial", "financial_manager"];
+      const hasSedanaOrdersPerm = await checkPermission(ctx.user.id, "orders_and_letters.view") ||
+                                  await checkPermission(ctx.user.id, "orders_and_letters") ||
+                                  await checkPermission(ctx.user.id, "purchase_orders.view") ||
+                                  await checkPermission(ctx.user.id, "csr_letters.view");
+      if (request.programType === "sedana" && !isOwner && !allowedSedanaRoles.includes(ctx.user.role) && !hasSedanaOrdersPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "طلبات سدانة مخصصة للمخولين فقط" });
       }
 

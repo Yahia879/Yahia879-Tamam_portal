@@ -335,14 +335,14 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/disbursements\/orders\/\d+\/print$/, permission: ["disbursement_orders", "disbursement_orders.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
 
   // معاينة وطباعة أمر الشراء
-  { pattern: /^\/requests\/\d+\/purchase-order$/, permission: ["purchase_orders.view", "purchase_orders"] },
-  { pattern: /^\/requests\/\d+\/sedana-po$/, permission: ["purchase_orders.view", "purchase_orders"] },
-  { pattern: /^\/requests\/\d+\/new-purchase-order$/, permission: ["purchase_orders.add", "purchase_orders"] },
+  { pattern: /^\/requests\/\d+\/purchase-order$/, permission: ["purchase_orders.view", "purchase_orders", "orders_and_letters.view", "orders_and_letters"] },
+  { pattern: /^\/requests\/\d+\/sedana-po$/, permission: ["purchase_orders.view", "purchase_orders", "orders_and_letters.view", "orders_and_letters"] },
+  { pattern: /^\/requests\/\d+\/new-purchase-order$/, permission: ["purchase_orders.add", "purchase_orders", "orders_and_letters.approve", "orders_and_letters"] },
 
   // خطابات المسؤولية المجتمعية
-  { pattern: /^\/requests\/\d+\/csr-letter$/, permission: ["csr_letters.view", "csr_letters"] },
-  { pattern: /^\/requests\/\d+\/sedana-csr$/, permission: ["csr_letters.view", "csr_letters"] },
-  { pattern: /^\/requests\/\d+\/new-csr-letter$/, permission: ["csr_letters.add", "csr_letters"] },
+  { pattern: /^\/requests\/\d+\/csr-letter$/, permission: ["csr_letters.view", "csr_letters", "orders_and_letters.view", "orders_and_letters"] },
+  { pattern: /^\/requests\/\d+\/sedana-csr$/, permission: ["csr_letters.view", "csr_letters", "orders_and_letters.view", "orders_and_letters"] },
+  { pattern: /^\/requests\/\d+\/new-csr-letter$/, permission: ["csr_letters.add", "csr_letters", "orders_and_letters.approve", "orders_and_letters"] },
 
   // المستودع الافتراضي وتنفيذ سدانة
   { pattern: /^\/requests\/\d+\/sedana-execution$/, permission: ["sedana_warehouse.view", "sedana_warehouse"] },
@@ -448,6 +448,11 @@ export function hasRouteAccess(
   if (isOrdersAndLettersRoute) {
     if (userRole === "financial") return true;
     return userPermissions.includes("orders_and_letters") || userPermissions.includes("orders_and_letters.view");
+  }
+
+  // السماح للإدارة المالية بمعاينة وطباعة خطابات المسؤولية المجتمعية وأوامر الشراء
+  if (userRole === "financial" && /^\/requests\/\d+\/(csr-letter|sedana-csr|purchase-order|sedana-po)$/.test(pathname)) {
+    return true;
   }
 
   // super_admin و system_admin لهما كل الصلاحيات دائماً إلا إذا سُحبت صلاحية معينة صراحةً
