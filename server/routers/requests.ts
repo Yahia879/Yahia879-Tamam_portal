@@ -4608,7 +4608,7 @@ export const requestsRouter = router({
   revertStage: protectedProcedure
     .input(z.object({
       requestId: z.number(),
-      reason: z.string().min(5, "يجب ذكر سبب الرجوع (خمسة أحرف على الأقل)"),
+      reason: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       // التحقق من صلاحية الرجوع: نفس الأشخاص الذين يمكنهم تقديم المراحل يمكنهم الرجوع
@@ -4674,7 +4674,9 @@ export const requestsRouter = router({
         fromStage: currentStage,
         toStage: previousStage,
         action: 'stage_reverted',
-        notes: `تم الرجوع من مرحلة "${currStageName}" إلى مرحلة "${prevStageName}". السبب: ${input.reason}`,
+        notes: input.reason?.trim()
+          ? `تم الرجوع من مرحلة "${currStageName}" إلى مرحلة "${prevStageName}". السبب: ${input.reason.trim()}`
+          : `تم الرجوع من مرحلة "${currStageName}" إلى مرحلة "${prevStageName}"`,
       });
 
       // إرسال إشعار للمسؤولين الآخرين بتغيير مرحلة الطلب (الرجوع للمرحلة السابقة)
