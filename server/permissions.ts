@@ -342,20 +342,6 @@ export const EXCLUDED_ADMIN_PERMISSIONS: string[] = [
   'orders_and_letters.approve',
   'orders_and_letters.create_disbursement',
   'orders_and_letters.export',
-  // أوامر الشراء المنفصلة (لا تظهر تلقائياً إلا لمن يُمنح الصلاحية صراحةً)
-  'purchase_orders',
-  'purchase_orders.view',
-  'purchase_orders.add',
-  'purchase_orders.approve',
-  'purchase_orders.create_disbursement',
-  'purchase_orders.export',
-  // خطابات المسؤولية المجتمعية المنفصلة (لا تظهر تلقائياً إلا لمن يُمنح الصلاحية صراحةً)
-  'csr_letters',
-  'csr_letters.view',
-  'csr_letters.add',
-  'csr_letters.approve',
-  'csr_letters.create_disbursement',
-  'csr_letters.export',
 ];
 
 /**
@@ -1097,8 +1083,65 @@ async function ensureAllCustomPermissionsExist(db: any) {
       }
     }
 
-    // تنظيف أي صلاحيات تم إسنادها مسبقاً بشكل تلقائي لصفحات أوامر الشراء والمسؤولية المجتمعية (يجب أن تُمنح يدوياً فقط بناءً على رغبة الإدارة)
-    await db.delete(rolePermissions).where(sql`permission_id LIKE 'purchase_orders%' OR permission_id LIKE 'csr_letters%'`).catch(() => {});
+    // إسناد الصلاحيات الافتراضية لأوامر الشراء للأدوار الأساسية إن لم تكن مسندة
+    const poDefaultRolePerms: Record<string, string[]> = {
+      super_admin: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
+      system_admin: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
+      general_manager: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
+      executive_director: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
+      financial_manager: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
+      projects_office: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
+      project_manager: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.export"],
+    };
+
+    for (const [rId, pIds] of Object.entries(poDefaultRolePerms)) {
+      for (const pId of pIds) {
+        const [existing] = await db.select({ id: rolePermissions.id })
+          .from(rolePermissions)
+          .where(and(
+            eq(rolePermissions.roleId, rId),
+            eq(rolePermissions.permissionId, pId)
+          ))
+          .limit(1);
+
+        if (!existing) {
+          await db.insert(rolePermissions).values({
+            roleId: rId,
+            permissionId: pId
+          }).catch(() => {});
+        }
+      }
+    }
+
+    // إسناد الصلاحيات الافتراضية للمسؤولية المجتمعية للأدوار الأساسية إن لم تكن مسندة
+    const csrDefaultRolePerms: Record<string, string[]> = {
+      super_admin: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
+      system_admin: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
+      general_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
+      executive_director: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
+      financial_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
+      projects_office: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
+      project_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.export"],
+    };
+
+    for (const [rId, pIds] of Object.entries(csrDefaultRolePerms)) {
+      for (const pId of pIds) {
+        const [existing] = await db.select({ id: rolePermissions.id })
+          .from(rolePermissions)
+          .where(and(
+            eq(rolePermissions.roleId, rId),
+            eq(rolePermissions.permissionId, pId)
+          ))
+          .limit(1);
+
+        if (!existing) {
+          await db.insert(rolePermissions).values({
+            roleId: rId,
+            permissionId: pId
+          }).catch(() => {});
+        }
+      }
+    }
 
 
     // إسناد الصلاحيات الافتراضية للمستودع الافتراضي للأدوار الأساسية إن لم تكن مسندة
