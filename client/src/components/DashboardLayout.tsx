@@ -179,8 +179,6 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
 
     if (["super_admin", "system_admin"].includes(role)) {
       const inventoryItems = [
-        { icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" },
-        { icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" },
         { icon: Boxes, label: "المستودع الافتراضي", path: "/sedana-warehouse" },
       ];
       groups.push({
@@ -364,15 +362,15 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   }
 
   // 4. إدارة المخزون
-  if (["super_admin", "system_admin"].includes(role) || (has("orders_and_letters") || has("orders_and_letters.view") || has("purchase_orders") || has("csr_letters") || has("sedana_warehouse") || role === "financial")) {
+  if (["super_admin", "system_admin"].includes(role) || (has("orders_and_letters") || has("orders_and_letters.view") || has("purchase_orders") || has("purchase_orders.view") || has("csr_letters") || has("csr_letters.view") || has("sedana_warehouse") || role === "financial")) {
     const inventoryItems: MenuItem[] = [];
     if (role === "financial" || has("orders_and_letters") || has("orders_and_letters.view")) {
       inventoryItems.push({ icon: ShoppingBag, label: "أوامر الشراء والخطاب المجتمعي", path: "/orders-and-letters" });
     }
-    if (["super_admin", "system_admin"].includes(role) || has("purchase_orders") || has("purchase_orders.view")) {
+    if (has("purchase_orders") || has("purchase_orders.view")) {
       inventoryItems.push({ icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" });
     }
-    if (["super_admin", "system_admin"].includes(role) || has("csr_letters") || has("csr_letters.view")) {
+    if (has("csr_letters") || has("csr_letters.view")) {
       inventoryItems.push({ icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" });
     }
     if (["super_admin", "system_admin"].includes(role) || has("sedana_warehouse") || has("sedana_warehouse.view")) {
