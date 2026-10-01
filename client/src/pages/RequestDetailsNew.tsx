@@ -949,6 +949,30 @@ export default function RequestDetailsNew() {
     },
   });
 
+  // ====== الرجوع للمرحلة السابقة (قبل بلوغ التعاقد) ======
+  const [showRevertStageModal, setShowRevertStageModal] = useState(false);
+  const [revertReason, setRevertReason] = useState("");
+
+  const revertStageMutation = trpc.requests.revertStage.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setShowRevertStageModal(false);
+      setRevertReason("");
+      utils.requests.getById.invalidate({ id: requestId });
+      utils.requests.search.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء الرجوع للمرحلة السابقة");
+    },
+  });
+
+  // المراحل التي يُسمح فيها بالرجوع (قبل التعاقد) — يظهر لأي شخص يملك صلاحية تحريك المراحل
+  const canRevertStage = useMemo(() => {
+    if (!request) return false;
+    const nonRevertableStages = ['submitted', 'contracting', 'execution', 'handover', 'closed'];
+    return !nonRevertableStages.includes(request.currentStage);
+  }, [request]);
+
   // تحديث تلقائي للمرحلة عند وجود عقد معتمد (للمشاريع العادية فقط)
   useEffect(() => {
     if (request?.currentStage === 'contracting' && request?.programType !== 'sedana' && linkedContract && !updateStageMutation.isPending) {
@@ -2276,6 +2300,16 @@ export default function RequestDetailsNew() {
                               }
                             ]
                           : []
+                      }
+                      revertButton={
+                        canRevertStage && !isPendingClosure && !isFieldTeam && !isQuickResponseUser
+                          ? {
+                              label: "الرجوع للمرحلة السابقة",
+                              onClick: () => setShowRevertStageModal(true),
+                              disabled: revertStageMutation.isPending,
+                              title: "الرجوع للمرحلة السابقة لتعديل البيانات",
+                            }
+                          : undefined
                       }
                     />
                   );
@@ -5186,6 +5220,85 @@ export default function RequestDetailsNew() {
                 {rejectCloseMutation.isPending ? (isEn ? "Rejecting..." : "جاري الرفض...") : (isEn ? "Confirm Rejection" : "تأكيد رفض الإغلاق")}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة تأكيد الرجوع للمرحلة السابقة */}
+      <Dialog open={showRevertStageModal} onOpenChange={(open) => {
+        setShowRevertStageModal(open);
+        if (!open) setRevertReason("");
+      }}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-amber-600">
+              <RotateCcw className="w-5 h-5" />
+              <DialogTitle className="text-lg font-bold">
+                الرجوع للمرحلة السابقة
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-300">
+              <p className="font-bold mb-1">⚠️ تنبيه</p>
+              <p>سيتم إرجاع الطلب إلى المرحلة السابقة لتعديل البيانات. هذا الإجراء سيُسجّل في سجل تاريخ الطلب.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-foreground">
+                سبب الرجوع <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                value={revertReason}
+                onChange={(e) => setRevertReason(e.target.value)}
+                placeholder="اذكر سبب الرجوع للمرحلة السابقة (مثال: تعديل بيانات الطلب أو تصحيح خطأ)"
+                className="min-h-[100px] resize-none text-sm"
+                dir="rtl"
+              />
+              {revertReason.trim().length > 0 && revertReason.trim().length < 5 && (
+                <p className="text-xs text-red-500">يجب أن يكون السبب 5 أحرف على الأقل</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-2.5 justify-end mt-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowRevertStageModal(false);
+                setRevertReason("");
+              }}
+              disabled={revertStageMutation.isPending}
+            >
+              إلغاء
+            </Button>
+            <Button
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold gap-1.5"
+              disabled={revertStageMutation.isPending || revertReason.trim().length < 5}
+              onClick={() => {
+                if (revertReason.trim().length < 5) {
+                  toast.error("يجب ذكر سبب الرجوع (5 أحرف على الأقل)");
+                  return;
+                }
+                revertStageMutation.mutate({
+                  requestId,
+                  reason: revertReason.trim(),
+                });
+              }}
+            >
+              {revertStageMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>جاري الرجوع...</span>
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="w-4 h-4" />
+                  <span>تأكيد الرجوع</span>
+                </>
+              )}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
