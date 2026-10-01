@@ -4616,8 +4616,8 @@ export const requestsRouter = router({
 
       const currentStage = request[0].currentStage;
       
-      // المراحل التي لا يمكن الرجوع منها
-      const nonRevertableStages = ['submitted', 'closed'];
+      // المراحل التي لا يمكن الرجوع منها (بعد بلوغ مرحلة التعاقد يتوقف زر السابق نهائياً)
+      const nonRevertableStages = ['submitted', 'contracting', 'execution', 'handover', 'closed'];
       if (nonRevertableStages.includes(currentStage)) {
         throw new TRPCError({ 
           code: "BAD_REQUEST", 
