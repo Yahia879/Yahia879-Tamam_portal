@@ -951,13 +951,11 @@ export default function RequestDetailsNew() {
 
   // ====== الرجوع للمرحلة السابقة (قبل بلوغ التعاقد) ======
   const [showRevertStageModal, setShowRevertStageModal] = useState(false);
-  const [revertReason, setRevertReason] = useState("");
 
   const revertStageMutation = trpc.requests.revertStage.useMutation({
     onSuccess: (data) => {
       toast.success(data.message);
       setShowRevertStageModal(false);
-      setRevertReason("");
       utils.requests.getById.invalidate({ id: requestId });
       utils.requests.search.invalidate();
     },
@@ -5225,10 +5223,7 @@ export default function RequestDetailsNew() {
       </Dialog>
 
       {/* نافذة تأكيد الرجوع للمرحلة السابقة */}
-      <Dialog open={showRevertStageModal} onOpenChange={(open) => {
-        setShowRevertStageModal(open);
-        if (!open) setRevertReason("");
-      }}>
+      <Dialog open={showRevertStageModal} onOpenChange={setShowRevertStageModal}>
         <DialogContent className="max-w-md" dir="rtl">
           <DialogHeader>
             <div className="flex items-center gap-2 text-amber-600">
@@ -5239,51 +5234,31 @@ export default function RequestDetailsNew() {
             </div>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
-            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-300">
-              <p className="font-bold mb-1">⚠️ تنبيه</p>
-              <p>سيتم إرجاع الطلب إلى المرحلة السابقة لتعديل البيانات. هذا الإجراء سيُسجّل في سجل تاريخ الطلب.</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-bold text-foreground">
-                سبب الرجوع <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                value={revertReason}
-                onChange={(e) => setRevertReason(e.target.value)}
-                placeholder="اذكر سبب الرجوع للمرحلة السابقة (مثال: تعديل بيانات الطلب أو تصحيح خطأ)"
-                className="min-h-[100px] resize-none text-sm"
-                dir="rtl"
-              />
-              {revertReason.trim().length > 0 && revertReason.trim().length < 5 && (
-                <p className="text-xs text-red-500">يجب أن يكون السبب 5 أحرف على الأقل</p>
-              )}
+          <div className="space-y-3 py-2">
+            <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-sm text-amber-900 dark:text-amber-200 space-y-1.5 leading-relaxed">
+              <p className="font-bold flex items-center gap-1.5 text-amber-800 dark:text-amber-300">
+                <span>⚠️</span>
+                <span>تأكيد الرجوع</span>
+              </p>
+              <p>هل أنت متأكد من رغبتك في إرجاع الطلب إلى المرحلة السابقة؟</p>
+              <p className="text-xs text-amber-700/80 dark:text-amber-400/80">سيتم إرجاع الطلب إلى المرحلة السابقة لتعديل البيانات، ويُسجّل هذا الإجراء تلقائياً في سجل تاريخ الطلب.</p>
             </div>
           </div>
 
           <div className="flex gap-2.5 justify-end mt-2 pt-3 border-t border-slate-100 dark:border-slate-800">
             <Button
               variant="outline"
-              onClick={() => {
-                setShowRevertStageModal(false);
-                setRevertReason("");
-              }}
+              onClick={() => setShowRevertStageModal(false)}
               disabled={revertStageMutation.isPending}
             >
               إلغاء
             </Button>
             <Button
               className="bg-amber-600 hover:bg-amber-700 text-white font-bold gap-1.5"
-              disabled={revertStageMutation.isPending || revertReason.trim().length < 5}
+              disabled={revertStageMutation.isPending}
               onClick={() => {
-                if (revertReason.trim().length < 5) {
-                  toast.error("يجب ذكر سبب الرجوع (5 أحرف على الأقل)");
-                  return;
-                }
                 revertStageMutation.mutate({
                   requestId,
-                  reason: revertReason.trim(),
                 });
               }}
             >
