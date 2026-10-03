@@ -268,7 +268,7 @@ export default function SedanaPurchaseOrderPrint() {
             className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs font-bold text-xs sm:text-sm gap-1.5 cursor-pointer"
           >
             <ArrowRight className="h-4 w-4" />
-            <span>رجوع إلى جدول التأمين</span>
+            <span>رجوع إلى جدول التوريد</span>
           </Button>
 
           {activePo?.status !== "approved" && (
@@ -366,7 +366,7 @@ export default function SedanaPurchaseOrderPrint() {
                   ) : (
                     <tr>
                       <td colSpan={4} className="p-8 text-center text-slate-500 font-medium">
-                        لم يتم تخصيص أي بنود لأمر الشراء الداخلي حتى الآن. يرجى الرجوع لجدول التأمين وتحديد البنود المطلوبة.
+                        لم يتم تخصيص أي بنود لأمر الشراء الداخلي حتى الآن. يرجى الرجوع لجدول التوريد وتحديد البنود المطلوبة.
                       </td>
                     </tr>
                   )}
