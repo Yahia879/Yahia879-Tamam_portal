@@ -855,17 +855,6 @@ export default function CreatePurchaseOrderPage() {
                     <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
                       <Button
                         type="button"
-                        variant="outline"
-                        disabled={createOrderMutation.isPending || selectedItemIds.length === 0}
-                        onClick={() => handleSubmit("draft")}
-                        className="font-bold px-5 h-11 rounded-xl flex items-center gap-2 text-slate-700 border-border hover:bg-muted text-xs cursor-pointer w-full sm:w-auto"
-                      >
-                        <Clock className="w-4 h-4 text-amber-600" />
-                        <span>حفظ كمسودة</span>
-                      </Button>
-
-                      <Button
-                        type="button"
                         disabled={createOrderMutation.isPending || selectedItemIds.length === 0}
                         onClick={() => handleSubmit("draft")}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer text-xs w-full sm:w-auto"

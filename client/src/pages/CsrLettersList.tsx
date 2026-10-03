@@ -63,7 +63,6 @@ import {
   ArrowRight,
   Plus,
   RotateCcw,
-  Coins,
   MoreVertical,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -110,7 +109,6 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
   const canApprove = isExecutiveDirectorCeo;
   const showGreenHighlight = isExecutiveDirectorCeo || isSuperAdmin;
   const canAdd = usePermission("csr_letters.add");
-  const canCreateDisbursement = useAnyPermission(["csr_letters.create_disbursement", "orders_and_letters.create_disbursement"]);
   const canExport = useAnyPermission(["csr_letters.export", "orders_and_letters.export"]);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -373,7 +371,6 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
                       <th className="p-3 font-bold">الطلب</th>
                       <th className="p-3 font-bold text-center">الأصناف المطلوبة</th>
                       <th className="p-3 font-bold text-center">الحالة</th>
-                      <th className="p-3 font-bold text-center">أمر الصرف</th>
                       <th className="p-3 font-bold text-center">تاريخ الخطاب</th>
                       <th className="p-3 font-bold text-center w-16">الإجراءات</th>
                     </TableRow>
@@ -469,39 +466,6 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
                             )}
                           </td>
 
-                          {/* أمر الصرف المرتبط */}
-                          <td className="p-3 text-center">
-                            {letter.disbursementOrder ? (
-                              <div className="space-y-0.5">
-                                <Badge
-                                  variant="outline"
-                                  className={`text-[10px] font-bold px-2 py-0.5 ${
-                                    letter.disbursementOrder.status === "executed"
-                                      ? "border-emerald-500 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40"
-                                      : letter.disbursementOrder.status === "approved"
-                                      ? "border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/40"
-                                      : "border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/40"
-                                  }`}
-                                >
-                                  {letter.disbursementOrder.status === "executed"
-                                    ? "منفّذ"
-                                    : letter.disbursementOrder.status === "approved"
-                                    ? "معتمد"
-                                    : "قيد المراجعة"}
-                                </Badge>
-                                <div className="text-[10px] font-mono text-muted-foreground">
-                                  #{letter.disbursementOrder.orderNumber}
-                                </div>
-                              </div>
-                            ) : letter.status === "approved" ? (
-                              <Badge variant="outline" className="text-[10px] text-muted-foreground border-dashed">
-                                لم يصدر بعد
-                              </Badge>
-                            ) : (
-                              <span className="text-[11px] text-muted-foreground">-</span>
-                            )}
-                          </td>
-
                           {/* تاريخ الخطاب */}
                           <td className="p-3 text-center font-mono text-muted-foreground">
                             {letter.letterDate || "-"}
@@ -575,39 +539,6 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
                                     >
                                       <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
                                       <span>اعتماد الخطاب فورياً</span>
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-
-                                {/* إنشاء أمر صرف لخطاب المسؤولية المجتمعية المعتمد */}
-                                {canCreateDisbursement && letter.status === "approved" && !letter.disbursementOrder && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      onClick={() => navigate(`/disbursement-orders/new-direct?csr=${encodeURIComponent(letter.letterNumber)}`)}
-                                      className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40"
-                                    >
-                                      <Coins className="w-4 h-4 text-amber-600 shrink-0" />
-                                      <span>إنشاء أمر صرف</span>
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-
-                                {/* متابعة أمر الصرف المرتبط إن وجد */}
-                                {letter.disbursementOrder && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      onClick={() => navigate("/disbursement-orders")}
-                                      className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs text-slate-700 dark:text-slate-300"
-                                    >
-                                      <Coins className="w-4 h-4 text-primary shrink-0" />
-                                      <div className="flex flex-col text-right">
-                                        <span className="font-semibold">متابعة أمر الصرف</span>
-                                        <span className="text-[10px] text-muted-foreground font-mono">
-                                          #{letter.disbursementOrder.orderNumber} ({letter.disbursementOrder.status === "executed" ? "منفّذ" : letter.disbursementOrder.status === "approved" ? "معتمد" : "قيد المراجعة"})
-                                        </span>
-                                      </div>
                                     </DropdownMenuItem>
                                   </>
                                 )}
