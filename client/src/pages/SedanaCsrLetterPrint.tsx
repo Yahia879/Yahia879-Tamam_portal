@@ -3,7 +3,8 @@ import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Printer, Loader2, AlertCircle } from "lucide-react";
+import { ArrowRight, Printer, Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { toast } from "sonner";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 
 export default function SedanaCsrLetterPrint() {
@@ -11,6 +12,30 @@ export default function SedanaCsrLetterPrint() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const requestId = parseInt(params.id || "0");
+
+  const isExecutiveDirectorCeo =
+    (user?.role === "general_manager" ||
+      user?.role === "executive_director" ||
+      (user as any)?.customRole?.nameAr === "المدير العام" ||
+      (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+      (user as any)?.customRole?.nameAr === "الرئيس التنفيذي") &&
+    user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa";
+
+  const canApprove = isExecutiveDirectorCeo;
+
+  const utils = trpc.useUtils();
+
+  const approveMutation = trpc.procurement.approveCsrLetter.useMutation({
+    onSuccess: (res) => {
+      toast.success(res.message || "تم اعتماد خطاب المسؤولية المجتمعية بنجاح");
+      utils.requests.getById.invalidate({ id: requestId });
+      utils.procurement.listCsrLetters.invalidate();
+      utils.procurement.getPendingActionCounts.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء اعتماد الخطاب");
+    },
+  });
 
   useDocumentTitle(`خطاب مسؤولية مجتمعية #${requestId} - سدانة`);
 
@@ -221,6 +246,18 @@ export default function SedanaCsrLetterPrint() {
             <ArrowRight className="h-4 w-4" />
             <span>رجوع إلى جدول التوريد</span>
           </Button>
+
+          {canApprove && targetCsr?.status !== "approved" && (
+            <Button
+              size="sm"
+              onClick={() => approveMutation.mutate({ requestId, letterNumber: targetCsr?.letterNumber })}
+              disabled={approveMutation.isPending}
+              className="h-8 sm:h-9 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-md cursor-pointer"
+            >
+              <CheckCircle className="w-4 h-4" />
+              <span>{approveMutation.isPending ? "جاري الاعتماد..." : "اعتماد خطاب المسؤولية المجتمعية الآن"}</span>
+            </Button>
+          )}
 
           <Button
             size="sm"

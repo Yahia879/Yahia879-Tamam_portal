@@ -15,6 +15,16 @@ export default function SedanaPurchaseOrderPrint() {
 
   useDocumentTitle(`أمر شراء داخلي #${requestId} - سدانة`);
 
+  const isExecutiveDirectorCeo =
+    (user?.role === "general_manager" ||
+      user?.role === "executive_director" ||
+      (user as any)?.customRole?.nameAr === "المدير العام" ||
+      (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+      (user as any)?.customRole?.nameAr === "الرئيس التنفيذي") &&
+    user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa";
+
+  const canApprove = isExecutiveDirectorCeo;
+
   const utils = trpc.useUtils();
 
   // 1. جلب بيانات الطلب
@@ -205,6 +215,7 @@ export default function SedanaPurchaseOrderPrint() {
   const execSignatory = signatoriesData.find((s: any) => s.roleTitle?.includes("تنفيذي") || s.roleTitle?.includes("مدير")) || signatoriesData[0];
 
   const orderNum = activePo?.orderNumber || `PO-${requestId}-${new Date().getFullYear()}`;
+  const isApproved = activePo?.status === "approved";
 
   const poData = {
     orderNumber: orderNum,
@@ -271,7 +282,7 @@ export default function SedanaPurchaseOrderPrint() {
             <span>رجوع إلى جدول التوريد</span>
           </Button>
 
-          {activePo?.status !== "approved" && (
+          {activePo?.status !== "approved" && canApprove && (
             <Button
               size="sm"
               onClick={() => approveMutation.mutate({ requestId, orderNumber: activePo?.orderNumber })}
@@ -386,28 +397,24 @@ export default function SedanaPurchaseOrderPrint() {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* المورد المعتمد */}
-                  <tr className="border-b border-slate-300 h-12 sm:h-16 print:h-12">
-                    <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{poData.supplierRole}</td>
-                    <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{poData.supplierName}</td>
-                    <td className="p-2 border-l border-slate-300">
-                      <div className="h-7 sm:h-8 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-32"></div>
-                    </td>
-                    <td className="p-2 text-slate-600 font-medium text-[11px]">{poData.orderDate}</td>
-                  </tr>
-
                   {/* صاحب الصلاحية (المدير التنفيذي) */}
                   <tr className="h-12 sm:h-16 print:h-12">
                     <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{poData.approverRole}</td>
                     <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{poData.approverName || "المدير التنفيذي"}</td>
                     <td className="p-2 border-l border-slate-300">
-                      {poData.approverSignatureUrl ? (
-                        <img src={poData.approverSignatureUrl} alt="التوقيع" className="max-h-10 mx-auto object-contain" />
+                      {isApproved ? (
+                        poData.approverSignatureUrl ? (
+                          <img src={poData.approverSignatureUrl} alt="التوقيع" className="max-h-10 mx-auto object-contain" />
+                        ) : (
+                          <div className="h-7 sm:h-8 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-32"></div>
+                        )
                       ) : (
-                        <div className="h-7 sm:h-8 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-32"></div>
+                        <span className="text-slate-400 font-mono text-xs">-</span>
                       )}
                     </td>
-                    <td className="p-2 text-slate-600 font-medium text-[11px]">{poData.orderDate}</td>
+                    <td className="p-2 text-slate-600 font-medium text-[11px]">
+                      {isApproved ? (activePo?.approvalDate || (activePo?.approvedAt ? new Date(activePo.approvedAt).toISOString().split("T")[0] : poData.orderDate)) : <span className="text-slate-400 font-mono text-xs">-</span>}
+                    </td>
                   </tr>
                 </tbody>
               </table>

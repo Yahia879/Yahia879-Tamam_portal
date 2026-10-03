@@ -39,6 +39,12 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Eye,
   CheckCircle,
   Clock,
@@ -90,8 +96,20 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
   const { user } = useAuth();
   const [, navigate] = useLocation();
 
+  // التحقق من صلاحية المدير التنفيذي حصراً: دوره مدير تنفيذي وايميله ceo@manarah.org.sa
+  const isExecutiveDirectorCeo =
+    (user?.role === "general_manager" ||
+      user?.role === "executive_director" ||
+      (user as any)?.customRole?.nameAr === "المدير العام" ||
+      (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+      (user as any)?.customRole?.nameAr === "الرئيس التنفيذي") &&
+    user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa";
+
+  const isSuperAdmin = user?.role === "super_admin" || user?.role === "system_admin";
+  const isExec = isExecutiveDirectorCeo;
+  const canApprove = isExecutiveDirectorCeo;
+  const showGreenHighlight = isExecutiveDirectorCeo || isSuperAdmin;
   const canAdd = usePermission("csr_letters.add");
-  const canApprove = useAnyPermission(["csr_letters.approve", "orders_and_letters.approve"]);
   const canCreateDisbursement = useAnyPermission(["csr_letters.create_disbursement", "orders_and_letters.create_disbursement"]);
   const canExport = useAnyPermission(["csr_letters.export", "orders_and_letters.export"]);
 
@@ -136,6 +154,7 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
     onSuccess: (res) => {
       toast.success(res.message || "تم اعتماد خطاب المسؤولية المجتمعية بنجاح");
       refetch();
+      utils.procurement.getPendingActionCounts.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء اعتماد الخطاب");
@@ -362,17 +381,45 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
                   <TableBody className="divide-y divide-border">
                     {letters.map((letter, idx) => {
                       const statusInfo = STATUS_MAP[letter.status] || STATUS_MAP.approved;
+                      const isPendingMyAction = showGreenHighlight && letter.status === "draft";
                       return (
-                        <TableRow key={letter.id} className="hover:bg-muted/10 transition-colors">
+                        <TableRow 
+                          key={letter.id} 
+                          className={
+                            isPendingMyAction 
+                              ? "bg-emerald-100/75 dark:bg-emerald-950/60 hover:bg-emerald-200/70 dark:hover:bg-emerald-900/70 border-r-4 border-r-emerald-700 dark:border-r-emerald-400 transition-all shadow-xs" 
+                              : "hover:bg-muted/10 transition-colors"
+                          }
+                        >
                           <td className="p-3 text-center font-mono text-muted-foreground">
                             {(currentPage - 1) * limit + idx + 1}
                           </td>
 
                           {/* رقم الخطاب */}
                           <td className="p-3">
-                            <span className="font-mono font-bold text-foreground bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-border">
-                              {letter.letterNumber}
-                            </span>
+                            <div className="flex items-center gap-2 justify-start">
+                              {isPendingMyAction && (
+                                <TooltipProvider>
+                                  <Tooltip delayDuration={50}>
+                                    <TooltipTrigger asChild>
+                                      <div className="relative inline-flex items-center justify-center shrink-0 cursor-pointer">
+                                        <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-tr from-[#1a5f4a] via-emerald-600 to-teal-500 text-white shadow-sm border border-emerald-400/40 transition-transform duration-200 hover:scale-110">
+                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                                          <Clock className="w-3.5 h-3.5 text-amber-200 animate-spin relative z-10" style={{ animationDuration: '4s' }} />
+                                        </div>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                                      <span>{isExecutiveDirectorCeo ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي"}</span>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                              <span className="font-mono font-bold text-foreground bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-border">
+                                {letter.letterNumber}
+                              </span>
+                            </div>
                           </td>
 
                           {/* الطلب */}
@@ -404,9 +451,22 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
 
                           {/* الحالة */}
                           <td className="p-3 text-center">
-                            <Badge variant="outline" className={`text-[10px] font-bold px-2 py-0.5 ${statusInfo.className}`}>
-                              {statusInfo.label}
-                            </Badge>
+                            {letter.status === "draft" ? (
+                              isExec ? (
+                                <Badge variant="outline" className="text-[10px] font-bold px-2 py-0.5 border-amber-300 text-amber-800 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 flex items-center gap-1 w-fit mx-auto">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                  <span>بانتظار اعتمادك (المدير التنفيذي)</span>
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px] font-bold px-2 py-0.5 border-amber-300 text-amber-800 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 flex items-center gap-1 w-fit mx-auto">
+                                  <span>بانتظار اعتماد المدير التنفيذي</span>
+                                </Badge>
+                              )
+                            ) : (
+                              <Badge variant="outline" className={`text-[10px] font-bold px-2 py-0.5 ${statusInfo.className}`}>
+                                {statusInfo.label}
+                              </Badge>
+                            )}
                           </td>
 
                           {/* أمر الصرف المرتبط */}
@@ -449,19 +509,38 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
 
                           {/* الإجراءات عبر قائمة 3 نقاط */}
                           <td className="p-3 text-center">
-                            <DropdownMenu dir="rtl">
-                              <DropdownMenuTrigger asChild>
+                            <div className="flex items-center justify-center gap-1">
+                              {canApprove && letter.status === "draft" && (
                                 <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 rounded-full hover:bg-muted shrink-0"
-                                  title="خيارات إضافية"
+                                  variant="default"
+                                  size="sm"
+                                  onClick={() => {
+                                    approveLetterMutation.mutate({
+                                      requestId: letter.requestId,
+                                      letterNumber: letter.letterNumber,
+                                    });
+                                  }}
+                                  disabled={approveLetterMutation.isPending}
+                                  className="h-8 px-2.5 text-xs font-bold gap-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
+                                  title="اعتماد خطاب المسؤولية المجتمعية الآن"
                                 >
-                                  <MoreVertical className="h-4 w-4 text-muted-foreground" />
-                                  <span className="sr-only">قائمة الإجراءات</span>
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                  <span>اعتماد</span>
                                 </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-56 text-right font-sans">
+                              )}
+                              <DropdownMenu dir="rtl">
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 rounded-full hover:bg-muted shrink-0"
+                                    title="خيارات إضافية"
+                                  >
+                                    <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                                    <span className="sr-only">قائمة الإجراءات</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56 text-right font-sans">
                                 {/* معاينة وطباعة الخطاب الرسمي */}
                                 <DropdownMenuItem
                                   onClick={() => navigate(`/requests/${letter.requestId}/csr-letter?letterNumber=${encodeURIComponent(letter.letterNumber)}`)}
@@ -534,7 +613,8 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          </td>
+                          </div>
+                        </td>
                         </TableRow>
                       );
                     })}

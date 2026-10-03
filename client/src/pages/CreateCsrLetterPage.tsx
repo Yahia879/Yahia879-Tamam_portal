@@ -230,6 +230,7 @@ export default function CreateCsrLetterPage() {
       toast.success(res.message || "تم حفظ خطاب المسؤولية المجتمعية بنجاح");
       utils.procurement.listCsrLetters.invalidate();
       utils.procurement.getAvailableRequestsForCSR.invalidate();
+      utils.procurement.getPendingActionCounts.invalidate();
 
       // الانتقال إلى تفاصيل المشروع إذا تم الإنشاء منه، أو قائمة خطابات المسؤولية المجتمعية
       if (projectId) {

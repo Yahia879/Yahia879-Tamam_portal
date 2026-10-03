@@ -47,6 +47,18 @@ export default function CreatePurchaseOrderPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const canAddOrder = usePermission("purchase_orders.add");
+
+  const isExecutiveDirector =
+    user?.role === "general_manager" ||
+    user?.role === "executive_director" ||
+    (user as any)?.customRole?.nameAr === "المدير العام" ||
+    (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+    (user as any)?.customRole?.nameAr === "الرئيس التنفيذي" ||
+    user?.email === "ceo@manarah.org.sa" ||
+    user?.email === "test10@gmail.com";
+  const isSuperAdmin = user?.role === "super_admin";
+  const isExec = isExecutiveDirector || isSuperAdmin;
+
   const params = useParams<{ id?: string }>();
   const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
   const initialRequestId = params.id ? parseInt(params.id, 10) : (searchParams.get("requestId") ? parseInt(searchParams.get("requestId")!, 10) : null);
@@ -199,6 +211,7 @@ export default function CreatePurchaseOrderPage() {
       toast.success(res.message || "تم حفظ أمر الشراء بنجاح");
       utils.procurement.listPurchaseOrders.invalidate();
       utils.procurement.getAvailableRequestsForPO.invalidate();
+      utils.procurement.getPendingActionCounts.invalidate();
       utils.sedanaExecution.getVirtualInventory.invalidate({ requestId: vars.requestId });
 
       // الانتقال إلى تفاصيل المشروع إذا تم الإنشاء منه، أو قائمة أوامر الشراء
@@ -854,14 +867,14 @@ export default function CreatePurchaseOrderPage() {
                       <Button
                         type="button"
                         disabled={createOrderMutation.isPending || selectedItemIds.length === 0}
-                        onClick={() => handleSubmit("approved")}
+                        onClick={() => handleSubmit("draft")}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer text-xs w-full sm:w-auto"
                       >
                         <CheckCircle className="w-4 h-4" />
                         <span>
                           {createOrderMutation.isPending
-                            ? "جاري الحفظ والاعتماد..."
-                            : "حفظ واعتماد أمر الشراء"}
+                            ? "جاري الحفظ والإرسال..."
+                            : "حفظ وإرسال لاعتماد المدير التنفيذي"}
                         </span>
                       </Button>
                     </div>

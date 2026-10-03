@@ -1035,24 +1035,27 @@ export const procurementRouter = router({
       }
       pData = pData && typeof pData === "object" ? pData : {};
       pData.sedanaProcurement = pData.sedanaProcurement || {};
-      const activePO = pData.sedanaProcurement.activePurchaseOrder || {};
-      const targetOrderNumber = input.orderNumber || activePO.orderNumber;
+      const targetOrderNumber = input.orderNumber || pData.sedanaProcurement.activePurchaseOrder?.orderNumber;
       const nowIso = new Date().toISOString();
+      const approverName = input.approverName || ctx.user.name || "المدير التنفيذي";
 
-      activePO.status = "approved";
-      activePO.approverName = input.approverName || activePO.approverName || ctx.user.name || "المدير التنفيذي";
-      activePO.approverSignatureUrl = "digital_signature_approved";
-      activePO.approvedAt = nowIso;
-      pData.sedanaProcurement.activePurchaseOrder = activePO;
+      if (pData.sedanaProcurement.activePurchaseOrder) {
+        if (!targetOrderNumber || pData.sedanaProcurement.activePurchaseOrder.orderNumber === targetOrderNumber) {
+          pData.sedanaProcurement.activePurchaseOrder.status = "approved";
+          pData.sedanaProcurement.activePurchaseOrder.approverName = approverName;
+          pData.sedanaProcurement.activePurchaseOrder.approverSignatureUrl = "digital_signature_approved";
+          pData.sedanaProcurement.activePurchaseOrder.approvedAt = nowIso;
+        }
+      }
       pData.sedanaProcurement.updatedAt = nowIso;
 
       if (Array.isArray(pData.sedanaProcurement.purchaseOrders)) {
         pData.sedanaProcurement.purchaseOrders = pData.sedanaProcurement.purchaseOrders.map((p: any) => {
-          if (!targetOrderNumber || p.orderNumber === targetOrderNumber || p.orderNumber === activePO.orderNumber) {
+          if (!targetOrderNumber || p.orderNumber === targetOrderNumber) {
             return {
               ...p,
               status: "approved",
-              approverName: activePO.approverName,
+              approverName,
               approverSignatureUrl: "digital_signature_approved",
               approvedAt: nowIso,
               updatedAt: nowIso,
@@ -1572,24 +1575,27 @@ export const procurementRouter = router({
       }
       pData = pData && typeof pData === "object" ? pData : {};
       pData.sedanaProcurement = pData.sedanaProcurement || {};
-      const activeCsr = pData.sedanaProcurement.activeCsrLetter || {};
-      const targetLetterNumber = input.letterNumber || activeCsr.letterNumber;
+      const targetLetterNumber = input.letterNumber || pData.sedanaProcurement.activeCsrLetter?.letterNumber;
       const nowIso = new Date().toISOString();
+      const signatoryName = input.signatoryName || ctx.user.name || "المدير التنفيذي";
 
-      activeCsr.status = "approved";
-      activeCsr.signatoryName = input.signatoryName || activeCsr.signatoryName || ctx.user.name || "المدير التنفيذي";
-      activeCsr.signatorySignatureUrl = "digital_signature_approved";
-      activeCsr.approvedAt = nowIso;
-      pData.sedanaProcurement.activeCsrLetter = activeCsr;
+      if (pData.sedanaProcurement.activeCsrLetter) {
+        if (!targetLetterNumber || pData.sedanaProcurement.activeCsrLetter.letterNumber === targetLetterNumber) {
+          pData.sedanaProcurement.activeCsrLetter.status = "approved";
+          pData.sedanaProcurement.activeCsrLetter.signatoryName = signatoryName;
+          pData.sedanaProcurement.activeCsrLetter.signatorySignatureUrl = "digital_signature_approved";
+          pData.sedanaProcurement.activeCsrLetter.approvedAt = nowIso;
+        }
+      }
       pData.sedanaProcurement.updatedAt = nowIso;
 
       if (Array.isArray(pData.sedanaProcurement.csrLetters)) {
         pData.sedanaProcurement.csrLetters = pData.sedanaProcurement.csrLetters.map((c: any) => {
-          if (!targetLetterNumber || c.letterNumber === targetLetterNumber || c.letterNumber === activeCsr.letterNumber) {
+          if (!targetLetterNumber || c.letterNumber === targetLetterNumber) {
             return {
               ...c,
               status: "approved",
-              signatoryName: activeCsr.signatoryName,
+              signatoryName,
               signatorySignatureUrl: "digital_signature_approved",
               approvedAt: nowIso,
               updatedAt: nowIso,
@@ -1616,6 +1622,102 @@ export const procurementRouter = router({
       return {
         success: true,
         message: "تم اعتماد خطاب المسؤولية المجتمعية بنجاح",
+      };
+    }),
+
+  // ===============================================
+  // 9. عدد أوامر الشراء والخطابات بانتظار اعتماد المدير التنفيذي (للـ Sidebar والإشعارات)
+  // ===============================================
+  getPendingActionCounts: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) {
+        return {
+          pendingOrdersCount: 0,
+          pendingCsrCount: 0,
+          hasPendingOrders: false,
+          hasPendingCsr: false,
+          hasPendingAny: false,
+        };
+      }
+
+      const user = ctx.user;
+      const userRole = user.role;
+      const userEmail = user.email || "";
+
+      const isExecDirector =
+        (["general_manager", "executive_director"].includes(userRole) ||
+          (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+          (user as any)?.customRole?.nameAr === "الرئيس التنفيذي" ||
+          (user as any)?.customRole?.nameAr === "المدير العام") &&
+        userEmail?.toLowerCase().trim() === "ceo@manarah.org.sa";
+
+      if (!isExecDirector) {
+        return {
+          pendingOrdersCount: 0,
+          pendingCsrCount: 0,
+          hasPendingOrders: false,
+          hasPendingCsr: false,
+          hasPendingAny: false,
+        };
+      }
+
+      const requests = await db
+        .select({
+          id: mosqueRequests.id,
+          programData: mosqueRequests.programData,
+        })
+        .from(mosqueRequests)
+        .where(isNotNull(mosqueRequests.programData));
+
+      let pendingOrdersCount = 0;
+      let pendingCsrCount = 0;
+
+      for (const r of requests) {
+        let pData: any = r.programData;
+        while (typeof pData === "string") {
+          try { pData = JSON.parse(pData); } catch { break; }
+        }
+        if (!pData || typeof pData !== "object") continue;
+
+        const sedanaProc = pData.sedanaProcurement;
+        if (!sedanaProc) continue;
+
+        // أوامر الشراء المعلقة (غير معتمدة)
+        const pos = Array.isArray(sedanaProc.purchaseOrders) ? sedanaProc.purchaseOrders : [];
+        const activePo = sedanaProc.activePurchaseOrder;
+        const allPos = [...pos];
+        if (activePo && activePo.orderNumber && !allPos.some((p: any) => p.orderNumber === activePo.orderNumber)) {
+          allPos.push(activePo);
+        }
+
+        for (const po of allPos) {
+          if (po && Array.isArray(po.items) && po.items.length > 0 && po.status !== "approved") {
+            pendingOrdersCount++;
+          }
+        }
+
+        // خطابات المسؤولية المجتمعية المعلقة (غير معتمدة)
+        const csrs = Array.isArray(sedanaProc.csrLetters) ? sedanaProc.csrLetters : [];
+        const activeCsr = sedanaProc.activeCsrLetter;
+        const allCsrs = [...csrs];
+        if (activeCsr && activeCsr.letterNumber && !allCsrs.some((c: any) => c.letterNumber === activeCsr.letterNumber)) {
+          allCsrs.push(activeCsr);
+        }
+
+        for (const csr of allCsrs) {
+          if (csr && Array.isArray(csr.items) && csr.items.length > 0 && csr.status !== "approved") {
+            pendingCsrCount++;
+          }
+        }
+      }
+
+      return {
+        pendingOrdersCount,
+        pendingCsrCount,
+        hasPendingOrders: pendingOrdersCount > 0,
+        hasPendingCsr: pendingCsrCount > 0,
+        hasPendingAny: pendingOrdersCount > 0 || pendingCsrCount > 0,
       };
     }),
 });

@@ -177,7 +177,7 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
       items,
     });
 
-    if (["super_admin", "system_admin"].includes(role)) {
+    if (["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector) {
       const inventoryItems = [
         { icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" },
         { icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" },
@@ -364,15 +364,15 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   }
 
   // 4. إدارة المخزون
-  if (["super_admin", "system_admin"].includes(role) || (has("orders_and_letters") || has("orders_and_letters.view") || has("purchase_orders") || has("purchase_orders.view") || has("csr_letters") || has("csr_letters.view") || has("sedana_warehouse") || role === "financial")) {
+  if (["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector || (has("orders_and_letters") || has("orders_and_letters.view") || has("purchase_orders") || has("purchase_orders.view") || has("csr_letters") || has("csr_letters.view") || has("sedana_warehouse") || role === "financial")) {
     const inventoryItems: MenuItem[] = [];
     if (role === "financial" || has("orders_and_letters") || has("orders_and_letters.view")) {
       inventoryItems.push({ icon: ShoppingBag, label: "أوامر الشراء والخطاب المجتمعي", path: "/orders-and-letters" });
     }
-    if (["super_admin", "system_admin"].includes(role) || has("purchase_orders") || has("purchase_orders.view")) {
+    if (["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector || has("purchase_orders") || has("purchase_orders.view")) {
       inventoryItems.push({ icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" });
     }
-    if (["super_admin", "system_admin"].includes(role) || has("csr_letters") || has("csr_letters.view")) {
+    if (["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector || has("csr_letters") || has("csr_letters.view")) {
       inventoryItems.push({ icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" });
     }
     if (["super_admin", "system_admin"].includes(role) || has("sedana_warehouse") || has("sedana_warehouse.view")) {
@@ -851,6 +851,10 @@ function DashboardLayoutContent({
     enabled: !!user,
     refetchInterval: 15000,
   });
+  const { data: pendingProcurement } = trpc.procurement.getPendingActionCounts.useQuery(undefined, {
+    enabled: !!user,
+    refetchInterval: 15000,
+  });
   // الشعار الأبيض (أيقونة) للقائمة الجانبية والهيدر
   const sidebarLogoSrc = orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || '/logo-white.svg';
   // الشعار الرئيسي من صفحة الهوية (للهيدر في الموبايل)
@@ -977,12 +981,36 @@ function DashboardLayoutContent({
                         const isBoardExecutivePath = item.path === "/board-executive";
                         const isProgressReportsPath = item.path === "/progress-reports";
                         const isRequesterApprovalsPath = item.path === "/requester-approvals";
+                        const isPurchaseOrdersPath = item.path === "/purchase-orders";
+                        const isCsrLettersPath = item.path === "/csr-letters";
+                        const isOrdersAndLettersPath = item.path === "/orders-and-letters";
+
+                        const isExecCeo =
+                          (user?.role === "general_manager" ||
+                            user?.role === "executive_director" ||
+                            (user as any)?.customRole?.nameAr === "المدير العام" ||
+                            (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+                            (user as any)?.customRole?.nameAr === "الرئيس التنفيذي") &&
+                          user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa";
+
+                        const isProcurementPending =
+                          isExecCeo && (
+                            (isPurchaseOrdersPath && Boolean(pendingProcurement?.hasPendingOrders)) ||
+                            (isCsrLettersPath && Boolean(pendingProcurement?.hasPendingCsr)) ||
+                            (isOrdersAndLettersPath && Boolean(pendingProcurement?.hasPendingAny))
+                          );
+
                         const hasActionBadge = 
                           (isOrdersPath && Boolean(pendingDisbursements?.hasPendingOrders)) ||
                           (isRequestsPath && Boolean(pendingDisbursements?.hasPendingRequests)) ||
                           (isBoardExecutivePath && Boolean(pendingDisbursements?.hasPendingBoardExecutive)) ||
                           (isProgressReportsPath && Boolean(pendingProgressReports?.hasPendingReports)) ||
-                          (isRequesterApprovalsPath && Boolean(pendingUsers && pendingUsers.length > 0));
+                          (isRequesterApprovalsPath && Boolean(pendingUsers && pendingUsers.length > 0)) ||
+                          isProcurementPending;
+
+                        const tooltipLabel = isProcurementPending
+                          ? `${item.label} (بحاجة لاعتماد المدير التنفيذي)`
+                          : item.label;
 
                         return (
                           <SidebarMenuItem key={item.path}>
@@ -997,7 +1025,7 @@ function DashboardLayoutContent({
                                 }
                                 setLocation(item.path);
                               }}
-                              tooltip={item.label}
+                              tooltip={tooltipLabel}
                               className={`h-9 transition-all duration-300 ease-in-out font-normal text-sm relative ${isActive ? 'bg-white/20 !text-white' : ''}`}
                             >
                               <div className="relative shrink-0 flex items-center justify-center">
@@ -1005,11 +1033,14 @@ function DashboardLayoutContent({
                                   className={`h-4 w-4 shrink-0 ${isActive ? "text-white" : "text-sidebar-foreground/70"}`}
                                 />
                                 {hasActionBadge ? (
-                                  <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-sidebar animate-pulse" />
+                                  <span 
+                                    className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-sidebar animate-pulse" 
+                                    title={isProcurementPending ? "بحاجة لاعتماد المدير التنفيذي" : undefined}
+                                  />
                                 ) : null}
                               </div>
-                              <span className={`transition-all duration-300 ease-in-out group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 overflow-hidden whitespace-nowrap pb-1 pt-0.5 leading-normal ${isActive ? "text-white font-bold" : "text-sidebar-foreground"}`}>
-                                {item.label}
+                              <span className={`transition-all duration-300 ease-in-out group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 overflow-hidden whitespace-nowrap pb-1 pt-0.5 leading-normal flex-1 flex items-center justify-between gap-1.5 ${isActive ? "text-white font-bold" : "text-sidebar-foreground"}`}>
+                                <span className="truncate">{item.label}</span>
                               </span>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
