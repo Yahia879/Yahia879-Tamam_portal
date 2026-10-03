@@ -645,6 +645,173 @@ export const sedanaExecutionRouter = router({
         if (d.referenceType === "csr_letter" && d.referenceNumber) disbByCsr.set(d.referenceNumber.trim(), d);
       });
 
+      // ----------------------------------------------------
+      // أوامر الشراء المعتمدة لهذا الطلب
+      // ----------------------------------------------------
+      const rawPoList: any[] = [];
+      if (activePO && activePO.status === "approved" && activePO.orderNumber) {
+        rawPoList.push(activePO);
+      }
+      if (Array.isArray(sedanaProc.purchaseOrders)) {
+        sedanaProc.purchaseOrders.forEach((p: any) => {
+          if (p && p.status === "approved" && p.orderNumber && !rawPoList.some(x => x.orderNumber === p.orderNumber)) {
+            rawPoList.push(p);
+          }
+        });
+      }
+
+      const enrichedPurchaseOrders = rawPoList.map((p) => {
+        const disb = enrichedDisbOrders.find(d => 
+          (d.referenceType === "purchase_order" && d.referenceNumber === p.orderNumber) ||
+          d.purchaseOrderNumber === p.orderNumber ||
+          d.orderNumber === p.disbursementOrderNumber
+        ) || disbByPo.get(p.orderNumber);
+
+        const alreadyInwardByPo: Record<string, number> = {};
+        (executionData.inwardOrders || []).forEach((inOrder: any) => {
+          const matches = (inOrder.referenceType === "purchase_order" && inOrder.referenceNumber === p.orderNumber) ||
+                          (inOrder.referenceNumber === p.orderNumber) ||
+                          (disb && inOrder.disbursementOrderId === disb.id);
+          if (matches) {
+            (inOrder.items || []).forEach((it: any) => {
+              const k = String(it.id);
+              alreadyInwardByPo[k] = (alreadyInwardByPo[k] || 0) + Number(it.quantity || 0);
+              if (it.itemName) {
+                alreadyInwardByPo[`name:${it.itemName.trim().toLowerCase()}`] =
+                  (alreadyInwardByPo[`name:${it.itemName.trim().toLowerCase()}`] || 0) + Number(it.quantity || 0);
+              }
+            });
+          }
+        });
+
+        const pItems = Array.isArray(p.items) && p.items.length > 0 ? p.items : (disb?.items || []);
+        const resolvedItems = pItems.map((it: any, idx: number) => {
+          const id = String(it.id || idx + 1);
+          const itemName = it.itemName || it.name || `بند ${id}`;
+          const unit = it.unit || "وحدة";
+          const maxAllowedQty = Number(it.quantity || it.maxDisbursedQty || 0);
+          const alreadyInwardQty = alreadyInwardByPo[id] || alreadyInwardByPo[`name:${itemName.trim().toLowerCase()}`] || 0;
+          const remainingAllowedQty = Math.max(0, maxAllowedQty - alreadyInwardQty);
+          return {
+            id,
+            itemName,
+            unit,
+            maxDisbursedQty: maxAllowedQty,
+            alreadyInwardQty,
+            remainingAllowedQty,
+            unitPrice: Number(it.unitPrice || 0),
+            isCompleted: remainingAllowedQty <= 0,
+          };
+        });
+
+        const totalUnits = resolvedItems.reduce((s, i) => s + i.maxDisbursedQty, 0);
+        const totalInwardUnits = resolvedItems.reduce((s, i) => s + i.alreadyInwardQty, 0);
+        const totalRemainingUnits = resolvedItems.reduce((s, i) => s + i.remainingAllowedQty, 0);
+        const isFullyInwarded = resolvedItems.length > 0 && resolvedItems.every(i => i.remainingAllowedQty <= 0);
+
+        let canCreateInward = !isFullyInwarded && resolvedItems.length > 0;
+        let blockedReason: string | null = null;
+        if (isFullyInwarded) {
+          canCreateInward = false;
+          blockedReason = "تم استيفاء كامل كميات أمر الشراء في المستودع بنسبة 100% (الرصيد المتبقي: 0).";
+        }
+
+        return {
+          id: p.orderNumber,
+          orderNumber: p.orderNumber,
+          orderDate: p.orderDate,
+          supplierName: p.supplierName || p.directedTo || disb?.beneficiaryName || "المورد المعتمد",
+          status: p.status,
+          items: resolvedItems,
+          totalUnits,
+          totalInwardUnits,
+          totalRemainingUnits,
+          isFullyInwarded,
+          canCreateInward,
+          blockedReason,
+          disbursementOrder: disb || null,
+        };
+      });
+
+      // ----------------------------------------------------
+      // خطابات المسؤولية المجتمعية المعتمدة لهذا الطلب
+      // ----------------------------------------------------
+      const rawCsrList: any[] = [];
+      if (activeCSR && activeCSR.status === "approved" && activeCSR.letterNumber) {
+        rawCsrList.push(activeCSR);
+      }
+      if (Array.isArray(sedanaProc.csrLetters)) {
+        sedanaProc.csrLetters.forEach((c: any) => {
+          if (c && c.status === "approved" && c.letterNumber && !rawCsrList.some(x => x.letterNumber === c.letterNumber)) {
+            rawCsrList.push(c);
+          }
+        });
+      }
+
+      const enrichedCsrLetters = rawCsrList.map((c) => {
+        const alreadyInwardByCsr: Record<string, number> = {};
+        (executionData.inwardOrders || []).forEach((inOrder: any) => {
+          const matches = (inOrder.referenceType === "csr_letter" && inOrder.referenceNumber === c.letterNumber) ||
+                          (inOrder.referenceNumber === c.letterNumber);
+          if (matches) {
+            (inOrder.items || []).forEach((it: any) => {
+              const k = String(it.id);
+              alreadyInwardByCsr[k] = (alreadyInwardByCsr[k] || 0) + Number(it.quantity || 0);
+              if (it.itemName) {
+                alreadyInwardByCsr[`name:${it.itemName.trim().toLowerCase()}`] =
+                  (alreadyInwardByCsr[`name:${it.itemName.trim().toLowerCase()}`] || 0) + Number(it.quantity || 0);
+              }
+            });
+          }
+        });
+
+        const cItems = Array.isArray(c.items) && c.items.length > 0 ? c.items : [];
+        const resolvedItems = cItems.map((it: any, idx: number) => {
+          const id = String(it.id || idx + 1);
+          const itemName = it.itemName || it.name || `بند ${id}`;
+          const unit = it.unit || "وحدة";
+          const maxAllowedQty = Number(it.quantity || it.approvedQty || 0);
+          const alreadyInwardQty = alreadyInwardByCsr[id] || alreadyInwardByCsr[`name:${itemName.trim().toLowerCase()}`] || 0;
+          const remainingAllowedQty = Math.max(0, maxAllowedQty - alreadyInwardQty);
+          return {
+            id,
+            itemName,
+            unit,
+            maxDisbursedQty: maxAllowedQty,
+            alreadyInwardQty,
+            remainingAllowedQty,
+            unitPrice: Number(it.unitPrice || 0),
+            isCompleted: remainingAllowedQty <= 0,
+          };
+        });
+
+        const totalUnits = resolvedItems.reduce((s, i) => s + i.maxDisbursedQty, 0);
+        const totalInwardUnits = resolvedItems.reduce((s, i) => s + i.alreadyInwardQty, 0);
+        const totalRemainingUnits = resolvedItems.reduce((s, i) => s + i.remainingAllowedQty, 0);
+        const isFullyInwarded = resolvedItems.length > 0 && resolvedItems.every(i => i.remainingAllowedQty <= 0);
+
+        let blockedReason: string | null = null;
+        if (isFullyInwarded) {
+          blockedReason = "تم استيفاء كامل كميات خطاب المسؤولية المجتمعية في المستودع بنسبة 100% (الرصيد المتبقي: 0).";
+        }
+
+        return {
+          id: c.letterNumber,
+          letterNumber: c.letterNumber,
+          letterDate: c.letterDate,
+          recipientName: c.recipientName || "الجهة المانحة / الشريك المجتمعي",
+          projectName: c.projectName,
+          status: c.status,
+          items: resolvedItems,
+          totalUnits,
+          totalInwardUnits,
+          totalRemainingUnits,
+          isFullyInwarded,
+          canCreateInward: !isFullyInwarded && resolvedItems.length > 0,
+          blockedReason,
+        };
+      });
+
       // المستندات المرجعية المتاحة للربط مع أمر الإدخال
       const availableReferences: {
         type: string;
@@ -663,9 +830,9 @@ export const sedanaExecutionRouter = router({
       }[] = [];
 
       // 1. أمر شراء داخلي
-      const hasPO = Object.values(allocations).includes("purchase_order") || !!activePO;
+      const hasPO = Object.values(allocations).includes("purchase_order") || !!activePO || enrichedPurchaseOrders.length > 0;
       if (hasPO) {
-        const poNum = activePO?.orderNumber || `PO-${req.id}-${new Date().getFullYear()}`;
+        const poNum = activePO?.orderNumber || enrichedPurchaseOrders[0]?.orderNumber || `PO-${req.id}-${new Date().getFullYear()}`;
         const disb = disbByPo.get(poNum) || enrichedDisbOrders.find(d => d.referenceType === "purchase_order");
         const isExecuted = disb?.isExecuted || false;
 
@@ -696,35 +863,34 @@ export const sedanaExecutionRouter = router({
       }
 
       // 2. خطاب مسؤولية مجتمعية (CSR)
-      const hasCSR = Object.values(allocations).includes("csr_letter") || !!activeCSR;
+      const hasCSR = Object.values(allocations).includes("csr_letter") || !!activeCSR || enrichedCsrLetters.length > 0;
       if (hasCSR) {
-        const csrNum = activeCSR?.letterNumber || `CSR-${req.id}-${new Date().getFullYear()}`;
-        const disb = disbByCsr.get(csrNum) || enrichedDisbOrders.find(d => d.referenceType === "csr_letter");
-        const isExecuted = disb?.isExecuted || false;
+        const csrNum = activeCSR?.letterNumber || enrichedCsrLetters[0]?.letterNumber || `CSR-${req.id}-${new Date().getFullYear()}`;
+        const matchingCsr = enrichedCsrLetters.find(c => c.letterNumber === csrNum);
+        const isApproved = activeCSR?.status === "approved" || matchingCsr?.status === "approved";
+        const canCreateInward = !!matchingCsr?.canCreateInward;
 
         let blockedReason: string | null = null;
-        if (!disb) {
-          blockedReason = "لا يمكن عمل أمر إدخال؛ لم يتم إنشاء أمر صرف لخطاب المسؤولية المجتمعية بعد. يجب إنشاء أمر الصرف أولاً واعتماده وتنفيذه بالتحويل البنكي.";
-        } else if (!isExecuted) {
-          blockedReason = disb.blockedReason;
-        } else if (disb.isFullyInwarded) {
-          blockedReason = disb.blockedReason;
+        if (!isApproved) {
+          blockedReason = "لا يمكن عمل أمر إدخال؛ خطاب المسؤولية المجتمعية بانتظار اعتماد المدير التنفيذي.";
+        } else if (matchingCsr?.isFullyInwarded) {
+          blockedReason = matchingCsr.blockedReason;
         }
 
         availableReferences.push({
           type: "csr_letter",
-          label: "خطاب مسؤولية مجتمعية (CSR)",
+          label: "خطاب مسؤولية مجتمعية معتمد (CSR)",
           documentNumber: csrNum,
-          partnerOrSupplier: activeCSR?.recipientName || disb?.beneficiaryName || "الجهة المانحة / الشريك المجتمعي",
-          hasDisbursementOrder: !!disb,
-          disbursementOrderNumber: disb?.orderNumber || null,
-          disbursementOrderId: disb?.id || null,
-          disbursementStatus: disb?.status || null,
-          disbursementExecutedAt: disb?.executedAt || null,
-          isExecuted,
-          canCreateInward: disb ? disb.canCreateInward : false,
+          partnerOrSupplier: activeCSR?.recipientName || matchingCsr?.recipientName || "الجهة المانحة / الشريك المجتمعي",
+          hasDisbursementOrder: false,
+          disbursementOrderNumber: null,
+          disbursementOrderId: null,
+          disbursementStatus: null,
+          disbursementExecutedAt: null,
+          isExecuted: isApproved,
+          canCreateInward,
           blockedReason,
-          items: disb?.items || [],
+          items: matchingCsr?.items || [],
         });
       }
 
@@ -1011,6 +1177,8 @@ export const sedanaExecutionRouter = router({
         inventoryItems,
         availableReferences,
         disbursementOrders: enrichedDisbOrders,
+        approvedPurchaseOrders: enrichedPurchaseOrders,
+        approvedCsrLetters: enrichedCsrLetters,
         inwardOrders: executionData.inwardOrders || [],
         outboundOrders: executionData.outboundOrders || [],
         deliveryOrders: executionData.deliveryOrders || [],
@@ -1086,21 +1254,18 @@ export const sedanaExecutionRouter = router({
         matchedDisbursementOrder = d;
       }
 
-      if (!matchedDisbursementOrder && (input.referenceType === "purchase_order" || input.referenceType === "csr_letter")) {
+      if (!matchedDisbursementOrder && input.referenceType === "purchase_order") {
         const [d] = await db
           .select()
           .from(disbursementOrders)
           .where(
             or(
-              input.referenceType === "purchase_order" && input.referenceNumber
+              input.referenceNumber
                 ? eq(disbursementOrders.purchaseOrderNumber, input.referenceNumber)
-                : sql`1=0`,
-              input.referenceType === "csr_letter" && input.referenceNumber
-                ? eq(disbursementOrders.csrLetterNumber, input.referenceNumber)
                 : sql`1=0`,
               and(
                 eq(disbursementOrders.requestId, input.requestId),
-                eq(disbursementOrders.sourceType, input.referenceType)
+                eq(disbursementOrders.sourceType, "purchase_order")
               )
             )
           )
@@ -1109,92 +1274,143 @@ export const sedanaExecutionRouter = router({
         matchedDisbursementOrder = d;
       }
 
-      if (input.referenceType === "purchase_order" || input.referenceType === "csr_letter") {
-        if (!matchedDisbursementOrder) {
+      // =========================================================================
+      // 1. التحقق من التوريد بموجب خطاب مسؤولية مجتمعية معتمد (CSR)
+      // =========================================================================
+      if (input.referenceType === "csr_letter") {
+        const allCsrs = [
+          ...(pData.sedanaProcurement?.csrLetters || []),
+          ...(pData.sedanaProcurement?.activeCsrLetter ? [pData.sedanaProcurement.activeCsrLetter] : [])
+        ];
+        const matchedCsr = allCsrs.find((c: any) => c.letterNumber === input.referenceNumber) || pData.sedanaProcurement?.activeCsrLetter;
+        if (!matchedCsr) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `خطاب المسؤولية المجتمعية (${input.referenceNumber}) غير موجود في هذا الطلب`,
+          });
+        }
+        if (matchedCsr.status !== "approved") {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
-            message: "لا يمكن إصدار أمر إدخال؛ لم يتم العثور على أمر صرف منفّذ لهذا التوريد. يجب أولاً اعتماد وتنفيذ أمر الصرف بالتحويل البنكي.",
+            message: `لا يمكن إصدار أمر إدخال؛ خطاب المسؤولية المجتمعية (${input.referenceNumber}) لم يتم اعتماده بعد من المدير التنفيذي.`,
           });
         }
 
-        if (matchedDisbursementOrder.status !== "executed") {
-          const statusMap: Record<string, string> = {
-            draft: "مسودة",
-            pending: "قيد المراجعة المالية",
-            pending_executive: "بانتظار اعتماد المدير التنفيذي",
-            approved: "معتمد بانتظار التحويل البنكي",
-            rejected: "مرفوض",
-            edited: "تم التعديل",
-          };
-          const readableStatus = matchedDisbursementOrder.status ? (statusMap[matchedDisbursementOrder.status] || matchedDisbursementOrder.status) : "غير محدد";
-          throw new TRPCError({
-            code: "PRECONDITION_FAILED",
-            message: `لا يمكن إصدار أمر إدخال إلا بعد تنفيذ أمر الصرف وتحول حالته إلى 'منفّذ'. أمر الصرف المرتبط (${matchedDisbursementOrder.orderNumber}) حالته الحالية: (${readableStatus}).`,
-          });
-        }
-      }
-
-      // =========================================================================
-      // التحقق الصارم من الحد الأقصى للكميات المعتمدة في أمر الصرف (The user's rule)
-      // =========================================================================
-      if (matchedDisbursementOrder) {
-        // حساب ما تم إدخاله مسبقاً لأمر الصرف هذا تحديداً
-        const alreadyInwardForThisDisb: Record<string, number> = {};
+        // حساب ما تم إدخاله مسبقاً لهذا الخطاب المجتمعي
+        const alreadyInwardForThisCsr: Record<string, number> = {};
         (pData.sedanaExecution.inwardOrders || []).forEach((inOrder: any) => {
-          const isSameDisb = (inOrder.disbursementOrderId && Number(inOrder.disbursementOrderId) === Number(matchedDisbursementOrder.id)) ||
-                             (inOrder.disbursementOrderNumber && inOrder.disbursementOrderNumber === matchedDisbursementOrder.orderNumber);
-          if (isSameDisb) {
+          const isSameCsr = (inOrder.referenceType === "csr_letter" && inOrder.referenceNumber === matchedCsr.letterNumber) ||
+                            (inOrder.referenceNumber === matchedCsr.letterNumber);
+          if (isSameCsr) {
             (inOrder.items || []).forEach((it: any) => {
               const k = String(it.id);
-              alreadyInwardForThisDisb[k] = (alreadyInwardForThisDisb[k] || 0) + Number(it.quantity || 0);
+              alreadyInwardForThisCsr[k] = (alreadyInwardForThisCsr[k] || 0) + Number(it.quantity || 0);
               if (it.itemName) {
-                alreadyInwardForThisDisb[`name:${it.itemName.trim().toLowerCase()}`] = 
-                  (alreadyInwardForThisDisb[`name:${it.itemName.trim().toLowerCase()}`] || 0) + Number(it.quantity || 0);
+                alreadyInwardForThisCsr[`name:${it.itemName.trim().toLowerCase()}`] = 
+                  (alreadyInwardForThisCsr[`name:${it.itemName.trim().toLowerCase()}`] || 0) + Number(it.quantity || 0);
               }
             });
           }
         });
 
-        // استخراج بنود أمر الصرف
-        let disbItems: any[] = [];
-        if (matchedDisbursementOrder.itemsJson) {
-          try {
-            const parsed = JSON.parse(matchedDisbursementOrder.itemsJson);
-            if (Array.isArray(parsed) && parsed.length > 0) disbItems = parsed;
-          } catch (e) {}
-        }
-        if (disbItems.length === 0) {
-          if (matchedDisbursementOrder.purchaseOrderNumber) {
-            const po = (pData.sedanaProcurement?.purchaseOrders || []).find((p: any) => p.orderNumber === matchedDisbursementOrder.purchaseOrderNumber) || pData.sedanaProcurement?.activePurchaseOrder;
-            if (po?.items) disbItems = po.items;
-          } else if (matchedDisbursementOrder.csrLetterNumber) {
-            const csr = (pData.sedanaProcurement?.csrLetters || []).find((c: any) => c.letterNumber === matchedDisbursementOrder.csrLetterNumber) || pData.sedanaProcurement?.activeCsrLetter;
-            if (csr?.items) disbItems = csr.items;
-          }
-        }
-        if (disbItems.length === 0) {
-          disbItems = pData.basketItems || [];
-        }
+        // التحقق من الكميات مقارنة بخطاب المسؤولية المجتمعية
+        const csrItems: any[] = Array.isArray(matchedCsr.items) && matchedCsr.items.length > 0 
+          ? matchedCsr.items 
+          : (pData.basketItems || []);
 
-        // التدقيق في كمية كل صنف مدخل
         for (const inputItem of input.items) {
-          const target = disbItems.find((di: any) => 
-            String(di.id) === String(inputItem.id) ||
-            (di.itemName && di.itemName.trim().toLowerCase() === inputItem.itemName.trim().toLowerCase()) ||
-            (di.name && di.name.trim().toLowerCase() === inputItem.itemName.trim().toLowerCase())
+          const target = csrItems.find((ci: any) => 
+            String(ci.id) === String(inputItem.id) ||
+            (ci.itemName && ci.itemName.trim().toLowerCase() === inputItem.itemName.trim().toLowerCase()) ||
+            (ci.name && ci.name.trim().toLowerCase() === inputItem.itemName.trim().toLowerCase())
           );
 
           if (target) {
-            const maxDisbQty = Number(target.quantity || target.approvedQty || 0);
-            const prevInward = alreadyInwardForThisDisb[String(inputItem.id)] || 
-                               alreadyInwardForThisDisb[`name:${inputItem.itemName.trim().toLowerCase()}`] || 0;
-            const remainingAllowed = Math.max(0, maxDisbQty - prevInward);
+            const maxCsrQty = Number(target.quantity || target.approvedQty || 0);
+            const prevInward = alreadyInwardForThisCsr[String(inputItem.id)] || 
+                               alreadyInwardForThisCsr[`name:${inputItem.itemName.trim().toLowerCase()}`] || 0;
+            const remainingAllowed = Math.max(0, maxCsrQty - prevInward);
 
             if (inputItem.quantity > remainingAllowed + 0.0001) {
               throw new TRPCError({
                 code: "BAD_REQUEST",
-                message: `الكمية المدخلة للصنف (${inputItem.itemName}) وقدرها ${inputItem.quantity} تتجاوز الحد الأقصى المتبقي من أمر الصرف ${matchedDisbursementOrder.orderNumber}. (المحدد بأمر الصرف: ${maxDisbQty}، المدخل سابقاً: ${prevInward}، الحد الأقصى المتاح للإدخال الآن: ${remainingAllowed} ${inputItem.unit})`,
+                message: `الكمية المدخلة للصنف (${inputItem.itemName}) وقدرها ${inputItem.quantity} تتجاوز الحد الأقصى المتبقي من خطاب المسؤولية المجتمعية ${matchedCsr.letterNumber}. (المحدد بالخطاب: ${maxCsrQty}، المدخل سابقاً: ${prevInward}، الحد الأقصى المتاح للإدخال الآن: ${remainingAllowed} ${inputItem.unit})`,
               });
+            }
+          }
+        }
+      } else if (input.referenceType === "purchase_order") {
+        // =========================================================================
+        // 2. التحقق من التوريد بموجب أمر شراء داخلي (مع أمر صرف مالي)
+        // =========================================================================
+        if (matchedDisbursementOrder) {
+          if (matchedDisbursementOrder.status !== "executed" && matchedDisbursementOrder.status !== "approved") {
+            const statusMap: Record<string, string> = {
+              draft: "مسودة",
+              pending: "قيد المراجعة المالية",
+              pending_executive: "بانتظار اعتماد المدير التنفيذي",
+              approved: "معتمد بانتظار التحويل البنكي",
+              rejected: "مرفوض",
+              edited: "تم التعديل",
+            };
+            const readableStatus = matchedDisbursementOrder.status ? (statusMap[matchedDisbursementOrder.status] || matchedDisbursementOrder.status) : "غير محدد";
+            throw new TRPCError({
+              code: "PRECONDITION_FAILED",
+              message: `لا يمكن إصدار أمر إدخال إلا بعد تنفيذ أمر الصرف وتحول حالته إلى 'منفّذ'. أمر الصرف المرتبط (${matchedDisbursementOrder.orderNumber}) حالته الحالية: (${readableStatus}).`,
+            });
+          }
+
+          // التدقيق الصارم في كميات أمر الصرف
+          const alreadyInwardForThisDisb: Record<string, number> = {};
+          (pData.sedanaExecution.inwardOrders || []).forEach((inOrder: any) => {
+            const isSameDisb = (inOrder.disbursementOrderId && Number(inOrder.disbursementOrderId) === Number(matchedDisbursementOrder.id)) ||
+                               (inOrder.disbursementOrderNumber && inOrder.disbursementOrderNumber === matchedDisbursementOrder.orderNumber);
+            if (isSameDisb) {
+              (inOrder.items || []).forEach((it: any) => {
+                const k = String(it.id);
+                alreadyInwardForThisDisb[k] = (alreadyInwardForThisDisb[k] || 0) + Number(it.quantity || 0);
+                if (it.itemName) {
+                  alreadyInwardForThisDisb[`name:${it.itemName.trim().toLowerCase()}`] = 
+                    (alreadyInwardForThisDisb[`name:${it.itemName.trim().toLowerCase()}`] || 0) + Number(it.quantity || 0);
+                }
+              });
+            }
+          });
+
+          let disbItems: any[] = [];
+          if (matchedDisbursementOrder.itemsJson) {
+            try {
+              const parsed = JSON.parse(matchedDisbursementOrder.itemsJson);
+              if (Array.isArray(parsed) && parsed.length > 0) disbItems = parsed;
+            } catch (e) {}
+          }
+          if (disbItems.length === 0 && matchedDisbursementOrder.purchaseOrderNumber) {
+            const po = (pData.sedanaProcurement?.purchaseOrders || []).find((p: any) => p.orderNumber === matchedDisbursementOrder.purchaseOrderNumber) || pData.sedanaProcurement?.activePurchaseOrder;
+            if (po?.items) disbItems = po.items;
+          }
+          if (disbItems.length === 0) {
+            disbItems = pData.basketItems || [];
+          }
+
+          for (const inputItem of input.items) {
+            const target = disbItems.find((di: any) => 
+              String(di.id) === String(inputItem.id) ||
+              (di.itemName && di.itemName.trim().toLowerCase() === inputItem.itemName.trim().toLowerCase()) ||
+              (di.name && di.name.trim().toLowerCase() === inputItem.itemName.trim().toLowerCase())
+            );
+
+            if (target) {
+              const maxDisbQty = Number(target.quantity || target.approvedQty || 0);
+              const prevInward = alreadyInwardForThisDisb[String(inputItem.id)] || 
+                                 alreadyInwardForThisDisb[`name:${inputItem.itemName.trim().toLowerCase()}`] || 0;
+              const remainingAllowed = Math.max(0, maxDisbQty - prevInward);
+
+              if (inputItem.quantity > remainingAllowed + 0.0001) {
+                throw new TRPCError({
+                  code: "BAD_REQUEST",
+                  message: `الكمية المدخلة للصنف (${inputItem.itemName}) وقدرها ${inputItem.quantity} تتجاوز الحد الأقصى المتبقي من أمر الصرف ${matchedDisbursementOrder.orderNumber}. (المحدد بأمر الصرف: ${maxDisbQty}، المدخل سابقاً: ${prevInward}، الحد الأقصى المتاح للإدخال الآن: ${remainingAllowed} ${inputItem.unit})`,
+                });
+              }
             }
           }
         }
