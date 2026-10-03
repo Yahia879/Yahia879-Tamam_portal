@@ -737,46 +737,105 @@ export default function RequestDetailsNew() {
     additionalTerms: ""
   });
 
+  const saveCommitmentMutation = trpc.requests.saveCommitmentFormData.useMutation({
+    onSuccess: () => {
+      utils.requests.getById.invalidate({ id: requestId });
+    },
+    onError: (err) => {
+      console.error("Failed to save commitment form data:", err);
+    }
+  });
+
+  const handleSaveCommitmentData = (dataToSave?: typeof commitmentFormData) => {
+    const data = dataToSave || commitmentFormData;
+    try {
+      localStorage.setItem(`commitment_form_${requestId}`, JSON.stringify(data));
+    } catch (e) {}
+
+    if (requestId) {
+      saveCommitmentMutation.mutate({
+        requestId,
+        commitmentFormData: {
+          title: data.title,
+          expectedCost: data.expectedCost,
+          terms: data.terms,
+          additionalTerms: data.additionalTerms,
+        },
+      });
+    }
+  };
+
+  const updateCommitmentField = (field: keyof typeof commitmentFormData, val: string) => {
+    setCommitmentFormData(prev => {
+      const next = { ...prev, [field]: val };
+      try {
+        localStorage.setItem(`commitment_form_${requestId}`, JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+  };
+
   useEffect(() => {
-    if (commitmentFormOpen && request) {
-      let formattedConditions = "";
-      const rawConditions = (request as any).programConditions;
-      if (rawConditions) {
-        try {
-          let parsed: any = null;
-          if (typeof rawConditions === 'string') {
-            parsed = JSON.parse(rawConditions);
-          } else {
-            parsed = rawConditions;
-          }
-          if (Array.isArray(parsed)) {
-            formattedConditions = parsed.map((c: any, index: number) => `${index + 1}. ${c}`).join("\n");
-          } else if (typeof parsed === 'object' && parsed !== null) {
-            formattedConditions = JSON.stringify(parsed, null, 2);
-          } else {
-            formattedConditions = String(parsed);
-          }
-        } catch (e) {
+    if (!request) return;
+
+    let pData: any = (request as any).programData;
+    while (typeof pData === 'string') {
+      try {
+        pData = JSON.parse(pData);
+      } catch {
+        break;
+      }
+    }
+    const dbCommitment = pData?.commitmentFormData;
+
+    let localDraft: any = null;
+    try {
+      const stored = localStorage.getItem(`commitment_form_${requestId}`);
+      if (stored) localDraft = JSON.parse(stored);
+    } catch (e) {}
+
+    let formattedConditions = "";
+    const rawConditions = (request as any).programConditions;
+    if (rawConditions) {
+      try {
+        let parsed: any = null;
+        if (typeof rawConditions === 'string') {
+          parsed = JSON.parse(rawConditions);
+        } else {
+          parsed = rawConditions;
+        }
+        if (Array.isArray(parsed)) {
+          formattedConditions = parsed.map((c: any, index: number) => `${index + 1}. ${c}`).join("\n");
+        } else if (typeof parsed === 'object' && parsed !== null) {
+          formattedConditions = JSON.stringify(parsed, null, 2);
+        } else {
           formattedConditions = String(rawConditions);
         }
+      } catch (e) {
+        formattedConditions = String(rawConditions);
       }
-
-      setCommitmentFormData(prev => ({
-        ...prev,
-        title: request.mosque?.name ? `مشروع مسجد ${request.mosque.name}` : `طلب رقم ${request.requestNumber}`,
-        expectedCost: "",
-        terms: formattedConditions || "لا يوجد شروط محددة للبرنامج.",
-      }));
-      setRequesterData({
-        name: request.requester?.name || "",
-        phone: request.requester?.phone || "",
-        email: request.requester?.email || "",
-        city: request.requester?.city || "",
-        nationalId: request.requester?.nationalId || ""
-      });
-      setCommitmentFormMode('edit');
     }
-  }, [commitmentFormOpen, request]);
+
+    const defaultTitle = request.mosque?.name ? `مشروع مسجد ${request.mosque.name}` : `طلب رقم ${request.requestNumber}`;
+    const defaultTerms = formattedConditions || "لا يوجد شروط محددة للبرنامج.";
+
+    const sourceData = dbCommitment || localDraft;
+
+    setCommitmentFormData({
+      title: sourceData?.title !== undefined && sourceData?.title !== "" ? sourceData.title : defaultTitle,
+      expectedCost: sourceData?.expectedCost !== undefined ? String(sourceData.expectedCost) : "",
+      terms: sourceData?.terms !== undefined && sourceData?.terms !== "" ? sourceData.terms : defaultTerms,
+      additionalTerms: sourceData?.additionalTerms ?? "",
+    });
+
+    setRequesterData({
+      name: request.requester?.name || "",
+      phone: request.requester?.phone || "",
+      email: request.requester?.email || "",
+      city: request.requester?.city || "",
+      nationalId: request.requester?.nationalId || ""
+    });
+  }, [request?.id, (request as any)?.programData]);
 
   const handlePrintCommitment = () => {
     window.print();
@@ -2127,7 +2186,10 @@ export default function RequestDetailsNew() {
                         request.currentStage === 'technical_eval' && !isFieldTeam && !isQuickResponseUser && request.requester?.role === 'service_requester'
                           ? {
                               label: 'نموذج التزام طالب الخدمة',
-                              onClick: () => setCommitmentFormOpen(true),
+                              onClick: () => {
+                                setCommitmentFormMode('edit');
+                                setCommitmentFormOpen(true);
+                              },
                             }
                           : undefined
                       }
@@ -4526,7 +4588,12 @@ export default function RequestDetailsNew() {
       {/* نافذة نموذج التزام طالب الخدمة */}
       <ColoredDialog
         open={commitmentFormOpen}
-        onOpenChange={setCommitmentFormOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleSaveCommitmentData();
+          }
+          setCommitmentFormOpen(open);
+        }}
         title={commitmentFormMode === 'edit' ? "وثيقة نموذج التزام طالب الخدمة" : "معاينة وثيقة التزام طالب الخدمة"}
         color="indigo"
         fullScreen={commitmentFormMode === 'print_preview'}
@@ -4543,7 +4610,7 @@ export default function RequestDetailsNew() {
                 <div className="relative">
                   <Input
                     value={commitmentFormData.title}
-                    onChange={(e) => setCommitmentFormData(prev => ({ ...prev, title: e.target.value }))}
+                    onChange={(e) => updateCommitmentField('title', e.target.value)}
                     className="h-12 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl pr-3 shadow-sm text-sm"
                     placeholder="مثال: مشروع ترميم جامع الرحمة"
                   />
@@ -4559,7 +4626,7 @@ export default function RequestDetailsNew() {
                   <Input
                     type="number"
                     value={commitmentFormData.expectedCost}
-                    onChange={(e) => setCommitmentFormData(prev => ({ ...prev, expectedCost: e.target.value }))}
+                    onChange={(e) => updateCommitmentField('expectedCost', e.target.value)}
                     className="h-12 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl pr-3 shadow-sm text-sm"
                     placeholder="أدخل التكلفة المتوقعة..."
                   />
@@ -4574,7 +4641,7 @@ export default function RequestDetailsNew() {
               </Label>
               <Textarea
                 value={commitmentFormData.terms}
-                onChange={(e) => setCommitmentFormData(prev => ({ ...prev, terms: e.target.value }))}
+                onChange={(e) => updateCommitmentField('terms', e.target.value)}
                 className="min-h-[140px] leading-relaxed border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl p-4 text-sm shadow-sm"
               />
             </div>
@@ -4586,7 +4653,7 @@ export default function RequestDetailsNew() {
               </Label>
               <Textarea
                 value={commitmentFormData.additionalTerms}
-                onChange={(e) => setCommitmentFormData(prev => ({ ...prev, additionalTerms: e.target.value }))}
+                onChange={(e) => updateCommitmentField('additionalTerms', e.target.value)}
                 placeholder="أدخل أي شروط إضافية خاصة تود إلحاقها بالنموذج..."
                 className="min-h-[85px] border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl p-4 text-sm shadow-sm"
               />
@@ -4652,7 +4719,14 @@ export default function RequestDetailsNew() {
             </div>
 
             <div className="flex justify-end gap-3 pt-5 border-t border-slate-100 dark:border-slate-850">
-              <Button variant="outline" onClick={() => setCommitmentFormOpen(false)} className="h-12 px-6 rounded-xl text-sm font-bold">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  handleSaveCommitmentData();
+                  setCommitmentFormOpen(false);
+                }}
+                className="h-12 px-6 rounded-xl text-sm font-bold"
+              >
                 إلغاء
               </Button>
               <Button
@@ -4661,6 +4735,7 @@ export default function RequestDetailsNew() {
                     toast.error("يرجى ملء جميع الحقول المطلوبة (*)");
                     return;
                   }
+                  handleSaveCommitmentData();
                   setCommitmentFormMode('print_preview');
                 }}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white h-12 px-8 rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all"

@@ -3540,6 +3540,54 @@ export const requestsRouter = router({
       };
     }),
 
+  // حفظ بيانات وثيقة نموذج التزام طالب الخدمة
+  saveCommitmentFormData: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      commitmentFormData: z.object({
+        title: z.string().optional(),
+        expectedCost: z.string().optional(),
+        terms: z.string().optional(),
+        additionalTerms: z.string().optional(),
+      }),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "تعذر الاتصال بقاعدة البيانات" });
+
+      const [request] = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+      if (!request) throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+
+      let currentProgramData: Record<string, any> = {};
+      try {
+        let pData = request.programData;
+        while (typeof pData === "string") {
+          try {
+            pData = JSON.parse(pData);
+          } catch {
+            break;
+          }
+        }
+        if (pData && typeof pData === "object" && !Array.isArray(pData)) {
+          currentProgramData = { ...pData };
+        }
+      } catch (e) {
+        currentProgramData = {};
+      }
+
+      currentProgramData.commitmentFormData = {
+        ...input.commitmentFormData,
+        savedAt: new Date().toISOString(),
+        savedBy: ctx.user.id,
+      };
+
+      await db.update(mosqueRequests)
+        .set({ programData: currentProgramData })
+        .where(eq(mosqueRequests.id, input.requestId));
+
+      return { success: true, commitmentFormData: currentProgramData.commitmentFormData };
+    }),
+
   // حفظ تسعير الفرصة وتحديد مسار التمويل (المرحلة السادسة - سدانة)
   saveSedanaFundingChoice: protectedProcedure
     .input(z.object({
