@@ -75,7 +75,7 @@ export function ColoredDialog({ open, onOpenChange, title, children, color, icon
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false} className={`${fullScreen ? 'sm:!max-w-[98vw] !w-[98vw] !h-[96vh] !max-h-[96vh]' : wide ? 'sm:!max-w-6xl !w-[95vw] !max-h-[90vh]' : 'sm:!max-w-3xl !max-h-[90vh]'} overflow-hidden flex flex-col p-0 !gap-0 ${colors.border} border-2`}>
         {/* Header with color */}
-        <DialogHeader className={`${colors.header} ${colors.text} p-6 pb-4 border-b ${colors.border}`}>
+        <DialogHeader className={`${colors.header} ${colors.text} p-6 pb-4 border-b ${colors.border} no-print`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {icon && <div className={colors.accent}>{icon}</div>}
@@ -101,7 +101,7 @@ export function ColoredDialog({ open, onOpenChange, title, children, color, icon
         </div>
 
         {/* Footer with back button and extra actions */}
-        <div className={`${colors.header} p-4 border-t ${colors.border} flex items-center ${extraFooterActions ? 'justify-between' : 'justify-start'}`}>
+        <div className={`${colors.header} p-4 border-t ${colors.border} flex items-center ${extraFooterActions ? 'justify-between' : 'justify-start'} no-print`}>
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
