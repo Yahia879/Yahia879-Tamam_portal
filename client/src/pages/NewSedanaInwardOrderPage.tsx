@@ -402,7 +402,7 @@ export default function NewSedanaInwardOrderPage() {
             </div>
           </CardHeader>
           <CardContent className="p-5 space-y-5 text-right" dir="rtl">
-            {/* 1. قائمة اختيار نوع المستند (أمر شراء معتمد أم خطاب مجتمعي معتمد) */}
+            {/* 1. قائمة اختيار نوع المستند (أمر صرف منفذ أم خطاب مسؤولية مجتمعية منفذ) */}
             <div className="space-y-2">
               <Label className="text-xs font-bold text-foreground">
                 نوع مستند الإدخال المعتمد:
@@ -417,10 +417,10 @@ export default function NewSedanaInwardOrderPage() {
                   </SelectTrigger>
                   <SelectContent dir="rtl">
                     <SelectItem value="purchase_order" className="text-xs font-semibold cursor-pointer">
-                      أمر شراء معتمد (أمر صرف مالي منفّذ)
+                      أمر صرف منفذ
                     </SelectItem>
                     <SelectItem value="csr_letter" className="text-xs font-semibold cursor-pointer">
-                      خطاب مسؤولية مجتمعية معتمد (CSR)
+                      خطاب مسؤولية مجتمعية منفذ
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -431,7 +431,7 @@ export default function NewSedanaInwardOrderPage() {
             {sourceCategory === "purchase_order" ? (
               <div className="space-y-2 pt-2 border-t border-border/50">
                 <Label className="text-xs font-bold text-foreground">
-                  أمر الصرف المالي المنفّذ لأمر الشراء:
+                  أمر الصرف المالي المنفّذ:
                 </Label>
                 {disbursementOrders.length === 0 ? (
                   <div className="p-5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 text-center space-y-2">
@@ -470,41 +470,27 @@ export default function NewSedanaInwardOrderPage() {
                   </div>
                 )}
 
-                {/* تنبيه حالة أمر الصرف المختار */}
-                {activeDisb && (
+                {/* تنبيه حالة أمر الصرف المختار فقط في حال وجود مانع/تعليق */}
+                {activeDisb && isInwardBlocked && (
                   <div className="mt-2">
-                    {isInwardBlocked ? (
-                      <div className="p-3.5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/30 flex items-start gap-3 text-xs">
-                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                        <div className="flex-1 space-y-1">
-                          <p className="font-bold text-amber-900 dark:text-amber-200">
-                            لا يمكن عمل أمر إدخال لهذا الصرف حالياً:
-                          </p>
-                          <p className="text-amber-800 dark:text-amber-300 leading-relaxed">
-                            {blockedReason}
-                          </p>
-                        </div>
+                    <div className="p-3.5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/30 flex items-start gap-3 text-xs">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="flex-1 space-y-1">
+                        <p className="font-bold text-amber-900 dark:text-amber-200">
+                          لا يمكن عمل أمر إدخال لهذا الصرف حالياً:
+                        </p>
+                        <p className="text-amber-800 dark:text-amber-300 leading-relaxed">
+                          {blockedReason}
+                        </p>
                       </div>
-                    ) : (
-                      <div className="p-3 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20 flex items-center justify-between gap-3 text-xs">
-                        <div className="flex items-center gap-2">
-                          <Info className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
-                          <span className="text-emerald-900 dark:text-emerald-200 leading-relaxed">
-                            أمر الصرف <strong>#{activeDisb.orderNumber}</strong> منفّذ بالكامل. يمكنك الآن إدخال الأصناف دفعة واحدة أو على دفعات جزئية حتى استيفاء كامل الكمية المعتمدة.
-                          </span>
-                        </div>
-                        <Badge variant="outline" className="border-emerald-500 text-emerald-700 bg-emerald-50 text-[11px] shrink-0 font-bold">
-                          جاهز للإدخال المستودعي
-                        </Badge>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 )}
               </div>
             ) : (
               <div className="space-y-2 pt-2 border-t border-border/50">
                 <Label className="text-xs font-bold text-foreground">
-                  خطاب المسؤولية المجتمعية المعتمد (CSR):
+                  خطاب المسؤولية المجتمعية المنفّذ (CSR):
                 </Label>
                 {approvedCsrLetters.length === 0 ? (
                   <div className="p-5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 text-center space-y-2">
@@ -523,7 +509,7 @@ export default function NewSedanaInwardOrderPage() {
                       onValueChange={(val) => setSelectedCsrNumber(val)}
                     >
                       <SelectTrigger className="h-11 text-xs font-semibold bg-background border-border/80" dir="rtl">
-                        <SelectValue placeholder="-- اختر خطاب المسؤولية المجتمعية المعتمد --" />
+                        <SelectValue placeholder="-- اختر خطاب المسؤولية المجتمعية المنفّذ --" />
                       </SelectTrigger>
                       <SelectContent dir="rtl">
                         {approvedCsrLetters.map((c: any) => (
@@ -541,34 +527,20 @@ export default function NewSedanaInwardOrderPage() {
                   </div>
                 )}
 
-                {/* تنبيه حالة خطاب المسؤولية المجتمعية المختار */}
-                {activeCsr && (
+                {/* تنبيه حالة خطاب المسؤولية المجتمعية المختار فقط في حال وجود مانع/تعليق */}
+                {activeCsr && isInwardBlocked && (
                   <div className="mt-2">
-                    {isInwardBlocked ? (
-                      <div className="p-3.5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/30 flex items-start gap-3 text-xs">
-                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                        <div className="flex-1 space-y-1">
-                          <p className="font-bold text-amber-900 dark:text-amber-200">
-                            لا يمكن عمل أمر إدخال لهذا الخطاب حالياً:
-                          </p>
-                          <p className="text-amber-800 dark:text-amber-300 leading-relaxed">
-                            {blockedReason}
-                          </p>
-                        </div>
+                    <div className="p-3.5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/30 flex items-start gap-3 text-xs">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="flex-1 space-y-1">
+                        <p className="font-bold text-amber-900 dark:text-amber-200">
+                          لا يمكن عمل أمر إدخال لهذا الخطاب حالياً:
+                        </p>
+                        <p className="text-amber-800 dark:text-amber-300 leading-relaxed">
+                          {blockedReason}
+                        </p>
                       </div>
-                    ) : (
-                      <div className="p-3 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20 flex items-center justify-between gap-3 text-xs">
-                        <div className="flex items-center gap-2">
-                          <Info className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
-                          <span className="text-emerald-900 dark:text-emerald-200 leading-relaxed">
-                            خطاب المسؤولية المجتمعية <strong>#{activeCsr.letterNumber}</strong> معتمد من المدير التنفيذي وجاهز للتوريد والإدخال المستودعي مباشرة.
-                          </span>
-                        </div>
-                        <Badge variant="outline" className="border-emerald-500 text-emerald-700 bg-emerald-50 text-[11px] shrink-0 font-bold">
-                          جاهز للإدخال المستودعي
-                        </Badge>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -586,14 +558,14 @@ export default function NewSedanaInwardOrderPage() {
                   <Package className="w-4 h-4 text-emerald-600" />
                   <span>
                     {sourceCategory === "purchase_order"
-                      ? `أصناف وكميات أمر الشراء / الصرف المعتمد (${activeDisb?.orderNumber})`
-                      : `أصناف وكميات خطاب المسؤولية المجتمعية المعتمد (${activeCsr?.letterNumber})`}
+                      ? `أصناف وكميات أمر الصرف المنفّذ (${activeDisb?.orderNumber})`
+                      : `أصناف وكميات خطاب المسؤولية المجتمعية المنفّذ (${activeCsr?.letterNumber})`}
                   </span>
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">
                   {sourceCategory === "purchase_order"
-                    ? "أصناف وكميات أمر الصرف المعتمد المحددة للإدخال المستودعي"
-                    : "أصناف وكميات خطاب المسؤولية المجتمعية المعتمد المحددة للإدخال المستودعي"}
+                    ? "أصناف وكميات أمر الصرف المنفّذ المحددة للإدخال المستودعي"
+                    : "أصناف وكميات خطاب المسؤولية المجتمعية المنفّذ المحددة للإدخال المستودعي"}
                 </CardDescription>
               </div>
             </CardHeader>
