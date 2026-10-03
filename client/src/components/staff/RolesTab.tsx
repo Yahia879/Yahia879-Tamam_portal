@@ -70,9 +70,10 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
     projects_office: 6,
     project_manager: 7,
     financial: 8,
-    field_team: 9,
-    quick_response: 10,
-    corporate_comm: 11,
+    procurement_officer: 9,
+    field_team: 10,
+    quick_response: 11,
+    corporate_comm: 12,
   };
 
   const roles = allRoles

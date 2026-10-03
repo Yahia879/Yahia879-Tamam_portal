@@ -538,7 +538,7 @@ async function ensureRequestsPermissionsExist(db: any) {
       board_member: ["board_member"],
       general_manager: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "quotations.view", "quotations.approve"],
       executive_director: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "quotations.view", "quotations.approve"],
-      procurement_officer: ["quotations.view", "quotations.create"],
+      procurement_officer: ["quotations.view", "quotations.create", "quotations.add"],
       projects_office: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide"],
       field_team: ["requests.view", "requests.manage_as_field_team"],
       quick_response: ["requests.view", "requests.manage_as_quick_response"],
@@ -1276,7 +1276,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   }
 
   if (userData?.role === "procurement_officer" && !hasCustomRole) {
-    rolePermissionsData.push("quotations.view", "quotations.create");
+    rolePermissionsData.push("quotations.view", "quotations.create", "quotations.add");
   }
 
   if (userData?.role === "financial" && !hasCustomRole) {
@@ -2174,6 +2174,7 @@ export const permissionsRouter = router({
         financial_manager: ["financial", "quotations", "disbursements", "suppliers", "reports.view", "financial_reports"],
         project_manager: ["projects.view", "projects.edit", "projects.assign_as_manager", "reports", "disbursements.view", "disbursements.create", "disbursements.edit", "contracts.view", "contracts.create", "contracts.edit", "suppliers.view", "handovers"],
         corporate_comm: ["requests.view", "requests.upload_final_report", "reports.view", "settings.view", "analytics.view"],
+        procurement_officer: ["quotations.view", "quotations.create", "quotations.add"],
         service_requester: ["requests.view", "requests.create", "mosques.view"]
       };
 
