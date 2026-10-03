@@ -2299,16 +2299,6 @@ export default function RequestDetailsNew() {
                             ]
                           : []
                       }
-                      revertButton={
-                        canRevertStage && translatedAction.canPerformAction && !isPendingClosure && !isFieldTeam && !isQuickResponseUser
-                          ? {
-                              label: "الرجوع للمرحلة السابقة",
-                              onClick: () => setShowRevertStageModal(true),
-                              disabled: revertStageMutation.isPending,
-                              title: "الرجوع للمرحلة السابقة لتعديل البيانات",
-                            }
-                          : undefined
-                      }
                     />
                   );
                 })()}
