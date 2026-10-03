@@ -687,7 +687,7 @@ export default function SedanaProcurementPage() {
         itemsAllocation: nextItemsAlloc,
         itemSupplierMap,
         suppliersAllocation: nextSuppliersAlloc,
-        notes: `تحديد طرق التأمين والموردين`,
+        notes: `تحديد طرق التوريد والموردين`,
       },
       advanceToExecution: false,
     });
