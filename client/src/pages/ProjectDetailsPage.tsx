@@ -1561,7 +1561,7 @@ export default function ProjectDetailsPage() {
                     <CardContent className="p-5">
                       {sedanaPurchaseOrders.length === 0 ? (
                         <div className="flex items-center justify-between p-4 bg-muted/20 rounded-xl border border-border/40 text-xs">
-                          <span className="text-muted-foreground font-medium">تم اختيار طريقة التأمين كـ "أمر شراء" لهذا الطلب، ولم يتم بعد إصدار أمر شراء رسمي.</span>
+                          <span className="text-muted-foreground font-medium">تم اختيار طريقة التوريد كـ "أمر شراء" لهذا الطلب، ولم يتم بعد إصدار أمر شراء رسمي.</span>
                           {project.requestId && (
                             <Button
                               size="sm"
@@ -1643,7 +1643,7 @@ export default function ProjectDetailsPage() {
                     <CardContent className="p-5">
                       {sedanaCsrLetters.length === 0 ? (
                         <div className="flex items-center justify-between p-4 bg-muted/20 rounded-xl border border-border/40 text-xs">
-                          <span className="text-muted-foreground font-medium">تم اختيار طريقة التأمين كـ "مسؤولية مجتمعية" لهذا الطلب، ولم يتم بعد إصدار خطاب رسمي.</span>
+                          <span className="text-muted-foreground font-medium">تم اختيار طريقة التوريد كـ "مسؤولية مجتمعية" لهذا الطلب، ولم يتم بعد إصدار خطاب رسمي.</span>
                           {project.requestId && (
                             <Button
                               size="sm"

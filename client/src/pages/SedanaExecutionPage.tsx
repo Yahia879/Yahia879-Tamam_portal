@@ -1326,10 +1326,10 @@ export default function SedanaExecutionPage() {
                   <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
                     <span>
                       {handoverValidation?.hasContractInsurance
-                        ? "ملاحظة التوريد: نوع التأمين معتمد بعقد لمورد معتمد"
+                        ? "ملاحظة التوريد: نوع التوريد معتمد بعقد لمورد معتمد"
                         : handoverValidation?.hasSupplierInsurance
-                        ? "ملاحظة التوريد: نوع التأمين معتمد مع مورد (أمر شراء / مساهمة مجتمعية)"
-                        : "ملاحظة التوريد: نوع التأمين مباشر / بدون مورد خارجي"}
+                        ? "ملاحظة التوريد: نوع التوريد معتمد مع مورد (أمر شراء / مساهمة مجتمعية)"
+                        : "ملاحظة التوريد: نوع التوريد مباشر / بدون مورد خارجي"}
                     </span>
                     {(handoverValidation?.hasSupplierInsurance || handoverValidation?.hasContractInsurance) && (
                       <>
@@ -2032,7 +2032,7 @@ export default function SedanaExecutionPage() {
                   <span className="font-bold text-foreground">#{req?.requestNumber || req?.id}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">نوع التأمين:</span>
+                  <span className="text-muted-foreground">نوع التوريد:</span>
                   <span className="font-medium text-foreground">
                     {handoverValidation?.hasContractInsurance
                       ? "معتمد بعقد لمورد معتمد"
