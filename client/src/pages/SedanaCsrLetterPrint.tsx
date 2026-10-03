@@ -63,6 +63,9 @@ export default function SedanaCsrLetterPrint() {
     staleTime: 10 * 60 * 1000,
   });
 
+  // 5. جلب بيانات المدير التنفيذي الحية من ملفه الشخصي
+  const { data: execInfo } = trpc.procurement.getExecutiveSignatoryInfo.useQuery();
+
   // معالجة بيانات البرنامج
   let programData: Record<string, any> = {};
   try {
@@ -180,6 +183,29 @@ export default function SedanaCsrLetterPrint() {
 
   // إعداد بيانات الخطاب
   const execSignatory = signatoriesData.find((s: any) => s.roleTitle?.includes("تنفيذي") || s.roleTitle?.includes("مدير")) || signatoriesData[0];
+  const isApproved = targetCsr.status === "approved";
+
+  // اسم ووظيفة المدير التنفيذي من ملفه الشخصي (مع القيم الافتراضية)
+  const defaultSignatoryName = "م. عبدالهادي آل فائق";
+  const defaultSignatoryRole = "المدير التنفيذي";
+
+  const resolvedSignatoryName =
+    (execInfo?.name && execInfo.name.trim()) ||
+    (targetCsr?.signatoryName && targetCsr.signatoryName !== "ceo@manarah.org.sa" && targetCsr.signatoryName !== "المدير التنفيذي" && targetCsr.signatoryName !== "المهندس المفوض بالتوقيع" ? targetCsr.signatoryName : "") ||
+    execSignatory?.name ||
+    defaultSignatoryName;
+
+  const resolvedSignatoryTitle =
+    (execInfo?.roleTitle && execInfo.roleTitle.trim()) ||
+    (targetCsr?.signatoryTitle && targetCsr.signatoryTitle.trim() ? targetCsr.signatoryTitle : "") ||
+    execSignatory?.roleTitle ||
+    defaultSignatoryRole;
+
+  const resolvedSignatorySignatureUrl =
+    execInfo?.signatureUrl ||
+    (targetCsr?.signatorySignatureUrl && targetCsr.signatorySignatureUrl !== "digital_signature_approved" ? targetCsr.signatorySignatureUrl : "") ||
+    execSignatory?.signatureUrl ||
+    "";
 
   const csrData = {
     letterNumber: targetCsr.letterNumber || `CSR-${requestId}-${new Date().getFullYear()}`,
@@ -188,8 +214,9 @@ export default function SedanaCsrLetterPrint() {
     recipientName: targetCsr.recipientName || "الجهة المانحة / الشريك المجتمعي",
     honorific: targetCsr.honorific || "المحترمون",
     projectName: targetCsr.projectName || `مشروع جامع ${mosqueName}`,
-    signatoryTitle: targetCsr.signatoryTitle || "المدير التنفيذي",
-    signatoryName: targetCsr.signatoryName || execSignatory?.name || "م. عبدالهادي آل فائق",
+    signatoryTitle: resolvedSignatoryTitle,
+    signatoryName: resolvedSignatoryName,
+    signatorySignatureUrl: resolvedSignatorySignatureUrl,
   };
 
   const handlePrint = () => {
@@ -356,11 +383,15 @@ export default function SedanaCsrLetterPrint() {
             {/* خانة التوقيع والاعتماد الرسمي */}
             <div className="pt-6 sm:pt-8 flex justify-center break-inside-avoid">
               <div className="w-64 text-center space-y-2">
-                <p className="font-bold text-xs sm:text-sm text-slate-800">{csrData.signatoryTitle || "المدير التنفيذي"}</p>
+                <p className="font-bold text-xs sm:text-sm text-slate-800">{csrData.signatoryTitle}</p>
                 <div className="h-12 sm:h-14 flex items-center justify-center">
-                  <div className="border-b border-dashed border-slate-400 w-40 mx-auto" />
+                  {isApproved && csrData.signatorySignatureUrl ? (
+                    <img src={csrData.signatorySignatureUrl} alt="التوقيع" className="max-h-12 mx-auto object-contain" />
+                  ) : (
+                    <div className="border-b border-dashed border-slate-400 w-40 mx-auto" />
+                  )}
                 </div>
-                <p className="font-bold text-xs sm:text-sm text-slate-900">{csrData.signatoryName || "المهندس المفوض بالتوقيع"}</p>
+                <p className="font-bold text-xs sm:text-sm text-slate-900">{csrData.signatoryName}</p>
               </div>
             </div>
           </div>

@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
 import { getDb } from "../db";
-import { mosqueRequests, mosques, quantitySchedules, suppliers, disbursementOrders } from "../../drizzle/schema";
+import { mosqueRequests, mosques, quantitySchedules, suppliers, disbursementOrders, users } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNotNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -1037,13 +1037,30 @@ export const procurementRouter = router({
       pData.sedanaProcurement = pData.sedanaProcurement || {};
       const targetOrderNumber = input.orderNumber || pData.sedanaProcurement.activePurchaseOrder?.orderNumber;
       const nowIso = new Date().toISOString();
-      const approverName = input.approverName || ctx.user.name || "المدير التنفيذي";
+
+      // جلب بيانات المدير التنفيذي من ملفه الشخصي
+      const [ceoUser] = await db
+        .select({
+          name: users.name,
+          signatureName: users.signatureName,
+          signatureDepartment: users.signatureDepartment,
+          signatureUrl: users.signatureUrl,
+        })
+        .from(users)
+        .where(eq(users.email, "ceo@manarah.org.sa"));
+
+      const defaultName = "م. عبدالهادي آل فائق";
+      const defaultRole = "المدير التنفيذي";
+      const approverName = input.approverName || (ceoUser?.signatureName && ceoUser.signatureName.trim()) || defaultName;
+      const approverRole = (ceoUser?.signatureDepartment && ceoUser.signatureDepartment.trim()) || defaultRole;
+      const approverSignatureUrl = ceoUser?.signatureUrl || "digital_signature_approved";
 
       if (pData.sedanaProcurement.activePurchaseOrder) {
         if (!targetOrderNumber || pData.sedanaProcurement.activePurchaseOrder.orderNumber === targetOrderNumber) {
           pData.sedanaProcurement.activePurchaseOrder.status = "approved";
           pData.sedanaProcurement.activePurchaseOrder.approverName = approverName;
-          pData.sedanaProcurement.activePurchaseOrder.approverSignatureUrl = "digital_signature_approved";
+          pData.sedanaProcurement.activePurchaseOrder.approverRole = approverRole;
+          pData.sedanaProcurement.activePurchaseOrder.approverSignatureUrl = approverSignatureUrl;
           pData.sedanaProcurement.activePurchaseOrder.approvedAt = nowIso;
         }
       }
@@ -1056,7 +1073,8 @@ export const procurementRouter = router({
               ...p,
               status: "approved",
               approverName,
-              approverSignatureUrl: "digital_signature_approved",
+              approverRole,
+              approverSignatureUrl,
               approvedAt: nowIso,
               updatedAt: nowIso,
             };
@@ -1577,13 +1595,30 @@ export const procurementRouter = router({
       pData.sedanaProcurement = pData.sedanaProcurement || {};
       const targetLetterNumber = input.letterNumber || pData.sedanaProcurement.activeCsrLetter?.letterNumber;
       const nowIso = new Date().toISOString();
-      const signatoryName = input.signatoryName || ctx.user.name || "المدير التنفيذي";
+
+      // جلب بيانات المدير التنفيذي من ملفه الشخصي
+      const [ceoUser] = await db
+        .select({
+          name: users.name,
+          signatureName: users.signatureName,
+          signatureDepartment: users.signatureDepartment,
+          signatureUrl: users.signatureUrl,
+        })
+        .from(users)
+        .where(eq(users.email, "ceo@manarah.org.sa"));
+
+      const defaultName = "م. عبدالهادي آل فائق";
+      const defaultRole = "المدير التنفيذي";
+      const signatoryName = input.signatoryName || (ceoUser?.signatureName && ceoUser.signatureName.trim()) || defaultName;
+      const signatoryTitle = (ceoUser?.signatureDepartment && ceoUser.signatureDepartment.trim()) || defaultRole;
+      const signatorySignatureUrl = ceoUser?.signatureUrl || "digital_signature_approved";
 
       if (pData.sedanaProcurement.activeCsrLetter) {
         if (!targetLetterNumber || pData.sedanaProcurement.activeCsrLetter.letterNumber === targetLetterNumber) {
           pData.sedanaProcurement.activeCsrLetter.status = "approved";
           pData.sedanaProcurement.activeCsrLetter.signatoryName = signatoryName;
-          pData.sedanaProcurement.activeCsrLetter.signatorySignatureUrl = "digital_signature_approved";
+          pData.sedanaProcurement.activeCsrLetter.signatoryTitle = signatoryTitle;
+          pData.sedanaProcurement.activeCsrLetter.signatorySignatureUrl = signatorySignatureUrl;
           pData.sedanaProcurement.activeCsrLetter.approvedAt = nowIso;
         }
       }
@@ -1596,7 +1631,8 @@ export const procurementRouter = router({
               ...c,
               status: "approved",
               signatoryName,
-              signatorySignatureUrl: "digital_signature_approved",
+              signatoryTitle,
+              signatorySignatureUrl,
               approvedAt: nowIso,
               updatedAt: nowIso,
             };
@@ -1720,4 +1756,41 @@ export const procurementRouter = router({
         hasPendingAny: pendingOrdersCount > 0 || pendingCsrCount > 0,
       };
     }),
+
+  // ===============================================
+  // 12. جلب معلومات المدير التنفيذي المعتمدة للمستندات والخطابات (من ملفه الشخصي)
+  // ===============================================
+  getExecutiveSignatoryInfo: publicProcedure.query(async () => {
+    const defaultName = "م. عبدالهادي آل فائق";
+    const defaultRole = "المدير التنفيذي";
+
+    const db = await getDb();
+    if (!db) {
+      return {
+        name: defaultName,
+        roleTitle: defaultRole,
+        signatureUrl: "",
+      };
+    }
+
+    const [ceo] = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        signatureName: users.signatureName,
+        signatureDepartment: users.signatureDepartment,
+        signatureUrl: users.signatureUrl,
+      })
+      .from(users)
+      .where(eq(users.email, "ceo@manarah.org.sa"));
+
+    const resolvedName = (ceo?.signatureName && ceo.signatureName.trim()) ? ceo.signatureName.trim() : defaultName;
+    const resolvedRole = (ceo?.signatureDepartment && ceo.signatureDepartment.trim()) ? ceo.signatureDepartment.trim() : defaultRole;
+
+    return {
+      name: resolvedName,
+      roleTitle: resolvedRole,
+      signatureUrl: ceo?.signatureUrl || "",
+    };
+  }),
 });

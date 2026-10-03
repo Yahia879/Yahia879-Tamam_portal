@@ -63,6 +63,9 @@ export default function SedanaPurchaseOrderPrint() {
     staleTime: 10 * 60 * 1000,
   });
 
+  // 5. جلب بيانات المدير التنفيذي الحية من ملفه الشخصي
+  const { data: execInfo } = trpc.procurement.getExecutiveSignatoryInfo.useQuery();
+
   // معالجة بيانات البرنامج
   let programData: Record<string, any> = {};
   try {
@@ -217,14 +220,36 @@ export default function SedanaPurchaseOrderPrint() {
   const orderNum = activePo?.orderNumber || `PO-${requestId}-${new Date().getFullYear()}`;
   const isApproved = activePo?.status === "approved";
 
+  // اسم ووظيفة المدير التنفيذي من ملفه الشخصي (مع القيم الافتراضية)
+  const defaultApproverName = "م. عبدالهادي آل فائق";
+  const defaultApproverRole = "المدير التنفيذي";
+
+  const resolvedApproverName =
+    (execInfo?.name && execInfo.name.trim()) ||
+    (activePo?.approverName && activePo.approverName !== "ceo@manarah.org.sa" && activePo.approverName !== "المدير التنفيذي" ? activePo.approverName : "") ||
+    execSignatory?.name ||
+    defaultApproverName;
+
+  const resolvedApproverRole =
+    (execInfo?.roleTitle && execInfo.roleTitle.trim()) ||
+    (activePo?.approverRole && activePo.approverRole.trim() ? activePo.approverRole : "") ||
+    execSignatory?.roleTitle ||
+    defaultApproverRole;
+
+  const resolvedApproverSignatureUrl =
+    execInfo?.signatureUrl ||
+    (activePo?.approverSignatureUrl && activePo.approverSignatureUrl !== "digital_signature_approved" ? activePo.approverSignatureUrl : "") ||
+    execSignatory?.signatureUrl ||
+    "";
+
   const poData = {
     orderNumber: orderNum,
     orderDate: activePo?.orderDate || new Date().toISOString().split("T")[0],
     supplierRole: "المورد المعتمد",
     supplierName: poSupplierName || activePo?.supplierName || "المورد المعتمد",
-    approverRole: activePo?.approverRole || execSignatory?.roleTitle || "المدير التنفيذي",
-    approverName: activePo?.approverName || execSignatory?.name || "م. عبدالهادي آل فائق",
-    approverSignatureUrl: activePo?.approverSignatureUrl || execSignatory?.signatureUrl || "",
+    approverRole: resolvedApproverRole,
+    approverName: resolvedApproverName,
+    approverSignatureUrl: resolvedApproverSignatureUrl,
   };
 
   const handlePrint = () => {
