@@ -136,6 +136,30 @@ export default function CustodyRequestPrint() {
   const tafqeet = numberToArabicText(numAmount);
   const reqDate = request.createdAt ? new Date(request.createdAt) : new Date();
 
+  const ROLE_NAMES: Record<string, string> = {
+    super_admin: "المدير العام",
+    system_admin: "مدير النظام",
+    board_chairman: "رئيس مجلس الإدارة",
+    board_member: "عضو مجلس الإدارة",
+    general_manager: "المدير التنفيذي",
+    executive_director: "المدير التنفيذي",
+    financial_manager: "المدير المالي",
+    financial: "الإدارة المالية",
+    projects_office: "مكتب المشاريع",
+    field_team: "الفريق الميداني",
+    quick_response: "فريق الاستجابة السريعة",
+    project_manager: "مدير المشروع",
+    corporate_comm: "الاتصال المؤسسي",
+    service_requester: "طالب الخدمة",
+    procurement_officer: "مسؤول المشتريات",
+  };
+
+  const applicantRoleDisplay = 
+    (request.applicantRole && ROLE_NAMES[request.applicantRole]) ||
+    request.applicantSignatureDepartment ||
+    request.applicantRole ||
+    "العاملين بالجمعية";
+
   return (
     <div className="min-h-screen bg-gray-100 py-3 sm:py-8 print:py-0 print:bg-white" dir="rtl">
       {/* أزرار التحكم والخيارات العلوية */}
@@ -268,8 +292,8 @@ export default function CustodyRequestPrint() {
                     <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1">{request.applicantName || "الموظف طالب العهدة"}</span>
                   </div>
                   <div className="flex border-b border-gray-200">
-                    <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-32 border-l border-gray-200 text-gray-750 shrink-0">الإدارة / المسمى:</span>
-                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1">{request.applicantSignatureDepartment || "العاملين بالجمعية"}</span>
+                    <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-32 border-l border-gray-200 text-gray-750 shrink-0">الدور:</span>
+                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1">{applicantRoleDisplay}</span>
                   </div>
                   <div className="flex border-b sm:border-b-0 sm:border-l border-gray-200">
                     <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-28 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">رقم الجوال:</span>
@@ -358,7 +382,7 @@ export default function CustodyRequestPrint() {
                 {/* مُعدّ الطلب (الموظف طالب العهدة) */}
                 <div className="p-1 sm:p-2">
                   <div className="font-bold text-gray-800 text-[11px] sm:text-sm mb-2 sm:mb-4">
-                    {request.applicantSignatureDepartment || "مُعدّ الطلب (الموظف طالب العهدة)"}
+                    {applicantRoleDisplay || "مُعدّ الطلب (الموظف طالب العهدة)"}
                   </div>
                   <div className="space-y-1 text-xs flex flex-col items-center justify-center">
                     {request.applicantSignatureUrl ? (

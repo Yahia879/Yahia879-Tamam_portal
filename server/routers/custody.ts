@@ -121,8 +121,6 @@ export const custodyRouter = router({
         // للمدير التنفيذي والـ super_admin: تصفية حسب التبويب (طلباتي / طلبات الموظفين)
         if (input?.scope === "my") {
           conditions.push(eq(custodyRequests.userId, ctx.user.id));
-        } else if (input?.scope === "staff") {
-          conditions.push(sql`${custodyRequests.userId} != ${ctx.user.id}`);
         }
       }
 
@@ -274,13 +272,20 @@ export const custodyRouter = router({
 
       const { canSeeAll } = checkCustodyRoles(ctx.user);
 
+      // 1. حساب العدادات الكلية للتبويبات (مستقلة عن فلتر التبويب النشط)
+      const [globalCounts] = await db
+        .select({
+          totalAll: sql<number>`COUNT(*)`,
+          myAll: sql<number>`COALESCE(SUM(CASE WHEN ${custodyRequests.userId} = ${ctx.user.id} THEN 1 ELSE 0 END), 0)`,
+        })
+        .from(custodyRequests);
+
+      // 2. تطبيق التصفية على إحصائيات بطاقات الحالة
       const conditions: any[] = [];
       if (!canSeeAll) {
         conditions.push(eq(custodyRequests.userId, ctx.user.id));
       } else if (input?.scope === "my") {
         conditions.push(eq(custodyRequests.userId, ctx.user.id));
-      } else if (input?.scope === "staff") {
-        conditions.push(sql`${custodyRequests.userId} != ${ctx.user.id}`);
       }
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -288,17 +293,15 @@ export const custodyRouter = router({
       const [stats] = await db
         .select({
           totalCount: sql<number>`COUNT(*)`,
-          pendingCount: sql<number>`SUM(CASE WHEN ${custodyRequests.status} = 'pending_executive' THEN 1 ELSE 0 END)`,
-          convertedCount: sql<number>`SUM(CASE WHEN ${custodyRequests.status} = 'converted_to_order' THEN 1 ELSE 0 END)`,
-          approvedCount: sql<number>`SUM(CASE WHEN ${custodyRequests.status} = 'approved' THEN 1 ELSE 0 END)`,
-          rejectedCount: sql<number>`SUM(CASE WHEN ${custodyRequests.status} = 'rejected' THEN 1 ELSE 0 END)`,
+          pendingCount: sql<number>`COALESCE(SUM(CASE WHEN ${custodyRequests.status} = 'pending_executive' THEN 1 ELSE 0 END), 0)`,
+          convertedCount: sql<number>`COALESCE(SUM(CASE WHEN ${custodyRequests.status} = 'converted_to_order' THEN 1 ELSE 0 END), 0)`,
+          approvedCount: sql<number>`COALESCE(SUM(CASE WHEN ${custodyRequests.status} = 'approved' THEN 1 ELSE 0 END), 0)`,
+          rejectedCount: sql<number>`COALESCE(SUM(CASE WHEN ${custodyRequests.status} = 'rejected' THEN 1 ELSE 0 END), 0)`,
           totalAmount: sql<number>`COALESCE(SUM(CAST(${custodyRequests.amount} AS DECIMAL(15,2))), 0)`,
           convertedAmount: sql<number>`COALESCE(SUM(CASE WHEN ${custodyRequests.status} = 'converted_to_order' THEN CAST(${custodyRequests.amount} AS DECIMAL(15,2)) ELSE 0 END), 0)`,
-          myCount: sql<number>`SUM(CASE WHEN ${custodyRequests.userId} = ${ctx.user.id} THEN 1 ELSE 0 END)`,
-          staffCount: sql<number>`SUM(CASE WHEN ${custodyRequests.userId} != ${ctx.user.id} THEN 1 ELSE 0 END)`,
         })
-      .from(custodyRequests)
-      .where(whereClause);
+        .from(custodyRequests)
+        .where(whereClause);
 
     return {
       totalCount: Number(stats?.totalCount || 0),
