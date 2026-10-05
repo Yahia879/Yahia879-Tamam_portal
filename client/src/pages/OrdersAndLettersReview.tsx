@@ -13,6 +13,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { PurchaseOrdersView } from "./PurchaseOrdersList";
 import { CsrLettersView } from "./CsrLettersList";
 import {
@@ -26,16 +34,39 @@ import {
   RefreshCw,
   ArrowRight,
   ArrowLeft,
-  Layers,
+  Coins,
+  CheckCircle,
+  Printer,
+  ExternalLink,
+  Plus,
+  Clock,
+  AlertCircle,
 } from "lucide-react";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 export default function OrdersAndLettersReview() {
   useDocumentTitle("أوامر الشراء والخطاب المجتمعي");
 
   const routeParams = useParams<{ requestId?: string }>();
-  const [, setLocation] = useLocation();
+  const [, navigate] = useLocation();
+  const { user } = useAuth();
+  const utils = trpc.useUtils();
+
+  const isSuperAdmin = user?.role === "super_admin" || user?.role === "system_admin";
+  const isFinancialOfficer =
+    isSuperAdmin ||
+    user?.role === "financial" ||
+    user?.role === "financial_manager" ||
+    user?.email?.toLowerCase().trim() === "solayani@manarah.org.sa";
+
+  const isExecutiveDirector =
+    isSuperAdmin ||
+    user?.role === "general_manager" ||
+    user?.role === "executive_director" ||
+    user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa";
 
   // قراءة المعاملات من الرابط (Query Parameters)
   const getUrlParams = () => {
@@ -45,6 +76,7 @@ export default function OrdersAndLettersReview() {
   const initialTab = () => {
     const tab = getUrlParams().get("tab");
     if (tab === "csr_letters" || tab === "csr") return "csr_letters";
+    if (tab === "disbursement_orders" || tab === "disbursements" || tab === "disbursement") return "disbursement_orders";
     return "purchase_orders";
   };
 
@@ -52,7 +84,6 @@ export default function OrdersAndLettersReview() {
 
   const [activeTab, setActiveTab] = useState<string>(initialTab);
   const [selectedRequestId, setSelectedRequestId] = useState<string>(initialReqId);
-  const [showUnfilteredAll, setShowUnfilteredAll] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [contentFilter, setContentFilter] = useState("all");
 
@@ -64,12 +95,13 @@ export default function OrdersAndLettersReview() {
       const reqId = q.get("requestId");
       if (tab === "csr_letters" || tab === "csr") {
         setActiveTab("csr_letters");
+      } else if (tab === "disbursement_orders" || tab === "disbursements") {
+        setActiveTab("disbursement_orders");
       } else {
         setActiveTab("purchase_orders");
       }
       if (reqId) {
         setSelectedRequestId(reqId);
-        setShowUnfilteredAll(false);
       } else if (!routeParams.requestId) {
         setSelectedRequestId("");
       }
@@ -97,14 +129,12 @@ export default function OrdersAndLettersReview() {
 
   const handleSelectRequest = (id: string) => {
     setSelectedRequestId(id);
-    setShowUnfilteredAll(false);
     updateUrl(activeTab, id);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleClearSelection = () => {
     setSelectedRequestId("");
-    setShowUnfilteredAll(false);
     updateUrl(activeTab, "");
   };
 
@@ -120,6 +150,36 @@ export default function OrdersAndLettersReview() {
     { id: parseInt(selectedRequestId) },
     { enabled: !!selectedRequestId && !isNaN(parseInt(selectedRequestId)) }
   );
+
+  // جلب أوامر الصرف المرتبطة بالطلب المحدد
+  const {
+    data: disbursementOrdersData,
+    isLoading: isDisbLoading,
+    refetch: refetchDisbursements,
+  } = trpc.disbursements.listOrders.useQuery(
+    {
+      requestId: selectedRequestId ? parseInt(selectedRequestId) : undefined,
+      limit: 100,
+    },
+    { enabled: !!selectedRequestId && !isNaN(parseInt(selectedRequestId)) }
+  );
+
+  const linkedDisbursementOrders = useMemo(() => {
+    return disbursementOrdersData?.orders || [];
+  }, [disbursementOrdersData]);
+
+  // اعتماد أمر الصرف
+  const approveOrderMutation = trpc.disbursements.approveOrder.useMutation({
+    onSuccess: (res) => {
+      toast.success(res.message || "تم اعتماد أمر الصرف بنجاح");
+      refetchDisbursements();
+      utils.disbursements.listOrders.invalidate();
+      utils.procurement.listPurchaseOrders.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء اعتماد أمر الصرف");
+    },
+  });
 
   // دالة مساعدة لتسمية المسجد أو المشروع بدقة
   const getMosqueDisplayName = (request: any) => {
@@ -209,7 +269,7 @@ export default function OrdersAndLettersReview() {
       });
   }, [requestsData]);
 
-  // إحصائيات سريعة للطلبات (3 بطاقات فقط حسب الطلب)
+  // إحصائيات سريعة للطلبات (3 بطاقات)
   const sedanaStats = useMemo(() => {
     const total = processedSedanaRequests.length;
     const withPOs = processedSedanaRequests.filter((r) => r.purchaseOrdersCount > 0).length;
@@ -303,13 +363,51 @@ export default function OrdersAndLettersReview() {
     }
   };
 
+  // شارات حالة أمر الصرف
+  const getDisbursementStatusInfo = (status: string) => {
+    switch (status) {
+      case "pending":
+      case "draft":
+      case "edited":
+        return {
+          label: "بانتظار الاعتماد المالي",
+          className: "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800",
+        };
+      case "pending_executive":
+        return {
+          label: "معتمد مالياً • بانتظار المدير التنفيذي",
+          className: "bg-sky-50 text-sky-800 border-sky-300 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800",
+        };
+      case "approved":
+        return {
+          label: "معتمد نهائياً • جاهز للصرف",
+          className: "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800",
+        };
+      case "executed":
+        return {
+          label: "منفّذ (تم التحويل البنكي)",
+          className: "bg-teal-50 text-teal-800 border-teal-300 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800",
+        };
+      case "rejected":
+        return {
+          label: "مرفوض",
+          className: "bg-rose-50 text-rose-800 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800",
+        };
+      default:
+        return {
+          label: status || "غير محدد",
+          className: "bg-muted text-muted-foreground border-border",
+        };
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-5 text-right font-sans" dir="rtl">
-        {/* الحالة 1: تم اختيار طلب معين -> عرض شريط الطلب المبسط والأنيق + تبويبات أوامر الشراء والخطابات */}
+        {/* الحالة 1: تم اختيار طلب معين -> عرض شريط الطلب المبسط والأنيق + تبويبات أوامر الشراء والخطابات وأوامر الصرف */}
         {selectedRequestId ? (
           <div className="space-y-5">
-            {/* قسم رأس الطلب المحدد المبسط (تم تبسيطه وإزالة زر فتح التفاصيل والتكرار) */}
+            {/* قسم رأس الطلب المحدد المبسط */}
             <div className="bg-card rounded-xl border border-border/80 shadow-2xs p-3.5 sm:p-4 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -339,27 +437,29 @@ export default function OrdersAndLettersReview() {
                   </div>
                 </div>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground self-start sm:self-center font-medium"
-                  onClick={handleClearSelection}
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>تغيير الطلب</span>
-                </Button>
+                <div className="flex items-center gap-2 self-start sm:self-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground font-medium"
+                    onClick={handleClearSelection}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>تغيير الطلب</span>
+                  </Button>
+                </div>
               </div>
 
-              {/* تبويبات التنقل العلوية المبسطة والمباشرة */}
+              {/* تبويبات التنقل العلوية الـ 3 الخاصة بالطلب */}
               <div className="pt-2 border-t border-border/60">
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                  <TabsList className="bg-muted/70 p-1 rounded-lg border border-border/80 h-auto grid grid-cols-2 gap-1.5 w-full sm:w-auto sm:inline-grid">
+                  <TabsList className="bg-muted/70 p-1 rounded-lg border border-border/80 h-auto grid grid-cols-3 gap-1.5 w-full sm:w-auto sm:inline-grid">
                     <TabsTrigger
                       value="purchase_orders"
                       className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-bold text-xs sm:text-sm px-4 py-1.5 gap-2 rounded-md transition-all"
                     >
                       <ShoppingCart className="w-4 h-4 text-sky-600" />
-                      <span>أوامر الشراء الخاصة بالطلب</span>
+                      <span>أوامر الشراء</span>
                       {activeSelectedRequest?.purchaseOrdersCount > 0 && (
                         <Badge
                           variant="secondary"
@@ -369,18 +469,35 @@ export default function OrdersAndLettersReview() {
                         </Badge>
                       )}
                     </TabsTrigger>
+
                     <TabsTrigger
                       value="csr_letters"
                       className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-bold text-xs sm:text-sm px-4 py-1.5 gap-2 rounded-md transition-all"
                     >
                       <HeartHandshake className="w-4 h-4 text-emerald-600" />
-                      <span>الخطاب المجتمعي الخاص بالطلب</span>
+                      <span>الخطاب المجتمعي</span>
                       {activeSelectedRequest?.csrLettersCount > 0 && (
                         <Badge
                           variant="secondary"
                           className="text-[11px] px-1.5 py-0 h-4 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 mr-1"
                         >
                           {activeSelectedRequest.csrLettersCount}
+                        </Badge>
+                      )}
+                    </TabsTrigger>
+
+                    <TabsTrigger
+                      value="disbursement_orders"
+                      className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-bold text-xs sm:text-sm px-4 py-1.5 gap-2 rounded-md transition-all"
+                    >
+                      <Coins className="w-4 h-4 text-amber-600" />
+                      <span>أوامر الصرف</span>
+                      {linkedDisbursementOrders.length > 0 && (
+                        <Badge
+                          variant="secondary"
+                          className="text-[11px] px-1.5 py-0 h-4 bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 mr-1"
+                        >
+                          {linkedDisbursementOrders.length}
                         </Badge>
                       )}
                     </TabsTrigger>
@@ -404,70 +521,232 @@ export default function OrdersAndLettersReview() {
                   isEmbedded={true}
                 />
               </TabsContent>
-            </Tabs>
-          </div>
-        ) : showUnfilteredAll ? (
-          /* في حال رغب المستخدم باستعراض السجلات العامة بدون تحديد طلب */
-          <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-muted/40 p-3.5 rounded-xl border border-border/80 transition-all shadow-xs">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                  <Layers className="w-5 h-5" />
+
+              {/* تبويب أوامر الصرف المرتبطة بالطلب واعتمادها كمسؤول مالي */}
+              <TabsContent value="disbursement_orders" className="space-y-5 mt-0 focus-visible:outline-none">
+                <div className="bg-card rounded-xl border border-border/80 shadow-2xs p-4 sm:p-5 space-y-4">
+                  {/* شريط الإجراءات والترويسة لأوامر الصرف */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/60">
+                        <Coins className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-bold text-foreground">
+                          أوامر الصرف المرتبطة بالطلب #{selectedRequestId}
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          مراجعة واعتماد أوامر الصرف المباشرة المنبثقة عن أوامر شراء هذا الطلب
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => navigate(`/disbursement-orders/new-direct?requestId=${selectedRequestId}`)}
+                        className="h-8 text-xs font-bold gap-1.5 bg-amber-600 hover:bg-amber-700 text-white shadow-2xs"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>إنشاء أمر صرف مباشر</span>
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* جدول أوامر الصرف */}
+                  {isDisbLoading ? (
+                    <div className="py-12 text-center space-y-2">
+                      <RefreshCw className="w-6 h-6 mx-auto animate-spin text-primary" />
+                      <p className="text-xs text-muted-foreground">جاري تحميل أوامر الصرف المرتبطة بالطلب...</p>
+                    </div>
+                  ) : linkedDisbursementOrders.length === 0 ? (
+                    <div className="py-12 text-center space-y-3 bg-muted/20 rounded-xl border border-dashed border-border/80">
+                      <Coins className="w-10 h-10 mx-auto text-muted-foreground/50" />
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-foreground">لا توجد أوامر صرف منشأة لهذا الطلب بعد</h4>
+                        <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                          يمكنك تحويل أي أمر شراء معتمد إلى أمر صرف مباشرة بالضغط على زر «تحويل لأمر صرف» في تبويب أوامر الشراء، أو إنشاء أمر صرف جديد.
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-center gap-2 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleTabChange("purchase_orders")}
+                          className="text-xs font-bold gap-1.5"
+                        >
+                          <ShoppingCart className="w-3.5 h-3.5" />
+                          <span>الذهاب لأوامر الشراء</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => navigate(`/disbursement-orders/new-direct?requestId=${selectedRequestId}`)}
+                          className="text-xs font-bold gap-1.5 bg-amber-600 hover:bg-amber-700 text-white"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>إنشاء أمر صرف جديد</span>
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="border border-border/80 rounded-xl overflow-hidden shadow-2xs">
+                      <Table>
+                        <TableHeader className="bg-muted/50">
+                          <TableRow className="hover:bg-muted/50">
+                            <TableHead className="text-right text-xs py-3 w-[140px]">رقم أمر الصرف</TableHead>
+                            <TableHead className="text-right text-xs py-3 w-[150px]">أمر الشراء المرتبط</TableHead>
+                            <TableHead className="text-right text-xs py-3">المستفيد / المورد</TableHead>
+                            <TableHead className="text-right text-xs py-3 w-[120px]">المبلغ</TableHead>
+                            <TableHead className="text-center text-xs py-3 w-[180px]">حالة الاعتماد</TableHead>
+                            <TableHead className="text-right text-xs py-3 w-[110px]">تاريخ الإنشاء</TableHead>
+                            <TableHead className="text-center text-xs py-3 w-[190px]">الإجراءات</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {linkedDisbursementOrders.map((order: any) => {
+                            const statusInfo = getDisbursementStatusInfo(order.status);
+                            const canFinancialApprove =
+                              isFinancialOfficer &&
+                              (order.status === "pending" || order.status === "draft" || order.status === "edited");
+                            const canExecutiveApprove =
+                              isExecutiveDirector && order.status === "pending_executive";
+
+                            return (
+                              <TableRow key={order.id} className="hover:bg-muted/30 text-xs transition-colors">
+                                <TableCell className="font-mono font-bold">
+                                  <Badge variant="secondary" className="text-[11px] px-2.5 py-0.5 font-bold">
+                                    {order.orderNumber}
+                                  </Badge>
+                                </TableCell>
+
+                                <TableCell>
+                                  {order.purchaseOrderNumber ? (
+                                    <Badge
+                                      variant="outline"
+                                      className="font-mono text-[11px] px-2 py-0.5 bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300"
+                                    >
+                                      {order.purchaseOrderNumber}
+                                    </Badge>
+                                  ) : order.csrLetterNumber ? (
+                                    <Badge
+                                      variant="outline"
+                                      className="font-mono text-[11px] px-2 py-0.5 bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300"
+                                    >
+                                      {order.csrLetterNumber}
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-muted-foreground text-xs">—</span>
+                                  )}
+                                </TableCell>
+
+                                <TableCell>
+                                  <div className="space-y-0.5">
+                                    <span className="font-bold text-foreground block">
+                                      {order.beneficiaryName || "—"}
+                                    </span>
+                                    {order.beneficiaryBank && (
+                                      <span className="text-[10px] text-muted-foreground block">
+                                        {order.beneficiaryBank} {order.beneficiaryIban ? `• ${order.beneficiaryIban.slice(0, 10)}...` : ""}
+                                      </span>
+                                    )}
+                                  </div>
+                                </TableCell>
+
+                                <TableCell className="font-bold text-foreground font-mono">
+                                  {Number(order.amount).toLocaleString("ar-SA")} ر.س
+                                </TableCell>
+
+                                <TableCell className="text-center">
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-[10px] font-bold px-2 py-0.5 ${statusInfo.className}`}
+                                  >
+                                    {statusInfo.label}
+                                  </Badge>
+                                </TableCell>
+
+                                <TableCell className="text-muted-foreground">
+                                  {formatDate(order.createdAt)}
+                                </TableCell>
+
+                                <TableCell className="text-center">
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    {/* زر الاعتماد المالي كمسؤول مالي */}
+                                    {canFinancialApprove && (
+                                      <Button
+                                        size="sm"
+                                        disabled={approveOrderMutation.isPending}
+                                        onClick={() => approveOrderMutation.mutate({ id: order.id })}
+                                        className="h-7 text-[11px] px-2.5 gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-2xs"
+                                        title="اعتماد المرحلة الأولى كمسؤول مالي"
+                                      >
+                                        <CheckCircle className="w-3.5 h-3.5" />
+                                        <span>اعتماد كمسؤول مالي</span>
+                                      </Button>
+                                    )}
+
+                                    {/* زر اعتماد المدير التنفيذي */}
+                                    {canExecutiveApprove && (
+                                      <Button
+                                        size="sm"
+                                        disabled={approveOrderMutation.isPending}
+                                        onClick={() => approveOrderMutation.mutate({ id: order.id })}
+                                        className="h-7 text-[11px] px-2.5 gap-1 bg-sky-600 hover:bg-sky-700 text-white font-bold shadow-2xs"
+                                        title="اعتماد المرحلة الثانية كمدير تنفيذي"
+                                      >
+                                        <CheckCircle className="w-3.5 h-3.5" />
+                                        <span>اعتماد تنفيذي</span>
+                                      </Button>
+                                    )}
+
+                                    {/* زر طباعة أمر الصرف */}
+                                    <a
+                                      href={`/disbursement-orders/${order.id}/print`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                    >
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                                        title="طباعة أمر الصرف"
+                                      >
+                                        <Printer className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </a>
+
+                                    {/* زر التفاصيل الكاملة */}
+                                    <a
+                                      href={`/disbursement-orders/${order.id}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                    >
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                                        title="عرض التفاصيل"
+                                      >
+                                        <ExternalLink className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </a>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-foreground">
-                    وضع استعراض كافة السجلات العامة
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    يتم الآن عرض جميع أوامر الشراء والخطابات دون تقييد بطلب سدانة محدد
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="default"
-                size="sm"
-                className="gap-2 text-xs font-bold"
-                onClick={() => setShowUnfilteredAll(false)}
-              >
-                <ArrowRight className="w-4 h-4" />
-                <span>العودة لاختيار طلب سدانة</span>
-              </Button>
-            </div>
-
-            {/* تبويبات التنقل العامة */}
-            <Tabs value={activeTab} onValueChange={handleTabChange}>
-              <div className="flex justify-between items-center mb-4">
-                <TabsList className="bg-muted/70 p-1 rounded-xl border border-border/80 h-auto grid grid-cols-2 gap-1.5">
-                  <TabsTrigger
-                    value="purchase_orders"
-                    className="data-[state=active]:bg-background data-[state=active]:text-foreground font-bold text-xs sm:text-sm px-4 py-2 gap-2"
-                  >
-                    <ShoppingCart className="w-4 h-4 text-sky-600" />
-                    <span>أوامر الشراء (الكل)</span>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="csr_letters"
-                    className="data-[state=active]:bg-background data-[state=active]:text-foreground font-bold text-xs sm:text-sm px-4 py-2 gap-2"
-                  >
-                    <HeartHandshake className="w-4 h-4 text-emerald-600" />
-                    <span>الخطاب المجتمعي (الكل)</span>
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-
-              <TabsContent value="purchase_orders" className="space-y-5 mt-0 focus-visible:outline-none">
-                <PurchaseOrdersView isEmbedded={true} />
-              </TabsContent>
-
-              <TabsContent value="csr_letters" className="space-y-5 mt-0 focus-visible:outline-none">
-                <CsrLettersView isEmbedded={true} />
               </TabsContent>
             </Tabs>
           </div>
         ) : (
           /* الحالة الأساسية: تظهر طلبات سدانة أولاً كصفوف (rows) متباعدة ومرتبة لاختيار أحدها */
           <div className="space-y-5">
-            {/* رأس الصفحة الرئيسي */}
+            {/* رأس الصفحة الرئيسي (تمت إزالة زر عرض السجلات العامة حسب الطلب) */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-border/70 pb-4">
               <div className="flex items-center gap-3">
                 <div className="p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20 shadow-xs">
@@ -482,29 +761,17 @@ export default function OrdersAndLettersReview() {
                       variant="outline"
                       className="text-xs font-bold px-2.5 py-0.5 border-primary/30 text-primary bg-primary/5"
                     >
-                      أوامر الشراء والخطاب المجتمعي
+                      أوامر الشراء والصرف والخطاب المجتمعي
                     </Badge>
                   </div>
                   <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                    اختر طلباً من طلبات سدانة أدناه لاستعراض أوامر الشراء والخطابات المجتمعية الخاصة به
+                    اختر طلباً من طلبات سدانة أدناه لاستعراض أوامر الشراء وأوامر الصرف والخطابات المجتمعية الخاصة به
                   </p>
                 </div>
               </div>
-
-              <div className="flex items-center gap-2 self-start md:self-center">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowUnfilteredAll(true)}
-                  className="h-8 text-xs gap-1.5 font-medium border-border/80 text-muted-foreground hover:text-foreground"
-                >
-                  <Layers className="w-3.5 h-3.5" />
-                  <span>عرض السجلات العامة (الكل)</span>
-                </Button>
-              </div>
             </div>
 
-            {/* بطاقات الإحصائيات الـ 3 (تم حذف بطاقة مرحلة التشغيل والتنفيذ حسب الطلب) */}
+            {/* بطاقات الإحصائيات الـ 3 */}
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
               <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
                 <CardContent className="p-4 flex items-center justify-between">
@@ -570,7 +837,6 @@ export default function OrdersAndLettersReview() {
               </div>
 
               <div className="flex items-center gap-2">
-                {/* فلترة السجلات */}
                 <Select value={contentFilter} onValueChange={setContentFilter}>
                   <SelectTrigger className="h-9 w-[160px] text-xs bg-background">
                     <SelectValue placeholder="المحتوى" />
@@ -585,7 +851,7 @@ export default function OrdersAndLettersReview() {
               </div>
             </div>
 
-            {/* محتوى قائمة طلبات سدانة: عرض الطلبات حصراً كصفوف (Rows) متباعدة بـ Padding مريح وبدون خانة المرحلة */}
+            {/* محتوى قائمة طلبات سدانة كصفوف متباعدة */}
             {isRequestsLoading ? (
               <div className="py-16 text-center space-y-3 bg-card rounded-xl border border-border/80 shadow-2xs">
                 <RefreshCw className="w-8 h-8 mx-auto animate-spin text-primary" />
@@ -597,7 +863,7 @@ export default function OrdersAndLettersReview() {
                 <Building2 className="w-10 h-10 mx-auto text-muted-foreground/60" />
                 <h3 className="text-base font-bold text-foreground">لا توجد طلبات مطابقة</h3>
                 <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                  لم يتم العثور على طلبات سدانة تطابق معايير البحث والفلترة المحددة. جرب تغيير خيارات التصفية.
+                  لم يتم العثور على طلبات سدانة تطابق معايير البحث والفلترة المحددة.
                 </p>
                 {(searchQuery || contentFilter !== "all") && (
                   <Button
@@ -657,7 +923,7 @@ export default function OrdersAndLettersReview() {
                         </div>
                       </div>
 
-                      {/* اليسار: أوامر الشراء + الخطابات المجتمعية + زر اختيار الطلب (تم حذف خانة المرحلة الحالية تماماً) */}
+                      {/* اليسار: أوامر الشراء + الخطابات المجتمعية + زر اختيار الطلب */}
                       <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap justify-between sm:justify-end border-t sm:border-t-0 pt-2.5 sm:pt-0 border-border/50">
                         {/* أوامر الشراء */}
                         <div

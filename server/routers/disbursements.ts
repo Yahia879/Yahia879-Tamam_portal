@@ -1907,24 +1907,72 @@ export const disbursementsRouter = router({
         search: z.string().optional(),
         page: z.number().default(1),
         limit: z.number().default(10),
+        requestId: z.number().optional(),
       }).optional()
     )
     .query(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const isFinancial = ["financial", "financial_manager", "general_manager", "executive_director", "board_chairman"].includes(ctx.user.role);
       const hasViewRequests = await checkPermission(ctx.user.id, "disbursements.view");
       const hasViewOrders = await checkPermission(ctx.user.id, "disbursement_orders.view");
+      const hasOrdersAndLetters = await checkPermission(ctx.user.id, "orders_and_letters") || await checkPermission(ctx.user.id, "orders_and_letters.view");
 
-      if (!isAdmin && !hasViewRequests && !hasViewOrders) {
+      if (!isAdmin && !isFinancial && !hasViewRequests && !hasViewOrders && !hasOrdersAndLetters) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض سجل أوامر الصرف" });
       }
 
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const { status, search, page = 1, limit = 10 } = input || {};
+      const { status, search, page = 1, limit = 10, requestId } = input || {};
 
       const conditions = [];
       if (status) conditions.push(eq(disbursementOrders.status, status));
+
+      if (requestId) {
+        const [targetReq] = await db
+          .select({ id: mosqueRequests.id, programData: mosqueRequests.programData })
+          .from(mosqueRequests)
+          .where(eq(mosqueRequests.id, requestId));
+
+        const poNumbers: string[] = [];
+        if (targetReq?.programData) {
+          let pData: any = targetReq.programData;
+          while (typeof pData === "string") {
+            try { pData = JSON.parse(pData); } catch { break; }
+          }
+          const sedanaProc = pData?.sedanaProcurement;
+          if (Array.isArray(sedanaProc?.purchaseOrders)) {
+            sedanaProc.purchaseOrders.forEach((p: any) => {
+              if (p.orderNumber) poNumbers.push(p.orderNumber.trim());
+            });
+          }
+          if (sedanaProc?.activePurchaseOrder?.orderNumber) {
+            poNumbers.push(sedanaProc.activePurchaseOrder.orderNumber.trim());
+          }
+          if (Array.isArray(sedanaProc?.csrLetters)) {
+            sedanaProc.csrLetters.forEach((c: any) => {
+              if (c.letterNumber) poNumbers.push(c.letterNumber.trim());
+            });
+          }
+          if (sedanaProc?.activeCsrLetter?.letterNumber) {
+            poNumbers.push(sedanaProc.activeCsrLetter.letterNumber.trim());
+          }
+        }
+
+        const reqConds = [
+          eq(disbursementOrders.requestId, requestId),
+          eq(disbursementRequests.requestId, requestId),
+          eq(projects.requestId, requestId),
+        ];
+
+        if (poNumbers.length > 0) {
+          reqConds.push(inArray(disbursementOrders.purchaseOrderNumber, poNumbers));
+          reqConds.push(inArray(disbursementOrders.csrLetterNumber, poNumbers));
+        }
+
+        conditions.push(or(...reqConds));
+      }
 
       if (search) {
         const searchPattern = `%${search.toLowerCase()}%`;
@@ -1947,13 +1995,19 @@ export const disbursementsRouter = router({
           beneficiaryName: disbursementOrders.beneficiaryName,
           beneficiaryBank: disbursementOrders.beneficiaryBank,
           beneficiaryIban: disbursementOrders.beneficiaryIban,
-
+          purchaseOrderNumber: disbursementOrders.purchaseOrderNumber,
+          csrLetterNumber: disbursementOrders.csrLetterNumber,
+          sourceType: disbursementOrders.sourceType,
+          adminFees: disbursementOrders.adminFees,
+          itemsTotal: disbursementOrders.itemsTotal,
+          requestId: disbursementOrders.requestId,
           paymentMethod: disbursementOrders.paymentMethod,
           status: disbursementOrders.status,
           createdBy: disbursementOrders.createdBy,
           approvedBy: disbursementOrders.approvedBy,
           createdAt: disbursementOrders.createdAt,
           approvedAt: disbursementOrders.approvedAt,
+          financialApprovedAt: disbursementOrders.financialApprovedAt,
           isException: disbursementOrders.isException,
           creatorSignatureName: disbursementOrders.creatorSignatureName,
           creatorSignatureDepartment: disbursementOrders.creatorSignatureDepartment,

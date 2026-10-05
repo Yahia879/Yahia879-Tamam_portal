@@ -126,7 +126,9 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
 
   // صلاحيات أوامر الشراء
   const canAddOrder = usePermission("purchase_orders.add");
-  const canCreateDisbursement = useAnyPermission(["purchase_orders.create_disbursement", "orders_and_letters.create_disbursement"]);
+  const isFinancialRole = user?.role === "financial" || user?.role === "financial_manager" || user?.role === "executive_director" || user?.role === "general_manager";
+  const hasDisbPerm = useAnyPermission(["purchase_orders.create_disbursement", "orders_and_letters.create_disbursement", "disbursements.create", "disbursement_orders.create_direct"]);
+  const canCreateDisbursement = isSuperAdmin || isFinancialRole || hasDisbPerm;
   const canExport = useAnyPermission(["purchase_orders.export", "orders_and_letters.export"]);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -524,9 +526,21 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
                                 </div>
                               </div>
                             ) : order.status === "approved" ? (
-                              <Badge variant="outline" className="text-[10px] text-muted-foreground border-dashed">
-                                لم يصدر بعد
-                              </Badge>
+                              canCreateDisbursement ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => navigate(`/disbursement-orders/new-direct?po=${encodeURIComponent(order.orderNumber)}`)}
+                                  className="h-7 text-[11px] px-2 gap-1 text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 border-amber-300 dark:border-amber-800 font-bold shadow-2xs"
+                                >
+                                  <Coins className="w-3.5 h-3.5 text-amber-600" />
+                                  <span>تحويل لأمر صرف</span>
+                                </Button>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px] text-muted-foreground border-dashed">
+                                  لم يصدر بعد
+                                </Badge>
+                              )
                             ) : (
                               <span className="text-[11px] text-muted-foreground">-</span>
                             )}
