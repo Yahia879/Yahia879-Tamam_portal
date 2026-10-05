@@ -1,8 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,8 +60,39 @@ export default function CustodyRequests() {
   const { user } = useAuth();
   const utils = trpc.useUtils();
 
+  const [page, setPage, resetPage] = usePersistedPage("custody_requests_page");
+  const [pageSize, setPageSize] = useState<number>(10);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // مزامنة البحث مع Debounce لإرسال الطلب إلى الـ Backend
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // العودة للصفحة الأولى عند تغيير البحث
+  const isSearchFirst = useRef(true);
+  useEffect(() => {
+    if (isSearchFirst.current) {
+      isSearchFirst.current = false;
+      return;
+    }
+    setPage(1);
+  }, [debouncedSearch]);
+
+  const handleStatusFilterChange = (status: string) => {
+    setStatusFilter(status);
+    setPage(1);
+  };
+
+  const handleTabChange = (tab: "staff" | "my") => {
+    setActiveTab(tab);
+    setPage(1);
+  };
 
   // حوار الاعتماد
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
@@ -96,12 +128,18 @@ export default function CustodyRequests() {
   // تبويب طلباتي وطلبات الموظفين للمدير التنفيذي والـ super_admin
   const [activeTab, setActiveTab] = useState<"staff" | "my">("staff");
 
-  // جلب الطلبات
-  const { data: requests = [], isLoading } = trpc.custody.getAll.useQuery({
+  // جلب الطلبات من الـ Backend مع ترقيم الصفحات والفلترة في كل تغيير
+  const { data: responseData, isLoading, isFetching } = trpc.custody.getAll.useQuery({
     status: statusFilter === "all" ? undefined : (statusFilter as any),
-    search: search.trim() || undefined,
+    search: debouncedSearch.trim() || undefined,
     scope: canSeeAll ? activeTab : "my",
+    page,
+    limit: pageSize,
   });
+
+  const requests = Array.isArray(responseData) ? responseData : (responseData?.items || []);
+  const total = Array.isArray(responseData) ? responseData.length : (responseData?.total || 0);
+  const totalPages = Array.isArray(responseData) ? 1 : (responseData?.totalPages || 1);
 
   // جلب الإحصائيات
   const { data: stats } = trpc.custody.getStats.useQuery({
@@ -232,7 +270,7 @@ export default function CustodyRequests() {
           <div className="flex items-center gap-2 p-1.5 bg-muted/60 dark:bg-muted/30 rounded-2xl border border-border/70 w-fit">
             <button
               type="button"
-              onClick={() => setActiveTab("staff")}
+              onClick={() => handleTabChange("staff")}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 activeTab === "staff"
                   ? "bg-card text-foreground shadow-xs border border-border/70"
@@ -248,7 +286,7 @@ export default function CustodyRequests() {
 
             <button
               type="button"
-              onClick={() => setActiveTab("my")}
+              onClick={() => handleTabChange("my")}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 activeTab === "my"
                   ? "bg-card text-foreground shadow-xs border border-border/70"
@@ -350,7 +388,7 @@ export default function CustodyRequests() {
                 <Button
                   size="sm"
                   variant={statusFilter === "all" ? "default" : "outline"}
-                  onClick={() => setStatusFilter("all")}
+                  onClick={() => handleStatusFilterChange("all")}
                   className={`rounded-xl text-xs font-bold h-9 px-3 ${statusFilter === "all" ? "gradient-primary text-white" : ""}`}
                 >
                   الكل ({stats?.totalCount || 0})
@@ -358,7 +396,7 @@ export default function CustodyRequests() {
                 <Button
                   size="sm"
                   variant={statusFilter === "pending_executive" ? "default" : "outline"}
-                  onClick={() => setStatusFilter("pending_executive")}
+                  onClick={() => handleStatusFilterChange("pending_executive")}
                   className={`rounded-xl text-xs font-bold h-9 px-3 ${statusFilter === "pending_executive" ? "bg-amber-600 text-white" : ""}`}
                 >
                   قيد الاعتماد ({stats?.pendingCount || 0})
@@ -366,7 +404,7 @@ export default function CustodyRequests() {
                 <Button
                   size="sm"
                   variant={statusFilter === "converted_to_order" ? "default" : "outline"}
-                  onClick={() => setStatusFilter("converted_to_order")}
+                  onClick={() => handleStatusFilterChange("converted_to_order")}
                   className={`rounded-xl text-xs font-bold h-9 px-3 ${statusFilter === "converted_to_order" ? "bg-emerald-600 text-white" : ""}`}
                 >
                   محولة لأوامر صرف ({stats?.convertedCount || 0})
@@ -374,7 +412,7 @@ export default function CustodyRequests() {
                 <Button
                   size="sm"
                   variant={statusFilter === "rejected" ? "default" : "outline"}
-                  onClick={() => setStatusFilter("rejected")}
+                  onClick={() => handleStatusFilterChange("rejected")}
                   className={`rounded-xl text-xs font-bold h-9 px-3 ${statusFilter === "rejected" ? "bg-rose-600 text-white" : ""}`}
                 >
                   مرفوضة ({stats?.rejectedCount || 0})
@@ -388,8 +426,11 @@ export default function CustodyRequests() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={canSeeAll ? "بحث برقم الطلب، الموضوع، أو الآيبان..." : "بحث في طلباتي برقم الطلب، العنوان، أو الآيبان..."}
-                  className="pr-9 h-9 rounded-xl text-xs border-border/70 bg-background"
+                  className="pr-9 pl-8 h-9 rounded-xl text-xs border-border/70 bg-background"
                 />
+                {isFetching && (
+                  <Loader2 className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 animate-spin text-primary" />
+                )}
               </div>
             </div>
           </CardContent>
@@ -414,9 +455,17 @@ export default function CustodyRequests() {
                   : "قائمة بكافة طلبات صرف العهد المالية الخاصة بك ومتابعة مراحل اعتمادها"}
               </CardDescription>
             </div>
-            <Badge variant="secondary" className="font-mono text-xs font-bold">
-              {requests.length} طلب
-            </Badge>
+            <div className="flex items-center gap-2">
+              {isFetching && !isLoading && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                  <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                  <span>تحديث...</span>
+                </div>
+              )}
+              <Badge variant="secondary" className="font-mono text-xs font-bold">
+                {total} طلب
+              </Badge>
+            </div>
           </CardHeader>
 
           <CardContent className="p-0">
@@ -430,23 +479,48 @@ export default function CustodyRequests() {
             ) : requests.length === 0 ? (
               <div className="py-16 text-center px-4">
                 <div className="w-14 h-14 rounded-2xl bg-muted/60 text-muted-foreground mx-auto flex items-center justify-center mb-3">
-                  <Wallet className="w-7 h-7" />
+                  {statusFilter !== "all" || debouncedSearch.trim() ? (
+                    <Filter className="w-7 h-7" />
+                  ) : (
+                    <Wallet className="w-7 h-7" />
+                  )}
                 </div>
                 <h3 className="text-sm font-bold text-foreground mb-1">
-                  {canSeeAll ? "لا توجد طلبات عهد مالية حتى الآن" : "لم تقم بتقديم أي طلبات عهد مالية حتى الآن"}
+                  {statusFilter !== "all" || debouncedSearch.trim()
+                    ? "لا توجد طلبات تطابق معايير البحث أو التصفية"
+                    : canSeeAll
+                    ? "لا توجد طلبات عهد مالية حتى الآن"
+                    : "لم تقم بتقديم أي طلبات عهد مالية حتى الآن"}
                 </h3>
                 <p className="text-xs text-muted-foreground max-w-sm mx-auto mb-4">
-                  {canSeeAll 
+                  {statusFilter !== "all" || debouncedSearch.trim()
+                    ? "جرّب تغيير خيارات الفلترة أو مسح نص البحث لعرض كافة النتائج"
+                    : canSeeAll
                     ? "يمكنك البدء بتقديم طلب صرف عهدة مالية جديدة للمشاريع أو المهام التشغيلية بضغطة زر"
                     : "يمكنك البدء بتقديم طلب صرف عهدة مالية جديدة ومتابعة مراحل اعتمادها بكل سهولة"}
                 </p>
-                <Button
-                  onClick={() => setLocation("/custody-requests/new")}
-                  className="gradient-primary text-white text-xs font-bold rounded-xl h-9 px-4 gap-1.5"
-                >
-                  <PlusCircle className="w-3.5 h-3.5" />
-                  <span>تقديم أول طلب عهدة</span>
-                </Button>
+                {statusFilter !== "all" || debouncedSearch.trim() ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSearch("");
+                      setStatusFilter("all");
+                      setPage(1);
+                    }}
+                    className="rounded-xl text-xs font-bold"
+                  >
+                    إعادة ضبط الفلاتر
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => setLocation("/custody-requests/new")}
+                    className="gradient-primary text-white text-xs font-bold rounded-xl h-9 px-4 gap-1.5"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>تقديم أول طلب عهدة</span>
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -585,6 +659,24 @@ export default function CustodyRequests() {
                   })}
                   </TableBody>
                 </Table>
+              </div>
+            )}
+
+            {/* ترقيم الصفحات Pagination */}
+            {!isLoading && requests.length > 0 && (
+              <div className="p-4 border-t border-border/50">
+                <EnhancedPagination
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={(newPage) => {
+                    setPage(newPage);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  totalItems={total}
+                  itemsPerPage={pageSize}
+                  itemName="طلب عهدة"
+                  itemNamePlural="طلبات عهدة"
+                />
               </div>
             )}
           </CardContent>

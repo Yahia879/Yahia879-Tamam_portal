@@ -98,13 +98,15 @@ function checkCustodyRoles(user: { id: number; role?: string; name?: string; ema
 }
 
 export const custodyRouter = router({
-  // جلب كافة طلبات العهد المالية
+  // جلب كافة طلبات العهد المالية مع ترقيم الصفحات والفلترة
   getAll: protectedProcedure
     .input(
       z.object({
         status: z.enum(["pending_executive", "approved", "rejected", "converted_to_order"]).optional(),
         search: z.string().optional(),
         scope: z.enum(["my", "staff", "all"]).optional(),
+        page: z.number().min(1).default(1).optional(),
+        limit: z.number().min(1).max(100).default(10).optional(),
       }).optional()
     )
     .query(async ({ input, ctx }) => {
@@ -135,10 +137,26 @@ export const custodyRouter = router({
             like(custodyRequests.requestNumber, s),
             like(custodyRequests.title, s),
             like(custodyRequests.bankAccountName, s),
-            like(custodyRequests.bankIban, s)
+            like(custodyRequests.bankIban, s),
+            like(users.name, s)
           )
         );
       }
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const page = Math.max(1, input?.page || 1);
+      const limit = Math.max(1, Math.min(100, input?.limit || 10));
+      const offset = (page - 1) * limit;
+
+      // حساب إجمالي السجلات المطابقة للتصفية
+      const [countResult] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(custodyRequests)
+        .leftJoin(users, eq(custodyRequests.userId, users.id))
+        .where(whereClause);
+
+      const total = Number(countResult?.count || 0);
 
       const requests = await db
         .select({
@@ -173,10 +191,18 @@ export const custodyRouter = router({
         })
         .from(custodyRequests)
         .leftJoin(users, eq(custodyRequests.userId, users.id))
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(desc(custodyRequests.createdAt));
+        .where(whereClause)
+        .orderBy(desc(custodyRequests.createdAt))
+        .limit(limit)
+        .offset(offset);
 
-      return requests;
+      return {
+        items: requests,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      };
     }),
 
   // جلب تفاصيل طلب عهدة بالمعرف
