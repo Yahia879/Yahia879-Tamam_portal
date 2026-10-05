@@ -390,16 +390,6 @@ export default function CustodyRequestPrint() {
                   </div>
                 </div>
               </div>
-
-              {/* توجيه الإدارة المالية عند صدور أمر الصرف */}
-              {request.disbursementOrderNumber && (
-                <div className="mb-2.5 sm:mb-3.5 p-2.5 bg-emerald-50/80 border border-emerald-300 rounded-lg text-emerald-800 text-[10.5px] sm:text-xs leading-relaxed">
-                  <span className="font-bold">توجيه الإدارة المالية: </span>
-                  تم اعتماد هذا الطلب نظامياً، وأُحيل إلى الإدارة المالية بموجب أمر الصرف المالي رقم 
-                  <span className="font-bold font-mono px-1">({request.disbursementOrderNumber})</span>
-                  لتنفيذ التحويل البنكي لحساب المستفيد الموضح أعلاه وفق الإجراءات واللوائح المعتمدة.
-                </div>
-              )}
             </div>
 
             {/* 5. التوقيعات والاعتماد */}

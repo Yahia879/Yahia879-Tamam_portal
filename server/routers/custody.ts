@@ -570,11 +570,11 @@ export const custodyRouter = router({
         beneficiaryAccountName: request.bankAccountName,
         paymentMethod: "bank_transfer",
         sourceType: "custody",
-        status: "pending", // قيد التنفيذ والمراجعة المالية
+        status: "pending", // قيد الاعتماد والمراجعة المالية
         createdBy: ctx.user.id,
-        approvedBy: ctx.user.id,
-        approvedAt: new Date(),
-        approvalNotes: input.notes || "تم اعتماد طلب صرف العهدة المالية وتحويله لأمر صرف من المدير التنفيذي",
+        approvedBy: null,
+        approvedAt: null,
+        approvalNotes: null,
         creatorSignatureName: execSignName,
         creatorSignatureDepartment: execSignDept,
         creatorSignatureUrl: execSignUrl,
