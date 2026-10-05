@@ -871,6 +871,10 @@ function DashboardLayoutContent({
     enabled: !!user,
     refetchInterval: 15000,
   });
+  const { data: pendingCustody } = trpc.custody.getPendingActionCounts.useQuery(undefined, {
+    enabled: !!user,
+    refetchInterval: 15000,
+  });
   // الشعار الأبيض (أيقونة) للقائمة الجانبية والهيدر
   const sidebarLogoSrc = orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || '/logo-white.svg';
   // الشعار الرئيسي من صفحة الهوية (للهيدر في الموبايل)
@@ -994,6 +998,7 @@ function DashboardLayoutContent({
                         const isActive = isItemActive(item.path, location, menuItems);
                         const isOrdersPath = item.path === "/disbursement-orders";
                         const isRequestsPath = item.path === "/disbursements";
+                        const isCustodyPath = item.path === "/custody-requests";
                         const isBoardExecutivePath = item.path === "/board-executive";
                         const isProgressReportsPath = item.path === "/progress-reports";
                         const isRequesterApprovalsPath = item.path === "/requester-approvals";
@@ -1016,9 +1021,12 @@ function DashboardLayoutContent({
                             (isOrdersAndLettersPath && Boolean(pendingProcurement?.hasPendingAny))
                           );
 
+                        const isCustodyPending = isCustodyPath && Boolean(pendingCustody?.hasPendingCustody);
+
                         const hasActionBadge = 
                           (isOrdersPath && Boolean(pendingDisbursements?.hasPendingOrders)) ||
                           (isRequestsPath && Boolean(pendingDisbursements?.hasPendingRequests)) ||
+                          isCustodyPending ||
                           (isBoardExecutivePath && Boolean(pendingDisbursements?.hasPendingBoardExecutive)) ||
                           (isProgressReportsPath && Boolean(pendingProgressReports?.hasPendingReports)) ||
                           (isRequesterApprovalsPath && Boolean(pendingUsers && pendingUsers.length > 0)) ||
@@ -1026,6 +1034,8 @@ function DashboardLayoutContent({
 
                         const tooltipLabel = isProcurementPending
                           ? `${item.label} (بحاجة لاعتماد المدير التنفيذي)`
+                          : isCustodyPending
+                          ? `${item.label} (يوجد طلبات عهدة بانتظار اعتمادك)`
                           : item.label;
 
                         return (
@@ -1173,6 +1183,7 @@ function DashboardLayoutContent({
           const hasAnyPendingAction = 
             Boolean(pendingDisbursements?.hasPendingOrders) ||
             Boolean(pendingDisbursements?.hasPendingRequests) ||
+            Boolean(pendingCustody?.hasPendingCustody) ||
             Boolean(pendingDisbursements?.hasPendingBoardExecutive) ||
             Boolean(pendingProgressReports?.hasPendingReports) ||
             Boolean(pendingUsers && pendingUsers.length > 0);

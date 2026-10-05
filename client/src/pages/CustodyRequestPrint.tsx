@@ -74,6 +74,7 @@ export default function CustodyRequestPrint() {
       utils.custody.getById.invalidate({ id: requestId });
       utils.custody.getAll.invalidate();
       utils.custody.getStats.invalidate();
+      utils.custody.getPendingActionCounts.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء اعتماد الطلب");
@@ -88,6 +89,7 @@ export default function CustodyRequestPrint() {
       utils.custody.getById.invalidate({ id: requestId });
       utils.custody.getAll.invalidate();
       utils.custody.getStats.invalidate();
+      utils.custody.getPendingActionCounts.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء رفض الطلب");

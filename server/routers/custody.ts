@@ -370,6 +370,40 @@ export const custodyRouter = router({
     };
   }),
 
+  // عدادات الإجراءات المعلقة للنقطة الحمراء للقائمة الجانبية (خاص بالمدير التنفيذي)
+  getPendingActionCounts: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) return { pendingCount: 0, hasPendingCustody: false };
+
+    const user = ctx.user;
+    const userRole = user.role;
+    const userEmail = (user.email || "").toLowerCase().trim();
+
+    const isExecDirector =
+      ["general_manager", "executive_director"].includes(userRole) ||
+      userEmail === "ceo@manarah.org.sa" ||
+      userEmail === "test10@gmail.com" ||
+      (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+      (user as any)?.customRole?.nameAr === "الرئيس التنفيذي";
+
+    // تظهر النقطة الحمراء للمدير التنفيذي عند وجود طلبات عهدة بانتظار الاعتماد
+    if (!isExecDirector) {
+      return { pendingCount: 0, hasPendingCustody: false };
+    }
+
+    const [pending] = await db
+      .select({ value: sql<number>`COUNT(*)` })
+      .from(custodyRequests)
+      .where(eq(custodyRequests.status, "pending_executive"));
+
+    const pendingCount = Number(pending?.value || 0);
+
+    return {
+      pendingCount,
+      hasPendingCustody: pendingCount > 0,
+    };
+  }),
+
   // إنشاء طلب عهدة مالية جديد
   create: protectedProcedure
     .input(

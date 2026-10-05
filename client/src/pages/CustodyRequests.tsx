@@ -27,6 +27,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Wallet,
   PlusCircle,
   Search,
@@ -111,6 +117,7 @@ export default function CustodyRequests() {
       setApprovalNotes("");
       utils.custody.getAll.invalidate();
       utils.custody.getStats.invalidate();
+      utils.custody.getPendingActionCounts.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء اعتماد طلب العهدة");
@@ -126,6 +133,7 @@ export default function CustodyRequests() {
       setRejectionReason("");
       utils.custody.getAll.invalidate();
       utils.custody.getStats.invalidate();
+      utils.custody.getPendingActionCounts.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء رفض الطلب");
@@ -443,19 +451,54 @@ export default function CustodyRequests() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {requests.map((req) => (
-                      <TableRow key={req.id} className="hover:bg-muted/30 transition-colors">
-                        <TableCell className="font-mono text-xs font-bold text-primary">
-                          <Link href={`/custody-requests/${req.id}`} className="hover:underline flex items-center gap-1">
-                            {req.requestNumber}
-                          </Link>
-                          {req.disbursementOrderNumber && (
-                            <Link href={`/disbursements/orders/${req.disbursementOrderId}/print`} className="inline-flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded font-mono mt-1 hover:underline">
-                              <span>أمر: {req.disbursementOrderNumber}</span>
-                              <ArrowUpRight className="w-2.5 h-2.5" />
-                            </Link>
-                          )}
-                        </TableCell>
+                    {requests.map((req) => {
+                      const isPendingExecutiveApproval = req.status === "pending_executive";
+                      const shouldHighlightGreen = isPendingExecutiveApproval && (isExecutiveDirector || isSuperAdmin);
+
+                      return (
+                        <TableRow 
+                          key={req.id} 
+                          className={
+                            shouldHighlightGreen 
+                              ? "bg-emerald-100/75 dark:bg-emerald-950/60 hover:bg-emerald-200/70 dark:hover:bg-emerald-900/70 border-r-4 border-r-emerald-700 dark:border-r-emerald-400 transition-all shadow-xs" 
+                              : "hover:bg-muted/30 transition-colors"
+                          }
+                        >
+                          <TableCell className="font-mono text-xs font-bold text-primary py-3.5 px-4 whitespace-nowrap">
+                            <div className="flex items-center gap-2 justify-start">
+                              {shouldHighlightGreen && (
+                                <TooltipProvider>
+                                  <Tooltip delayDuration={50}>
+                                    <TooltipTrigger asChild>
+                                      <div className="relative inline-flex items-center justify-center shrink-0 cursor-pointer">
+                                        <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-tr from-[#1a5f4a] via-emerald-600 to-teal-500 text-white shadow-xs border border-emerald-400/40 transition-transform duration-200 hover:scale-110">
+                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                                          <Clock className="w-3.5 h-3.5 text-amber-200 animate-spin relative z-10" style={{ animationDuration: '4s' }} />
+                                        </div>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                                      <span>
+                                        {isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي"}
+                                      </span>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                              <div className="flex flex-col gap-0.5">
+                                <Link href={`/custody-requests/${req.id}`} className="hover:underline flex items-center gap-1 font-bold">
+                                  {req.requestNumber}
+                                </Link>
+                                {req.disbursementOrderNumber && (
+                                  <Link href={`/disbursements/orders/${req.disbursementOrderId}/print`} className="inline-flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded font-mono hover:underline w-fit">
+                                    <span>أمر: {req.disbursementOrderNumber}</span>
+                                    <ArrowUpRight className="w-2.5 h-2.5" />
+                                  </Link>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
 
                         <TableCell>
                           <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
