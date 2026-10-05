@@ -1541,8 +1541,8 @@ export default function RequestDetailsNew() {
     }
   }
 
-  // Override active action for field_team if they have submitted the report (regardless of currentStage)
-  if (isFieldTeam && isReportSubmitted) {
+  // Override active action for field_team if they have submitted the report (regardless of currentStage, except submitted and initial_review)
+  if (isFieldTeam && isReportSubmitted && !['submitted', 'initial_review'].includes(request.currentStage)) {
     activeAction = {
       stage: request.currentStage,
       title: 'تم تقديم تقرير الزيارة الميدانية',
@@ -2298,9 +2298,8 @@ export default function RequestDetailsNew() {
                       }
                       fieldReportButton={
                         request.programType !== 'sedana' &&
-                        request.currentStage !== 'field_visit' &&
+                        request.currentStage === 'technical_eval' &&
                         !isFieldTeam && !isQuickResponseUser && hasFieldReport &&
-                        !['boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'].includes(request.currentStage) &&
                         !(isQuickResponse && (
                           (user?.role as string) !== 'quick_response' ||
                           (request.quickReports && request.quickReports.length > 0)
