@@ -266,15 +266,15 @@ export default function CustodyRequestPrint() {
       </div>
 
       {/* صفحة الطباعة - تصميم متوازن لصفحة A4 مع الإطار الأخضر والذهبي الفاخر المعتمد */}
-      <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-2 sm:p-8 print:p-0 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-start overflow-hidden">
+      <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-2 sm:p-8 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-start overflow-hidden">
         {/* إطار مزدوج فاخر للمستند */}
-        <div className="print-inner border-[2px] sm:border-[3px] border-[#1a5f4a] p-2.5 sm:p-6 rounded-lg relative bg-white print:border-[2px] print:p-5 h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[277mm]">
+        <div className="print-inner border-[2px] sm:border-[3px] border-[#1a5f4a] p-2.5 sm:p-6 rounded-lg relative bg-white print:border-[2px] h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[277mm]">
           {/* خط ذهبي داخلي رفيع للإطار */}
           <div className="absolute inset-1 border border-[#d4a574] rounded pointer-events-none"></div>
 
           {/* محتوى المستند */}
-          <div className="relative z-10 flex-1 flex flex-col justify-start space-y-3 sm:space-y-4">
-            <div>
+          <div className="relative z-10 flex-1 flex flex-col justify-between h-full space-y-3 sm:space-y-4">
+            <div className="space-y-2.5 sm:space-y-3.5">
               {/* الترويسة - الشعار والتاريخ ورقم الطلب */}
               <div className="flex flex-row justify-between items-start gap-2 mb-3 sm:mb-4">
                 <div className="flex items-center gap-2 sm:gap-3">
@@ -467,6 +467,12 @@ export default function CustodyRequestPrint() {
                 </div>
               </div>
             </div>
+
+            {/* تذييل المستند الفاخر المطابق لتقارير الجمعية */}
+            <div className="mt-3 sm:mt-5 pt-2 sm:pt-2.5 border-t border-gray-100 text-center text-slate-400 text-[9px] sm:text-[10px] flex flex-col sm:flex-row justify-between items-center px-1 sm:px-2 gap-1 sm:gap-0">
+              <span className="font-medium">تم إنشاء هذا المستند آلياً من نظام {orgSettings?.officialReportsName || (orgSettings as any)?.nameAr || "جمعية عمارة وتطوير المساجد (تمام)"}</span>
+              <span className="font-mono text-gray-500">تاريخ الطباعة: {new Date().toLocaleDateString("ar-SA")} - صفحة 1 من 1</span>
+            </div>
           </div>
         </div>
       </div>
@@ -475,7 +481,7 @@ export default function CustodyRequestPrint() {
       <style>{`
         @media print {
           @page {
-            size: A4;
+            size: A4 portrait;
             margin: 0 !important;
           }
           body {
@@ -491,23 +497,36 @@ export default function CustodyRequestPrint() {
           .min-h-screen {
             background-color: white !important;
             padding: 0 !important;
+            margin: 0 !important;
             min-height: 0 !important;
-            height: auto !important;
+            height: 100% !important;
           }
           .print-container {
             max-width: 100% !important;
             width: 100% !important;
             box-shadow: none !important;
-            padding: 8mm !important;
-            margin: 0 !important;
-            min-height: 280mm !important;
+            padding: 10mm 12mm !important;
+            margin: 0 auto !important;
+            min-height: 277mm !important;
+            height: 100% !important;
             box-sizing: border-box !important;
           }
           .print-inner {
-            min-height: 264mm !important;
+            min-height: 257mm !important;
+            height: 100% !important;
             box-sizing: border-box !important;
-            padding: 10px !important;
+            padding: 14px 16px !important;
             border-width: 2px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+          }
+          .relative.z-10 {
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            flex: 1 1 0% !important;
+            height: 100% !important;
           }
           /* تقليص الفراغات للحفاظ على الصفحة الواحدة مع وجود مسافات متوازنة من الأطراف */
           .mb-4, .mb-6 {
@@ -517,32 +536,32 @@ export default function CustodyRequestPrint() {
             margin-bottom: 5px !important;
           }
           .space-y-4 > :not([hidden]) ~ :not([hidden]) {
-            margin-top: 6px !important;
-            margin-bottom: 6px !important;
-          }
-          .space-y-3 > :not([hidden]) ~ :not([hidden]) {
             margin-top: 5px !important;
             margin-bottom: 5px !important;
           }
+          .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 4px !important;
+            margin-bottom: 4px !important;
+          }
           table td {
-            padding: 6px 8px !important;
+            padding: 5px 8px !important;
             font-size: 11.5px !important;
           }
           .p-2\\.5 {
-            padding: 6px !important;
-          }
-          .p-2 {
             padding: 5px !important;
           }
+          .p-2 {
+            padding: 4px !important;
+          }
           .py-4 {
-            padding-top: 6px !important;
-            padding-bottom: 6px !important;
+            padding-top: 5px !important;
+            padding-bottom: 5px !important;
           }
           .h-14 {
             height: 38px !important;
           }
           .mt-6 {
-            margin-top: 10px !important;
+            margin-top: 8px !important;
           }
         }
       `}</style>
