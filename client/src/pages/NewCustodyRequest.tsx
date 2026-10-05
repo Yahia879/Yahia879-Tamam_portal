@@ -186,11 +186,11 @@ export default function NewCustodyRequest() {
                     onChange={(e) => setAmountStr(e.target.value)}
                     placeholder="0.00"
                     dir="ltr"
-                    className="h-11 rounded-xl border-border/70 text-base font-bold font-mono pl-14 text-left bg-background focus:ring-primary/20"
+                    className="h-11 rounded-xl border-border/70 text-base font-bold font-mono pl-16 text-left bg-background focus:ring-primary/20"
                     required
                   />
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground pointer-events-none">
-                    SAR ر.س
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground pointer-events-none select-none">
+                    ر.س
                   </div>
                 </div>
 
