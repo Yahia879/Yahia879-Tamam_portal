@@ -577,7 +577,8 @@ export default function CustodyRequests() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    );
+                  })}
                   </TableBody>
                 </Table>
               </div>
