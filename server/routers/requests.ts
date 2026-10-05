@@ -4730,12 +4730,45 @@ export const requestsRouter = router({
 
       
       // المراحل التي لا يمكن الرجوع منها (بعد بلوغ مرحلة التعاقد يتوقف زر السابق نهائياً)
-      const nonRevertableStages = ['submitted', 'contracting', 'execution', 'handover', 'closed'];
+      const isQuickResponseExecution = request[0].requestTrack === 'quick_response' && currentStage === 'execution';
+      const nonRevertableStages = ['submitted', 'contracting', ...(isQuickResponseExecution ? [] : ['execution']), 'handover', 'closed'];
       if (nonRevertableStages.includes(currentStage)) {
         throw new TRPCError({ 
           code: "BAD_REQUEST", 
           message: `لا يمكن الرجوع من مرحلة "${STAGE_LABELS[currentStage] || currentStage}"` 
         });
+      }
+
+      // في مسار الاستجابة السريعة بمرحلة التنفيذ (تقرير الاستجابة السريعة):
+      // إذا كان التقرير معتمداً، فالرجوع يعيد التقرير لمرحلة "رفع تقرير الاستجابة السريعة" كمسودة مع الاحتفاظ بكافة بياناته معبأة
+      if (currentStage === 'execution' && request[0].requestTrack === 'quick_response') {
+        const qr = await db.select().from(quickResponseReports)
+          .where(eq(quickResponseReports.requestId, input.requestId))
+          .limit(1);
+
+        if (qr.length > 0 && qr[0].status !== 'draft' && qr[0].status !== 'reverted') {
+          await db.update(quickResponseReports).set({
+            status: 'draft',
+            updatedAt: new Date(),
+          }).where(eq(quickResponseReports.id, qr[0].id));
+
+          await db.insert(requestHistory).values({
+            requestId: input.requestId,
+            userId: ctx.user.id,
+            fromStage: currentStage,
+            toStage: currentStage,
+            action: 'stage_reverted',
+            notes: input.reason?.trim()
+              ? `تم الرجوع لمرحلة رفع تقرير الاستجابة السريعة لتعديل التقرير. السبب: ${input.reason.trim()}`
+              : `تم الرجوع لمرحلة رفع تقرير الاستجابة السريعة لتعديل التقرير`,
+          });
+
+          return {
+            success: true,
+            message: "تم الرجوع لمرحلة رفع تقرير الاستجابة السريعة بنجاح",
+            previousStage: 'execution',
+          };
+        }
       }
 
       // تحديد مسار العمل المناسب للطلب
@@ -4790,6 +4823,12 @@ export const requestsRouter = router({
       if (isRevertingToQuickResponse) {
         updateData.requestTrack = 'quick_response';
         updateData.technicalEvalDecision = 'quick_response';
+
+        // إعادة حالة تقرير الاستجابة السريعة إلى مسودة بحيث يظهر كرت "رفع تقرير الاستجابة السريعة" مع الاحتفاظ بالبيانات معبأة
+        await db.update(quickResponseReports).set({
+          status: 'draft',
+          updatedAt: new Date(),
+        }).where(eq(quickResponseReports.requestId, input.requestId));
       }
       if (previousStage === 'field_visit') {
         updateData.technicalEvalDecision = null;
@@ -4805,6 +4844,11 @@ export const requestsRouter = router({
           status: 'scheduled',
           updatedAt: new Date(),
         }).where(eq(fieldVisits.requestId, input.requestId));
+
+        await db.update(quickResponseReports).set({
+          status: 'draft',
+          updatedAt: new Date(),
+        }).where(eq(quickResponseReports.requestId, input.requestId));
       }
       await db.update(mosqueRequests).set(updateData).where(eq(mosqueRequests.id, input.requestId));
 

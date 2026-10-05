@@ -1028,7 +1028,8 @@ export default function RequestDetailsNew() {
   // المراحل التي يُسمح فيها بالرجوع (قبل التعاقد) — يظهر لأي شخص يملك صلاحية تحريك المراحل
   const canRevertStage = useMemo(() => {
     if (!request) return false;
-    const nonRevertableStages = ['submitted', 'contracting', 'execution', 'handover', 'closed'];
+    const isQuickResponseExecution = request.requestTrack === 'quick_response' && request.currentStage === 'execution';
+    const nonRevertableStages = ['submitted', 'contracting', ...(isQuickResponseExecution ? [] : ['execution']), 'handover', 'closed'];
     return !nonRevertableStages.includes(request.currentStage);
   }, [request]);
 
@@ -1562,11 +1563,12 @@ export default function RequestDetailsNew() {
   const latestQuickReport = request.quickReports && request.quickReports.length > 0
     ? request.quickReports[request.quickReports.length - 1]
     : null;
+  const isQuickReportSubmitted = !!latestQuickReport && latestQuickReport.status !== 'draft' && latestQuickReport.status !== 'reverted';
 
   const canPerformQuickResponse = (user?.role as string) === 'quick_response' || userPermissions.includes("requests.manage_as_quick_response");
 
   // Override active action for quick_response user if they have submitted the report (regardless of currentStage)
-  if (canPerformQuickResponse && latestQuickReport) {
+  if (canPerformQuickResponse && isQuickReportSubmitted) {
     if (!hasViewDetailsPermission) {
       activeAction = {
         stage: request.currentStage,
@@ -1582,9 +1584,9 @@ export default function RequestDetailsNew() {
         canPerformAction: true,
       };
     }
-  } else if (canPerformQuickResponse) {
-    // If they haven't submitted the report yet, they can only do it if the request is in execution stage and has quick_response track
-    if (request.currentStage === 'execution' && request.requestTrack === 'quick_response') {
+  } else if (canPerformQuickResponse || isManagementUser) {
+    // If they haven't submitted the report yet (or reverted), they can only do it if the request is in execution stage and has quick_response track
+    if (request.currentStage === 'execution' && request.requestTrack === 'quick_response' && !isQuickReportSubmitted) {
       activeAction = {
         stage: 'execution',
         title: 'تقديم تقرير الاستجابة السريعة',
@@ -1592,13 +1594,13 @@ export default function RequestDetailsNew() {
         icon: 'Zap',
         iconColor: 'text-purple-600',
         actionButton: {
-          label: 'رفع تقرير الاستجابة السريعة',
+          label: (request.quickReports && request.quickReports.length > 0) ? 'رفع تقرير الاستجابة السريعة' : 'رفع تقرير الاستجابة السريعة',
           redirectUrl: `/requests/:requestId/quick-response`,
         },
-        allowedRoles: ['quick_response', 'requests.manage_as_quick_response'],
+        allowedRoles: ['quick_response', 'requests.manage_as_quick_response', 'super_admin', 'system_admin', 'projects_office', 'project_manager'],
         canPerformAction: true,
       };
-    } else if (!hasViewDetailsPermission) {
+    } else if (canPerformQuickResponse && !hasViewDetailsPermission) {
       // In any other stage/track, they cannot perform any action (only if not admin/PM)
       activeAction = {
         stage: request.currentStage,
@@ -2071,7 +2073,7 @@ export default function RequestDetailsNew() {
               </Button>
             </div>
           </div>
-        ) : request.requestTrack === 'quick_response' && request.currentStage === 'execution' && latestQuickReport && isManagementUser ? (
+        ) : request.requestTrack === 'quick_response' && request.currentStage === 'execution' && isQuickReportSubmitted && isManagementUser ? (
           <div className="mb-6 space-y-6">
             <ActiveActionCard
               title={isEn ? "Quick Response Report Submitted" : "تم تقديم تقرير الاستجابة السريعة"}
@@ -2092,6 +2094,16 @@ export default function RequestDetailsNew() {
                 onClick: () => setShowCloseRequestModal(true),
                 variant: 'outline' as const,
               } : undefined}
+              revertButton={
+                canRevertStage && !isPendingClosure && !isFieldTeam && !isQuickResponseUser
+                  ? {
+                      label: "الرجوع للمرحلة السابقة",
+                      onClick: () => setShowRevertStageModal(true),
+                      disabled: revertStageMutation.isPending,
+                      title: "الرجوع لمرحلة رفع تقرير الاستجابة السريعة لتعديل البيانات",
+                    }
+                  : undefined
+              }
             />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4" dir={isEn ? "ltr" : "rtl"}>

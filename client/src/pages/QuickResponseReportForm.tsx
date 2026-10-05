@@ -238,8 +238,9 @@ export default function QuickResponseReportForm() {
         issueDescription: report.issueDescription || "",
         actionsTaken: report.actionsTaken || "",
         resolved: Boolean(report.resolved),
-        requiresProject: Boolean(report.requiresProject),
-        status: report.status || (report.resolved ? "fully_solved" : (report.requiresProject ? "partially_solved" : "not_solved")),
+        status: (report.status && report.status !== 'draft' && report.status !== 'reverted')
+          ? report.status
+          : (report.resolved ? "fully_solved" : (report.requiresProject ? "partially_solved" : "not_solved")),
       });
       setReportPrefilled(true);
     }

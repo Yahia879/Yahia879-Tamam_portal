@@ -62,11 +62,14 @@ export function getActiveAction(
   let actionButton = 'actionButton' in config ? config.actionButton : undefined;
   let allowedRoles = config.allowedRoles;
 
-  const hasReport = requestData?.quickReports && requestData.quickReports.length > 0;
+  const latestQuickReport = requestData?.quickReports && requestData.quickReports.length > 0
+    ? requestData.quickReports[requestData.quickReports.length - 1]
+    : null;
+  const isQuickReportSubmitted = !!latestQuickReport && latestQuickReport.status !== 'draft' && latestQuickReport.status !== 'reverted';
 
   // تخصيص مرحلة التنفيذ لمسار الاستجابة السريعة
   if (currentStage === 'execution' && requestData?.requestTrack === 'quick_response') {
-    if (hasReport) {
+    if (isQuickReportSubmitted) {
       title = "تم تقديم تقرير الاستجابة السريعة";
       description = "تم تقديم واعتماد تقرير الاستجابة السريعة بنجاح. يمكنك استعراض التفاصيل بالضغط على الزر أدناه.";
       icon = "Zap";
@@ -86,22 +89,23 @@ export function getActiveAction(
       icon = "Zap";
       iconColor = "text-purple-600";
       actionButton = {
-        label: "رفع تقرير الاستجابة السريعة",
+        label: (requestData?.quickReports && requestData.quickReports.length > 0) ? "رفع تقرير الاستجابة السريعة" : "رفع تقرير الاستجابة السريعة",
         redirectUrl: "/requests/:requestId/quick-response",
       };
       
       // الأدوار المسموح لها برفع التقرير في الاستجابة السريعة
-      const allowedQRRoles = ["quick_response"];
+      const allowedQRRoles = ["quick_response", "super_admin", "system_admin", "projects_office", "project_manager"];
       hasRole = Boolean(userRole && allowedQRRoles.includes(userRole)) || hasQuickResponsePerm;
       
-      // يجب أن يكون المستخدم هو المسؤول المسند إليه الطلب
-      isAssignedToUser = Boolean(requestData && requestData.assignedTo === requestData.userId);
+      // المدراء والمسؤول المخصص يمكنهم رفع التقرير
+      const isManagement = Boolean(userRole && ["super_admin", "system_admin", "projects_office"].includes(userRole));
+      isAssignedToUser = isManagement || Boolean(requestData && requestData.assignedTo === requestData.userId);
       allowedRoles = allowedQRRoles;
     }
   }
 
   // تخصيص لمسار الاستجابة السريعة في حالة الإغلاق مع وجود تقرير
-  if (currentStage === 'closed' && requestData?.requestTrack === 'quick_response' && hasReport) {
+  if (currentStage === 'closed' && requestData?.requestTrack === 'quick_response' && isQuickReportSubmitted) {
     title = "تم تقديم تقرير الاستجابة السريعة";
     description = "تم تقديم واعتماد تقرير الاستجابة السريعة بنجاح وإغلاق الطلب. يمكنك استعراض التفاصيل بالضغط على الزر أدناه.";
     icon = "CheckCircle";
