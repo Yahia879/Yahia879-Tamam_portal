@@ -2773,33 +2773,63 @@ export const requestsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      await db.insert(fieldVisitReports).values({
-        requestId: input.requestId,
-        visitedBy: ctx.user.id,
-        visitDate: new Date(input.visitDate),
-        mosqueCondition: input.mosqueCondition || null,
-        conditionRating: input.conditionRating || null,
-        menPrayerLength: input.menPrayerLength?.toString() || null,
-        menPrayerWidth: input.menPrayerWidth?.toString() || null,
-        menPrayerHeight: input.menPrayerHeight?.toString() || null,
-        womenPrayerExists: input.womenPrayerExists || false,
-        womenPrayerLength: input.womenPrayerLength?.toString() || null,
-        womenPrayerWidth: input.womenPrayerWidth?.toString() || null,
-        womenPrayerHeight: input.womenPrayerHeight?.toString() || null,
-        requiredNeeds: input.requiredNeeds || null,
-        generalDescription: input.generalDescription || null,
-        teamMember1: input.teamMember1 || null,
-        teamMember2: input.teamMember2 || null,
-        teamMember3: input.teamMember3 || null,
-        teamMember4: input.teamMember4 || null,
-        teamMember5: input.teamMember5 || null,
-        findings: input.findings || input.requiredNeeds || null,
-        recommendations: input.recommendations || null,
-        estimatedCost: input.estimatedCost?.toString() || null,
-        technicalNeeds: input.technicalNeeds || null,
-        beneficiaryInfoAccuracyRating: input.beneficiaryInfoAccuracyRating || null,
-        beneficiaryInfoAccuracyNotes: input.beneficiaryInfoAccuracyNotes || null,
-      });
+      const existingReport = await db.select().from(fieldVisitReports).where(eq(fieldVisitReports.requestId, input.requestId)).limit(1);
+      if (existingReport.length > 0) {
+        await db.update(fieldVisitReports).set({
+          visitedBy: ctx.user.id,
+          visitDate: new Date(input.visitDate),
+          mosqueCondition: input.mosqueCondition || null,
+          conditionRating: input.conditionRating || null,
+          menPrayerLength: input.menPrayerLength?.toString() || null,
+          menPrayerWidth: input.menPrayerWidth?.toString() || null,
+          menPrayerHeight: input.menPrayerHeight?.toString() || null,
+          womenPrayerExists: input.womenPrayerExists || false,
+          womenPrayerLength: input.womenPrayerLength?.toString() || null,
+          womenPrayerWidth: input.womenPrayerWidth?.toString() || null,
+          womenPrayerHeight: input.womenPrayerHeight?.toString() || null,
+          requiredNeeds: input.requiredNeeds || null,
+          generalDescription: input.generalDescription || null,
+          teamMember1: input.teamMember1 || null,
+          teamMember2: input.teamMember2 || null,
+          teamMember3: input.teamMember3 || null,
+          teamMember4: input.teamMember4 || null,
+          teamMember5: input.teamMember5 || null,
+          findings: input.findings || input.requiredNeeds || null,
+          recommendations: input.recommendations || null,
+          estimatedCost: input.estimatedCost?.toString() || null,
+          technicalNeeds: input.technicalNeeds || null,
+          beneficiaryInfoAccuracyRating: input.beneficiaryInfoAccuracyRating || null,
+          beneficiaryInfoAccuracyNotes: input.beneficiaryInfoAccuracyNotes || null,
+        }).where(eq(fieldVisitReports.id, existingReport[0].id));
+      } else {
+        await db.insert(fieldVisitReports).values({
+          requestId: input.requestId,
+          visitedBy: ctx.user.id,
+          visitDate: new Date(input.visitDate),
+          mosqueCondition: input.mosqueCondition || null,
+          conditionRating: input.conditionRating || null,
+          menPrayerLength: input.menPrayerLength?.toString() || null,
+          menPrayerWidth: input.menPrayerWidth?.toString() || null,
+          menPrayerHeight: input.menPrayerHeight?.toString() || null,
+          womenPrayerExists: input.womenPrayerExists || false,
+          womenPrayerLength: input.womenPrayerLength?.toString() || null,
+          womenPrayerWidth: input.womenPrayerWidth?.toString() || null,
+          womenPrayerHeight: input.womenPrayerHeight?.toString() || null,
+          requiredNeeds: input.requiredNeeds || null,
+          generalDescription: input.generalDescription || null,
+          teamMember1: input.teamMember1 || null,
+          teamMember2: input.teamMember2 || null,
+          teamMember3: input.teamMember3 || null,
+          teamMember4: input.teamMember4 || null,
+          teamMember5: input.teamMember5 || null,
+          findings: input.findings || input.requiredNeeds || null,
+          recommendations: input.recommendations || null,
+          estimatedCost: input.estimatedCost?.toString() || null,
+          technicalNeeds: input.technicalNeeds || null,
+          beneficiaryInfoAccuracyRating: input.beneficiaryInfoAccuracyRating || null,
+          beneficiaryInfoAccuracyNotes: input.beneficiaryInfoAccuracyNotes || null,
+        });
+      }
 
       // تحديث بيانات الطلب الأساسية المذكورة عند إنشاء الطلب
       if (input.programData) {
@@ -4727,6 +4757,17 @@ export const requestsRouter = router({
       if (previousStage === 'field_visit') {
         updateData.technicalEvalDecision = null;
         updateData.technicalEvalJustification = null;
+
+        // إعادة حالة الزيارة الميدانية إلى خطوة تعيين المسؤول
+        // مع الاحتفاظ بالبيانات السابقة (المسؤول، التاريخ، التقرير) حتى تظهر معبأة للمستخدم
+        await db.update(fieldVisits).set({
+          scheduledAt: null,
+          reportSubmitted: false,
+          reportSubmittedAt: null,
+          reportSubmittedBy: null,
+          status: 'scheduled',
+          updatedAt: new Date(),
+        }).where(eq(fieldVisits.requestId, input.requestId));
       }
       await db.update(mosqueRequests).set(updateData).where(eq(mosqueRequests.id, input.requestId));
 

@@ -1017,6 +1017,8 @@ export default function RequestDetailsNew() {
       setShowRevertStageModal(false);
       utils.requests.getById.invalidate({ id: requestId });
       utils.requests.search.invalidate();
+      utils.fieldVisits.getVisit.invalidate({ requestId });
+      utils.fieldVisits.getBusySlots.invalidate();
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء الرجوع للمرحلة السابقة");
@@ -1481,28 +1483,31 @@ export default function RequestDetailsNew() {
   }
 
   // Override active action for field_visit stage based on field visit status
-  const hasFieldReport = (request?.fieldReports && request.fieldReports.length > 0) || !!fieldVisit?.reportSubmitted;
+  const isVisitScheduled = !!fieldVisit?.scheduledAt;
+  const isReportSubmitted = !!fieldVisit?.reportSubmitted;
+  const hasFieldReport = (request?.fieldReports && request.fieldReports.length > 0) || isReportSubmitted;
+
   if (request.currentStage === 'field_visit' && activeAction) {
-    if (!fieldVisit?.scheduledDate && !request?.fieldVisitScheduledDate) {
-      // لم يتم الجدولة بعد
+    if (!isVisitScheduled) {
+      // لم يتم تعيين المسؤول / جدولة الزيارة بعد (أو تم الرجوع لهذه الخطوة)
       activeAction = {
         ...activeAction,
-        title: 'جدولة الزيارة الميدانية',
-        description: 'تحديد موعد الزيارة الميدانية',
+        title: 'تعيين مسؤول الزيارة الميدانية',
+        description: 'تحديد موعد الزيارة الميدانية وتعيين المسؤول',
         actionButton: {
-          label: 'جدولة الزيارة الميدانية',
+          label: 'تعيين مسؤول الزيارة الميدانية',
           redirectUrl: '/field-visits/schedule/:requestId',
         },
         canPerformAction: !isFieldTeam,
       };
-    } else if (!hasFieldReport) {
-      // تم الجدولة، الآن يجب رفع التقرير
+    } else if (!isReportSubmitted) {
+      // تم الجدولة وتعيين المسؤول، الآن يجب رفع التقرير
       activeAction = {
         ...activeAction,
         title: 'رفع تقرير الزيارة الميدانية',
         description: 'رفع تقرير المعاينة الميدانية من قبل الفريق الميداني أو المسؤول',
         actionButton: {
-          label: 'رفع التقرير',
+          label: (request?.fieldReports && request.fieldReports.length > 0) ? 'تعديل / رفع تقرير الزيارة الميدانية' : 'رفع تقرير الزيارة الميدانية',
           redirectUrl: '/field-visits/report/:requestId',
         },
         canPerformAction: Boolean(isFieldTeam || userPermissions.includes("requests.manage_as_field_team") || user?.role === 'field_team' || isAdmin || isManagementUser),
@@ -1536,7 +1541,7 @@ export default function RequestDetailsNew() {
   }
 
   // Override active action for field_team if they have submitted the report (regardless of currentStage)
-  if (isFieldTeam && hasFieldReport) {
+  if (isFieldTeam && isReportSubmitted) {
     activeAction = {
       stage: request.currentStage,
       title: 'تم تقديم تقرير الزيارة الميدانية',

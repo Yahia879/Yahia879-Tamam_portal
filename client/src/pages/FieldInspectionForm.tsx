@@ -172,6 +172,44 @@ export default function FieldInspectionForm() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fieldVisitData, user]);
 
+  const [reportPrefilled, setReportPrefilled] = useState(false);
+
+  // ملء بيانات تقرير المعاينة السابقة (إن وجد) تلقائياً
+  useEffect(() => {
+    if (requestData?.fieldReports && requestData.fieldReports.length > 0 && !reportPrefilled) {
+      const report = requestData.fieldReports[0];
+      setFormData(prev => ({
+        ...prev,
+        mosqueCondition: report.mosqueCondition || prev.mosqueCondition || "",
+        conditionRating: report.conditionRating || prev.conditionRating || "",
+        menPrayerLength: report.menPrayerLength != null ? String(report.menPrayerLength) : prev.menPrayerLength,
+        menPrayerWidth: report.menPrayerWidth != null ? String(report.menPrayerWidth) : prev.menPrayerWidth,
+        menPrayerHeight: report.menPrayerHeight != null ? String(report.menPrayerHeight) : prev.menPrayerHeight,
+        womenPrayerLength: report.womenPrayerLength != null ? String(report.womenPrayerLength) : prev.womenPrayerLength,
+        womenPrayerWidth: report.womenPrayerWidth != null ? String(report.womenPrayerWidth) : prev.womenPrayerWidth,
+        womenPrayerHeight: report.womenPrayerHeight != null ? String(report.womenPrayerHeight) : prev.womenPrayerHeight,
+        requiredNeeds: report.requiredNeeds || report.findings || prev.requiredNeeds || "",
+        generalDescription: report.generalDescription || prev.generalDescription || "",
+        teamMember1: report.teamMember1 || prev.teamMember1 || "",
+        teamMember2: report.teamMember2 || prev.teamMember2 || "",
+        teamMember3: report.teamMember3 || prev.teamMember3 || "",
+        teamMember4: report.teamMember4 || prev.teamMember4 || "",
+        teamMember5: report.teamMember5 || prev.teamMember5 || "",
+      }));
+
+      if (report.womenPrayerExists != null) {
+        setWomenPrayerExists(Boolean(report.womenPrayerExists));
+      }
+      if (report.beneficiaryInfoAccuracyRating) {
+        setAccuracyRating(Number(report.beneficiaryInfoAccuracyRating));
+      }
+      if (report.beneficiaryInfoAccuracyNotes) {
+        setAccuracyNotes(report.beneficiaryInfoAccuracyNotes);
+      }
+      setReportPrefilled(true);
+    }
+  }, [requestData?.fieldReports, reportPrefilled]);
+
   // mutation لرفع المرفقات
   const uploadAttachments = trpc.storage.uploadMultipleAttachments.useMutation();
 
@@ -676,9 +714,42 @@ export default function FieldInspectionForm() {
             />
             {attachments.length > 0 && (
               <p className="text-xs md:text-sm text-primary font-bold mt-3 bg-primary/5 px-3 py-1.5 rounded-lg inline-block">
-                تم إرفاق {attachments.length} صورة توثيقية
+                تم إرفاق {attachments.length} صورة توثيقية جديدة
               </p>
             )}
+
+            {(() => {
+              const existingPhotos = (requestData?.attachments || []).filter(
+                (att: any) => att.category === "site_photo" || (att.fileType && att.fileType.startsWith("image/"))
+              );
+              if (existingPhotos.length === 0) return null;
+              return (
+                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
+                    <Camera className="w-3.5 h-3.5 text-primary" />
+                    <span>الصور التوثيقية المرفوعة مسبقاً ({existingPhotos.length} صورة):</span>
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                    {existingPhotos.map((photo: any, index: number) => (
+                      <div key={photo.id || index} className="relative group rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 aspect-video flex items-center justify-center">
+                        {photo.fileUrl ? (
+                          <img
+                            src={photo.fileUrl}
+                            alt={photo.fileName || `صورة ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="text-center p-2">
+                            <Camera className="w-5 h-5 text-slate-400 mx-auto mb-1" />
+                            <span className="text-[10px] text-slate-500 truncate block max-w-[100px]">{photo.fileName || `صورة ${index + 1}`}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
           </div>

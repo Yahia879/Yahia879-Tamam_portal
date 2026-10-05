@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +36,9 @@ export default function FieldVisitSchedule() {
     notes: "",
   });
 
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
+  const prevSelectionRef = useRef<{ userId: string; date: string }>({ userId: "", date: "" });
+
   const TIME_SLOTS = [
     "08:00",
     "09:00",
@@ -64,10 +67,22 @@ export default function FieldVisitSchedule() {
 
   const availableSlots = TIME_SLOTS.filter(slot => !busySlots.includes(slot));
 
-  // تصفير وقت الزيارة عند تغيير المسؤول أو التاريخ لضمان اختيار وقت متاح متوافق
+  // تصفير وقت الزيارة عند تغيير المسؤول أو التاريخ بعد التحميل الأولي
   useEffect(() => {
-    setFormData(prev => ({ ...prev, visitTime: "" }));
-  }, [formData.assignedUserId, formData.visitDate]);
+    if (!initialDataLoaded) return;
+    if (
+      prevSelectionRef.current.userId !== formData.assignedUserId ||
+      prevSelectionRef.current.date !== formData.visitDate
+    ) {
+      if (prevSelectionRef.current.userId !== "" || prevSelectionRef.current.date !== "") {
+        setFormData(prev => ({ ...prev, visitTime: "" }));
+      }
+      prevSelectionRef.current = {
+        userId: formData.assignedUserId,
+        date: formData.visitDate,
+      };
+    }
+  }, [formData.assignedUserId, formData.visitDate, initialDataLoaded]);
 
   // إعادة تعيين الوقت المختار إذا أصبح غير متاح
   useEffect(() => {
@@ -77,24 +92,64 @@ export default function FieldVisitSchedule() {
     }
   }, [busySlots, formData.visitTime]);
   
-  // جلب قائمة المستخدمين وتصفيتهم ليظهر فقط أعضاء الفريق الميداني (field_team) أو من يملك الصلاحية الخاصة
+  // جلب قائمة المستخدمين وتصفيتهم
   const { data: allStaffUsers } = trpc.users.getStaffUsers.useQuery();
   const staffUsers = allStaffUsers?.filter((user: any) => 
-    user.role === "field_team" || (user.permissions && user.permissions.includes("requests.manage_as_field_team"))
+    user.role === "field_team" || 
+    (user.permissions && user.permissions.includes("requests.manage_as_field_team")) ||
+    ["super_admin", "system_admin", "projects_office"].includes(user.role) ||
+    String(user.id) === formData.assignedUserId
   );
 
-  // جلب بيانات الطلب
+  // جلب بيانات الطلب والزيارة الميدانية المسجلة مسبقاً
   const { data: request, isLoading } = trpc.requests.getById.useQuery(
     { id: Number(requestId) },
     { enabled: !!requestId }
   );
 
+  const { data: fieldVisit } = trpc.fieldVisits.getVisit.useQuery(
+    { requestId: Number(requestId) },
+    { enabled: !!requestId }
+  );
+
+  // ملء البيانات السابقة (المسؤول، التاريخ، الوقت، الملاحظات) عند فتح الصفحة
+  useEffect(() => {
+    if ((fieldVisit || request) && !initialDataLoaded) {
+      let formattedDate = "";
+      if (fieldVisit?.scheduledDate) {
+        const d = new Date(fieldVisit.scheduledDate);
+        if (!isNaN(d.getTime())) formattedDate = d.toISOString().split("T")[0];
+      } else if (request?.fieldVisitScheduledDate) {
+        const d = new Date(request.fieldVisitScheduledDate);
+        if (!isNaN(d.getTime())) formattedDate = d.toISOString().split("T")[0];
+      }
+
+      const time = fieldVisit?.scheduledTime || request?.fieldVisitScheduledTime || "";
+      const assignedId = fieldVisit?.assignedTo
+        ? String(fieldVisit.assignedTo)
+        : (request?.fieldVisitAssignedTo ? String(request.fieldVisitAssignedTo) : "");
+      const notes = fieldVisit?.scheduleNotes || request?.fieldVisitNotes || "";
+
+      if (formattedDate || time || assignedId || notes) {
+        setFormData({
+          visitDate: formattedDate,
+          visitTime: time,
+          assignedUserId: assignedId,
+          notes: notes,
+        });
+        prevSelectionRef.current = { userId: assignedId, date: formattedDate };
+        setInitialDataLoaded(true);
+      }
+    }
+  }, [fieldVisit, request, initialDataLoaded]);
+
   // حفظ موعد الزيارة
   const utils = trpc.useUtils();
   const scheduleMutation = trpc.fieldVisits.scheduleVisit.useMutation({
     onSuccess: () => {
-      toast.success("تم جدولة الزيارة الميدانية بنجاح");
+      toast.success("تم تعيين المسؤول وحفظ موعد الزيارة بنجاح");
       utils.requests.getById.invalidate({ id: Number(requestId) });
+      utils.fieldVisits.getVisit.invalidate({ requestId: Number(requestId) });
       utils.fieldVisits.getBusySlots.invalidate();
       setLocation(`/requests/${requestId}`);
     },
