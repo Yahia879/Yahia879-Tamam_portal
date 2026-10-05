@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, CheckCircle2, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer, Phone, Mail, Tag, Pencil, Info, StickyNote, Plus, UserPlus, UserCheck, ShieldCheck, ShieldAlert, AlertTriangle, ShoppingCart, FileSignature, Layers, Edit } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, CheckCircle2, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer, Phone, Mail, Tag, Pencil, Info, StickyNote, Plus, UserPlus, UserCheck, ShieldCheck, ShieldAlert, AlertTriangle, ShoppingCart, FileSignature, Layers, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
@@ -1030,6 +1030,84 @@ export default function RequestDetailsNew() {
     return !nonRevertableStages.includes(request.currentStage);
   }, [request]);
 
+  // ====== إدارة الزيارة الميدانية وتعديل الجدولة وحذف التقرير ======
+  const [showDeleteReportConfirm, setShowDeleteReportConfirm] = useState(false);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [rescheduleData, setRescheduleData] = useState({
+    assignedUserId: "",
+    visitDate: "",
+    visitTime: "",
+    notes: "",
+  });
+
+  const deleteReportMutation = trpc.fieldVisits.deleteReport.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message || "تم حذف تقرير الزيارة الميدانية بنجاح");
+      setShowDeleteReportConfirm(false);
+      setFieldVisitReportOpen(false);
+      utils.requests.getById.invalidate({ id: requestId });
+      utils.fieldVisits.getVisit.invalidate({ requestId });
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء حذف تقرير الزيارة");
+    },
+  });
+
+  const rescheduleVisitMutation = trpc.fieldVisits.scheduleVisit.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث موعد الزيارة وتعيين المسؤول بنجاح");
+      setShowRescheduleModal(false);
+      utils.requests.getById.invalidate({ id: requestId });
+      utils.fieldVisits.getVisit.invalidate({ requestId });
+      utils.fieldVisits.getBusySlots.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء تحديث موعد الزيارة");
+    },
+  });
+
+  const { data: allStaffUsers } = trpc.users.getStaffUsers.useQuery(undefined, {
+    enabled: showRescheduleModal || request?.currentStage === 'field_visit',
+  });
+  const fieldStaffUsers = useMemo(() => {
+    return allStaffUsers?.filter((u: any) => 
+      u.role === "field_team" || (u.permissions && u.permissions.includes("requests.manage_as_field_team")) || ["super_admin", "system_admin", "projects_office"].includes(u.role)
+    ) || [];
+  }, [allStaffUsers]);
+
+  const { data: rescheduleBusySlots = [] } = trpc.fieldVisits.getBusySlots.useQuery(
+    {
+      userId: Number(rescheduleData.assignedUserId),
+      date: rescheduleData.visitDate,
+      excludeRequestId: requestId,
+    },
+    {
+      enabled: !!rescheduleData.assignedUserId && !!rescheduleData.visitDate && showRescheduleModal,
+    }
+  );
+
+  const FIELD_VISIT_TIME_SLOTS = [
+    "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"
+  ];
+
+  const handleOpenRescheduleModal = () => {
+    const currentAssigned = fieldVisit?.assignedTo || request?.fieldVisitAssignedTo || "";
+    let formattedDate = "";
+    if (fieldVisit?.scheduledDate) {
+      formattedDate = new Date(fieldVisit.scheduledDate).toISOString().split('T')[0];
+    } else if (request?.fieldVisitScheduledDate) {
+      formattedDate = new Date(request.fieldVisitScheduledDate).toISOString().split('T')[0];
+    }
+    const currentTime = fieldVisit?.scheduledTime || request?.fieldVisitScheduledTime || "";
+    setRescheduleData({
+      assignedUserId: currentAssigned ? String(currentAssigned) : "",
+      visitDate: formattedDate,
+      visitTime: currentTime,
+      notes: fieldVisit?.scheduleNotes || "",
+    });
+    setShowRescheduleModal(true);
+  };
+
   // تحديث تلقائي للمرحلة عند وجود عقد معتمد (للمشاريع العادية فقط)
   useEffect(() => {
     if (request?.currentStage === 'contracting' && request?.programType !== 'sedana' && linkedContract && !updateStageMutation.isPending) {
@@ -1403,6 +1481,7 @@ export default function RequestDetailsNew() {
   }
 
   // Override active action for field_visit stage based on field visit status
+  const hasFieldReport = (request?.fieldReports && request.fieldReports.length > 0) || !!fieldVisit?.reportSubmitted;
   if (request.currentStage === 'field_visit' && activeAction) {
     if (!fieldVisit?.scheduledDate && !request?.fieldVisitScheduledDate) {
       // لم يتم الجدولة بعد
@@ -1416,17 +1495,17 @@ export default function RequestDetailsNew() {
         },
         canPerformAction: !isFieldTeam,
       };
-    } else if (!fieldVisit?.reportSubmitted) {
+    } else if (!hasFieldReport) {
       // تم الجدولة، الآن يجب رفع التقرير
       activeAction = {
         ...activeAction,
         title: 'رفع تقرير الزيارة الميدانية',
-        description: 'رفع تقرير المعاينة الميدانية',
+        description: 'رفع تقرير المعاينة الميدانية من قبل الفريق الميداني أو المسؤول',
         actionButton: {
           label: 'رفع التقرير',
           redirectUrl: '/field-visits/report/:requestId',
         },
-        canPerformAction: isFieldTeam || userPermissions.includes("requests.manage_as_field_team") || user?.role === 'field_team',
+        canPerformAction: Boolean(isFieldTeam || userPermissions.includes("requests.manage_as_field_team") || user?.role === 'field_team' || isAdmin || isManagementUser),
       };
     } else {
       if (isFieldTeam) {
@@ -1445,7 +1524,7 @@ export default function RequestDetailsNew() {
         activeAction = {
           ...activeAction,
           title: 'الانتقال للمرحلة التالية',
-          description: 'تم إكمال جميع إجراءات الزيارة الميدانية',
+          description: 'تم إكمال جميع إجراءات الزيارة الميدانية ورفع التقرير بنجاح',
           actionButton: {
             label: 'الانتقال للتقييم الفني',
             redirectUrl: undefined, // سيستخدم handleStageTransition الافتراضي
@@ -1457,8 +1536,7 @@ export default function RequestDetailsNew() {
   }
 
   // Override active action for field_team if they have submitted the report (regardless of currentStage)
-  const hasFieldReport = request?.fieldReports && request.fieldReports.length > 0;
-  if (isFieldTeam && (hasFieldReport || fieldVisit?.reportSubmitted)) {
+  if (isFieldTeam && hasFieldReport) {
     activeAction = {
       stage: request.currentStage,
       title: 'تم تقديم تقرير الزيارة الميدانية',
@@ -2351,15 +2429,44 @@ export default function RequestDetailsNew() {
                             }
                           : undefined
                       }
-                      additionalActions={
-                        request.programType === 'sedana' && request.currentStage === 'contracting' && contractSuppliers.length > 0
+                      additionalActions={[
+                        ...(request.currentStage === 'field_visit' && (isAdmin || isManagementUser || isFieldTeam || userPermissions.includes("requests.manage_as_field_team"))
+                          ? [
+                              ...(hasFieldReport ? [
+                                {
+                                  label: "تعديل الموعد وتعيين مسؤول آخر",
+                                  onClick: () => handleOpenRescheduleModal(),
+                                },
+                                {
+                                  label: "حذف تقرير الزيارة الميدانية",
+                                  onClick: () => setShowDeleteReportConfirm(true),
+                                }
+                              ] : (fieldVisit?.scheduledDate || request.fieldVisitScheduledDate ? [
+                                {
+                                  label: "تعديل الموعد وتعيين مسؤول آخر",
+                                  onClick: () => handleOpenRescheduleModal(),
+                                }
+                              ] : []))
+                            ]
+                          : []),
+                        ...(request.programType === 'sedana' && request.currentStage === 'contracting' && contractSuppliers.length > 0
                           ? [
                               {
                                 label: "إنشاء عقد جديد",
                                 onClick: () => setLocation(`/contracts/new?requestId=${requestId}`),
                               }
                             ]
-                          : []
+                          : [])
+                      ]}
+                      revertButton={
+                        canRevertStage && (translatedAction.canPerformAction || canTransitionStage(user?.role || '', request.currentStage) || isAdmin) && !isPendingClosure && !isFieldTeam && !isQuickResponseUser
+                          ? {
+                              label: "الرجوع للمرحلة السابقة",
+                              onClick: () => setShowRevertStageModal(true),
+                              disabled: revertStageMutation.isPending,
+                              title: "الرجوع للمرحلة السابقة لتعديل البيانات",
+                            }
+                          : undefined
                       }
                     />
                   );
@@ -3314,19 +3421,47 @@ export default function RequestDetailsNew() {
           color="indigo"
           icon={<FileText className="w-6 h-6" />}
           extraFooterActions={
-            <Button
-              size="sm"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-2 shadow-xs text-xs cursor-pointer"
-              onClick={() => setLocation(`/requests/${request.id}/field-visit-report/print`)}
-            >
-              <Printer className="w-3.5 h-3.5" />
-              طباعة التقرير
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {(isAdmin || isManagementUser || isFieldTeam || userPermissions.includes("requests.manage_as_field_team")) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-indigo-300 text-indigo-700 hover:bg-indigo-50 font-bold gap-1.5 shadow-2xs text-xs cursor-pointer"
+                  onClick={() => {
+                    handleOpenRescheduleModal();
+                  }}
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  تحديد مسؤول آخر / تعديل الموعد
+                </Button>
+              )}
+              {(isAdmin || isManagementUser || userPermissions.includes("requests.manage_as_field_team")) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 font-bold gap-1.5 shadow-2xs text-xs cursor-pointer"
+                  onClick={() => {
+                    setShowDeleteReportConfirm(true);
+                  }}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  حذف التقرير
+                </Button>
+              )}
+              <Button
+                size="sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-2 shadow-xs text-xs cursor-pointer"
+                onClick={() => setLocation(`/requests/${request.id}/field-visit-report/print`)}
+              >
+                <Printer className="w-3.5 h-3.5" />
+                طباعة التقرير
+              </Button>
+            </div>
           }
         >
           <div className="space-y-6 px-1">
             {/* شريط الإجراءات والطباعة داخل المودال */}
-            <div className="flex items-center justify-between bg-indigo-50/70 dark:bg-indigo-950/40 p-3 rounded-xl border border-indigo-200/70 dark:border-indigo-900/60 print:hidden" style={{ direction: "rtl" }}>
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-indigo-50/70 dark:bg-indigo-950/40 p-3 rounded-xl border border-indigo-200/70 dark:border-indigo-900/60 print:hidden" style={{ direction: "rtl" }}>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-indigo-950 dark:text-indigo-200">
                   رقم الطلب: <span className="font-mono text-indigo-700 dark:text-indigo-300 font-bold">{request.requestNumber || `#${request.id}`}</span>
@@ -3337,14 +3472,44 @@ export default function RequestDetailsNew() {
                   </span>
                 )}
               </div>
-              <Button
-                size="sm"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-2 shadow-xs text-xs cursor-pointer"
-                onClick={() => setLocation(`/requests/${request.id}/field-visit-report/print`)}
-              >
-                <Printer className="w-3.5 h-3.5" />
-                طباعة التقرير
-              </Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                {(isAdmin || isManagementUser || isFieldTeam || userPermissions.includes("requests.manage_as_field_team")) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-indigo-300 bg-white text-indigo-700 hover:bg-indigo-50 font-bold gap-1.5 shadow-2xs text-xs cursor-pointer"
+                    onClick={() => {
+                      handleOpenRescheduleModal();
+                    }}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    تحديد مسؤول آخر / تعديل الموعد
+                  </Button>
+                )}
+
+                {(isAdmin || isManagementUser || userPermissions.includes("requests.manage_as_field_team")) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-red-200 bg-white text-red-600 hover:bg-red-50 hover:text-red-700 font-bold gap-1.5 shadow-2xs text-xs cursor-pointer"
+                    onClick={() => {
+                      setShowDeleteReportConfirm(true);
+                    }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    حذف التقرير
+                  </Button>
+                )}
+
+                <Button
+                  size="sm"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-2 shadow-xs text-xs cursor-pointer"
+                  onClick={() => setLocation(`/requests/${request.id}/field-visit-report/print`)}
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  طباعة التقرير
+                </Button>
+              </div>
             </div>
             {request.fieldReports.map((report: any) => {
               const conditionLabels: Record<string, string> = {
@@ -5349,6 +5514,197 @@ export default function RequestDetailsNew() {
         </DialogContent>
       </Dialog>
 
+      {/* نافذة تأكيد حذف تقرير الزيارة الميدانية */}
+      <Dialog open={showDeleteReportConfirm} onOpenChange={setShowDeleteReportConfirm}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              <DialogTitle className="text-lg font-bold">
+                حذف تقرير الزيارة الميدانية
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 text-sm text-red-900 dark:text-red-200 space-y-1.5 leading-relaxed">
+              <p className="font-bold flex items-center gap-1.5 text-red-800 dark:text-red-300">
+                <span>⚠️</span>
+                <span>تنبيه هام</span>
+              </p>
+              <p>هل أنت متأكد من رغبتك في حذف تقرير الزيارة الميدانية لهذا الطلب؟</p>
+              <p className="text-xs text-red-700/80 dark:text-red-400/80">
+                سيتم حذف كافة بيانات التقرير المدخلة وإعادة حالة الزيارة إلى "بانتظار رفع التقرير"، مما يتيح لك إعادة تعيين شخص آخر أو رفع تقرير فني جديد بالكامل.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-2.5 justify-end mt-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteReportConfirm(false)}
+              disabled={deleteReportMutation.isPending}
+            >
+              إلغاء
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white font-bold gap-1.5 cursor-pointer"
+              disabled={deleteReportMutation.isPending}
+              onClick={() => {
+                deleteReportMutation.mutate({
+                  requestId,
+                });
+              }}
+            >
+              {deleteReportMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>جاري الحذف...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  <span>تأكيد حذف التقرير</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة تعديل موعد الزيارة وتعيين موظف آخر */}
+      <Dialog open={showRescheduleModal} onOpenChange={setShowRescheduleModal}>
+        <DialogContent className="max-w-lg" dir="rtl">
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-indigo-600">
+              <Calendar className="w-5 h-5" />
+              <DialogTitle className="text-lg font-bold">
+                تعديل موعد الزيارة الميدانية وتعيين المسؤول
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-foreground">
+                الموظف المسؤول عن الزيارة <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={rescheduleData.assignedUserId}
+                onValueChange={(val) => setRescheduleData(prev => ({ ...prev, assignedUserId: val, visitTime: "" }))}
+              >
+                <SelectTrigger className="w-full text-right">
+                  <SelectValue placeholder="اختر الموظف الميداني" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60" dir="rtl">
+                  {fieldStaffUsers.map((u: any) => (
+                    <SelectItem key={u.id} value={String(u.id)}>
+                      {u.name} ({u.role === "field_team" ? "فريق ميداني" : u.role})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">
+                  تاريخ الزيارة <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="date"
+                  value={rescheduleData.visitDate}
+                  onChange={(e) => setRescheduleData(prev => ({ ...prev, visitDate: e.target.value, visitTime: "" }))}
+                  className="w-full text-right"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">
+                  وقت الزيارة <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={rescheduleData.visitTime}
+                  onValueChange={(val) => setRescheduleData(prev => ({ ...prev, visitTime: val }))}
+                  disabled={!rescheduleData.assignedUserId || !rescheduleData.visitDate}
+                >
+                  <SelectTrigger className="w-full text-right">
+                    <SelectValue placeholder={!rescheduleData.assignedUserId || !rescheduleData.visitDate ? "حدد الموظف والتاريخ أولاً" : "اختر وقت الزيارة"} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60" dir="rtl">
+                    {FIELD_VISIT_TIME_SLOTS.map((slot) => {
+                      const isBusy = rescheduleBusySlots.includes(slot);
+                      return (
+                        <SelectItem key={slot} value={slot} disabled={isBusy}>
+                          {slot} {isBusy ? "(محجوز)" : ""}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-foreground">
+                ملاحظات وتوجيهات للزيارة (اختياري)
+              </Label>
+              <Textarea
+                value={rescheduleData.notes}
+                onChange={(e) => setRescheduleData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="أدخل أي ملاحظات خاصة بالزيارة أو المعاينة..."
+                rows={2}
+                className="resize-none text-xs"
+                dir="rtl"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2.5 justify-end mt-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <Button
+              variant="outline"
+              onClick={() => setShowRescheduleModal(false)}
+              disabled={rescheduleVisitMutation.isPending}
+            >
+              إلغاء
+            </Button>
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-1.5 cursor-pointer"
+              disabled={
+                rescheduleVisitMutation.isPending || 
+                !rescheduleData.assignedUserId || 
+                !rescheduleData.visitDate || 
+                !rescheduleData.visitTime
+              }
+              onClick={() => {
+                if (!rescheduleData.assignedUserId || !rescheduleData.visitDate || !rescheduleData.visitTime) {
+                  toast.error("يرجى اختيار الموظف المسؤول وتاريخ ووقت الزيارة");
+                  return;
+                }
+                rescheduleVisitMutation.mutate({
+                  requestId,
+                  assignedUserId: Number(rescheduleData.assignedUserId),
+                  visitDate: rescheduleData.visitDate,
+                  visitTime: rescheduleData.visitTime,
+                  notes: rescheduleData.notes?.trim() || undefined,
+                });
+              }}
+            >
+              {rescheduleVisitMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>جاري الحفظ...</span>
+                </>
+              ) : (
+                <>
+                  <Calendar className="w-4 h-4" />
+                  <span>حفظ الموعد والمسؤول</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

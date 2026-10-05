@@ -2,7 +2,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { permissionProcedure } from "../permissions";
 import { z } from "zod";
 import { getDb } from "../db";
-import { fieldVisits, requestComments, users, requestHistory, auditLogs, mosqueRequests } from "../../drizzle/schema";
+import { fieldVisits, requestComments, users, requestHistory, auditLogs, mosqueRequests, fieldVisitReports } from "../../drizzle/schema";
 import { eq, and, gte, lte, ne, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { notifyFieldVisitScheduled } from "./notifications";
@@ -260,6 +260,56 @@ export const fieldVisitsRouter = router({
       return { success: true, visitId: visits[0].id };
     }),
 
+  // حذف تقرير الزيارة الميدانية لإتاحة إعادة الرفع أو تغيير المعاينة الميدانية
+  deleteReport: protectedProcedure
+    .input(
+      z.object({
+        requestId: z.number(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { requestId } = input;
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "فشل الاتصال بقاعدة البيانات" });
+
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const isPrivileged = ["super_admin", "system_admin", "projects_office"].includes(ctx.user.role);
+      const hasPerm = isPrivileged || 
+                      userPerms.includes("field_visits.delete") || 
+                      userPerms.includes("field_visits.edit") || 
+                      userPerms.includes("requests.manage_as_field_team") ||
+                      userPerms.includes("requests.view_details");
+      if (!hasPerm) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لحذف تقرير الزيارة الميدانية" });
+      }
+
+      // حذف التقرير من جدول field_visit_reports
+      await db.delete(fieldVisitReports).where(eq(fieldVisitReports.requestId, requestId));
+
+      // إعادة تعيين حالة الزيارة الميدانية في جدول field_visits
+      await db
+        .update(fieldVisits)
+        .set({
+          reportSubmitted: false,
+          reportSubmittedBy: null,
+          reportSubmittedAt: null,
+          status: "scheduled",
+          updatedAt: new Date(),
+        })
+        .where(eq(fieldVisits.requestId, requestId));
+
+      // تسجيل الحدث في سجل تاريخ الطلب
+      await db.insert(requestHistory).values({
+        requestId,
+        userId: ctx.user.id,
+        action: "field_visit_report_deleted",
+        notes: `قام المسؤول (${ctx.user.name || "المسؤول"}) بحذف تقرير الزيارة الميدانية لإعادة الجدولة أو إسناد الزيارة لشخص آخر`,
+      });
+
+      return { success: true, message: "تم حذف تقرير الزيارة الميدانية بنجاح" };
+    }),
+
   getVisit: protectedProcedure
     .input(
       z.object({
@@ -269,7 +319,12 @@ export const fieldVisitsRouter = router({
     .query(async ({ input, ctx }) => {
       const { calculateUserPermissions } = await import("../permissions");
       const userPerms = await calculateUserPermissions(ctx.user.id);
-      const hasViewPerm = userPerms.includes("field_visits.view") || userPerms.includes("requests.manage_as_field_team");
+      const isPrivileged = ["super_admin", "system_admin", "projects_office", "executive_director", "general_manager"].includes(ctx.user.role);
+      const hasViewPerm = isPrivileged || 
+                          userPerms.includes("field_visits.view") || 
+                          userPerms.includes("requests.manage_as_field_team") ||
+                          userPerms.includes("requests.view_details") ||
+                          userPerms.includes("requests.view");
       if (!hasViewPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض الزيارة الميدانية" });
       }

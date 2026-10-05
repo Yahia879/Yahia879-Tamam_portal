@@ -52,6 +52,7 @@ import {
   getPrerequisites,
   PREREQUISITE_ERROR_MESSAGES,
   canTransitionStage,
+  getWorkflowForRequest,
   type PrerequisiteType,
 } from "@shared/constants";
 import { notifyRequestCreation, notifyUsersByRole, createNotification, notifyRequestStageChangeToOfficers, notifyQuotationApproval, sendEmailNotification, notifySedanaEvent } from "./notifications";
@@ -4684,34 +4685,50 @@ export const requestsRouter = router({
         });
       }
 
-      // تحديد المرحلة السابقة من سجل التاريخ
+      // تحديد مسار العمل المناسب للطلب
+      const workflow = getWorkflowForRequest(
+        (request[0].requestTrack || 'standard') as any,
+        request[0].programType || undefined
+      );
+
+      const currentIndex = workflow.findIndex((s) => s.id === currentStage);
+      if (currentIndex <= 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "لا توجد مرحلة سابقة للرجوع إليها" });
+      }
+
+      // المرحلة السابقة الافتراضية هي الخطوة السابقة مباشرة في مسار العمل
+      let previousStage = workflow[currentIndex - 1].id;
+
+      // البحث في سجل التاريخ عن آخر انتقال تقدمي إلى المرحلة الحالية مع استبعاد التراجعات stage_reverted
+      // والتأكد الصارم من أن المرحلة السابقة تقع فعلياً قبل المرحلة الحالية في مسار العمل لمنع التقدم للأمام
       const history = await db.select()
         .from(requestHistory)
         .where(and(
           eq(requestHistory.requestId, input.requestId),
-          sql`${requestHistory.fromStage} IS NOT NULL AND ${requestHistory.toStage} = ${currentStage}`
+          eq(requestHistory.toStage, currentStage),
+          ne(requestHistory.action, 'stage_reverted'),
+          sql`${requestHistory.fromStage} IS NOT NULL AND ${requestHistory.fromStage} != ${currentStage}`
         ))
         .orderBy(desc(requestHistory.createdAt))
         .limit(1);
 
-      let previousStage: string;
       if (history.length > 0 && history[0].fromStage) {
-        previousStage = history[0].fromStage;
-      } else {
-        // المرحلة السابقة الافتراضية من قائمة المراحل
-        const stageOrder = ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'];
-        const currentIndex = stageOrder.indexOf(currentStage);
-        if (currentIndex <= 0) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "لا توجد مرحلة سابقة للرجوع إليها" });
+        const fromIndex = workflow.findIndex((s) => s.id === history[0].fromStage);
+        if (fromIndex !== -1 && fromIndex < currentIndex) {
+          previousStage = history[0].fromStage as any;
         }
-        previousStage = stageOrder[currentIndex - 1];
       }
 
       // تحديث الطلب
-      await db.update(mosqueRequests).set({
+      const updateData: any = {
         currentStage: previousStage as any,
         status: 'in_progress',
-      }).where(eq(mosqueRequests.id, input.requestId));
+      };
+      if (previousStage === 'field_visit') {
+        updateData.technicalEvalDecision = null;
+        updateData.technicalEvalJustification = null;
+      }
+      await db.update(mosqueRequests).set(updateData).where(eq(mosqueRequests.id, input.requestId));
 
       // إضافة سجل في تاريخ الطلب
       const prevStageName = STAGE_LABELS[previousStage] || previousStage;
@@ -4720,7 +4737,7 @@ export const requestsRouter = router({
         requestId: input.requestId,
         userId: ctx.user.id,
         fromStage: currentStage,
-        toStage: previousStage,
+        toStage: previousStage as any,
         action: 'stage_reverted',
         notes: input.reason?.trim()
           ? `تم الرجوع من مرحلة "${currStageName}" إلى مرحلة "${prevStageName}". السبب: ${input.reason.trim()}`
