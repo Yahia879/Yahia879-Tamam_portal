@@ -89,12 +89,16 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
 
   // تخصيص شاشة واحدة فقط لمسؤول المشتريات (برنامج سدانة - عروض الأسعار)
   if (isProcurementOfficer) {
+    const items: MenuItem[] = [
+      { icon: Receipt, label: isEn ? "Quotations" : "عروض الأسعار", path: "/quotations" },
+    ];
+    if (role !== "service_requester") {
+      items.push({ icon: Wallet, label: isEn ? "Financial Custody" : "العهد المالية", path: "/custody-requests" });
+    }
     return [
       {
         label: isEn ? "Procurement" : "المشتريات",
-        items: [
-          { icon: Receipt, label: isEn ? "Quotations" : "عروض الأسعار", path: "/quotations" },
-        ],
+        items,
       },
     ];
   }
@@ -170,7 +174,7 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
       { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
       { icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" },
       { icon: Coins, label: "سندات القبض", path: "/receipt-vouchers" },
-      { icon: Wallet, label: "العهد المالية", path: "/custody-requests" },
+      { icon: Wallet, label: isEn ? "Financial Custody" : "العهد المالية", path: "/custody-requests" },
       { icon: BarChart3, label: "التقرير المالي", path: "/financial-report" },
     ];
     groups.push({
@@ -197,6 +201,14 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
         items: inventoryItems,
       });
     }
+  } else if (role !== "service_requester") {
+    // يظهر لكل موظفي وأدوار النظام باستثناء طالب الخدمة
+    groups.push({
+      label: isEn ? "Procurement & Finance" : "المشتريات والمالية",
+      items: [
+        { icon: Wallet, label: isEn ? "Financial Custody" : "العهد المالية", path: "/custody-requests" },
+      ],
+    });
   }
 
   // الاستجابة السريعة
@@ -354,7 +366,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("disbursement_orders")) finItems.push({ icon: FileText,    label: "أوامر الصرف",    path: "/disbursement-orders" });
   if (has("receipt_vouchers") || has("receipt_vouchers.view") || has("receipt_vouchers.edit") || has("receipt_vouchers.exception_approve")) finItems.push({ icon: Coins, label: "سندات القبض", path: "/receipt-vouchers" });
   if (role !== "service_requester") {
-    finItems.push({ icon: Wallet, label: "العهد المالية", path: "/custody-requests" });
+    finItems.push({ icon: Wallet, label: isEn ? "Financial Custody" : "العهد المالية", path: "/custody-requests" });
   }
   if (has("financial_report") || has("financial_reports.view") || has("financial_reports.export") || has("financial_reports")) {
     finItems.push({ icon: BarChart3,   label: "التقرير المالي", path: "/financial-report" });
