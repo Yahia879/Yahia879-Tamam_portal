@@ -154,11 +154,47 @@ export default function CustodyRequestPrint() {
     procurement_officer: "مسؤول المشتريات",
   };
 
-  const applicantRoleDisplay = 
-    (request.applicantRole && ROLE_NAMES[request.applicantRole]) ||
-    request.applicantSignatureDepartment ||
-    request.applicantRole ||
-    "العاملين بالجمعية";
+  // 1. بيانات مقدم الطلب الحية والمستندة إلى الملف الشخصي (/profile) بدون أي قيم نصية ثابتة
+  const applicantSignatureName = 
+    (request as any).applicantLiveSignatureName?.trim() ||
+    request.applicantSignatureName?.trim() ||
+    request.applicantName?.trim() ||
+    "";
+
+  const applicantSignatureDepartment =
+    (request as any).applicantLiveSignatureDepartment?.trim() ||
+    request.applicantSignatureDepartment?.trim() ||
+    (request.applicantRole ? (ROLE_NAMES[request.applicantRole] || request.applicantRole) : "") ||
+    "";
+
+  const showApplicantSig = 
+    (request as any).applicantShowSignatureInDocuments !== false &&
+    (request as any).applicantShowSignatureInDocuments !== 0;
+
+  const applicantSignatureUrl = showApplicantSig
+    ? ((request as any).applicantLiveSignatureUrl || request.applicantSignatureUrl || null)
+    : null;
+
+  const applicantRoleName = (request.applicantRole && ROLE_NAMES[request.applicantRole]) || request.applicantRole || "—";
+
+  // 2. بيانات المدير التنفيذي المستندة إلى الملف الشخصي (/profile) تظهر حتى قبل الاعتماد
+  const isExecutiveApproved = request.status === "approved" || request.status === "converted_to_order";
+  const execUser = (request as any).executiveUser;
+
+  const executiveDepartment =
+    request.executiveSignatureDepartment?.trim() ||
+    execUser?.signatureDepartment?.trim() ||
+    "المدير التنفيذي";
+
+  const executiveName =
+    request.executiveSignatureName?.trim() ||
+    execUser?.signatureName?.trim() ||
+    execUser?.name?.trim() ||
+    "";
+
+  const executiveSignatureUrl = isExecutiveApproved
+    ? (request.executiveSignatureUrl || execUser?.signatureUrl || null)
+    : null;
 
   return (
     <div className="min-h-screen bg-gray-100 py-3 sm:py-8 print:py-0 print:bg-white" dir="rtl">
@@ -289,11 +325,11 @@ export default function CustodyRequestPrint() {
                 <div className="grid grid-cols-1 sm:grid-cols-2">
                   <div className="flex border-b sm:border-l border-gray-200">
                     <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-28 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم الموظف:</span>
-                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1">{request.applicantName || "الموظف طالب العهدة"}</span>
+                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1">{request.applicantName || "—"}</span>
                   </div>
                   <div className="flex border-b border-gray-200">
                     <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-32 border-l border-gray-200 text-gray-750 shrink-0">الدور:</span>
-                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1">{applicantRoleDisplay}</span>
+                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1">{applicantRoleName}</span>
                   </div>
                   <div className="flex border-b sm:border-b-0 sm:border-l border-gray-200">
                     <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-28 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">رقم الجوال:</span>
@@ -329,7 +365,7 @@ export default function CustodyRequestPrint() {
                   <tbody>
                     <tr className="border-b border-gray-200">
                       <td className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200 w-1/4">المبلغ بالأرقام</td>
-                      <td className="p-1.5 sm:p-2.5 font-bold font-mono text-emerald-800 border-l border-gray-200 text-sm sm:text-base w-1/4">
+                      <td className="p-1.5 sm:p-2.5 font-bold font-mono text-emerald-800 border-l border-gray-200 text-sm sm:base w-1/4">
                         <span className="inline-flex items-center gap-1">
                           {numAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           <SaudiRiyal className="w-3.5 h-3.5 inline" />
@@ -381,44 +417,42 @@ export default function CustodyRequestPrint() {
               <div className="grid grid-cols-2 gap-3 sm:gap-6 text-center">
                 {/* مُعدّ الطلب (الموظف طالب العهدة) */}
                 <div className="p-1 sm:p-2">
-                  <div className="font-bold text-gray-800 text-[11px] sm:text-sm mb-2 sm:mb-4">
-                    {applicantRoleDisplay || "مُعدّ الطلب (الموظف طالب العهدة)"}
+                  <div className="font-bold text-gray-800 text-[11px] sm:text-sm mb-2 sm:mb-4 min-h-[1.25rem]">
+                    {applicantSignatureDepartment}
                   </div>
                   <div className="space-y-1 text-xs flex flex-col items-center justify-center">
-                    {request.applicantSignatureUrl ? (
+                    {applicantSignatureUrl ? (
                       <div className="h-9 sm:h-12 flex items-center justify-center mx-auto w-24 sm:w-36 overflow-hidden my-0.5 sm:my-1">
                         <img 
-                          src={request.applicantSignatureUrl} 
+                          src={applicantSignatureUrl} 
                           alt="توقيع مقدم الطلب" 
                           className="max-h-9 sm:max-h-12 max-w-full object-contain" 
                         />
                       </div>
                     ) : (
-                      <div className="h-8 sm:h-10 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-36 flex items-center justify-center">
-                        <span className="text-[10px] text-gray-400 font-mono">[معتمد إلكترونياً]</span>
-                      </div>
+                      <div className="h-8 sm:h-10 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-36"></div>
                     )}
-                    <div className="text-gray-900 font-bold text-[10px] sm:text-xs">
-                      {request.applicantSignatureName || request.applicantName}
+                    <div className="text-gray-900 font-bold text-[10px] sm:text-xs min-h-[1rem]">
+                      {applicantSignatureName}
                     </div>
                   </div>
                 </div>
 
                 {/* المدير التنفيذي */}
                 <div className="p-1 sm:p-2">
-                  <div className="font-bold text-gray-800 text-[11px] sm:text-sm mb-2 sm:mb-4">
-                    المدير التنفيذي
+                  <div className="font-bold text-gray-800 text-[11px] sm:text-sm mb-2 sm:mb-4 min-h-[1.25rem]">
+                    {executiveDepartment}
                   </div>
                   <div className="space-y-1 text-xs flex flex-col items-center justify-center">
-                    {(request.executiveSignatureUrl && (request.status === "approved" || request.status === "converted_to_order")) ? (
+                    {executiveSignatureUrl ? (
                       <div className="h-9 sm:h-12 flex items-center justify-center mx-auto w-24 sm:w-36 overflow-hidden my-0.5 sm:my-1">
                         <img
-                          src={request.executiveSignatureUrl}
+                          src={executiveSignatureUrl}
                           alt="توقيع المدير التنفيذي"
                           className="max-h-9 sm:max-h-12 max-w-full object-contain"
                         />
                       </div>
-                    ) : (request.status === "approved" || request.status === "converted_to_order") ? (
+                    ) : isExecutiveApproved ? (
                       <div className="h-9 sm:h-12 flex items-center justify-center mx-auto w-24 sm:w-36 overflow-hidden my-0.5 sm:my-1 text-emerald-700 font-bold text-[11px]">
                         <ShieldCheck className="w-4 h-4 ml-1 inline text-emerald-600" />
                         معتمد نظامياً
@@ -426,8 +460,8 @@ export default function CustodyRequestPrint() {
                     ) : (
                       <div className="h-8 sm:h-10 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-36"></div>
                     )}
-                    <div className="text-gray-900 font-bold text-[10px] sm:text-xs">
-                      {request.executiveSignatureName || ((request.status === "approved" || request.status === "converted_to_order") ? (orgSettings?.executiveDirectorName || "م. عبدالهادي آل فائق") : "........................")}
+                    <div className="text-gray-900 font-bold text-[10px] sm:text-xs min-h-[1rem]">
+                      {executiveName}
                     </div>
                   </div>
                 </div>

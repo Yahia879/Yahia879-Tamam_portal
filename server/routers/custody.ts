@@ -220,6 +220,10 @@ export const custodyRouter = router({
           applicantEmail: users.email,
           applicantPhone: users.phone,
           applicantRole: users.role,
+          applicantLiveSignatureName: users.signatureName,
+          applicantLiveSignatureDepartment: users.signatureDepartment,
+          applicantLiveSignatureUrl: users.signatureUrl,
+          applicantShowSignatureInDocuments: users.showSignatureInDocuments,
         })
         .from(custodyRequests)
         .leftJoin(users, eq(custodyRequests.userId, users.id))
@@ -234,6 +238,56 @@ export const custodyRouter = router({
 
       if (!canSeeAll && request.userId !== ctx.user.id) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض هذا الطلب" });
+      }
+
+      // جلب بيانات المدير التنفيذي الحية (تظهر بياناته حتى قبل الاعتماد، والتوقيع عند الاعتماد)
+      let executiveUser: {
+        id: number;
+        name: string;
+        signatureName: string | null;
+        signatureDepartment: string | null;
+        signatureUrl: string | null;
+        showSignatureInDocuments: boolean | number | null;
+      } | null = null;
+
+      if (request.executiveApprovedBy) {
+        const [exec] = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+            showSignatureInDocuments: users.showSignatureInDocuments,
+          })
+          .from(users)
+          .where(eq(users.id, request.executiveApprovedBy))
+          .limit(1);
+        if (exec) executiveUser = exec;
+      }
+
+      if (!executiveUser) {
+        const [exec] = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+            showSignatureInDocuments: users.showSignatureInDocuments,
+          })
+          .from(users)
+          .where(
+            and(
+              or(
+                sql`${users.role} IN ('executive_director', 'general_manager')`,
+                eq(users.email, "ceo@manarah.org.sa")
+              ),
+              sql`${users.deletedAt} IS NULL`
+            )
+          )
+          .limit(1);
+        if (exec) executiveUser = exec;
       }
 
       // جلب بيانات أمر الصرف المرتبط إن وجد
@@ -256,6 +310,7 @@ export const custodyRouter = router({
       return {
         ...request,
         linkedOrder,
+        executiveUser,
       };
     }),
 
@@ -359,7 +414,7 @@ export const custodyRouter = router({
         bankAccountName: input.bankAccountName,
         bankIban: input.bankIban.trim().toUpperCase(),
         applicantSignatureName: userData?.signatureName || userData?.name || ctx.user.name,
-        applicantSignatureDepartment: userData?.signatureDepartment || "الموظف مقدم الطلب",
+        applicantSignatureDepartment: userData?.signatureDepartment || null,
         applicantSignatureUrl: userData?.signatureUrl || null,
         status: "pending_executive",
         attachmentsJson: input.attachments ? JSON.stringify(input.attachments) : null,
