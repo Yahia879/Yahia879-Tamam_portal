@@ -4739,38 +4739,6 @@ export const requestsRouter = router({
         });
       }
 
-      // في مسار الاستجابة السريعة بمرحلة التنفيذ (تقرير الاستجابة السريعة):
-      // إذا كان التقرير معتمداً، فالرجوع يعيد التقرير لمرحلة "رفع تقرير الاستجابة السريعة" كمسودة مع الاحتفاظ بكافة بياناته معبأة
-      if (currentStage === 'execution' && request[0].requestTrack === 'quick_response') {
-        const qr = await db.select().from(quickResponseReports)
-          .where(eq(quickResponseReports.requestId, input.requestId))
-          .limit(1);
-
-        if (qr.length > 0 && qr[0].status !== 'draft' && qr[0].status !== 'reverted') {
-          await db.update(quickResponseReports).set({
-            status: 'draft',
-            updatedAt: new Date(),
-          }).where(eq(quickResponseReports.id, qr[0].id));
-
-          await db.insert(requestHistory).values({
-            requestId: input.requestId,
-            userId: ctx.user.id,
-            fromStage: currentStage,
-            toStage: currentStage,
-            action: 'stage_reverted',
-            notes: input.reason?.trim()
-              ? `تم الرجوع لمرحلة رفع تقرير الاستجابة السريعة لتعديل التقرير. السبب: ${input.reason.trim()}`
-              : `تم الرجوع لمرحلة رفع تقرير الاستجابة السريعة لتعديل التقرير`,
-          });
-
-          return {
-            success: true,
-            message: "تم الرجوع لمرحلة رفع تقرير الاستجابة السريعة بنجاح",
-            previousStage: 'execution',
-          };
-        }
-      }
-
       // تحديد مسار العمل المناسب للطلب
       const workflow = getWorkflowForRequest(
         (request[0].requestTrack || 'standard') as any,
@@ -4830,6 +4798,17 @@ export const requestsRouter = router({
           updatedAt: new Date(),
         }).where(eq(quickResponseReports.requestId, input.requestId));
       }
+      if (previousStage === 'technical_eval') {
+        updateData.technicalEvalDecision = null;
+        updateData.technicalEvalJustification = null;
+        updateData.requestTrack = 'standard';
+
+        // الاحتفاظ ببيانات تقرير الاستجابة السريعة كمسودة بحيث تظهر معبأة عند إعادة اختياره
+        await db.update(quickResponseReports).set({
+          status: 'draft',
+          updatedAt: new Date(),
+        }).where(eq(quickResponseReports.requestId, input.requestId));
+      }
       if (previousStage === 'field_visit') {
         updateData.technicalEvalDecision = null;
         updateData.technicalEvalJustification = null;
@@ -4854,7 +4833,7 @@ export const requestsRouter = router({
 
       // إضافة سجل في تاريخ الطلب
       const prevStageName = isRevertingToQuickResponse ? "تقرير الاستجابة السريعة" : (STAGE_LABELS[previousStage] || previousStage);
-      const currStageName = STAGE_LABELS[currentStage] || currentStage;
+      const currStageName = isQuickResponseExecution ? "تقرير الاستجابة السريعة" : (STAGE_LABELS[currentStage] || currentStage);
       await db.insert(requestHistory).values({
         requestId: input.requestId,
         userId: ctx.user.id,

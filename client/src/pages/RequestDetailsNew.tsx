@@ -2100,7 +2100,7 @@ export default function RequestDetailsNew() {
                       label: "الرجوع للمرحلة السابقة",
                       onClick: () => setShowRevertStageModal(true),
                       disabled: revertStageMutation.isPending,
-                      title: "الرجوع لمرحلة رفع تقرير الاستجابة السريعة لتعديل البيانات",
+                      title: isEn ? "Revert to Technical Evaluation" : "الرجوع لمرحلة التقييم الفني",
                     }
                   : undefined
               }
