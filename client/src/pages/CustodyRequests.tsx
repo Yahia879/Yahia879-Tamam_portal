@@ -39,6 +39,7 @@ import {
   FileText,
   Landmark,
   User,
+  Users,
   ShieldCheck,
   AlertCircle,
   Eye,
@@ -64,25 +65,42 @@ export default function CustodyRequests() {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
 
-  const canApprove = useMemo(() => {
+  // التحقق من الأدوار والصلاحيات
+  const isExecutiveDirector = useMemo(() => {
     if (!user) return false;
-    return [
-      "super_admin",
-      "system_admin",
-      "board_chairman",
-      "general_manager",
-      "executive_director",
-    ].includes(user.role);
+    return (
+      user.role === "executive_director" ||
+      user.role === "general_manager" ||
+      (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+      user.name === "المدير التنفيذي" ||
+      user.email === "ceo@manarah.org.sa"
+    );
   }, [user]);
+
+  const isSuperAdmin = useMemo(() => {
+    if (!user) return false;
+    return user.role === "super_admin";
+  }, [user]);
+
+  // فقط super_admin والمدير التنفيذي يظهر لهم كل الطلبات
+  const canSeeAll = isSuperAdmin || isExecutiveDirector;
+  // فقط المدير التنفيذي هو من يعتمد طلبات العهدة
+  const canApprove = isExecutiveDirector;
+
+  // تبويب طلباتي وطلبات الموظفين للمدير التنفيذي والـ super_admin
+  const [activeTab, setActiveTab] = useState<"staff" | "my">("staff");
 
   // جلب الطلبات
   const { data: requests = [], isLoading } = trpc.custody.getAll.useQuery({
     status: statusFilter === "all" ? undefined : (statusFilter as any),
     search: search.trim() || undefined,
+    scope: canSeeAll ? activeTab : "my",
   });
 
   // جلب الإحصائيات
-  const { data: stats } = trpc.custody.getStats.useQuery();
+  const { data: stats } = trpc.custody.getStats.useQuery({
+    scope: canSeeAll ? activeTab : "my",
+  });
 
   // طفرة الاعتماد
   const approveMutation = trpc.custody.approve.useMutation({
@@ -196,6 +214,43 @@ export default function CustodyRequests() {
             </Button>
           </div>
         </div>
+
+        {/* Two Tabs: طلباتي وطلبات الموظفين للمدير التنفيذي والـ super_admin */}
+        {canSeeAll && (
+          <div className="flex items-center gap-2 p-1.5 bg-muted/60 dark:bg-muted/30 rounded-2xl border border-border/70 w-fit">
+            <button
+              type="button"
+              onClick={() => setActiveTab("staff")}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeTab === "staff"
+                  ? "bg-card text-foreground shadow-xs border border-border/70"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Users className="w-4 h-4 text-primary" />
+              <span>طلبات الموظفين</span>
+              <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
+                {stats?.staffCount ?? 0}
+              </Badge>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("my")}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeTab === "my"
+                  ? "bg-card text-foreground shadow-xs border border-border/70"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <User className="w-4 h-4 text-primary" />
+              <span>طلباتي</span>
+              <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
+                {stats?.myCount ?? 0}
+              </Badge>
+            </button>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -330,9 +385,19 @@ export default function CustodyRequests() {
         <Card className="rounded-2xl border-border/70 shadow-xs bg-card overflow-hidden">
           <CardHeader className="p-5 pb-3 border-b border-border/50 flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-base font-bold text-foreground">سجل طلبات العهد المالية</CardTitle>
+              <CardTitle className="text-base font-bold text-foreground">
+                {canSeeAll
+                  ? activeTab === "staff"
+                    ? "سجل طلبات الموظفين للعهد المالية"
+                    : "سجل طلباتي للعهد المالية"
+                  : "سجل طلباتي للعهد المالية"}
+              </CardTitle>
               <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                قائمة بكافة العهد المسجلة وحالات اعتمادها
+                {canSeeAll
+                  ? activeTab === "staff"
+                    ? "قائمة بكافة طلبات العهد المقدمة من الموظفين للمراجعة والاعتماد"
+                    : "قائمة بكافة طلبات العهد المالية التي قمت بتقديمها"
+                  : "قائمة بكافة طلبات العهد المالية التي قمت بتقديمها ومتابعة حالاتها"}
               </CardDescription>
             </div>
             <Badge variant="secondary" className="font-mono text-xs font-bold">

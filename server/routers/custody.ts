@@ -83,6 +83,20 @@ async function generateDisbursementRequestNumber(db: NonNullable<Awaited<ReturnT
   return `${prefix}${sequence.toString().padStart(4, "0")}`;
 }
 
+// التحقق من صلاحيات العهد المالية (حصراً super_admin والمدير التنفيذي لرؤية كل الطلبات، وحصراً المدير التنفيذي للاعتماد)
+function checkCustodyRoles(user: { id: number; role?: string; name?: string; email?: string; [key: string]: any }) {
+  const isSuperAdmin = user.role === "super_admin";
+  const isExecutiveDirector = 
+    user.role === "executive_director" ||
+    user.role === "general_manager" ||
+    (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+    user.name === "المدير التنفيذي" ||
+    user.email === "ceo@manarah.org.sa";
+
+  const canSeeAll = isSuperAdmin || isExecutiveDirector;
+  return { isSuperAdmin, isExecutiveDirector, canSeeAll };
+}
+
 export const custodyRouter = router({
   // جلب كافة طلبات العهد المالية
   getAll: protectedProcedure
@@ -90,26 +104,26 @@ export const custodyRouter = router({
       z.object({
         status: z.enum(["pending_executive", "approved", "rejected", "converted_to_order"]).optional(),
         search: z.string().optional(),
+        scope: z.enum(["my", "staff", "all"]).optional(),
       }).optional()
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const userRole = ctx.user.role;
-      const isManagementOrFinance = [
-        "super_admin",
-        "system_admin",
-        "board_chairman",
-        "general_manager",
-        "executive_director",
-        "financial",
-      ].includes(userRole);
+      const { canSeeAll } = checkCustodyRoles(ctx.user);
 
-      // إذا كان الموظف عادياً (ليس من الإدارة العليا أو المالية) يرى فقط طلباته الخاصة
+      // إذا لم يكن super_admin أو المدير التنفيذي، يرى فقط طلباته الخاصة
       const conditions: any[] = [];
-      if (!isManagementOrFinance) {
+      if (!canSeeAll) {
         conditions.push(eq(custodyRequests.userId, ctx.user.id));
+      } else {
+        // للمدير التنفيذي والـ super_admin: تصفية حسب التبويب (طلباتي / طلبات الموظفين)
+        if (input?.scope === "my") {
+          conditions.push(eq(custodyRequests.userId, ctx.user.id));
+        } else if (input?.scope === "staff") {
+          conditions.push(sql`${custodyRequests.userId} != ${ctx.user.id}`);
+        }
       }
 
       if (input?.status) {
@@ -218,17 +232,9 @@ export const custodyRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "طلب العهدة غير موجود" });
       }
 
-      const userRole = ctx.user.role;
-      const isManagementOrFinance = [
-        "super_admin",
-        "system_admin",
-        "board_chairman",
-        "general_manager",
-        "executive_director",
-        "financial",
-      ].includes(userRole);
+      const { canSeeAll } = checkCustodyRoles(ctx.user);
 
-      if (!isManagementOrFinance && request.userId !== ctx.user.id) {
+      if (!canSeeAll && request.userId !== ctx.user.id) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض هذا الطلب" });
       }
 
@@ -256,37 +262,41 @@ export const custodyRouter = router({
     }),
 
   // إحصائيات سريعة للعهد المالية
-  getStats: protectedProcedure.query(async ({ ctx }) => {
-    const db = await getDb();
-    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+  getStats: protectedProcedure
+    .input(
+      z.object({
+        scope: z.enum(["my", "staff", "all"]).optional(),
+      }).optional()
+    )
+    .query(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-    const userRole = ctx.user.role;
-    const isManagementOrFinance = [
-      "super_admin",
-      "system_admin",
-      "board_chairman",
-      "general_manager",
-      "executive_director",
-      "financial",
-    ].includes(userRole);
+      const { canSeeAll } = checkCustodyRoles(ctx.user);
 
-    const conditions: any[] = [];
-    if (!isManagementOrFinance) {
-      conditions.push(eq(custodyRequests.userId, ctx.user.id));
-    }
+      const conditions: any[] = [];
+      if (!canSeeAll) {
+        conditions.push(eq(custodyRequests.userId, ctx.user.id));
+      } else if (input?.scope === "my") {
+        conditions.push(eq(custodyRequests.userId, ctx.user.id));
+      } else if (input?.scope === "staff") {
+        conditions.push(sql`${custodyRequests.userId} != ${ctx.user.id}`);
+      }
 
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const [stats] = await db
-      .select({
-        totalCount: sql<number>`COUNT(*)`,
-        pendingCount: sql<number>`SUM(CASE WHEN ${custodyRequests.status} = 'pending_executive' THEN 1 ELSE 0 END)`,
-        convertedCount: sql<number>`SUM(CASE WHEN ${custodyRequests.status} = 'converted_to_order' THEN 1 ELSE 0 END)`,
-        approvedCount: sql<number>`SUM(CASE WHEN ${custodyRequests.status} = 'approved' THEN 1 ELSE 0 END)`,
-        rejectedCount: sql<number>`SUM(CASE WHEN ${custodyRequests.status} = 'rejected' THEN 1 ELSE 0 END)`,
-        totalAmount: sql<number>`COALESCE(SUM(CAST(${custodyRequests.amount} AS DECIMAL(15,2))), 0)`,
-        convertedAmount: sql<number>`COALESCE(SUM(CASE WHEN ${custodyRequests.status} = 'converted_to_order' THEN CAST(${custodyRequests.amount} AS DECIMAL(15,2)) ELSE 0 END), 0)`,
-      })
+      const [stats] = await db
+        .select({
+          totalCount: sql<number>`COUNT(*)`,
+          pendingCount: sql<number>`SUM(CASE WHEN ${custodyRequests.status} = 'pending_executive' THEN 1 ELSE 0 END)`,
+          convertedCount: sql<number>`SUM(CASE WHEN ${custodyRequests.status} = 'converted_to_order' THEN 1 ELSE 0 END)`,
+          approvedCount: sql<number>`SUM(CASE WHEN ${custodyRequests.status} = 'approved' THEN 1 ELSE 0 END)`,
+          rejectedCount: sql<number>`SUM(CASE WHEN ${custodyRequests.status} = 'rejected' THEN 1 ELSE 0 END)`,
+          totalAmount: sql<number>`COALESCE(SUM(CAST(${custodyRequests.amount} AS DECIMAL(15,2))), 0)`,
+          convertedAmount: sql<number>`COALESCE(SUM(CASE WHEN ${custodyRequests.status} = 'converted_to_order' THEN CAST(${custodyRequests.amount} AS DECIMAL(15,2)) ELSE 0 END), 0)`,
+          myCount: sql<number>`SUM(CASE WHEN ${custodyRequests.userId} = ${ctx.user.id} THEN 1 ELSE 0 END)`,
+          staffCount: sql<number>`SUM(CASE WHEN ${custodyRequests.userId} != ${ctx.user.id} THEN 1 ELSE 0 END)`,
+        })
       .from(custodyRequests)
       .where(whereClause);
 
@@ -298,6 +308,8 @@ export const custodyRouter = router({
       rejectedCount: Number(stats?.rejectedCount || 0),
       totalAmount: Number(stats?.totalAmount || 0),
       convertedAmount: Number(stats?.convertedAmount || 0),
+      myCount: Number(stats?.myCount || 0),
+      staffCount: Number(stats?.staffCount || 0),
     };
   }),
 
@@ -398,19 +410,12 @@ export const custodyRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const userRole = ctx.user.role;
-      const canApprove = [
-        "super_admin",
-        "system_admin",
-        "board_chairman",
-        "general_manager",
-        "executive_director",
-      ].includes(userRole);
+      const { isExecutiveDirector, isSuperAdmin } = checkCustodyRoles(ctx.user);
 
-      if (!canApprove) {
+      if (!isExecutiveDirector && !isSuperAdmin) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "صلاحية اعتماد طلب العهدة المالية محصورة بالمدير التنفيذي والإدارة العليا",
+          message: "صلاحية اعتماد طلب العهدة المالية محصورة بالمدير التنفيذي فقط",
         });
       }
 
@@ -560,19 +565,12 @@ export const custodyRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const userRole = ctx.user.role;
-      const canReject = [
-        "super_admin",
-        "system_admin",
-        "board_chairman",
-        "general_manager",
-        "executive_director",
-      ].includes(userRole);
+      const { isExecutiveDirector, isSuperAdmin } = checkCustodyRoles(ctx.user);
 
-      if (!canReject) {
+      if (!isExecutiveDirector && !isSuperAdmin) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "صلاحية رفض طلب العهدة المالية محصورة بالمدير التنفيذي والإدارة العليا",
+          message: "صلاحية رفض طلب العهدة المالية محصورة بالمدير التنفيذي فقط",
         });
       }
 

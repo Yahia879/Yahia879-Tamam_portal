@@ -54,15 +54,16 @@ export default function CustodyRequestPrint() {
     request?.requestNumber ? `طلب صرف عهدة مالية رقم ${request.requestNumber}` : "طلب صرف عهدة مالية"
   );
 
+  // صلاحية الاعتماد محصورة بالمدير التنفيذي فقط
   const canApprove = useMemo(() => {
     if (!user) return false;
-    return [
-      "super_admin",
-      "system_admin",
-      "board_chairman",
-      "general_manager",
-      "executive_director",
-    ].includes(user.role);
+    return (
+      user.role === "executive_director" ||
+      user.role === "general_manager" ||
+      (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+      user.name === "المدير التنفيذي" ||
+      user.email === "ceo@manarah.org.sa"
+    );
   }, [user]);
 
   const approveMutation = trpc.custody.approve.useMutation({
