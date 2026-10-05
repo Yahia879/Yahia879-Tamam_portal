@@ -81,6 +81,10 @@ export default function FieldVisitSchedule() {
   // دالة تحويل التاريخ المحلي بأمان بدون إزاحة النطاق الزمني
   const toLocalDateString = (dateVal: any) => {
     if (!dateVal) return "";
+    if (typeof dateVal === "string") {
+      const match = dateVal.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+    }
     const d = new Date(dateVal);
     if (isNaN(d.getTime())) return "";
     const year = d.getFullYear();

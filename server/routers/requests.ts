@@ -1718,6 +1718,18 @@ export const requestsRouter = router({
 
       await db.update(mosqueRequests).set(updateData).where(eq(mosqueRequests.id, input.requestId));
 
+      // التأكد من أن الزيارة الميدانية تبدأ من خطوة تعيين المسؤول مع الحفاظ على البيانات السابقة معبأة عند الرجوع والدخول
+      if (input.newStage === 'field_visit') {
+        await db.update(fieldVisits).set({
+          scheduledAt: null,
+          reportSubmitted: false,
+          reportSubmittedAt: null,
+          reportSubmittedBy: null,
+          status: 'scheduled',
+          updatedAt: new Date(),
+        }).where(eq(fieldVisits.requestId, input.requestId));
+      }
+
       // تحديث تقدم المشروع المرتبط عند الانتقال للتقييم المالي
       if (input.newStage === 'financial_eval_and_approval') {
         const [project] = await db.select().from(projects).where(eq(projects.requestId, input.requestId)).limit(1);
@@ -4809,9 +4821,11 @@ export const requestsRouter = router({
           updatedAt: new Date(),
         }).where(eq(quickResponseReports.requestId, input.requestId));
       }
-      if (previousStage === 'field_visit') {
-        updateData.technicalEvalDecision = null;
-        updateData.technicalEvalJustification = null;
+      if (previousStage === 'field_visit' || currentStage === 'field_visit') {
+        if (previousStage === 'field_visit') {
+          updateData.technicalEvalDecision = null;
+          updateData.technicalEvalJustification = null;
+        }
 
         // إعادة حالة الزيارة الميدانية إلى خطوة تعيين المسؤول
         // مع الاحتفاظ بالبيانات السابقة (المسؤول، التاريخ، التقرير) حتى تظهر معبأة للمستخدم
