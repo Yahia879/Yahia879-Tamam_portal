@@ -75,7 +75,7 @@ export default function NewCustodyRequest() {
     e.preventDefault();
 
     if (!title.trim()) {
-      toast.error("يرجى إدخال موضوع أو غرض العهدة");
+      toast.error("يرجى إدخال عنوان العهدة المالية");
       return;
     }
 
@@ -145,48 +145,6 @@ export default function NewCustodyRequest() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* كرت بيانات مقدم الطلب (يُجلب تلقائياً) */}
-          <Card className="rounded-2xl border-border/70 shadow-xs bg-card overflow-hidden">
-            <div className="h-2 bg-gradient-to-r from-primary to-teal-500" />
-            <CardHeader className="p-4 sm:p-5 pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-primary" />
-                  <CardTitle className="text-sm font-bold text-foreground">بيانات الموظف مقدم الطلب</CardTitle>
-                </div>
-                <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-xs font-semibold">
-                  حسابك المسجل
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-5 pt-0">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-muted/30 p-3.5 rounded-xl border border-border/40 text-xs">
-                <div>
-                  <span className="text-muted-foreground block text-[11px] mb-0.5">اسم الموظف</span>
-                  <span className="font-bold text-foreground">{user?.name || "الموظف الحالي"}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block text-[11px] mb-0.5">رقم الجوال</span>
-                  <span className="font-semibold text-foreground font-mono" dir="ltr">{user?.phone || "-"}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block text-[11px] mb-0.5">التوقيع الرقمي المعتمد</span>
-                  {(user as any)?.signatureUrl ? (
-                    <span className="font-bold text-emerald-600 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      جاهز ومعتمد في ملفك
-                    </span>
-                  ) : (
-                    <Link href="/profile" className="text-amber-600 hover:underline flex items-center gap-1 font-semibold">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      إضافة توقيع في ملفك الشخصي
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* تفاصيل العهدة المالية والمبلغ */}
           <Card className="rounded-2xl border-border/70 shadow-xs bg-card">
             <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/40">
@@ -200,10 +158,10 @@ export default function NewCustodyRequest() {
             </CardHeader>
 
             <CardContent className="p-4 sm:p-5 space-y-4">
-              {/* عنوان / غرض العهدة */}
+              {/* عنوان العهدة */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-foreground">
-                  موضوع / غرض العهدة المالية <span className="text-rose-500">*</span>
+                  عنوان العهدة المالية <span className="text-rose-500">*</span>
                 </Label>
                 <Input
                   value={title}
