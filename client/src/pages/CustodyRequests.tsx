@@ -205,10 +205,14 @@ export default function CustodyRequests() {
               <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
                 <Wallet className="w-5 h-5" />
               </div>
-              <h1 className="text-2xl font-black text-foreground">العهد المالية</h1>
+              <h1 className="text-2xl font-black text-foreground">
+                {canSeeAll ? "العهد المالية" : "طلباتي للعهد المالية"}
+              </h1>
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              تقديم وإدارة طلبات صرف العهد المالية للمشاريع والمهام التشغيلية واعتمادها وتحويلها تلقائياً لأوامر صرف
+              {canSeeAll
+                ? "تقديم وإدارة طلبات صرف العهد المالية للمشاريع والمهام التشغيلية واعتمادها وتحويلها تلقائياً لأوامر صرف"
+                : "تقديم ومتابعة طلبات صرف العهد المالية الخاصة بك ومتابعة مراحل اعتمادها"}
             </p>
           </div>
 
@@ -265,7 +269,7 @@ export default function CustodyRequests() {
           <Card className="rounded-2xl border-border/70 shadow-xs bg-card hover:border-primary/40 transition-all">
             <CardHeader className="p-4 pb-2">
               <CardDescription className="text-xs font-bold text-muted-foreground flex items-center justify-between">
-                <span>إجمالي الطلبات</span>
+                <span>{canSeeAll ? "إجمالي الطلبات" : "إجمالي طلباتي"}</span>
                 <Wallet className="w-4 h-4 text-primary" />
               </CardDescription>
               <CardTitle className="text-2xl font-black text-foreground mt-1">
@@ -284,7 +288,7 @@ export default function CustodyRequests() {
           <Card className="rounded-2xl border-amber-200 dark:border-amber-900/40 shadow-xs bg-amber-50/30 dark:bg-amber-950/10">
             <CardHeader className="p-4 pb-2">
               <CardDescription className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center justify-between">
-                <span>قيد اعتماد المدير التنفيذي</span>
+                <span>{canSeeAll ? "قيد اعتماد المدير التنفيذي" : "طلباتي قيد الاعتماد"}</span>
                 <Clock className="w-4 h-4 text-amber-600" />
               </CardDescription>
               <CardTitle className="text-2xl font-black text-amber-800 dark:text-amber-300 mt-1">
@@ -293,7 +297,9 @@ export default function CustodyRequests() {
             </CardHeader>
             <CardContent className="p-4 pt-1">
               <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 font-medium">
-                بانتظار توقيع واعتماد الإدارة التنفيذية
+                {canSeeAll 
+                  ? "بانتظار توقيع واعتماد الإدارة التنفيذية"
+                  : "طلباتك بانتظار توقيع واعتماد المدير التنفيذي"}
               </p>
             </CardContent>
           </Card>
@@ -301,7 +307,7 @@ export default function CustodyRequests() {
           <Card className="rounded-2xl border-emerald-200 dark:border-emerald-900/40 shadow-xs bg-emerald-50/30 dark:bg-emerald-950/10">
             <CardHeader className="p-4 pb-2">
               <CardDescription className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center justify-between">
-                <span>تم التحويل لأمر صرف</span>
+                <span>{canSeeAll ? "تم التحويل لأمر صرف" : "طلباتي المعتمدة"}</span>
                 <CheckCircle className="w-4 h-4 text-emerald-600" />
               </CardDescription>
               <CardTitle className="text-2xl font-black text-emerald-800 dark:text-emerald-300 mt-1">
@@ -320,7 +326,7 @@ export default function CustodyRequests() {
           <Card className="rounded-2xl border-border/70 shadow-xs bg-card">
             <CardHeader className="p-4 pb-2">
               <CardDescription className="text-xs font-bold text-muted-foreground flex items-center justify-between">
-                <span>الطلبات المرفوضة</span>
+                <span>{canSeeAll ? "الطلبات المرفوضة" : "طلباتي المرفوضة"}</span>
                 <XCircle className="w-4 h-4 text-rose-500" />
               </CardDescription>
               <CardTitle className="text-2xl font-black text-foreground mt-1">
@@ -329,7 +335,7 @@ export default function CustodyRequests() {
             </CardHeader>
             <CardContent className="p-4 pt-1">
               <p className="text-[11px] text-muted-foreground font-medium">
-                طلبات معادة للموظف مع ذكر الأسباب
+                {canSeeAll ? "طلبات معادة للموظف مع ذكر الأسباب" : "طلبات لم يتم اعتمادها مع ذكر الأسباب"}
               </p>
             </CardContent>
           </Card>
@@ -381,7 +387,7 @@ export default function CustodyRequests() {
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="بحث برقم الطلب، الموضوع، أو الآيبان..."
+                  placeholder={canSeeAll ? "بحث برقم الطلب، الموضوع، أو الآيبان..." : "بحث في طلباتي برقم الطلب، العنوان، أو الآيبان..."}
                   className="pr-9 h-9 rounded-xl text-xs border-border/70 bg-background"
                 />
               </div>
@@ -405,7 +411,7 @@ export default function CustodyRequests() {
                   ? activeTab === "staff"
                     ? "قائمة بكافة طلبات العهد المقدمة من الموظفين للمراجعة والاعتماد"
                     : "قائمة بكافة طلبات العهد المالية التي قمت بتقديمها"
-                  : "قائمة بكافة طلبات العهد المالية التي قمت بتقديمها ومتابعة حالاتها"}
+                  : "قائمة بكافة طلبات صرف العهد المالية الخاصة بك ومتابعة مراحل اعتمادها"}
               </CardDescription>
             </div>
             <Badge variant="secondary" className="font-mono text-xs font-bold">
@@ -417,16 +423,22 @@ export default function CustodyRequests() {
             {isLoading ? (
               <div className="py-16 text-center">
                 <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground font-semibold">جاري تحميل سجل العهد المالية...</p>
+                <p className="text-xs text-muted-foreground font-semibold">
+                  {canSeeAll ? "جاري تحميل سجل العهد المالية..." : "جاري تحميل طلباتك..."}
+                </p>
               </div>
             ) : requests.length === 0 ? (
               <div className="py-16 text-center px-4">
                 <div className="w-14 h-14 rounded-2xl bg-muted/60 text-muted-foreground mx-auto flex items-center justify-center mb-3">
                   <Wallet className="w-7 h-7" />
                 </div>
-                <h3 className="text-sm font-bold text-foreground mb-1">لا توجد طلبات عهد مالية حتى الآن</h3>
+                <h3 className="text-sm font-bold text-foreground mb-1">
+                  {canSeeAll ? "لا توجد طلبات عهد مالية حتى الآن" : "لم تقم بتقديم أي طلبات عهد مالية حتى الآن"}
+                </h3>
                 <p className="text-xs text-muted-foreground max-w-sm mx-auto mb-4">
-                  يمكنك البدء بتقديم طلب صرف عهدة مالية جديدة للمشاريع أو المهام التشغيلية بضغطة زر
+                  {canSeeAll 
+                    ? "يمكنك البدء بتقديم طلب صرف عهدة مالية جديدة للمشاريع أو المهام التشغيلية بضغطة زر"
+                    : "يمكنك البدء بتقديم طلب صرف عهدة مالية جديدة ومتابعة مراحل اعتمادها بكل سهولة"}
                 </p>
                 <Button
                   onClick={() => setLocation("/custody-requests/new")}

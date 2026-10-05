@@ -64,7 +64,8 @@ export default function NewCustodyRequest() {
       toast.success(data.message);
       utils.custody.getAll.invalidate();
       utils.custody.getStats.invalidate();
-      setLocation(`/custody-requests/${data.id}`);
+      utils.custody.getPendingActionCounts.invalidate();
+      setLocation("/custody-requests");
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء رفع طلب العهدة المالية");

@@ -365,6 +365,7 @@ export const custodyRouter = router({
       approvedCount: Number(stats?.approvedCount || 0),
       rejectedCount: Number(stats?.rejectedCount || 0),
       totalAmount: Number(stats?.totalAmount || 0),
+      convertedAmount: Number(stats?.convertedAmount || 0),
       myCount: Number(globalCounts?.myAll || 0),
       staffCount: Number(globalCounts?.totalAll || 0),
     };
