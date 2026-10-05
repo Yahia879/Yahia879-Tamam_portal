@@ -189,6 +189,61 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
       console.warn("[Database] Could not update users.role enum (might already be up to date):", roleEnumErr);
     }
 
+    // أعمدة البيانات المصرفية للموظفين في جدول users
+    const [userCols] = await promisePool.query("SHOW COLUMNS FROM users") as any[];
+    const userColNames = Array.isArray(userCols) ? userCols.map((c: any) => c.Field) : [];
+    if (!userColNames.includes("bankName")) {
+      await promisePool.query("ALTER TABLE users ADD COLUMN bankName VARCHAR(255) DEFAULT NULL");
+    }
+    if (!userColNames.includes("bankAccountName")) {
+      await promisePool.query("ALTER TABLE users ADD COLUMN bankAccountName VARCHAR(255) DEFAULT NULL");
+    }
+    if (!userColNames.includes("bankIban")) {
+      await promisePool.query("ALTER TABLE users ADD COLUMN bankIban VARCHAR(50) DEFAULT NULL");
+    }
+
+    // جدول طلبات صرف العهد المالية
+    await promisePool.query(`
+      CREATE TABLE IF NOT EXISTS custody_requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        requestNumber VARCHAR(50) NOT NULL UNIQUE,
+        userId INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        amount DECIMAL(15,2) NOT NULL,
+        description TEXT NOT NULL,
+        isCustomBank TINYINT(1) NOT NULL DEFAULT 0,
+        bankName VARCHAR(255) NOT NULL,
+        bankAccountName VARCHAR(255) NOT NULL,
+        bankIban VARCHAR(50) NOT NULL,
+        applicantSignatureName VARCHAR(255) NULL,
+        applicantSignatureDepartment VARCHAR(255) NULL,
+        applicantSignatureUrl TEXT NULL,
+        status ENUM('pending_executive', 'approved', 'rejected', 'converted_to_order') NOT NULL DEFAULT 'pending_executive',
+        executiveApprovedBy INT NULL,
+        executiveApprovedAt DATETIME NULL,
+        executiveSignatureName VARCHAR(255) NULL,
+        executiveSignatureDepartment VARCHAR(255) NULL,
+        executiveSignatureUrl TEXT NULL,
+        executiveNotes TEXT NULL,
+        rejectedBy INT NULL,
+        rejectedAt DATETIME NULL,
+        rejectionReason TEXT NULL,
+        disbursementOrderId INT NULL,
+        disbursementOrderNumber VARCHAR(50) NULL,
+        attachmentsJson TEXT NULL,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_cr_user_id (userId),
+        INDEX idx_cr_status (status),
+        INDEX idx_cr_order_id (disbursementOrderId)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // عمود ربط أمر الصرف بطلب العهدة
+    if (!colNames.includes("custodyRequestId")) {
+      await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN custodyRequestId INT DEFAULT NULL");
+    }
+
     // ملاحظة: طلبات سدانة تُدار بشكل مستقل ولا يتم إنشاء مشاريع لها في جدول projects
   } catch (err) {
     console.warn("[Database] ensureSchemaUpdated warning:", err);

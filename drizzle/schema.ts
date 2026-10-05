@@ -151,6 +151,9 @@ export const users = mysqlTable("users", {
   signatureDepartment: text("signatureDepartment"),
   signatureUrl: text("signatureUrl"),
   showSignatureInDocuments: boolean("showSignatureInDocuments").default(true),
+  bankName: varchar("bankName", { length: 255 }),
+  bankAccountName: varchar("bankAccountName", { length: 255 }),
+  bankIban: varchar("bankIban", { length: 50 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -2244,4 +2247,63 @@ export const customCalendarEvents = mysqlTable("custom_calendar_events", {
 
 export type CustomCalendarEvent = typeof customCalendarEvents.$inferSelect;
 export type InsertCustomCalendarEvent = typeof customCalendarEvents.$inferInsert;
+
+// ==================== العهد المالية (طلبات صرف عهدة مالية) ====================
+export const custodyRequestStatuses = [
+  "pending_executive", // قيد اعتماد المدير التنفيذي
+  "approved",          // معتمد
+  "rejected",          // مرفوض
+  "converted_to_order" // تم التحويل لأمر صرف
+] as const;
+
+export const custodyRequests = mysqlTable("custody_requests", {
+  id: int("id").primaryKey().autoincrement(),
+  requestNumber: varchar("requestNumber", { length: 50 }).notNull().unique(), // e.g. CR-2026-0001
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  
+  // موضوع وبيانات الطلب
+  title: varchar("title", { length: 255 }).notNull(),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  description: text("description").notNull(), // البيان التفصيلي وأسباب الاحتياج
+  
+  // الحساب البنكي
+  isCustomBank: boolean("isCustomBank").default(false).notNull(),
+  bankName: varchar("bankName", { length: 255 }).notNull(),
+  bankAccountName: varchar("bankAccountName", { length: 255 }).notNull(),
+  bankIban: varchar("bankIban", { length: 50 }).notNull(),
+  
+  // توقيع الموظف مقدم الطلب
+  applicantSignatureName: varchar("applicantSignatureName", { length: 255 }),
+  applicantSignatureDepartment: varchar("applicantSignatureDepartment", { length: 255 }),
+  applicantSignatureUrl: text("applicantSignatureUrl"),
+  
+  // الحالة والاعتماد
+  status: mysqlEnum("status", custodyRequestStatuses).default("pending_executive").notNull(),
+  
+  // اعتماد المدير التنفيذي
+  executiveApprovedBy: int("executiveApprovedBy").references(() => users.id, { onDelete: "set null" }),
+  executiveApprovedAt: datetime("executiveApprovedAt"),
+  executiveSignatureName: varchar("executiveSignatureName", { length: 255 }),
+  executiveSignatureDepartment: varchar("executiveSignatureDepartment", { length: 255 }),
+  executiveSignatureUrl: text("executiveSignatureUrl"),
+  executiveNotes: text("executiveNotes"),
+  
+  // الرفض
+  rejectedBy: int("rejectedBy").references(() => users.id, { onDelete: "set null" }),
+  rejectedAt: datetime("rejectedAt"),
+  rejectionReason: text("rejectionReason"),
+  
+  // الربط بأمر الصرف
+  disbursementOrderId: int("disbursementOrderId").references(() => disbursementOrders.id, { onDelete: "set null" }),
+  disbursementOrderNumber: varchar("disbursementOrderNumber", { length: 50 }),
+  
+  // مرفقات اختيارية
+  attachmentsJson: text("attachmentsJson"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CustodyRequest = typeof custodyRequests.$inferSelect;
+export type InsertCustodyRequest = typeof custodyRequests.$inferInsert;
 

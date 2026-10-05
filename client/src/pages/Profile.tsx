@@ -28,6 +28,9 @@ import {
   PenTool,
   CheckCircle2,
   Save,
+  Landmark,
+  CreditCard,
+  Building2,
 } from "lucide-react";
 import { ROLE_LABELS } from "@shared/constants";
 import { toast } from "sonner";
@@ -85,6 +88,10 @@ export default function Profile() {
   const [showSignatureInDocuments, setShowSignatureInDocuments] = useState<boolean>(true);
   const [uploadingSignature, setUploadingSignature] = useState(false);
 
+  const [bankName, setBankName] = useState("");
+  const [bankAccountName, setBankAccountName] = useState("");
+  const [bankIban, setBankIban] = useState("");
+
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -102,6 +109,9 @@ export default function Profile() {
       setSignatureDepartment((user as any).signatureDepartment || "");
       setSignatureUrl((user as any).signatureUrl || null);
       setShowSignatureInDocuments((user as any).showSignatureInDocuments ?? true);
+      setBankName((user as any).bankName || "");
+      setBankAccountName((user as any).bankAccountName || user.name || "");
+      setBankIban((user as any).bankIban || "");
     }
   }, [user]);
 
@@ -268,6 +278,9 @@ export default function Profile() {
       signatureName: hasSignaturePermission ? signatureName : undefined,
       signatureDepartment: hasSignaturePermission ? signatureDepartment : undefined,
       showSignatureInDocuments: hasSignaturePermission ? showSignatureInDocuments : undefined,
+      bankName: bankName.trim(),
+      bankAccountName: bankAccountName.trim(),
+      bankIban: bankIban.trim().toUpperCase(),
     });
   };
 
@@ -586,6 +599,56 @@ export default function Profile() {
                 </div>
               </div>
             )}
+            {/* Bank Information Section (البيانات المصرفية للموظف) */}
+            <div className="pt-5 border-t border-border/50 space-y-4">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Landmark className="w-4 h-4 text-primary" />
+                {isEn ? "Bank Account Details" : "البيانات المصرفية للموظف"}
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs sm:text-sm font-semibold text-foreground flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-primary" />
+                    {isEn ? "Bank Name" : "اسم البنك / المصرف"}
+                  </Label>
+                  <Input 
+                    value={bankName} 
+                    onChange={(e) => setBankName(e.target.value)} 
+                    placeholder={isEn ? "e.g. Al Rajhi Bank" : "مثال: مصرف الراجحي"} 
+                    className="h-10 rounded-xl border-border/70 text-xs sm:text-sm bg-background" 
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs sm:text-sm font-semibold text-foreground flex items-center gap-1.5">
+                    <CreditCard className="w-3.5 h-3.5 text-primary" />
+                    {isEn ? "Account Holder Name" : "اسم صاحب الحساب المعتمد في البنك"}
+                  </Label>
+                  <Input 
+                    value={bankAccountName} 
+                    onChange={(e) => setBankAccountName(e.target.value)} 
+                    placeholder={isEn ? "Full Name as registered with bank" : "الاسم المعتمد في البنك"} 
+                    className="h-10 rounded-xl border-border/70 text-xs sm:text-sm bg-background" 
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs sm:text-sm font-semibold text-foreground flex items-center gap-1.5">
+                    <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded text-foreground font-bold">IBAN</span>
+                    {isEn ? "IBAN Number" : "رقم الآيبان (IBAN)"}
+                  </Label>
+                  <Input 
+                    value={bankIban} 
+                    onChange={(e) => setBankIban(e.target.value.toUpperCase())} 
+                    placeholder="SA0000000000000000000000" 
+                    dir="ltr"
+                    maxLength={34}
+                    className="h-10 rounded-xl border-border/70 text-xs sm:text-sm font-mono tracking-wider bg-background text-left" 
+                  />
+                </div>
+              </div>
+            </div>
 
             {/* Actions Bar */}
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t border-border/50">

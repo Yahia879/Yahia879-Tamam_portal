@@ -14,6 +14,7 @@ import { procurementRouter } from "./routers/procurement";
 import { categoriesRouter } from "./routers/categories";
 import { organizationRouter } from "./routers/organization";
 import { disbursementsRouter } from "./routers/disbursements";
+import { custodyRouter } from "./routers/custody";
 import { progressReportsRouter } from "./routers/progressReports";
 import { handoversRouter } from "./routers/handovers";
 import { stageSettingsRouter } from "./routers/stageSettings";
@@ -94,8 +95,9 @@ export const appRouter = router({
   // إعدادات الجمعية
   organization: organizationRouter,
   
-  // طلبات الصرف وأوامر الصرف
+  // طلبات الصرف وأوامر الصرف والعهد المالية
   disbursements: disbursementsRouter,
+  custody: custodyRouter,
   progressReports: progressReportsRouter,
   
   // نظام الاستلامات

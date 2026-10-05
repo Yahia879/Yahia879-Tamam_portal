@@ -170,6 +170,7 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
       { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
       { icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" },
       { icon: Coins, label: "سندات القبض", path: "/receipt-vouchers" },
+      { icon: Wallet, label: "العهد المالية", path: "/custody-requests" },
       { icon: BarChart3, label: "التقرير المالي", path: "/financial-report" },
     ];
     groups.push({
@@ -352,6 +353,9 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("disbursement_requests")) finItems.push({ icon: Banknote,  label: "طلبات الصرف",    path: "/disbursements" });
   if (has("disbursement_orders")) finItems.push({ icon: FileText,    label: "أوامر الصرف",    path: "/disbursement-orders" });
   if (has("receipt_vouchers") || has("receipt_vouchers.view") || has("receipt_vouchers.edit") || has("receipt_vouchers.exception_approve")) finItems.push({ icon: Coins, label: "سندات القبض", path: "/receipt-vouchers" });
+  if (role !== "service_requester") {
+    finItems.push({ icon: Wallet, label: "العهد المالية", path: "/custody-requests" });
+  }
   if (has("financial_report") || has("financial_reports.view") || has("financial_reports.export") || has("financial_reports")) {
     finItems.push({ icon: BarChart3,   label: "التقرير المالي", path: "/financial-report" });
   }

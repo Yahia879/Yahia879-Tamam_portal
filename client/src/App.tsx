@@ -127,6 +127,9 @@ import DisbursementRequestPrint from "./pages/DisbursementRequestPrint";
 import ReceiptVoucherPrint from "./pages/ReceiptVoucherPrint";
 import ReceiptVouchers from "./pages/ReceiptVouchers";
 import NewReceiptVoucherPage from "./pages/NewReceiptVoucherPage";
+import CustodyRequests from "./pages/CustodyRequests";
+import NewCustodyRequest from "./pages/NewCustodyRequest";
+import CustodyRequestPrint from "./pages/CustodyRequestPrint";
 import ProgressReports from "./pages/ProgressReports";
 import ProgressReportPrint from "./pages/ProgressReportPrint";
 import FieldVisitReportPrint from "./pages/FieldVisitReportPrint";
@@ -453,6 +456,12 @@ function Router() {
       <Route path="/receipt-vouchers/new">{() => <AdminRoute component={NewReceiptVoucherPage} />}</Route>
       <Route path="/receipt-vouchers/:id/print">{() => <AdminRoute component={ReceiptVoucherPrint} />}</Route>
       <Route path="/receipt-vouchers/:id">{() => <AdminRoute component={ReceiptVoucherPrint} />}</Route>
+      
+      {/* العهد المالية - طلبات صرف عهدة مالية */}
+      <Route path="/custody-requests">{() => <AdminRoute component={CustodyRequests} />}</Route>
+      <Route path="/custody-requests/new">{() => <AdminRoute component={NewCustodyRequest} />}</Route>
+      <Route path="/custody-requests/:id/print">{() => <AdminRoute component={CustodyRequestPrint} />}</Route>
+      <Route path="/custody-requests/:id">{() => <AdminRoute component={CustodyRequestPrint} />}</Route>
       
       {/* تقارير الإنجاز - إدارية */}
       <Route path="/progress-reports">{() => <AdminRoute component={ProgressReports} />}</Route>
