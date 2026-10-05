@@ -24,14 +24,14 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
     "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
     "contracts", "purchase_orders", "csr_letters", "sedana_warehouse", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
-    "progress_reports", "financial_report", "reports", "staff_management", "settings_center",
+    "progress_reports", "financial_report", "reports", "staff_management", "settings_center", "custody_requests",
   ],
 
   executive_director: [
     "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
     "contracts", "purchase_orders", "csr_letters", "sedana_warehouse", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
-    "progress_reports", "financial_report", "reports", "staff_management", "settings_center",
+    "progress_reports", "financial_report", "reports", "staff_management", "settings_center", "custody_requests",
   ],
 
   projects_office: [
@@ -39,53 +39,53 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
     "projects", "service_requester_accounts",
     "suppliers", "quotations", "financial_approval", "contracts", "purchase_orders", "csr_letters", "sedana_warehouse",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers",
-    "progress_reports", "financial_report", "reports",
+    "progress_reports", "financial_report", "reports", "custody_requests",
   ],
 
   field_team: [
-    "dashboard", "requests", "appointments_calendar",
+    "dashboard", "requests", "appointments_calendar", "custody_requests",
   ],
 
   quick_response: [
-    "dashboard", "requests",
+    "dashboard", "requests", "custody_requests",
   ],
 
   financial: [
     "dashboard", "suppliers", "quotations", "financial_approval",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers", "financial_report",
     "contracts", "sedana_warehouse",
-    "orders_and_letters", "orders_and_letters.view",
+    "orders_and_letters", "orders_and_letters.view", "custody_requests",
   ],
 
   financial_manager: [
     "dashboard", "suppliers", "quotations", "financial_approval",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers", "financial_report",
-    "contracts", "purchase_orders", "csr_letters", "sedana_warehouse", "requests",
+    "contracts", "purchase_orders", "csr_letters", "sedana_warehouse", "requests", "custody_requests",
   ],
 
   project_manager: [
-    "dashboard", "projects", "progress_reports", "requests", "contracts", "purchase_orders", "csr_letters", "sedana_warehouse", "disbursement_requests", "receipt_vouchers"
+    "dashboard", "projects", "progress_reports", "requests", "contracts", "purchase_orders", "csr_letters", "sedana_warehouse", "disbursement_requests", "receipt_vouchers", "custody_requests",
   ],
 
   corporate_comm: [
-    "dashboard", "requests", "settings_center",
+    "dashboard", "requests", "settings_center", "custody_requests",
   ],
 
   board_chairman: [
     "dashboard", "board_chairman", "mosques", "mosques_map", "requests", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
     "contracts", "receipt_vouchers",
-    "progress_reports", "financial_report", "reports",
+    "progress_reports", "financial_report", "reports", "custody_requests",
   ],
 
   board_member: [
-    "dashboard", "board_member", "financial_report", "reports", "mosques", "requests", "projects",
+    "dashboard", "board_member", "financial_report", "reports", "mosques", "requests", "projects", "custody_requests",
   ],
 
   service_requester: [], // طالب الخدمة لا يملك صلاحيات إدارية
 
   procurement_officer: [
-    "quotations", "quotations.view", "quotations.add"
+    "quotations", "quotations.view", "quotations.add", "custody_requests",
   ],
 };
 
@@ -172,7 +172,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/sedana-warehouse/outbound/new": ["sedana_warehouse.outbound", "sedana_warehouse"],
   "/sedana-execution": ["sedana_warehouse.view", "sedana_warehouse"],
 
-  // ── طلبات وأوامر الصرف وسندات القبض ──
+  // ── طلبات وأوامر الصرف وسندات القبض والعهد المالية ──
   "/financial-dashboard": ["disbursement_requests", "financial_report"],
   "/disbursements": "disbursement_requests",
   "/disbursement-requests": "disbursement_requests",
@@ -180,6 +180,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/disbursement-orders/new-direct": "disbursement_orders",
   "/receipt-vouchers": ["receipt_vouchers", "receipt_vouchers.view", "receipt_vouchers.edit", "receipt_vouchers.exception_approve"],
   "/receipt-vouchers/new": ["receipt_vouchers", "receipt_vouchers.edit"],
+  "/custody-requests": ["custody_requests", "disbursement_requests", "dashboard"],
+  "/custody-requests/new": ["custody_requests", "disbursement_requests", "dashboard"],
 
   // ── تقارير الإنجاز والمشاريع ──
   "/progress-reports": ["progress_reports", "progress_reports.view"],
@@ -334,6 +336,10 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/disbursements\/orders\/new\/\d+$/, permission: "disbursement_orders" },
   { pattern: /^\/disbursements\/orders\/\d+\/print$/, permission: ["disbursement_orders", "disbursement_orders.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
 
+  // العهد المالية
+  { pattern: /^\/custody-requests\/[^/]+$/, permission: ["custody_requests", "disbursement_requests", "dashboard"] },
+  { pattern: /^\/custody-requests\/[^/]+\/print$/, permission: ["custody_requests", "disbursement_requests", "dashboard"] },
+
   // معاينة وطباعة أمر الشراء
   { pattern: /^\/requests\/\d+\/purchase-order$/, permission: ["purchase_orders.view", "purchase_orders", "orders_and_letters.view", "orders_and_letters"] },
   { pattern: /^\/requests\/\d+\/sedana-po$/, permission: ["purchase_orders.view", "purchase_orders", "orders_and_letters.view", "orders_and_letters"] },
@@ -479,6 +485,14 @@ export function hasRouteAccess(
 
   // السماح بالوصول للصفحة الرئيسية لجميع الموظفين والمستخدمين الإداريين (غير طالبي الخدمة)
   if (pathname === "/dashboard" || pathname === "/dashboard/") {
+    return userRole !== "service_requester";
+  }
+
+  // السماح بمسارات العهد المالية لجميع موظفي النظام باستثناء طالب الخدمة
+  const isCustodyRoute =
+    pathname === "/custody-requests" ||
+    pathname.startsWith("/custody-requests/");
+  if (isCustodyRoute) {
     return userRole !== "service_requester";
   }
 
