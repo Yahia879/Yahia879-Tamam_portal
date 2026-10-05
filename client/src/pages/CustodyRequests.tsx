@@ -435,9 +435,8 @@ export default function CustodyRequests() {
                     <TableRow>
                       <TableHead className="text-right font-bold text-xs py-3.5">رقم الطلب</TableHead>
                       <TableHead className="text-right font-bold text-xs py-3.5">الموظف مقدم الطلب</TableHead>
-                      <TableHead className="text-right font-bold text-xs py-3.5">الموضوع والغرض</TableHead>
+                      <TableHead className="text-right font-bold text-xs py-3.5">عنوان العهدة</TableHead>
                       <TableHead className="text-right font-bold text-xs py-3.5">المبلغ المطلوب</TableHead>
-                      <TableHead className="text-right font-bold text-xs py-3.5">الحساب المصرفي</TableHead>
                       <TableHead className="text-right font-bold text-xs py-3.5">تاريخ التقديم</TableHead>
                       <TableHead className="text-right font-bold text-xs py-3.5">الحالة</TableHead>
                       <TableHead className="text-center font-bold text-xs py-3.5">الإجراءات</TableHead>
@@ -459,23 +458,15 @@ export default function CustodyRequests() {
                         </TableCell>
 
                         <TableCell>
-                          <div className="space-y-0.5">
-                            <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                              <User className="w-3.5 h-3.5 text-muted-foreground" />
-                              {req.applicantName || "موظف"}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground font-mono" dir="ltr">
-                              {req.applicantPhone || "-"}
-                            </p>
-                          </div>
+                          <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <span>{req.applicantName || "موظف"}</span>
+                          </p>
                         </TableCell>
 
                         <TableCell className="max-w-xs">
-                          <p className="text-xs font-bold text-foreground line-clamp-1" title={req.title}>
+                          <p className="text-xs font-bold text-foreground line-clamp-2" title={req.title}>
                             {req.title}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground line-clamp-1" title={req.description}>
-                            {req.description}
                           </p>
                         </TableCell>
 
@@ -486,25 +477,11 @@ export default function CustodyRequests() {
                           </div>
                         </TableCell>
 
-                        <TableCell>
-                          <div className="space-y-0.5 text-xs">
-                            <p className="font-semibold text-foreground flex items-center gap-1">
-                              <Landmark className="w-3 h-3 text-primary" />
-                              {req.bankName}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground font-mono" dir="ltr">
-                              {req.bankIban}
-                            </p>
-                            {req.isCustomBank && (
-                              <Badge variant="outline" className="text-[9px] bg-amber-50 text-amber-700 border-amber-300 py-0 px-1">
-                                حساب بنكي مخصص
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-
-                        <TableCell className="text-xs text-muted-foreground font-medium">
-                          {req.createdAt ? new Date(req.createdAt).toLocaleDateString("ar-SA") : "-"}
+                        <TableCell className="text-xs text-muted-foreground font-mono font-medium">
+                          {req.createdAt ? (() => {
+                            const d = new Date(req.createdAt);
+                            return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+                          })() : "-"}
                         </TableCell>
 
                         <TableCell>{getStatusBadge(req.status)}</TableCell>
