@@ -3408,47 +3408,19 @@ export default function RequestDetailsNew() {
           color="indigo"
           icon={<FileText className="w-6 h-6" />}
           extraFooterActions={
-            <div className="flex items-center gap-2 flex-wrap">
-              {(isAdmin || isManagementUser || isFieldTeam || userPermissions.includes("requests.manage_as_field_team")) && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-indigo-300 text-indigo-700 hover:bg-indigo-50 font-bold gap-1.5 shadow-2xs text-xs cursor-pointer"
-                  onClick={() => {
-                    handleOpenRescheduleModal();
-                  }}
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                  تحديد مسؤول آخر / تعديل الموعد
-                </Button>
-              )}
-              {(isAdmin || isManagementUser || userPermissions.includes("requests.manage_as_field_team")) && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 font-bold gap-1.5 shadow-2xs text-xs cursor-pointer"
-                  onClick={() => {
-                    setShowDeleteReportConfirm(true);
-                  }}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  حذف التقرير
-                </Button>
-              )}
-              <Button
-                size="sm"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-2 shadow-xs text-xs cursor-pointer"
-                onClick={() => setLocation(`/requests/${request.id}/field-visit-report/print`)}
-              >
-                <Printer className="w-3.5 h-3.5" />
-                طباعة التقرير
-              </Button>
-            </div>
+            <Button
+              size="sm"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-2 shadow-xs text-xs cursor-pointer"
+              onClick={() => setLocation(`/requests/${request.id}/field-visit-report/print`)}
+            >
+              <Printer className="w-3.5 h-3.5" />
+              طباعة التقرير
+            </Button>
           }
         >
           <div className="space-y-6 px-1">
             {/* شريط الإجراءات والطباعة داخل المودال */}
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-indigo-50/70 dark:bg-indigo-950/40 p-3 rounded-xl border border-indigo-200/70 dark:border-indigo-900/60 print:hidden" style={{ direction: "rtl" }}>
+            <div className="flex items-center justify-between bg-indigo-50/70 dark:bg-indigo-950/40 p-3 rounded-xl border border-indigo-200/70 dark:border-indigo-900/60 print:hidden" style={{ direction: "rtl" }}>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-indigo-950 dark:text-indigo-200">
                   رقم الطلب: <span className="font-mono text-indigo-700 dark:text-indigo-300 font-bold">{request.requestNumber || `#${request.id}`}</span>
@@ -3459,44 +3431,14 @@ export default function RequestDetailsNew() {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                {(isAdmin || isManagementUser || isFieldTeam || userPermissions.includes("requests.manage_as_field_team")) && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-indigo-300 bg-white text-indigo-700 hover:bg-indigo-50 font-bold gap-1.5 shadow-2xs text-xs cursor-pointer"
-                    onClick={() => {
-                      handleOpenRescheduleModal();
-                    }}
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                    تحديد مسؤول آخر / تعديل الموعد
-                  </Button>
-                )}
-
-                {(isAdmin || isManagementUser || userPermissions.includes("requests.manage_as_field_team")) && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-red-200 bg-white text-red-600 hover:bg-red-50 hover:text-red-700 font-bold gap-1.5 shadow-2xs text-xs cursor-pointer"
-                    onClick={() => {
-                      setShowDeleteReportConfirm(true);
-                    }}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    حذف التقرير
-                  </Button>
-                )}
-
-                <Button
-                  size="sm"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-2 shadow-xs text-xs cursor-pointer"
-                  onClick={() => setLocation(`/requests/${request.id}/field-visit-report/print`)}
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  طباعة التقرير
-                </Button>
-              </div>
+              <Button
+                size="sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-2 shadow-xs text-xs cursor-pointer"
+                onClick={() => setLocation(`/requests/${request.id}/field-visit-report/print`)}
+              >
+                <Printer className="w-3.5 h-3.5" />
+                طباعة التقرير
+              </Button>
             </div>
             {request.fieldReports.map((report: any) => {
               const conditionLabels: Record<string, string> = {
