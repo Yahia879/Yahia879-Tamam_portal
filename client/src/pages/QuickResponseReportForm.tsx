@@ -224,6 +224,27 @@ export default function QuickResponseReportForm() {
     }
   }, [authLoading, isAuthenticated, navigate, t.loginRequired]);
 
+  const [reportPrefilled, setReportPrefilled] = useState(false);
+
+  // ملء بيانات تقرير الاستجابة السريعة السابقة (إن وجد) تلقائياً للتعديل
+  useEffect(() => {
+    if (requestData?.quickReports && requestData.quickReports.length > 0 && !reportPrefilled) {
+      const report = requestData.quickReports[0];
+      setFormData({
+        technicalEvaluation: report.technicalEvaluation || report.issueDescription || "",
+        finalEvaluation: report.finalEvaluation || report.actionsTaken || "",
+        unexecutedWorks: report.unexecutedWorks || "",
+        technicianName: report.technicianName || "",
+        issueDescription: report.issueDescription || "",
+        actionsTaken: report.actionsTaken || "",
+        resolved: Boolean(report.resolved),
+        requiresProject: Boolean(report.requiresProject),
+        status: report.status || (report.resolved ? "fully_solved" : (report.requiresProject ? "partially_solved" : "not_solved")),
+      });
+      setReportPrefilled(true);
+    }
+  }, [requestData, reportPrefilled]);
+
   // ملء اسم الفني المختص تلقائياً من بيانات الطلب
   useEffect(() => {
     if (requestData && !requestLoading && !formData.technicianName) {

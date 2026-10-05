@@ -2941,20 +2941,43 @@ export const requestsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      await db.insert(quickResponseReports).values({
-        requestId: input.requestId,
-        respondedBy: ctx.user.id,
-        responseDate: new Date(input.responseDate),
-        technicalEvaluation: input.technicalEvaluation || null,
-        finalEvaluation: input.finalEvaluation || null,
-        unexecutedWorks: input.unexecutedWorks || null,
-        technicianName: input.technicianName || null,
-        issueDescription: input.issueDescription,
-        actionsTaken: input.actionsTaken,
-        resolved: input.resolved,
-        requiresProject: input.requiresProject,
-        status: input.status || null,
-      });
+      const existingReport = await db
+        .select({ id: quickResponseReports.id })
+        .from(quickResponseReports)
+        .where(eq(quickResponseReports.requestId, input.requestId))
+        .limit(1);
+
+      if (existingReport.length > 0) {
+        await db.update(quickResponseReports).set({
+          respondedBy: ctx.user.id,
+          responseDate: new Date(input.responseDate),
+          technicalEvaluation: input.technicalEvaluation || null,
+          finalEvaluation: input.finalEvaluation || null,
+          unexecutedWorks: input.unexecutedWorks || null,
+          technicianName: input.technicianName || null,
+          issueDescription: input.issueDescription,
+          actionsTaken: input.actionsTaken,
+          resolved: input.resolved,
+          requiresProject: input.requiresProject,
+          status: input.status || null,
+          updatedAt: new Date(),
+        }).where(eq(quickResponseReports.id, existingReport[0].id));
+      } else {
+        await db.insert(quickResponseReports).values({
+          requestId: input.requestId,
+          respondedBy: ctx.user.id,
+          responseDate: new Date(input.responseDate),
+          technicalEvaluation: input.technicalEvaluation || null,
+          finalEvaluation: input.finalEvaluation || null,
+          unexecutedWorks: input.unexecutedWorks || null,
+          technicianName: input.technicianName || null,
+          issueDescription: input.issueDescription,
+          actionsTaken: input.actionsTaken,
+          resolved: input.resolved,
+          requiresProject: input.requiresProject,
+          status: input.status || null,
+        });
+      }
 
       // تم إلغاء الإغلاق التلقائي للطلب عند حفظ التقرير بناء على طلب المستخدم
       /*
@@ -4742,7 +4765,17 @@ export const requestsRouter = router({
         .orderBy(desc(requestHistory.createdAt))
         .limit(1);
 
-      if (history.length > 0 && history[0].fromStage) {
+      let isRevertingToQuickResponse = false;
+      // التحقق من حالة التحويل إلى مشروع من مرحلة الاستجابة السريعة (execution)
+      if (
+        currentStage === 'boq_preparation' &&
+        history.length > 0 &&
+        history[0].fromStage === 'execution' &&
+        history[0].action === 'technical_eval_convert_to_project'
+      ) {
+        previousStage = 'execution';
+        isRevertingToQuickResponse = true;
+      } else if (history.length > 0 && history[0].fromStage) {
         const fromIndex = workflow.findIndex((s) => s.id === history[0].fromStage);
         if (fromIndex !== -1 && fromIndex < currentIndex) {
           previousStage = history[0].fromStage as any;
@@ -4754,6 +4787,10 @@ export const requestsRouter = router({
         currentStage: previousStage as any,
         status: 'in_progress',
       };
+      if (isRevertingToQuickResponse) {
+        updateData.requestTrack = 'quick_response';
+        updateData.technicalEvalDecision = 'quick_response';
+      }
       if (previousStage === 'field_visit') {
         updateData.technicalEvalDecision = null;
         updateData.technicalEvalJustification = null;
@@ -4772,7 +4809,7 @@ export const requestsRouter = router({
       await db.update(mosqueRequests).set(updateData).where(eq(mosqueRequests.id, input.requestId));
 
       // إضافة سجل في تاريخ الطلب
-      const prevStageName = STAGE_LABELS[previousStage] || previousStage;
+      const prevStageName = isRevertingToQuickResponse ? "تقرير الاستجابة السريعة" : (STAGE_LABELS[previousStage] || previousStage);
       const currStageName = STAGE_LABELS[currentStage] || currentStage;
       await db.insert(requestHistory).values({
         requestId: input.requestId,

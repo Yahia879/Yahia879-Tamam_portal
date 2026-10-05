@@ -3201,14 +3201,30 @@ export default function RequestDetailsNew() {
           color="purple"
           icon={<Zap className="w-6 h-6" />}
           extraFooterActions={
-            <Button
-              size="sm"
-              className="bg-purple-600 hover:bg-purple-700 text-white font-bold gap-2 shadow-xs text-xs cursor-pointer"
-              onClick={() => setLocation(`/requests/${request.id}/quick-response-report/print`)}
-            >
-              <Printer className="w-3.5 h-3.5" />
-              {isEn ? "Print Report" : "طباعة التقرير"}
-            </Button>
+            <div className="flex items-center gap-2">
+              {(isAdmin || isManagementUser || userPermissions.includes("requests.manage_as_quick_response") || user?.role === 'quick_response') && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50 font-bold gap-1.5 shadow-2xs text-xs cursor-pointer"
+                  onClick={() => {
+                    setQuickResponseReportOpen(false);
+                    setLocation(`/requests/${request.id}/quick-response`);
+                  }}
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  {isEn ? "Edit Report" : "تعديل التقرير"}
+                </Button>
+              )}
+              <Button
+                size="sm"
+                className="bg-purple-600 hover:bg-purple-700 text-white font-bold gap-2 shadow-xs text-xs cursor-pointer"
+                onClick={() => setLocation(`/requests/${request.id}/quick-response-report/print`)}
+              >
+                <Printer className="w-3.5 h-3.5" />
+                {isEn ? "Print Report" : "طباعة التقرير"}
+              </Button>
+            </div>
           }
         >
           <div className="space-y-4">
@@ -3227,14 +3243,30 @@ export default function RequestDetailsNew() {
                   </span>
                 )}
               </div>
-              <Button
-                size="sm"
-                className="bg-purple-600 hover:bg-purple-700 text-white font-bold gap-2 shadow-xs text-xs cursor-pointer"
-                onClick={() => setLocation(`/requests/${request.id}/quick-response-report/print`)}
-              >
-                <Printer className="w-3.5 h-3.5" />
-                {isEn ? "Print Report" : "طباعة التقرير"}
-              </Button>
+              <div className="flex items-center gap-2">
+                {(isAdmin || isManagementUser || userPermissions.includes("requests.manage_as_quick_response") || user?.role === 'quick_response') && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-purple-300 bg-white dark:bg-slate-900 text-purple-700 hover:bg-purple-50 font-bold gap-1.5 shadow-2xs text-xs cursor-pointer"
+                    onClick={() => {
+                      setQuickResponseReportOpen(false);
+                      setLocation(`/requests/${request.id}/quick-response`);
+                    }}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    {isEn ? "Edit Report" : "تعديل التقرير"}
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold gap-2 shadow-xs text-xs cursor-pointer"
+                  onClick={() => setLocation(`/requests/${request.id}/quick-response-report/print`)}
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  {isEn ? "Print Report" : "طباعة التقرير"}
+                </Button>
+              </div>
             </div>
             {request.quickReports.map((report: any) => {
               const evaluationLabels: Record<string, string> = {
