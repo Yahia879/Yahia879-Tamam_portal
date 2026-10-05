@@ -40,6 +40,7 @@ import {
   ExternalLink,
   Plus,
   Lock,
+  Clock,
 } from "lucide-react";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -54,18 +55,27 @@ export default function OrdersAndLettersReview() {
   const { user } = useAuth();
   const utils = trpc.useUtils();
 
-  const isSuperAdmin = user?.role === "super_admin" || user?.role === "system_admin";
+  const isSuperAdmin =
+    user?.role === "super_admin" ||
+    user?.role === "system_admin" ||
+    user?.role === "admin";
+
   const isFinancialOfficer =
     isSuperAdmin ||
     user?.role === "financial" ||
     user?.role === "financial_manager" ||
-    user?.email?.toLowerCase().trim() === "solayani@manarah.org.sa";
+    user?.role === "accountant" ||
+    user?.email?.toLowerCase().trim() === "solayani@manarah.org.sa" ||
+    (user as any)?.customRole?.nameAr?.includes("مالي") ||
+    (user as any)?.customRole?.name?.toLowerCase().includes("financial");
 
   const isExecutiveDirector =
     isSuperAdmin ||
     user?.role === "general_manager" ||
     user?.role === "executive_director" ||
-    user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa";
+    user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa" ||
+    (user as any)?.customRole?.nameAr?.includes("تنفيذي") ||
+    (user as any)?.customRole?.name?.toLowerCase().includes("executive");
 
   // قراءة المعاملات من الرابط (Query Parameters)
   const getUrlParams = () => {
@@ -679,8 +689,8 @@ export default function OrdersAndLettersReview() {
 
               {/* تبويب أوامر الصرف المرتبطة بالطلب واعتمادها كمسؤول مالي */}
               <TabsContent value="disbursement_orders" className="space-y-5 mt-0 focus-visible:outline-none">
-                <div className="bg-card rounded-xl border border-border/80 shadow-2xs p-4 sm:p-5 space-y-4">
-                  {/* شريط الإجراءات والترويسة لأوامر الصرف */}
+                <div className="bg-card rounded-xl border border-border/80 shadow-2xs p-4 sm:p-5 space-y-5">
+                  {/* شريط الإجراءات والترويسة لأوامر الصرف - بدون أي زر لإنشاء أمر صرف مباشر */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
                     <div className="flex items-center gap-2.5">
                       <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/60">
@@ -691,36 +701,46 @@ export default function OrdersAndLettersReview() {
                           أوامر الصرف المرتبطة بالطلب #{selectedRequestId}
                         </h3>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          مراجعة واعتماد أوامر الصرف المباشرة المنبثقة عن أوامر شراء هذا الطلب
+                          متابعة حالة أوامر الصرف الناتجة عن أوامر الشراء المعتمدة لهذا الطلب واعتمادها كمسؤول مالي
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => navigate(`/disbursement-orders/new-direct?requestId=${selectedRequestId}`)}
-                        className="h-8 text-xs font-bold gap-1.5 bg-amber-600 hover:bg-amber-700 text-white shadow-2xs"
+                      <Badge
+                        variant="secondary"
+                        className="text-xs font-bold px-3 py-1 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
                       >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>إنشاء أمر صرف مباشر</span>
+                        {linkedDisbursementOrders.length} {linkedDisbursementOrders.length === 1 ? "أمر صرف مرتبط" : "أوامر صرف مرتبطة"}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => refetchDisbursements()}
+                        className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground font-medium"
+                        title="تحديث أوامر الصرف"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isDisbLoading ? "animate-spin" : ""}`} />
+                        <span>تحديث</span>
                       </Button>
                     </div>
                   </div>
 
-                  {/* جدول أوامر الصرف */}
+                  {/* محتوى أوامر الصرف */}
                   {isDisbLoading ? (
                     <div className="py-12 text-center space-y-2">
                       <RefreshCw className="w-6 h-6 mx-auto animate-spin text-primary" />
                       <p className="text-xs text-muted-foreground">جاري تحميل أوامر الصرف المرتبطة بالطلب...</p>
                     </div>
                   ) : linkedDisbursementOrders.length === 0 ? (
-                    <div className="py-12 text-center space-y-3 bg-muted/20 rounded-xl border border-dashed border-border/80">
-                      <Coins className="w-10 h-10 mx-auto text-muted-foreground/50" />
-                      <div className="space-y-1">
+                    <div className="py-12 text-center space-y-3 bg-muted/20 rounded-xl border border-dashed border-border/80 p-6">
+                      <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center mx-auto border border-amber-200 dark:border-amber-900/60">
+                        <Coins className="w-6 h-6" />
+                      </div>
+                      <div className="space-y-1.5">
                         <h4 className="text-sm font-bold text-foreground">لا توجد أوامر صرف منشأة لهذا الطلب بعد</h4>
-                        <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                          يمكنك تحويل أي أمر شراء معتمد إلى أمر صرف مباشرة بالضغط على زر «تحويل لأمر صرف» في تبويب أوامر الشراء، أو إنشاء أمر صرف جديد.
+                        <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
+                          يتم إنشاء أوامر الصرف حصراً بتحويل أمر شراء معتمد بالضغط على زر «تحويل لأمر صرف» من تبويب أوامر الشراء.
                         </p>
                       </div>
                       <div className="flex items-center justify-center gap-2 pt-2">
@@ -729,171 +749,365 @@ export default function OrdersAndLettersReview() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleTabChange("purchase_orders")}
-                            className="text-xs font-bold gap-1.5"
+                            className="text-xs font-bold gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
                           >
                             <ShoppingCart className="w-3.5 h-3.5" />
-                            <span>الذهاب لأوامر الشراء</span>
+                            <span>الذهاب لتبويب أوامر الشراء</span>
                           </Button>
                         )}
-                        <Button
-                          size="sm"
-                          onClick={() => navigate(`/disbursement-orders/new-direct?requestId=${selectedRequestId}`)}
-                          className="text-xs font-bold gap-1.5 bg-amber-600 hover:bg-amber-700 text-white"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>إنشاء أمر صرف جديد</span>
-                        </Button>
                       </div>
                     </div>
                   ) : (
-                    <div className="border border-border/80 rounded-xl overflow-hidden shadow-2xs">
-                      <Table>
-                        <TableHeader className="bg-muted/50">
-                          <TableRow className="hover:bg-muted/50">
-                            <TableHead className="text-right text-xs py-3 w-[140px]">رقم أمر الصرف</TableHead>
-                            <TableHead className="text-right text-xs py-3 w-[150px]">أمر الشراء المرتبط</TableHead>
-                            <TableHead className="text-right text-xs py-3">المستفيد / المورد</TableHead>
-                            <TableHead className="text-right text-xs py-3 w-[120px]">المبلغ</TableHead>
-                            <TableHead className="text-center text-xs py-3 w-[180px]">حالة الاعتماد</TableHead>
-                            <TableHead className="text-right text-xs py-3 w-[110px]">تاريخ الإنشاء</TableHead>
-                            <TableHead className="text-center text-xs py-3 w-[190px]">الإجراءات</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {linkedDisbursementOrders.map((order: any) => {
-                            const statusInfo = getDisbursementStatusInfo(order.status);
-                            const canFinancialApprove =
-                              isFinancialOfficer &&
-                              (order.status === "pending" || order.status === "draft" || order.status === "edited");
-                            const canExecutiveApprove =
-                              isExecutiveDirector && order.status === "pending_executive";
+                    <div className="space-y-4">
+                      {linkedDisbursementOrders.map((order: any) => {
+                        const statusInfo = getDisbursementStatusInfo(order.status);
+                        const canFinancialApprove =
+                          isFinancialOfficer &&
+                          (order.status === "pending" || order.status === "draft" || order.status === "edited");
+                        const canExecutiveApprove =
+                          isExecutiveDirector && order.status === "pending_executive";
 
-                            return (
-                              <TableRow key={order.id} className="hover:bg-muted/30 text-xs transition-colors">
-                                <TableCell className="font-mono font-bold">
-                                  <Badge variant="secondary" className="text-[11px] px-2.5 py-0.5 font-bold">
+                        // تحديد مراحل مسار المتابعة
+                        const isStep1Done = true; // إنشاء أمر الصرف
+                        const isStep2Done =
+                          order.status !== "pending" &&
+                          order.status !== "draft" &&
+                          order.status !== "edited";
+                        const isStep2Active = !isStep2Done;
+
+                        const isStep3Done =
+                          order.status === "approved" || order.status === "executed";
+                        const isStep3Active = order.status === "pending_executive";
+
+                        const isStep4Done = order.status === "executed";
+                        const isStep4Active = order.status === "approved";
+
+                        return (
+                          <div
+                            key={order.id}
+                            className="bg-card rounded-xl border border-border/80 shadow-2xs hover:shadow-xs transition-shadow p-4 sm:p-5 space-y-4"
+                          >
+                            {/* بطاقة أمر الصرف - الرأس والبيانات الأساسية */}
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-border/60 pb-3.5">
+                              <div className="space-y-1.5">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Badge className="font-mono text-xs px-2.5 py-1 bg-amber-600 hover:bg-amber-600 text-white font-bold">
                                     {order.orderNumber}
                                   </Badge>
-                                </TableCell>
 
-                                <TableCell>
-                                  {order.purchaseOrderNumber ? (
+                                  {order.purchaseOrderNumber && (
                                     <Badge
                                       variant="outline"
-                                      className="font-mono text-[11px] px-2 py-0.5 bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300"
+                                      className="font-mono text-xs px-2 py-0.5 bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 font-bold"
                                     >
-                                      {order.purchaseOrderNumber}
+                                      أمر الشراء: {order.purchaseOrderNumber}
                                     </Badge>
-                                  ) : order.csrLetterNumber ? (
-                                    <Badge
-                                      variant="outline"
-                                      className="font-mono text-[11px] px-2 py-0.5 bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300"
-                                    >
-                                      {order.csrLetterNumber}
-                                    </Badge>
-                                  ) : (
-                                    <span className="text-muted-foreground text-xs">—</span>
                                   )}
-                                </TableCell>
 
-                                <TableCell>
-                                  <div className="space-y-0.5">
-                                    <span className="font-bold text-foreground block">
-                                      {order.beneficiaryName || "—"}
-                                    </span>
-                                    {order.beneficiaryBank && (
-                                      <span className="text-[10px] text-muted-foreground block">
-                                        {order.beneficiaryBank} {order.beneficiaryIban ? `• ${order.beneficiaryIban.slice(0, 10)}...` : ""}
-                                      </span>
-                                    )}
-                                  </div>
-                                </TableCell>
-
-                                <TableCell className="font-bold text-foreground font-mono">
-                                  {Number(order.amount).toLocaleString("ar-SA")} ر.س
-                                </TableCell>
-
-                                <TableCell className="text-center">
                                   <Badge
                                     variant="outline"
-                                    className={`text-[10px] font-bold px-2 py-0.5 ${statusInfo.className}`}
+                                    className={`text-xs font-bold px-2.5 py-0.5 ${statusInfo.className}`}
                                   >
                                     {statusInfo.label}
                                   </Badge>
-                                </TableCell>
+                                </div>
 
-                                <TableCell className="text-muted-foreground">
-                                  {formatDate(order.createdAt)}
-                                </TableCell>
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap pt-0.5">
+                                  <span>
+                                    المستفيد: <strong className="text-foreground">{order.beneficiaryName || "—"}</strong>
+                                  </span>
+                                  {order.beneficiaryBank && (
+                                    <span>
+                                      البنك: <strong className="text-foreground">{order.beneficiaryBank}</strong>
+                                    </span>
+                                  )}
+                                  {order.beneficiaryIban && (
+                                    <span className="font-mono text-[11px] text-muted-foreground" dir="ltr">
+                                      {order.beneficiaryIban}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
 
-                                <TableCell className="text-center">
-                                  <div className="flex items-center justify-center gap-1.5">
-                                    {/* زر الاعتماد المالي كمسؤول مالي */}
-                                    {canFinancialApprove && (
-                                      <Button
-                                        size="sm"
-                                        disabled={approveOrderMutation.isPending}
-                                        onClick={() => approveOrderMutation.mutate({ id: order.id })}
-                                        className="h-7 text-[11px] px-2.5 gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-2xs"
-                                        title="اعتماد المرحلة الأولى كمسؤول مالي"
-                                      >
-                                        <CheckCircle className="w-3.5 h-3.5" />
-                                        <span>اعتماد كمسؤول مالي</span>
-                                      </Button>
-                                    )}
+                              <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1 shrink-0 bg-muted/40 sm:bg-transparent p-2.5 sm:p-0 rounded-lg">
+                                <span className="text-[11px] text-muted-foreground">المبلغ الإجمالي</span>
+                                <span className="text-base sm:text-lg font-black text-foreground font-mono">
+                                  {Number(order.amount).toLocaleString("ar-SA")} ر.س
+                                </span>
+                              </div>
+                            </div>
 
-                                    {/* زر اعتماد المدير التنفيذي */}
-                                    {canExecutiveApprove && (
-                                      <Button
-                                        size="sm"
-                                        disabled={approveOrderMutation.isPending}
-                                        onClick={() => approveOrderMutation.mutate({ id: order.id })}
-                                        className="h-7 text-[11px] px-2.5 gap-1 bg-sky-600 hover:bg-sky-700 text-white font-bold shadow-2xs"
-                                        title="اعتماد المرحلة الثانية كمدير تنفيذي"
-                                      >
-                                        <CheckCircle className="w-3.5 h-3.5" />
-                                        <span>اعتماد تنفيذي</span>
-                                      </Button>
-                                    )}
+                            {/* مسار متابعة حالة أمر الصرف (4 مراحل مفصلة) */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-bold text-foreground flex items-center gap-1.5">
+                                  <Clock className="w-3.5 h-3.5 text-primary" />
+                                  <span>مسار دورة الاعتماد والمتابعة</span>
+                                </span>
+                                <span className="text-muted-foreground text-[11px]">
+                                  تاريخ الإنشاء: {formatDate(order.createdAt)}
+                                </span>
+                              </div>
 
-                                    {/* زر طباعة أمر الصرف */}
-                                    <a
-                                      href={`/disbursement-orders/${order.id}/print`}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                    >
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                                        title="طباعة أمر الصرف"
-                                      >
-                                        <Printer className="w-3.5 h-3.5" />
-                                      </Button>
-                                    </a>
-
-                                    {/* زر التفاصيل الكاملة */}
-                                    <a
-                                      href={`/disbursement-orders/${order.id}`}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                    >
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                                        title="عرض التفاصيل"
-                                      >
-                                        <ExternalLink className="w-3.5 h-3.5" />
-                                      </Button>
-                                    </a>
+                              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-1">
+                                {/* المرحلة 1: إنشاء أمر الصرف */}
+                                <div className="bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/60 rounded-lg p-2.5 text-xs space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-bold text-emerald-800 dark:text-emerald-300">1. التحويل والإنشاء</span>
+                                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
                                   </div>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
+                                  <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400">
+                                    تم التحويل من أمر الشراء بنجاح
+                                  </p>
+                                  <span className="text-[10px] text-emerald-600/70 block">
+                                    {formatDate(order.createdAt)}
+                                  </span>
+                                </div>
+
+                                {/* المرحلة 2: الاعتماد المالي */}
+                                <div
+                                  className={`rounded-lg p-2.5 text-xs space-y-1 border ${
+                                    isStep2Done
+                                      ? "bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/60"
+                                      : isStep2Active
+                                      ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800"
+                                      : "bg-muted/40 border-border/60 text-muted-foreground"
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span
+                                      className={`font-bold ${
+                                        isStep2Done
+                                          ? "text-emerald-800 dark:text-emerald-300"
+                                          : isStep2Active
+                                          ? "text-amber-800 dark:text-amber-300"
+                                          : "text-muted-foreground"
+                                      }`}
+                                    >
+                                      2. الاعتماد المالي
+                                    </span>
+                                    {isStep2Done ? (
+                                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                    ) : (
+                                      <span className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p
+                                    className={`text-[11px] ${
+                                      isStep2Done
+                                        ? "text-emerald-700/80 dark:text-emerald-400"
+                                        : isStep2Active
+                                        ? "text-amber-700 dark:text-amber-400 font-medium"
+                                        : "text-muted-foreground"
+                                    }`}
+                                  >
+                                    {isStep2Done
+                                      ? "تم التدقيق والاعتماد المالي"
+                                      : "بانتظار اعتماد المسؤول المالي"}
+                                  </p>
+                                  {order.financialApprovedAt && (
+                                    <span className="text-[10px] text-emerald-600/70 block">
+                                      {formatDate(order.financialApprovedAt)}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* المرحلة 3: اعتماد المدير التنفيذي */}
+                                <div
+                                  className={`rounded-lg p-2.5 text-xs space-y-1 border ${
+                                    isStep3Done
+                                      ? "bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/60"
+                                      : isStep3Active
+                                      ? "bg-sky-50 dark:bg-sky-950/30 border-sky-300 dark:border-sky-800"
+                                      : "bg-muted/40 border-border/60 text-muted-foreground"
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span
+                                      className={`font-bold ${
+                                        isStep3Done
+                                          ? "text-emerald-800 dark:text-emerald-300"
+                                          : isStep3Active
+                                          ? "text-sky-800 dark:text-sky-300"
+                                          : "text-muted-foreground"
+                                      }`}
+                                    >
+                                      3. اعتماد المدير التنفيذي
+                                    </span>
+                                    {isStep3Done ? (
+                                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                    ) : isStep3Active ? (
+                                      <span className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+                                      </span>
+                                    ) : (
+                                      <Clock className="w-3 h-3 text-muted-foreground/60" />
+                                    )}
+                                  </div>
+                                  <p
+                                    className={`text-[11px] ${
+                                      isStep3Done
+                                        ? "text-emerald-700/80 dark:text-emerald-400"
+                                        : isStep3Active
+                                        ? "text-sky-700 dark:text-sky-400 font-medium"
+                                        : "text-muted-foreground"
+                                    }`}
+                                  >
+                                    {isStep3Done
+                                      ? "معتمد من الإدارة التنفيذية"
+                                      : isStep3Active
+                                      ? "بانتظار اعتماد المدير التنفيذي"
+                                      : "مجدولة بعد الاعتماد المالي"}
+                                  </p>
+                                  {order.approvedAt && (
+                                    <span className="text-[10px] text-emerald-600/70 block">
+                                      {formatDate(order.approvedAt)}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* المرحلة 4: الصرف والتحويل البنكي */}
+                                <div
+                                  className={`rounded-lg p-2.5 text-xs space-y-1 border ${
+                                    isStep4Done
+                                      ? "bg-teal-50 dark:bg-teal-950/20 border-teal-200 dark:border-teal-900/60"
+                                      : isStep4Active
+                                      ? "bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/60"
+                                      : "bg-muted/40 border-border/60 text-muted-foreground"
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span
+                                      className={`font-bold ${
+                                        isStep4Done
+                                          ? "text-teal-800 dark:text-teal-300"
+                                          : isStep4Active
+                                          ? "text-emerald-800 dark:text-emerald-300"
+                                          : "text-muted-foreground"
+                                      }`}
+                                    >
+                                      4. التحويل البنكي
+                                    </span>
+                                    {isStep4Done ? (
+                                      <CheckCircle className="w-3.5 h-3.5 text-teal-600" />
+                                    ) : (
+                                      <Clock className="w-3 h-3 text-muted-foreground/60" />
+                                    )}
+                                  </div>
+                                  <p
+                                    className={`text-[11px] ${
+                                      isStep4Done
+                                        ? "text-teal-700/80 dark:text-teal-400 font-medium"
+                                        : isStep4Active
+                                        ? "text-emerald-700/80 dark:text-emerald-400 font-medium"
+                                        : "text-muted-foreground"
+                                    }`}
+                                  >
+                                    {isStep4Done
+                                      ? "منفّذ (تم التحويل البنكي)"
+                                      : isStep4Active
+                                      ? "جاهز للتحويل البنكي والصرف"
+                                      : "قيد الانتظار"}
+                                  </p>
+                                  {order.executedAt && (
+                                    <span className="text-[10px] text-teal-600/70 block">
+                                      {formatDate(order.executedAt)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* شريط الإجراءات والاعتماد */}
+                            <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-border/60">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {/* زر الاعتماد المالي كمسؤول مالي */}
+                                {canFinancialApprove && (
+                                  <Button
+                                    size="sm"
+                                    disabled={approveOrderMutation.isPending}
+                                    onClick={() => approveOrderMutation.mutate({ id: order.id })}
+                                    className="h-8 text-xs px-3 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs transition-transform active:scale-95"
+                                    title="اعتماد أمر الصرف كمسؤول مالي"
+                                  >
+                                    {approveOrderMutation.isPending ? (
+                                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <CheckCircle className="w-3.5 h-3.5" />
+                                    )}
+                                    <span>اعتماد كمسؤول مالي</span>
+                                  </Button>
+                                )}
+
+                                {/* زر اعتماد المدير التنفيذي */}
+                                {canExecutiveApprove && (
+                                  <Button
+                                    size="sm"
+                                    disabled={approveOrderMutation.isPending}
+                                    onClick={() => approveOrderMutation.mutate({ id: order.id })}
+                                    className="h-8 text-xs px-3 gap-1.5 bg-sky-600 hover:bg-sky-700 text-white font-bold shadow-xs transition-transform active:scale-95"
+                                    title="اعتماد أمر الصرف كمدير تنفيذي"
+                                  >
+                                    {approveOrderMutation.isPending ? (
+                                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <CheckCircle className="w-3.5 h-3.5" />
+                                    )}
+                                    <span>اعتماد كمدير تنفيذي</span>
+                                  </Button>
+                                )}
+
+                                {order.status === "approved" && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs px-2.5 py-1 bg-emerald-50 text-emerald-800 border-emerald-300 font-bold"
+                                  >
+                                    تم اعتماد أمر الصرف نهائياً وجاهز للتحويل
+                                  </Badge>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <a
+                                  href={`/disbursement-orders/${order.id}/print`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+                                    title="طباعة أمر الصرف"
+                                  >
+                                    <Printer className="w-3.5 h-3.5" />
+                                    <span>طباعة أمر الصرف</span>
+                                  </Button>
+                                </a>
+
+                                <a
+                                  href={`/disbursement-orders/${order.id}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+                                    title="عرض التفاصيل الكاملة"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                    <span>التفاصيل</span>
+                                  </Button>
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

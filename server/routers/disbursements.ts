@@ -1962,7 +1962,6 @@ export const disbursementsRouter = router({
 
         const reqConds = [
           eq(disbursementOrders.requestId, requestId),
-          eq(disbursementRequests.requestId, requestId),
           eq(projects.requestId, requestId),
         ];
 
