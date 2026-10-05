@@ -38,8 +38,7 @@ export default function CustodyRequestPrint() {
   const { user } = useAuth();
   const utils = trpc.useUtils();
 
-  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
-  const [approvalNotes, setApprovalNotes] = useState("");
+
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
 
@@ -68,9 +67,7 @@ export default function CustodyRequestPrint() {
 
   const approveMutation = trpc.custody.approve.useMutation({
     onSuccess: (data) => {
-      toast.success(data.message);
-      setApproveDialogOpen(false);
-      setApprovalNotes("");
+      toast.success(data.message || "تم اعتماد طلب العهدة وتحويله لأمر صرف بنجاح");
       utils.custody.getById.invalidate({ id: requestId });
       utils.custody.getAll.invalidate();
       utils.custody.getStats.invalidate();
@@ -233,11 +230,19 @@ export default function CustodyRequestPrint() {
             <>
               <Button
                 size="sm"
-                onClick={() => setApproveDialogOpen(true)}
-                className="h-8 sm:h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm gap-1 animate-pulse"
+                disabled={approveMutation.isPending}
+                onClick={() => {
+                  approveMutation.mutate({ id: request.id });
+                }}
+                className="h-8 sm:h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm gap-1.5 transition-transform active:scale-95"
+                title="اعتماد الطلب وتحويله لأمر صرف مباشرة"
               >
-                <CheckCircle className="h-3.5 w-3.5 ml-1" />
-                اعتماد وتحويل لأمر صرف
+                {approveMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 ml-1 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-3.5 w-3.5 ml-1" />
+                )}
+                <span>اعتماد وتحويل لأمر صرف</span>
               </Button>
 
               <Button
@@ -540,67 +545,7 @@ export default function CustodyRequestPrint() {
         }
       `}</style>
 
-      {/* حوار الاعتماد للمدير التنفيذي */}
-      <Dialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
-        <DialogContent className="max-w-md rounded-2xl" dir="rtl">
-          <DialogHeader>
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 mx-auto flex items-center justify-center mb-2">
-              <CheckCircle className="w-6 h-6" />
-            </div>
-            <DialogTitle className="text-center text-lg font-black text-foreground">
-              اعتماد طلب العهدة المالية
-            </DialogTitle>
-            <DialogDescription className="text-center text-xs text-muted-foreground">
-              سيتم توقيع واعتماد الطلب وتحويله تلقائياً لأمر صرف مالي وتوجيهه للإدارة المالية.
-            </DialogDescription>
-          </DialogHeader>
 
-          <div className="space-y-3 py-2">
-            <div className="p-3 bg-muted/40 rounded-xl space-y-1.5 text-xs">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">المبلغ:</span>
-                <span className="font-bold text-emerald-600 font-mono">{numAmount.toLocaleString()} ر.س</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">المستفيد:</span>
-                <span className="font-bold">{request.bankAccountName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">البنك:</span>
-                <span className="font-bold">{request.bankName}</span>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">ملاحظات الاعتماد (اختياري)</Label>
-              <Textarea
-                value={approvalNotes}
-                onChange={(e) => setApprovalNotes(e.target.value)}
-                placeholder="أدخل أي ملاحظات للإدارة المالية..."
-                className="text-xs min-h-[70px] rounded-xl"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => setApproveDialogOpen(false)}
-              className="rounded-xl text-xs h-9 font-semibold"
-            >
-              إلغاء
-            </Button>
-            <Button
-              onClick={() => approveMutation.mutate({ id: request.id, notes: approvalNotes.trim() || undefined })}
-              disabled={approveMutation.isPending}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs h-9 font-bold gap-1.5"
-            >
-              {approveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-              <span>تأكيد الاعتماد والتحويل</span>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* حوار رفض الطلب */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
