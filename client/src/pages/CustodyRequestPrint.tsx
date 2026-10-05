@@ -2,8 +2,8 @@ import { useState, useMemo } from "react";
 import { useParams, useLocation, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { numberToArabicText } from "@shared/tafqeet";
 import {
@@ -23,15 +23,8 @@ import {
   XCircle,
   Clock,
   ShieldCheck,
-  Building2,
-  Landmark,
-  CreditCard,
-  User,
-  Calendar,
-  Wallet,
   ArrowUpRight,
   Loader2,
-  FileCheck2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -76,6 +69,10 @@ export default function CustodyRequestPrint() {
 
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
+  useDocumentTitle(
+    request?.requestNumber ? `طلب صرف عهدة مالية رقم ${request.requestNumber}` : "طلب صرف عهدة مالية"
+  );
+
   const canApprove = useMemo(() => {
     if (!user) return false;
     return [
@@ -116,28 +113,36 @@ export default function CustodyRequestPrint() {
   });
 
   const handlePrint = () => {
+    const prevTitle = document.title;
+    if (request?.requestNumber) {
+      document.title = `طلب صرف عهدة مالية رقم ${request.requestNumber}`;
+    }
     window.print();
+    setTimeout(() => {
+      document.title = prevTitle;
+    }, 1000);
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/20">
-        <div className="text-center space-y-2">
-          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
-          <p className="text-xs text-muted-foreground font-semibold">جاري تحميل تقرير طلب العهدة...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   if (!request) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/20" dir="rtl">
-        <div className="text-center space-y-3 p-6 bg-card rounded-2xl border border-border/70 max-w-md">
-          <Wallet className="w-12 h-12 text-muted-foreground mx-auto" />
-          <h2 className="text-base font-bold text-foreground">طلب العهدة غير موجود</h2>
-          <p className="text-xs text-muted-foreground">قد يكون تم حذف الطلب أو ليس لديك صلاحية للوصول إليه.</p>
-          <Button onClick={() => setLocation("/custody-requests")} className="rounded-xl text-xs font-bold">
+      <div className="flex items-center justify-center min-h-screen" dir="rtl">
+        <div className="text-center">
+          <h2 className="text-xl font-bold mb-2">طلب العهدة غير موجود</h2>
+          <Button onClick={() => {
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              setLocation("/custody-requests");
+            }
+          }}>
             العودة لقائمة العهد المالية
           </Button>
         </div>
@@ -150,306 +155,369 @@ export default function CustodyRequestPrint() {
   const reqDate = request.createdAt ? new Date(request.createdAt) : new Date();
 
   return (
-    <div className="min-h-screen bg-slate-100/70 dark:bg-slate-950 py-6 sm:py-8 print:bg-white print:p-0" dir="rtl">
-      {/* Top Action Bar (Hidden during printing) */}
-      <div className="max-w-[210mm] mx-auto mb-5 px-4 print:hidden flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Link href="/custody-requests">
-            <Button variant="outline" size="sm" className="rounded-xl h-9 text-xs gap-1.5 font-bold cursor-pointer">
-              <ArrowRight className="w-4 h-4" />
-              <span>العودة للعهد المالية</span>
-            </Button>
-          </Link>
-          <span className="font-mono text-xs font-bold text-muted-foreground">
-            {request.requestNumber}
-          </span>
-        </div>
+    <div className="min-h-screen bg-gray-100 py-3 sm:py-8 print:py-0 print:bg-white" dir="rtl">
+      {/* أزرار التحكم والخيارات العلوية */}
+      <div className="print:hidden w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-border/70 p-2 sm:p-3 sticky top-0 z-50 shadow-xs sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:shadow-none">
+        <div className="flex flex-wrap items-center justify-between sm:justify-end gap-1.5 sm:gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                setLocation("/custody-requests");
+              }
+            }}
+            className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs sm:bg-white/90 font-bold text-xs sm:text-sm gap-1"
+          >
+            <ArrowRight className="h-3.5 w-3.5 ml-1" />
+            رجوع
+          </Button>
 
-        <div className="flex items-center gap-2">
+          <Button 
+            size="sm"
+            onClick={handlePrint} 
+            className="h-8 sm:h-9 shadow-md gradient-primary text-white font-bold text-xs sm:text-sm gap-1.5"
+          >
+            <Printer className="h-3.5 w-3.5 ml-1" />
+            <span>تنزيل PDF / طباعة</span>
+          </Button>
+
+          {/* أزرار الاعتماد للمدير التنفيذي / الإدارة العليا */}
           {canApprove && request.status === "pending_executive" && (
             <>
               <Button
+                size="sm"
                 onClick={() => setApproveDialogOpen(true)}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold h-9 gap-1.5 shadow-xs cursor-pointer"
+                className="h-8 sm:h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm gap-1 animate-pulse"
               >
-                <CheckCircle className="w-4 h-4" />
-                <span>اعتماد وتحويل لأمر صرف</span>
+                <CheckCircle className="h-3.5 w-3.5 ml-1" />
+                اعتماد وتحويل لأمر صرف
               </Button>
 
               <Button
+                size="sm"
                 variant="outline"
                 onClick={() => setRejectDialogOpen(true)}
-                className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 border-rose-200 rounded-xl text-xs font-bold h-9 gap-1.5 cursor-pointer"
+                className="h-8 sm:h-9 bg-white dark:bg-slate-800 border-rose-300 text-rose-600 hover:bg-rose-50 font-bold text-xs sm:text-sm gap-1"
               >
-                <XCircle className="w-4 h-4" />
-                <span>رفض الطلب</span>
+                <XCircle className="h-3.5 w-3.5 ml-1" />
+                رفض الطلب
               </Button>
             </>
           )}
 
           {request.disbursementOrderId && (
             <Link href={`/disbursements/orders/${request.disbursementOrderId}/print`}>
-              <Button variant="outline" size="sm" className="rounded-xl text-xs font-bold h-9 gap-1 text-emerald-700 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/40">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 sm:h-9 bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 font-bold text-xs sm:text-sm gap-1"
+              >
                 <span>عرض أمر الصرف</span>
-                <ArrowUpRight className="w-3.5 h-3.5" />
+                <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
               </Button>
             </Link>
           )}
-
-          <Button
-            onClick={handlePrint}
-            className="gradient-primary text-white rounded-xl text-xs font-bold h-9 gap-1.5 shadow-sm cursor-pointer"
-          >
-            <Printer className="w-4 h-4" />
-            <span>طباعة التقرير</span>
-          </Button>
         </div>
       </div>
 
-      {/* Official A4 Sheet */}
-      <div className="max-w-[210mm] mx-auto bg-white text-slate-900 border border-slate-200 rounded-2xl shadow-sm print:border-none print:shadow-none print:rounded-none overflow-hidden print:w-full">
-        {/* Top Header Banner */}
-        <div className="p-6 sm:p-8 border-b-2 border-slate-800">
-          <div className="flex items-center justify-between gap-4">
-            {/* Right: Org details */}
-            <div className="space-y-1 text-right">
-              <h2 className="text-base font-black text-slate-900">
-                {(orgSettings as any)?.nameAr || "جمعية عمارة وتطوير المساجد (تمام)"}
-              </h2>
-              <p className="text-xs text-slate-600 font-medium">
-                {(orgSettings as any)?.licenseNumber ? `ترخيص رقم: ${(orgSettings as any)?.licenseNumber}` : "المركز الوطني لتنمية القطاع غير الربحي"}
-              </p>
-              <p className="text-xs text-slate-500">الإدارة التنفيذية - الإدارة المالية</p>
-            </div>
+      {/* صفحة الطباعة - تصميم متوازن لصفحة A4 مع الإطار الأخضر والذهبي الفاخر المعتمد */}
+      <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-2 sm:p-8 print:p-0 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-start overflow-hidden">
+        {/* إطار مزدوج فاخر للمستند */}
+        <div className="print-inner border-[2px] sm:border-[3px] border-[#1a5f4a] p-2.5 sm:p-6 rounded-lg relative overflow-hidden bg-white print:border-[2px] print:p-5 h-full flex-1 flex flex-col justify-start">
+          {/* خط ذهبي داخلي رفيع للإطار */}
+          <div className="absolute inset-1 border border-[#d4a574] rounded pointer-events-none"></div>
 
-            {/* Center: Title & Badge */}
-            <div className="text-center space-y-1">
-              <div className="inline-block px-4 py-1.5 bg-slate-900 text-white rounded-lg font-black text-sm tracking-wide">
-                طلب صرف عهدة مالية
+          {/* محتوى المستند */}
+          <div className="relative z-10 flex-1 flex flex-col justify-start space-y-3 sm:space-y-4">
+            <div>
+              {/* الترويسة - الشعار والتاريخ ورقم الطلب */}
+              <div className="flex flex-row justify-between items-start gap-2 mb-3 sm:mb-4">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  {orgSettings?.logoUrl ? (
+                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-10 sm:h-14 w-auto" />
+                  ) : (
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded flex items-center justify-center">
+                      <span className="text-primary font-bold text-base sm:text-lg">تمام</span>
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-xs sm:text-sm font-bold text-gray-800 leading-tight">
+                      {orgSettings?.officialReportsName || (orgSettings as any)?.nameAr || "جمعية عمارة وتطوير المساجد (تمام)"}
+                    </div>
+                    <div className="text-[10px] text-gray-500">الإدارة التنفيذية - الإدارة المالية</div>
+                  </div>
+                </div>
+
+                <div className="text-[10.5px] sm:text-xs space-y-0.5 sm:space-y-1 text-left shrink-0">
+                  <div className="flex gap-1 justify-end">
+                    <span className="font-bold text-gray-600 hidden xs:inline sm:inline">التاريخ:</span>
+                    <span className="border-b border-dotted border-gray-400 px-1">{formatGregorianDate(reqDate)}</span>
+                  </div>
+                  <div className="flex gap-1 justify-end">
+                    <span className="font-bold text-gray-600 hidden xs:inline sm:inline">الموافق:</span>
+                    <span className="border-b border-dotted border-gray-400 px-1">{toHijriDate(reqDate)}</span>
+                  </div>
+                  <div className="flex gap-1 justify-end">
+                    <span className="font-bold text-gray-600 hidden xs:inline sm:inline">رقم الطلب:</span>
+                    <span className="border-b border-dotted border-gray-400 px-1 font-mono text-gray-900 font-bold">{request.requestNumber}</span>
+                  </div>
+                  {request.disbursementOrderNumber && (
+                    <div className="flex gap-1 justify-end">
+                      <span className="font-bold text-emerald-700 hidden xs:inline sm:inline">أمر الصرف:</span>
+                      <span className="border-b border-dotted border-emerald-400 px-1 font-mono text-emerald-800 font-bold">{request.disbursementOrderNumber}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <p className="font-mono text-xs font-bold text-slate-700 block">
-                {request.requestNumber}
-              </p>
-            </div>
 
-            {/* Left: Logo or Header details */}
-            <div className="text-left space-y-1 text-xs text-slate-600">
-              <p>التاريخ: <span className="font-bold text-slate-900">{formatGregorianDate(reqDate)}</span></p>
-              <p>الموافق: <span className="font-bold text-slate-900">{toHijriDate(reqDate)}</span></p>
+              {/* عنوان النموذج الفاخر */}
+              <div className="text-center mb-3 sm:mb-5">
+                <h1 className="text-base sm:text-2xl font-black text-gray-800 pb-1 inline-block px-2 sm:px-4 tracking-wide">
+                  طلب صرف عهدة مالية رقم {request.requestNumber}
+                </h1>
+              </div>
+
+              {/* حالة الطلب النظامية */}
+              <div className="mb-2.5 sm:mb-3.5 border border-gray-300 rounded-lg overflow-hidden bg-white text-[10.5px] sm:text-xs sm:text-sm">
+                <div className="flex items-center justify-between p-2 sm:p-2.5 bg-gray-50/50">
+                  <span className="font-bold text-gray-700">حالة الطلب النظامية:</span>
+                  {request.status === "converted_to_order" ? (
+                    <span className="text-emerald-700 font-bold flex items-center gap-1">
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                      معتمد ومحوّل لأمر صرف برقم ({request.disbursementOrderNumber})
+                    </span>
+                  ) : request.status === "approved" ? (
+                    <span className="text-blue-700 font-bold flex items-center gap-1">
+                      <CheckCircle className="w-3.5 h-3.5 text-blue-600" />
+                      معتمد من المدير التنفيذي
+                    </span>
+                  ) : request.status === "rejected" ? (
+                    <span className="text-rose-700 font-bold flex items-center gap-1">
+                      <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                      مرفوض {request.rejectionReason ? `(${request.rejectionReason})` : ""}
+                    </span>
+                  ) : (
+                    <span className="text-amber-700 font-bold flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-amber-600" />
+                      بانتظار اعتماد وتوقيع المدير التنفيذي
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* 1. بيانات الموظف طالب العهدة */}
+              <div className="mb-2.5 sm:mb-3.5 border border-gray-300 rounded-lg overflow-hidden bg-white text-[10.5px] sm:text-xs sm:text-sm">
+                <div className="bg-gray-100/80 p-1.5 sm:p-2 font-bold text-xs sm:text-sm border-b text-gray-800">
+                  بيانات الموظف طالب العهدة
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2">
+                  <div className="flex border-b sm:border-l border-gray-200">
+                    <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-28 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم الموظف:</span>
+                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1">{request.applicantName || "الموظف طالب العهدة"}</span>
+                  </div>
+                  <div className="flex border-b border-gray-200">
+                    <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-32 border-l border-gray-200 text-gray-750 shrink-0">الإدارة / المسمى:</span>
+                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1">{request.applicantSignatureDepartment || "العاملين بالجمعية"}</span>
+                  </div>
+                  <div className="flex border-b sm:border-b-0 sm:border-l border-gray-200">
+                    <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-28 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">رقم الجوال:</span>
+                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-mono font-bold flex-1" dir="ltr">{request.applicantPhone || "—"}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-32 border-l border-gray-200 text-gray-750 shrink-0">البريد الإلكتروني:</span>
+                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-mono font-bold flex-1">{request.applicantEmail || "—"}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. موضوع وبيان العهدة المالية */}
+              <div className="mb-2.5 sm:mb-3.5 border border-gray-300 rounded-lg overflow-hidden bg-white text-[10.5px] sm:text-xs sm:text-sm">
+                <div className="flex border-b border-gray-200">
+                  <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-28 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">عنوان العهدة:</span>
+                  <span className="p-1.5 sm:p-2.5 text-gray-900 font-bold flex-1">{request.title}</span>
+                </div>
+                <div className="bg-gray-100/80 p-1.5 sm:p-2 font-bold text-xs sm:text-sm border-b text-gray-800">
+                  البيان التفصيلي وأسباب الاحتياج للعهدة
+                </div>
+                <div className="bg-white text-gray-800 leading-relaxed whitespace-pre-wrap break-words font-semibold p-2 sm:p-3 text-[11px] sm:text-sm min-h-[50px] sm:min-h-[65px]">
+                  {request.description}
+                </div>
+              </div>
+
+              {/* 3. جدول المبلغ المالي المطلوب */}
+              <div className="mb-2.5 sm:mb-3.5 border border-gray-300 rounded-lg overflow-hidden bg-white">
+                <div className="bg-gray-100/80 p-1.5 sm:p-2 font-bold text-xs sm:text-sm border-b text-center text-gray-800">
+                  المبلغ المالي المطلوب صرفه
+                </div>
+                <table className="w-full text-[10.5px] sm:text-xs sm:text-sm text-center border-collapse">
+                  <tbody>
+                    <tr className="border-b border-gray-200">
+                      <td className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200 w-1/4">المبلغ بالأرقام</td>
+                      <td className="p-1.5 sm:p-2.5 font-bold font-mono text-emerald-800 border-l border-gray-200 text-sm sm:text-base w-1/4">
+                        <span className="inline-flex items-center gap-1">
+                          {numAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                        </span>
+                      </td>
+                      <td className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200 w-1/6">المبلغ كتابةً</td>
+                      <td className="p-1.5 sm:p-2.5 font-bold text-gray-800 text-right pr-3">
+                        فقط {tafqeet} لا غير.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* 4. الحساب البنكي المعتمد للصرف */}
+              <div className="mb-2.5 sm:mb-3.5 border border-gray-300 rounded-lg overflow-hidden bg-white">
+                <div className="bg-gray-100/80 p-1.5 sm:p-2 font-bold text-xs sm:text-sm border-b text-center text-gray-800">
+                  المعلومات البنكية المعتمدة لصرف العهدة
+                </div>
+                <div className="flex flex-col text-[10.5px] sm:text-xs sm:text-sm">
+                  <div className="flex border-b border-gray-200">
+                    <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم الحساب:</span>
+                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1 truncate">{request.bankAccountName || "—"}</span>
+                  </div>
+                  <div className="flex border-b border-gray-200">
+                    <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم البنك:</span>
+                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1">{request.bankName || "—"}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">الآيبان (IBAN):</span>
+                    <span className="p-1.5 sm:p-2.5 text-slate-800 font-mono font-bold flex-1 text-[10px] sm:text-xs tracking-wider break-all" dir="ltr">{request.bankIban || "—"}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* توجيه الإدارة المالية عند صدور أمر الصرف */}
               {request.disbursementOrderNumber && (
-                <p className="text-emerald-700 font-bold font-mono">
-                  أمر الصرف: {request.disbursementOrderNumber}
-                </p>
+                <div className="mb-2.5 sm:mb-3.5 p-2.5 bg-emerald-50/80 border border-emerald-300 rounded-lg text-emerald-800 text-[10.5px] sm:text-xs leading-relaxed">
+                  <span className="font-bold">توجيه الإدارة المالية: </span>
+                  تم اعتماد هذا الطلب نظامياً، وأُحيل إلى الإدارة المالية بموجب أمر الصرف المالي رقم 
+                  <span className="font-bold font-mono px-1">({request.disbursementOrderNumber})</span>
+                  لتنفيذ التحويل البنكي لحساب المستفيد الموضح أعلاه وفق الإجراءات واللوائح المعتمدة.
+                </div>
               )}
             </div>
-          </div>
-        </div>
 
-        {/* Content Body */}
-        <div className="p-6 sm:p-8 space-y-5 text-xs">
-          {/* حالة الاعتماد الحالية */}
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-            <span className="font-bold text-slate-700">حالة الطلب النظامية:</span>
-            {request.status === "converted_to_order" ? (
-              <span className="text-emerald-700 font-black flex items-center gap-1">
-                <CheckCircle className="w-4 h-4 text-emerald-600" />
-                معتمد ومحوّل لأمر صرف برقم ({request.disbursementOrderNumber})
-              </span>
-            ) : request.status === "approved" ? (
-              <span className="text-blue-700 font-black flex items-center gap-1">
-                <CheckCircle className="w-4 h-4 text-blue-600" />
-                معتمد من المدير التنفيذي
-              </span>
-            ) : request.status === "rejected" ? (
-              <span className="text-rose-700 font-black flex items-center gap-1">
-                <XCircle className="w-4 h-4 text-rose-600" />
-                مرفوض ({request.rejectionReason})
-              </span>
-            ) : (
-              <span className="text-amber-700 font-black flex items-center gap-1">
-                <Clock className="w-4 h-4 text-amber-600" />
-                بانتظار اعتماد وتوقيع المدير التنفيذي
-              </span>
-            )}
-          </div>
-
-          {/* 1. بيانات الموظف طالب العهدة */}
-          <div className="border border-slate-200 rounded-xl p-4 bg-white">
-            <h3 className="font-black text-slate-900 mb-3 pb-1 border-b border-slate-100 flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-slate-700" />
-              أولاً: بيانات الموظف طالب العهدة
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-slate-800">
-              <div>
-                <span className="text-slate-500 block text-[10px]">اسم الموظف</span>
-                <span className="font-bold">{request.applicantName || "الموظف مقدم الطلب"}</span>
-              </div>
-              <div>
-                <span className="text-slate-500 block text-[10px]">المسمى / الإدارة</span>
-                <span className="font-bold">{request.applicantSignatureDepartment || "العاملين بالجمعية"}</span>
-              </div>
-              <div>
-                <span className="text-slate-500 block text-[10px]">رقم الجوال</span>
-                <span className="font-bold font-mono" dir="ltr">{request.applicantPhone || "-"}</span>
-              </div>
-              <div>
-                <span className="text-slate-500 block text-[10px]">البريد الإلكتروني</span>
-                <span className="font-bold font-mono">{request.applicantEmail || "-"}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 2. تفاصيل العهدة والغرض منها */}
-          <div className="border border-slate-200 rounded-xl p-4 bg-white">
-            <h3 className="font-black text-slate-900 mb-3 pb-1 border-b border-slate-100 flex items-center gap-1.5">
-              <FileCheck2 className="w-3.5 h-3.5 text-slate-700" />
-              ثانياً: موضوع وبيان العهدة المالية
-            </h3>
-            <div className="space-y-2 text-slate-800">
-              <div>
-                <span className="text-slate-500 text-[10px] block">موضوع العهدة / الغرض</span>
-                <p className="font-bold text-sm text-slate-900">{request.title}</p>
-              </div>
-              <div>
-                <span className="text-slate-500 text-[10px] block">البيان التفصيلي لأوجه الصرف</span>
-                <p className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-slate-800 leading-relaxed font-medium whitespace-pre-wrap">
-                  {request.description}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. المبلغ المالي المطلوب */}
-          <div className="border-2 border-slate-800 rounded-xl p-4 bg-slate-50/50">
-            <h3 className="font-black text-slate-900 mb-2 flex items-center gap-1.5">
-              <Wallet className="w-3.5 h-3.5 text-slate-800" />
-              ثالثاً: المبلغ المالي المطلوب صرفه
-            </h3>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-white border border-slate-200 rounded-lg">
-              <div>
-                <span className="text-slate-500 text-[10px] block">المبلغ كتابةً (تفقيط)</span>
-                <span className="font-black text-slate-900 text-xs sm:text-sm">
-                  فقط {tafqeet} لا غير.
-                </span>
-              </div>
-              <div className="text-left sm:border-r-2 sm:border-slate-300 sm:pr-4">
-                <span className="text-slate-500 text-[10px] block">المبلغ بالأرقام</span>
-                <span className="text-lg font-black text-slate-900 font-mono">
-                  {numAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* 4. الحساب البنكي المعتمد للصرف */}
-          <div className="border border-slate-200 rounded-xl p-4 bg-white">
-            <h3 className="font-black text-slate-900 mb-3 pb-1 border-b border-slate-100 flex items-center gap-1.5">
-              <Landmark className="w-3.5 h-3.5 text-slate-700" />
-              رابعاً: بيانات الحساب المصرفي المعتمد للتحويل
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
-                <span className="text-slate-500 block text-[10px]">اسم المصرف / البنك</span>
-                <span className="font-bold text-slate-900">{request.bankName}</span>
-              </div>
-              <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
-                <span className="text-slate-500 block text-[10px]">اسم صاحب الحساب المعتمد</span>
-                <span className="font-bold text-slate-900">{request.bankAccountName}</span>
-              </div>
-              <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
-                <span className="text-slate-500 block text-[10px]">رقم الآيبان (IBAN)</span>
-                <span className="font-bold font-mono tracking-wider text-slate-900" dir="ltr">{request.bankIban}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 5. سلسلة الاعتماد والتواقيع */}
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t-2 border-slate-200 mt-6">
-            {/* خانة الموظف طالب العهدة */}
-            <div className="border border-slate-200 rounded-xl p-3.5 text-center bg-slate-50/30 flex flex-col justify-between min-h-[170px]">
-              <div>
-                <p className="font-bold text-slate-800 text-[11px]">الموظف طالب العهدة</p>
-                <p className="text-[10px] text-slate-500">إقرار بصحة البيان واستلام العهدة وفق اللائحة</p>
-              </div>
-
-              <div className="my-2 flex items-center justify-center">
-                {request.applicantSignatureUrl ? (
-                  <img
-                    src={request.applicantSignatureUrl}
-                    alt="توقيع الموظف"
-                    className="h-16 max-w-[140px] object-contain mx-auto"
-                  />
-                ) : (
-                  <div className="text-[11px] text-slate-400 font-mono py-4">
-                    [توقيع رقمي موثق بالنظام]
+            {/* 5. التوقيعات والاعتماد */}
+            <div className="break-inside-avoid pt-2 sm:pt-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-6 text-center">
+                {/* مُعدّ الطلب (الموظف طالب العهدة) */}
+                <div className="p-1 sm:p-2">
+                  <div className="font-bold text-gray-800 text-[11px] sm:text-sm mb-2 sm:mb-4">
+                    {request.applicantSignatureDepartment || "مُعدّ الطلب (الموظف طالب العهدة)"}
                   </div>
-                )}
-              </div>
-
-              <div className="border-t border-slate-200 pt-1.5 text-[10px] text-slate-700">
-                <p className="font-bold">{request.applicantSignatureName || request.applicantName}</p>
-                <p className="text-slate-500 font-mono">{formatGregorianDate(reqDate)}</p>
-              </div>
-            </div>
-
-            {/* خانة المدير التنفيذي */}
-            <div className="border-2 border-slate-800 rounded-xl p-3.5 text-center bg-white flex flex-col justify-between min-h-[170px]">
-              <div>
-                <p className="font-black text-slate-900 text-xs">اعتماد المدير التنفيذي</p>
-                <p className="text-[10px] text-slate-500">موافقة على صرف العهدة وتحويلها للإدارة المالية</p>
-              </div>
-
-              <div className="my-2 flex items-center justify-center">
-                {request.executiveSignatureUrl ? (
-                  <img
-                    src={request.executiveSignatureUrl}
-                    alt="توقيع المدير التنفيذي"
-                    className="h-16 max-w-[140px] object-contain mx-auto"
-                  />
-                ) : request.executiveApprovedAt ? (
-                  <div className="text-emerald-700 font-bold text-xs py-3 flex items-center justify-center gap-1">
-                    <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                    <span>معتمد رسمياً بنظام تمام</span>
+                  <div className="space-y-1 text-xs flex flex-col items-center justify-center">
+                    {request.applicantSignatureUrl ? (
+                      <div className="h-9 sm:h-12 flex items-center justify-center mx-auto w-24 sm:w-36 overflow-hidden my-0.5 sm:my-1">
+                        <img 
+                          src={request.applicantSignatureUrl} 
+                          alt="توقيع مقدم الطلب" 
+                          className="max-h-9 sm:max-h-12 max-w-full object-contain" 
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-8 sm:h-10 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-36 flex items-center justify-center">
+                        <span className="text-[10px] text-gray-400 font-mono">[معتمد إلكترونياً]</span>
+                      </div>
+                    )}
+                    <div className="text-gray-900 font-bold text-[10px] sm:text-xs">
+                      {request.applicantSignatureName || request.applicantName}
+                    </div>
                   </div>
-                ) : (
-                  <div className="text-[11px] text-amber-700 font-bold py-4">
-                    بانتظار توقيع واعتماد المدير التنفيذي
-                  </div>
-                )}
-              </div>
+                </div>
 
-              <div className="border-t border-slate-200 pt-1.5 text-[10px] text-slate-700">
-                <p className="font-black text-slate-900">
-                  {request.executiveSignatureName || (request.executiveApprovedAt ? "المدير التنفيذي" : "........................")}
-                </p>
-                <p className="text-slate-500 font-mono">
-                  {request.executiveApprovedAt ? formatGregorianDate(new Date(request.executiveApprovedAt)) : "التاريخ: ...... / ...... / 2026 م"}
-                </p>
+                {/* المدير التنفيذي */}
+                <div className="p-1 sm:p-2">
+                  <div className="font-bold text-gray-800 text-[11px] sm:text-sm mb-2 sm:mb-4">
+                    المدير التنفيذي
+                  </div>
+                  <div className="space-y-1 text-xs flex flex-col items-center justify-center">
+                    {(request.executiveSignatureUrl && (request.status === "approved" || request.status === "converted_to_order")) ? (
+                      <div className="h-9 sm:h-12 flex items-center justify-center mx-auto w-24 sm:w-36 overflow-hidden my-0.5 sm:my-1">
+                        <img
+                          src={request.executiveSignatureUrl}
+                          alt="توقيع المدير التنفيذي"
+                          className="max-h-9 sm:max-h-12 max-w-full object-contain"
+                        />
+                      </div>
+                    ) : (request.status === "approved" || request.status === "converted_to_order") ? (
+                      <div className="h-9 sm:h-12 flex items-center justify-center mx-auto w-24 sm:w-36 overflow-hidden my-0.5 sm:my-1 text-emerald-700 font-bold text-[11px]">
+                        <ShieldCheck className="w-4 h-4 ml-1 inline text-emerald-600" />
+                        معتمد نظامياً
+                      </div>
+                    ) : (
+                      <div className="h-8 sm:h-10 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-36"></div>
+                    )}
+                    <div className="text-gray-900 font-bold text-[10px] sm:text-xs">
+                      {request.executiveSignatureName || ((request.status === "approved" || request.status === "converted_to_order") ? (orgSettings?.executiveDirectorName || "م. عبدالهادي آل فائق") : "........................")}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-
-          {/* تذييل توجيه الإدارة المالية عند الاعتماد */}
-          {request.disbursementOrderNumber && (
-            <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-800 text-[11px] leading-relaxed">
-              <p className="font-bold flex items-center gap-1.5">
-                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                توجيه الإدارة المالية:
-              </p>
-              <p className="mt-0.5">
-                تم اعتماد هذا الطلب نظامياً، وأُحيل إلى الإدارة المالية بموجب أمر الصرف المالي رقم 
-                <span className="font-bold font-mono px-1">({request.disbursementOrderNumber})</span>
-                لتنفيذ التحويل البنكي لحساب المستفيد الموضح أعلاه وفق الإجراءات المعتمدة.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-slate-200 text-center text-[10px] text-slate-400 bg-slate-50/50">
-          تم استخراج هذا التقرير آلياً عبر بوابة تمام لإدارة مشاريع وعمليات المساجد • {formatGregorianDate(new Date())}
         </div>
       </div>
+
+      {/* أنماط الطباعة المتقدمة A4 المتوافقة مع نمط تقارير الصرف */}
+      <style>{`
+        @media print {
+          @page {
+            size: A4;
+            margin: 0 !important;
+          }
+          body {
+            background-color: white !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .print\\:hidden {
+            display: none !important;
+          }
+          .min-h-screen {
+            background-color: white !important;
+            padding: 0 !important;
+          }
+          .print-container {
+            max-width: 100% !important;
+            width: 100% !important;
+            box-shadow: none !important;
+            padding: 8mm !important;
+            margin: 0 !important;
+            min-height: 0 !important;
+            height: auto !important;
+          }
+          .print-inner {
+            min-height: 275mm !important;
+            border-width: 2px !important;
+            padding: 12px !important;
+          }
+          .mb-6 {
+            margin-bottom: 8px !important;
+          }
+          .mb-4 {
+            margin-bottom: 6px !important;
+          }
+          .p-2.5 {
+            padding: 6px !important;
+          }
+          .p-2 {
+            padding: 5px !important;
+          }
+          .py-4 {
+            padding-top: 6px !important;
+            padding-bottom: 6px !important;
+          }
+          .h-10 {
+            height: 24px !important;
+          }
+        }
+      `}</style>
 
       {/* حوار الاعتماد للمدير التنفيذي */}
       <Dialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
