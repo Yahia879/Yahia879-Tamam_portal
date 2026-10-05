@@ -268,7 +268,7 @@ export default function CustodyRequestPrint() {
       {/* صفحة الطباعة - تصميم متوازن لصفحة A4 مع الإطار الأخضر والذهبي الفاخر المعتمد */}
       <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-2 sm:p-8 print:p-0 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-start overflow-hidden">
         {/* إطار مزدوج فاخر للمستند */}
-        <div className="print-inner border-[2px] sm:border-[3px] border-[#1a5f4a] p-2.5 sm:p-6 rounded-lg relative overflow-hidden bg-white print:border-[2px] print:p-5 h-full flex-1 flex flex-col justify-start">
+        <div className="print-inner border-[2px] sm:border-[3px] border-[#1a5f4a] p-2.5 sm:p-6 rounded-lg relative bg-white print:border-[2px] print:p-5 h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[277mm]">
           {/* خط ذهبي داخلي رفيع للإطار */}
           <div className="absolute inset-1 border border-[#d4a574] rounded pointer-events-none"></div>
 
@@ -471,7 +471,7 @@ export default function CustodyRequestPrint() {
         </div>
       </div>
 
-      {/* أنماط الطباعة المتقدمة A4 المتوافقة مع نمط تقارير الصرف */}
+      {/* أنماط الطباعة المتقدمة للجمعية المتطابقة مع أوامر الصرف */}
       <style>{`
         @media print {
           @page {
@@ -482,6 +482,8 @@ export default function CustodyRequestPrint() {
             background-color: white !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+            height: 100%;
+            overflow: hidden;
           }
           .print\\:hidden {
             display: none !important;
@@ -489,6 +491,8 @@ export default function CustodyRequestPrint() {
           .min-h-screen {
             background-color: white !important;
             padding: 0 !important;
+            min-height: 0 !important;
+            height: auto !important;
           }
           .print-container {
             max-width: 100% !important;
@@ -496,21 +500,35 @@ export default function CustodyRequestPrint() {
             box-shadow: none !important;
             padding: 8mm !important;
             margin: 0 !important;
-            min-height: 0 !important;
-            height: auto !important;
+            min-height: 280mm !important;
+            box-sizing: border-box !important;
           }
           .print-inner {
-            min-height: 275mm !important;
+            min-height: 264mm !important;
+            box-sizing: border-box !important;
+            padding: 10px !important;
             border-width: 2px !important;
-            padding: 12px !important;
           }
-          .mb-6 {
-            margin-bottom: 8px !important;
-          }
-          .mb-4 {
+          /* تقليص الفراغات للحفاظ على الصفحة الواحدة مع وجود مسافات متوازنة من الأطراف */
+          .mb-4, .mb-6 {
             margin-bottom: 6px !important;
           }
-          .p-2.5 {
+          .mb-3\\.5, .mb-3 {
+            margin-bottom: 5px !important;
+          }
+          .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 6px !important;
+            margin-bottom: 6px !important;
+          }
+          .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 5px !important;
+            margin-bottom: 5px !important;
+          }
+          table td {
+            padding: 6px 8px !important;
+            font-size: 11.5px !important;
+          }
+          .p-2\\.5 {
             padding: 6px !important;
           }
           .p-2 {
@@ -520,8 +538,11 @@ export default function CustodyRequestPrint() {
             padding-top: 6px !important;
             padding-bottom: 6px !important;
           }
-          .h-10 {
-            height: 24px !important;
+          .h-14 {
+            height: 38px !important;
+          }
+          .mt-6 {
+            margin-top: 10px !important;
           }
         }
       `}</style>
