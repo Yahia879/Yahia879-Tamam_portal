@@ -266,9 +266,9 @@ export default function CustodyRequestPrint() {
       </div>
 
       {/* صفحة الطباعة - تصميم متوازن لصفحة A4 مع الإطار الأخضر والذهبي الفاخر المعتمد */}
-      <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-2 sm:p-8 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-start overflow-hidden">
+      <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-4 sm:p-8 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-start overflow-hidden">
         {/* إطار مزدوج فاخر للمستند */}
-        <div className="print-inner border-[2px] sm:border-[3px] border-[#1a5f4a] p-2.5 sm:p-6 rounded-lg relative bg-white print:border-[2px] h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[277mm]">
+        <div className="print-inner border-[2px] sm:border-[3px] border-[#1a5f4a] p-3 sm:p-6 rounded-lg relative bg-white h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[277mm]">
           {/* خط ذهبي داخلي رفيع للإطار */}
           <div className="absolute inset-1 border border-[#d4a574] rounded pointer-events-none"></div>
 
@@ -505,17 +505,17 @@ export default function CustodyRequestPrint() {
             max-width: 100% !important;
             width: 100% !important;
             box-shadow: none !important;
-            padding: 10mm 12mm !important;
+            padding: 12mm 14mm !important;
             margin: 0 auto !important;
             min-height: 277mm !important;
             height: 100% !important;
             box-sizing: border-box !important;
           }
           .print-inner {
-            min-height: 257mm !important;
+            min-height: 253mm !important;
             height: 100% !important;
             box-sizing: border-box !important;
-            padding: 14px 16px !important;
+            padding: 14px 18px !important;
             border-width: 2px !important;
             display: flex !important;
             flex-direction: column !important;
@@ -546,12 +546,6 @@ export default function CustodyRequestPrint() {
           table td {
             padding: 5px 8px !important;
             font-size: 11.5px !important;
-          }
-          .p-2\\.5 {
-            padding: 5px !important;
-          }
-          .p-2 {
-            padding: 4px !important;
           }
           .py-4 {
             padding-top: 5px !important;
