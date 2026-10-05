@@ -158,45 +158,48 @@ export default function NewCustodyRequest() {
             </CardHeader>
 
             <CardContent className="p-4 sm:p-5 space-y-4">
-              {/* عنوان العهدة */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">
-                  عنوان العهدة المالية <span className="text-rose-500">*</span>
-                </Label>
-                <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="مثال: عهدة مالية لمصاريف الصيانة الطارئة لمساجد القطاع الشمالي"
-                  className="h-10 rounded-xl border-border/70 text-xs sm:text-sm bg-background"
-                  required
-                />
-              </div>
-
-              {/* المبلغ المطلوب */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">
-                  المبلغ المطلوب (ريال سعودي) <span className="text-rose-500">*</span>
-                </Label>
-                <div className="relative">
+              {/* عنوان العهدة والمبلغ في سطر واحد */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* عنوان العهدة */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">
+                    عنوان العهدة المالية <span className="text-rose-500">*</span>
+                  </Label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    min="1"
-                    value={amountStr}
-                    onChange={(e) => setAmountStr(e.target.value)}
-                    placeholder="0.00"
-                    dir="ltr"
-                    className="h-11 rounded-xl border-border/70 text-base font-bold font-mono pl-16 text-left bg-background focus:ring-primary/20"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="عهدة مالية لمصاريف ....."
+                    className="h-11 rounded-xl border-border/70 text-xs sm:text-sm bg-background"
                     required
                   />
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground pointer-events-none select-none">
-                    ر.س
+                </div>
+
+                {/* المبلغ المطلوب */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">
+                    المبلغ المطلوب (ريال سعودي) <span className="text-rose-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="1"
+                      value={amountStr}
+                      onChange={(e) => setAmountStr(e.target.value)}
+                      placeholder="0.00"
+                      dir="rtl"
+                      className="h-11 rounded-xl border-border/70 text-base font-bold font-mono pl-14 pr-3.5 text-right bg-background focus:ring-primary/20"
+                      required
+                    />
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground pointer-events-none select-none">
+                      ر.س
+                    </div>
                   </div>
                 </div>
 
                 {/* تفقيط المبلغ التلقائي */}
                 {tafqeetText && (
-                  <div className="p-2.5 bg-primary/5 rounded-xl border border-primary/20 text-xs text-primary font-bold flex items-center gap-2">
+                  <div className="col-span-1 md:col-span-2 p-2.5 bg-primary/5 rounded-xl border border-primary/20 text-xs text-primary font-bold flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-primary shrink-0" />
                     <span>فقط {tafqeetText} لا غير.</span>
                   </div>
@@ -211,7 +214,7 @@ export default function NewCustodyRequest() {
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="اكتب بياناً شاملاً ومفصلاً يوضح أسباب طلب العهدة، والمشاريع أو البنود المراد تغطيتها، وأي تفاصيل داعمة للطلب..."
+                  placeholder="اكتب بياناً شاملاً ومفصلاً يوضح أسباب طلب العهدة وأي تفاصيل داعمة للطلب..."
                   className="min-h-[120px] rounded-xl border-border/70 text-xs sm:text-sm bg-background leading-relaxed"
                   required
                 />
