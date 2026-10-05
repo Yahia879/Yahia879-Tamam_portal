@@ -53,75 +53,50 @@ export default function FieldVisitSchedule() {
     "18:00"
   ];
 
-  // جلب الفترات المحجوزة للموظف المختار في اليوم المحدد
-  const { data: busySlots = [], isLoading: isLoadingBusySlots } = trpc.fieldVisits.getBusySlots.useQuery(
-    { 
-      userId: Number(formData.assignedUserId), 
-      date: formData.visitDate,
-      excludeRequestId: Number(requestId)
-    },
-    { 
-      enabled: !!formData.assignedUserId && !!formData.visitDate && formData.assignedUserId !== "none"
-    }
-  );
-
-  const availableSlots = TIME_SLOTS.filter(slot => !busySlots.includes(slot));
-
-  // تصفير وقت الزيارة عند تغيير المسؤول أو التاريخ بعد التحميل الأولي
-  useEffect(() => {
-    if (!initialDataLoaded) return;
-    if (
-      prevSelectionRef.current.userId !== formData.assignedUserId ||
-      prevSelectionRef.current.date !== formData.visitDate
-    ) {
-      if (prevSelectionRef.current.userId !== "" || prevSelectionRef.current.date !== "") {
-        setFormData(prev => ({ ...prev, visitTime: "" }));
-      }
-      prevSelectionRef.current = {
-        userId: formData.assignedUserId,
-        date: formData.visitDate,
-      };
-    }
-  }, [formData.assignedUserId, formData.visitDate, initialDataLoaded]);
-
-  // إعادة تعيين الوقت المختار إذا أصبح غير متاح
-  useEffect(() => {
-    if (formData.visitTime && busySlots.includes(formData.visitTime)) {
-      setFormData(prev => ({ ...prev, visitTime: "" }));
-      toast.warning("الوقت المحدد مسبقاً لم يعد متاحاً لهذا الموظف بسبب حجز آخر");
-    }
-  }, [busySlots, formData.visitTime]);
-  
-  // جلب قائمة المستخدمين وتصفيتهم
-  const { data: allStaffUsers } = trpc.users.getStaffUsers.useQuery();
-  const staffUsers = allStaffUsers?.filter((user: any) => 
-    user.role === "field_team" || 
-    (user.permissions && user.permissions.includes("requests.manage_as_field_team")) ||
-    ["super_admin", "system_admin", "projects_office"].includes(user.role) ||
-    String(user.id) === formData.assignedUserId
-  );
-
-  // جلب بيانات الطلب والزيارة الميدانية المسجلة مسبقاً
-  const { data: request, isLoading } = trpc.requests.getById.useQuery(
+  // جلب بيانات الطلب والزيارة الميدانية المسجلة مسبقاً وقائمة الموظفين
+  const { data: request, isLoading: isLoadingRequest } = trpc.requests.getById.useQuery(
     { id: Number(requestId) },
     { enabled: !!requestId }
   );
 
-  const { data: fieldVisit } = trpc.fieldVisits.getVisit.useQuery(
+  const { data: fieldVisit, isLoading: isLoadingVisit } = trpc.fieldVisits.getVisit.useQuery(
     { requestId: Number(requestId) },
     { enabled: !!requestId }
   );
 
-  // ملء البيانات السابقة (المسؤول، التاريخ، الوقت، الملاحظات) عند فتح الصفحة
+  const { data: allStaffUsers, isLoading: isLoadingStaff } = trpc.users.getStaffUsers.useQuery();
+
+  const isPageLoading = isLoadingRequest || isLoadingVisit || isLoadingStaff;
+
+  // تصفية الموظفين المتاحين مع ضمان إدراج المسؤول المعين مسبقاً دائماً
+  const staffUsers = allStaffUsers?.filter((u: any) => 
+    u.role === "field_team" || 
+    (u.permissions && u.permissions.includes("requests.manage_as_field_team")) ||
+    ["super_admin", "system_admin", "projects_office"].includes(u.role) ||
+    String(u.id) === formData.assignedUserId ||
+    (fieldVisit?.assignedTo && u.id === fieldVisit.assignedTo) ||
+    (request?.fieldVisitAssignedTo && u.id === request.fieldVisitAssignedTo)
+  );
+
+  // دالة تحويل التاريخ المحلي بأمان بدون إزاحة النطاق الزمني
+  const toLocalDateString = (dateVal: any) => {
+    if (!dateVal) return "";
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return "";
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // ملء البيانات السابقة (المسؤول، التاريخ، الوقت، الملاحظات) عند فتح الصفحة بعد اكتمال التحميل
   useEffect(() => {
-    if ((fieldVisit || request) && !initialDataLoaded) {
+    if (!isPageLoading && (fieldVisit || request) && !initialDataLoaded) {
       let formattedDate = "";
       if (fieldVisit?.scheduledDate) {
-        const d = new Date(fieldVisit.scheduledDate);
-        if (!isNaN(d.getTime())) formattedDate = d.toISOString().split("T")[0];
+        formattedDate = toLocalDateString(fieldVisit.scheduledDate);
       } else if (request?.fieldVisitScheduledDate) {
-        const d = new Date(request.fieldVisitScheduledDate);
-        if (!isNaN(d.getTime())) formattedDate = d.toISOString().split("T")[0];
+        formattedDate = toLocalDateString(request.fieldVisitScheduledDate);
       }
 
       const time = fieldVisit?.scheduledTime || request?.fieldVisitScheduledTime || "";
@@ -141,7 +116,44 @@ export default function FieldVisitSchedule() {
         setInitialDataLoaded(true);
       }
     }
-  }, [fieldVisit, request, initialDataLoaded]);
+  }, [fieldVisit, request, isPageLoading, initialDataLoaded]);
+
+  // جلب الفترات المحجوزة للموظف المختار في اليوم المحدد
+  const { data: busySlots = [], isLoading: isLoadingBusySlots } = trpc.fieldVisits.getBusySlots.useQuery(
+    { 
+      userId: Number(formData.assignedUserId), 
+      date: formData.visitDate,
+      excludeRequestId: Number(requestId)
+    },
+    { 
+      enabled: !!formData.assignedUserId && !!formData.visitDate && formData.assignedUserId !== "none"
+    }
+  );
+
+  const availableSlots = TIME_SLOTS.filter(slot => !busySlots.includes(slot));
+
+  // تصفير وقت الزيارة فقط عند تغيير المسؤول أو التاريخ يدويًا بعد التحميل الأولي
+  useEffect(() => {
+    if (!initialDataLoaded) return;
+    const hasUserChanged = prevSelectionRef.current.userId !== "" && prevSelectionRef.current.userId !== formData.assignedUserId;
+    const hasDateChanged = prevSelectionRef.current.date !== "" && prevSelectionRef.current.date !== formData.visitDate;
+
+    if (hasUserChanged || hasDateChanged) {
+      setFormData(prev => ({ ...prev, visitTime: "" }));
+      prevSelectionRef.current = {
+        userId: formData.assignedUserId,
+        date: formData.visitDate,
+      };
+    }
+  }, [formData.assignedUserId, formData.visitDate, initialDataLoaded]);
+
+  // إعادة تعيين الوقت المختار إذا أصبح غير متاح
+  useEffect(() => {
+    if (formData.visitTime && busySlots.includes(formData.visitTime)) {
+      setFormData(prev => ({ ...prev, visitTime: "" }));
+      toast.warning("الوقت المحدد مسبقاً لم يعد متاحاً لهذا الموظف بسبب حجز آخر");
+    }
+  }, [busySlots, formData.visitTime]);
 
   // حفظ موعد الزيارة
   const utils = trpc.useUtils();
@@ -185,7 +197,7 @@ export default function FieldVisitSchedule() {
     });
   };
 
-  if (isLoading) {
+  if (isPageLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -234,8 +246,13 @@ export default function FieldVisitSchedule() {
                 <span>المسؤول عن الزيارة *</span>
               </Label>
               <Select
+                key={formData.assignedUserId || "empty"}
                 value={formData.assignedUserId}
-                onValueChange={(value) => setFormData({ ...formData, assignedUserId: value })}
+                onValueChange={(value) => {
+                  if (value && value !== "none") {
+                    setFormData({ ...formData, assignedUserId: value });
+                  }
+                }}
               >
                 <SelectTrigger id="assignedUser" className="h-11 rounded-xl">
                   <SelectValue placeholder="اختر المسؤول من القائمة" />
@@ -247,7 +264,13 @@ export default function FieldVisitSchedule() {
                         {user.name} ({user.email})
                       </SelectItem>
                     ))
-                  ) : (
+                  ) : null}
+                  {formData.assignedUserId && !staffUsers?.some((u: any) => String(u.id) === formData.assignedUserId) && (
+                    <SelectItem value={formData.assignedUserId}>
+                      {fieldVisit?.assignedUserName || `المسؤول المعين (${formData.assignedUserId})`}
+                    </SelectItem>
+                  )}
+                  {(!staffUsers || staffUsers.length === 0) && !formData.assignedUserId && (
                     <SelectItem value="none" disabled>
                       لا يوجد موظفين متاحين
                     </SelectItem>
