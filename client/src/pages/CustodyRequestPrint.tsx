@@ -252,18 +252,6 @@ export default function CustodyRequestPrint() {
             </>
           )}
 
-          {request.disbursementOrderId && (
-            <Link href={`/disbursements/orders/${request.disbursementOrderId}/print`}>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 sm:h-9 bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 font-bold text-xs sm:text-sm gap-1"
-              >
-                <span>عرض أمر الصرف</span>
-                <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
-              </Button>
-            </Link>
-          )}
         </div>
       </div>
 

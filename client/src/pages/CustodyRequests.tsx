@@ -486,17 +486,9 @@ export default function CustodyRequests() {
                                   </Tooltip>
                                 </TooltipProvider>
                               )}
-                              <div className="flex flex-col gap-0.5">
-                                <Link href={`/custody-requests/${req.id}`} className="hover:underline flex items-center gap-1 font-bold">
-                                  {req.requestNumber}
-                                </Link>
-                                {req.disbursementOrderNumber && (
-                                  <Link href={`/disbursements/orders/${req.disbursementOrderId}/print`} className="inline-flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded font-mono hover:underline w-fit">
-                                    <span>أمر: {req.disbursementOrderNumber}</span>
-                                    <ArrowUpRight className="w-2.5 h-2.5" />
-                                  </Link>
-                                )}
-                              </div>
+                              <Link href={`/custody-requests/${req.id}`} className="hover:underline flex items-center gap-1 font-bold">
+                                {req.requestNumber}
+                              </Link>
                             </div>
                           </TableCell>
 
