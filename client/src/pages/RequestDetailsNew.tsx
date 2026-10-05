@@ -2286,6 +2286,7 @@ export default function RequestDetailsNew() {
                       }
                       fieldReportButton={
                         request.programType !== 'sedana' &&
+                        request.currentStage !== 'field_visit' &&
                         !isFieldTeam && !isQuickResponseUser && hasFieldReport &&
                         !['boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'].includes(request.currentStage) &&
                         !(isQuickResponse && (
@@ -2435,25 +2436,6 @@ export default function RequestDetailsNew() {
                           : undefined
                       }
                       additionalActions={[
-                        ...(request.currentStage === 'field_visit' && (isAdmin || isManagementUser || isFieldTeam || userPermissions.includes("requests.manage_as_field_team"))
-                          ? [
-                              ...(hasFieldReport ? [
-                                {
-                                  label: "تعديل الموعد وتعيين مسؤول آخر",
-                                  onClick: () => handleOpenRescheduleModal(),
-                                },
-                                {
-                                  label: "حذف تقرير الزيارة الميدانية",
-                                  onClick: () => setShowDeleteReportConfirm(true),
-                                }
-                              ] : (fieldVisit?.scheduledDate || request.fieldVisitScheduledDate ? [
-                                {
-                                  label: "تعديل الموعد وتعيين مسؤول آخر",
-                                  onClick: () => handleOpenRescheduleModal(),
-                                }
-                              ] : []))
-                            ]
-                          : []),
                         ...(request.programType === 'sedana' && request.currentStage === 'contracting' && contractSuppliers.length > 0
                           ? [
                               {
