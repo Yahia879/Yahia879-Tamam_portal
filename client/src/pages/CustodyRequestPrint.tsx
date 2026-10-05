@@ -21,30 +21,11 @@ import {
   Printer,
   CheckCircle,
   XCircle,
-  Clock,
   ShieldCheck,
   ArrowUpRight,
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-
-function toHijriDate(date: Date): string {
-  let formatted = "";
-  try {
-    formatted = new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
-      day: "numeric",
-      month: "numeric",
-      year: "numeric"
-    }).format(date);
-  } catch (e) {
-    const gregorianYear = date.getFullYear();
-    const hijriYear = Math.floor((gregorianYear - 622) * (33 / 32));
-    formatted = `${date.getDate()}/${date.getMonth() + 1}/${hijriYear}`;
-  }
-  formatted = formatted.replace(/هـ/g, "").replace(/ه/g, "").trim();
-  formatted = formatted.replace(/[\s\u200e\u200f]+$/, "");
-  return `${formatted} هـ`;
-}
 
 function formatGregorianDate(date: Date): string {
   return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} م`;
@@ -247,7 +228,6 @@ export default function CustodyRequestPrint() {
                     <div className="text-xs sm:text-sm font-bold text-gray-800 leading-tight">
                       {orgSettings?.officialReportsName || (orgSettings as any)?.nameAr || "جمعية عمارة وتطوير المساجد (تمام)"}
                     </div>
-                    <div className="text-[10px] text-gray-500">الإدارة التنفيذية - الإدارة المالية</div>
                   </div>
                 </div>
 
@@ -255,10 +235,6 @@ export default function CustodyRequestPrint() {
                   <div className="flex gap-1 justify-end">
                     <span className="font-bold text-gray-600 hidden xs:inline sm:inline">التاريخ:</span>
                     <span className="border-b border-dotted border-gray-400 px-1">{formatGregorianDate(reqDate)}</span>
-                  </div>
-                  <div className="flex gap-1 justify-end">
-                    <span className="font-bold text-gray-600 hidden xs:inline sm:inline">الموافق:</span>
-                    <span className="border-b border-dotted border-gray-400 px-1">{toHijriDate(reqDate)}</span>
                   </div>
                   <div className="flex gap-1 justify-end">
                     <span className="font-bold text-gray-600 hidden xs:inline sm:inline">رقم الطلب:</span>
@@ -280,34 +256,6 @@ export default function CustodyRequestPrint() {
                 </h1>
               </div>
 
-              {/* حالة الطلب النظامية */}
-              <div className="mb-2.5 sm:mb-3.5 border border-gray-300 rounded-lg overflow-hidden bg-white text-[10.5px] sm:text-xs sm:text-sm">
-                <div className="flex items-center justify-between p-2 sm:p-2.5 bg-gray-50/50">
-                  <span className="font-bold text-gray-700">حالة الطلب النظامية:</span>
-                  {request.status === "converted_to_order" ? (
-                    <span className="text-emerald-700 font-bold flex items-center gap-1">
-                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                      معتمد ومحوّل لأمر صرف برقم ({request.disbursementOrderNumber})
-                    </span>
-                  ) : request.status === "approved" ? (
-                    <span className="text-blue-700 font-bold flex items-center gap-1">
-                      <CheckCircle className="w-3.5 h-3.5 text-blue-600" />
-                      معتمد من المدير التنفيذي
-                    </span>
-                  ) : request.status === "rejected" ? (
-                    <span className="text-rose-700 font-bold flex items-center gap-1">
-                      <XCircle className="w-3.5 h-3.5 text-rose-600" />
-                      مرفوض {request.rejectionReason ? `(${request.rejectionReason})` : ""}
-                    </span>
-                  ) : (
-                    <span className="text-amber-700 font-bold flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-amber-600" />
-                      بانتظار اعتماد وتوقيع المدير التنفيذي
-                    </span>
-                  )}
-                </div>
-              </div>
-
               {/* 1. بيانات الموظف طالب العهدة */}
               <div className="mb-2.5 sm:mb-3.5 border border-gray-300 rounded-lg overflow-hidden bg-white text-[10.5px] sm:text-xs sm:text-sm">
                 <div className="bg-gray-100/80 p-1.5 sm:p-2 font-bold text-xs sm:text-sm border-b text-gray-800">
@@ -324,11 +272,11 @@ export default function CustodyRequestPrint() {
                   </div>
                   <div className="flex border-b sm:border-b-0 sm:border-l border-gray-200">
                     <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-28 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">رقم الجوال:</span>
-                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-mono font-bold flex-1" dir="ltr">{request.applicantPhone || "—"}</span>
+                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-mono font-bold flex-1 text-right" dir="ltr">{request.applicantPhone || "—"}</span>
                   </div>
                   <div className="flex">
                     <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-32 border-l border-gray-200 text-gray-750 shrink-0">البريد الإلكتروني:</span>
-                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-mono font-bold flex-1">{request.applicantEmail || "—"}</span>
+                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-mono font-bold flex-1 text-right">{request.applicantEmail || "—"}</span>
                   </div>
                 </div>
               </div>
@@ -387,7 +335,7 @@ export default function CustodyRequestPrint() {
                   </div>
                   <div className="flex">
                     <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">الآيبان (IBAN):</span>
-                    <span className="p-1.5 sm:p-2.5 text-slate-800 font-mono font-bold flex-1 text-[10px] sm:text-xs tracking-wider break-all" dir="ltr">{request.bankIban || "—"}</span>
+                    <span className="p-1.5 sm:p-2.5 text-slate-800 font-mono font-bold flex-1 text-[10px] sm:text-xs tracking-wider break-all text-right" dir="ltr">{request.bankIban || "—"}</span>
                   </div>
                 </div>
               </div>
