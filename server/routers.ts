@@ -34,6 +34,7 @@ import { calendarRouter } from "./routers/calendar";
 import { escalationRouter } from "./routers/escalation";
 import { sedanaInquiriesRouter } from "./routers/sedanaInquiries";
 import { sedanaExecutionRouter } from "./routers/sedanaExecution";
+import { approvalsRouter } from "./routers/approvals";
 
 export const appRouter = router({
   system: systemRouter,
@@ -127,6 +128,9 @@ export const appRouter = router({
 
   // التصعيد الإداري ومتابعة التأخيرات
   escalation: escalationRouter,
+
+  // مركز الاعتمادات الموحد
+  approvals: approvalsRouter,
 });
 
 export type AppRouter = typeof appRouter;
