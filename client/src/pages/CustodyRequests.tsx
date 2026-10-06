@@ -384,9 +384,245 @@ export default function CustodyRequests() {
           </div>
         )}
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="rounded-2xl border-border/70 shadow-xs bg-card hover:border-primary/40 transition-all">
+        {activeTab === "exceptions" ? (
+          /* تبويب إدارة طلبات الاستثناء */
+          <div className="space-y-4">
+            {/* بطاقة الفلترة لطلبات الاستثناء */}
+            <Card className="rounded-2xl border-border/70 shadow-xs bg-card">
+              <CardContent className="p-4">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+                    <Button
+                      size="sm"
+                      variant={exceptionFilter === "all" ? "default" : "outline"}
+                      onClick={() => setExceptionFilter("all")}
+                      className={`rounded-xl text-xs font-bold h-9 px-3 ${
+                        exceptionFilter === "all" ? "gradient-primary text-white" : ""
+                      }`}
+                    >
+                      الكل ({exceptionsData?.total || 0})
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={exceptionFilter === "pending" ? "default" : "outline"}
+                      onClick={() => setExceptionFilter("pending")}
+                      className={`rounded-xl text-xs font-bold h-9 px-3 ${
+                        exceptionFilter === "pending" ? "bg-amber-600 text-white" : ""
+                      }`}
+                    >
+                      بانتظار المراجعة ({pendingActionCounts?.pendingExceptionsCount || 0})
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={exceptionFilter === "approved" ? "default" : "outline"}
+                      onClick={() => setExceptionFilter("approved")}
+                      className={`rounded-xl text-xs font-bold h-9 px-3 ${
+                        exceptionFilter === "approved" ? "bg-emerald-600 text-white" : ""
+                      }`}
+                    >
+                      معتمدة
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={exceptionFilter === "rejected" ? "default" : "outline"}
+                      onClick={() => setExceptionFilter("rejected")}
+                      className={`rounded-xl text-xs font-bold h-9 px-3 ${
+                        exceptionFilter === "rejected" ? "bg-rose-600 text-white" : ""
+                      }`}
+                    >
+                      مرفوضة
+                    </Button>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground font-medium">
+                    طلبات الاستثناء المرفوعة من الموظفين لصرف عهدة جديدة لوجود عهد سابقة غير مصفاة
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* جدول طلبات الاستثناء مع عمود الإجراءات */}
+            <Card className="rounded-2xl border-border/70 shadow-xs bg-card overflow-hidden">
+              <CardHeader className="p-5 pb-3 border-b border-border/50 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-base font-bold text-foreground">
+                    سجل طلبات استثناء العهد المالية
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                    مراجعة طلبات الاستثناء واتخاذ إجراءات الاعتماد أو الرفض مباشرة
+                  </CardDescription>
+                </div>
+                <Badge variant="secondary" className="font-mono text-xs font-bold">
+                  {exceptionsData?.total || 0} طلب
+                </Badge>
+              </CardHeader>
+
+              <CardContent className="p-0">
+                {isLoadingExceptions ? (
+                  <div className="py-16 text-center space-y-2">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+                    <p className="text-xs text-muted-foreground">جاري تحميل طلبات الاستثناء...</p>
+                  </div>
+                ) : !exceptionsData?.items || exceptionsData.items.length === 0 ? (
+                  <div className="py-16 text-center space-y-3">
+                    <ShieldCheck className="w-12 h-12 text-muted-foreground/40 mx-auto" />
+                    <h3 className="text-sm font-bold text-foreground">لا توجد طلبات استثناء</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {exceptionFilter === "pending"
+                        ? "لا توجد طلبات استثناء معلقة بانتظار المراجعة حالياً."
+                        : "لم يتم العثور على أي طلبات استثناء مطابقة للفلتر المحدد."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40 hover:bg-muted/40">
+                          <TableHead className="font-bold">مقدم الطلب</TableHead>
+                          <TableHead className="font-bold">العهدة غير المصفاة</TableHead>
+                          <TableHead className="font-bold">تاريخ الطلب</TableHead>
+                          <TableHead className="font-bold max-w-[260px]">مبررات الاستثناء</TableHead>
+                          <TableHead className="font-bold text-center">الحالة</TableHead>
+                          <TableHead className="text-center font-bold">الإجراءات</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {exceptionsData.items.map((ex: any) => {
+                          const isPending = ex.status === "pending";
+                          return (
+                            <TableRow key={ex.id} className="hover:bg-muted/30">
+                              <TableCell>
+                                <div className="space-y-0.5">
+                                  <span className="text-xs font-bold text-foreground block">
+                                    {ex.applicantName || "موظف"}
+                                  </span>
+                                  <span className="text-[11px] text-muted-foreground font-mono">
+                                    {ex.applicantEmail}
+                                  </span>
+                                </div>
+                              </TableCell>
+
+                              <TableCell>
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-primary">
+                                    <span>{ex.activeCustodyNumber || `#${ex.activeCustodyId}`}</span>
+                                  </div>
+                                  <p className="text-[11px] text-muted-foreground truncate max-w-[180px]">
+                                    {ex.activeCustodyTitle || "عهدة مالية"}
+                                  </p>
+                                  <div className="text-[11px] font-bold text-foreground flex items-center gap-1">
+                                    <span>{Number(ex.activeCustodyAmount || 0).toLocaleString()}</span>
+                                    <SaudiRiyal className="w-3 h-3 inline" />
+                                  </div>
+                                </div>
+                              </TableCell>
+
+                              <TableCell className="font-mono text-xs text-muted-foreground">
+                                {ex.createdAt ? new Date(ex.createdAt).toLocaleDateString("ar-SA") : "—"}
+                              </TableCell>
+
+                              <TableCell className="max-w-[260px]">
+                                <p className="text-xs text-foreground/90 leading-relaxed line-clamp-2" title={ex.reason}>
+                                  {ex.reason}
+                                </p>
+                                {ex.reviewNotes && (
+                                  <p className="text-[11px] text-muted-foreground mt-1 pt-1 border-t border-border/50">
+                                    <span className="font-semibold text-foreground">القرار: </span>
+                                    {ex.reviewNotes}
+                                  </p>
+                                )}
+                              </TableCell>
+
+                              <TableCell className="text-center">
+                                <div className="flex flex-col items-center gap-1">
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-[10px] font-bold py-0.5 ${
+                                      ex.status === "approved"
+                                        ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300"
+                                        : ex.status === "rejected"
+                                        ? "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300"
+                                        : "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300"
+                                    }`}
+                                  >
+                                    {ex.status === "approved" ? "معتمد" : ex.status === "rejected" ? "مرفوض" : "قيد المراجعة"}
+                                  </Badge>
+                                  {ex.isUsed ? (
+                                    <Badge variant="secondary" className="text-[9px] py-0">
+                                      تم الاستخدام
+                                    </Badge>
+                                  ) : null}
+                                </div>
+                              </TableCell>
+
+                              <TableCell>
+                                <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                                  {/* معاينة العهدة */}
+                                  {ex.activeCustodyId && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setLocation(`/custody-requests/${ex.activeCustodyId}`)}
+                                      className="h-8 px-2.5 rounded-lg text-xs gap-1 font-semibold hover:bg-muted/80"
+                                      title="معاينة العهدة المرتبطة"
+                                    >
+                                      <Printer className="w-3.5 h-3.5 text-primary" />
+                                      <span>العهدة</span>
+                                    </Button>
+                                  )}
+
+                                  {/* أزرار اعتماد / رفض الاستثناء ضمن عمود الإجراءات */}
+                                  {isPending && (isExecutiveDirector || isSuperAdmin) && (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => {
+                                          setSelectedException(ex);
+                                          setExceptionActionType("approve");
+                                          setExceptionActionNotes("");
+                                          setConfirmExceptionDialogOpen(true);
+                                        }}
+                                        className="h-8 px-2.5 rounded-lg text-xs gap-1 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                                        title="اعتماد هذا الاستثناء"
+                                      >
+                                        <CheckCircle className="w-3.5 h-3.5" />
+                                        <span>اعتماد</span>
+                                      </Button>
+
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setSelectedException(ex);
+                                          setExceptionActionType("reject");
+                                          setExceptionActionNotes("");
+                                          setConfirmExceptionDialogOpen(true);
+                                        }}
+                                        className="h-8 px-2.5 rounded-lg text-xs gap-1 font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 border-rose-200"
+                                        title="رفض هذا الاستثناء"
+                                      >
+                                        <XCircle className="w-3.5 h-3.5" />
+                                        <span>رفض</span>
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="rounded-2xl border-border/70 shadow-xs bg-card hover:border-primary/40 transition-all">
             <CardHeader className="p-4 pb-2">
               <CardDescription className="text-xs font-bold text-muted-foreground flex items-center justify-between">
                 <span>{canSeeAll ? "إجمالي الطلبات" : "إجمالي طلباتي"}</span>
@@ -830,6 +1066,8 @@ export default function CustodyRequests() {
             )}
           </CardContent>
         </Card>
+          </>
+        )}
 
 
 
@@ -959,165 +1197,76 @@ export default function CustodyRequests() {
           </DialogContent>
         </Dialog>
 
-        {/* حوار إدارة طلبات الاستثناء للمدير التنفيذي */}
-        <Dialog open={exceptionsDialogOpen} onOpenChange={setExceptionsDialogOpen}>
-          <DialogContent className="max-w-3xl rounded-2xl max-h-[85vh] flex flex-col" dir="rtl">
-            <DialogHeader className="text-right border-b border-border/40 pb-3">
+        {/* حوار تأكيد اعتماد/رفض الاستثناء */}
+        <Dialog open={confirmExceptionDialogOpen} onOpenChange={setConfirmExceptionDialogOpen}>
+          <DialogContent className="max-w-md rounded-2xl" dir="rtl">
+            <DialogHeader className="text-right">
               <div className="flex items-center gap-2">
                 <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center font-bold">
                   <ShieldAlert className="w-5 h-5" />
                 </div>
                 <div>
                   <DialogTitle className="text-base font-bold text-foreground">
-                    إدارة طلبات استثناء العهد المالية
+                    {exceptionActionType === "approve" ? "اعتماد طلب استثناء العهدة" : "رفض طلب استثناء العهدة"}
                   </DialogTitle>
                   <DialogDescription className="text-xs text-muted-foreground pt-0.5">
-                    مراجعة طلبات الموظفين للحصول على استثناء لصرف عهدة جديدة لوجود عهد سابقة غير مصفاة
+                    {exceptionActionType === "approve"
+                      ? "سيتمكن الموظف من رفع طلب عهدة جديدة استثناءً فور اعتماد هذا الطلب."
+                      : "يرجى توضيح سبب رفض الاستثناء ليتم إشعار الموظف به."}
                   </DialogDescription>
                 </div>
               </div>
             </DialogHeader>
 
-            <div className="flex-1 overflow-y-auto py-3 space-y-3">
-              {isLoadingExceptions ? (
-                <div className="py-12 flex flex-col items-center justify-center text-muted-foreground gap-2">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                  <p className="text-xs">جاري تحميل طلبات الاستثناء...</p>
-                </div>
-              ) : !exceptionsData?.items || exceptionsData.items.length === 0 ? (
-                <div className="py-12 text-center text-muted-foreground space-y-2">
-                  <ShieldCheck className="w-10 h-10 text-muted-foreground/40 mx-auto" />
-                  <p className="text-xs font-semibold">لا توجد طلبات استثناء مسجلة حالياً</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {exceptionsData.items.map((ex: any) => {
-                    const isPending = ex.status === "pending";
-                    return (
-                      <div
-                        key={ex.id}
-                        className={`p-4 rounded-2xl border transition-all space-y-3 ${
-                          isPending
-                            ? "bg-amber-50/40 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800/60 shadow-xs"
-                            : "bg-card border-border/70"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3 flex-wrap">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xs font-black text-foreground">
-                                {ex.applicantName || "موظف"}
-                              </span>
-                              <Badge
-                                variant="outline"
-                                className={`text-[10px] font-bold py-0 h-5 ${
-                                  ex.status === "approved"
-                                    ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300"
-                                    : ex.status === "rejected"
-                                    ? "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300"
-                                    : "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300"
-                                }`}
-                              >
-                                {ex.status === "approved" ? "معتمد" : ex.status === "rejected" ? "مرفوض" : "قيد المراجعة"}
-                              </Badge>
-                              {ex.isUsed ? (
-                                <Badge variant="secondary" className="text-[10px] py-0 h-5">
-                                  تم استخدام الاستثناء
-                                </Badge>
-                              ) : null}
-                            </div>
-                            <p className="text-[11px] text-muted-foreground">
-                              العهدة غير المصفاة:{" "}
-                              <span className="font-mono font-bold text-foreground">
-                                {ex.activeCustodyNumber || `#${ex.activeCustodyId}`}
-                              </span>
-                              {ex.activeCustodyTitle ? ` (${ex.activeCustodyTitle})` : ""} بمبلغ{" "}
-                              <span className="font-bold text-foreground">
-                                {Number(ex.activeCustodyAmount || 0).toLocaleString()} ر.س
-                              </span>
-                            </p>
-                          </div>
+            {selectedException && (
+              <div className="p-3 rounded-xl bg-muted/60 border border-border/70 text-xs space-y-1.5 my-1">
+                {selectedException.applicantName && (
+                  <div className="flex justify-between items-center text-muted-foreground">
+                    <span>الموظف:</span>
+                    <span className="font-bold text-foreground">{selectedException.applicantName}</span>
+                  </div>
+                )}
+                {selectedException.activeCustodyNumber && (
+                  <div className="flex justify-between items-center text-muted-foreground">
+                    <span>العهدة غير المصفاة:</span>
+                    <span className="font-mono font-bold text-primary">{selectedException.activeCustodyNumber}</span>
+                  </div>
+                )}
+                {selectedException.reason && (
+                  <div className="text-muted-foreground pt-1 border-t border-border/50">
+                    <span className="font-semibold block mb-0.5 text-foreground">مبررات الاستثناء:</span>
+                    <span className="text-foreground/90 leading-relaxed font-sans">{selectedException.reason}</span>
+                  </div>
+                )}
+              </div>
+            )}
 
-                          <span className="text-[11px] text-muted-foreground font-mono">
-                            {ex.createdAt ? new Date(ex.createdAt).toLocaleDateString("ar-SA") : ""}
-                          </span>
-                        </div>
-
-                        <div className="p-3 rounded-xl bg-muted/50 border border-border/50 text-xs text-foreground/90 leading-relaxed">
-                          <span className="font-bold block mb-1 text-muted-foreground text-[11px]">مبررات الاستثناء:</span>
-                          {ex.reason}
-                        </div>
-
-                        {ex.reviewNotes && (
-                          <div className="text-xs text-muted-foreground bg-background/80 p-2.5 rounded-lg border border-border/60">
-                            <span className="font-semibold text-foreground">ملاحظات القرار: </span>
-                            {ex.reviewNotes}
-                          </div>
-                        )}
-
-                        {isPending && (
-                          <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/40">
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                setSelectedException(ex);
-                                setExceptionActionType("approve");
-                                setExceptionActionNotes("");
-                                setConfirmExceptionDialogOpen(true);
-                              }}
-                              className="h-8 px-3 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs gap-1"
-                            >
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              <span>اعتماد الاستثناء</span>
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedException(ex);
-                                setExceptionActionType("reject");
-                                setExceptionActionNotes("");
-                                setConfirmExceptionDialogOpen(true);
-                              }}
-                              className="h-8 px-3 rounded-lg text-xs font-bold text-rose-600 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/20 gap-1"
-                            >
-                              <XCircle className="w-3.5 h-3.5" />
-                              <span>رفض الاستثناء</span>
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <DialogFooter className="border-t border-border/40 pt-3">
+            <div className="flex items-center gap-2 py-1">
               <Button
-                variant="outline"
-                onClick={() => setExceptionsDialogOpen(false)}
-                className="rounded-xl text-xs h-9 font-semibold"
+                type="button"
+                size="sm"
+                variant={exceptionActionType === "approve" ? "default" : "outline"}
+                onClick={() => setExceptionActionType("approve")}
+                className={`flex-1 rounded-xl text-xs font-bold h-8.5 gap-1.5 ${
+                  exceptionActionType === "approve" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""
+                }`}
               >
-                إغلاق
+                <CheckCircle className="w-3.5 h-3.5" />
+                <span>موافقة واعتماد</span>
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* حوار تأكيد اعتماد/رفض الاستثناء */}
-        <Dialog open={confirmExceptionDialogOpen} onOpenChange={setConfirmExceptionDialogOpen}>
-          <DialogContent className="max-w-md rounded-2xl" dir="rtl">
-            <DialogHeader className="text-right">
-              <DialogTitle className="text-base font-bold text-foreground">
-                {exceptionActionType === "approve" ? "اعتماد طلب استثناء العهدة" : "رفض طلب استثناء العهدة"}
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground pt-0.5">
-                {exceptionActionType === "approve"
-                  ? "سيتمكن الموظف من رفع طلب عهدة جديدة استثناءً فور اعتماد هذا الطلب."
-                  : "يرجى توضيح سبب رفض الاستثناء ليتم إشعار الموظف به."}
-              </DialogDescription>
-            </DialogHeader>
+              <Button
+                type="button"
+                size="sm"
+                variant={exceptionActionType === "reject" ? "default" : "outline"}
+                onClick={() => setExceptionActionType("reject")}
+                className={`flex-1 rounded-xl text-xs font-bold h-8.5 gap-1.5 ${
+                  exceptionActionType === "reject" ? "bg-rose-600 hover:bg-rose-700 text-white border-rose-300" : "text-rose-600"
+                }`}
+              >
+                <XCircle className="w-3.5 h-3.5" />
+                <span>عدم الموافقة (رفض)</span>
+              </Button>
+            </div>
 
             <div className="space-y-2 py-2">
               <Label className="text-xs font-semibold">
