@@ -153,8 +153,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   // ── عروض الأسعار ──
   "/quotations": "quotations",
 
-  // ── الاعتماد المالي ──
-  "/financial-approval": ["financial_approval.view", "financial_approval.approve"],
+  // ── الاعتمادات ──
+  "/financial-approval": ["financial_approval.view", "financial_approval.approve", "financial_approval"],
   "/boq-preparations": ["quotations", "requests.view_details", "requests.view", "boq", "boq.add", "boq.edit", "boq.delete"],
 
   // ── العقود وأوامر الشراء والمسؤولية المجتمعية والمراجعة الموحدة ──
