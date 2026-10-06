@@ -13,6 +13,7 @@ import {
   contractsEnhanced,
   users,
   projects,
+  mosques,
 } from "../../drizzle/schema";
 import { eq, inArray, desc, sql, isNotNull } from "drizzle-orm";
 
@@ -146,7 +147,7 @@ export const approvalsRouter = router({
             creatorName: users.name,
           })
           .from(disbursementOrders)
-          .leftJoin(users, eq(disbursementOrders.createdById, users.id))
+          .leftJoin(users, eq(disbursementOrders.createdBy, users.id))
           .where(
             inArray(disbursementOrders.status, [
               "pending",
@@ -362,7 +363,7 @@ export const approvalsRouter = router({
             creatorName: users.name,
           })
           .from(mosqueRequests)
-          .leftJoin(users, eq(mosqueRequests.createdById, users.id))
+          .leftJoin(users, eq(mosqueRequests.userId, users.id))
           .where(isNotNull(mosqueRequests.programData));
 
         for (const reqRow of poRequests) {
@@ -472,13 +473,13 @@ export const approvalsRouter = router({
             id: mosqueRequests.id,
             requestNumber: mosqueRequests.requestNumber,
             descriptiveName: mosqueRequests.descriptiveName,
-            mosqueName: mosqueRequests.mosqueName,
-            programName: mosqueRequests.programName,
+            mosqueName: mosques.name,
             createdAt: mosqueRequests.createdAt,
             creatorName: users.name,
           })
           .from(mosqueRequests)
-          .leftJoin(users, eq(mosqueRequests.createdById, users.id))
+          .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+          .leftJoin(users, eq(mosqueRequests.userId, users.id))
           .where(eq(mosqueRequests.currentStage, "financial_eval_and_approval"))
           .orderBy(desc(mosqueRequests.createdAt));
 
