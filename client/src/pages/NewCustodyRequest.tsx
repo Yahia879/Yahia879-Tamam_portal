@@ -679,44 +679,46 @@ export default function NewCustodyRequest() {
             </CardContent>
           </Card>
 
-          {/* أزرار الإجراءات */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border/60">
-            <Link href="/custody-requests">
-              <Button type="button" variant="outline" className="w-full sm:w-auto h-11 px-5 rounded-xl text-xs font-bold border-border/70">
-                إلغاء والعودة
-              </Button>
-            </Link>
+          {/* قسم الإجراءات */}
+          <div className="space-y-3 pt-3 border-t border-border/60">
+            {/* بطاقة إجراء الاستثناء في حال وجود عهدة غير مصفاة */}
+            {hasActiveCustody && !hasApprovedException && (
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-300 dark:border-amber-700/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200">
+                  <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>
+                    {hasPendingException
+                      ? "طلب الاستثناء مرفوع وقيد المراجعة لدى المدير التنفيذي حالياً."
+                      : latestException?.status === "rejected"
+                      ? "تم رفض طلب الاستثناء السابق. يمكنك إعادة التقديم بمبررات جديدة."
+                      : "لا يمكن إرسال الطلب لوجود عهدة غير مصفاة. يمكنك تقديم طلب استثناء للمدير التنفيذي."}
+                  </span>
+                </div>
+                {hasPendingException ? (
+                  <Badge variant="outline" className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 border-amber-300 gap-1 font-bold shrink-0">
+                    <Clock className="w-3 h-3 animate-pulse" />
+                    قيد المراجعة
+                  </Badge>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setIsExceptionDialogOpen(true)}
+                    className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold gap-1.5 h-8 shrink-0 cursor-pointer shadow-xs"
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    <span>{latestException?.status === "rejected" ? "إعادة رفع استثناء" : "طلب استثناء من المدير التنفيذي"}</span>
+                  </Button>
+                )}
+              </div>
+            )}
 
-            <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
-              {/* خيار طلب الاستثناء ضمن أزرار الإجراءات في حال وجود عهدة غير مصفاة */}
-              {hasActiveCustody && !hasApprovedException && (
-                <>
-                  {hasPendingException ? (
-                    <div className="flex items-center gap-2 px-4 h-11 rounded-xl bg-amber-500/15 border border-amber-300 dark:border-amber-700/60 text-amber-800 dark:text-amber-200 text-xs font-bold w-full sm:w-auto justify-center">
-                      <Clock className="w-4 h-4 text-amber-600 animate-pulse shrink-0" />
-                      <span>طلب الاستثناء قيد المراجعة</span>
-                    </div>
-                  ) : latestException?.status === "rejected" ? (
-                    <Button
-                      type="button"
-                      onClick={() => setIsExceptionDialogOpen(true)}
-                      className="w-full sm:w-auto h-11 px-5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-md gap-1.5 cursor-pointer"
-                    >
-                      <ShieldAlert className="w-4 h-4" />
-                      <span>إعادة طلب استثناء بمبررات جديدة</span>
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      onClick={() => setIsExceptionDialogOpen(true)}
-                      className="w-full sm:w-auto h-11 px-5 rounded-xl text-xs sm:text-sm font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-md gap-2 cursor-pointer transition-all"
-                    >
-                      <ShieldAlert className="w-4 h-4" />
-                      <span>طلب استثناء من المدير التنفيذي</span>
-                    </Button>
-                  )}
-                </>
-              )}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+              <Link href="/custody-requests">
+                <Button type="button" variant="outline" className="w-full sm:w-auto h-11 px-5 rounded-xl text-xs font-bold border-border/70">
+                  إلغاء والعودة
+                </Button>
+              </Link>
 
               <Button
                 type="submit"
