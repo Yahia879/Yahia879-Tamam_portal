@@ -414,7 +414,7 @@ export default function CustodyRequests() {
                   </div>
 
                   <p className="text-xs text-muted-foreground font-medium">
-                    طلبات الاستثناء المرفوعة من الموظفين لصرف عهدة جديدة لوجود عهد سابقة غير مصفاة
+                    طلبات الاستثناء المرفوعة من الموظفين لصرف عهدة جديدة لوجود عهدة سابقة قائمة
                   </p>
                 </div>
               </CardContent>
@@ -458,7 +458,7 @@ export default function CustodyRequests() {
                       <TableHeader>
                         <TableRow className="bg-muted/40 hover:bg-muted/40">
                           <TableHead className="font-bold">مقدم الطلب</TableHead>
-                          <TableHead className="font-bold">العهدة غير المصفاة</TableHead>
+                          <TableHead className="font-bold">العهدة السابقة</TableHead>
                           <TableHead className="font-bold">تاريخ الطلب</TableHead>
                           <TableHead className="font-bold max-w-[260px]">مبررات الاستثناء</TableHead>
                           <TableHead className="font-bold text-center">الحالة</TableHead>
@@ -905,17 +905,6 @@ export default function CustodyRequests() {
                         <TableCell>
                           <div className="flex flex-col gap-1 items-start">
                             {getStatusBadge(req.status)}
-                            {req.isSettled ? (
-                              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700 gap-1 font-semibold text-[10px] py-0.5">
-                                <CheckCircle className="w-3 h-3 text-emerald-600" />
-                                مصفاة
-                              </Badge>
-                            ) : req.status !== "rejected" ? (
-                              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700 gap-1 font-semibold text-[10px] py-0.5">
-                                <Clock className="w-3 h-3 text-amber-600" />
-                                غير مصفاة
-                              </Badge>
-                            ) : null}
                             {req.hasException ? (
                               <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-700 gap-1 font-semibold text-[10px] py-0.5">
                                 باستثناء معتمد
@@ -1108,7 +1097,7 @@ export default function CustodyRequests() {
                 )}
                 {selectedException.activeCustodyNumber && (
                   <div className="flex justify-between items-center text-muted-foreground">
-                    <span>العهدة غير المصفاة:</span>
+                    <span>العهدة السابقة:</span>
                     <span className="font-mono font-bold text-primary">{selectedException.activeCustodyNumber}</span>
                   </div>
                 )}
