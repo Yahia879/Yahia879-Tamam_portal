@@ -4,11 +4,12 @@ import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import {
   custodyRequests,
+  custodyExceptions,
   users,
   disbursementRequests,
   disbursementOrders,
 } from "../../drizzle/schema";
-import { eq, desc, and, sql, like, or } from "drizzle-orm";
+import { eq, desc, and, sql, like, or, ne } from "drizzle-orm";
 import { createNotification } from "./notifications";
 
 // توليد رقم تسلسلي لطلب العهدة المالية بصيغة CR-YYYY-XXXX
@@ -83,18 +84,28 @@ async function generateDisbursementRequestNumber(db: NonNullable<Awaited<ReturnT
   return `${prefix}${sequence.toString().padStart(4, "0")}`;
 }
 
-// التحقق من صلاحيات العهد المالية (حصراً super_admin والمدير التنفيذي لرؤية كل الطلبات، وحصراً المدير التنفيذي للاعتماد)
+// التحقق من صلاحيات العهد المالية (super_admin والمدير التنفيذي والمسؤول المالي)
 function checkCustodyRoles(user: { id: number; role?: string; name?: string; email?: string; [key: string]: any }) {
-  const isSuperAdmin = user.role === "super_admin";
+  const isSuperAdmin = user.role === "super_admin" || user.role === "system_admin";
   const isExecutiveDirector = 
     user.role === "executive_director" ||
     user.role === "general_manager" ||
     (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+    (user as any)?.customRole?.nameAr === "الرئيس التنفيذي" ||
     user.name === "المدير التنفيذي" ||
     user.email === "ceo@manarah.org.sa";
 
-  const canSeeAll = isSuperAdmin || isExecutiveDirector;
-  return { isSuperAdmin, isExecutiveDirector, canSeeAll };
+  const isFinancialOfficer =
+    user.role === "financial" ||
+    user.role === "financial_manager" ||
+    user.role === "accountant" ||
+    (user as any)?.customRole?.nameAr === "المسؤول المالي" ||
+    (user as any)?.customRole?.nameAr === "المدير المالي" ||
+    (user as any)?.customRole?.nameAr === "محاسب" ||
+    isSuperAdmin;
+
+  const canSeeAll = isSuperAdmin || isExecutiveDirector || isFinancialOfficer;
+  return { isSuperAdmin, isExecutiveDirector, isFinancialOfficer, canSeeAll };
 }
 
 export const custodyRouter = router({
@@ -115,12 +126,12 @@ export const custodyRouter = router({
 
       const { canSeeAll } = checkCustodyRoles(ctx.user);
 
-      // إذا لم يكن super_admin أو المدير التنفيذي، يرى فقط طلباته الخاصة
+      // إذا لم يكن يملك صلاحية رؤية الكل، يرى فقط طلباته الخاصة
       const conditions: any[] = [];
       if (!canSeeAll) {
         conditions.push(eq(custodyRequests.userId, ctx.user.id));
       } else {
-        // للمدير التنفيذي والـ super_admin: تصفية حسب التبويب (طلباتي / طلبات الموظفين)
+        // للمدير التنفيذي والمسؤول المالي والـ super_admin: تصفية حسب التبويب (طلباتي / طلبات الموظفين)
         if (input?.scope === "my") {
           conditions.push(eq(custodyRequests.userId, ctx.user.id));
         }
@@ -174,6 +185,12 @@ export const custodyRouter = router({
           applicantSignatureDepartment: custodyRequests.applicantSignatureDepartment,
           applicantSignatureUrl: custodyRequests.applicantSignatureUrl,
           status: custodyRequests.status,
+          isSettled: custodyRequests.isSettled,
+          settledBy: custodyRequests.settledBy,
+          settledAt: custodyRequests.settledAt,
+          settlementNotes: custodyRequests.settlementNotes,
+          hasException: custodyRequests.hasException,
+          exceptionId: custodyRequests.exceptionId,
           executiveApprovedBy: custodyRequests.executiveApprovedBy,
           executiveApprovedAt: custodyRequests.executiveApprovedAt,
           executiveSignatureName: custodyRequests.executiveSignatureName,
@@ -228,6 +245,12 @@ export const custodyRouter = router({
           applicantSignatureDepartment: custodyRequests.applicantSignatureDepartment,
           applicantSignatureUrl: custodyRequests.applicantSignatureUrl,
           status: custodyRequests.status,
+          isSettled: custodyRequests.isSettled,
+          settledBy: custodyRequests.settledBy,
+          settledAt: custodyRequests.settledAt,
+          settlementNotes: custodyRequests.settlementNotes,
+          hasException: custodyRequests.hasException,
+          exceptionId: custodyRequests.exceptionId,
           executiveApprovedBy: custodyRequests.executiveApprovedBy,
           executiveApprovedAt: custodyRequests.executiveApprovedAt,
           executiveSignatureName: custodyRequests.executiveSignatureName,
@@ -333,10 +356,40 @@ export const custodyRouter = router({
         linkedOrder = order || null;
       }
 
+      // جلب بيانات المسؤول المالي الذي قام بالتصفية إن وجدت
+      let settledUser: { id: number; name: string } | null = null;
+      if (request.settledBy) {
+        const [sUser] = await db
+          .select({ id: users.id, name: users.name })
+          .from(users)
+          .where(eq(users.id, request.settledBy))
+          .limit(1);
+        settledUser = sUser || null;
+      }
+
+      // جلب تفاصيل الاستثناء إن وجد
+      let exceptionDetails: any = null;
+      if (request.exceptionId) {
+        const [ex] = await db
+          .select({
+            id: custodyExceptions.id,
+            reason: custodyExceptions.reason,
+            status: custodyExceptions.status,
+            reviewedAt: custodyExceptions.reviewedAt,
+            reviewNotes: custodyExceptions.reviewNotes,
+          })
+          .from(custodyExceptions)
+          .where(eq(custodyExceptions.id, request.exceptionId))
+          .limit(1);
+        exceptionDetails = ex || null;
+      }
+
       return {
         ...request,
         linkedOrder,
         executiveUser,
+        settledUser,
+        exceptionDetails,
       };
     }),
 
@@ -423,10 +476,19 @@ export const custodyRouter = router({
       .from(custodyRequests)
       .where(eq(custodyRequests.status, "pending_executive"));
 
-    const pendingCount = Number(pending?.value || 0);
+    const [pendingEx] = await db
+      .select({ value: sql<number>`COUNT(*)` })
+      .from(custodyExceptions)
+      .where(eq(custodyExceptions.status, "pending"));
+
+    const pendingRequestsCount = Number(pending?.value || 0);
+    const pendingExceptionsCount = Number(pendingEx?.value || 0);
+    const pendingCount = pendingRequestsCount + pendingExceptionsCount;
 
     return {
       pendingCount,
+      pendingRequestsCount,
+      pendingExceptionsCount,
       hasPendingCustody: pendingCount > 0,
     };
   }),
@@ -448,6 +510,45 @@ export const custodyRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من وجود عهدة نشطة / غير مصفاة للموظف
+      const [unsettledCustody] = await db
+        .select({ id: custodyRequests.id, requestNumber: custodyRequests.requestNumber })
+        .from(custodyRequests)
+        .where(
+          and(
+            eq(custodyRequests.userId, ctx.user.id),
+            ne(custodyRequests.status, "rejected"),
+            eq(custodyRequests.isSettled, false)
+          )
+        )
+        .limit(1);
+
+      let approvedExceptionId: number | null = null;
+      if (unsettledCustody) {
+        // التحقق من وجود استثناء معتمد وغير مستخدم
+        const [approvedException] = await db
+          .select()
+          .from(custodyExceptions)
+          .where(
+            and(
+              eq(custodyExceptions.userId, ctx.user.id),
+              eq(custodyExceptions.status, "approved"),
+              eq(custodyExceptions.isUsed, false)
+            )
+          )
+          .orderBy(desc(custodyExceptions.createdAt))
+          .limit(1);
+
+        if (!approvedException) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `لا يمكن تقديم طلب عهدة جديد لوجود عهدة نشطة غير مصفاة برقم (${unsettledCustody.requestNumber}). يجب تصفية العهدة السابقة أولاً أو الحصول على استثناء معتمد من المدير التنفيذي.`,
+          });
+        }
+
+        approvedExceptionId = approvedException.id;
+      }
 
       // جلب بيانات التوقيع من المستخدم
       const [userData] = await db
@@ -477,10 +578,24 @@ export const custodyRouter = router({
         applicantSignatureDepartment: userData?.signatureDepartment || null,
         applicantSignatureUrl: userData?.signatureUrl || null,
         status: "pending_executive",
+        hasException: !!approvedExceptionId,
+        exceptionId: approvedExceptionId,
         attachmentsJson: input.attachments ? JSON.stringify(input.attachments) : null,
       });
 
       const requestId = Number(insertResult.insertId);
+
+      // استهلاك الاستثناء في حال استخدامه
+      if (approvedExceptionId) {
+        await db
+          .update(custodyExceptions)
+          .set({
+            isUsed: true,
+            usedInRequestId: requestId,
+            updatedAt: new Date(),
+          })
+          .where(eq(custodyExceptions.id, approvedExceptionId));
+      }
 
       // إشعار للمدير التنفيذي والمدير العام
       try {
@@ -739,6 +854,368 @@ export const custodyRouter = router({
       return {
         success: true,
         message: "تم تسجيل رفض طلب العهدة المالية",
+      };
+    }),
+
+  // فحص هل لدى الموظف عهدة نشطة / غير مصفاة وهل لديه استثناء معتمد
+  checkActiveCustody: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+    // البحث عن العهد غير المصفاة وغير المرفوضة للموظف
+    const activeCustodies = await db
+      .select({
+        id: custodyRequests.id,
+        requestNumber: custodyRequests.requestNumber,
+        title: custodyRequests.title,
+        amount: custodyRequests.amount,
+        status: custodyRequests.status,
+        createdAt: custodyRequests.createdAt,
+      })
+      .from(custodyRequests)
+      .where(
+        and(
+          eq(custodyRequests.userId, ctx.user.id),
+          ne(custodyRequests.status, "rejected"),
+          eq(custodyRequests.isSettled, false)
+        )
+      )
+      .orderBy(desc(custodyRequests.createdAt));
+
+    const hasActiveCustody = activeCustodies.length > 0;
+
+    // فحص ما إذا كان هناك استثناء معتمد وغير مستخدم
+    const [approvedException] = await db
+      .select()
+      .from(custodyExceptions)
+      .where(
+        and(
+          eq(custodyExceptions.userId, ctx.user.id),
+          eq(custodyExceptions.status, "approved"),
+          eq(custodyExceptions.isUsed, false)
+        )
+      )
+      .orderBy(desc(custodyExceptions.createdAt))
+      .limit(1);
+
+    // فحص ما إذا كان هناك استثناء قيد المراجعة
+    const [pendingException] = await db
+      .select()
+      .from(custodyExceptions)
+      .where(
+        and(
+          eq(custodyExceptions.userId, ctx.user.id),
+          eq(custodyExceptions.status, "pending")
+        )
+      )
+      .orderBy(desc(custodyExceptions.createdAt))
+      .limit(1);
+
+    // أحدث طلب استثناء للمستخدم لمعرفة حالته وملاحظاته
+    const [latestException] = await db
+      .select()
+      .from(custodyExceptions)
+      .where(eq(custodyExceptions.userId, ctx.user.id))
+      .orderBy(desc(custodyExceptions.createdAt))
+      .limit(1);
+
+    return {
+      hasActiveCustody,
+      activeCustodies,
+      activeCustody: activeCustodies[0] || null,
+      canSubmit: !hasActiveCustody || !!approvedException,
+      hasApprovedException: !!approvedException,
+      approvedException: approvedException || null,
+      hasPendingException: !approvedException && !!pendingException,
+      pendingException: pendingException || null,
+      latestException: latestException || null,
+    };
+  }),
+
+  // تقديم طلب استثناء لصرف عهدة جديدة لوجود عهدة غير مصفاة
+  requestException: protectedProcedure
+    .input(
+      z.object({
+        activeCustodyId: z.number(),
+        reason: z.string().min(5, "يرجى كتابة مبررات طلب الاستثناء بشكل واضح"),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // فحص وجود طلب استثناء قيد المراجعة بالفعل
+      const [existingPending] = await db
+        .select()
+        .from(custodyExceptions)
+        .where(
+          and(
+            eq(custodyExceptions.userId, ctx.user.id),
+            eq(custodyExceptions.status, "pending")
+          )
+        )
+        .limit(1);
+
+      if (existingPending) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "يوجد لديك طلب استثناء قيد المراجعة بالفعل من المدير التنفيذي",
+        });
+      }
+
+      const [activeCustody] = await db
+        .select({
+          id: custodyRequests.id,
+          requestNumber: custodyRequests.requestNumber,
+          title: custodyRequests.title,
+        })
+        .from(custodyRequests)
+        .where(eq(custodyRequests.id, input.activeCustodyId))
+        .limit(1);
+
+      const [insertResult] = await db.insert(custodyExceptions).values({
+        userId: ctx.user.id,
+        activeCustodyId: input.activeCustodyId,
+        reason: input.reason,
+        status: "pending",
+      });
+
+      const exceptionId = Number(insertResult.insertId);
+
+      // إشعار المدير التنفيذي
+      try {
+        const managers = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(
+            and(
+              sql`${users.role} IN ('super_admin', 'system_admin', 'general_manager', 'executive_director')`,
+              sql`${users.deletedAt} IS NULL`
+            )
+          );
+
+        for (const m of managers) {
+          await createNotification({
+            userId: m.id,
+            title: "طلب استثناء عهدة مالية جديدة",
+            message: `قام الموظف (${ctx.user.name}) بطلب استثناء لتقديم عهدة جديدة رغم وجود عهدة سابقة غير مصفاة (${activeCustody?.requestNumber || `#${input.activeCustodyId}`}). بانتظار المراجعة والاعتماد.`,
+            type: "system",
+            relatedType: "custody_request",
+            relatedId: input.activeCustodyId,
+          }).catch(() => {});
+        }
+      } catch (err) {
+        console.warn("Failed to notify managers of custody exception:", err);
+      }
+
+      return {
+        success: true,
+        id: exceptionId,
+        message: "تم رفع طلب الاستثناء للمدير التنفيذي بنجاح",
+      };
+    }),
+
+  // جلب طلبات الاستثناءات للمدير التنفيذي
+  getExceptions: protectedProcedure
+    .input(
+      z.object({
+        status: z.enum(["pending", "approved", "rejected", "all"]).optional(),
+        page: z.number().min(1).default(1).optional(),
+        limit: z.number().min(1).max(50).default(10).optional(),
+      }).optional()
+    )
+    .query(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const { isExecutiveDirector, isSuperAdmin } = checkCustodyRoles(ctx.user);
+      if (!isExecutiveDirector && !isSuperAdmin) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "صلاحية استعراض طلبات الاستثناء محصورة بالمدير التنفيذي",
+        });
+      }
+
+      const conditions: any[] = [];
+      if (input?.status && input.status !== "all") {
+        conditions.push(eq(custodyExceptions.status, input.status));
+      }
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+      const page = Math.max(1, input?.page || 1);
+      const limit = Math.max(1, Math.min(50, input?.limit || 10));
+      const offset = (page - 1) * limit;
+
+      const [countResult] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(custodyExceptions)
+        .where(whereClause);
+
+      const total = Number(countResult?.count || 0);
+
+      const items = await db
+        .select({
+          id: custodyExceptions.id,
+          userId: custodyExceptions.userId,
+          activeCustodyId: custodyExceptions.activeCustodyId,
+          reason: custodyExceptions.reason,
+          status: custodyExceptions.status,
+          reviewedBy: custodyExceptions.reviewedBy,
+          reviewedAt: custodyExceptions.reviewedAt,
+          reviewNotes: custodyExceptions.reviewNotes,
+          isUsed: custodyExceptions.isUsed,
+          usedInRequestId: custodyExceptions.usedInRequestId,
+          createdAt: custodyExceptions.createdAt,
+          applicantName: users.name,
+          applicantEmail: users.email,
+          applicantRole: users.role,
+          activeCustodyNumber: custodyRequests.requestNumber,
+          activeCustodyTitle: custodyRequests.title,
+          activeCustodyAmount: custodyRequests.amount,
+        })
+        .from(custodyExceptions)
+        .leftJoin(users, eq(custodyExceptions.userId, users.id))
+        .leftJoin(custodyRequests, eq(custodyExceptions.activeCustodyId, custodyRequests.id))
+        .where(whereClause)
+        .orderBy(desc(custodyExceptions.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      return {
+        items,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      };
+    }),
+
+  // مراجعة واعتماد/رفض طلب الاستثناء من المدير التنفيذي
+  reviewException: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        action: z.enum(["approve", "reject"]),
+        notes: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const { isExecutiveDirector, isSuperAdmin } = checkCustodyRoles(ctx.user);
+      if (!isExecutiveDirector && !isSuperAdmin) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "صلاحية مراجعة طلبات الاستثناء محصورة بالمدير التنفيذي فقط",
+        });
+      }
+
+      const [exceptionRecord] = await db
+        .select()
+        .from(custodyExceptions)
+        .where(eq(custodyExceptions.id, input.id))
+        .limit(1);
+
+      if (!exceptionRecord) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "طلب الاستثناء غير موجود" });
+      }
+
+      const newStatus = input.action === "approve" ? "approved" : "rejected";
+
+      await db
+        .update(custodyExceptions)
+        .set({
+          status: newStatus,
+          reviewedBy: ctx.user.id,
+          reviewedAt: new Date(),
+          reviewNotes: input.notes || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(custodyExceptions.id, input.id));
+
+      // إشعار مقدم الطلب بنتيجة الاستثناء
+      try {
+        const isApproved = newStatus === "approved";
+        await createNotification({
+          userId: exceptionRecord.userId,
+          title: isApproved ? "تمت الموافقة على طلب استثناء العهدة المالية" : "تم رفض طلب استثناء العهدة المالية",
+          message: isApproved
+            ? `وافق المدير التنفيذي على طلب الاستثناء الخاص بك. يمكنك الآن تقديم طلب صرف عهدة جديدة.`
+            : `نعتذر، رفض المدير التنفيذي طلب الاستثناء لصرف عهدة جديدة. ${input.notes ? `السبب: ${input.notes}` : "يرجى تصفية العهدة السابقة أولاً."}`,
+          type: "system",
+          relatedType: "custody_request",
+          relatedId: exceptionRecord.activeCustodyId,
+        }).catch(() => {});
+      } catch (e) {}
+
+      return {
+        success: true,
+        status: newStatus,
+        message: input.action === "approve" ? "تم اعتماد طلب الاستثناء بنجاح" : "تم رفض طلب الاستثناء",
+      };
+    }),
+
+  // تصفية وإغلاق العهدة المالية من المسؤول المالي
+  settle: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        notes: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const { isFinancialOfficer, isSuperAdmin } = checkCustodyRoles(ctx.user);
+      if (!isFinancialOfficer && !isSuperAdmin) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "صلاحية تصفية وإغلاق العهد المالية محصورة بالمسؤول المالي أو المشرف العام",
+        });
+      }
+
+      const [request] = await db
+        .select()
+        .from(custodyRequests)
+        .where(eq(custodyRequests.id, input.id))
+        .limit(1);
+
+      if (!request) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "طلب العهدة غير موجود" });
+      }
+
+      if (request.isSettled) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "تمت تصفية وإغلاق هذه العهدة بالفعل" });
+      }
+
+      await db
+        .update(custodyRequests)
+        .set({
+          isSettled: true,
+          settledBy: ctx.user.id,
+          settledAt: new Date(),
+          settlementNotes: input.notes || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(custodyRequests.id, input.id));
+
+      // إشعار صاحب العهدة باكتمال التصفية
+      try {
+        await createNotification({
+          userId: request.userId,
+          title: "تمت تصفية العهدة المالية بنجاح",
+          message: `تم اعتماد تصفية وإغلاق العهدة المالية رقم (${request.requestNumber}) بواسطة المسؤول المالي. يمكنك الآن تقديم طلبات عهد جديدة مستقبلاً.`,
+          type: "system",
+          relatedType: "custody_request",
+          relatedId: request.id,
+        }).catch(() => {});
+      } catch (e) {}
+
+      return {
+        success: true,
+        message: "تمت تصفية وإغلاق العهدة المالية بنجاح",
       };
     }),
 });
