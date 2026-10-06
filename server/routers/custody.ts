@@ -412,12 +412,29 @@ export const custodyRouter = router({
         exceptionDetails = ex || null;
       }
 
+      // فحص ما إذا كان هناك طلب استثناء معلق مرتبط بهذه العهدة كعهدة غير مصفاة
+      const [pendingEx] = await db
+        .select({
+          id: custodyExceptions.id,
+          reason: custodyExceptions.reason,
+          createdAt: custodyExceptions.createdAt,
+        })
+        .from(custodyExceptions)
+        .where(
+          and(
+            eq(custodyExceptions.activeCustodyId, request.id),
+            eq(custodyExceptions.status, "pending")
+          )
+        )
+        .limit(1);
+
       return {
         ...request,
         linkedOrder,
         executiveUser,
         settledUser,
         exceptionDetails,
+        pendingException: pendingEx || null,
       };
     }),
 
@@ -1057,14 +1074,10 @@ export const custodyRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const { isExecutiveDirector, isSuperAdmin } = checkCustodyRoles(ctx.user);
-      if (!isExecutiveDirector && !isSuperAdmin) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "صلاحية استعراض طلبات الاستثناء محصورة بالمدير التنفيذي",
-        });
-      }
-
       const conditions: any[] = [];
+      if (!isExecutiveDirector && !isSuperAdmin) {
+        conditions.push(eq(custodyExceptions.userId, ctx.user.id));
+      }
       if (input?.status && input.status !== "all") {
         conditions.push(eq(custodyExceptions.status, input.status));
       }
