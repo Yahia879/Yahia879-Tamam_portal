@@ -240,82 +240,36 @@ export default function NewCustodyRequest() {
 
         {/* تنبيه وجود عهدة نشطة غير مصفاة أو استثناء معتمد */}
         {hasActiveCustody && !hasApprovedException && (
-          <div className="rounded-2xl border border-amber-300 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/20 p-4 sm:p-5 shadow-xs space-y-3.5">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
+          <div className="rounded-2xl border border-amber-300 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/20 p-4 sm:p-4.5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-5 h-5" />
               </div>
-              <div className="space-y-1 text-right flex-1 min-w-0">
+              <div className="space-y-0.5 text-right flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-sm font-black text-amber-900 dark:text-amber-200">
-                    تنبيه: توجد عهدة مالية سابقة غير مصفاة
+                  <h3 className="text-xs sm:text-sm font-black text-amber-900 dark:text-amber-200">
+                    تنبيه: توجد عهدة مالية سابقة غير مصفاة ({activeCustody?.requestNumber})
                   </h3>
                   <Badge variant="outline" className="text-[10px] font-bold border-amber-400/50 bg-amber-500/10 text-amber-800 dark:text-amber-300">
                     عهدة غير مصفاة
                   </Badge>
                 </div>
-                <p className="text-xs text-amber-800 dark:text-amber-300/90 leading-relaxed">
-                  لديك حالياً عهدة مالية نشطة وغير مصفاة برقم{" "}
-                  <span className="font-bold underline font-mono text-amber-950 dark:text-amber-100">
-                    {activeCustody?.requestNumber}
-                  </span>
-                  {activeCustody?.title ? ` بعنوان «${activeCustody.title}»` : ""} بمبلغ{" "}
-                  <span className="font-bold text-amber-950 dark:text-amber-100">
-                    {Number(activeCustody?.amount || 0).toLocaleString()} ر.س
-                  </span>
-                  . تنص لوائح الجمعية على منع تقديم عهدة مالية جديدة حتى تتم تصفية العهدة السابقة واعتمادها من قِبل المسؤول المالي، أو الحصول على استثناء معتمد من المدير التنفيذي.
+                <p className="text-[11px] sm:text-xs text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
+                  العهدة الحالية بمبلغ <span className="font-bold text-amber-950 dark:text-amber-100">{Number(activeCustody?.amount || 0).toLocaleString()} ر.س</span>. تنص اللائحة على عدم إمكانية تقديم عهدة جديدة قبل تصفية السابقة، أو طلب استثناء معتمد من المدير التنفيذي (متاح في أزرار الإجراءات بالأسفل).
                 </p>
               </div>
             </div>
 
-            <div className="border-t border-amber-300/60 dark:border-amber-800/40 pt-3 flex flex-wrap items-center justify-between gap-2.5">
-              <div className="flex items-center gap-2">
-                {activeCustody?.id && (
-                  <Link
-                    href={`/custody-requests/${activeCustody.id}/print`}
-                    target="_blank"
-                    className="text-xs font-semibold text-amber-800 hover:text-amber-950 dark:text-amber-300 dark:hover:text-amber-100 underline flex items-center gap-1"
-                  >
-                    <span>معاينة تفاصيل العهدة غير المصفاة</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </Link>
-                )}
-              </div>
-
-              <div>
-                {hasPendingException ? (
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-900 dark:text-amber-200 text-xs font-medium border border-amber-400/40">
-                    <Clock className="w-3.5 h-3.5 animate-pulse text-amber-700 dark:text-amber-400" />
-                    <span>طلب الاستثناء قيد المراجعة حالياً من قِبل المدير التنفيذي</span>
-                  </div>
-                ) : latestException?.status === "rejected" ? (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px] text-rose-600 dark:text-rose-400 font-medium">
-                      تم رفض طلب الاستثناء السابق {latestException.reviewNotes ? `(السبب: ${latestException.reviewNotes})` : ""}
-                    </span>
-                    <Button
-                      type="button"
-                      onClick={() => setIsExceptionDialogOpen(true)}
-                      size="sm"
-                      variant="outline"
-                      className="rounded-xl h-8 text-xs font-bold border-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-900 dark:text-amber-100"
-                    >
-                      إعادة طلب استثناء بمبررات جديدة
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    type="button"
-                    onClick={() => setIsExceptionDialogOpen(true)}
-                    size="sm"
-                    className="rounded-xl h-8.5 px-3.5 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs gap-1.5 cursor-pointer"
-                  >
-                    <ShieldAlert className="w-3.5 h-3.5" />
-                    <span>طلب استثناء من المدير التنفيذي</span>
-                  </Button>
-                )}
-              </div>
-            </div>
+            {activeCustody?.id && (
+              <Link
+                href={`/custody-requests/${activeCustody.id}/print`}
+                target="_blank"
+                className="text-xs font-bold text-amber-800 hover:text-amber-950 dark:text-amber-300 dark:hover:text-amber-100 underline flex items-center gap-1 shrink-0 mr-auto sm:mr-0"
+              >
+                <span>معاينة العهدة</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Link>
+            )}
           </div>
         )}
 
@@ -726,39 +680,71 @@ export default function NewCustodyRequest() {
           </Card>
 
           {/* أزرار الإجراءات */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border/60">
             <Link href="/custody-requests">
               <Button type="button" variant="outline" className="w-full sm:w-auto h-11 px-5 rounded-xl text-xs font-bold border-border/70">
                 إلغاء والعودة
               </Button>
             </Link>
 
-            <Button
-              type="submit"
-              disabled={createMutation.isPending || !canSubmit}
-              className={`w-full sm:w-auto font-bold h-11 px-8 rounded-xl text-xs sm:text-sm shadow-md gap-2 ${
-                !canSubmit
-                  ? "bg-muted text-muted-foreground cursor-not-allowed border border-border/80 hover:bg-muted"
-                  : "gradient-primary text-white cursor-pointer"
-              }`}
-            >
-              {createMutation.isPending ? (
+            <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
+              {/* خيار طلب الاستثناء ضمن أزرار الإجراءات في حال وجود عهدة غير مصفاة */}
+              {hasActiveCustody && !hasApprovedException && (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>جاري رفع الطلب...</span>
-                </>
-              ) : !canSubmit ? (
-                <>
-                  <AlertTriangle className="w-4 h-4 text-amber-500" />
-                  <span>غير متاح لوجود عهدة غير مصفاة (يتطلب استثناء)</span>
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4" />
-                  <span>إرسال طلب العهدة للمدير التنفيذي</span>
+                  {hasPendingException ? (
+                    <div className="flex items-center gap-2 px-4 h-11 rounded-xl bg-amber-500/15 border border-amber-300 dark:border-amber-700/60 text-amber-800 dark:text-amber-200 text-xs font-bold w-full sm:w-auto justify-center">
+                      <Clock className="w-4 h-4 text-amber-600 animate-pulse shrink-0" />
+                      <span>طلب الاستثناء قيد المراجعة</span>
+                    </div>
+                  ) : latestException?.status === "rejected" ? (
+                    <Button
+                      type="button"
+                      onClick={() => setIsExceptionDialogOpen(true)}
+                      className="w-full sm:w-auto h-11 px-5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-md gap-1.5 cursor-pointer"
+                    >
+                      <ShieldAlert className="w-4 h-4" />
+                      <span>إعادة طلب استثناء بمبررات جديدة</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={() => setIsExceptionDialogOpen(true)}
+                      className="w-full sm:w-auto h-11 px-5 rounded-xl text-xs sm:text-sm font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-md gap-2 cursor-pointer transition-all"
+                    >
+                      <ShieldAlert className="w-4 h-4" />
+                      <span>طلب استثناء من المدير التنفيذي</span>
+                    </Button>
+                  )}
                 </>
               )}
-            </Button>
+
+              <Button
+                type="submit"
+                disabled={createMutation.isPending || !canSubmit}
+                className={`w-full sm:w-auto font-bold h-11 px-8 rounded-xl text-xs sm:text-sm shadow-md gap-2 ${
+                  !canSubmit
+                    ? "bg-muted text-muted-foreground cursor-not-allowed border border-border/80 opacity-60"
+                    : "gradient-primary text-white cursor-pointer"
+                }`}
+              >
+                {createMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>جاري رفع الطلب...</span>
+                  </>
+                ) : hasApprovedException ? (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>إرسال طلب العهدة (باستثناء معتمد)</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>إرسال طلب العهدة للمدير التنفيذي</span>
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </form>
       </div>
