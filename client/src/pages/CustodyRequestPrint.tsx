@@ -23,6 +23,7 @@ import {
   XCircle,
   ArrowUpRight,
   Loader2,
+  ShieldCheck,
   ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";

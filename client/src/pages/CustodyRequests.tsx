@@ -210,7 +210,7 @@ export default function CustodyRequests() {
 
   // جلب الإحصائيات
   const { data: stats } = trpc.custody.getStats.useQuery({
-    scope: canSeeAll ? activeTab : "my",
+    scope: canSeeAll ? (activeTab === "my" ? "my" : "staff") : "my",
   });
 
   // طفرة الاعتماد
