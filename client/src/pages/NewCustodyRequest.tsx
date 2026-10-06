@@ -50,7 +50,7 @@ export default function NewCustodyRequest() {
   const { user } = useAuth();
   const utils = trpc.useUtils();
 
-  // فحص العهدة النشطة غير المصفاة والاستثناء
+  // فحص وجود عهدة قائمة والاستثناء
   const { data: custodyCheck, isLoading: isCheckingCustody } = trpc.custody.checkActiveCustody.useQuery();
   const [isExceptionDialogOpen, setIsExceptionDialogOpen] = useState(false);
   const [exceptionReason, setExceptionReason] = useState("");
@@ -681,7 +681,7 @@ export default function NewCustodyRequest() {
 
           {/* قسم الإجراءات */}
           <div className="space-y-3 pt-3 border-t border-border/60">
-            {/* بطاقة إجراء الاستثناء في حال وجود عهدة غير مصفاة */}
+            {/* بطاقة إجراء الاستثناء في حال وجود عهدة سابقة قائمة */}
             {hasActiveCustody && !hasApprovedException && (
               <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-300 dark:border-amber-700/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
                 <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200">
@@ -691,7 +691,7 @@ export default function NewCustodyRequest() {
                       ? "طلب الاستثناء مرفوع وقيد المراجعة لدى المدير التنفيذي حالياً."
                       : latestException?.status === "rejected"
                       ? "تم رفض طلب الاستثناء السابق. يمكنك إعادة التقديم بمبررات جديدة."
-                      : "لا يمكن إرسال الطلب لوجود عهدة غير مصفاة. يمكنك تقديم طلب استثناء للمدير التنفيذي."}
+                      : "لا يمكن إرسال الطلب لوجود عهدة مالية سابقة قائمة. يمكنك تقديم طلب استثناء للمدير التنفيذي."}
                   </span>
                 </div>
                 {hasPendingException ? (
