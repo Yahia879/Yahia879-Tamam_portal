@@ -2297,7 +2297,15 @@ export const custodyRequests = mysqlTable("custody_requests", {
   disbursementOrderId: int("disbursementOrderId").references(() => disbursementOrders.id, { onDelete: "set null" }),
   disbursementOrderNumber: varchar("disbursementOrderNumber", { length: 50 }),
   
-  // مرفقات اختيارية
+  // التصفية المالية للعهدة بواسطة المسؤول المالي
+  isSettled: boolean("isSettled").default(false).notNull(),
+  settledBy: int("settledBy").references(() => users.id, { onDelete: "set null" }),
+  settledAt: datetime("settledAt"),
+  settlementNotes: text("settlementNotes"),
+
+  // الاستثناء
+  hasException: boolean("hasException").default(false).notNull(),
+  exceptionId: int("exceptionId"),
   attachmentsJson: text("attachmentsJson"),
   
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -2306,4 +2314,29 @@ export const custodyRequests = mysqlTable("custody_requests", {
 
 export type CustodyRequest = typeof custodyRequests.$inferSelect;
 export type InsertCustodyRequest = typeof custodyRequests.$inferInsert;
+
+// ==================== استثناءات العهد المالية ====================
+export const custodyExceptionStatuses = [
+  "pending",  // بانتظار قرار المدير التنفيذي
+  "approved", // معتمد
+  "rejected"  // مرفوض
+] as const;
+
+export const custodyExceptions = mysqlTable("custody_exceptions", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  activeCustodyId: int("activeCustodyId").notNull().references(() => custodyRequests.id, { onDelete: "cascade" }),
+  reason: text("reason").notNull(),
+  status: mysqlEnum("status", custodyExceptionStatuses).default("pending").notNull(),
+  reviewedBy: int("reviewedBy").references(() => users.id, { onDelete: "set null" }),
+  reviewedAt: datetime("reviewedAt"),
+  reviewNotes: text("reviewNotes"),
+  isUsed: boolean("isUsed").default(false).notNull(),
+  usedInRequestId: int("usedInRequestId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CustodyException = typeof custodyExceptions.$inferSelect;
+export type InsertCustodyException = typeof custodyExceptions.$inferInsert;
 
