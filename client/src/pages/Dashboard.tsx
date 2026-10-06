@@ -683,7 +683,7 @@ export default function Dashboard() {
         { title: "أوامر الصرف", href: "/disbursement-orders", icon: FileCheck2, color: "text-emerald-600", bg: "bg-emerald-50" },
         { title: "دليل الموردين", href: "/suppliers", icon: Store, color: "text-purple-600", bg: "bg-purple-50" },
         { title: "عروض الأسعار والـ BOQ", href: "/quotations", icon: FileSpreadsheet, color: "text-indigo-600", bg: "bg-indigo-50" },
-        { title: "الاعتمادات المالية", href: "/financial-approval", icon: ShieldCheck, color: "text-teal-600", bg: "bg-teal-50" },
+        { title: "الاعتمادات", href: "/financial-approval", icon: ShieldCheck, color: "text-teal-600", bg: "bg-teal-50" },
         { title: "العقود والاتفاقيات", href: "/contracts", icon: FileText, color: "text-amber-600", bg: "bg-amber-50" },
         { title: "التقارير والتحليلات المالية", href: "/analytics-hub?tab=financial-report", icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
       ];
