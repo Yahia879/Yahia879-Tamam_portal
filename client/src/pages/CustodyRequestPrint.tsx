@@ -249,6 +249,21 @@ export default function CustodyRequestPrint() {
     ? (request.executiveSignatureUrl || execUser?.signatureUrl || null)
     : null;
 
+  // التحقق مما إذا كان مقدم الطلب هو المدير التنفيذي نفسه (حساب مباشر بدون useMemo لمنع تعارض خطافات ريفاكت)
+  const isRequesterExecutiveDirector = Boolean(
+    request.applicantRole === "executive_director" ||
+    request.applicantRole === "general_manager" ||
+    (request as any).applicantLiveSignatureDepartment?.trim() === "المدير التنفيذي" ||
+    request.applicantSignatureDepartment?.trim() === "المدير التنفيذي" ||
+    (Boolean(request.userId) && Boolean(execUser?.id) && request.userId === execUser.id) ||
+    (Boolean(request.userId) && Boolean(request.executiveApprovedBy) && request.userId === request.executiveApprovedBy) ||
+    (request as any).applicantEmail === "ceo@manarah.org.sa"
+  );
+
+  const effectiveApprovalDepartment = isRequesterExecutiveDirector ? "الاعتماد" : executiveDepartment;
+  const effectiveApprovalName = (isRequesterExecutiveDirector && !executiveName) ? applicantSignatureName : (executiveName || applicantSignatureName);
+  const effectiveApprovalSigUrl = executiveSignatureUrl || (isRequesterExecutiveDirector && isExecutiveApproved ? applicantSignatureUrl : null);
+
   return (
     <div className="min-h-screen bg-gray-100 py-3 sm:py-8 print:py-0 print:bg-white" dir="rtl">
       {/* أزرار التحكم والخيارات العلوية */}
@@ -503,41 +518,43 @@ export default function CustodyRequestPrint() {
 
             {/* 5. التوقيعات والاعتماد */}
             <div className="break-inside-avoid pt-2 sm:pt-4">
-              <div className="grid grid-cols-2 gap-3 sm:gap-6 text-center">
-                {/* مُعدّ الطلب (الموظف طالب العهدة) */}
-                <div className="p-1 sm:p-2">
-                  <div className="font-bold text-gray-800 text-[11px] sm:text-sm mb-2 sm:mb-4 min-h-[1.25rem]">
-                    {applicantSignatureDepartment}
-                  </div>
-                  <div className="space-y-1 text-xs flex flex-col items-center justify-center">
-                    {applicantSignatureUrl ? (
-                      <div className="h-9 sm:h-12 flex items-center justify-center mx-auto w-24 sm:w-36 overflow-hidden my-0.5 sm:my-1">
-                        <img 
-                          src={applicantSignatureUrl} 
-                          alt="توقيع مقدم الطلب" 
-                          className="max-h-9 sm:max-h-12 max-w-full object-contain" 
-                        />
+              <div className={`grid ${isRequesterExecutiveDirector ? "grid-cols-1 max-w-xs mx-auto" : "grid-cols-2"} gap-3 sm:gap-6 text-center`}>
+                {/* مُعدّ الطلب (الموظف طالب العهدة) - يُحذف إذا كان مقدم الطلب هو المدير التنفيذي نفسه لمنع تكرار التوقيع */}
+                {!isRequesterExecutiveDirector && (
+                  <div className="p-1 sm:p-2">
+                    <div className="font-bold text-gray-800 text-[11px] sm:text-sm mb-2 sm:mb-4 min-h-[1.25rem]">
+                      {applicantSignatureDepartment}
+                    </div>
+                    <div className="space-y-1 text-xs flex flex-col items-center justify-center">
+                      {applicantSignatureUrl ? (
+                        <div className="h-9 sm:h-12 flex items-center justify-center mx-auto w-24 sm:w-36 overflow-hidden my-0.5 sm:my-1">
+                          <img 
+                            src={applicantSignatureUrl} 
+                            alt="توقيع مقدم الطلب" 
+                            className="max-h-9 sm:max-h-12 max-w-full object-contain" 
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-8 sm:h-10 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-36"></div>
+                      )}
+                      <div className="text-gray-900 font-bold text-[10px] sm:text-xs min-h-[1rem]">
+                        {applicantSignatureName}
                       </div>
-                    ) : (
-                      <div className="h-8 sm:h-10 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-36"></div>
-                    )}
-                    <div className="text-gray-900 font-bold text-[10px] sm:text-xs min-h-[1rem]">
-                      {applicantSignatureName}
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* المدير التنفيذي */}
+                {/* الاعتماد / المدير التنفيذي */}
                 <div className="p-1 sm:p-2">
                   <div className="font-bold text-gray-800 text-[11px] sm:text-sm mb-2 sm:mb-4 min-h-[1.25rem]">
-                    {executiveDepartment}
+                    {effectiveApprovalDepartment}
                   </div>
                   <div className="space-y-1 text-xs flex flex-col items-center justify-center">
-                    {executiveSignatureUrl ? (
+                    {effectiveApprovalSigUrl ? (
                       <div className="h-9 sm:h-12 flex items-center justify-center mx-auto w-24 sm:w-36 overflow-hidden my-0.5 sm:my-1">
                         <img
-                          src={executiveSignatureUrl}
-                          alt="توقيع المدير التنفيذي"
+                          src={effectiveApprovalSigUrl}
+                          alt="توقيع الاعتماد"
                           className="max-h-9 sm:max-h-12 max-w-full object-contain"
                         />
                       </div>
@@ -550,7 +567,7 @@ export default function CustodyRequestPrint() {
                       <div className="h-8 sm:h-10 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-36"></div>
                     )}
                     <div className="text-gray-900 font-bold text-[10px] sm:text-xs min-h-[1rem]">
-                      {executiveName}
+                      {effectiveApprovalName}
                     </div>
                   </div>
                 </div>
