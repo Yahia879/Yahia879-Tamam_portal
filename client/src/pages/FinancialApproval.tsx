@@ -5,12 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Table,
   TableBody,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -37,25 +35,18 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
-import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { cn } from "@/lib/utils";
 import {
   CheckSquare,
-  CheckCircle2,
   Loader2,
   FileText,
-  Calculator,
   Receipt,
   ClipboardList,
-  TrendingDown,
-  Building2,
-  Store,
   Sparkles,
   Check,
   X,
   Search,
   RotateCcw,
-  SlidersHorizontal,
   Clock,
   ShieldCheck,
   Banknote,
@@ -63,13 +54,11 @@ import {
   ShoppingCart,
   Wallet,
   ExternalLink,
-  Eye,
   ChevronLeft,
   ChevronRight,
   User,
   AlertCircle,
   Layers,
-  Filter,
   CheckCircle,
 } from "lucide-react";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
@@ -152,12 +141,10 @@ const APPROVER_CONFIG: Record<string, { label: string; badgeClass: string }> = {
 };
 
 export default function FinancialApproval() {
-  useDocumentTitle("الاعتمادات");
   const [, navigate] = useLocation();
   const { user } = useAuth();
-  const utils = trpc.useUtils();
 
-  // التحقق من الصلاحيات والوصول (مدير النظام والمدير التنفيذي والمالية)
+  // التحقق من الصلاحيات والوصول
   const isSuperOrSystem = ["super_admin", "system_admin"].includes(user?.role || "");
   const isExecDirector =
     ["general_manager", "executive_director"].includes(user?.role || "") ||
@@ -224,7 +211,7 @@ export default function FinancialApproval() {
     }
   );
 
-  // تقسيم صفحات الجدول لمركز الاعتمادات
+  // تقسيم صفحات جدول الاعتمادات
   const items = approvalsData?.items || [];
   const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
   const paginatedItems = useMemo(() => {
@@ -232,7 +219,7 @@ export default function FinancialApproval() {
     return items.slice(start, start + pageSize);
   }, [items, page, pageSize]);
 
-  // ==================== حالة مقارنة عروض الأسعار (الطلبات) ====================
+  // حالة الطلب المحدد لمقارنة عروض الأسعار
   const [selectedRequestId, setSelectedRequestId] = useState<string>(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -241,248 +228,10 @@ export default function FinancialApproval() {
     return "";
   });
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const reqId = params.get("requestId");
-      if (reqId && reqId !== selectedRequestId) {
-        setSelectedRequestId(reqId);
-      }
-    }
-  }, []);
-
-  const [selectedQuotationId, setSelectedQuotationId] = useState<number | null>(null);
-  const [selectedWinningVendors, setSelectedWinningVendors] = useState<Record<number, number>>({});
-  const [itemSearch, setItemSearch] = useState("");
-  const [showApprovalDialog, setShowApprovalDialog] = useState(false);
-  const [approvalNotes, setApprovalNotes] = useState("");
-
-  // جلب الطلبات في مرحلة التقييم المالي
-  const { data: requests } = trpc.requests.search.useQuery({
-    currentStage: "financial_eval_and_approval",
-  });
-
-  // جلب جدول الكميات للطلب
-  const { data: boqData, isLoading: boqLoading, refetch: refetchBOQ } = trpc.projects.getBOQ.useQuery(
-    { requestId: parseInt(selectedRequestId) || 0 },
-    { enabled: !!selectedRequestId && activeTab === "quotations" }
+  const { data: requests } = trpc.requests.search.useQuery(
+    { currentStage: "financial_eval_and_approval" },
+    { enabled: activeTab === "quotations" }
   );
-
-  // جلب عروض الأسعار للطلب
-  const { data: quotationsData, isLoading: quotationsLoading, refetch: refetchQuotations } = trpc.projects.getQuotationsByRequest.useQuery(
-    { requestId: parseInt(selectedRequestId) || 0 },
-    { enabled: !!selectedRequestId && activeTab === "quotations" }
-  );
-
-  // جلب تفاصيل الطلب لمعرفة العرض المختار ونوع البرنامج
-  const { data: requestDetails } = trpc.requests.getById.useQuery(
-    { id: parseInt(selectedRequestId) || 0 },
-    { enabled: !!selectedRequestId && activeTab === "quotations" }
-  );
-
-  const requestList = useMemo(() => {
-    const list = requests?.requests ? [...requests.requests] : [];
-    if (selectedRequestId && requestDetails) {
-      const exists = list.some((r: any) => String(r.id) === String(selectedRequestId));
-      if (!exists) {
-        list.unshift(requestDetails as any);
-      }
-    }
-    return list;
-  }, [requests?.requests, selectedRequestId, requestDetails]);
-
-  const currentProgramType = (requestDetails as any)?.programType;
-  const isSedanaProgram = currentProgramType === "sedana";
-  const allQuotations = useMemo(() => {
-    const list = quotationsData?.quotations ? [...quotationsData.quotations] : [];
-    return list.sort((a: any, b: any) => {
-      const aTotal = parseFloat(String(a.totalAmount || "0").replace(/,/g, ""));
-      const bTotal = parseFloat(String(b.totalAmount || "0").replace(/,/g, ""));
-      return aTotal - bTotal;
-    });
-  }, [quotationsData?.quotations]);
-
-  useEffect(() => {
-    setSelectedWinningVendors({});
-    setSelectedQuotationId(null);
-    setItemSearch("");
-    setApprovalNotes("");
-  }, [selectedRequestId]);
-
-  const parseQuotationItems = (raw: any): any[] => {
-    if (!raw) return [];
-    if (Array.isArray(raw)) return raw;
-    if (typeof raw === "string") {
-      try {
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch (_) {
-        return [];
-      }
-    }
-    return [];
-  };
-
-  const getOfferForItem = (item: any, quotation: any, totalBoqItemsCount: number = 1) => {
-    if (!item || !quotation) return null;
-    const itemsArr = parseQuotationItems(quotation.items);
-    const qty = parseFloat(String(item.quantity || 1).replace(/,/g, "")) || 1;
-
-    if (itemsArr && itemsArr.length > 0) {
-      const itemOffer = itemsArr.find((it: any) => {
-        if (!it) return false;
-        const itBoqId = it.boqItemId ?? it.boq_item_id ?? it.itemId ?? it.id;
-        if (itBoqId !== undefined && String(itBoqId) === String(item.id)) {
-          return true;
-        }
-        const itName = String(it.itemName ?? it.item_name ?? it.name ?? it.title ?? "").trim().toLowerCase();
-        const targetName = String(item.itemName || "").trim().toLowerCase();
-        return itName && targetName && (itName === targetName || targetName.includes(itName) || itName.includes(targetName));
-      });
-
-      if (itemOffer) {
-        const rawUnitPrice = itemOffer.unitPrice ?? itemOffer.unit_price ?? itemOffer.price ?? itemOffer.rate ?? itemOffer.amount;
-        const rawTotPrice = itemOffer.totalPrice ?? itemOffer.total_price;
-
-        if (rawUnitPrice !== undefined && rawUnitPrice !== null && String(rawUnitPrice).trim() !== "") {
-          const uPrice = parseFloat(String(rawUnitPrice).replace(/,/g, ""));
-          if (!isNaN(uPrice) && uPrice >= 0) {
-            let tPrice =
-              rawTotPrice !== undefined && rawTotPrice !== null && String(rawTotPrice).trim() !== ""
-                ? parseFloat(String(rawTotPrice).replace(/,/g, ""))
-                : uPrice * qty;
-            if (isNaN(tPrice) || tPrice < 0) tPrice = uPrice * qty;
-            return {
-              unitPrice: uPrice,
-              totalPrice: tPrice,
-            };
-          }
-        } else if (rawTotPrice !== undefined && rawTotPrice !== null && String(rawTotPrice).trim() !== "") {
-          const tPrice = parseFloat(String(rawTotPrice).replace(/,/g, ""));
-          if (!isNaN(tPrice) && tPrice >= 0) {
-            return {
-              unitPrice: qty > 0 ? tPrice / qty : 0,
-              totalPrice: tPrice,
-            };
-          }
-        }
-      }
-    }
-
-    const qTotal = parseFloat(String(quotation.totalAmount || "0").replace(/,/g, ""));
-    if (!isNaN(qTotal) && qTotal > 0 && totalBoqItemsCount > 0) {
-      const approxTotPrice = qTotal / totalBoqItemsCount;
-      return {
-        unitPrice: qty > 0 ? approxTotPrice / qty : approxTotPrice,
-        totalPrice: approxTotPrice,
-        isApproximated: true,
-      };
-    }
-
-    return null;
-  };
-
-  const boqItemsCount = (boqData?.items || []).length || 1;
-
-  const lowestOffersByItem = useMemo(() => {
-    const result: Record<number, { quotationId: number; offer: { unitPrice: number; totalPrice: number } }> = {};
-    if (!boqData?.items || allQuotations.length === 0) return result;
-
-    boqData.items.forEach((item: any) => {
-      let lowestOffer: { quotationId: number; offer: { unitPrice: number; totalPrice: number } } | null = null;
-      allQuotations.forEach((quotation: any) => {
-        const offer = getOfferForItem(item, quotation, boqItemsCount);
-        if (offer && offer.totalPrice > 0) {
-          if (!lowestOffer || offer.totalPrice < lowestOffer.offer.totalPrice) {
-            lowestOffer = { quotationId: quotation.id, offer };
-          }
-        }
-      });
-      if (lowestOffer) {
-        result[item.id] = lowestOffer;
-      }
-    });
-
-    return result;
-  }, [boqData?.items, allQuotations, boqItemsCount]);
-
-  const handleAutoSelectLowestPrices = () => {
-    const newWinning: Record<number, number> = {};
-    Object.entries(lowestOffersByItem).forEach(([itemId, data]) => {
-      newWinning[parseInt(itemId)] = data.quotationId;
-    });
-    setSelectedWinningVendors(newWinning);
-    toast.success("تم اختيار عروض الأسعار الأقل تكلفة لكافة البنود بنجاح");
-  };
-
-  const handleSelectVendorForEntireColumn = (quotationId: number) => {
-    if (!boqData?.items) return;
-    const newWinning: Record<number, number> = { ...selectedWinningVendors };
-    boqData.items.forEach((item: any) => {
-      newWinning[item.id] = quotationId;
-    });
-    setSelectedWinningVendors(newWinning);
-    setSelectedQuotationId(quotationId);
-    toast.success("تم تحديد هذا المورد لكافة بنود جدول الكميات");
-  };
-
-  const totalSelectedItemsCost = useMemo(() => {
-    if (!boqData?.items) return 0;
-    return boqData.items.reduce((sum: number, item: any) => {
-      const winnerQuotationId = selectedWinningVendors[item.id] || selectedQuotationId;
-      if (!winnerQuotationId) return sum;
-      const quotation = allQuotations.find((q: any) => q.id === winnerQuotationId);
-      if (!quotation) return sum;
-      const offer = getOfferForItem(item, quotation, boqItemsCount);
-      return sum + (offer ? offer.totalPrice : 0);
-    }, 0);
-  }, [boqData?.items, selectedWinningVendors, selectedQuotationId, allQuotations, boqItemsCount]);
-
-  const hasBoq = boqData?.items && boqData.items.length > 0;
-  const hasQuotations = quotationsData?.quotations && quotationsData.quotations.length > 0;
-  const isLoading = boqLoading || quotationsLoading;
-
-  const approveMutation = trpc.requests.selectQuotationAndAdvanceStage.useMutation({
-    onSuccess: () => {
-      toast.success("تم الاعتماد المالي والانتقال لمرحلة التعاقد بنجاح");
-      setShowApprovalDialog(false);
-      utils.requests.search.invalidate();
-      utils.requests.getById.invalidate();
-      utils.approvals.getPendingApprovals.invalidate();
-    },
-    onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء الاعتماد المالي");
-    },
-  });
-
-  const approveMultiVendorMutation = trpc.requests.selectQuotationAndAdvanceStageMultiVendor.useMutation({
-    onSuccess: () => {
-      toast.success("تم اعتماد التكلفة واختيار الموردين الفائزين بنجاح والانتقال للتعاقد");
-      setShowApprovalDialog(false);
-      utils.requests.search.invalidate();
-      utils.requests.getById.invalidate();
-      utils.approvals.getPendingApprovals.invalidate();
-    },
-    onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء الاعتماد المالي متعدد الموردين");
-    },
-  });
-
-  const handleConfirmApproval = () => {
-    if (isSedanaProgram && Object.keys(selectedWinningVendors).length > 0) {
-      approveMultiVendorMutation.mutate({
-        requestId: parseInt(selectedRequestId),
-        winningVendors: selectedWinningVendors,
-        approvalNotes,
-        advanceStage: true,
-      });
-    } else {
-      approveMutation.mutate({
-        requestId: parseInt(selectedRequestId),
-        approvalNotes,
-      });
-    }
-  };
 
   // حظر المستخدمين غير المصرح لهم
   if (!hasApprovalPerm && !isSuperOrSystem && !isExecDirector) {
@@ -522,7 +271,6 @@ export default function FinancialApproval() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* أزرار التبديل بين مركز الاعتمادات ومقارنة عروض الأسعار */}
             <Tabs
               value={activeTab}
               onValueChange={(val) => setActiveTab(val as "hub" | "quotations")}
@@ -561,7 +309,6 @@ export default function FinancialApproval() {
           <div className="space-y-6">
             {/* بطاقات المؤشرات الإحصائية */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* إجمالي المعاملات */}
               <Card className="border-border/60 shadow-xs hover:border-primary/40 transition-colors">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
@@ -581,7 +328,6 @@ export default function FinancialApproval() {
                 </CardContent>
               </Card>
 
-              {/* بانتظار المدير التنفيذي */}
               <Card className="border-rose-200/60 dark:border-rose-900/40 shadow-xs hover:border-rose-300 transition-colors">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
@@ -601,7 +347,6 @@ export default function FinancialApproval() {
                 </CardContent>
               </Card>
 
-              {/* بانتظار المسؤول المالي */}
               <Card className="border-amber-200/60 dark:border-amber-900/40 shadow-xs hover:border-amber-300 transition-colors">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
@@ -621,7 +366,6 @@ export default function FinancialApproval() {
                 </CardContent>
               </Card>
 
-              {/* بانتظار باقي الجهات */}
               <Card className="border-blue-200/60 dark:border-blue-900/40 shadow-xs hover:border-blue-300 transition-colors">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
@@ -646,7 +390,6 @@ export default function FinancialApproval() {
             <Card className="border-border/60 shadow-xs">
               <CardContent className="p-4">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-                  {/* شريط البحث */}
                   <div className="md:col-span-4 relative">
                     <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -665,7 +408,6 @@ export default function FinancialApproval() {
                     )}
                   </div>
 
-                  {/* تصفية التصنيف */}
                   <div className="md:col-span-3">
                     <Select value={categoryFilter} onValueChange={(val) => { setCategoryFilter(val); setPage(1); }}>
                       <SelectTrigger className="text-xs h-9 text-right">
@@ -685,7 +427,6 @@ export default function FinancialApproval() {
                     </Select>
                   </div>
 
-                  {/* تصفية المسؤول عن الاعتماد */}
                   <div className="md:col-span-3">
                     <Select value={approverFilter} onValueChange={(val) => { setApproverFilter(val); setPage(1); }}>
                       <SelectTrigger className="text-xs h-9 text-right">
@@ -701,7 +442,6 @@ export default function FinancialApproval() {
                     </Select>
                   </div>
 
-                  {/* زر الفلترة السريعة: بانتظار اعتمادي */}
                   <div className="md:col-span-2 flex items-center gap-2">
                     {(isExecDirector || isFinancialRole) && (
                       <Button
@@ -807,7 +547,6 @@ export default function FinancialApproval() {
 
                           return (
                             <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
-                              {/* 1. الطلب */}
                               <TableCell className="align-top py-3 text-right">
                                 <div className="space-y-1">
                                   <button
@@ -826,7 +565,6 @@ export default function FinancialApproval() {
                                 </div>
                               </TableCell>
 
-                              {/* 2. التصنيف داخل البوابة */}
                               <TableCell className="align-top py-3 text-right">
                                 <Badge
                                   variant="outline"
@@ -837,7 +575,6 @@ export default function FinancialApproval() {
                                 </Badge>
                               </TableCell>
 
-                              {/* 3. مقدم الطلب */}
                               <TableCell className="align-top py-3 text-right">
                                 <div className="space-y-0.5">
                                   <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
@@ -852,7 +589,6 @@ export default function FinancialApproval() {
                                 </div>
                               </TableCell>
 
-                              {/* 4. المسؤول عن الاعتماد */}
                               <TableCell className="align-top py-3 text-right">
                                 <Badge
                                   variant="outline"
@@ -862,7 +598,6 @@ export default function FinancialApproval() {
                                 </Badge>
                               </TableCell>
 
-                              {/* 5. القيمة / المبلغ */}
                               <TableCell className="align-top py-3 text-right">
                                 {item.amount !== null && item.amount !== undefined ? (
                                   <div className="font-semibold text-xs text-foreground font-mono">
@@ -873,7 +608,6 @@ export default function FinancialApproval() {
                                 )}
                               </TableCell>
 
-                              {/* 6. الحالة */}
                               <TableCell className="align-top py-3 text-right">
                                 <Badge
                                   variant="outline"
@@ -883,7 +617,6 @@ export default function FinancialApproval() {
                                 </Badge>
                               </TableCell>
 
-                              {/* 7. الإجراء المباشر */}
                               <TableCell className="align-top py-3 text-center">
                                 <Button
                                   size="sm"
@@ -902,7 +635,6 @@ export default function FinancialApproval() {
                   </div>
                 )}
 
-                {/* ترقيم الصفحات */}
                 {items.length > pageSize && (
                   <div className="flex items-center justify-between p-4 border-t border-border/40 text-xs text-muted-foreground">
                     <div>
@@ -940,244 +672,468 @@ export default function FinancialApproval() {
           </div>
         )}
 
-        {/* ==================== التبويب الثاني: مقارنة عروض أسعار المشاريع (توافق كامل) ==================== */}
+        {/* ==================== التبويب الثاني: مقارنة عروض أسعار المشاريع ==================== */}
         {activeTab === "quotations" && (
-          <div className="space-y-6">
-            {/* اختيار الطلب */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" />
-                  اختيار الطلب لمقارنة عروض الأسعار
-                </CardTitle>
-                <CardDescription>
-                  اختر الطلب لمراجعة بنود جدول الكميات ومقارنة عروض أسعار الموردين واعتماد التكلفة النهائية
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-4 items-end">
-                  <div className="flex-1">
-                    <Label>الطلب</Label>
-                    <Select
-                      value={selectedRequestId}
-                      onValueChange={(value) => {
-                        setSelectedRequestId(value);
-                      }}
-                    >
-                      <SelectTrigger className="text-right">
-                        <SelectValue placeholder="اختر الطلب..." />
-                      </SelectTrigger>
-                      <SelectContent dir="rtl">
-                        {requestList.map((request: any) => (
-                          <SelectItem key={request.id} value={request.id.toString()}>
-                            {request.requestNumber} - {request.mosqueName || request.descriptiveName || request.programName || `طلب #${request.id}`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* محتوى مقارنة الطلب المحدد */}
-            {selectedRequestId && (
-              <>
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                ) : (
-                  <>
-                    {!hasBoq && (
-                      <Card className="border-red-500">
-                        <CardContent className="pt-6">
-                          <div className="flex items-center gap-4 text-red-600">
-                            <ClipboardList className="h-8 w-8" />
-                            <div>
-                              <p className="font-medium">لا يوجد جدول كميات</p>
-                              <p className="text-sm">يجب إعداد جدول الكميات أولاً قبل الاعتماد المالي</p>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="mt-2"
-                                onClick={() => navigate(`/projects/boq?requestId=${selectedRequestId}`)}
-                              >
-                                إعداد جدول الكميات
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {hasBoq && !hasQuotations && (
-                      <Card className="border-yellow-500">
-                        <CardContent className="pt-6">
-                          <div className="flex items-center gap-4 text-yellow-600">
-                            <Receipt className="h-8 w-8" />
-                            <div>
-                              <p className="font-medium">لا توجد عروض أسعار</p>
-                              <p className="text-sm">يجب إضافة عروض أسعار من الموردين قبل الاعتماد المالي</p>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="mt-2"
-                                onClick={() => navigate(`/quotations?requestId=${selectedRequestId}`)}
-                              >
-                                إضافة عروض أسعار
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {hasQuotations && hasBoq && (
-                      <Card className="shadow-xs border-primary/20">
-                        <CardHeader className="pb-4">
-                          <div className="flex items-start justify-between gap-4 flex-wrap">
-                            <div>
-                              <CardTitle className="flex items-center gap-2 text-xl font-extrabold text-foreground">
-                                <ClipboardList className="h-5.5 w-5.5 text-primary" />
-                                جدول الكميات ومقارنة عروض أسعار الموردين
-                                {requestDetails?.programName ? ` (${requestDetails.programName})` : ""}
-                              </CardTitle>
-                              <CardDescription className="mt-1">
-                                انقر على زر <strong>"اختر"</strong> أعلى عمود المورد المطلوب لاعتماده لكافة البنود
-                              </CardDescription>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <Button
-                                onClick={handleAutoSelectLowestPrices}
-                                variant="outline"
-                                size="sm"
-                                className="text-emerald-700 dark:text-emerald-300 border-emerald-500/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 gap-1.5 h-8 text-xs font-bold"
-                              >
-                                <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
-                                اختيار الأقل سعراً تلقائياً
-                              </Button>
-
-                              <Button
-                                onClick={() => setShowApprovalDialog(true)}
-                                size="sm"
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-8 text-xs gap-1.5 shadow-xs"
-                              >
-                                <Check className="h-3.5 w-3.5" />
-                                اعتماد التكلفة والانتقال للتعاقد
-                              </Button>
-                            </div>
-                          </div>
-                        </CardHeader>
-
-                        <CardContent>
-                          <div className="overflow-x-auto">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="text-right w-[60px]">م</TableHead>
-                                  <TableHead className="text-right min-w-[200px]">البند</TableHead>
-                                  <TableHead className="text-center w-[80px]">الكمية</TableHead>
-                                  <TableHead className="text-center w-[80px]">الوحدة</TableHead>
-                                  {allQuotations.map((quotation: any) => (
-                                    <TableHead key={quotation.id} className="text-center min-w-[140px]">
-                                      <div className="space-y-1 py-1">
-                                        <p className="font-bold text-xs truncate">{quotation.supplierName || "مورد"}</p>
-                                        <Button
-                                          size="xs"
-                                          variant="outline"
-                                          onClick={() => handleSelectVendorForEntireColumn(quotation.id)}
-                                          className="h-6 text-[11px] px-2"
-                                        >
-                                          اختر الكل
-                                        </Button>
-                                      </div>
-                                    </TableHead>
-                                  ))}
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {(boqData?.items || []).map((item: any, idx: number) => (
-                                  <TableRow key={item.id}>
-                                    <TableCell className="text-right font-mono text-xs">{idx + 1}</TableCell>
-                                    <TableCell className="text-right font-medium text-xs">{item.itemName}</TableCell>
-                                    <TableCell className="text-center font-mono text-xs">{item.quantity}</TableCell>
-                                    <TableCell className="text-center text-xs">{item.unit || "وحدة"}</TableCell>
-                                    {allQuotations.map((quotation: any) => {
-                                      const offer = getOfferForItem(item, quotation, boqItemsCount);
-                                      const isWinner = selectedWinningVendors[item.id] === quotation.id;
-                                      return (
-                                        <TableCell
-                                          key={quotation.id}
-                                          className={cn(
-                                            "text-center text-xs font-mono",
-                                            isWinner && "bg-emerald-50 dark:bg-emerald-950/30 font-bold text-emerald-700"
-                                          )}
-                                        >
-                                          {offer ? (
-                                            <div>
-                                              <SaudiRiyal amount={offer.totalPrice} />
-                                            </div>
-                                          ) : (
-                                            <span className="text-muted-foreground">—</span>
-                                          )}
-                                        </TableCell>
-                                      );
-                                    })}
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </>
-                )}
-              </>
-            )}
-          </div>
+          <QuotationComparisonTab
+            selectedRequestId={selectedRequestId}
+            setSelectedRequestId={setSelectedRequestId}
+            requests={requests}
+          />
         )}
-
-        {/* حوار تأكيد اعتماد عرض السعر */}
-        <Dialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
-          <DialogContent dir="rtl" className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-right">تأكيد الاعتماد المالي</DialogTitle>
-              <DialogDescription className="text-right">
-                هل أنت متأكد من اعتماد التكلفة والانتقال لمرحلة التعاقد؟
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <Label>ملاحظات الاعتماد (اختياري)</Label>
-                <Textarea
-                  value={approvalNotes}
-                  onChange={(e) => setApprovalNotes(e.target.value)}
-                  placeholder="أدخل أي ملاحظات حول الاعتماد المالي..."
-                  className="text-right text-xs"
-                />
-              </div>
-            </div>
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={() => setShowApprovalDialog(false)}>
-                إلغاء
-              </Button>
-              <Button
-                onClick={handleConfirmApproval}
-                disabled={approveMultiVendorMutation.isPending || approveMutation.isPending}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                {(approveMultiVendorMutation.isPending || approveMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                )}
-                تأكيد الاعتماد والانتقال للتعاقد
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     </DashboardLayout>
+  );
+}
+
+// مكوّن مقارنة عروض أسعار المشاريع وجدول الكميات (مفصول لضمان ثبات ترتيب الـ Hooks)
+function QuotationComparisonTab({
+  selectedRequestId,
+  setSelectedRequestId,
+  requests,
+}: {
+  selectedRequestId: string;
+  setSelectedRequestId: (id: string) => void;
+  requests: any;
+}) {
+  const [, navigate] = useLocation();
+  const utils = trpc.useUtils();
+
+  const [selectedQuotationId, setSelectedQuotationId] = useState<number | null>(null);
+  const [selectedWinningVendors, setSelectedWinningVendors] = useState<Record<number, number>>({});
+  const [showApprovalDialog, setShowApprovalDialog] = useState(false);
+  const [approvalNotes, setApprovalNotes] = useState("");
+
+  const { data: boqData, isLoading: boqLoading } = trpc.projects.getBOQ.useQuery(
+    { requestId: parseInt(selectedRequestId) || 0 },
+    { enabled: !!selectedRequestId }
+  );
+
+  const { data: quotationsData, isLoading: quotationsLoading } = trpc.projects.getQuotationsByRequest.useQuery(
+    { requestId: parseInt(selectedRequestId) || 0 },
+    { enabled: !!selectedRequestId }
+  );
+
+  const { data: requestDetails } = trpc.requests.getById.useQuery(
+    { id: parseInt(selectedRequestId) || 0 },
+    { enabled: !!selectedRequestId }
+  );
+
+  const requestList = useMemo(() => {
+    const list = requests?.requests ? [...requests.requests] : [];
+    if (selectedRequestId && requestDetails) {
+      const exists = list.some((r: any) => String(r.id) === String(selectedRequestId));
+      if (!exists) {
+        list.unshift(requestDetails as any);
+      }
+    }
+    return list;
+  }, [requests?.requests, selectedRequestId, requestDetails]);
+
+  const currentProgramType = (requestDetails as any)?.programType;
+  const isSedanaProgram = currentProgramType === "sedana";
+
+  const allQuotations = useMemo(() => {
+    const list = quotationsData?.quotations ? [...quotationsData.quotations] : [];
+    return list.sort((a: any, b: any) => {
+      const aTotal = parseFloat(String(a.totalAmount || "0").replace(/,/g, ""));
+      const bTotal = parseFloat(String(b.totalAmount || "0").replace(/,/g, ""));
+      return aTotal - bTotal;
+    });
+  }, [quotationsData?.quotations]);
+
+  useEffect(() => {
+    setSelectedWinningVendors({});
+    setSelectedQuotationId(null);
+    setApprovalNotes("");
+  }, [selectedRequestId]);
+
+  const parseQuotationItems = (raw: any): any[] => {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === "string") {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_) {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  const getOfferForItem = (item: any, quotation: any, totalBoqItemsCount: number = 1) => {
+    if (!item || !quotation) return null;
+    const itemsArr = parseQuotationItems(quotation.items);
+    const qty = parseFloat(String(item.quantity || 1).replace(/,/g, "")) || 1;
+
+    if (itemsArr && itemsArr.length > 0) {
+      const itemOffer = itemsArr.find((it: any) => {
+        if (!it) return false;
+        const itBoqId = it.boqItemId ?? it.boq_item_id ?? it.itemId ?? it.id;
+        if (itBoqId !== undefined && String(itBoqId) === String(item.id)) return true;
+        const itName = String(it.itemName ?? it.item_name ?? it.name ?? it.title ?? "").trim().toLowerCase();
+        const targetName = String(item.itemName || "").trim().toLowerCase();
+        return itName && targetName && (itName === targetName || targetName.includes(itName) || itName.includes(targetName));
+      });
+
+      if (itemOffer) {
+        const rawUnitPrice = itemOffer.unitPrice ?? itemOffer.unit_price ?? itemOffer.price ?? itemOffer.rate ?? itemOffer.amount;
+        const rawTotPrice = itemOffer.totalPrice ?? itemOffer.total_price;
+
+        if (rawUnitPrice !== undefined && rawUnitPrice !== null && String(rawUnitPrice).trim() !== "") {
+          const uPrice = parseFloat(String(rawUnitPrice).replace(/,/g, ""));
+          if (!isNaN(uPrice) && uPrice >= 0) {
+            let tPrice =
+              rawTotPrice !== undefined && rawTotPrice !== null && String(rawTotPrice).trim() !== ""
+                ? parseFloat(String(rawTotPrice).replace(/,/g, ""))
+                : uPrice * qty;
+            if (isNaN(tPrice) || tPrice < 0) tPrice = uPrice * qty;
+            return { unitPrice: uPrice, totalPrice: tPrice };
+          }
+        } else if (rawTotPrice !== undefined && rawTotPrice !== null && String(rawTotPrice).trim() !== "") {
+          const tPrice = parseFloat(String(rawTotPrice).replace(/,/g, ""));
+          if (!isNaN(tPrice) && tPrice >= 0) {
+            return { unitPrice: qty > 0 ? tPrice / qty : 0, totalPrice: tPrice };
+          }
+        }
+      }
+    }
+
+    const qTotal = parseFloat(String(quotation.totalAmount || "0").replace(/,/g, ""));
+    if (!isNaN(qTotal) && qTotal > 0 && totalBoqItemsCount > 0) {
+      const approxTotPrice = qTotal / totalBoqItemsCount;
+      return {
+        unitPrice: qty > 0 ? approxTotPrice / qty : approxTotPrice,
+        totalPrice: approxTotPrice,
+        isApproximated: true,
+      };
+    }
+
+    return null;
+  };
+
+  const boqItemsCount = (boqData?.items || []).length || 1;
+
+  const lowestOffersByItem = useMemo(() => {
+    const result: Record<number, { quotationId: number; offer: { unitPrice: number; totalPrice: number } }> = {};
+    if (!boqData?.items || allQuotations.length === 0) return result;
+
+    boqData.items.forEach((item: any) => {
+      let lowestOffer: { quotationId: number; offer: { unitPrice: number; totalPrice: number } } | null = null;
+      allQuotations.forEach((quotation: any) => {
+        const offer = getOfferForItem(item, quotation, boqItemsCount);
+        if (offer && offer.totalPrice > 0) {
+          if (!lowestOffer || offer.totalPrice < lowestOffer.offer.totalPrice) {
+            lowestOffer = { quotationId: quotation.id, offer };
+          }
+        }
+      });
+      if (lowestOffer) {
+        result[item.id] = lowestOffer;
+      }
+    });
+
+    return result;
+  }, [boqData?.items, allQuotations, boqItemsCount]);
+
+  const handleAutoSelectLowestPrices = () => {
+    const newWinning: Record<number, number> = {};
+    Object.entries(lowestOffersByItem).forEach(([itemId, data]) => {
+      newWinning[parseInt(itemId)] = data.quotationId;
+    });
+    setSelectedWinningVendors(newWinning);
+    toast.success("تم اختيار عروض الأسعار الأقل تكلفة لكافة البنود بنجاح");
+  };
+
+  const handleSelectVendorForEntireColumn = (quotationId: number) => {
+    if (!boqData?.items) return;
+    const newWinning: Record<number, number> = { ...selectedWinningVendors };
+    boqData.items.forEach((item: any) => {
+      newWinning[item.id] = quotationId;
+    });
+    setSelectedWinningVendors(newWinning);
+    setSelectedQuotationId(quotationId);
+    toast.success("تم تحديد هذا المورد لكافة بنود جدول الكميات");
+  };
+
+  const hasBoq = boqData?.items && boqData.items.length > 0;
+  const hasQuotations = quotationsData?.quotations && quotationsData.quotations.length > 0;
+  const isLoading = boqLoading || quotationsLoading;
+
+  const approveMutation = trpc.requests.selectQuotationAndAdvanceStage.useMutation({
+    onSuccess: () => {
+      toast.success("تم الاعتماد المالي والانتقال لمرحلة التعاقد بنجاح");
+      setShowApprovalDialog(false);
+      utils.requests.search.invalidate();
+      utils.requests.getById.invalidate();
+      utils.approvals.getPendingApprovals.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء الاعتماد المالي");
+    },
+  });
+
+  const approveMultiVendorMutation = trpc.requests.selectQuotationAndAdvanceStageMultiVendor.useMutation({
+    onSuccess: () => {
+      toast.success("تم اعتماد التكلفة واختيار الموردين الفائزين بنجاح والانتقال للتعاقد");
+      setShowApprovalDialog(false);
+      utils.requests.search.invalidate();
+      utils.requests.getById.invalidate();
+      utils.approvals.getPendingApprovals.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء الاعتماد المالي متعدد الموردين");
+    },
+  });
+
+  const handleConfirmApproval = () => {
+    if (isSedanaProgram && Object.keys(selectedWinningVendors).length > 0) {
+      approveMultiVendorMutation.mutate({
+        requestId: parseInt(selectedRequestId),
+        winningVendors: selectedWinningVendors,
+        approvalNotes,
+        advanceStage: true,
+      });
+    } else {
+      approveMutation.mutate({
+        requestId: parseInt(selectedRequestId),
+        approvalNotes,
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            اختيار الطلب لمقارنة عروض الأسعار
+          </CardTitle>
+          <CardDescription>
+            اختر الطلب لمراجعة بنود جدول الكميات ومقارنة عروض أسعار الموردين واعتماد التكلفة النهائية
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4 items-end">
+            <div className="flex-1">
+              <Label>الطلب</Label>
+              <Select
+                value={selectedRequestId}
+                onValueChange={(value) => {
+                  setSelectedRequestId(value);
+                }}
+              >
+                <SelectTrigger className="text-right">
+                  <SelectValue placeholder="اختر الطلب..." />
+                </SelectTrigger>
+                <SelectContent dir="rtl">
+                  {requestList.map((request: any) => (
+                    <SelectItem key={request.id} value={request.id.toString()}>
+                      {request.requestNumber} - {request.mosqueName || request.descriptiveName || request.programName || `طلب #${request.id}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {selectedRequestId && (
+        <>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <>
+              {!hasBoq && (
+                <Card className="border-red-500">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-4 text-red-600">
+                      <ClipboardList className="h-8 w-8" />
+                      <div>
+                        <p className="font-medium">لا يوجد جدول كميات</p>
+                        <p className="text-sm">يجب إعداد جدول الكميات أولاً قبل الاعتماد المالي</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => navigate(`/projects/boq?requestId=${selectedRequestId}`)}
+                        >
+                          إعداد جدول الكميات
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {hasBoq && !hasQuotations && (
+                <Card className="border-yellow-500">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-4 text-yellow-600">
+                      <Receipt className="h-8 w-8" />
+                      <div>
+                        <p className="font-medium">لا توجد عروض أسعار</p>
+                        <p className="text-sm">يجب إضافة عروض أسعار من الموردين قبل الاعتماد المالي</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => navigate(`/quotations?requestId=${selectedRequestId}`)}
+                        >
+                          إضافة عروض أسعار
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {hasQuotations && hasBoq && (
+                <Card className="shadow-xs border-primary/20">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                      <div>
+                        <CardTitle className="flex items-center gap-2 text-xl font-extrabold text-foreground">
+                          <ClipboardList className="h-5.5 w-5.5 text-primary" />
+                          جدول الكميات ومقارنة عروض أسعار الموردين
+                          {requestDetails?.programName ? ` (${requestDetails.programName})` : ""}
+                        </CardTitle>
+                        <CardDescription className="mt-1">
+                          انقر على زر <strong>"اختر"</strong> أعلى عمود المورد المطلوب لاعتماده لكافة البنود
+                        </CardDescription>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={handleAutoSelectLowestPrices}
+                          variant="outline"
+                          size="sm"
+                          className="text-emerald-700 dark:text-emerald-300 border-emerald-500/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 gap-1.5 h-8 text-xs font-bold"
+                        >
+                          <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                          اختيار الأقل سعراً تلقائياً
+                        </Button>
+
+                        <Button
+                          onClick={() => setShowApprovalDialog(true)}
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-8 text-xs gap-1.5 shadow-xs"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                          اعتماد التكلفة والانتقال للتعاقد
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-right w-[60px]">م</TableHead>
+                            <TableHead className="text-right min-w-[200px]">البند</TableHead>
+                            <TableHead className="text-center w-[80px]">الكمية</TableHead>
+                            <TableHead className="text-center w-[80px]">الوحدة</TableHead>
+                            {allQuotations.map((quotation: any) => (
+                              <TableHead key={quotation.id} className="text-center min-w-[140px]">
+                                <div className="space-y-1 py-1">
+                                  <p className="font-bold text-xs truncate">{quotation.supplierName || "مورد"}</p>
+                                  <Button
+                                    size="xs"
+                                    variant="outline"
+                                    onClick={() => handleSelectVendorForEntireColumn(quotation.id)}
+                                    className="h-6 text-[11px] px-2"
+                                  >
+                                    اختر الكل
+                                  </Button>
+                                </div>
+                              </TableHead>
+                            ))}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(boqData?.items || []).map((item: any, idx: number) => (
+                            <TableRow key={item.id}>
+                              <TableCell className="text-right font-mono text-xs">{idx + 1}</TableCell>
+                              <TableCell className="text-right font-medium text-xs">{item.itemName}</TableCell>
+                              <TableCell className="text-center font-mono text-xs">{item.quantity}</TableCell>
+                              <TableCell className="text-center text-xs">{item.unit || "وحدة"}</TableCell>
+                              {allQuotations.map((quotation: any) => {
+                                const offer = getOfferForItem(item, quotation, boqItemsCount);
+                                const isWinner = selectedWinningVendors[item.id] === quotation.id;
+                                return (
+                                  <TableCell
+                                    key={quotation.id}
+                                    className={cn(
+                                      "text-center text-xs font-mono",
+                                      isWinner && "bg-emerald-50 dark:bg-emerald-950/30 font-bold text-emerald-700"
+                                    )}
+                                  >
+                                    {offer ? (
+                                      <div>
+                                        <SaudiRiyal amount={offer.totalPrice} />
+                                      </div>
+                                    ) : (
+                                      <span className="text-muted-foreground">—</span>
+                                    )}
+                                  </TableCell>
+                                );
+                              })}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      {/* حوار تأكيد اعتماد عرض السعر */}
+      <Dialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
+        <DialogContent dir="rtl" className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-right">تأكيد الاعتماد المالي</DialogTitle>
+            <DialogDescription className="text-right">
+              هل أنت متأكد من اعتماد التكلفة والانتقال لمرحلة التعاقد؟
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>ملاحظات الاعتماد (اختياري)</Label>
+              <Textarea
+                value={approvalNotes}
+                onChange={(e) => setApprovalNotes(e.target.value)}
+                placeholder="أدخل أي ملاحظات حول الاعتماد المالي..."
+                className="text-right text-xs"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowApprovalDialog(false)}>
+              إلغاء
+            </Button>
+            <Button
+              onClick={handleConfirmApproval}
+              disabled={approveMultiVendorMutation.isPending || approveMutation.isPending}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              {(approveMultiVendorMutation.isPending || approveMutation.isPending) && (
+                <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+              )}
+              تأكيد الاعتماد والانتقال للتعاقد
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
