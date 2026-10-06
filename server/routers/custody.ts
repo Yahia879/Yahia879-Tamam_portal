@@ -213,8 +213,36 @@ export const custodyRouter = router({
         .limit(limit)
         .offset(offset);
 
+      // جلب طلبات الاستثناء المعلقة المرتبطة بهذه العهد إن وجدت
+      const requestIds = requests.map((r) => r.id);
+      let pendingExceptionsMap: Record<number, { id: number; reason: string; createdAt: Date }> = {};
+      if (requestIds.length > 0) {
+        const pExceptions = await db
+          .select({
+            id: custodyExceptions.id,
+            activeCustodyId: custodyExceptions.activeCustodyId,
+            reason: custodyExceptions.reason,
+            createdAt: custodyExceptions.createdAt,
+          })
+          .from(custodyExceptions)
+          .where(
+            and(
+              sql`${custodyExceptions.activeCustodyId} IN (${sql.join(requestIds.map((id) => sql`${id}`), sql`, `)})`,
+              eq(custodyExceptions.status, "pending")
+            )
+          );
+        for (const pe of pExceptions) {
+          pendingExceptionsMap[pe.activeCustodyId] = pe;
+        }
+      }
+
+      const itemsWithExceptions = requests.map((req) => ({
+        ...req,
+        pendingException: pendingExceptionsMap[req.id] || null,
+      }));
+
       return {
-        items: requests,
+        items: itemsWithExceptions,
         total,
         page,
         limit,
