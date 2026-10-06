@@ -588,7 +588,7 @@ export const custodyRouter = router({
         if (!approvedException) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: `لا يمكن تقديم طلب عهدة جديد لوجود عهدة نشطة غير مصفاة برقم (${unsettledCustody.requestNumber}). يجب تصفية العهدة السابقة أولاً أو الحصول على استثناء معتمد من المدير التنفيذي.`,
+            message: `لا يمكن تقديم طلب عهدة جديد لوجود عهدة مالية سابقة قائمة برقم (${unsettledCustody.requestNumber}). يمكنكم رفع طلب استثناء لاعتماده من المدير التنفيذي.`,
           });
         }
 
@@ -1043,7 +1043,7 @@ export const custodyRouter = router({
           await createNotification({
             userId: m.id,
             title: "طلب استثناء عهدة مالية جديدة",
-            message: `قام الموظف (${ctx.user.name}) بطلب استثناء لتقديم عهدة جديدة رغم وجود عهدة سابقة غير مصفاة (${activeCustody?.requestNumber || `#${input.activeCustodyId}`}). بانتظار المراجعة والاعتماد.`,
+            message: `قام الموظف (${ctx.user.name}) بطلب استثناء لتقديم عهدة جديدة رغم وجود عهدة سابقة قائمة (${activeCustody?.requestNumber || `#${input.activeCustodyId}`}). بانتظار المراجعة والاعتماد.`,
             type: "system",
             relatedType: "custody_request",
             relatedId: input.activeCustodyId,
