@@ -569,10 +569,21 @@ export const custodyRouter = router({
 
       // 1. توليد طلب صرف معتمد (سجل توافقي لسلامة الدورة المستندية)
       const drNumber = await generateDisbursementRequestNumber(db);
+
+      let formattedDescription = request.description;
+      try {
+        const parsed = JSON.parse(request.description);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          formattedDescription = parsed
+            .map((it: any, i: number) => `${i + 1}. ${it.description} (${Number(it.amount).toLocaleString()} ر.س)`)
+            .join(" | ");
+        }
+      } catch {}
+
       const [drResult] = await db.insert(disbursementRequests).values({
         requestNumber: drNumber,
         title: `طلب صرف عهدة مالية: ${request.title} (${request.requestNumber})`,
-        description: `طلب صرف عهدة مالية مقدم من الموظف. البيان: ${request.description}`,
+        description: `طلب صرف عهدة مالية مقدم من الموظف. البيان: ${formattedDescription}`,
         amount: request.amount,
         adminFees: "0.00",
         paymentType: "progress",
