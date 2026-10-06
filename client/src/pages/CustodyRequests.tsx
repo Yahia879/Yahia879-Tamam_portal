@@ -157,17 +157,18 @@ export default function CustodyRequests() {
     },
   });
 
-  // حوار إدارة الاستثناءات للمدير التنفيذي
+  // حوار وإدارة الاستثناءات للمدير التنفيذي
   const [exceptionsDialogOpen, setExceptionsDialogOpen] = useState(false);
   const [exceptionActionNotes, setExceptionActionNotes] = useState("");
   const [selectedException, setSelectedException] = useState<any>(null);
   const [exceptionActionType, setExceptionActionType] = useState<"approve" | "reject">("approve");
   const [confirmExceptionDialogOpen, setConfirmExceptionDialogOpen] = useState(false);
+  const [exceptionFilter, setExceptionFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
 
   const { data: pendingActionCounts } = trpc.custody.getPendingActionCounts.useQuery();
   const { data: exceptionsData, isLoading: isLoadingExceptions } = trpc.custody.getExceptions.useQuery(
-    { status: "all" },
-    { enabled: exceptionsDialogOpen && (isExecutiveDirector || isSuperAdmin) }
+    { status: exceptionFilter },
+    { enabled: isExecutiveDirector || isSuperAdmin }
   );
 
   const reviewExceptionMutation = trpc.custody.reviewException.useMutation({
@@ -179,23 +180,29 @@ export default function CustodyRequests() {
       utils.custody.getExceptions.invalidate();
       utils.custody.getPendingActionCounts.invalidate();
       utils.custody.checkActiveCustody.invalidate();
+      utils.custody.getAll.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء معالجة طلب الاستثناء");
     },
   });
 
-  // تبويب طلباتي وطلبات الموظفين للمدير التنفيذي والمسؤول المالي والـ super_admin
-  const [activeTab, setActiveTab] = useState<"staff" | "my">("staff");
+  // تبويب طلباتي وطلبات الموظفين والاستثناءات للمدير التنفيذي والمسؤول المالي والـ super_admin
+  const [activeTab, setActiveTab] = useState<"staff" | "my" | "exceptions">("staff");
 
   // جلب الطلبات من الـ Backend مع ترقيم الصفحات والفلترة في كل تغيير
-  const { data: responseData, isLoading, isFetching } = trpc.custody.getAll.useQuery({
-    status: statusFilter === "all" ? undefined : (statusFilter as any),
-    search: debouncedSearch.trim() || undefined,
-    scope: canSeeAll ? activeTab : "my",
-    page,
-    limit: pageSize,
-  });
+  const { data: responseData, isLoading, isFetching } = trpc.custody.getAll.useQuery(
+    {
+      status: statusFilter === "all" ? undefined : (statusFilter as any),
+      search: debouncedSearch.trim() || undefined,
+      scope: canSeeAll ? (activeTab === "exceptions" ? "staff" : activeTab) : "my",
+      page,
+      limit: pageSize,
+    },
+    {
+      enabled: activeTab !== "exceptions",
+    }
+  );
 
   const requests = Array.isArray(responseData) ? responseData : (responseData?.items || []);
   const total = Array.isArray(responseData) ? responseData.length : (responseData?.total || 0);
@@ -306,22 +313,6 @@ export default function CustodyRequests() {
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
-            {(isExecutiveDirector || isSuperAdmin) && (
-              <Button
-                variant="outline"
-                onClick={() => setExceptionsDialogOpen(true)}
-                className="rounded-xl h-11 px-4 text-xs font-bold border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 hover:bg-amber-50 dark:hover:bg-amber-950/40 gap-2 relative cursor-pointer"
-              >
-                <ShieldAlert className="w-4 h-4 text-amber-600" />
-                <span>طلبات الاستثناء</span>
-                {Boolean(pendingActionCounts?.pendingExceptionsCount) && (
-                  <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
-                    {pendingActionCounts?.pendingExceptionsCount}
-                  </span>
-                )}
-              </Button>
-            )}
-
             <Button
               onClick={() => setLocation("/custody-requests/new")}
               className="gradient-primary text-white font-bold rounded-xl shadow-md gap-2 h-11 px-5 cursor-pointer"
@@ -332,9 +323,9 @@ export default function CustodyRequests() {
           </div>
         </div>
 
-        {/* Two Tabs: طلباتي وطلبات الموظفين للمدير التنفيذي والـ super_admin */}
+        {/* Tabs: طلبات الموظفين وطلباتي وطلبات الاستثناء */}
         {canSeeAll && (
-          <div className="flex items-center gap-2 p-1.5 bg-muted/60 dark:bg-muted/30 rounded-2xl border border-border/70 w-fit">
+          <div className="flex items-center gap-2 p-1.5 bg-muted/60 dark:bg-muted/30 rounded-2xl border border-border/70 w-fit flex-wrap">
             <button
               type="button"
               onClick={() => handleTabChange("staff")}
@@ -366,6 +357,30 @@ export default function CustodyRequests() {
                 {stats?.myCount ?? 0}
               </Badge>
             </button>
+
+            {(isExecutiveDirector || isSuperAdmin) && (
+              <button
+                type="button"
+                onClick={() => handleTabChange("exceptions")}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  activeTab === "exceptions"
+                    ? "bg-amber-500/15 text-amber-900 dark:text-amber-200 shadow-xs border border-amber-300 dark:border-amber-700/60"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <ShieldAlert className="w-4 h-4 text-amber-600" />
+                <span>طلبات الاستثناء</span>
+                {Boolean(pendingActionCounts?.pendingExceptionsCount) ? (
+                  <span className="min-w-5 h-5 px-1.5 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center font-mono">
+                    {pendingActionCounts?.pendingExceptionsCount}
+                  </span>
+                ) : (
+                  <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
+                    0
+                  </Badge>
+                )}
+              </button>
+            )}
           </div>
         )}
 
@@ -706,6 +721,32 @@ export default function CustodyRequests() {
                               <Printer className="w-3.5 h-3.5 text-primary" />
                               <span>التقرير</span>
                             </Button>
+
+                            {/* زر مراجعة الاستثناء ضمن عمود الإجراءات في حال وجود استثناء معلق لهذه العهدة */}
+                            {Boolean((req as any).pendingException) && (isExecutiveDirector || isSuperAdmin) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedException({
+                                    id: (req as any).pendingException.id,
+                                    applicantName: req.applicantName,
+                                    reason: (req as any).pendingException.reason,
+                                    activeCustodyNumber: req.requestNumber,
+                                    activeCustodyTitle: req.title,
+                                    activeCustodyAmount: req.amount,
+                                  });
+                                  setExceptionActionType("approve");
+                                  setExceptionActionNotes("");
+                                  setConfirmExceptionDialogOpen(true);
+                                }}
+                                className="h-8 px-2.5 rounded-lg text-xs gap-1 font-bold text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 bg-amber-50/90 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40"
+                                title="يوجد طلب استثناء معلق لهذه العهدة - اضغط للبت فيه"
+                              >
+                                <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                                <span>طلب استثناء</span>
+                              </Button>
+                            )}
 
                             {/* زر التصفية للمسؤول المالي أو المشرف العام */}
                             {(isFinancialOfficer || isSuperAdmin) && !req.isSettled && req.status !== "rejected" && (
