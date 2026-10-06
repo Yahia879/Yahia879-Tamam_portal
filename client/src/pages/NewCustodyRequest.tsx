@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -28,6 +28,8 @@ import {
   Loader2,
   Send,
   Sparkles,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,8 +40,31 @@ export default function NewCustodyRequest() {
 
   // نموذج الطلب
   const [title, setTitle] = useState("");
-  const [amountStr, setAmountStr] = useState("");
-  const [description, setDescription] = useState("");
+  const [items, setItems] = useState<Array<{ id: string; description: string; amount: string }>>([
+    { id: "1", description: "", amount: "" },
+  ]);
+
+  // إضافة وحذف وتعديل البنود
+  const handleAddItem = () => {
+    setItems((prev) => [
+      ...prev,
+      { id: Date.now().toString() + Math.random().toString(36).slice(2, 6), description: "", amount: "" },
+    ]);
+  };
+
+  const handleRemoveItem = (id: string) => {
+    if (items.length <= 1) {
+      toast.error("يجب إبقاء بند واحد على الأقل في تفاصيل العهدة");
+      return;
+    }
+    setItems((prev) => prev.filter((it) => it.id !== id));
+  };
+
+  const handleItemChange = (id: string, field: "description" | "amount", value: string) => {
+    setItems((prev) =>
+      prev.map((it) => (it.id === id ? { ...it, [field]: value } : it))
+    );
+  };
 
   // البيانات البنكية
   const [isCustomBank, setIsCustomBank] = useState(false);
@@ -56,8 +81,15 @@ export default function NewCustodyRequest() {
     }
   }, [user, isCustomBank]);
 
-  const numAmount = parseFloat(amountStr) || 0;
-  const tafqeetText = numAmount > 0 ? numberToArabicText(numAmount) : "";
+  // حساب إجمالي البنود والتفقيط آلياً
+  const totalAmount = useMemo(() => {
+    return items.reduce((sum, it) => {
+      const val = parseFloat(it.amount);
+      return sum + (isNaN(val) ? 0 : val);
+    }, 0);
+  }, [items]);
+
+  const tafqeetText = totalAmount > 0 ? numberToArabicText(totalAmount) : "";
 
   const createMutation = trpc.custody.create.useMutation({
     onSuccess: (data) => {
@@ -80,13 +112,26 @@ export default function NewCustodyRequest() {
       return;
     }
 
-    if (numAmount <= 0) {
-      toast.error("يرجى إدخال مبلغ صحيح للعهدة المالية");
+    if (items.length === 0) {
+      toast.error("يرجى إضافة بند واحد على الأقل في البيان التفصيلي");
       return;
     }
 
-    if (!description.trim() || description.trim().length < 5) {
-      toast.error("يرجى كتابة بيان تفصيلي لأوجه استخدام العهدة وأسباب الاحتياج");
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (!it.description.trim()) {
+        toast.error(`يرجى كتابة بيان البند رقم ${i + 1}`);
+        return;
+      }
+      const val = parseFloat(it.amount);
+      if (isNaN(val) || val <= 0) {
+        toast.error(`يرجى إدخال مبلغ صحيح للبند رقم ${i + 1}`);
+        return;
+      }
+    }
+
+    if (totalAmount <= 0) {
+      toast.error("المبلغ الإجمالي للعهدة يجب أن يكون أكبر من الصفر");
       return;
     }
 
@@ -105,10 +150,15 @@ export default function NewCustodyRequest() {
       return;
     }
 
+    const cleanItems = items.map((it) => ({
+      description: it.description.trim(),
+      amount: parseFloat(it.amount) || 0,
+    }));
+
     createMutation.mutate({
       title: title.trim(),
-      amount: numAmount,
-      description: description.trim(),
+      amount: totalAmount,
+      description: JSON.stringify(cleanItems),
       isCustomBank,
       bankName: bankName.trim(),
       bankAccountName: bankAccountName.trim(),
@@ -159,66 +209,172 @@ export default function NewCustodyRequest() {
             </CardHeader>
 
             <CardContent className="p-4 sm:p-5 space-y-4">
-              {/* عنوان العهدة والمبلغ في سطر واحد */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* عنوان العهدة */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-foreground">
-                    عنوان العهدة المالية <span className="text-rose-500">*</span>
-                  </Label>
-                  <Input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="عهدة مالية لمصاريف ....."
-                    className="h-11 rounded-xl border-border/70 text-xs sm:text-sm bg-background"
-                    required
-                  />
+              {/* عنوان العهدة */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  عنوان العهدة المالية <span className="text-rose-500">*</span>
+                </Label>
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="مثال: عهدة مالية لمصاريف صيانة وإصلاحات المسجد..."
+                  className="h-11 rounded-xl border-border/70 text-xs sm:text-sm bg-background"
+                  required
+                />
+              </div>
+
+              {/* البيان التفصيلي وأسباب الاحتياج للعهدة */}
+              <div className="space-y-2.5 pt-1">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="space-y-0.5">
+                    <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <span>البيان التفصيلي وأسباب الاحتياج للعهدة</span>
+                      <span className="text-rose-500">*</span>
+                      <Badge variant="outline" className="text-[10px] font-normal py-0 h-5 border-border/70 text-muted-foreground mr-1">
+                        {items.length} {items.length === 1 ? "بند" : "بنود"}
+                      </Badge>
+                    </Label>
+                    <p className="text-[11px] text-muted-foreground">
+                      أضف البنود المطلوب صرفها مع بيان كل بند ومبلغه بالتفصيل
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddItem}
+                    className="h-8 rounded-xl text-xs font-bold gap-1 text-primary border-primary/30 hover:bg-primary/5 hover:border-primary/50 cursor-pointer shadow-2xs"
+                  >
+                    <Plus className="w-3.5 h-3.5 ml-0.5" />
+                    <span>إضافة بند</span>
+                  </Button>
                 </div>
 
-                {/* المبلغ المطلوب */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-foreground">
-                    المبلغ المطلوب (ريال سعودي) <span className="text-rose-500">*</span>
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="1"
-                      value={amountStr}
-                      onChange={(e) => setAmountStr(e.target.value)}
-                      placeholder="0.00"
-                      dir="rtl"
-                      className="h-11 rounded-xl border-border/70 text-base font-bold font-mono pl-14 pr-3.5 text-right bg-background focus:ring-primary/20"
-                      required
-                    />
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground pointer-events-none select-none">
-                      ر.س
+                {/* جدول بنود العهدة */}
+                <div className="rounded-xl border border-border/70 overflow-hidden bg-background">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-right border-collapse">
+                      <thead>
+                        <tr className="bg-muted/50 border-b border-border/60 text-muted-foreground font-semibold">
+                          <th className="py-2.5 px-3 w-12 text-center font-bold">#</th>
+                          <th className="py-2.5 px-3 min-w-[240px]">
+                            بيان البند وأسباب الاحتياج <span className="text-rose-500">*</span>
+                          </th>
+                          <th className="py-2.5 px-3 w-36 sm:w-44 text-right">
+                            المبلغ المطلوب (ر.س) <span className="text-rose-500">*</span>
+                          </th>
+                          <th className="py-2.5 px-2 w-12 text-center">حذف</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/40">
+                        {items.map((item, index) => (
+                          <tr key={item.id} className="hover:bg-muted/20 transition-colors">
+                            <td className="py-2 px-3 text-center font-mono font-bold text-muted-foreground">
+                              {index + 1}
+                            </td>
+                            <td className="p-2">
+                              <Input
+                                value={item.description}
+                                onChange={(e) => handleItemChange(item.id, "description", e.target.value)}
+                                placeholder="اكتب بيان البند أو سبب الاحتياج للصرف..."
+                                className="h-9 rounded-lg border-border/70 text-xs sm:text-sm bg-background"
+                                required
+                              />
+                            </td>
+                            <td className="p-2">
+                              <div className="relative">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={item.amount}
+                                  onChange={(e) => handleItemChange(item.id, "amount", e.target.value)}
+                                  placeholder="0.00"
+                                  dir="ltr"
+                                  className="h-9 rounded-lg border-border/70 text-xs sm:text-sm font-bold font-mono pl-10 pr-2.5 text-right bg-background focus:ring-primary/20"
+                                  required
+                                />
+                                <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-muted-foreground pointer-events-none select-none">
+                                  ر.س
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveItem(item.id)}
+                                disabled={items.length <= 1}
+                                className="h-8 w-8 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                title={items.length <= 1 ? "لا يمكن حذف البند الوحيد" : "حذف هذا البند"}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* زر إضافة بند في أسفل الجدول */}
+                  <div className="p-2 bg-muted/20 border-t border-border/40 flex justify-start">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleAddItem}
+                      className="h-8 rounded-lg text-xs font-semibold gap-1.5 text-primary hover:bg-primary/10 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>إضافة بند آخر</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* المبلغ الإجمالي المطلوب صرفه - محسوب آلياً */}
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-primary/10 pb-3">
+                  <div className="space-y-0.5">
+                    <div className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-2">
+                      <span>المبلغ الإجمالي المطلوب صرفه</span>
+                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 text-[10px] font-bold">
+                        محسوب تلقائياً
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      إجمالي مبالغ البنود المدخلة أعلاه رقماً وكتابةً
+                    </p>
+                  </div>
+
+                  {/* المبلغ بالأرقام */}
+                  <div className="flex items-center sm:flex-col sm:items-end justify-between sm:justify-start gap-1">
+                    <span className="text-[11px] font-bold text-muted-foreground">المبلغ بالأرقام:</span>
+                    <div className="inline-flex items-center gap-1.5 font-mono text-xl sm:text-2xl font-black text-primary">
+                      <span>
+                        {totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                      <SaudiRiyal className="w-5 h-5 inline text-primary" />
                     </div>
                   </div>
                 </div>
 
-                {/* تفقيط المبلغ التلقائي */}
-                {tafqeetText && (
-                  <div className="col-span-1 md:col-span-2 p-2.5 bg-primary/5 rounded-xl border border-primary/20 text-xs text-primary font-bold flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-primary shrink-0" />
-                    <span>فقط {tafqeetText} لا غير.</span>
-                  </div>
-                )}
-              </div>
-
-              {/* البيان التفصيلي */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">
-                  البيان التفصيلي وأسباب الاحتياج للعهدة <span className="text-rose-500">*</span>
-                </Label>
-                <Textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="اكتب بياناً شاملاً ومفصلاً يوضح أسباب طلب العهدة وأي تفاصيل داعمة للطلب..."
-                  className="min-h-[120px] rounded-xl border-border/70 text-xs sm:text-sm bg-background leading-relaxed"
-                  required
-                />
+                {/* المبلغ كتابة */}
+                <div className="flex items-start gap-2 text-xs">
+                  <span className="font-bold text-foreground shrink-0">المبلغ كتابة:</span>
+                  {tafqeetText ? (
+                    <span className="font-bold text-primary flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-primary shrink-0 inline" />
+                      <span>فقط {tafqeetText} لا غير.</span>
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground italic">
+                      أدخل مبالغ البنود أعلاه ليتم التحويل التلقائي للمبلغ كتابةً
+                    </span>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
