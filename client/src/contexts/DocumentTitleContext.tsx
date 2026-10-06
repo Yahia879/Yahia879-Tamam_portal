@@ -121,7 +121,7 @@ const ROUTE_TITLE_MAP: { pattern: RegExp; title: string }[] = [
   { pattern: /^\/boq-preparations\/?$/, title: "إعداد جداول الكميات" },
   { pattern: /^\/boq\/[^/]+\/?$/, title: "جدول الكميات" },
   { pattern: /^\/quotations\/?$/, title: "عروض الأسعار" },
-  { pattern: /^\/financial-approval\/?$/, title: "الاعتماد المالي" },
+  { pattern: /^\/financial-approval\/?$/, title: "الاعتمادات" },
   { pattern: /^\/financial-report\/?$/, title: "التقرير المالي" },
   { pattern: /^\/categories\/?$/, title: "إدارة التصنيفات" },
 
