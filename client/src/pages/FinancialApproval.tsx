@@ -23,7 +23,7 @@ import {
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { usePermission } from "@/hooks/usePermission";
+import { useAnyPermission } from "@/hooks/usePermission";
 import { cn } from "@/lib/utils";
 import {
   CheckSquare,
@@ -144,10 +144,14 @@ export default function FinancialApproval() {
     (user as any)?.customRole?.nameAr === "الإدارة المالية" ||
     (user as any)?.customRole?.nameAr === "المدير المالي";
 
+  const hasSpecificPerm = useAnyPermission([
+    "financial_approval.approve",
+    "financial_approval.view",
+    "financial_approval",
+  ]);
+
   const hasApprovalPerm =
-    usePermission("financial_approval.approve") ||
-    usePermission("financial_approval.view") ||
-    usePermission("financial_approval") ||
+    hasSpecificPerm ||
     isSuperOrSystem ||
     isExecDirector ||
     isFinancialRole;
