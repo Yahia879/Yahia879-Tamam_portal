@@ -11,6 +11,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { numberToArabicText } from "@shared/tafqeet";
 import {
   Wallet,
@@ -24,6 +32,10 @@ import {
   PenTool,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
+  ShieldAlert,
+  Clock,
+  ExternalLink,
   HelpCircle,
   Loader2,
   Send,
@@ -37,6 +49,30 @@ export default function NewCustodyRequest() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const utils = trpc.useUtils();
+
+  // فحص العهدة النشطة غير المصفاة والاستثناء
+  const { data: custodyCheck, isLoading: isCheckingCustody } = trpc.custody.checkActiveCustody.useQuery();
+  const [isExceptionDialogOpen, setIsExceptionDialogOpen] = useState(false);
+  const [exceptionReason, setExceptionReason] = useState("");
+
+  const requestExceptionMutation = trpc.custody.requestException.useMutation({
+    onSuccess: (res) => {
+      toast.success(res.message);
+      setIsExceptionDialogOpen(false);
+      setExceptionReason("");
+      utils.custody.checkActiveCustody.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء رفع طلب الاستثناء");
+    },
+  });
+
+  const hasActiveCustody = !!custodyCheck?.hasActiveCustody;
+  const activeCustody = custodyCheck?.activeCustody;
+  const hasApprovedException = !!custodyCheck?.hasApprovedException;
+  const hasPendingException = !!custodyCheck?.hasPendingException;
+  const latestException = custodyCheck?.latestException;
+  const canSubmit = !hasActiveCustody || hasApprovedException;
 
   // نموذج الطلب
   const [title, setTitle] = useState("");
@@ -155,6 +191,13 @@ export default function NewCustodyRequest() {
       amount: parseFloat(it.amount) || 0,
     }));
 
+    if (hasActiveCustody && !hasApprovedException) {
+      toast.error(
+        `لا يمكن تقديم طلب جديد لوجود عهدة نشطة غير مصفاة برقم (${activeCustody?.requestNumber || ""}). يرجى تقديم طلب استثناء للمدير التنفيذي أو تصفية العهدة القائمة أولاً.`
+      );
+      return;
+    }
+
     createMutation.mutate({
       title: title.trim(),
       amount: totalAmount,
@@ -194,6 +237,198 @@ export default function NewCustodyRequest() {
             </div>
           </div>
         </div>
+
+        {/* تنبيه وجود عهدة نشطة غير مصفاة أو استثناء معتمد */}
+        {hasActiveCustody && !hasApprovedException && (
+          <div className="rounded-2xl border border-amber-300 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/20 p-4 sm:p-5 shadow-xs space-y-3.5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1 text-right flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm font-black text-amber-900 dark:text-amber-200">
+                    تنبيه: توجد عهدة مالية سابقة غير مصفاة
+                  </h3>
+                  <Badge variant="outline" className="text-[10px] font-bold border-amber-400/50 bg-amber-500/10 text-amber-800 dark:text-amber-300">
+                    عهدة غير مصفاة
+                  </Badge>
+                </div>
+                <p className="text-xs text-amber-800 dark:text-amber-300/90 leading-relaxed">
+                  لديك حالياً عهدة مالية نشطة وغير مصفاة برقم{" "}
+                  <span className="font-bold underline font-mono text-amber-950 dark:text-amber-100">
+                    {activeCustody?.requestNumber}
+                  </span>
+                  {activeCustody?.title ? ` بعنوان «${activeCustody.title}»` : ""} بمبلغ{" "}
+                  <span className="font-bold text-amber-950 dark:text-amber-100">
+                    {Number(activeCustody?.amount || 0).toLocaleString()} ر.س
+                  </span>
+                  . تنص لوائح الجمعية على منع تقديم عهدة مالية جديدة حتى تتم تصفية العهدة السابقة واعتمادها من قِبل المسؤول المالي، أو الحصول على استثناء معتمد من المدير التنفيذي.
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t border-amber-300/60 dark:border-amber-800/40 pt-3 flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2">
+                {activeCustody?.id && (
+                  <Link
+                    href={`/custody-requests/${activeCustody.id}/print`}
+                    target="_blank"
+                    className="text-xs font-semibold text-amber-800 hover:text-amber-950 dark:text-amber-300 dark:hover:text-amber-100 underline flex items-center gap-1"
+                  >
+                    <span>معاينة تفاصيل العهدة غير المصفاة</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </Link>
+                )}
+              </div>
+
+              <div>
+                {hasPendingException ? (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-900 dark:text-amber-200 text-xs font-medium border border-amber-400/40">
+                    <Clock className="w-3.5 h-3.5 animate-pulse text-amber-700 dark:text-amber-400" />
+                    <span>طلب الاستثناء قيد المراجعة حالياً من قِبل المدير التنفيذي</span>
+                  </div>
+                ) : latestException?.status === "rejected" ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] text-rose-600 dark:text-rose-400 font-medium">
+                      تم رفض طلب الاستثناء السابق {latestException.reviewNotes ? `(السبب: ${latestException.reviewNotes})` : ""}
+                    </span>
+                    <Button
+                      type="button"
+                      onClick={() => setIsExceptionDialogOpen(true)}
+                      size="sm"
+                      variant="outline"
+                      className="rounded-xl h-8 text-xs font-bold border-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-900 dark:text-amber-100"
+                    >
+                      إعادة طلب استثناء بمبررات جديدة
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={() => setIsExceptionDialogOpen(true)}
+                    size="sm"
+                    className="rounded-xl h-8.5 px-3.5 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs gap-1.5 cursor-pointer"
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    <span>طلب استثناء من المدير التنفيذي</span>
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {hasApprovedException && (
+          <div className="rounded-2xl border border-emerald-300 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/20 p-4 sm:p-5 shadow-xs">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div className="space-y-1 text-right flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm font-black text-emerald-900 dark:text-emerald-200">
+                    تم اعتماد استثناء صرف عهدة جديدة
+                  </h3>
+                  <Badge variant="outline" className="text-[10px] font-bold border-emerald-400/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                    استثناء معتمد من المدير التنفيذي
+                  </Badge>
+                </div>
+                <p className="text-xs text-emerald-800 dark:text-emerald-300/90 leading-relaxed">
+                  وافق المدير التنفيذي على استثناء تقديم طلب عهدة جديدة رغم وجود عهدة سابقة غير مصفاة. يمكنك الآن تقديم هذا الطلب وسيتم ربط الاستثناء به آلياً.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* نافذة طلب الاستثناء */}
+        <Dialog open={isExceptionDialogOpen} onOpenChange={setIsExceptionDialogOpen}>
+          <DialogContent className="sm:max-w-md rounded-2xl" dir="rtl">
+            <DialogHeader className="text-right">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-600 flex items-center justify-center font-bold">
+                  <ShieldAlert className="w-4 h-4" />
+                </div>
+                <DialogTitle className="text-base font-bold text-foreground">
+                  طلب استثناء لصرف عهدة مالية جديدة
+                </DialogTitle>
+              </div>
+              <DialogDescription className="text-xs text-muted-foreground pt-1">
+                سيتم رفع هذا الطلب مباشرة للمدير التنفيذي للموافقة على التقديم استثناءً لوجود عهدة غير مصفاة.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              {activeCustody && (
+                <div className="p-3 rounded-xl bg-muted/60 border border-border/70 text-xs space-y-1.5">
+                  <div className="flex justify-between items-center text-muted-foreground">
+                    <span>رقم العهدة غير المصفاة:</span>
+                    <span className="font-mono font-bold text-foreground">{activeCustody.requestNumber}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-muted-foreground">
+                    <span>مبلغ العهدة الحالية:</span>
+                    <span className="font-bold text-foreground">{Number(activeCustody.amount).toLocaleString()} ر.س</span>
+                  </div>
+                  {activeCustody.title && (
+                    <div className="flex justify-between items-center text-muted-foreground">
+                      <span>عنوان العهدة:</span>
+                      <span className="font-medium text-foreground truncate max-w-[200px]">{activeCustody.title}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  مبررات وأسباب طلب الاستثناء <span className="text-rose-500">*</span>
+                </Label>
+                <Textarea
+                  value={exceptionReason}
+                  onChange={(e) => setExceptionReason(e.target.value)}
+                  placeholder="اكتب هنا مبررات الحاجة الماسة للعهدة الجديدة وموعد تصفية العهدة السابقة..."
+                  rows={4}
+                  className="rounded-xl text-xs sm:text-sm bg-background resize-none border-border/70"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="flex-col sm:flex-row gap-2 sm:justify-start">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsExceptionDialogOpen(false)}
+                className="rounded-xl text-xs"
+              >
+                إلغاء
+              </Button>
+              <Button
+                type="button"
+                disabled={!exceptionReason.trim() || requestExceptionMutation.isPending || !activeCustody?.id}
+                onClick={() => {
+                  if (!activeCustody?.id) return;
+                  requestExceptionMutation.mutate({
+                    activeCustodyId: activeCustody.id,
+                    reason: exceptionReason.trim(),
+                  });
+                }}
+                className="rounded-xl text-xs font-bold gradient-primary text-white gap-2 cursor-pointer"
+              >
+                {requestExceptionMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>جاري الرفع...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>إرسال طلب الاستثناء للمدير التنفيذي</span>
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* تفاصيل العهدة المالية والمبلغ */}
@@ -500,13 +735,22 @@ export default function NewCustodyRequest() {
 
             <Button
               type="submit"
-              disabled={createMutation.isPending}
-              className="w-full sm:w-auto gradient-primary text-white font-bold h-11 px-8 rounded-xl text-xs sm:text-sm shadow-md gap-2 cursor-pointer"
+              disabled={createMutation.isPending || !canSubmit}
+              className={`w-full sm:w-auto font-bold h-11 px-8 rounded-xl text-xs sm:text-sm shadow-md gap-2 ${
+                !canSubmit
+                  ? "bg-muted text-muted-foreground cursor-not-allowed border border-border/80 hover:bg-muted"
+                  : "gradient-primary text-white cursor-pointer"
+              }`}
             >
               {createMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>جاري رفع الطلب...</span>
+                </>
+              ) : !canSubmit ? (
+                <>
+                  <AlertTriangle className="w-4 h-4 text-amber-500" />
+                  <span>غير متاح لوجود عهدة غير مصفاة (يتطلب استثناء)</span>
                 </>
               ) : (
                 <>
