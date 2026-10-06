@@ -93,6 +93,38 @@ export default function CustodyRequestPrint() {
     },
   });
 
+  const isFinancialOfficer = useMemo(() => {
+    if (!user) return false;
+    const userRoleStr = (user.role as string) || "";
+    return (
+      userRoleStr === "financial" ||
+      userRoleStr === "financial_manager" ||
+      userRoleStr === "accountant" ||
+      (user as any)?.customRole?.nameAr === "المسؤول المالي" ||
+      (user as any)?.customRole?.nameAr === "المدير المالي" ||
+      (user as any)?.customRole?.nameAr === "محاسب" ||
+      userRoleStr === "super_admin"
+    );
+  }, [user]);
+
+  const [settleDialogOpen, setSettleDialogOpen] = useState(false);
+  const [settlementNotes, setSettlementNotes] = useState("");
+
+  const settleMutation = trpc.custody.settle.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setSettleDialogOpen(false);
+      setSettlementNotes("");
+      utils.custody.getById.invalidate({ id: requestId });
+      utils.custody.getAll.invalidate();
+      utils.custody.getStats.invalidate();
+      utils.custody.checkActiveCustody.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء تصفية العهدة");
+    },
+  });
+
   const handlePrint = () => {
     const prevTitle = document.title;
     if (request?.requestNumber) {
@@ -275,6 +307,22 @@ export default function CustodyRequestPrint() {
                 رفض الطلب
               </Button>
             </>
+          )}
+
+          {/* زر تصفية العهدة للمسؤول المالي أو المشرف العام */}
+          {(isFinancialOfficer || user?.role === "super_admin") && !request.isSettled && request.status !== "rejected" && (
+            <Button
+              size="sm"
+              onClick={() => {
+                setSettlementNotes("");
+                setSettleDialogOpen(true);
+              }}
+              className="h-8 sm:h-9 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-xs"
+              title="تصفية وإغلاق العهدة المالية"
+            >
+              <CheckCircle className="h-3.5 w-3.5 ml-1" />
+              <span>تصفية العهدة المالية</span>
+            </Button>
           )}
 
         </div>
@@ -505,6 +553,49 @@ export default function CustodyRequestPrint() {
               </div>
             </div>
 
+            {/* إشعار حالة التصفية أو الاستثناء إن وجد */}
+            {request.isSettled ? (
+              <div className="my-1.5 p-2 rounded-lg bg-emerald-50/80 border border-emerald-300 text-[10px] text-emerald-900 flex flex-wrap items-center justify-between gap-1 print:border-emerald-600">
+                <div className="flex items-center gap-1.5 font-bold">
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>تمت تصفية وإغلاق العهدة المالية بنجاح</span>
+                  {(request as any).settledUser?.name && (
+                    <span className="font-normal text-emerald-800">
+                      (بواسطة المسؤول المالي: {(request as any).settledUser.name})
+                    </span>
+                  )}
+                  {request.settledAt && (
+                    <span className="font-mono text-emerald-700">
+                      بتاريخ {new Date(request.settledAt).toLocaleDateString("ar-SA")}
+                    </span>
+                  )}
+                </div>
+                {request.settlementNotes && (
+                  <span className="text-emerald-800 font-medium truncate max-w-xs">
+                    ملاحظات: {request.settlementNotes}
+                  </span>
+                )}
+              </div>
+            ) : request.status !== "rejected" ? (
+              <div className="my-1 px-2 py-1 rounded-md bg-amber-50/60 border border-amber-200/80 text-[9.5px] text-amber-800 flex items-center justify-between print:hidden">
+                <span className="font-medium">حالة العهدة: جارية وغير مصفاة لدى الإدارة المالية</span>
+              </div>
+            ) : null}
+
+            {request.hasException && (
+              <div className="my-1 p-2 rounded-lg bg-purple-50/80 border border-purple-300 text-[10px] text-purple-900 flex flex-wrap items-center justify-between gap-1">
+                <div className="flex items-center gap-1.5 font-bold">
+                  <ShieldCheck className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                  <span>تم تقديم وصرف هذه العهدة بناءً على استثناء معتمد من المدير التنفيذي</span>
+                </div>
+                {(request as any).exceptionDetails?.reason && (
+                  <span className="text-purple-800 font-medium truncate max-w-xs">
+                    مبررات الاستثناء: {(request as any).exceptionDetails.reason}
+                  </span>
+                )}
+              </div>
+            )}
+
             {/* تذييل المستند الفاخر المطابق لتقارير الجمعية */}
             <div className="mt-3 sm:mt-5 pt-2 sm:pt-2.5 border-t border-gray-100 text-center text-slate-400 text-[9px] sm:text-[10px] flex flex-col sm:flex-row justify-between items-center px-1 sm:px-2 gap-1 sm:gap-0">
               <span className="font-medium">تم إنشاء هذا المستند آلياً من نظام {orgSettings?.officialReportsName || (orgSettings as any)?.nameAr || "جمعية عمارة وتطوير المساجد (تمام)"}</span>
@@ -645,6 +736,80 @@ export default function CustodyRequestPrint() {
             >
               {rejectMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
               <span>تأكيد الرفض</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* حوار تصفية العهدة المالية للمسؤول المالي */}
+      <Dialog open={settleDialogOpen} onOpenChange={setSettleDialogOpen}>
+        <DialogContent className="max-w-md rounded-2xl" dir="rtl">
+          <DialogHeader className="text-right">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 flex items-center justify-center">
+                <CheckCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold text-foreground">
+                  تصفية وإغلاق العهدة المالية
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground pt-0.5">
+                  تأكيد تصفية وإغلاق العهدة المالية بعد استلام الفواتير وتوريد المتبقي
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-3.5 py-2">
+            <div className="p-3 rounded-xl bg-muted/60 border border-border/70 text-xs space-y-1.5">
+              <div className="flex justify-between items-center text-muted-foreground">
+                <span>رقم العهدة:</span>
+                <span className="font-mono font-bold text-primary">{request.requestNumber}</span>
+              </div>
+              <div className="flex justify-between items-center text-muted-foreground">
+                <span>الموظف:</span>
+                <span className="font-bold text-foreground">{request.applicantName || "موظف"}</span>
+              </div>
+              <div className="flex justify-between items-center text-muted-foreground">
+                <span>المبلغ:</span>
+                <span className="font-bold text-foreground">{Number(request.amount).toLocaleString()} ر.س</span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">
+                ملاحظات التصفية (اختياري)
+              </Label>
+              <Textarea
+                value={settlementNotes}
+                onChange={(e) => setSettlementNotes(e.target.value)}
+                placeholder="مثال: تم تدقيق الفواتير ومطابقة المصروفات وإرجاع المتبقي للصندوق..."
+                rows={3}
+                className="rounded-xl text-xs bg-background resize-none border-border/70"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setSettleDialogOpen(false)}
+              className="rounded-xl text-xs h-9 font-semibold"
+            >
+              إلغاء
+            </Button>
+            <Button
+              disabled={settleMutation.isPending}
+              onClick={() => {
+                settleMutation.mutate({
+                  id: request.id,
+                  notes: settlementNotes.trim() || undefined,
+                });
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs h-9 font-bold gap-1.5"
+            >
+              {settleMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+              <span>تأكيد تصفية العهدة</span>
             </Button>
           </DialogFooter>
         </DialogContent>
