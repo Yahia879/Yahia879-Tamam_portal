@@ -137,28 +137,7 @@ export default function CustodyRequests() {
   // فقط المدير التنفيذي هو من يعتمد طلبات العهدة
   const canApprove = isExecutiveDirector;
 
-  // حوار التصفية للمسؤول المالي
-  const [settleDialogOpen, setSettleDialogOpen] = useState(false);
-  const [settlementNotes, setSettlementNotes] = useState("");
-  const [requestToSettle, setRequestToSettle] = useState<any>(null);
-
-  const settleMutation = trpc.custody.settle.useMutation({
-    onSuccess: (data) => {
-      toast.success(data.message);
-      setSettleDialogOpen(false);
-      setRequestToSettle(null);
-      setSettlementNotes("");
-      utils.custody.getAll.invalidate();
-      utils.custody.getStats.invalidate();
-      utils.custody.checkActiveCustody.invalidate();
-    },
-    onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء تصفية العهدة");
-    },
-  });
-
   // حوار وإدارة الاستثناءات للمدير التنفيذي
-  const [exceptionsDialogOpen, setExceptionsDialogOpen] = useState(false);
   const [exceptionActionNotes, setExceptionActionNotes] = useState("");
   const [selectedException, setSelectedException] = useState<any>(null);
   const [exceptionActionType, setExceptionActionType] = useState<"approve" | "reject">("approve");
@@ -984,24 +963,6 @@ export default function CustodyRequests() {
                               </Button>
                             )}
 
-                            {/* زر التصفية للمسؤول المالي أو المشرف العام */}
-                            {(isFinancialOfficer || isSuperAdmin) && !req.isSettled && req.status !== "rejected" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setRequestToSettle(req);
-                                  setSettlementNotes("");
-                                  setSettleDialogOpen(true);
-                                }}
-                                className="h-8 px-2.5 rounded-lg text-xs gap-1 font-bold text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
-                                title="تصفية وإغلاق العهدة المالية"
-                              >
-                                <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>تصفية</span>
-                              </Button>
-                            )}
-
                             {canApprove && req.status === "pending_executive" && (
                               <>
                                 <Button
@@ -1111,87 +1072,6 @@ export default function CustodyRequests() {
               >
                 {rejectMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
                 <span>تأكيد الرفض</span>
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* حوار تصفية العهدة المالية للمسؤول المالي */}
-        <Dialog open={settleDialogOpen} onOpenChange={setSettleDialogOpen}>
-          <DialogContent className="max-w-md rounded-2xl" dir="rtl">
-            <DialogHeader className="text-right">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5" />
-                </div>
-                <div>
-                  <DialogTitle className="text-base font-bold text-foreground">
-                    تصفية وإغلاق العهدة المالية
-                  </DialogTitle>
-                  <DialogDescription className="text-xs text-muted-foreground pt-0.5">
-                    إغلاق العهدة بعد التأكد من مطابقة الفواتير أو توريد المتبقي
-                  </DialogDescription>
-                </div>
-              </div>
-            </DialogHeader>
-
-            {requestToSettle && (
-              <div className="space-y-3.5 py-2">
-                <div className="p-3 rounded-xl bg-muted/60 border border-border/70 text-xs space-y-1.5">
-                  <div className="flex justify-between items-center text-muted-foreground">
-                    <span>رقم العهدة:</span>
-                    <span className="font-mono font-bold text-primary">{requestToSettle.requestNumber}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-muted-foreground">
-                    <span>الموظف مقدم الطلب:</span>
-                    <span className="font-bold text-foreground">{requestToSettle.applicantName || "موظف"}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-muted-foreground">
-                    <span>المبلغ:</span>
-                    <span className="font-bold text-foreground">{Number(requestToSettle.amount).toLocaleString()} ر.س</span>
-                  </div>
-                  <div className="flex justify-between items-center text-muted-foreground">
-                    <span>عنوان العهدة:</span>
-                    <span className="font-medium text-foreground truncate max-w-[200px]">{requestToSettle.title}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-foreground">
-                    ملاحظات التصفية (اختياري)
-                  </Label>
-                  <Textarea
-                    value={settlementNotes}
-                    onChange={(e) => setSettlementNotes(e.target.value)}
-                    placeholder="مثال: تم تدقيق الفواتير ومطابقة المصروفات وإرجاع المتبقي للصندوق..."
-                    rows={3}
-                    className="rounded-xl text-xs bg-background resize-none border-border/70"
-                  />
-                </div>
-              </div>
-            )}
-
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button
-                variant="outline"
-                onClick={() => setSettleDialogOpen(false)}
-                className="rounded-xl text-xs h-9 font-semibold"
-              >
-                إلغاء
-              </Button>
-              <Button
-                disabled={settleMutation.isPending || !requestToSettle}
-                onClick={() => {
-                  if (!requestToSettle) return;
-                  settleMutation.mutate({
-                    id: requestToSettle.id,
-                    notes: settlementNotes.trim() || undefined,
-                  });
-                }}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs h-9 font-bold gap-1.5"
-              >
-                {settleMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                <span>تأكيد تصفية العهدة</span>
               </Button>
             </DialogFooter>
           </DialogContent>
