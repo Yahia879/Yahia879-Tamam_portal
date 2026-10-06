@@ -131,7 +131,27 @@ export default function CustodyRequestPrint() {
     );
   }
 
-  const numAmount = parseFloat(request.amount) || 0;
+  // تحليل البنود التفصيلية إذا كانت مخزنة كـ JSON
+  let parsedItems: Array<{ description: string; amount: number }> | null = null;
+  if (request.description) {
+    try {
+      const parsed = JSON.parse(request.description);
+      if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === "object") {
+        parsedItems = parsed.map((item: any) => ({
+          description: String(item.description || ""),
+          amount: parseFloat(item.amount) || 0,
+        }));
+      }
+    } catch {
+      // نص عادي للطلبات السابقة
+    }
+  }
+
+  // حساب المبلغ الإجمالي من البنود أو من حقل المبلغ
+  const numAmount = parsedItems && parsedItems.length > 0
+    ? parsedItems.reduce((sum, it) => sum + (it.amount || 0), 0)
+    : parseFloat(request.amount) || 0;
+
   const tafqeet = numberToArabicText(numAmount);
   const reqDate = request.createdAt ? new Date(request.createdAt) : new Date();
 
@@ -346,15 +366,47 @@ export default function CustodyRequestPrint() {
                 <div className="bg-gray-100/80 p-1.5 sm:p-2 font-bold text-xs sm:text-sm border-b text-gray-800">
                   البيان التفصيلي وأسباب الاحتياج للعهدة
                 </div>
-                <div className="bg-white text-gray-800 leading-relaxed whitespace-pre-wrap break-words font-semibold p-2 sm:p-3 text-[11px] sm:text-sm min-h-[50px] sm:min-h-[65px]">
-                  {request.description}
-                </div>
+                {parsedItems && parsedItems.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[10px] sm:text-xs text-right border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50/80 border-b border-gray-200 text-gray-700 font-bold">
+                          <th className="p-1.5 sm:p-2 w-10 sm:w-12 text-center border-l border-gray-200">#</th>
+                          <th className="p-1.5 sm:p-2 border-l border-gray-200">بيان البند وأسباب الاحتياج</th>
+                          <th className="p-1.5 sm:p-2 w-28 sm:w-36 text-center">المبلغ المطلوب</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {parsedItems.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-gray-50/40">
+                            <td className="p-1.5 sm:p-2 text-center font-mono font-bold text-gray-600 border-l border-gray-200">
+                              {idx + 1}
+                            </td>
+                            <td className="p-1.5 sm:p-2 text-gray-800 font-medium border-l border-gray-200 leading-relaxed whitespace-pre-wrap break-words">
+                              {item.description}
+                            </td>
+                            <td className="p-1.5 sm:p-2 text-center font-mono font-bold text-emerald-800 whitespace-nowrap">
+                              <span className="inline-flex items-center justify-center gap-1">
+                                {item.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                <SaudiRiyal className="w-3 h-3 inline" />
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="bg-white text-gray-800 leading-relaxed whitespace-pre-wrap break-words font-semibold p-2 sm:p-3 text-[11px] sm:text-sm min-h-[50px] sm:min-h-[65px]">
+                    {request.description}
+                  </div>
+                )}
               </div>
 
-              {/* 3. جدول المبلغ المالي المطلوب */}
+              {/* 3. جدول المبلغ الإجمالي المطلوب صرفه */}
               <div className="mb-2.5 sm:mb-3.5 border border-gray-300 rounded-lg overflow-hidden bg-white">
                 <div className="bg-gray-100/80 p-1.5 sm:p-2 font-bold text-xs sm:text-sm border-b text-center text-gray-800">
-                  المبلغ المالي المطلوب صرفه
+                  المبلغ الإجمالي المطلوب صرفه
                 </div>
                 <table className="w-full text-[10.5px] sm:text-xs sm:text-sm text-center border-collapse">
                   <tbody>
