@@ -580,10 +580,6 @@ export default function CustodyRequestPrint() {
                   </span>
                 )}
               </div>
-            ) : request.status !== "rejected" ? (
-              <div className="my-1 px-2 py-1 rounded-md bg-amber-50/60 border border-amber-200/80 text-[9.5px] text-amber-800 flex items-center justify-between print:hidden">
-                <span className="font-medium">حالة العهدة: جارية وغير مصفاة لدى الإدارة المالية</span>
-              </div>
             ) : null}
 
             {request.hasException && (
@@ -773,7 +769,7 @@ export default function CustodyRequestPrint() {
                 <span className="font-bold text-foreground">{request.applicantName || "موظف"}</span>
               </div>
               <div className="flex justify-between items-center text-muted-foreground">
-                <span>العهدة غير المصفاة:</span>
+                <span>العهدة السابقة:</span>
                 <span className="font-mono font-bold text-primary">{request.requestNumber}</span>
               </div>
               <div className="text-muted-foreground pt-1 border-t border-border/50">
