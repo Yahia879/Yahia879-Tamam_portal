@@ -342,6 +342,8 @@ export default function CustodyRequestPrint() {
               <CheckCircle className="h-3.5 w-3.5 ml-1" />
               <span>تصفية العهدة المالية</span>
             </Button>
+          )}
+
           {/* زر مراجعة طلب الاستثناء للمدير التنفيذي أو المشرف العام إن وجد طلب استثناء معلق لهذه العهدة */}
           {Boolean((request as any).pendingException) && (canApprove || user?.role === "super_admin") && (
             <Button
@@ -847,6 +849,9 @@ export default function CustodyRequestPrint() {
               <span>تأكيد تصفية العهدة</span>
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* حوار البت في طلب الاستثناء */}
       <Dialog open={confirmExceptionDialogOpen} onOpenChange={setConfirmExceptionDialogOpen}>
         <DialogContent className="max-w-md rounded-2xl" dir="rtl">
