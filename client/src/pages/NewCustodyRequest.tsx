@@ -193,7 +193,7 @@ export default function NewCustodyRequest() {
 
     if (hasActiveCustody && !hasApprovedException) {
       toast.error(
-        `لا يمكن تقديم طلب جديد لوجود عهدة نشطة غير مصفاة برقم (${activeCustody?.requestNumber || ""}). يرجى تقديم طلب استثناء للمدير التنفيذي أو تصفية العهدة القائمة أولاً.`
+        `لا يمكن تقديم طلب جديد لوجود عهدة مالية سابقة قائمة برقم (${activeCustody?.requestNumber || ""}). يمكنكم تقديم طلب استثناء للمدير التنفيذي.`
       );
       return;
     }
@@ -238,7 +238,7 @@ export default function NewCustodyRequest() {
           </div>
         </div>
 
-        {/* تنبيه وجود عهدة نشطة غير مصفاة أو استثناء معتمد */}
+        {/* تنبيه وجود عهدة سابقة قائمة أو استثناء معتمد */}
         {hasActiveCustody && !hasApprovedException && (
           <div className="rounded-2xl border border-amber-300 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/20 p-4 sm:p-4.5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
@@ -248,14 +248,14 @@ export default function NewCustodyRequest() {
               <div className="space-y-0.5 text-right flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-xs sm:text-sm font-black text-amber-900 dark:text-amber-200">
-                    تنبيه: توجد عهدة مالية سابقة غير مصفاة ({activeCustody?.requestNumber})
+                    تنبيه: توجد عهدة مالية سابقة قائمة ({activeCustody?.requestNumber})
                   </h3>
                   <Badge variant="outline" className="text-[10px] font-bold border-amber-400/50 bg-amber-500/10 text-amber-800 dark:text-amber-300">
-                    عهدة غير مصفاة
+                    عهدة قائمة
                   </Badge>
                 </div>
                 <p className="text-[11px] sm:text-xs text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
-                  العهدة الحالية بمبلغ <span className="font-bold text-amber-950 dark:text-amber-100">{Number(activeCustody?.amount || 0).toLocaleString()} ر.س</span>. تنص اللائحة على عدم إمكانية تقديم عهدة جديدة قبل تصفية السابقة، أو طلب استثناء معتمد من المدير التنفيذي (متاح في أزرار الإجراءات بالأسفل).
+                  قيمة العهدة السابقة <span className="font-bold text-amber-950 dark:text-amber-100">{Number(activeCustody?.amount || 0).toLocaleString()} ر.س</span>. تنص اللائحة على عدم إمكانية طلب عهدة جديدة بوجود عهدة سابقة، أو يمكنكم رفع طلب استثناء لاعتماده من المدير التنفيذي (من قسم الإجراءات بالأسفل).
                 </p>
               </div>
             </div>
