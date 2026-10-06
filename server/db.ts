@@ -244,10 +244,59 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
       await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN custodyRequestId INT DEFAULT NULL");
     }
 
+    // أعمدة تصفية العهد والاستثناءات في جدول custody_requests
+    try {
+      const [crCols] = await promisePool.query("SHOW COLUMNS FROM custody_requests");
+      const crColNames = (crCols as any[]).map((c: any) => c.Field);
+      if (!crColNames.includes("isSettled")) {
+        await promisePool.query("ALTER TABLE custody_requests ADD COLUMN isSettled TINYINT(1) NOT NULL DEFAULT 0");
+      }
+      if (!crColNames.includes("settledBy")) {
+        await promisePool.query("ALTER TABLE custody_requests ADD COLUMN settledBy INT DEFAULT NULL");
+      }
+      if (!crColNames.includes("settledAt")) {
+        await promisePool.query("ALTER TABLE custody_requests ADD COLUMN settledAt DATETIME DEFAULT NULL");
+      }
+      if (!crColNames.includes("settlementNotes")) {
+        await promisePool.query("ALTER TABLE custody_requests ADD COLUMN settlementNotes TEXT DEFAULT NULL");
+      }
+      if (!crColNames.includes("hasException")) {
+        await promisePool.query("ALTER TABLE custody_requests ADD COLUMN hasException TINYINT(1) NOT NULL DEFAULT 0");
+      }
+      if (!crColNames.includes("exceptionId")) {
+        await promisePool.query("ALTER TABLE custody_requests ADD COLUMN exceptionId INT DEFAULT NULL");
+      }
+      if (!crColNames.includes("attachmentsJson")) {
+        await promisePool.query("ALTER TABLE custody_requests ADD COLUMN attachmentsJson TEXT DEFAULT NULL");
+      }
+    } catch (e) {
+      console.warn("[Database] custody_requests column check warning:", e);
+    }
+
+    // جدول استثناءات العهد المالية
+    await promisePool.query(`
+      CREATE TABLE IF NOT EXISTS custody_exceptions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        userId INT NOT NULL,
+        activeCustodyId INT NOT NULL,
+        reason TEXT NOT NULL,
+        status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+        reviewedBy INT NULL,
+        reviewedAt DATETIME NULL,
+        reviewNotes TEXT NULL,
+        isUsed TINYINT(1) NOT NULL DEFAULT 0,
+        usedInRequestId INT NULL,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_ce_user_id (userId),
+        INDEX idx_ce_status (status)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     // ملاحظة: طلبات سدانة تُدار بشكل مستقل ولا يتم إنشاء مشاريع لها في جدول projects
   } catch (err) {
     console.warn("[Database] ensureSchemaUpdated warning:", err);
-    }
+  }
   })();
   return _migrationPromise;
 }
