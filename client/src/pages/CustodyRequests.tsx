@@ -90,7 +90,7 @@ export default function CustodyRequests() {
     setPage(1);
   };
 
-  const handleTabChange = (tab: "staff" | "my") => {
+  const handleTabChange = (tab: "staff" | "my" | "exceptions") => {
     setActiveTab(tab);
     setPage(1);
   };
