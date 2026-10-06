@@ -289,7 +289,7 @@ export default function NewCustodyRequest() {
                   </Badge>
                 </div>
                 <p className="text-xs text-emerald-800 dark:text-emerald-300/90 leading-relaxed">
-                  وافق المدير التنفيذي على استثناء تقديم طلب عهدة جديدة رغم وجود عهدة سابقة غير مصفاة. يمكنك الآن تقديم هذا الطلب وسيتم ربط الاستثناء به آلياً.
+                  وافق المدير التنفيذي على استثناء تقديم طلب عهدة جديدة رغم وجود عهدة سابقة قائمة. يمكنك الآن تقديم هذا الطلب وسيتم ربط الاستثناء به آلياً.
                 </p>
               </div>
             </div>
@@ -309,7 +309,7 @@ export default function NewCustodyRequest() {
                 </DialogTitle>
               </div>
               <DialogDescription className="text-xs text-muted-foreground pt-1">
-                سيتم رفع هذا الطلب مباشرة للمدير التنفيذي للموافقة على التقديم استثناءً لوجود عهدة غير مصفاة.
+                سيتم رفع هذا الطلب مباشرة للمدير التنفيذي للموافقة على التقديم استثناءً لوجود عهدة مالية سابقة قائمة.
               </DialogDescription>
             </DialogHeader>
 
@@ -317,11 +317,11 @@ export default function NewCustodyRequest() {
               {activeCustody && (
                 <div className="p-3 rounded-xl bg-muted/60 border border-border/70 text-xs space-y-1.5">
                   <div className="flex justify-between items-center text-muted-foreground">
-                    <span>رقم العهدة غير المصفاة:</span>
+                    <span>رقم العهدة السابقة:</span>
                     <span className="font-mono font-bold text-foreground">{activeCustody.requestNumber}</span>
                   </div>
                   <div className="flex justify-between items-center text-muted-foreground">
-                    <span>مبلغ العهدة الحالية:</span>
+                    <span>مبلغ العهدة السابقة:</span>
                     <span className="font-bold text-foreground">{Number(activeCustody.amount).toLocaleString()} ر.س</span>
                   </div>
                   {activeCustody.title && (
@@ -340,7 +340,7 @@ export default function NewCustodyRequest() {
                 <Textarea
                   value={exceptionReason}
                   onChange={(e) => setExceptionReason(e.target.value)}
-                  placeholder="اكتب هنا مبررات الحاجة الماسة للعهدة الجديدة وموعد تصفية العهدة السابقة..."
+                  placeholder="اكتب هنا مبررات الحاجة لصرف العهدة الجديدة وأسباب طلب الاستثناء..."
                   rows={4}
                   className="rounded-xl text-xs sm:text-sm bg-background resize-none border-border/70"
                 />
