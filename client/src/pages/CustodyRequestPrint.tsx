@@ -21,9 +21,9 @@ import {
   Printer,
   CheckCircle,
   XCircle,
-  ShieldCheck,
   ArrowUpRight,
   Loader2,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -122,6 +122,25 @@ export default function CustodyRequestPrint() {
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء تصفية العهدة");
+    },
+  });
+
+  const [confirmExceptionDialogOpen, setConfirmExceptionDialogOpen] = useState(false);
+  const [exceptionActionType, setExceptionActionType] = useState<"approve" | "reject">("approve");
+  const [exceptionActionNotes, setExceptionActionNotes] = useState("");
+
+  const reviewExceptionMutation = trpc.custody.reviewException.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setConfirmExceptionDialogOpen(false);
+      setExceptionActionNotes("");
+      utils.custody.getById.invalidate({ id: requestId });
+      utils.custody.getAll.invalidate();
+      utils.custody.getPendingActionCounts.invalidate();
+      utils.custody.checkActiveCustody.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء معالجة طلب الاستثناء");
     },
   });
 
@@ -322,6 +341,22 @@ export default function CustodyRequestPrint() {
             >
               <CheckCircle className="h-3.5 w-3.5 ml-1" />
               <span>تصفية العهدة المالية</span>
+            </Button>
+          {/* زر مراجعة طلب الاستثناء للمدير التنفيذي أو المشرف العام إن وجد طلب استثناء معلق لهذه العهدة */}
+          {Boolean((request as any).pendingException) && (canApprove || user?.role === "super_admin") && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setExceptionActionType("approve");
+                setExceptionActionNotes("");
+                setConfirmExceptionDialogOpen(true);
+              }}
+              className="h-8 sm:h-9 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 hover:bg-amber-100 font-bold text-xs sm:text-sm gap-1.5 shadow-xs"
+              title="يوجد طلب استثناء معلق لهذه العهدة - اضغط للبت فيه"
+            >
+              <ShieldAlert className="h-3.5 w-3.5 ml-1 text-amber-600" />
+              <span>مراجعة طلب الاستثناء</span>
             </Button>
           )}
 
@@ -810,6 +845,128 @@ export default function CustodyRequestPrint() {
             >
               {settleMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
               <span>تأكيد تصفية العهدة</span>
+            </Button>
+          </DialogFooter>
+      {/* حوار البت في طلب الاستثناء */}
+      <Dialog open={confirmExceptionDialogOpen} onOpenChange={setConfirmExceptionDialogOpen}>
+        <DialogContent className="max-w-md rounded-2xl" dir="rtl">
+          <DialogHeader className="text-right">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center font-bold">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold text-foreground">
+                  {exceptionActionType === "approve" ? "اعتماد طلب استثناء العهدة" : "رفض طلب استثناء العهدة"}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground pt-0.5">
+                  {exceptionActionType === "approve"
+                    ? "سيتمكن الموظف من رفع طلب عهدة جديدة استثناءً فور اعتماد هذا الطلب."
+                    : "يرجى توضيح سبب رفض الاستثناء ليتم إشعار الموظف به."}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {(request as any)?.pendingException && (
+            <div className="p-3 rounded-xl bg-muted/60 border border-border/70 text-xs space-y-1.5 my-1">
+              <div className="flex justify-between items-center text-muted-foreground">
+                <span>الموظف مقدم الطلب:</span>
+                <span className="font-bold text-foreground">{request.applicantName || "موظف"}</span>
+              </div>
+              <div className="flex justify-between items-center text-muted-foreground">
+                <span>العهدة غير المصفاة:</span>
+                <span className="font-mono font-bold text-primary">{request.requestNumber}</span>
+              </div>
+              <div className="text-muted-foreground pt-1 border-t border-border/50">
+                <span className="font-semibold block mb-0.5 text-foreground">مبررات الاستثناء:</span>
+                <span className="text-foreground/90 leading-relaxed font-sans">
+                  {(request as any).pendingException.reason}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 py-1">
+            <Button
+              type="button"
+              size="sm"
+              variant={exceptionActionType === "approve" ? "default" : "outline"}
+              onClick={() => setExceptionActionType("approve")}
+              className={`flex-1 rounded-xl text-xs font-bold h-8.5 gap-1.5 ${
+                exceptionActionType === "approve" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""
+              }`}
+            >
+              <CheckCircle className="w-3.5 h-3.5" />
+              <span>موافقة واعتماد</span>
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={exceptionActionType === "reject" ? "default" : "outline"}
+              onClick={() => setExceptionActionType("reject")}
+              className={`flex-1 rounded-xl text-xs font-bold h-8.5 gap-1.5 ${
+                exceptionActionType === "reject" ? "bg-rose-600 hover:bg-rose-700 text-white border-rose-300" : "text-rose-600"
+              }`}
+            >
+              <XCircle className="w-3.5 h-3.5" />
+              <span>عدم الموافقة (رفض)</span>
+            </Button>
+          </div>
+
+          <div className="space-y-1.5 py-1">
+            <Label className="text-xs font-semibold text-foreground">
+              {exceptionActionType === "approve" ? "ملاحظات وتوجيهات الاعتماد (اختياري)" : "سبب الرفض *"}
+            </Label>
+            <Textarea
+              value={exceptionActionNotes}
+              onChange={(e) => setExceptionActionNotes(e.target.value)}
+              placeholder={
+                exceptionActionType === "approve"
+                  ? "أضف أي توجيهات للموظف بخصوص تسوية العهد..."
+                  : "اكتب سبب رفض منح الاستثناء..."
+              }
+              rows={3}
+              className="text-xs rounded-xl bg-background resize-none border-border/70"
+            />
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmExceptionDialogOpen(false)}
+              className="rounded-xl text-xs h-9 font-semibold"
+            >
+              إلغاء
+            </Button>
+            <Button
+              disabled={
+                reviewExceptionMutation.isPending ||
+                (exceptionActionType === "reject" && !exceptionActionNotes.trim()) ||
+                !(request as any)?.pendingException?.id
+              }
+              onClick={() => {
+                if (!(request as any)?.pendingException?.id) return;
+                reviewExceptionMutation.mutate({
+                  id: (request as any).pendingException.id,
+                  action: exceptionActionType,
+                  notes: exceptionActionNotes.trim() || undefined,
+                });
+              }}
+              className={`rounded-xl text-xs h-9 font-bold gap-1.5 text-white ${
+                exceptionActionType === "approve"
+                  ? "bg-emerald-600 hover:bg-emerald-700"
+                  : "bg-rose-600 hover:bg-rose-700"
+              }`}
+            >
+              {reviewExceptionMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : exceptionActionType === "approve" ? (
+                <CheckCircle className="w-4 h-4" />
+              ) : (
+                <XCircle className="w-4 h-4" />
+              )}
+              <span>{exceptionActionType === "approve" ? "تأكيد الاعتماد" : "تأكيد الرفض"}</span>
             </Button>
           </DialogFooter>
         </DialogContent>
