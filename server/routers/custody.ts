@@ -8,6 +8,7 @@ import {
   users,
   disbursementRequests,
   disbursementOrders,
+  signatories,
 } from "../../drizzle/schema";
 import { eq, desc, and, sql, like, or, ne } from "drizzle-orm";
 import { createNotification } from "./notifications";
@@ -367,6 +368,46 @@ export const custodyRouter = router({
         if (exec) executiveUser = exec;
       }
 
+      // جلب التوقيع المعتمد من جدول المفوضين إذا لم يكن مسجلاً في حساب المستخدم
+      if (!executiveUser || !executiveUser.signatureUrl) {
+        const [sig] = await db
+          .select({
+            id: signatories.id,
+            name: signatories.name,
+            title: signatories.title,
+            signatureUrl: signatories.signatureUrl,
+          })
+          .from(signatories)
+          .where(
+            and(
+              sql`(${signatories.title} LIKE '%المدير التنفيذي%' OR ${signatories.title} LIKE '%تنفيذي%')`,
+              sql`${signatories.signatureUrl} IS NOT NULL`
+            )
+          )
+          .orderBy(desc(signatories.isActive), desc(signatories.id))
+          .limit(1);
+
+        if (sig) {
+          if (!executiveUser) {
+            executiveUser = {
+              id: 0,
+              name: sig.name,
+              signatureName: sig.name,
+              signatureDepartment: sig.title || "المدير التنفيذي",
+              signatureUrl: sig.signatureUrl,
+              showSignatureInDocuments: 1,
+            };
+          } else {
+            executiveUser.signatureName =
+              executiveUser.signatureName && !executiveUser.signatureName.includes("@")
+                ? executiveUser.signatureName
+                : sig.name;
+            executiveUser.signatureDepartment = executiveUser.signatureDepartment || sig.title || "المدير التنفيذي";
+            executiveUser.signatureUrl = executiveUser.signatureUrl || sig.signatureUrl;
+          }
+        }
+      }
+
       // جلب بيانات أمر الصرف المرتبط إن وجد
       let linkedOrder: any = null;
       if (request.disbursementOrderId) {
@@ -556,66 +597,70 @@ export const custodyRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق من وجود عهدة نشطة تمنع التقديم إلا باستثناء:
-      // (حالة أمر الصرف قيد الاعتماد أو العهدة غير معتمدة من المدير التنفيذي)
-      const blockingCustodies = await db
-        .select({
-          id: custodyRequests.id,
-          requestNumber: custodyRequests.requestNumber,
-          status: custodyRequests.status,
-          disbursementOrderStatus: disbursementOrders.status,
-        })
-        .from(custodyRequests)
-        .leftJoin(disbursementOrders, eq(custodyRequests.disbursementOrderId, disbursementOrders.id))
-        .where(
-          and(
-            eq(custodyRequests.userId, ctx.user.id),
-            ne(custodyRequests.status, "rejected"),
-            or(
-              eq(custodyRequests.status, "pending_executive"),
-              and(
-                sql`${custodyRequests.disbursementOrderId} IS NOT NULL`,
-                or(
-                  eq(disbursementOrders.status, "pending"),
-                  eq(disbursementOrders.status, "pending_executive")
+      const { isExecutiveDirector, isSuperAdmin } = checkCustodyRoles(ctx.user);
+
+      let approvedExceptionId: number | null = null;
+
+      // المدير التنفيذي والمشرف العام مستثنون من شرط المنع ولا يحتاجون إلى طلب استثناء
+      if (!isExecutiveDirector && !isSuperAdmin) {
+        const blockingCustodies = await db
+          .select({
+            id: custodyRequests.id,
+            requestNumber: custodyRequests.requestNumber,
+            status: custodyRequests.status,
+            disbursementOrderStatus: disbursementOrders.status,
+          })
+          .from(custodyRequests)
+          .leftJoin(disbursementOrders, eq(custodyRequests.disbursementOrderId, disbursementOrders.id))
+          .where(
+            and(
+              eq(custodyRequests.userId, ctx.user.id),
+              ne(custodyRequests.status, "rejected"),
+              or(
+                eq(custodyRequests.status, "pending_executive"),
+                and(
+                  sql`${custodyRequests.disbursementOrderId} IS NOT NULL`,
+                  or(
+                    eq(disbursementOrders.status, "pending"),
+                    eq(disbursementOrders.status, "pending_executive")
+                  )
                 )
               )
             )
           )
-        )
-        .orderBy(desc(custodyRequests.createdAt))
-        .limit(1);
-
-      const unsettledCustody = blockingCustodies[0] || null;
-
-      let approvedExceptionId: number | null = null;
-      if (unsettledCustody) {
-        // التحقق من وجود استثناء معتمد وغير مستخدم
-        const [approvedException] = await db
-          .select()
-          .from(custodyExceptions)
-          .where(
-            and(
-              eq(custodyExceptions.userId, ctx.user.id),
-              eq(custodyExceptions.status, "approved"),
-              eq(custodyExceptions.isUsed, false)
-            )
-          )
-          .orderBy(desc(custodyExceptions.createdAt))
+          .orderBy(desc(custodyRequests.createdAt))
           .limit(1);
 
-        if (!approvedException) {
-          const reasonText = unsettledCustody.status === "pending_executive"
-            ? "لأن طلب العهدة السابقة ما زال بانتظار اعتماد المدير التنفيذي"
-            : "لأن أمر الصرف المرتبط بالعهدة السابقة ما زال قيد الاعتماد";
+        const unsettledCustody = blockingCustodies[0] || null;
 
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `لا يمكن تقديم طلب عهدة جديد (${reasonText}) برقم (${unsettledCustody.requestNumber}). يمكنكم رفع طلب استثناء لاعتماده من المدير التنفيذي.`,
-          });
+        if (unsettledCustody) {
+          // التحقق من وجود استثناء معتمد وغير مستخدم
+          const [approvedException] = await db
+            .select()
+            .from(custodyExceptions)
+            .where(
+              and(
+                eq(custodyExceptions.userId, ctx.user.id),
+                eq(custodyExceptions.status, "approved"),
+                eq(custodyExceptions.isUsed, false)
+              )
+            )
+            .orderBy(desc(custodyExceptions.createdAt))
+            .limit(1);
+
+          if (!approvedException) {
+            const reasonText = unsettledCustody.status === "pending_executive"
+              ? "لأن طلب العهدة السابقة ما زال بانتظار اعتماد المدير التنفيذي"
+              : "لأن أمر الصرف المرتبط بالعهدة السابقة ما زال قيد الاعتماد";
+
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `لا يمكن تقديم طلب عهدة جديد (${reasonText}) برقم (${unsettledCustody.requestNumber}). يمكنكم رفع طلب استثناء لاعتماده من المدير التنفيذي.`,
+            });
+          }
+
+          approvedExceptionId = approvedException.id;
         }
-
-        approvedExceptionId = approvedException.id;
       }
 
       // جلب بيانات التوقيع من المستخدم
@@ -630,6 +675,35 @@ export const custodyRouter = router({
         .where(eq(users.id, ctx.user.id))
         .limit(1);
 
+      let applicantSigName = userData?.signatureName || userData?.name || ctx.user.name;
+      let applicantSigDept = userData?.signatureDepartment || null;
+      let applicantSigUrl = userData?.signatureUrl || null;
+
+      // في حال كان مقدم الطلب هو المدير التنفيذي وله توقيع معتمد في المفوضين
+      if (isExecutiveDirector && (!applicantSigUrl || !applicantSigName || applicantSigName.includes("@"))) {
+        const [sig] = await db
+          .select({
+            id: signatories.id,
+            name: signatories.name,
+            title: signatories.title,
+            signatureUrl: signatories.signatureUrl,
+          })
+          .from(signatories)
+          .where(
+            and(
+              sql`(${signatories.title} LIKE '%المدير التنفيذي%' OR ${signatories.title} LIKE '%تنفيذي%')`,
+              sql`${signatories.signatureUrl} IS NOT NULL`
+            )
+          )
+          .orderBy(desc(signatories.isActive), desc(signatories.id))
+          .limit(1);
+        if (sig) {
+          applicantSigName = sig.name;
+          applicantSigDept = sig.title || "المدير التنفيذي";
+          applicantSigUrl = sig.signatureUrl;
+        }
+      }
+
       const requestNumber = await generateCustodyRequestNumber(db);
 
       const [insertResult] = await db.insert(custodyRequests).values({
@@ -642,9 +716,9 @@ export const custodyRouter = router({
         bankName: input.bankName,
         bankAccountName: input.bankAccountName,
         bankIban: input.bankIban.trim().toUpperCase(),
-        applicantSignatureName: userData?.signatureName || userData?.name || ctx.user.name,
-        applicantSignatureDepartment: userData?.signatureDepartment || null,
-        applicantSignatureUrl: userData?.signatureUrl || null,
+        applicantSignatureName: applicantSigName,
+        applicantSignatureDepartment: applicantSigDept,
+        applicantSignatureUrl: applicantSigUrl,
         status: "pending_executive",
         hasException: !!approvedExceptionId,
         exceptionId: approvedExceptionId,
@@ -746,9 +820,33 @@ export const custodyRouter = router({
         .where(eq(users.id, ctx.user.id))
         .limit(1);
 
-      const execSignName = executiveUser?.signatureName || executiveUser?.name || ctx.user.name;
-      const execSignDept = executiveUser?.signatureDepartment || "المدير التنفيذي";
-      const execSignUrl = executiveUser?.signatureUrl || null;
+      let execSignName = executiveUser?.signatureName || executiveUser?.name || ctx.user.name;
+      let execSignDept = executiveUser?.signatureDepartment || "المدير التنفيذي";
+      let execSignUrl = executiveUser?.signatureUrl || null;
+
+      if (!execSignUrl || !execSignName || execSignName.includes("@")) {
+        const [sig] = await db
+          .select({
+            id: signatories.id,
+            name: signatories.name,
+            title: signatories.title,
+            signatureUrl: signatories.signatureUrl,
+          })
+          .from(signatories)
+          .where(
+            and(
+              sql`(${signatories.title} LIKE '%المدير التنفيذي%' OR ${signatories.title} LIKE '%تنفيذي%')`,
+              sql`${signatories.signatureUrl} IS NOT NULL`
+            )
+          )
+          .orderBy(desc(signatories.isActive), desc(signatories.id))
+          .limit(1);
+        if (sig) {
+          execSignName = execSignName && !execSignName.includes("@") ? execSignName : sig.name;
+          execSignDept = execSignDept || sig.title || "المدير التنفيذي";
+          execSignUrl = sig.signatureUrl;
+        }
+      }
 
       // 1. توليد طلب صرف معتمد (سجل توافقي لسلامة الدورة المستندية)
       const drNumber = await generateDisbursementRequestNumber(db);
@@ -932,6 +1030,20 @@ export const custodyRouter = router({
   checkActiveCustody: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+    const { isExecutiveDirector, isSuperAdmin } = checkCustodyRoles(ctx.user);
+
+    // المدير التنفيذي والمشرف العام مستثنون من شرط المنع ولا يحتاجون إلى طلب استثناء
+    if (isExecutiveDirector || isSuperAdmin) {
+      return {
+        hasActiveCustody: false,
+        activeCustody: null,
+        hasApprovedException: false,
+        hasPendingException: false,
+        hasExistingException: false,
+        latestException: null,
+      };
+    }
 
     // البحث عن العهد النشطة التي تمنع تقديم عهدة ثانية إلا باستثناء:
     // 1) العهدة ما زالت قيد اعتماد المدير التنفيذي (pending_executive)

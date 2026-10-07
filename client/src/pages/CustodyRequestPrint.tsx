@@ -261,9 +261,13 @@ export default function CustodyRequestPrint() {
     (request as any).applicantEmail === "ceo@manarah.org.sa"
   );
 
-  const effectiveApprovalDepartment = isRequesterExecutiveDirector ? "الاعتماد" : executiveDepartment;
-  const effectiveApprovalName = (isRequesterExecutiveDirector && !executiveName) ? applicantSignatureName : (executiveName || applicantSignatureName);
-  const effectiveApprovalSigUrl = executiveSignatureUrl || (isRequesterExecutiveDirector && isExecutiveApproved ? applicantSignatureUrl : null);
+  const fallbackExecName = orgSettings?.executiveDirectorName || "م. عبدالهادي آل فائق";
+  const rawExecName = (isRequesterExecutiveDirector && !executiveName) ? applicantSignatureName : (executiveName || applicantSignatureName);
+  const effectiveApprovalName = (rawExecName && !rawExecName.includes("@")) ? rawExecName : fallbackExecName;
+  const effectiveApprovalDepartment = executiveDepartment || "المدير التنفيذي";
+  const effectiveApprovalSigUrl = isExecutiveApproved
+    ? (executiveSignatureUrl || applicantSignatureUrl || execUser?.signatureUrl || "/uploads/signatures/signatory-44-1785371854834-x3ez2x.png")
+    : null;
 
   return (
     <div className="min-h-screen bg-gray-100 py-3 sm:py-8 print:py-0 print:bg-white" dir="rtl">

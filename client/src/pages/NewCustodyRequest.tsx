@@ -67,13 +67,23 @@ export default function NewCustodyRequest() {
     },
   });
 
-  const hasActiveCustody = !!custodyCheck?.hasActiveCustody;
-  const activeCustody = custodyCheck?.activeCustody;
-  const hasApprovedException = !!custodyCheck?.hasApprovedException;
-  const hasPendingException = !!custodyCheck?.hasPendingException;
-  const latestException = custodyCheck?.latestException;
-  const hasExistingException = !!custodyCheck?.hasExistingException;
-  const canSubmit = !hasActiveCustody || hasApprovedException;
+  const isExecutiveDirector =
+    user?.role === "executive_director" ||
+    user?.role === "general_manager" ||
+    user?.role === "super_admin" ||
+    user?.role === "system_admin" ||
+    (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+    (user as any)?.customRole?.nameAr === "الرئيس التنفيذي" ||
+    user?.name === "المدير التنفيذي" ||
+    user?.email === "ceo@manarah.org.sa";
+
+  const hasActiveCustody = isExecutiveDirector ? false : !!custodyCheck?.hasActiveCustody;
+  const activeCustody = isExecutiveDirector ? null : custodyCheck?.activeCustody;
+  const hasApprovedException = isExecutiveDirector ? false : !!custodyCheck?.hasApprovedException;
+  const hasPendingException = isExecutiveDirector ? false : !!custodyCheck?.hasPendingException;
+  const latestException = isExecutiveDirector ? null : custodyCheck?.latestException;
+  const hasExistingException = isExecutiveDirector ? false : !!custodyCheck?.hasExistingException;
+  const canSubmit = isExecutiveDirector || !hasActiveCustody || hasApprovedException;
 
   // نموذج الطلب
   const [title, setTitle] = useState("");
@@ -278,28 +288,6 @@ export default function NewCustodyRequest() {
           </div>
         )}
 
-        {hasApprovedException && (
-          <div className="rounded-2xl border border-emerald-300 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/20 p-4 sm:p-5 shadow-xs">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div className="space-y-1 text-right flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-sm font-black text-emerald-900 dark:text-emerald-200">
-                    تم اعتماد استثناء صرف عهدة جديدة
-                  </h3>
-                  <Badge variant="outline" className="text-[10px] font-bold border-emerald-400/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
-                    استثناء معتمد من المدير التنفيذي
-                  </Badge>
-                </div>
-                <p className="text-xs text-emerald-800 dark:text-emerald-300/90 leading-relaxed">
-                  وافق المدير التنفيذي على استثناء تقديم طلب عهدة جديدة رغم وجود عهدة سابقة قائمة. يمكنك الآن تقديم هذا الطلب وسيتم ربط الاستثناء به آلياً.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* نافذة طلب الاستثناء */}
         <Dialog open={isExceptionDialogOpen} onOpenChange={setIsExceptionDialogOpen}>
