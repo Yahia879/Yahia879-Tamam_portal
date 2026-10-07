@@ -663,13 +663,9 @@ export const custodyRouter = router({
             .limit(1);
 
           if (!approvedException) {
-            const reasonText = unsettledCustody.status === "pending_executive"
-              ? "لأن طلب العهدة السابقة ما زال بانتظار اعتماد المدير التنفيذي"
-              : "لأن أمر الصرف المرتبط بالعهدة السابقة ما زال قيد الاعتماد";
-
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: `لا يمكن تقديم طلب عهدة جديد (${reasonText}) برقم (${unsettledCustody.requestNumber}). يمكنكم رفع طلب استثناء لاعتماده من المدير التنفيذي.`,
+              message: `لا يمكن تقديم طلب عهدة جديد لوجود عهدة مالية سابقة قائمة برقم (${unsettledCustody.requestNumber}). يمكنكم رفع طلب استثناء لاعتماده من المدير التنفيذي.`,
             });
           }
 

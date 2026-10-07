@@ -208,11 +208,8 @@ export default function NewCustodyRequest() {
     }));
 
     if (hasActiveCustody && !hasApprovedException) {
-      const reasonMsg = activeCustody?.status === "pending_executive"
-        ? "لأن طلب العهدة السابقة ما زال بانتظار اعتماد المدير التنفيذي"
-        : "لأن أمر الصرف المرتبط بالعهدة السابقة ما زال قيد الاعتماد";
       toast.error(
-        `لا يمكن تقديم طلب عهدة جديد (${reasonMsg}) برقم (${activeCustody?.requestNumber || ""}). يمكنكم تقديم طلب استثناء للمدير التنفيذي.`
+        `لا يمكن تقديم طلب جديد لوجود عهدة مالية سابقة قائمة برقم (${activeCustody?.requestNumber || ""}). يمكنكم تقديم طلب استثناء للمدير التنفيذي.`
       );
       return;
     }
