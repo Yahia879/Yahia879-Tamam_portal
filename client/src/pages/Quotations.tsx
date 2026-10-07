@@ -107,6 +107,7 @@ export interface QuotationsViewProps {
   isEmbedded?: boolean;
   onBack?: () => void;
   hideAwardButton?: boolean;
+  readOnlySuppliers?: boolean;
 }
 
 export function QuotationsView({
@@ -114,6 +115,7 @@ export function QuotationsView({
   isEmbedded = false,
   onBack,
   hideAwardButton = false,
+  readOnlySuppliers = false,
 }: QuotationsViewProps = {}) {
   const [, navigate] = useLocation();
   const { user } = useAuth();
@@ -272,8 +274,14 @@ export function QuotationsView({
       const targetReq = (singleRequestData as any).request || singleRequestData;
       if (targetReq && targetReq.id) {
         // إذا كان الطلب المحدد قد تم اعتماده مسبقاً وانتقل لمرحلة أخرى (وليس في مرحلة التقييم المالي)،
-        // فلا يتم عرضه كطلب نشط في عروض الأسعار
-        if (targetReq.currentStage && targetReq.currentStage !== "financial_eval_and_approval") {
+        // فلا يتم عرضه كطلب نشط في عروض الأسعار العادية فقط (أما في سدانة أو الوضع المضمن فيُعرض دائماً)
+        if (
+          !isEmbedded &&
+          !window.location.pathname.includes("sedana-quotations") &&
+          targetReq.programType !== "sedana" &&
+          targetReq.currentStage &&
+          targetReq.currentStage !== "financial_eval_and_approval"
+        ) {
           return allRequestsList;
         }
 
@@ -302,20 +310,21 @@ export function QuotationsView({
     return allRequestsList;
   }, [allRequestsList, selectedRequestId, singleRequestData]);
 
-  // إذا تم فتح الصفحة برابط يحتوي على معرف طلب قد تم اعتماده مسبقاً وانتقل لمرحلة أخرى
+  // إذا تم فتح الصفحة برابط يحتوي على معرف طلب قد تم اعتماده مسبقاً وانتقل لمرحلة أخرى (للطلبات غير سدانة في الصفحة العامة)
   useEffect(() => {
+    if (isEmbedded || window.location.pathname.includes("sedana-quotations")) {
+      return;
+    }
     if (singleRequestData && selectedRequestId) {
       const targetReq = (singleRequestData as any).request || singleRequestData;
-      if (targetReq && targetReq.currentStage && targetReq.currentStage !== "financial_eval_and_approval") {
-        const stageLabel = targetReq.programType === "sedana" && targetReq.currentStage === "contracting"
-          ? "اعتماد نوع التوريد"
-          : (targetReq.currentStage === "contracting" ? "التعاقد" : targetReq.currentStage);
+      if (targetReq && targetReq.programType !== "sedana" && targetReq.currentStage && targetReq.currentStage !== "financial_eval_and_approval") {
+        const stageLabel = targetReq.currentStage === "contracting" ? "التعاقد" : targetReq.currentStage;
         toast.info(`الطلب ${targetReq.requestNumber || selectedRequestId} تم اعتماد وترسية عروضه وانتقل لمرحلة ${stageLabel}`);
         setSelectedRequestId("");
         window.history.replaceState({}, "", "/quotations");
       }
     }
-  }, [singleRequestData, selectedRequestId]);
+  }, [singleRequestData, selectedRequestId, isEmbedded]);
 
   // جلب الموردين النشطين (مع خيار إظهار غير المعتمدين)
   const { data: suppliers } = trpc.suppliers.getActiveSuppliers.useQuery({
@@ -335,6 +344,15 @@ export function QuotationsView({
   }, [singleRequestData, displayedRequestsList, selectedRequestId]);
 
   const isSedanaProgram = currentSelectedRequest?.programType === 'sedana';
+
+  // الطلب تجاوز مرحلة التقييم المالي واعتماد العرض (مثل التعاقد/اعتماد نوع التوريد، التنفيذ، إلخ)
+  const isPastFinancialEval = useMemo(() => {
+    if (!currentSelectedRequest?.currentStage) return false;
+    const postStages = ["contracting", "execution", "handover", "closed"];
+    return isSedanaProgram && postStages.includes(currentSelectedRequest.currentStage);
+  }, [isSedanaProgram, currentSelectedRequest]);
+
+  const isSuppliersReadOnly = isPastFinancialEval || Boolean(readOnlySuppliers);
 
   const allQuotations = useMemo(() => quotationsData?.quotations ?? [], [quotationsData?.quotations]);
   const hasAcceptedQuotation = useMemo(() => {
@@ -2006,14 +2024,16 @@ export function QuotationsView({
                       <FileDown className="h-3.5 w-3.5 text-emerald-600" />
                       تصدير ملف PDF للبنود
                     </Button>
-                    <Button
-                      onClick={() => setShowAddDialog(true)}
-                      size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-3 gap-1 shadow-xs"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      إضافة عرض سعر
-                    </Button>
+                    {!isSuppliersReadOnly && (
+                      <Button
+                        onClick={() => setShowAddDialog(true)}
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-3 gap-1 shadow-xs"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        إضافة عرض سعر
+                      </Button>
+                    )}
                   </>
                 ) : (
                   <>
@@ -2048,6 +2068,12 @@ export function QuotationsView({
               ) : boqData?.items && boqData.items.length > 0 ? (
                 isSedanaProgram ? (
                   <div className="space-y-5" dir="rtl">
+                    {isSuppliersReadOnly && (
+                      <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-800 dark:text-amber-200 text-xs font-semibold flex items-center gap-2.5">
+                        <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                        <span>تم اعتماد وترسية عروض الأسعار لهذا الطلب مسبقاً، والبيانات والموردون المعتمدون معروضون للقراءة والمراجعة فقط (غير قابلة لتعديل الموردين).</span>
+                      </div>
+                    )}
                     {/* 1. لوحة المؤشرات التنفيذية للترسية */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {/* بطاقة نسبة اكتمال الترسية */}
@@ -2164,30 +2190,32 @@ export function QuotationsView({
                                       {vendor.awardedTotal.toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3 inline" />
                                     </span>
                                   </div>
-                                  <div className="flex items-center gap-1.5">
-                                    {vendor.awardedCount < vendor.offeredCount && (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleAwardAllForVendor(vendor.quotationId)}
-                                        className="h-7 text-[11px] px-2.5 bg-background border-emerald-600/40 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 hover:border-emerald-500"
-                                        title="ترسية جميع البنود التي قدم فيها هذا المورد عرضاً"
-                                      >
-                                        ترسية كل بنوده ({vendor.offeredCount})
-                                      </Button>
-                                    )}
-                                    {vendor.awardedCount > 0 && (
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => handleClearVendorAward(vendor.quotationId)}
-                                        className="h-7 text-[11px] px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
-                                        title="إلغاء ترسية بنود هذا المورد"
-                                      >
-                                        إلغاء الترسية
-                                      </Button>
-                                    )}
-                                  </div>
+                                   {!isSuppliersReadOnly && (
+                                     <div className="flex items-center gap-1.5">
+                                       {vendor.awardedCount < vendor.offeredCount && (
+                                         <Button
+                                           size="sm"
+                                           variant="outline"
+                                           onClick={() => handleAwardAllForVendor(vendor.quotationId)}
+                                           className="h-7 text-[11px] px-2.5 bg-background border-emerald-600/40 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 hover:border-emerald-500"
+                                           title="ترسية جميع البنود التي قدم فيها هذا المورد عرضاً"
+                                         >
+                                           ترسية كل بنوده ({vendor.offeredCount})
+                                         </Button>
+                                       )}
+                                       {vendor.awardedCount > 0 && (
+                                         <Button
+                                           size="sm"
+                                           variant="ghost"
+                                           onClick={() => handleClearVendorAward(vendor.quotationId)}
+                                           className="h-7 text-[11px] px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                           title="إلغاء ترسية بنود هذا المورد"
+                                         >
+                                           إلغاء الترسية
+                                         </Button>
+                                       )}
+                                     </div>
+                                   )}
                                 </div>
                               </div>
                             );
@@ -2352,6 +2380,7 @@ export function QuotationsView({
                                             {vOffer && hasOffer ? (
                                             <div
                                               onClick={() => {
+                                                if (isSuppliersReadOnly) return;
                                                 setSelectedWinningVendors(prev => {
                                                   const updated = { ...prev };
                                                   if (isSelected) {
@@ -2363,14 +2392,15 @@ export function QuotationsView({
                                                 });
                                               }}
                                               className={cn(
-                                                "p-2 rounded-lg border text-center transition-all duration-150 cursor-pointer select-none group",
+                                                "p-2 rounded-lg border text-center transition-all duration-150 select-none group",
+                                                isSuppliersReadOnly ? "cursor-default" : "cursor-pointer",
                                                 isSelected
                                                   ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 ring-2 ring-emerald-500/80 shadow-2xs"
                                                   : isLowest
                                                     ? "bg-emerald-50/40 dark:bg-emerald-950/15 border-emerald-300 dark:border-emerald-800/60 hover:border-emerald-400 hover:shadow-2xs"
                                                     : "bg-background border-border hover:border-slate-400 dark:hover:border-slate-600"
                                               )}
-                                              title={isSelected ? "انقر لإلغاء الترسية" : "انقر لاختيار هذا المورد لهذا البند"}
+                                              title={isSuppliersReadOnly ? (isSelected ? "المورد المعتمد لهذا البند" : "") : (isSelected ? "انقر لإلغاء الترسية" : "انقر لاختيار هذا المورد لهذا البند")}
                                             >
                                               <div className="flex items-center justify-between gap-1 mb-1">
                                                 {isLowest ? (
@@ -2384,11 +2414,11 @@ export function QuotationsView({
                                                     <Check className="w-2.5 h-2.5" />
                                                     معتمد
                                                   </Badge>
-                                                ) : (
+                                                ) : !isSuppliersReadOnly ? (
                                                   <span className="text-[10px] text-muted-foreground/60 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     اختر
                                                   </span>
-                                                )}
+                                                ) : null}
                                               </div>
                                               <div className="font-extrabold text-xs text-foreground flex items-center justify-center gap-0.5">
                                                 <span>{vOffer.unitPrice.toLocaleString("ar-SA")}</span>
@@ -2415,19 +2445,21 @@ export function QuotationsView({
                                             <span className="font-bold text-xs text-emerald-800 dark:text-emerald-200 truncate" title={currentWinningOffer.quotation.supplierName}>
                                               {currentWinningOffer.quotation.supplierName || "المورد المعتمد"}
                                             </span>
-                                            <button
-                                              onClick={() => {
-                                                setSelectedWinningVendors(prev => {
-                                                  const updated = { ...prev };
-                                                  delete updated[item.id];
-                                                  return updated;
-                                                });
-                                              }}
-                                              className="text-muted-foreground hover:text-red-600 p-0.5 rounded transition-colors"
-                                              title="إلغاء الترسية لهذا البند"
-                                            >
-                                              <X className="h-3.5 w-3.5" />
-                                            </button>
+                                            {!isSuppliersReadOnly && (
+                                              <button
+                                                onClick={() => {
+                                                  setSelectedWinningVendors(prev => {
+                                                    const updated = { ...prev };
+                                                    delete updated[item.id];
+                                                    return updated;
+                                                  });
+                                                }}
+                                                className="text-muted-foreground hover:text-red-600 p-0.5 rounded transition-colors"
+                                                title="إلغاء الترسية لهذا البند"
+                                              >
+                                                <X className="h-3.5 w-3.5" />
+                                              </button>
+                                            )}
                                           </div>
                                           <div className="text-[11px] text-foreground font-bold mt-1 flex items-center justify-between">
                                             <span className="text-[10px] text-muted-foreground font-normal">سعر الوحدة:</span>
@@ -2528,7 +2560,9 @@ export function QuotationsView({
                                       <div className="space-y-1.5">
                                         <Select
                                           value={selectedQuotationId ? String(selectedQuotationId) : ""}
+                                          disabled={isSuppliersReadOnly}
                                           onValueChange={(val) => {
+                                            if (isSuppliersReadOnly) return;
                                             setSelectedWinningVendors(prev => ({
                                               ...prev,
                                               [item.id]: parseInt(val)
@@ -2563,7 +2597,7 @@ export function QuotationsView({
                                         </Select>
 
                                         {/* زر سريع لاختيار الأقل سعراً إذا لم يكن محدداً */}
-                                        {lowestOffer && selectedQuotationId !== lowestOffer.quotation.id && (
+                                        {!isSuppliersReadOnly && lowestOffer && selectedQuotationId !== lowestOffer.quotation.id && (
                                           <button
                                             type="button"
                                             onClick={() => {
@@ -2658,7 +2692,7 @@ export function QuotationsView({
                           </span>
                         </div>
 
-                        {!hideAwardButton && !window.location.pathname.includes("sedana-quotations") && canApproveQuotations ? (
+                        {!hideAwardButton && !isSuppliersReadOnly && !window.location.pathname.includes("sedana-quotations") && canApproveQuotations ? (
                           <Button
                             onClick={handleApproveItemSelections}
                             disabled={approveSedanaMultiVendorMutation.isPending || assignedItemsCount === 0}
