@@ -225,6 +225,7 @@ export default function CreateCsrLetterPage() {
     if (sedanaRequests.length > 0) {
       if (initialRequestId && sedanaRequests.some((r: any) => r.id === initialRequestId)) {
         handleSelectRequest(initialRequestId);
+        setStep(2);
       } else if (initialRequestId && !sedanaRequests.some((r: any) => r.id === initialRequestId)) {
         toast.error("هذا الطلب لم ينتقل بعد لمرحلة التشغيل والتنفيذ أو لا يتضمن مسار مسؤولية مجتمعية");
         handleSelectRequest(sedanaRequests[0].id);

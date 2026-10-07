@@ -1277,10 +1277,13 @@ export const procurementRouter = router({
         // فحص الموردين المحددين في suppliersAlloc كـ csr_letter مباشرة إن لم تُضف بنودهم أعلاه
         Object.keys(suppliersAlloc).forEach((k) => {
           if (suppliersAlloc[k] === "csr_letter") {
+            let matchedSupId: number | null = null;
+            let matchedSupName = "";
             let isUnassigned = false;
+
             if (k.toLowerCase() === "unassigned") {
               isUnassigned = true;
-              matchedSupName = "شريك مجتمعي / جهة مانحة (غير محدد)";
+              matchedSupName = "شريك مجتمعي / جهة مانحة (غير محدد مسبقاً)";
             } else if (k.startsWith("name_")) {
               matchedSupName = k.replace(/^name_/, "").trim().replace(/\s+/g, " ");
             } else if (k.startsWith("sup_")) {
@@ -1301,7 +1304,7 @@ export const procurementRouter = router({
               matchedSupName = k.trim().replace(/\s+/g, " ");
               if (matchedSupName.toLowerCase() === "unassigned") {
                 isUnassigned = true;
-                matchedSupName = "شريك مجتمعي / جهة مانحة (غير محدد)";
+                matchedSupName = "شريك مجتمعي / جهة مانحة (غير محدد مسبقاً)";
               }
             }
 
@@ -1331,6 +1334,28 @@ export const procurementRouter = router({
             }
           }
         });
+
+        // إذا كان هناك بنود مخصصة كـ csr_letter ولكن لم يدرج لها مورد، ندرجها ضمن شريك مجتمعي
+        if (supplierGroups.size === 0) {
+          const csrItems = baseItems.filter((it) => itemsAlloc[it.id] === "csr_letter");
+          if (csrItems.length > 0) {
+            const fallbackName = "شريك مجتمعي / جهة مانحة (غير محدد مسبقاً)";
+            supplierGroups.set(fallbackName, {
+              supplierId: null,
+              supplierName: fallbackName,
+              isUnassigned: true,
+              items: csrItems.map((it) => ({
+                id: it.id,
+                itemName: it.itemName,
+                description: it.description || "",
+                quantity: it.quantity,
+                unit: it.unit,
+                unitPrice: itemSuppMap[it.id]?.unitPrice || 0,
+                totalPrice: itemSuppMap[it.id]?.totalPrice || (it.quantity * (itemSuppMap[it.id]?.unitPrice || 0)),
+              })),
+            } as any);
+          }
+        }
 
         // استبعاد أي طلب لا يحوي موردين أو شركاء معتمدين للمسؤولية المجتمعية
         if (supplierGroups.size === 0) {
