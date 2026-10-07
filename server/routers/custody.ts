@@ -105,8 +105,9 @@ function checkCustodyRoles(user: { id: number; role?: string; name?: string; ema
     (user as any)?.customRole?.nameAr === "محاسب" ||
     isSuperAdmin;
 
+  const canSeeStaff = isSuperAdmin || isExecutiveDirector;
   const canSeeAll = isSuperAdmin || isExecutiveDirector || isFinancialOfficer;
-  return { isSuperAdmin, isExecutiveDirector, isFinancialOfficer, canSeeAll };
+  return { isSuperAdmin, isExecutiveDirector, isFinancialOfficer, canSeeStaff, canSeeAll };
 }
 
 export const custodyRouter = router({
@@ -125,17 +126,12 @@ export const custodyRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const { canSeeAll } = checkCustodyRoles(ctx.user);
+      const { canSeeStaff } = checkCustodyRoles(ctx.user);
 
-      // إذا لم يكن يملك صلاحية رؤية الكل، يرى فقط طلباته الخاصة
+      // إذا لم يكن يملك صلاحية رؤية طلبات الموظفين، أو اختار تبويب "طلباتي"، يرى فقط طلباته الخاصة
       const conditions: any[] = [];
-      if (!canSeeAll) {
+      if (!canSeeStaff || input?.scope === "my") {
         conditions.push(eq(custodyRequests.userId, ctx.user.id));
-      } else {
-        // للمدير التنفيذي والمسؤول المالي والـ super_admin: تصفية حسب التبويب (طلباتي / طلبات الموظفين)
-        if (input?.scope === "my") {
-          conditions.push(eq(custodyRequests.userId, ctx.user.id));
-        }
       }
 
       if (input?.status) {
@@ -490,7 +486,7 @@ export const custodyRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const { canSeeAll } = checkCustodyRoles(ctx.user);
+      const { canSeeStaff, isExecutiveDirector, isSuperAdmin } = checkCustodyRoles(ctx.user);
 
       // 1. حساب العدادات الكلية للتبويبات (مستقلة عن فلتر التبويب النشط)
       const [globalCounts] = await db
@@ -502,9 +498,7 @@ export const custodyRouter = router({
 
       // 2. تطبيق التصفية على إحصائيات بطاقات الحالة
       const conditions: any[] = [];
-      if (!canSeeAll) {
-        conditions.push(eq(custodyRequests.userId, ctx.user.id));
-      } else if (input?.scope === "my") {
+      if (!canSeeStaff || input?.scope === "my") {
         conditions.push(eq(custodyRequests.userId, ctx.user.id));
       }
 
@@ -523,9 +517,9 @@ export const custodyRouter = router({
         .from(custodyRequests)
         .where(whereClause);
 
-      // 3. حساب إجمالي الاستثناءات للمستخدم الحالي (أو لكل الموظفين إن كان مديراً)
+      // 3. حساب إجمالي الاستثناءات للمستخدم الحالي (أو لكل الموظفين إن كان مديراً أو سوبر أدمن)
       const exConditions: any[] = [];
-      if (!isExecutiveDirector && !isSuperAdmin) {
+      if (!canSeeStaff) {
         exConditions.push(eq(custodyExceptions.userId, ctx.user.id));
       }
       const [exCounts] = await db
@@ -1254,11 +1248,12 @@ export const custodyRouter = router({
       };
     }),
 
-  // جلب طلبات الاستثناءات (المدير التنفيذي يرى الكل، باقي الأدوار يرون طلباتهم فقط)
+  // جلب طلبات الاستثناءات (المدير التنفيذي يرى الكل، باقي الأدوار يرون طلباتهم فقط، وسوبر أدمن يمكنه التبديل)
   getExceptions: protectedProcedure
     .input(
       z.object({
         status: z.enum(["pending", "approved", "rejected", "all"]).optional(),
+        scope: z.enum(["my", "staff", "all"]).optional(),
         page: z.number().min(1).default(1).optional(),
         limit: z.number().min(1).max(50).default(10).optional(),
       }).optional()
@@ -1267,13 +1262,13 @@ export const custodyRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const { isExecutiveDirector, isSuperAdmin } = checkCustodyRoles(ctx.user);
+      const { isExecutiveDirector, isSuperAdmin, canSeeStaff } = checkCustodyRoles(ctx.user);
       const baseConditions: any[] = [];
-      if (!isExecutiveDirector && !isSuperAdmin) {
+      if (!canSeeStaff || input?.scope === "my") {
         baseConditions.push(eq(custodyExceptions.userId, ctx.user.id));
       }
 
-      // حساب العدادات الكلية لكافة الحالات ضمن نطاق الصلاحية (للمدير: الكل، لغيره: طلباته فقط)
+      // حساب العدادات الكلية لكافة الحالات ضمن نطاق الصلاحية والتحديد الحالي
       const baseWhere = baseConditions.length > 0 ? and(...baseConditions) : undefined;
       const [countsRow] = await db
         .select({
@@ -1284,6 +1279,22 @@ export const custodyRouter = router({
         })
         .from(custodyExceptions)
         .where(baseWhere);
+
+      // للـ super_admin والمدير التنفيذي، نحسب إجمالي طلبات الموظفين وإجمالي طلباتي لعدادات التبويبات الفرعية
+      let staffTotal = 0;
+      let myTotal = 0;
+      if (canSeeStaff) {
+        const [subCounts] = await db
+          .select({
+            staffTotal: sql<number>`COUNT(*)`,
+            myTotal: sql<number>`COALESCE(SUM(CASE WHEN ${custodyExceptions.userId} = ${ctx.user.id} THEN 1 ELSE 0 END), 0)`,
+          })
+          .from(custodyExceptions);
+        staffTotal = Number(subCounts?.staffTotal || 0);
+        myTotal = Number(subCounts?.myTotal || 0);
+      } else {
+        myTotal = Number(countsRow?.total || 0);
+      }
 
       const conditions = [...baseConditions];
       if (input?.status && input.status !== "all") {
@@ -1338,6 +1349,8 @@ export const custodyRouter = router({
           pending: Number(countsRow?.pending || 0),
           approved: Number(countsRow?.approved || 0),
           rejected: Number(countsRow?.rejected || 0),
+          staffTotal,
+          myTotal,
         },
         page,
         limit,

@@ -127,7 +127,7 @@ export default function CustodyRequests() {
 
   const isSuperAdmin = useMemo(() => {
     if (!user) return false;
-    return user.role === "super_admin";
+    return user.role === "super_admin" || user.role === "system_admin";
   }, [user]);
 
   const isFinancialOfficer = useMemo(() => {
@@ -144,10 +144,14 @@ export default function CustodyRequests() {
     );
   }, [user, isSuperAdmin]);
 
-  // المسؤول المالي والمدير التنفيذي والـ super_admin يرون كل الطلبات
+  // فقط المدير التنفيذي والـ super_admin يرون تبويب طلبات الموظفين
+  const canSeeStaffTab = isSuperAdmin || isExecutiveDirector;
   const canSeeAll = isSuperAdmin || isExecutiveDirector || isFinancialOfficer;
   // فقط المدير التنفيذي هو من يعتمد طلبات العهدة
   const canApprove = isExecutiveDirector;
+
+  // نطاق طلبات الاستثناء للـ super_admin: طلبات الموظفين أو طلباتي
+  const [exceptionScope, setExceptionScope] = useState<"staff" | "my">("staff");
 
   // حوار وإدارة الاستثناءات للمدير التنفيذي
   const [exceptionActionNotes, setExceptionActionNotes] = useState("");
@@ -159,8 +163,9 @@ export default function CustodyRequests() {
   const [viewReasonException, setViewReasonException] = useState<any>(null);
 
   const { data: pendingActionCounts } = trpc.custody.getPendingActionCounts.useQuery();
+  const effectiveExceptionScope = isSuperAdmin ? exceptionScope : (isExecutiveDirector ? "staff" : "my");
   const { data: exceptionsData, isLoading: isLoadingExceptions } = trpc.custody.getExceptions.useQuery(
-    { status: exceptionFilter, page: exceptionPage, limit: 10 }
+    { status: exceptionFilter, scope: effectiveExceptionScope, page: exceptionPage, limit: 10 }
   );
 
   const reviewExceptionMutation = trpc.custody.reviewException.useMutation({
@@ -180,20 +185,20 @@ export default function CustodyRequests() {
   });
 
   // تبويب طلباتي وطلبات الموظفين والاستثناءات
-  const [activeTab, setActiveTab] = useState<"staff" | "my" | "exceptions">(() => canSeeAll ? "staff" : "my");
+  const [activeTab, setActiveTab] = useState<"staff" | "my" | "exceptions">(() => canSeeStaffTab ? "staff" : "my");
 
   useEffect(() => {
-    if (!canSeeAll && activeTab === "staff") {
+    if (!canSeeStaffTab && activeTab === "staff") {
       setActiveTab("my");
     }
-  }, [canSeeAll, activeTab]);
+  }, [canSeeStaffTab, activeTab]);
 
   // جلب الطلبات من الـ Backend مع ترقيم الصفحات والفلترة في كل تغيير
   const { data: responseData, isLoading, isFetching } = trpc.custody.getAll.useQuery(
     {
       status: statusFilter === "all" ? undefined : (statusFilter as any),
       search: debouncedSearch.trim() || undefined,
-      scope: canSeeAll ? (activeTab === "exceptions" ? "staff" : activeTab) : "my",
+      scope: canSeeStaffTab ? (activeTab === "exceptions" ? "staff" : activeTab) : "my",
       page,
       limit: pageSize,
     },
@@ -208,7 +213,7 @@ export default function CustodyRequests() {
 
   // جلب الإحصائيات
   const { data: stats } = trpc.custody.getStats.useQuery({
-    scope: canSeeAll ? (activeTab === "my" ? "my" : "staff") : "my",
+    scope: canSeeStaffTab ? (activeTab === "my" ? "my" : "staff") : "my",
   });
 
   // طفرة الاعتماد
@@ -322,8 +327,9 @@ export default function CustodyRequests() {
         </div>
 
         {/* Tabs: طلبات الموظفين وطلباتي وطلبات الاستثناء */}
+        {/* Tabs: طلبات الموظفين وطلباتي وطلبات الاستثناء */}
         <div className="flex items-center gap-2 p-1.5 bg-muted/60 dark:bg-muted/30 rounded-2xl border border-border/70 w-fit flex-wrap">
-          {canSeeAll && (
+          {canSeeStaffTab && (
             <button
               type="button"
               onClick={() => handleTabChange("staff")}
@@ -369,7 +375,9 @@ export default function CustodyRequests() {
             <ShieldAlert className="w-4 h-4 text-amber-600" />
             <span>طلبات الاستثناء</span>
             <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
-              {exceptionsData?.counts?.all ?? stats?.exceptionsTotal ?? 0}
+              {canSeeStaffTab
+                ? (exceptionsData?.counts?.staffTotal ?? stats?.exceptionsTotal ?? 0)
+                : (exceptionsData?.counts?.myTotal ?? stats?.exceptionsTotal ?? 0)}
             </Badge>
           </button>
         </div>
@@ -377,12 +385,59 @@ export default function CustodyRequests() {
         {activeTab === "exceptions" ? (
           /* تبويب إدارة طلبات الاستثناء */
           <div className="space-y-4">
+            {/* للـ super_admin فقط: تبويبان فرعيان (طلبات الموظفين و طلباتي) */}
+            {isSuperAdmin && (
+              <div className="flex items-center gap-2 p-1.5 bg-muted/60 dark:bg-muted/30 rounded-2xl border border-border/70 w-fit">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setExceptionScope("staff");
+                    setExceptionPage(1);
+                  }}
+                  className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                    exceptionScope === "staff"
+                      ? "bg-card text-foreground shadow-xs border border-border/70"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Users className="w-4 h-4 text-primary" />
+                  <span>طلبات الموظفين</span>
+                  <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
+                    {exceptionsData?.counts?.staffTotal ?? 0}
+                  </Badge>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setExceptionScope("my");
+                    setExceptionPage(1);
+                  }}
+                  className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                    exceptionScope === "my"
+                      ? "bg-card text-foreground shadow-xs border border-border/70"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <User className="w-4 h-4 text-primary" />
+                  <span>طلباتي</span>
+                  <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
+                    {exceptionsData?.counts?.myTotal ?? 0}
+                  </Badge>
+                </button>
+              </div>
+            )}
+
             {/* بطاقة الفلترة لطلبات الاستثناء */}
             <Card className="rounded-2xl border-border/70 shadow-xs bg-card">
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                   <p className="text-xs sm:text-sm text-foreground/80 font-medium text-right flex-1">
-                    {isExecutiveDirector || isSuperAdmin
+                    {isSuperAdmin
+                      ? exceptionScope === "staff"
+                        ? "طلبات الاستثناء المرفوعة من كافة الموظفين لصرف عهدة جديدة لوجود عهدة سابقة قائمة"
+                        : "سجل ومتابعة طلبات الاستثناء الخاصة بك لصرف عهدة مالية جديدة"
+                      : isExecutiveDirector
                       ? "طلبات الاستثناء المرفوعة من الموظفين لصرف عهدة جديدة لوجود عهدة سابقة قائمة"
                       : "سجل ومتابعة طلبات الاستثناء الخاصة بك لصرف عهدة مالية جديدة"}
                   </p>
@@ -441,8 +496,12 @@ export default function CustodyRequests() {
                     سجل طلبات استثناء العهد المالية
                   </CardTitle>
                   <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                    {isExecutiveDirector || isSuperAdmin
+                    {isExecutiveDirector
                       ? "مراجعة طلبات الاستثناء واتخاذ إجراءات الاعتماد أو الرفض مباشرة"
+                      : isSuperAdmin
+                      ? exceptionScope === "staff"
+                        ? "متابعة طلبات استثناء الموظفين وإدارتها مباشرة"
+                        : "متابعة حالة طلبات الاستثناء الخاصة بك"
                       : "متابعة حالة طلبات الاستثناء الخاصة بك لتقديم عهد مالية جديدة"}
                   </CardDescription>
                 </div>
@@ -571,10 +630,10 @@ export default function CustodyRequests() {
                                 </div>
                               </TableCell>
 
-                              {/* الإجراءات: تظهر فقط للمدير التنفيذي */}
+                              {/* الإجراءات: تظهر للمدير التنفيذي ولـ super_admin عند استعراض طلبات الموظفين */}
                               <TableCell>
                                 <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                                  {isPending && isExecutiveDirector ? (
+                                  {isPending && (isExecutiveDirector || (isSuperAdmin && exceptionScope === "staff")) ? (
                                     <>
                                       <Button
                                         size="sm"
@@ -653,7 +712,7 @@ export default function CustodyRequests() {
               <Card className="rounded-2xl border-border/70 shadow-xs bg-card hover:border-primary/40 transition-all">
             <CardHeader className="p-4 pb-2">
               <CardDescription className="text-xs font-bold text-muted-foreground flex items-center justify-between">
-                <span>{canSeeAll ? "إجمالي الطلبات" : "إجمالي طلباتي"}</span>
+                <span>{canSeeStaffTab && activeTab === "staff" ? "إجمالي الطلبات" : "إجمالي طلباتي"}</span>
                 <Wallet className="w-4 h-4 text-primary" />
               </CardDescription>
               <CardTitle className="text-2xl font-black text-foreground mt-1">
@@ -672,7 +731,7 @@ export default function CustodyRequests() {
           <Card className="rounded-2xl border-amber-200 dark:border-amber-900/40 shadow-xs bg-amber-50/30 dark:bg-amber-950/10">
             <CardHeader className="p-4 pb-2">
               <CardDescription className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center justify-between">
-                <span>{canSeeAll ? "قيد اعتماد المدير التنفيذي" : "طلباتي قيد الاعتماد"}</span>
+                <span>{canSeeStaffTab && activeTab === "staff" ? "قيد اعتماد المدير التنفيذي" : "طلباتي قيد الاعتماد"}</span>
                 <Clock className="w-4 h-4 text-amber-600" />
               </CardDescription>
               <CardTitle className="text-2xl font-black text-amber-800 dark:text-amber-300 mt-1">
@@ -681,7 +740,7 @@ export default function CustodyRequests() {
             </CardHeader>
             <CardContent className="p-4 pt-1">
               <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 font-medium">
-                {canSeeAll 
+                {canSeeStaffTab && activeTab === "staff"
                   ? "بانتظار توقيع واعتماد الإدارة التنفيذية"
                   : "طلباتك بانتظار توقيع واعتماد المدير التنفيذي"}
               </p>
@@ -691,7 +750,7 @@ export default function CustodyRequests() {
           <Card className="rounded-2xl border-emerald-200 dark:border-emerald-900/40 shadow-xs bg-emerald-50/30 dark:bg-emerald-950/10">
             <CardHeader className="p-4 pb-2">
               <CardDescription className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center justify-between">
-                <span>{canSeeAll ? "تم التحويل لأمر صرف" : "طلباتي المعتمدة"}</span>
+                <span>{canSeeStaffTab && activeTab === "staff" ? "تم التحويل لأمر صرف" : "طلباتي المعتمدة"}</span>
                 <CheckCircle className="w-4 h-4 text-emerald-600" />
               </CardDescription>
               <CardTitle className="text-2xl font-black text-emerald-800 dark:text-emerald-300 mt-1">
@@ -710,7 +769,7 @@ export default function CustodyRequests() {
           <Card className="rounded-2xl border-border/70 shadow-xs bg-card">
             <CardHeader className="p-4 pb-2">
               <CardDescription className="text-xs font-bold text-muted-foreground flex items-center justify-between">
-                <span>{canSeeAll ? "الطلبات المرفوضة" : "طلباتي المرفوضة"}</span>
+                <span>{canSeeStaffTab && activeTab === "staff" ? "الطلبات المرفوضة" : "طلباتي المرفوضة"}</span>
                 <XCircle className="w-4 h-4 text-rose-500" />
               </CardDescription>
               <CardTitle className="text-2xl font-black text-foreground mt-1">
@@ -719,7 +778,7 @@ export default function CustodyRequests() {
             </CardHeader>
             <CardContent className="p-4 pt-1">
               <p className="text-[11px] text-muted-foreground font-medium">
-                {canSeeAll ? "طلبات معادة للموظف مع ذكر الأسباب" : "طلبات لم يتم اعتمادها مع ذكر الأسباب"}
+                {canSeeStaffTab && activeTab === "staff" ? "طلبات معادة للموظف مع ذكر الأسباب" : "طلبات لم يتم اعتمادها مع ذكر الأسباب"}
               </p>
             </CardContent>
           </Card>
