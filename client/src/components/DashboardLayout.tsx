@@ -170,7 +170,6 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
       { icon: Truck, label: "الموردون", path: "/suppliers" },
       { icon: Calculator, label: "إعداد جداول الكميات", path: "/boq-preparations" },
       { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
-      { icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" },
       { icon: CheckSquare, label: isEn ? "Approvals" : "الاعتمادات", path: "/financial-approval" },
       { icon: FileText, label: "العقود", path: "/contracts" },
       { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
@@ -186,6 +185,8 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
 
     if (["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector) {
       const inventoryItems = [
+        { icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" },
+        { icon: ShoppingBag, label: isEn ? "Sedana Finance" : "مالية سدانة", path: "/orders-and-letters" },
         { icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" },
         { icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" },
         { icon: Boxes, label: "المستودع الافتراضي", path: "/sedana-warehouse" },
@@ -196,7 +197,8 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
       });
     } else if (role === "financial") {
       const inventoryItems = [
-        { icon: ShoppingBag, label: "أوامر الشراء والخطاب المجتمعي", path: "/orders-and-letters" },
+        { icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" },
+        { icon: ShoppingBag, label: isEn ? "Sedana Finance" : "مالية سدانة", path: "/orders-and-letters" },
       ];
       groups.push({
         label: isEn ? "Inventory Management" : "إدارة المخزون",
@@ -361,7 +363,6 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   }
   if (has("quotations")) {
     finItems.push({ icon: Receipt, label: "عروض الأسعار", path: "/quotations" });
-    finItems.push({ icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" });
   }
   if (has("financial_approval"))  finItems.push({ icon: CheckSquare, label: isEn ? "Approvals" : "الاعتمادات", path: "/financial-approval" });
   if (has("contracts") || has("contracts.view") || has("requests")) {
@@ -385,10 +386,25 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   }
 
   // 4. إدارة المخزون
-  if (["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector || (has("orders_and_letters") || has("orders_and_letters.view") || has("purchase_orders") || has("purchase_orders.view") || has("csr_letters") || has("csr_letters.view") || has("sedana_warehouse") || role === "financial")) {
+  if (
+    ["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) ||
+    isExecDirector ||
+    (has("orders_and_letters") ||
+      has("orders_and_letters.view") ||
+      has("purchase_orders") ||
+      has("purchase_orders.view") ||
+      has("csr_letters") ||
+      has("csr_letters.view") ||
+      has("sedana_warehouse") ||
+      has("quotations") ||
+      role === "financial")
+  ) {
     const inventoryItems: MenuItem[] = [];
-    if (role === "financial" || has("orders_and_letters") || has("orders_and_letters.view")) {
-      inventoryItems.push({ icon: ShoppingBag, label: "أوامر الشراء والخطاب المجتمعي", path: "/orders-and-letters" });
+    if (has("quotations") || ["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector || role === "financial") {
+      inventoryItems.push({ icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" });
+    }
+    if (role === "financial" || has("orders_and_letters") || has("orders_and_letters.view") || ["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector) {
+      inventoryItems.push({ icon: ShoppingBag, label: isEn ? "Sedana Finance" : "مالية سدانة", path: "/orders-and-letters" });
     }
     if (["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector || has("purchase_orders") || has("purchase_orders.view")) {
       inventoryItems.push({ icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" });
