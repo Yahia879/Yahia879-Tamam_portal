@@ -81,9 +81,6 @@ export default function CreateCsrLetterPage() {
     staleTime: 10 * 60 * 1000,
   });
 
-  // جلب قائمة الموردين المسجلين في النظام لإتاحة الاختيار السريع
-  const { data: allRegisteredSuppliers = [] } = trpc.projects.getSuppliers.useQuery();
-
   // الحالة للطلب المختار
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(initialRequestId);
 
@@ -709,45 +706,17 @@ export default function CreateCsrLetterPage() {
                             </div>
                           </div>
 
-                          {/* إمكانية تعديل صيغة اسم الجهة في الخطاب إن لزم أو اختيار مورد مسجل */}
-                          <div className="pt-2 border-t border-border/40 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
-                                صيغة اسم الجهة الموجه إليها الخطاب *
-                              </Label>
-                              {allRegisteredSuppliers.length > 0 && (
-                                <span className="text-[11px] text-muted-foreground">
-                                  يمكنك الكتابة يدوياً أو الاختيار من الموردين المسجلين أدناه
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex flex-col sm:flex-row gap-2">
-                              <Input
-                                value={recipientName}
-                                onChange={(e) => setRecipientName(e.target.value)}
-                                placeholder="اسم الجهة أو الشركة كما سيظهر في الخطاب الرسمي..."
-                                className="text-right border-border focus:ring-sky-600 rounded-xl h-10 bg-background font-bold text-xs flex-1"
-                              />
-                              {allRegisteredSuppliers.length > 0 && (
-                                <Select
-                                  value=""
-                                  onValueChange={(val) => {
-                                    if (val) setRecipientName(val);
-                                  }}
-                                >
-                                  <SelectTrigger className="w-full sm:w-56 h-10 text-xs rounded-xl bg-background border-border text-muted-foreground">
-                                    <SelectValue placeholder="اختر من الموردين المسجلين..." />
-                                  </SelectTrigger>
-                                  <SelectContent dir="rtl">
-                                    {allRegisteredSuppliers.map((s: any) => (
-                                      <SelectItem key={s.id} value={s.name} className="text-right text-xs">
-                                        {s.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            </div>
+                          {/* صيغة اسم الجهة في الخطاب */}
+                          <div className="pt-2 border-t border-border/40 space-y-1.5">
+                            <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                              صيغة اسم الجهة الموجه إليها الخطاب *
+                            </Label>
+                            <Input
+                              value={recipientName}
+                              onChange={(e) => setRecipientName(e.target.value)}
+                              placeholder="اسم الجهة أو الشركة كما سيظهر في الخطاب الرسمي..."
+                              className="text-right border-border focus:ring-sky-600 rounded-xl h-10 bg-background font-bold text-xs"
+                            />
                           </div>
                         </div>
                       );

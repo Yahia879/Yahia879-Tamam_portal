@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
 import { getDb } from "../db";
-import { mosqueRequests, mosques, quantitySchedules, suppliers, disbursementOrders, users } from "../../drizzle/schema";
+import { mosqueRequests, mosques, quantitySchedules, suppliers, disbursementOrders, users, quotations } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNotNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -1146,6 +1146,18 @@ export const procurementRouter = router({
         boqMap.set(b.requestId, list);
       });
 
+      const allQuotations = await db
+        .select()
+        .from(quotations);
+
+      const quotationsMap = new Map<number, any[]>();
+      allQuotations.forEach((q) => {
+        if (!q.requestId) return;
+        const list = quotationsMap.get(q.requestId) || [];
+        list.push(q);
+        quotationsMap.set(q.requestId, list);
+      });
+
       const result: any[] = [];
 
       for (const row of requests) {
@@ -1228,15 +1240,48 @@ export const procurementRouter = router({
           items: any[];
         }>();
 
+        const reqQuotes = quotationsMap.get(req.id) || [];
+
         baseItems.forEach((it) => {
           const mapEntry = itemSuppMap[it.id];
-          const sName = mapEntry?.supplierName?.trim().replace(/\s+/g, " ");
-          const sId = mapEntry?.supplierId ? Number(mapEntry.supplierId) : null;
+          let sName = mapEntry?.supplierName?.trim().replace(/\s+/g, " ");
+          let sId = mapEntry?.supplierId ? Number(mapEntry.supplierId) : null;
+          let uPrice = Number(mapEntry?.unitPrice || 0);
 
-          if (!sName || sName === "لم يحدد بعد" || sName === "غير محدد") {
-            return;
+          // إذا لم يكن المورد محدداً في itemSuppMap، نبحث عنه في عروض أسعار الطلب
+          if (!sName || sName === "لم يحدد بعد" || sName === "غير محدد" || sName.toLowerCase() === "unassigned") {
+            const matchedQ = reqQuotes.find((q: any) => {
+              let qItems: any[] = [];
+              if (Array.isArray(q.items)) qItems = q.items;
+              else if (typeof q.items === "string") {
+                try { qItems = JSON.parse(q.items); } catch {}
+              }
+              return qItems.some((qi: any) => {
+                const qiId = qi.boqItemId ?? qi.boq_item_id ?? qi.itemId ?? qi.id;
+                if (qiId !== undefined && String(qiId) === String(it.id)) return true;
+                const qiName = String(qi.itemName ?? qi.name ?? "").trim().toLowerCase();
+                const targetName = String(it.itemName || "").trim().toLowerCase();
+                return qiName && targetName && (qiName === targetName || targetName.includes(qiName));
+              });
+            });
+
+            if (matchedQ) {
+              sId = matchedQ.supplierId;
+              const reg = sId ? supplierMapById.get(sId) : null;
+              sName = reg?.name?.trim().replace(/\s+/g, " ") || matchedQ.supplierName?.trim().replace(/\s+/g, " ");
+              let qItems: any[] = [];
+              if (Array.isArray(matchedQ.items)) qItems = matchedQ.items;
+              else if (typeof matchedQ.items === "string") {
+                try { qItems = JSON.parse(matchedQ.items); } catch {}
+              }
+              const qi = qItems.find((x: any) => String(x.boqItemId ?? x.id) === String(it.id));
+              if (qi) {
+                uPrice = Number(qi.unitPrice || qi.price || 0);
+              }
+            }
           }
 
+          const itemMethod = itemsAlloc[it.id];
           const supMethod = getSupplierMethod(sId, sName);
 
           // إذا تم تحديد المورد كعقد توريد أو أمر شراء، يتم استبعاده فوراً من المسؤولية المجتمعية
@@ -1244,11 +1289,14 @@ export const procurementRouter = router({
             return;
           }
 
-          // يعتبر المورد والبنود تابعة للمسؤولية المجتمعية إذا حُدد كـ csr_letter
-          const itemMethod = itemsAlloc[it.id];
-          const isCsr = supMethod === "csr_letter" || itemMethod === "csr_letter";
+          // يعتبر المورد والبنود تابعة للمسؤولية المجتمعية إذا حُدد كـ csr_letter أو إذا كان تخصيص الطلب غير محدد مسنداً لمسؤولية مجتمعية
+          const isCsr = supMethod === "csr_letter" || itemMethod === "csr_letter" || suppliersAlloc["unassigned"] === "csr_letter";
 
           if (!isCsr) {
+            return;
+          }
+
+          if (!sName || sName === "لم يحدد بعد" || sName === "غير محدد" || sName.toLowerCase() === "unassigned") {
             return;
           }
 
@@ -1266,8 +1314,8 @@ export const procurementRouter = router({
               description: it.description || "",
               quantity: it.quantity,
               unit: it.unit,
-              unitPrice: mapEntry?.unitPrice || 0,
-              totalPrice: mapEntry?.totalPrice || (it.quantity * (mapEntry?.unitPrice || 0)),
+              unitPrice: uPrice,
+              totalPrice: it.quantity * uPrice,
             });
           }
 
@@ -1308,7 +1356,8 @@ export const procurementRouter = router({
               }
             }
 
-            if (matchedSupName && !supplierGroups.has(matchedSupName)) {
+            const existingBySupId = matchedSupId ? Array.from(supplierGroups.values()).find((g: any) => g.supplierId === matchedSupId) : null;
+            if (matchedSupName && !supplierGroups.has(matchedSupName) && !existingBySupId) {
               const supItems = baseItems.filter(
                 (it) => itemSuppMap[it.id]?.supplierName?.trim() === matchedSupName ||
                         (matchedSupId && itemSuppMap[it.id]?.supplierId === matchedSupId)
