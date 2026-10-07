@@ -523,18 +523,33 @@ export const custodyRouter = router({
         .from(custodyRequests)
         .where(whereClause);
 
-    return {
-      totalCount: Number(stats?.totalCount || 0),
-      pendingCount: Number(stats?.pendingCount || 0),
-      convertedCount: Number(stats?.convertedCount || 0),
-      approvedCount: Number(stats?.approvedCount || 0),
-      rejectedCount: Number(stats?.rejectedCount || 0),
-      totalAmount: Number(stats?.totalAmount || 0),
-      convertedAmount: Number(stats?.convertedAmount || 0),
-      myCount: Number(globalCounts?.myAll || 0),
-      staffCount: Number(globalCounts?.totalAll || 0),
-    };
-  }),
+      // 3. حساب إجمالي الاستثناءات للمستخدم الحالي (أو لكل الموظفين إن كان مديراً)
+      const exConditions: any[] = [];
+      if (!isExecutiveDirector && !isSuperAdmin) {
+        exConditions.push(eq(custodyExceptions.userId, ctx.user.id));
+      }
+      const [exCounts] = await db
+        .select({
+          total: sql<number>`COUNT(*)`,
+          pending: sql<number>`COALESCE(SUM(CASE WHEN ${custodyExceptions.status} = 'pending' THEN 1 ELSE 0 END), 0)`,
+        })
+        .from(custodyExceptions)
+        .where(exConditions.length > 0 ? and(...exConditions) : undefined);
+
+      return {
+        totalCount: Number(stats?.totalCount || 0),
+        pendingCount: Number(stats?.pendingCount || 0),
+        convertedCount: Number(stats?.convertedCount || 0),
+        approvedCount: Number(stats?.approvedCount || 0),
+        rejectedCount: Number(stats?.rejectedCount || 0),
+        totalAmount: Number(stats?.totalAmount || 0),
+        convertedAmount: Number(stats?.convertedAmount || 0),
+        myCount: Number(globalCounts?.myAll || 0),
+        staffCount: Number(globalCounts?.totalAll || 0),
+        exceptionsTotal: Number(exCounts?.total || 0),
+        exceptionsPending: Number(exCounts?.pending || 0),
+      };
+    }),
 
   // عدادات الإجراءات المعلقة للنقطة الحمراء للقائمة الجانبية (خاص بالمدير التنفيذي)
   getPendingActionCounts: protectedProcedure.query(async ({ ctx }) => {
@@ -567,14 +582,20 @@ export const custodyRouter = router({
       .from(custodyExceptions)
       .where(eq(custodyExceptions.status, "pending"));
 
+    const [totalEx] = await db
+      .select({ value: sql<number>`COUNT(*)` })
+      .from(custodyExceptions);
+
     const pendingRequestsCount = Number(pending?.value || 0);
     const pendingExceptionsCount = Number(pendingEx?.value || 0);
+    const totalExceptionsCount = Number(totalEx?.value || 0);
     const pendingCount = pendingRequestsCount + pendingExceptionsCount;
 
     return {
       pendingCount,
       pendingRequestsCount,
       pendingExceptionsCount,
+      totalExceptionsCount,
       hasPendingCustody: pendingCount > 0,
     };
   }),
@@ -1147,36 +1168,38 @@ export const custodyRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // فحص عدم تقديم أكثر من طلب استثناء
-      const [existingException] = await db
+      // فحص عدم وجود طلب استثناء معلق أو استثناء معتمد غير مستخدم
+      const [blockingException] = await db
         .select()
         .from(custodyExceptions)
         .where(
           and(
             eq(custodyExceptions.userId, ctx.user.id),
-            eq(custodyExceptions.activeCustodyId, input.activeCustodyId)
+            or(
+              eq(custodyExceptions.status, "pending"),
+              and(
+                eq(custodyExceptions.status, "approved"),
+                eq(custodyExceptions.isUsed, false)
+              )
+            )
           )
         )
         .orderBy(desc(custodyExceptions.createdAt))
         .limit(1);
 
-      if (existingException) {
-        if (existingException.status === "pending") {
+      if (blockingException) {
+        if (blockingException.status === "pending") {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "يوجد لديك طلب استثناء قيد المراجعة بالفعل من المدير التنفيذي، ولا يمكن تقديم أكثر من طلب استثناء",
+            message: "يوجد لديك طلب استثناء قيد المراجعة بالفعل من المدير التنفيذي، ولا يمكن تقديم طلب استثناء جديد حتى يتم البت فيه",
           });
         }
-        if (existingException.status === "approved" && !existingException.isUsed) {
+        if (blockingException.status === "approved" && !blockingException.isUsed) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "لديك استثناء معتمد بالفعل، يمكنك تقديم طلب العهدة مباشرة",
+            message: "لديك استثناء معتمد بالفعل لم يُستخدم بعد، يمكنك تقديم طلب العهدة مباشرة",
           });
         }
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "تم تقديم طلب استثناء مسبقاً لهذه العهدة، ولا يمكن تقديم أكثر من طلب استثناء",
-        });
       }
 
       const [activeCustody] = await db
@@ -1231,7 +1254,7 @@ export const custodyRouter = router({
       };
     }),
 
-  // جلب طلبات الاستثناءات للمدير التنفيذي
+  // جلب طلبات الاستثناءات (المدير التنفيذي يرى الكل، باقي الأدوار يرون طلباتهم فقط)
   getExceptions: protectedProcedure
     .input(
       z.object({
@@ -1245,10 +1268,24 @@ export const custodyRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const { isExecutiveDirector, isSuperAdmin } = checkCustodyRoles(ctx.user);
-      const conditions: any[] = [];
+      const baseConditions: any[] = [];
       if (!isExecutiveDirector && !isSuperAdmin) {
-        conditions.push(eq(custodyExceptions.userId, ctx.user.id));
+        baseConditions.push(eq(custodyExceptions.userId, ctx.user.id));
       }
+
+      // حساب العدادات الكلية لكافة الحالات ضمن نطاق الصلاحية (للمدير: الكل، لغيره: طلباته فقط)
+      const baseWhere = baseConditions.length > 0 ? and(...baseConditions) : undefined;
+      const [countsRow] = await db
+        .select({
+          total: sql<number>`COUNT(*)`,
+          pending: sql<number>`COALESCE(SUM(CASE WHEN ${custodyExceptions.status} = 'pending' THEN 1 ELSE 0 END), 0)`,
+          approved: sql<number>`COALESCE(SUM(CASE WHEN ${custodyExceptions.status} = 'approved' THEN 1 ELSE 0 END), 0)`,
+          rejected: sql<number>`COALESCE(SUM(CASE WHEN ${custodyExceptions.status} = 'rejected' THEN 1 ELSE 0 END), 0)`,
+        })
+        .from(custodyExceptions)
+        .where(baseWhere);
+
+      const conditions = [...baseConditions];
       if (input?.status && input.status !== "all") {
         conditions.push(eq(custodyExceptions.status, input.status));
       }
@@ -1296,6 +1333,12 @@ export const custodyRouter = router({
       return {
         items,
         total,
+        counts: {
+          all: Number(countsRow?.total || 0),
+          pending: Number(countsRow?.pending || 0),
+          approved: Number(countsRow?.approved || 0),
+          rejected: Number(countsRow?.rejected || 0),
+        },
         page,
         limit,
         totalPages: Math.ceil(total / limit) || 1,

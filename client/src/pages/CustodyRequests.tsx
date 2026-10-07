@@ -155,12 +155,12 @@ export default function CustodyRequests() {
   const [exceptionActionType, setExceptionActionType] = useState<"approve" | "reject">("approve");
   const [confirmExceptionDialogOpen, setConfirmExceptionDialogOpen] = useState(false);
   const [exceptionFilter, setExceptionFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [exceptionPage, setExceptionPage] = useState(1);
   const [viewReasonException, setViewReasonException] = useState<any>(null);
 
   const { data: pendingActionCounts } = trpc.custody.getPendingActionCounts.useQuery();
   const { data: exceptionsData, isLoading: isLoadingExceptions } = trpc.custody.getExceptions.useQuery(
-    { status: exceptionFilter },
-    { enabled: isExecutiveDirector || isSuperAdmin }
+    { status: exceptionFilter, page: exceptionPage, limit: 10 }
   );
 
   const reviewExceptionMutation = trpc.custody.reviewException.useMutation({
@@ -179,8 +179,14 @@ export default function CustodyRequests() {
     },
   });
 
-  // تبويب طلباتي وطلبات الموظفين والاستثناءات للمدير التنفيذي والمسؤول المالي والـ super_admin
-  const [activeTab, setActiveTab] = useState<"staff" | "my" | "exceptions">("staff");
+  // تبويب طلباتي وطلبات الموظفين والاستثناءات
+  const [activeTab, setActiveTab] = useState<"staff" | "my" | "exceptions">(() => canSeeAll ? "staff" : "my");
+
+  useEffect(() => {
+    if (!canSeeAll && activeTab === "staff") {
+      setActiveTab("my");
+    }
+  }, [canSeeAll, activeTab]);
 
   // جلب الطلبات من الـ Backend مع ترقيم الصفحات والفلترة في كل تغيير
   const { data: responseData, isLoading, isFetching } = trpc.custody.getAll.useQuery(
@@ -316,8 +322,8 @@ export default function CustodyRequests() {
         </div>
 
         {/* Tabs: طلبات الموظفين وطلباتي وطلبات الاستثناء */}
-        {canSeeAll && (
-          <div className="flex items-center gap-2 p-1.5 bg-muted/60 dark:bg-muted/30 rounded-2xl border border-border/70 w-fit flex-wrap">
+        <div className="flex items-center gap-2 p-1.5 bg-muted/60 dark:bg-muted/30 rounded-2xl border border-border/70 w-fit flex-wrap">
+          {canSeeAll && (
             <button
               type="button"
               onClick={() => handleTabChange("staff")}
@@ -333,48 +339,40 @@ export default function CustodyRequests() {
                 {stats?.staffCount ?? 0}
               </Badge>
             </button>
+          )}
 
-            <button
-              type="button"
-              onClick={() => handleTabChange("my")}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                activeTab === "my"
-                  ? "bg-card text-foreground shadow-xs border border-border/70"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <User className="w-4 h-4 text-primary" />
-              <span>طلباتي</span>
-              <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
-                {stats?.myCount ?? 0}
-              </Badge>
-            </button>
+          <button
+            type="button"
+            onClick={() => handleTabChange("my")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === "my"
+                ? "bg-card text-foreground shadow-xs border border-border/70"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <User className="w-4 h-4 text-primary" />
+            <span>طلباتي</span>
+            <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
+              {stats?.myCount ?? 0}
+            </Badge>
+          </button>
 
-            {(isExecutiveDirector || isSuperAdmin) && (
-              <button
-                type="button"
-                onClick={() => handleTabChange("exceptions")}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                  activeTab === "exceptions"
-                    ? "bg-amber-500/15 text-amber-900 dark:text-amber-200 shadow-xs border border-amber-300 dark:border-amber-700/60"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <ShieldAlert className="w-4 h-4 text-amber-600" />
-                <span>طلبات الاستثناء</span>
-                {Boolean(pendingActionCounts?.pendingExceptionsCount) ? (
-                  <span className="min-w-5 h-5 px-1.5 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center font-mono">
-                    {pendingActionCounts?.pendingExceptionsCount}
-                  </span>
-                ) : (
-                  <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
-                    0
-                  </Badge>
-                )}
-              </button>
-            )}
-          </div>
-        )}
+          <button
+            type="button"
+            onClick={() => handleTabChange("exceptions")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === "exceptions"
+                ? "bg-amber-500/15 text-amber-900 dark:text-amber-200 shadow-xs border border-amber-300 dark:border-amber-700/60"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <ShieldAlert className="w-4 h-4 text-amber-600" />
+            <span>طلبات الاستثناء</span>
+            <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
+              {exceptionsData?.counts?.all ?? stats?.exceptionsTotal ?? 0}
+            </Badge>
+          </button>
+        </div>
 
         {activeTab === "exceptions" ? (
           /* تبويب إدارة طلبات الاستثناء */
@@ -384,49 +382,51 @@ export default function CustodyRequests() {
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                   <p className="text-xs sm:text-sm text-foreground/80 font-medium text-right flex-1">
-                    طلبات الاستثناء المرفوعة من الموظفين لصرف عهدة جديدة لوجود عهدة سابقة قائمة
+                    {isExecutiveDirector || isSuperAdmin
+                      ? "طلبات الاستثناء المرفوعة من الموظفين لصرف عهدة جديدة لوجود عهدة سابقة قائمة"
+                      : "سجل ومتابعة طلبات الاستثناء الخاصة بك لصرف عهدة مالية جديدة"}
                   </p>
 
                   <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
                     <Button
                       size="sm"
                       variant={exceptionFilter === "all" ? "default" : "outline"}
-                      onClick={() => setExceptionFilter("all")}
+                      onClick={() => { setExceptionFilter("all"); setExceptionPage(1); }}
                       className={`rounded-xl text-xs font-bold h-9 px-3 cursor-pointer ${
                         exceptionFilter === "all" ? "gradient-primary text-white" : ""
                       }`}
                     >
-                      الكل ({exceptionsData?.total || 0})
+                      الكل ({exceptionsData?.counts?.all ?? exceptionsData?.total ?? 0})
                     </Button>
                     <Button
                       size="sm"
                       variant={exceptionFilter === "pending" ? "default" : "outline"}
-                      onClick={() => setExceptionFilter("pending")}
+                      onClick={() => { setExceptionFilter("pending"); setExceptionPage(1); }}
                       className={`rounded-xl text-xs font-bold h-9 px-3 cursor-pointer ${
                         exceptionFilter === "pending" ? "bg-amber-600 text-white" : ""
                       }`}
                     >
-                      بانتظار المراجعة ({pendingActionCounts?.pendingExceptionsCount || 0})
+                      بانتظار المراجعة ({exceptionsData?.counts?.pending ?? 0})
                     </Button>
                     <Button
                       size="sm"
                       variant={exceptionFilter === "approved" ? "default" : "outline"}
-                      onClick={() => setExceptionFilter("approved")}
+                      onClick={() => { setExceptionFilter("approved"); setExceptionPage(1); }}
                       className={`rounded-xl text-xs font-bold h-9 px-3 cursor-pointer ${
                         exceptionFilter === "approved" ? "bg-emerald-600 text-white" : ""
                       }`}
                     >
-                      معتمدة
+                      معتمدة ({exceptionsData?.counts?.approved ?? 0})
                     </Button>
                     <Button
                       size="sm"
                       variant={exceptionFilter === "rejected" ? "default" : "outline"}
-                      onClick={() => setExceptionFilter("rejected")}
+                      onClick={() => { setExceptionFilter("rejected"); setExceptionPage(1); }}
                       className={`rounded-xl text-xs font-bold h-9 px-3 cursor-pointer ${
                         exceptionFilter === "rejected" ? "bg-rose-600 text-white" : ""
                       }`}
                     >
-                      مرفوضة
+                      مرفوضة ({exceptionsData?.counts?.rejected ?? 0})
                     </Button>
                   </div>
                 </div>
@@ -441,11 +441,13 @@ export default function CustodyRequests() {
                     سجل طلبات استثناء العهد المالية
                   </CardTitle>
                   <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                    مراجعة طلبات الاستثناء واتخاذ إجراءات الاعتماد أو الرفض مباشرة
+                    {isExecutiveDirector || isSuperAdmin
+                      ? "مراجعة طلبات الاستثناء واتخاذ إجراءات الاعتماد أو الرفض مباشرة"
+                      : "متابعة حالة طلبات الاستثناء الخاصة بك لتقديم عهد مالية جديدة"}
                   </CardDescription>
                 </div>
                 <Badge variant="secondary" className="font-mono text-xs font-bold">
-                  {exceptionsData?.total || 0} طلب
+                  {exceptionsData?.counts?.all ?? exceptionsData?.total ?? 0} طلب
                 </Badge>
               </CardHeader>
 
@@ -621,6 +623,24 @@ export default function CustodyRequests() {
                         })}
                       </TableBody>
                     </Table>
+                  </div>
+                )}
+
+                {/* ترقيم الصفحات لطلبات الاستثناء */}
+                {!isLoadingExceptions && exceptionsData?.items && exceptionsData.items.length > 0 && (
+                  <div className="p-4 border-t border-border/50">
+                    <EnhancedPagination
+                      page={exceptionPage}
+                      totalPages={exceptionsData.totalPages || 1}
+                      onPageChange={(newPage) => {
+                        setExceptionPage(newPage);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      totalItems={exceptionsData.total || 0}
+                      itemsPerPage={10}
+                      itemName="طلب استثناء"
+                      itemNamePlural="طلبات استثناء"
+                    />
                   </div>
                 )}
               </CardContent>

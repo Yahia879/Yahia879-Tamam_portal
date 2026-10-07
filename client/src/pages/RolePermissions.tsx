@@ -1123,6 +1123,7 @@ export default function RolePermissions() {
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
+        { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view"] },
       ]
     },
     {
@@ -1377,6 +1378,9 @@ export default function RolePermissions() {
       financial_reports: {
         view: "عرض تقرير المالية والإحصائيات",
         export: "تصدير البيانات",
+      },
+      custody_requests: {
+        view: "عرض قسم العهدة المالية",
       },
       reports: {
         view_stats: "عرض احصائيات الطلبات",

@@ -821,6 +821,9 @@ export default function UserPermissions() {
         create_disbursement: "إنشاء أمر صرف للخطاب",
         export: "تصدير الخطابات إكسيل",
       },
+      custody_requests: {
+        view: "عرض قسم العهدة المالية",
+      },
       sedana_warehouse: {
         view: "عرض المستودع الافتراضي",
         inward: "تسجيل أمر إدخال بالمستودع",
@@ -992,6 +995,7 @@ export default function UserPermissions() {
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
+        { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view"] },
       ]
     },
     {

@@ -181,8 +181,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/disbursement-orders/new-direct": "disbursement_orders",
   "/receipt-vouchers": ["receipt_vouchers", "receipt_vouchers.view", "receipt_vouchers.edit", "receipt_vouchers.exception_approve"],
   "/receipt-vouchers/new": ["receipt_vouchers", "receipt_vouchers.edit"],
-  "/custody-requests": ["custody_requests", "disbursement_requests", "dashboard"],
-  "/custody-requests/new": ["custody_requests", "disbursement_requests", "dashboard"],
+  "/custody-requests": ["custody_requests", "custody_requests.view"],
+  "/custody-requests/new": ["custody_requests", "custody_requests.view"],
 
   // ── تقارير الإنجاز والمشاريع ──
   "/progress-reports": ["progress_reports", "progress_reports.view"],
@@ -339,8 +339,8 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/disbursements\/orders\/\d+\/print$/, permission: ["disbursement_orders", "disbursement_orders.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
 
   // العهد المالية
-  { pattern: /^\/custody-requests\/[^/]+$/, permission: ["custody_requests", "disbursement_requests", "dashboard"] },
-  { pattern: /^\/custody-requests\/[^/]+\/print$/, permission: ["custody_requests", "disbursement_requests", "dashboard"] },
+  { pattern: /^\/custody-requests\/[^/]+$/, permission: ["custody_requests", "custody_requests.view"] },
+  { pattern: /^\/custody-requests\/[^/]+\/print$/, permission: ["custody_requests", "custody_requests.view"] },
 
   // معاينة وطباعة أمر الشراء
   { pattern: /^\/requests\/\d+\/purchase-order$/, permission: ["purchase_orders.view", "purchase_orders", "orders_and_letters.view", "orders_and_letters"] },
@@ -490,12 +490,17 @@ export function hasRouteAccess(
     return userRole !== "service_requester";
   }
 
-  // السماح بمسارات العهد المالية لجميع موظفي النظام باستثناء طالب الخدمة
+  // مسارات العهدة المالية: متاحة لمن تم تفعيل قسم "العهدة المالية" له (باستثناء طالب الخدمة)
   const isCustodyRoute =
     pathname === "/custody-requests" ||
     pathname.startsWith("/custody-requests/");
   if (isCustodyRoute) {
-    return userRole !== "service_requester";
+    if (userRole === "service_requester") return false;
+    return (
+      userPermissions.includes("*") ||
+      userPermissions.includes("custody_requests") ||
+      userPermissions.includes("custody_requests.view")
+    );
   }
 
   const required = getRequiredPermission(pathname);
