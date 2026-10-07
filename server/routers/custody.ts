@@ -556,18 +556,37 @@ export const custodyRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق من وجود عهدة نشطة / غير مصفاة للموظف
-      const [unsettledCustody] = await db
-        .select({ id: custodyRequests.id, requestNumber: custodyRequests.requestNumber })
+      // التحقق من وجود عهدة نشطة تمنع التقديم إلا باستثناء:
+      // (حالة أمر الصرف قيد الاعتماد أو العهدة غير معتمدة من المدير التنفيذي)
+      const blockingCustodies = await db
+        .select({
+          id: custodyRequests.id,
+          requestNumber: custodyRequests.requestNumber,
+          status: custodyRequests.status,
+          disbursementOrderStatus: disbursementOrders.status,
+        })
         .from(custodyRequests)
+        .leftJoin(disbursementOrders, eq(custodyRequests.disbursementOrderId, disbursementOrders.id))
         .where(
           and(
             eq(custodyRequests.userId, ctx.user.id),
             ne(custodyRequests.status, "rejected"),
-            eq(custodyRequests.isSettled, false)
+            or(
+              eq(custodyRequests.status, "pending_executive"),
+              and(
+                sql`${custodyRequests.disbursementOrderId} IS NOT NULL`,
+                or(
+                  eq(disbursementOrders.status, "pending"),
+                  eq(disbursementOrders.status, "pending_executive")
+                )
+              )
+            )
           )
         )
+        .orderBy(desc(custodyRequests.createdAt))
         .limit(1);
+
+      const unsettledCustody = blockingCustodies[0] || null;
 
       let approvedExceptionId: number | null = null;
       if (unsettledCustody) {
@@ -586,9 +605,13 @@ export const custodyRouter = router({
           .limit(1);
 
         if (!approvedException) {
+          const reasonText = unsettledCustody.status === "pending_executive"
+            ? "لأن طلب العهدة السابقة ما زال بانتظار اعتماد المدير التنفيذي"
+            : "لأن أمر الصرف المرتبط بالعهدة السابقة ما زال قيد الاعتماد";
+
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: `لا يمكن تقديم طلب عهدة جديد لوجود عهدة مالية سابقة قائمة برقم (${unsettledCustody.requestNumber}). يمكنكم رفع طلب استثناء لاعتماده من المدير التنفيذي.`,
+            message: `لا يمكن تقديم طلب عهدة جديد (${reasonText}) برقم (${unsettledCustody.requestNumber}). يمكنكم رفع طلب استثناء لاعتماده من المدير التنفيذي.`,
           });
         }
 
@@ -735,7 +758,10 @@ export const custodyRouter = router({
         const parsed = JSON.parse(request.description);
         if (Array.isArray(parsed) && parsed.length > 0) {
           formattedDescription = parsed
-            .map((it: any, i: number) => `${i + 1}. ${it.description} (${Number(it.amount).toLocaleString()} ر.س)`)
+            .map((it: any, i: number) => {
+              const detailsText = it.details ? ` (${it.details})` : "";
+              return `${i + 1}. ${it.description}${detailsText} (${Number(it.amount).toLocaleString()} ر.س)`;
+            })
             .join(" | ");
         }
       } catch {}
@@ -907,7 +933,9 @@ export const custodyRouter = router({
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-    // البحث عن العهد غير المصفاة وغير المرفوضة للموظف
+    // البحث عن العهد النشطة التي تمنع تقديم عهدة ثانية إلا باستثناء:
+    // 1) العهدة ما زالت قيد اعتماد المدير التنفيذي (pending_executive)
+    // 2) أو العهدة تحولت لأمر صرف وما زال أمر الصرف قيد الاعتماد (pending أو pending_executive)
     const activeCustodies = await db
       .select({
         id: custodyRequests.id,
@@ -916,13 +944,28 @@ export const custodyRouter = router({
         amount: custodyRequests.amount,
         status: custodyRequests.status,
         createdAt: custodyRequests.createdAt,
+        disbursementOrderId: custodyRequests.disbursementOrderId,
+        disbursementOrderNumber: custodyRequests.disbursementOrderNumber,
+        disbursementOrderStatus: disbursementOrders.status,
       })
       .from(custodyRequests)
+      .leftJoin(disbursementOrders, eq(custodyRequests.disbursementOrderId, disbursementOrders.id))
       .where(
         and(
           eq(custodyRequests.userId, ctx.user.id),
           ne(custodyRequests.status, "rejected"),
-          eq(custodyRequests.isSettled, false)
+          or(
+            // حالة 1: لسا العهدة غير معتمدة من المدير التنفيذي
+            eq(custodyRequests.status, "pending_executive"),
+            // حالة 2: حالة أمر الصرف المرتبط "قيد الاعتماد"
+            and(
+              sql`${custodyRequests.disbursementOrderId} IS NOT NULL`,
+              or(
+                eq(disbursementOrders.status, "pending"),
+                eq(disbursementOrders.status, "pending_executive")
+              )
+            )
+          )
         )
       )
       .orderBy(desc(custodyRequests.createdAt));

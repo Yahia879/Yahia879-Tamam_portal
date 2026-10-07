@@ -76,15 +76,15 @@ export default function NewCustodyRequest() {
 
   // نموذج الطلب
   const [title, setTitle] = useState("");
-  const [items, setItems] = useState<Array<{ id: string; description: string; amount: string }>>([
-    { id: "1", description: "", amount: "" },
+  const [items, setItems] = useState<Array<{ id: string; description: string; details: string; amount: string }>>([
+    { id: "1", description: "", details: "", amount: "" },
   ]);
 
   // إضافة وحذف وتعديل البنود
   const handleAddItem = () => {
     setItems((prev) => [
       ...prev,
-      { id: Date.now().toString() + Math.random().toString(36).slice(2, 6), description: "", amount: "" },
+      { id: Date.now().toString() + Math.random().toString(36).slice(2, 6), description: "", details: "", amount: "" },
     ]);
   };
 
@@ -96,7 +96,7 @@ export default function NewCustodyRequest() {
     setItems((prev) => prev.filter((it) => it.id !== id));
   };
 
-  const handleItemChange = (id: string, field: "description" | "amount", value: string) => {
+  const handleItemChange = (id: string, field: "description" | "details" | "amount", value: string) => {
     setItems((prev) =>
       prev.map((it) => (it.id === id ? { ...it, [field]: value } : it))
     );
@@ -188,12 +188,16 @@ export default function NewCustodyRequest() {
 
     const cleanItems = items.map((it) => ({
       description: it.description.trim(),
+      details: it.details ? it.details.trim() : "",
       amount: parseFloat(it.amount) || 0,
     }));
 
     if (hasActiveCustody && !hasApprovedException) {
+      const reasonMsg = activeCustody?.status === "pending_executive"
+        ? "لأن طلب العهدة السابقة ما زال بانتظار اعتماد المدير التنفيذي"
+        : "لأن أمر الصرف المرتبط بالعهدة السابقة ما زال قيد الاعتماد";
       toast.error(
-        `لا يمكن تقديم طلب جديد لوجود عهدة مالية سابقة قائمة برقم (${activeCustody?.requestNumber || ""}). يمكنكم تقديم طلب استثناء للمدير التنفيذي.`
+        `لا يمكن تقديم طلب عهدة جديد (${reasonMsg}) برقم (${activeCustody?.requestNumber || ""}). يمكنكم تقديم طلب استثناء للمدير التنفيذي.`
       );
       return;
     }
@@ -251,11 +255,11 @@ export default function NewCustodyRequest() {
                     تنبيه: توجد عهدة مالية سابقة قائمة ({activeCustody?.requestNumber})
                   </h3>
                   <Badge variant="outline" className="text-[10px] font-bold border-amber-400/50 bg-amber-500/10 text-amber-800 dark:text-amber-300">
-                    عهدة قائمة
+                    {activeCustody?.status === "pending_executive" ? "بانتظار اعتماد المدير التنفيذي" : "أمر الصرف قيد الاعتماد"}
                   </Badge>
                 </div>
                 <p className="text-[11px] sm:text-xs text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
-                  قيمة العهدة السابقة <span className="font-bold text-amber-950 dark:text-amber-100">{Number(activeCustody?.amount || 0).toLocaleString()} ر.س</span>. تنص اللائحة على عدم إمكانية طلب عهدة جديدة بوجود عهدة سابقة، أو يمكنكم رفع طلب استثناء لاعتماده من المدير التنفيذي (من قسم الإجراءات بالأسفل).
+                  قيمة العهدة السابقة <span className="font-bold text-amber-950 dark:text-amber-100">{Number(activeCustody?.amount || 0).toLocaleString()} ر.س</span> {activeCustody?.status === "pending_executive" ? "(ما زالت بانتظار اعتماد المدير التنفيذي)" : "(أمر الصرف المرتبط بها قيد الاعتماد)"}. تنص اللائحة على عدم إمكانية تقديم طلب عهدة جديدة في هذه الحالة إلا برفع طلب استثناء لاعتماده من المدير التنفيذي (من قسم الإجراءات بالأسفل).
                 </p>
               </div>
             </div>
@@ -446,8 +450,8 @@ export default function NewCustodyRequest() {
                       <thead>
                         <tr className="bg-muted/50 border-b border-border/60 text-muted-foreground font-semibold">
                           <th className="py-2.5 px-3 w-12 text-center font-bold">#</th>
-                          <th className="py-2.5 px-3 min-w-[240px]">
-                            بيان البند وأسباب الاحتياج <span className="text-rose-500">*</span>
+                          <th className="py-2.5 px-3 min-w-[260px]">
+                            اسم الصنف والمواصفات <span className="text-rose-500">*</span>
                           </th>
                           <th className="py-2.5 px-3 w-36 sm:w-44 text-right">
                             المبلغ المطلوب (ر.س) <span className="text-rose-500">*</span>
@@ -458,19 +462,28 @@ export default function NewCustodyRequest() {
                       <tbody className="divide-y divide-border/40">
                         {items.map((item, index) => (
                           <tr key={item.id} className="hover:bg-muted/20 transition-colors">
-                            <td className="py-2 px-3 text-center font-mono font-bold text-muted-foreground">
+                            <td className="py-2.5 px-3 text-center font-mono font-bold text-muted-foreground align-top pt-3.5">
                               {index + 1}
                             </td>
-                            <td className="p-2">
-                              <Input
-                                value={item.description}
-                                onChange={(e) => handleItemChange(item.id, "description", e.target.value)}
-                                placeholder="اكتب بيان البند أو سبب الاحتياج للصرف..."
-                                className="h-9 rounded-lg border-border/70 text-xs sm:text-sm bg-background"
-                                required
-                              />
+                            <td className="p-2.5 align-top">
+                              <div className="space-y-1.5">
+                                <Input
+                                  value={item.description}
+                                  onChange={(e) => handleItemChange(item.id, "description", e.target.value)}
+                                  placeholder="اكتب بيان البند أو اسم الصنف..."
+                                  className="h-8.5 rounded-lg border-border/70 text-xs sm:text-sm bg-background font-medium"
+                                  required
+                                />
+                                <Textarea
+                                  value={item.details || ""}
+                                  onChange={(e) => handleItemChange(item.id, "details", e.target.value)}
+                                  placeholder="اكتب مواصفات أو تفاصيل إضافية للصنف (اختياري)..."
+                                  rows={1}
+                                  className="text-xs min-h-[36px] max-h-[90px] resize-y bg-muted/20 focus:bg-background border-input/80 py-1.5 px-2.5 leading-relaxed rounded-md transition-colors"
+                                />
+                              </div>
                             </td>
-                            <td className="p-2">
+                            <td className="p-2.5 align-top pt-2.5">
                               <div className="relative">
                                 <Input
                                   type="number"
@@ -480,7 +493,7 @@ export default function NewCustodyRequest() {
                                   onChange={(e) => handleItemChange(item.id, "amount", e.target.value)}
                                   placeholder="0.00"
                                   dir="ltr"
-                                  className="h-9 rounded-lg border-border/70 text-xs sm:text-sm font-bold font-mono pl-10 pr-2.5 text-right bg-background focus:ring-primary/20"
+                                  className="h-8.5 rounded-lg border-border/70 text-xs sm:text-sm font-bold font-mono pl-10 pr-2.5 text-right bg-background focus:ring-primary/20"
                                   required
                                 />
                                 <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-muted-foreground pointer-events-none select-none">
@@ -488,7 +501,7 @@ export default function NewCustodyRequest() {
                                 </div>
                               </div>
                             </td>
-                            <td className="py-2 px-2 text-center">
+                            <td className="py-2.5 px-2 text-center align-top pt-2.5">
                               <Button
                                 type="button"
                                 variant="ghost"

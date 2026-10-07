@@ -166,13 +166,14 @@ export default function CustodyRequestPrint() {
   }
 
   // تحليل البنود التفصيلية إذا كانت مخزنة كـ JSON
-  let parsedItems: Array<{ description: string; amount: number }> | null = null;
+  let parsedItems: Array<{ description: string; details?: string; amount: number }> | null = null;
   if (request.description) {
     try {
       const parsed = JSON.parse(request.description);
       if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === "object") {
         parsedItems = parsed.map((item: any) => ({
           description: String(item.description || ""),
+          details: item.details ? String(item.details) : undefined,
           amount: parseFloat(item.amount) || 0,
         }));
       }
@@ -450,7 +451,12 @@ export default function CustodyRequestPrint() {
                               {idx + 1}
                             </td>
                             <td className="p-1.5 sm:p-2 text-gray-800 font-medium border-l border-gray-200 leading-relaxed whitespace-pre-wrap break-words">
-                              {item.description}
+                              <div>{item.description}</div>
+                              {item.details && (
+                                <div className="text-[10px] text-gray-500 font-normal mt-0.5 whitespace-pre-wrap">
+                                  {item.details}
+                                </div>
+                              )}
                             </td>
                             <td className="p-1.5 sm:p-2 text-center font-mono font-bold text-emerald-800 whitespace-nowrap">
                               <span className="inline-flex items-center justify-center gap-1">
