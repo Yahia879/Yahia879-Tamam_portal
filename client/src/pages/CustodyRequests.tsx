@@ -56,6 +56,18 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+function formatEnglishDate(dateInput: any): string {
+  if (!dateInput) return "—";
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return "—";
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = d.toLocaleString("en-US", { month: "short" });
+  const year = d.getFullYear();
+  const hours = String(d.getHours()).padStart(2, "0");
+  const mins = String(d.getMinutes()).padStart(2, "0");
+  return `${day} ${month} ${year}, ${hours}:${mins}`;
+}
+
 export default function CustodyRequests() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -143,6 +155,7 @@ export default function CustodyRequests() {
   const [exceptionActionType, setExceptionActionType] = useState<"approve" | "reject">("approve");
   const [confirmExceptionDialogOpen, setConfirmExceptionDialogOpen] = useState(false);
   const [exceptionFilter, setExceptionFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [viewReasonException, setViewReasonException] = useState<any>(null);
 
   const { data: pendingActionCounts } = trpc.custody.getPendingActionCounts.useQuery();
   const { data: exceptionsData, isLoading: isLoadingExceptions } = trpc.custody.getExceptions.useQuery(
@@ -370,12 +383,16 @@ export default function CustodyRequests() {
             <Card className="rounded-2xl border-border/70 shadow-xs bg-card">
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <p className="text-xs sm:text-sm text-foreground/80 font-medium text-right flex-1">
+                    طلبات الاستثناء المرفوعة من الموظفين لصرف عهدة جديدة لوجود عهدة سابقة قائمة
+                  </p>
+
                   <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
                     <Button
                       size="sm"
                       variant={exceptionFilter === "all" ? "default" : "outline"}
                       onClick={() => setExceptionFilter("all")}
-                      className={`rounded-xl text-xs font-bold h-9 px-3 ${
+                      className={`rounded-xl text-xs font-bold h-9 px-3 cursor-pointer ${
                         exceptionFilter === "all" ? "gradient-primary text-white" : ""
                       }`}
                     >
@@ -385,7 +402,7 @@ export default function CustodyRequests() {
                       size="sm"
                       variant={exceptionFilter === "pending" ? "default" : "outline"}
                       onClick={() => setExceptionFilter("pending")}
-                      className={`rounded-xl text-xs font-bold h-9 px-3 ${
+                      className={`rounded-xl text-xs font-bold h-9 px-3 cursor-pointer ${
                         exceptionFilter === "pending" ? "bg-amber-600 text-white" : ""
                       }`}
                     >
@@ -395,7 +412,7 @@ export default function CustodyRequests() {
                       size="sm"
                       variant={exceptionFilter === "approved" ? "default" : "outline"}
                       onClick={() => setExceptionFilter("approved")}
-                      className={`rounded-xl text-xs font-bold h-9 px-3 ${
+                      className={`rounded-xl text-xs font-bold h-9 px-3 cursor-pointer ${
                         exceptionFilter === "approved" ? "bg-emerald-600 text-white" : ""
                       }`}
                     >
@@ -405,17 +422,13 @@ export default function CustodyRequests() {
                       size="sm"
                       variant={exceptionFilter === "rejected" ? "default" : "outline"}
                       onClick={() => setExceptionFilter("rejected")}
-                      className={`rounded-xl text-xs font-bold h-9 px-3 ${
+                      className={`rounded-xl text-xs font-bold h-9 px-3 cursor-pointer ${
                         exceptionFilter === "rejected" ? "bg-rose-600 text-white" : ""
                       }`}
                     >
                       مرفوضة
                     </Button>
                   </div>
-
-                  <p className="text-xs text-muted-foreground font-medium">
-                    طلبات الاستثناء المرفوعة من الموظفين لصرف عهدة جديدة لوجود عهدة سابقة قائمة
-                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -460,7 +473,7 @@ export default function CustodyRequests() {
                           <TableHead className="font-bold">مقدم الطلب</TableHead>
                           <TableHead className="font-bold">العهدة السابقة</TableHead>
                           <TableHead className="font-bold">تاريخ الطلب</TableHead>
-                          <TableHead className="font-bold max-w-[260px]">مبررات الاستثناء</TableHead>
+                          <TableHead className="font-bold max-w-[280px]">مبررات الاستثناء</TableHead>
                           <TableHead className="font-bold text-center">الحالة</TableHead>
                           <TableHead className="text-center font-bold">الإجراءات</TableHead>
                         </TableRow>
@@ -468,50 +481,70 @@ export default function CustodyRequests() {
                       <TableBody>
                         {exceptionsData.items.map((ex: any) => {
                           const isPending = ex.status === "pending";
+                          const isReasonLong = (ex.reason || "").length > 45;
                           return (
                             <TableRow key={ex.id} className="hover:bg-muted/30">
+                              {/* مقدم الطلب (بدون الإيميل) */}
                               <TableCell>
-                                <div className="space-y-0.5">
-                                  <span className="text-xs font-bold text-foreground block">
-                                    {ex.applicantName || "موظف"}
-                                  </span>
-                                  <span className="text-[11px] text-muted-foreground font-mono">
-                                    {ex.applicantEmail}
-                                  </span>
-                                </div>
+                                <span className="text-xs font-bold text-foreground block">
+                                  {ex.applicantName || "موظف"}
+                                </span>
                               </TableCell>
 
+                              {/* العهدة السابقة: فقط رقم العهدة وقابل للضغط لفتح التقرير */}
                               <TableCell>
-                                <div className="space-y-0.5">
-                                  <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-primary">
+                                {ex.activeCustodyId ? (
+                                  <Link
+                                    href={`/custody-requests/${ex.activeCustodyId}/print`}
+                                    target="_blank"
+                                    className="inline-flex items-center gap-1 font-mono text-xs font-bold text-primary hover:underline hover:text-primary/80 transition-colors"
+                                    title="معاينة تقرير العهدة السابقة"
+                                  >
                                     <span>{ex.activeCustodyNumber || `#${ex.activeCustodyId}`}</span>
-                                  </div>
-                                  <p className="text-[11px] text-muted-foreground truncate max-w-[180px]">
-                                    {ex.activeCustodyTitle || "عهدة مالية"}
-                                  </p>
-                                  <div className="text-[11px] font-bold text-foreground flex items-center gap-1">
-                                    <span>{Number(ex.activeCustodyAmount || 0).toLocaleString()}</span>
-                                    <SaudiRiyal className="w-3 h-3 inline" />
-                                  </div>
-                                </div>
-                              </TableCell>
-
-                              <TableCell className="font-mono text-xs text-muted-foreground">
-                                {ex.createdAt ? new Date(ex.createdAt).toLocaleDateString("ar-SA") : "—"}
-                              </TableCell>
-
-                              <TableCell className="max-w-[260px]">
-                                <p className="text-xs text-foreground/90 leading-relaxed line-clamp-2" title={ex.reason}>
-                                  {ex.reason}
-                                </p>
-                                {ex.reviewNotes && (
-                                  <p className="text-[11px] text-muted-foreground mt-1 pt-1 border-t border-border/50">
-                                    <span className="font-semibold text-foreground">القرار: </span>
-                                    {ex.reviewNotes}
-                                  </p>
+                                    <ArrowUpRight className="w-3 h-3 text-muted-foreground" />
+                                  </Link>
+                                ) : (
+                                  <span className="font-mono text-xs font-bold text-muted-foreground">
+                                    {ex.activeCustodyNumber || "—"}
+                                  </span>
                                 )}
                               </TableCell>
 
+                              {/* تاريخ الطلب: أوضح وبالإنجليزي */}
+                              <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap" dir="ltr">
+                                {formatEnglishDate(ex.createdAt)}
+                              </TableCell>
+
+                              {/* مبررات الاستثناء: تختصر مع أيقونة عين لعرض كامل المبررات */}
+                              <TableCell className="max-w-[280px]">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="text-xs text-foreground/90 leading-relaxed flex-1 truncate" title={ex.reason}>
+                                      {ex.reason}
+                                    </p>
+                                    {isReasonLong && (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setViewReasonException(ex)}
+                                        className="h-6 w-6 rounded-md hover:bg-muted text-primary hover:text-primary shrink-0 cursor-pointer"
+                                        title="عرض كامل مبررات الاستثناء"
+                                      >
+                                        <Eye className="w-3.5 h-3.5" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                  {ex.reviewNotes && (
+                                    <p className="text-[11px] text-muted-foreground mt-1 pt-1 border-t border-border/50">
+                                      <span className="font-semibold text-foreground">القرار: </span>
+                                      {ex.reviewNotes}
+                                    </p>
+                                  )}
+                                </div>
+                              </TableCell>
+
+                              {/* الحالة */}
                               <TableCell className="text-center">
                                 <div className="flex flex-col items-center gap-1">
                                   <Badge
@@ -534,24 +567,10 @@ export default function CustodyRequests() {
                                 </div>
                               </TableCell>
 
+                              {/* الإجراءات: تظهر فقط للمدير التنفيذي */}
                               <TableCell>
                                 <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                                  {/* معاينة العهدة */}
-                                  {ex.activeCustodyId && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => setLocation(`/custody-requests/${ex.activeCustodyId}`)}
-                                      className="h-8 px-2.5 rounded-lg text-xs gap-1 font-semibold hover:bg-muted/80"
-                                      title="معاينة العهدة المرتبطة"
-                                    >
-                                      <Printer className="w-3.5 h-3.5 text-primary" />
-                                      <span>العهدة</span>
-                                    </Button>
-                                  )}
-
-                                  {/* أزرار اعتماد / رفض الاستثناء ضمن عمود الإجراءات */}
-                                  {isPending && (isExecutiveDirector || isSuperAdmin) && (
+                                  {isPending && isExecutiveDirector ? (
                                     <>
                                       <Button
                                         size="sm"
@@ -561,7 +580,7 @@ export default function CustodyRequests() {
                                           setExceptionActionNotes("");
                                           setConfirmExceptionDialogOpen(true);
                                         }}
-                                        className="h-8 px-2.5 rounded-lg text-xs gap-1 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                                        className="h-8 px-2.5 rounded-lg text-xs gap-1 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
                                         title="اعتماد هذا الاستثناء"
                                       >
                                         <CheckCircle className="w-3.5 h-3.5" />
@@ -577,13 +596,21 @@ export default function CustodyRequests() {
                                           setExceptionActionNotes("");
                                           setConfirmExceptionDialogOpen(true);
                                         }}
-                                        className="h-8 px-2.5 rounded-lg text-xs gap-1 font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 border-rose-200"
+                                        className="h-8 px-2.5 rounded-lg text-xs gap-1 font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 border-rose-200 cursor-pointer"
                                         title="رفض هذا الاستثناء"
                                       >
                                         <XCircle className="w-3.5 h-3.5" />
                                         <span>رفض</span>
                                       </Button>
                                     </>
+                                  ) : (
+                                    <span className="text-[11px] text-muted-foreground">
+                                      {ex.status === "approved"
+                                        ? "معتمد"
+                                        : ex.status === "rejected"
+                                        ? "مرفوض"
+                                        : "—"}
+                                    </span>
                                   )}
                                 </div>
                               </TableCell>
@@ -1189,6 +1216,74 @@ export default function CustodyRequests() {
                   <XCircle className="w-4 h-4" />
                 )}
                 <span>{exceptionActionType === "approve" ? "تأكيد الاعتماد" : "تأكيد الرفض"}</span>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* حوار عرض كامل مبررات الاستثناء */}
+        <Dialog open={!!viewReasonException} onOpenChange={(open) => !open && setViewReasonException(null)}>
+          <DialogContent className="max-w-lg rounded-2xl" dir="rtl">
+            <DialogHeader className="text-right sm:text-right">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <DialogTitle className="text-base font-bold text-foreground">
+                  تفاصيل مبررات طلب الاستثناء
+                </DialogTitle>
+              </div>
+              <DialogDescription className="text-xs text-muted-foreground pt-0.5">
+                المبررات الكاملة المرفوعة لطلب استثناء صرف عهدة مالية جديدة
+              </DialogDescription>
+            </DialogHeader>
+
+            {viewReasonException && (
+              <div className="space-y-3 py-2 text-xs">
+                <div className="p-3 rounded-xl bg-muted/50 border border-border/70 space-y-1.5">
+                  <div className="flex justify-between items-center text-muted-foreground">
+                    <span className="font-semibold text-foreground">مقدم الطلب:</span>
+                    <span className="font-bold text-foreground">{viewReasonException.applicantName || "موظف"}</span>
+                  </div>
+                  {viewReasonException.activeCustodyNumber && (
+                    <div className="flex justify-between items-center text-muted-foreground">
+                      <span className="font-semibold text-foreground">العهدة السابقة:</span>
+                      <span className="font-mono font-bold text-primary">{viewReasonException.activeCustodyNumber}</span>
+                    </div>
+                  )}
+                  {viewReasonException.createdAt && (
+                    <div className="flex justify-between items-center text-muted-foreground">
+                      <span className="font-semibold text-foreground">تاريخ التقديم:</span>
+                      <span className="font-mono" dir="ltr">{formatEnglishDate(viewReasonException.createdAt)}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-foreground">مبررات الاستثناء كاملة:</Label>
+                  <div className="p-3.5 rounded-xl bg-background border border-border/70 text-xs sm:text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap max-h-[300px] overflow-y-auto">
+                    {viewReasonException.reason}
+                  </div>
+                </div>
+
+                {viewReasonException.reviewNotes && (
+                  <div className="space-y-1 pt-1 border-t border-border/50">
+                    <Label className="text-xs font-bold text-foreground">ملاحظات وقرار المراجعة:</Label>
+                    <p className="p-2.5 rounded-lg bg-muted/40 text-xs text-muted-foreground leading-relaxed">
+                      {viewReasonException.reviewNotes}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <DialogFooter className="flex justify-start">
+              <Button
+                variant="outline"
+                onClick={() => setViewReasonException(null)}
+                className="rounded-xl text-xs h-9 px-4"
+              >
+                إغلاق
               </Button>
             </DialogFooter>
           </DialogContent>
