@@ -60,12 +60,12 @@ function formatEnglishDate(dateInput: any): string {
   if (!dateInput) return "—";
   const d = new Date(dateInput);
   if (isNaN(d.getTime())) return "—";
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = d.toLocaleString("en-US", { month: "short" });
+  const day = d.getDate();
+  const month = d.getMonth() + 1;
   const year = d.getFullYear();
   const hours = String(d.getHours()).padStart(2, "0");
   const mins = String(d.getMinutes()).padStart(2, "0");
-  return `${day} ${month} ${year}, ${hours}:${mins}`;
+  return `${year}/${month}/${day} ${hours}:${mins}`;
 }
 
 export default function CustodyRequests() {
@@ -472,8 +472,8 @@ export default function CustodyRequests() {
                         <TableRow className="bg-muted/40 hover:bg-muted/40">
                           <TableHead className="font-bold">مقدم الطلب</TableHead>
                           <TableHead className="font-bold">العهدة السابقة</TableHead>
-                          <TableHead className="font-bold">تاريخ الطلب</TableHead>
-                          <TableHead className="font-bold max-w-[280px]">مبررات الاستثناء</TableHead>
+                          <TableHead className="font-bold whitespace-nowrap min-w-[150px]">تاريخ الطلب</TableHead>
+                          <TableHead className="font-bold min-w-[220px] max-w-[320px] px-4">مبررات الاستثناء</TableHead>
                           <TableHead className="font-bold text-center">الحالة</TableHead>
                           <TableHead className="text-center font-bold">الإجراءات</TableHead>
                         </TableRow>
@@ -511,12 +511,14 @@ export default function CustodyRequests() {
                               </TableCell>
 
                               {/* تاريخ الطلب: أوضح وبالإنجليزي */}
-                              <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap" dir="ltr">
-                                {formatEnglishDate(ex.createdAt)}
+                              <TableCell className="whitespace-nowrap min-w-[150px]">
+                                <span dir="ltr" className="font-mono text-xs text-muted-foreground inline-block">
+                                  {formatEnglishDate(ex.createdAt)}
+                                </span>
                               </TableCell>
 
                               {/* مبررات الاستثناء: تختصر مع أيقونة عين لعرض كامل المبررات */}
-                              <TableCell className="max-w-[280px]">
+                              <TableCell className="min-w-[220px] max-w-[320px] px-4">
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-1.5">
                                     <p className="text-xs text-foreground/90 leading-relaxed flex-1 truncate" title={ex.reason}>
@@ -953,32 +955,6 @@ export default function CustodyRequests() {
                               <span>التقرير</span>
                             </Button>
 
-                            {/* زر مراجعة الاستثناء ضمن عمود الإجراءات في حال وجود استثناء معلق لهذه العهدة */}
-                            {Boolean((req as any).pendingException) && (isExecutiveDirector || isSuperAdmin) && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedException({
-                                    id: (req as any).pendingException.id,
-                                    applicantName: req.applicantName,
-                                    reason: (req as any).pendingException.reason,
-                                    activeCustodyNumber: req.requestNumber,
-                                    activeCustodyTitle: req.title,
-                                    activeCustodyAmount: req.amount,
-                                  });
-                                  setExceptionActionType("approve");
-                                  setExceptionActionNotes("");
-                                  setConfirmExceptionDialogOpen(true);
-                                }}
-                                className="h-8 px-2.5 rounded-lg text-xs gap-1 font-bold text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 bg-amber-50/90 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40"
-                                title="يوجد طلب استثناء معلق لهذه العهدة - اضغط للبت فيه"
-                              >
-                                <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-                                <span>طلب استثناء</span>
-                              </Button>
-                            )}
-
                             {canApprove && req.status === "pending_executive" && (
                               <>
                                 <Button
@@ -1095,17 +1071,25 @@ export default function CustodyRequests() {
 
         {/* حوار تأكيد اعتماد/رفض الاستثناء */}
         <Dialog open={confirmExceptionDialogOpen} onOpenChange={setConfirmExceptionDialogOpen}>
-          <DialogContent className="max-w-md rounded-2xl" dir="rtl">
-            <DialogHeader className="text-right">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center font-bold">
-                  <ShieldAlert className="w-5 h-5" />
+          <DialogContent className="max-w-md rounded-2xl text-right" dir="rtl">
+            <DialogHeader className="text-right sm:text-right">
+              <div className="flex items-start gap-3 text-right">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                  exceptionActionType === "approve"
+                    ? "bg-emerald-500/15 text-emerald-600"
+                    : "bg-rose-500/15 text-rose-600"
+                }`}>
+                  {exceptionActionType === "approve" ? (
+                    <CheckCircle className="w-5 h-5" />
+                  ) : (
+                    <ShieldAlert className="w-5 h-5" />
+                  )}
                 </div>
-                <div>
-                  <DialogTitle className="text-base font-bold text-foreground">
+                <div className="space-y-1 text-right flex-1">
+                  <DialogTitle className="text-base font-bold text-foreground text-right">
                     {exceptionActionType === "approve" ? "اعتماد طلب استثناء العهدة" : "رفض طلب استثناء العهدة"}
                   </DialogTitle>
-                  <DialogDescription className="text-xs text-muted-foreground pt-0.5">
+                  <DialogDescription className="text-xs text-muted-foreground text-right leading-relaxed">
                     {exceptionActionType === "approve"
                       ? "سيتمكن الموظف من رفع طلب عهدة جديدة استثناءً فور اعتماد هذا الطلب."
                       : "يرجى توضيح سبب رفض الاستثناء ليتم إشعار الموظف به."}
@@ -1115,7 +1099,7 @@ export default function CustodyRequests() {
             </DialogHeader>
 
             {selectedException && (
-              <div className="p-3 rounded-xl bg-muted/60 border border-border/70 text-xs space-y-1.5 my-1">
+              <div className="p-3.5 rounded-xl bg-muted/60 border border-border/70 text-xs space-y-2 my-1 text-right">
                 {selectedException.applicantName && (
                   <div className="flex justify-between items-center text-muted-foreground">
                     <span>الموظف:</span>
@@ -1129,9 +1113,9 @@ export default function CustodyRequests() {
                   </div>
                 )}
                 {selectedException.reason && (
-                  <div className="text-muted-foreground pt-1 border-t border-border/50">
-                    <span className="font-semibold block mb-0.5 text-foreground">مبررات الاستثناء:</span>
-                    <span className="text-foreground/90 leading-relaxed font-sans">{selectedException.reason}</span>
+                  <div className="text-muted-foreground pt-1.5 border-t border-border/50 text-right">
+                    <span className="font-semibold block mb-1 text-foreground text-right">مبررات الاستثناء:</span>
+                    <span className="text-foreground/90 leading-relaxed font-sans block text-right">{selectedException.reason}</span>
                   </div>
                 )}
               </div>
@@ -1164,24 +1148,24 @@ export default function CustodyRequests() {
               </Button>
             </div>
 
-            <div className="space-y-2 py-2">
-              <Label className="text-xs font-semibold">
-                {exceptionActionType === "approve" ? "ملاحظات الاعتماد (اختياري)" : "سبب الرفض *"}
-              </Label>
-              <Textarea
-                value={exceptionActionNotes}
-                onChange={(e) => setExceptionActionNotes(e.target.value)}
-                placeholder={
-                  exceptionActionType === "approve"
-                    ? "أضف أي توجيهات للموظف بخصوص تصفية العهد..."
-                    : "اكتب سبب رفض منح الاستثناء..."
-                }
-                rows={3}
-                className="text-xs rounded-xl bg-background resize-none border-border/70"
-              />
-            </div>
+            {/* إظهار الملاحظات فقط في حالة الرفض */}
+            {exceptionActionType === "reject" && (
+              <div className="space-y-1.5 py-1 text-right">
+                <Label className="text-xs font-semibold block text-right">
+                  سبب الرفض *
+                </Label>
+                <Textarea
+                  value={exceptionActionNotes}
+                  onChange={(e) => setExceptionActionNotes(e.target.value)}
+                  placeholder="اكتب سبب رفض منح الاستثناء..."
+                  rows={3}
+                  className="text-xs rounded-xl bg-background resize-none border-border/70 text-right"
+                  dir="rtl"
+                />
+              </div>
+            )}
 
-            <DialogFooter className="gap-2 sm:gap-0">
+            <DialogFooter className="gap-2 sm:gap-2 pt-2">
               <Button
                 variant="outline"
                 onClick={() => setConfirmExceptionDialogOpen(false)}
@@ -1199,7 +1183,7 @@ export default function CustodyRequests() {
                   reviewExceptionMutation.mutate({
                     id: selectedException.id,
                     action: exceptionActionType,
-                    notes: exceptionActionNotes.trim() || undefined,
+                    notes: exceptionActionType === "reject" ? exceptionActionNotes.trim() : undefined,
                   });
                 }}
                 className={`rounded-xl text-xs h-9 font-bold gap-1.5 text-white ${
