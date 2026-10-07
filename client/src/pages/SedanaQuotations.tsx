@@ -18,6 +18,7 @@ import {
   X,
   Calendar,
   Building2,
+  RefreshCw,
   ArrowRight,
   ArrowLeft,
   CheckCircle2,
@@ -270,6 +271,18 @@ export default function SedanaQuotations() {
                       التقييم المالي واعتماد العرض
                     </Badge>
                   </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-start sm:self-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground font-medium"
+                    onClick={handleClearSelection}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>تغيير الطلب</span>
+                  </Button>
                 </div>
               </div>
             </div>
