@@ -102,14 +102,20 @@ interface QuotationItem {
   totalPrice: number;
 }
 
-export default function Quotations() {
+export interface QuotationsViewProps {
+  requestId?: number;
+  isEmbedded?: boolean;
+  onBack?: () => void;
+}
+
+export function QuotationsView({ requestId: propRequestId, isEmbedded = false, onBack }: QuotationsViewProps = {}) {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
 
-  // قراءة requestId من query parameter
+  // قراءة requestId من query parameter أو من props
   const urlParams = new URLSearchParams(window.location.search);
-  const requestIdFromUrl = urlParams.get('requestId');
+  const requestIdFromUrl = propRequestId ? String(propRequestId) : urlParams.get('requestId');
 
   // حماية الصفحة - منع طالب الخدمة من الوصول
   if (user?.role === "service_requester") {
@@ -143,6 +149,22 @@ export default function Quotations() {
   const [selectedRequestId, setSelectedRequestId] = useState<string>(requestIdFromUrl || "");
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
   const [includeUnapproved, setIncludeUnapproved] = useState(true);
+
+  useEffect(() => {
+    if (propRequestId) {
+      setSelectedRequestId(String(propRequestId));
+    }
+  }, [propRequestId]);
+
+  // إذا تم فتح صفحة /quotations مع from=sedana-quotations نحوله إلى /sedana-quotations ليبقى بنفس الصفحة
+  useEffect(() => {
+    if (!isEmbedded) {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("from") === "sedana-quotations" && requestIdFromUrl) {
+        navigate(`/sedana-quotations?requestId=${requestIdFromUrl}`);
+      }
+    }
+  }, [isEmbedded, requestIdFromUrl, navigate]);
   
   // حالة نافذة اختيار المورد لتحميل قالب التسعير
   const [showDownloadTemplateDialog, setShowDownloadTemplateDialog] = useState(false);
@@ -1813,24 +1835,25 @@ export default function Quotations() {
     }
   };
 
-  return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        {/* العنوان */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">عروض الأسعار</h1>
-            <p className="text-muted-foreground">إدارة عروض الأسعار من الموردين</p>
+  const mainContent = (
+    <div className="space-y-6">
+      {!isEmbedded && (
+        <>
+          {/* العنوان */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">عروض الأسعار</h1>
+              <p className="text-muted-foreground">إدارة عروض الأسعار من الموردين</p>
+            </div>
           </div>
-        </div>
 
-        {/* قائمة الطلبات في مرحلة التقييم المالي */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              الطلبات في مرحلة التقييم المالي
-            </CardTitle>
+          {/* قائمة الطلبات في مرحلة التقييم المالي */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                الطلبات في مرحلة التقييم المالي
+              </CardTitle>
             <CardDescription>اختر الطلب لعرض جدول الكميات وعروض الأسعار</CardDescription>
           </CardHeader>
           <CardContent>
@@ -1947,6 +1970,8 @@ export default function Quotations() {
             )}
           </CardContent>
         </Card>
+      </>
+    )}
 
         {/* عرض جدول الكميات وتحديد الموردين للطلب المحدد */}
         {selectedRequestId && (
@@ -3699,6 +3724,19 @@ export default function Quotations() {
           />
         )}
       </div>
+    );
+
+  if (isEmbedded) {
+    return mainContent;
+  }
+
+  return (
+    <DashboardLayout>
+      {mainContent}
     </DashboardLayout>
   );
+}
+
+export default function Quotations() {
+  return <QuotationsView isEmbedded={false} />;
 }

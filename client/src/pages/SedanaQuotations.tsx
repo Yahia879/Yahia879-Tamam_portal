@@ -19,31 +19,42 @@ import {
   Calendar,
   Building2,
   RefreshCw,
+  ArrowRight,
   ArrowLeft,
   CheckCircle2,
   Clock,
   AlertCircle,
-  TrendingUp,
 } from "lucide-react";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { trpc } from "@/lib/trpc";
+import { QuotationsView } from "./Quotations";
 
 export default function SedanaQuotations() {
   useDocumentTitle("عروض أسعار سدانة");
 
   const [, navigate] = useLocation();
 
-  // فحص إذا كان هناك requestId في الرابط للتحويل المباشر لصفحة عروض الأسعار
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const reqId = urlParams.get("requestId");
-    if (reqId) {
-      navigate(`/quotations?requestId=${reqId}&from=sedana-quotations`);
-    }
-  }, [navigate]);
+  // قراءة المعاملات من الرابط (Query Parameters)
+  const getUrlParams = () => {
+    return new URLSearchParams(window.location.search);
+  };
 
+  const initialReqId = getUrlParams().get("requestId") || "";
+  const [selectedRequestId, setSelectedRequestId] = useState<string>(initialReqId);
   const [searchQuery, setSearchQuery] = useState("");
   const [contentFilter, setContentFilter] = useState("all");
+
+  // مزامنة حالة الرابط عند التنقل عبر أزرار المتصفح
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = getUrlParams();
+      const reqId = params.get("requestId") || "";
+      setSelectedRequestId(reqId);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   // جلب كافة طلبات النظام
   const { data: requestsData, isLoading: isRequestsLoading } =
@@ -157,6 +168,12 @@ export default function SedanaQuotations() {
     return { total, withQuotations, withApproved, pendingQuotations };
   }, [processedSedanaRequests]);
 
+  // الطلب النشط المحدد حالياً
+  const activeSelectedRequest = useMemo(() => {
+    if (!selectedRequestId) return null;
+    return processedSedanaRequests.find((r: any) => String(r.id) === selectedRequestId);
+  }, [processedSedanaRequests, selectedRequestId]);
+
   // تصفية الطلبات حسب البحث ونوع المحتوى
   const filteredRequests = useMemo(() => {
     return processedSedanaRequests.filter((req: any) => {
@@ -205,262 +222,329 @@ export default function SedanaQuotations() {
     }
   };
 
-  const handleSelectRequest = (requestId: string) => {
-    navigate(`/quotations?requestId=${requestId}&from=sedana-quotations`);
+  const handleSelectRequest = (id: string) => {
+    setSelectedRequestId(id);
+    navigate(`/sedana-quotations?requestId=${id}`);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedRequestId("");
+    navigate("/sedana-quotations");
   };
 
   return (
     <DashboardLayout>
       <div className="space-y-6" dir="rtl">
-        <div className="space-y-5">
-          {/* رأس الصفحة الرئيسي */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-border/70 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20 shadow-xs">
-                <Receipt className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
-                    عروض أسعار سدانة
-                  </h1>
-                  <Badge
+        {selectedRequestId ? (
+          <div className="space-y-5">
+            {/* قسم رأس الطلب المحدد المبسط والعودة للقائمة */}
+            <div className="bg-card rounded-xl border border-border/80 shadow-2xs p-3.5 sm:p-4 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <Button
                     variant="outline"
-                    className="text-xs font-bold px-2.5 py-0.5 border-primary/30 text-primary bg-primary/5"
+                    size="sm"
+                    onClick={handleClearSelection}
+                    className="gap-1.5 h-8 text-xs font-bold bg-background hover:bg-muted text-foreground shadow-2xs shrink-0"
                   >
-                    التقييم المالي واعتماد العرض
-                  </Badge>
+                    <ArrowRight className="w-3.5 h-3.5 text-primary" />
+                    <span>العودة إلى قائمة طلبات سدانة</span>
+                  </Button>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Building2 className="w-4 h-4 text-primary shrink-0" />
+                    <h2 className="text-base sm:text-lg font-bold text-foreground">
+                      {activeSelectedRequest
+                        ? activeSelectedRequest.mosqueDisplayName
+                        : `طلب رقم #${selectedRequestId}`}
+                    </h2>
+                    <Badge
+                      variant="secondary"
+                      className="font-mono text-xs px-2 py-0.5 bg-primary/10 text-primary border border-primary/20"
+                    >
+                      {activeSelectedRequest?.requestNumber || `REQ-${selectedRequestId}`}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className="text-xs px-2 py-0.5 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 font-bold"
+                    >
+                      التقييم المالي واعتماد العرض
+                    </Badge>
+                  </div>
                 </div>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                  طلبات سدانة في مرحلة التقييم المالي واعتماد العرض لإدارة عروض الأسعار والمقارنة والترسية
-                </p>
+
+                <div className="flex items-center gap-2 self-start sm:self-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground font-medium"
+                    onClick={handleClearSelection}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>تغيير الطلب</span>
+                  </Button>
+                </div>
               </div>
             </div>
+
+            {/* تفاصيل عروض الأسعار وجدول الكميات للطلب المحدد مباشرة */}
+            <QuotationsView
+              requestId={parseInt(selectedRequestId)}
+              isEmbedded={true}
+              onBack={handleClearSelection}
+            />
           </div>
-
-          {/* بطاقات الإحصائيات السريعة */}
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
-              <CardContent className="p-4 flex items-center justify-between">
+        ) : (
+          <div className="space-y-5">
+            {/* رأس الصفحة الرئيسي */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-border/70 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20 shadow-xs">
+                  <Receipt className="w-6 h-6" />
+                </div>
                 <div>
-                  <p className="text-[11px] font-semibold text-muted-foreground">طلبات التقييم المالي</p>
-                  <p className="text-xl sm:text-2xl font-extrabold text-foreground mt-1">
-                    {sedanaStats.total}
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
+                      عروض أسعار سدانة
+                    </h1>
+                    <Badge
+                      variant="outline"
+                      className="text-xs font-bold px-2.5 py-0.5 border-primary/30 text-primary bg-primary/5"
+                    >
+                      التقييم المالي واعتماد العرض
+                    </Badge>
+                  </div>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                    طلبات سدانة في مرحلة التقييم المالي واعتماد العرض لإدارة عروض الأسعار والمقارنة والترسية
                   </p>
                 </div>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10 text-primary border border-primary/20">
-                  <Building2 className="w-5 h-5" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] font-semibold text-muted-foreground">تتضمن عروض أسعار</p>
-                  <p className="text-xl sm:text-2xl font-extrabold text-sky-700 dark:text-sky-300 mt-1">
-                    {sedanaStats.withQuotations}
-                  </p>
-                </div>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-sky-50 dark:bg-sky-950/40 text-sky-600 border border-sky-200 dark:border-sky-900/60">
-                  <Receipt className="w-5 h-5" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] font-semibold text-muted-foreground">عروض أسعار معتمدة</p>
-                  <p className="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">
-                    {sedanaStats.withApproved}
-                  </p>
-                </div>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-900/60">
-                  <CheckCircle2 className="w-5 h-5" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] font-semibold text-muted-foreground">بانتظار عروض أسعار</p>
-                  <p className="text-xl sm:text-2xl font-extrabold text-amber-600 dark:text-amber-400 mt-1">
-                    {sedanaStats.pendingQuotations}
-                  </p>
-                </div>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/60">
-                  <Clock className="w-5 h-5" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* شريط البحث والفلترة */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card p-3 rounded-xl border border-border/80 shadow-2xs">
-            <div className="relative flex-1 min-w-[240px]">
-              <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="بحث برقم الطلب، اسم المسجد، المدينة، المشروع، المورد..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pr-9 h-9 text-xs sm:text-sm bg-background border-border/80"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Select value={contentFilter} onValueChange={setContentFilter}>
-                <SelectTrigger className="h-9 w-[170px] text-xs bg-background">
-                  <SelectValue placeholder="حالة العروض" />
-                </SelectTrigger>
-                <SelectContent align="end" dir="rtl">
-                  <SelectItem value="all">كافة الطلبات</SelectItem>
-                  <SelectItem value="with_quotations">تحتوي عروض أسعار</SelectItem>
-                  <SelectItem value="has_approved">تم اعتماد عرض</SelectItem>
-                  <SelectItem value="pending">بانتظار عروض أسعار</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+            {/* بطاقات الإحصائيات السريعة */}
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+              <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-semibold text-muted-foreground">طلبات التقييم المالي</p>
+                    <p className="text-xl sm:text-2xl font-extrabold text-foreground mt-1">
+                      {sedanaStats.total}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10 text-primary border border-primary/20">
+                    <Building2 className="w-5 h-5" />
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* محتوى قائمة طلبات سدانة كصفوف متباعدة */}
-          {isRequestsLoading ? (
-            <div className="py-16 text-center space-y-3 bg-card rounded-xl border border-border/80 shadow-2xs">
-              <RefreshCw className="w-8 h-8 mx-auto animate-spin text-primary" />
-              <p className="text-sm font-medium text-foreground">جاري تحميل طلبات برنامج سدانة...</p>
-              <p className="text-xs text-muted-foreground">يرجى الانتظار قليلاً</p>
+              <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-semibold text-muted-foreground">تتضمن عروض أسعار</p>
+                    <p className="text-xl sm:text-2xl font-extrabold text-sky-700 dark:text-sky-300 mt-1">
+                      {sedanaStats.withQuotations}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-sky-50 dark:bg-sky-950/40 text-sky-600 border border-sky-200 dark:border-sky-900/60">
+                    <Receipt className="w-5 h-5" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-semibold text-muted-foreground">عروض أسعار معتمدة</p>
+                    <p className="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">
+                      {sedanaStats.withApproved}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-900/60">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-semibold text-muted-foreground">بانتظار عروض أسعار</p>
+                    <p className="text-xl sm:text-2xl font-extrabold text-amber-600 dark:text-amber-400 mt-1">
+                      {sedanaStats.pendingQuotations}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/60">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          ) : filteredRequests.length === 0 ? (
-            <div className="py-16 text-center space-y-3 bg-card rounded-xl border border-border/80 shadow-2xs">
-              <Building2 className="w-10 h-10 mx-auto text-muted-foreground/60" />
-              <h3 className="text-base font-bold text-foreground">لا توجد طلبات سدانة في مرحلة التقييم المالي واعتماد العرض</h3>
-              <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                تظهر هنا حصراً طلبات برنامج سدانة التي بلغت مرحلة التقييم المالي واعتماد العرض لإدارة عروض الأسعار والترسية.
-              </p>
-              {(searchQuery || contentFilter !== "all") && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs mt-2"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setContentFilter("all");
-                  }}
-                >
-                  إعادة ضبط الفلاتر
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredRequests.map((req: any) => {
-                return (
-                  <div
-                    key={req.id}
-                    onClick={() => handleSelectRequest(String(req.id))}
-                    className="group cursor-pointer bg-card hover:bg-muted/20 border border-border/80 hover:border-primary/50 rounded-xl p-4 sm:p-4.5 shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+
+            {/* شريط البحث والفلترة */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card p-3 rounded-xl border border-border/80 shadow-2xs">
+              <div className="relative flex-1 min-w-[240px]">
+                <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="بحث برقم الطلب، اسم المسجد، المدينة، المشروع، المورد..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pr-9 h-9 text-xs sm:text-sm bg-background border-border/80"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    {/* اليمين: رقم الطلب + اسم المسجد / المشروع + المدينة وتاريخ الإنشاء ومقدم الطلب */}
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <Badge
-                        variant="secondary"
-                        className="font-mono font-bold text-xs px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                      >
-                        {req.requestNumber || `REQ-${req.id}`}
-                      </Badge>
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
 
-                      <div className="space-y-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-primary shrink-0" />
-                          <h3 className="text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors truncate">
-                            {req.mosqueDisplayName}
-                          </h3>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mr-6 flex-wrap">
-                          {req.city && <span>{req.city}</span>}
-                          {req.city && req.createdAt && <span>•</span>}
-                          {req.createdAt && (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {formatDate(req.createdAt)}
-                            </span>
-                          )}
-                          {req.requesterName && (
-                            <>
-                              <span>•</span>
-                              <span className="truncate max-w-[150px]">مقدم الطلب: {req.requesterName}</span>
-                            </>
-                          )}
+              <div className="flex items-center gap-2">
+                <Select value={contentFilter} onValueChange={setContentFilter}>
+                  <SelectTrigger className="h-9 w-[170px] text-xs bg-background">
+                    <SelectValue placeholder="حالة العروض" />
+                  </SelectTrigger>
+                  <SelectContent align="end" dir="rtl">
+                    <SelectItem value="all">كافة الطلبات</SelectItem>
+                    <SelectItem value="with_quotations">تحتوي عروض أسعار</SelectItem>
+                    <SelectItem value="has_approved">تم اعتماد عرض</SelectItem>
+                    <SelectItem value="pending">بانتظار عروض أسعار</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* محتوى قائمة طلبات سدانة كصفوف متباعدة */}
+            {isRequestsLoading ? (
+              <div className="py-16 text-center space-y-3 bg-card rounded-xl border border-border/80 shadow-2xs">
+                <RefreshCw className="w-8 h-8 mx-auto animate-spin text-primary" />
+                <p className="text-sm font-medium text-foreground">جاري تحميل طلبات برنامج سدانة...</p>
+                <p className="text-xs text-muted-foreground">يرجى الانتظار قليلاً</p>
+              </div>
+            ) : filteredRequests.length === 0 ? (
+              <div className="py-16 text-center space-y-3 bg-card rounded-xl border border-border/80 shadow-2xs">
+                <Building2 className="w-10 h-10 mx-auto text-muted-foreground/60" />
+                <h3 className="text-base font-bold text-foreground">لا توجد طلبات سدانة في مرحلة التقييم المالي واعتماد العرض</h3>
+                <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                  تظهر هنا حصراً طلبات برنامج سدانة التي بلغت مرحلة التقييم المالي واعتماد العرض لإدارة عروض الأسعار والترسية.
+                </p>
+                {(searchQuery || contentFilter !== "all") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs mt-2"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setContentFilter("all");
+                    }}
+                  >
+                    إعادة ضبط الفلاتر
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredRequests.map((req: any) => {
+                  return (
+                    <div
+                      key={req.id}
+                      onClick={() => handleSelectRequest(String(req.id))}
+                      className="group cursor-pointer bg-card hover:bg-muted/20 border border-border/80 hover:border-primary/50 rounded-xl p-4 sm:p-4.5 shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    >
+                      {/* اليمين: رقم الطلب + اسم المسجد / المشروع + المدينة وتاريخ الإنشاء ومقدم الطلب */}
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <Badge
+                          variant="secondary"
+                          className="font-mono font-bold text-xs px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                        >
+                          {req.requestNumber || `REQ-${req.id}`}
+                        </Badge>
+
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-primary shrink-0" />
+                            <h3 className="text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                              {req.mosqueDisplayName}
+                            </h3>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mr-6 flex-wrap">
+                            {req.city && <span>{req.city}</span>}
+                            {req.city && req.createdAt && <span>•</span>}
+                            {req.createdAt && (
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {formatDate(req.createdAt)}
+                              </span>
+                            )}
+                            {req.requesterName && (
+                              <>
+                                <span>•</span>
+                                <span className="truncate max-w-[150px]">مقدم الطلب: {req.requesterName}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* اليسار: عدد عروض الأسعار + حالة الاعتماد + زر اختيار الطلب */}
-                    <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap justify-between sm:justify-end border-t sm:border-t-0 pt-2.5 sm:pt-0 border-border/50">
-                      {/* عدد عروض الأسعار */}
-                      <div
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold ${
-                          req.quotationsCount > 0
-                            ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/60"
-                            : "bg-muted/30 text-muted-foreground border-border/50"
-                        }`}
-                      >
-                        <Receipt className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                        <span>
-                          {req.quotationsCount > 0
-                            ? `${req.quotationsCount} ${req.quotationsCount === 1 ? "عرض سعر" : "عروض أسعار"}`
-                            : "0 عروض أسعار"}
-                        </span>
-                      </div>
-
-                      {/* شارة حالة العرض */}
-                      {req.hasApprovedQuotation ? (
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/60">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      {/* اليسار: عدد عروض الأسعار + حالة الاعتماد + زر اختيار الطلب */}
+                      <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap justify-between sm:justify-end border-t sm:border-t-0 pt-2.5 sm:pt-0 border-border/50">
+                        {/* عدد عروض الأسعار */}
+                        <div
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold ${
+                            req.quotationsCount > 0
+                              ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/60"
+                              : "bg-muted/30 text-muted-foreground border-border/50"
+                          }`}
+                        >
+                          <Receipt className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                           <span>
-                            {req.winningSupplier ? `معتمد: ${req.winningSupplier}` : "تم اعتماد العرض"}
+                            {req.quotationsCount > 0
+                              ? `${req.quotationsCount} ${req.quotationsCount === 1 ? "عرض سعر" : "عروض أسعار"}`
+                              : "0 عروض أسعار"}
                           </span>
                         </div>
-                      ) : req.quotationsCount > 0 ? (
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-900/60">
-                          <Clock className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
-                          <span>قيد التقييم المالي</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold bg-muted/30 text-muted-foreground border-border/50">
-                          <AlertCircle className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span>بانتظار تقديم العروض</span>
-                        </div>
-                      )}
 
-                      {/* زر الاختيار */}
-                      <Button
-                        size="sm"
-                        className="h-8 text-xs px-3.5 gap-1.5 font-bold group-hover:bg-primary group-hover:text-primary-foreground"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSelectRequest(String(req.id));
-                        }}
-                      >
-                        <span>عروض الأسعار</span>
-                        <ArrowLeft className="w-3.5 h-3.5" />
-                      </Button>
+                        {/* شارة حالة العرض */}
+                        {req.hasApprovedQuotation ? (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/60">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                            <span>
+                              {req.winningSupplier ? `معتمد: ${req.winningSupplier}` : "تم اعتماد العرض"}
+                            </span>
+                          </div>
+                        ) : req.quotationsCount > 0 ? (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-900/60">
+                            <Clock className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                            <span>قيد التقييم المالي</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold bg-muted/30 text-muted-foreground border-border/50">
+                            <AlertCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span>بانتظار تقديم العروض</span>
+                          </div>
+                        )}
+
+                        {/* زر الاختيار */}
+                        <Button
+                          size="sm"
+                          className="h-8 text-xs px-3.5 gap-1.5 font-bold group-hover:bg-primary group-hover:text-primary-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectRequest(String(req.id));
+                          }}
+                        >
+                          <span>عروض الأسعار</span>
+                          <ArrowLeft className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
