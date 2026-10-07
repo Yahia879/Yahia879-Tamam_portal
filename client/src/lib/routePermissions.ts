@@ -24,14 +24,14 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
     "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
     "contracts", "purchase_orders", "csr_letters", "sedana_warehouse", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
-    "progress_reports", "financial_report", "reports", "staff_management", "settings_center", "custody_requests",
+    "progress_reports", "financial_report", "reports", "staff_management", "settings_center", "custody_requests", "sedana_quotations",
   ],
 
   executive_director: [
     "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
     "contracts", "purchase_orders", "csr_letters", "sedana_warehouse", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
-    "progress_reports", "financial_report", "reports", "staff_management", "settings_center", "custody_requests",
+    "progress_reports", "financial_report", "reports", "staff_management", "settings_center", "custody_requests", "sedana_quotations",
   ],
 
   projects_office: [
@@ -54,13 +54,13 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
     "dashboard", "suppliers", "quotations", "financial_approval",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers", "financial_report",
     "contracts", "sedana_warehouse",
-    "orders_and_letters", "orders_and_letters.view", "custody_requests",
+    "orders_and_letters", "orders_and_letters.view", "custody_requests", "sedana_quotations",
   ],
 
   financial_manager: [
     "dashboard", "suppliers", "quotations", "financial_approval",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers", "financial_report",
-    "contracts", "purchase_orders", "csr_letters", "sedana_warehouse", "requests", "custody_requests",
+    "contracts", "purchase_orders", "csr_letters", "sedana_warehouse", "requests", "custody_requests", "sedana_quotations",
   ],
 
   project_manager: [
@@ -85,7 +85,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   service_requester: [], // طالب الخدمة لا يملك صلاحيات إدارية
 
   procurement_officer: [
-    "quotations", "quotations.view", "quotations.add", "custody_requests",
+    "quotations", "quotations.view", "quotations.add", "custody_requests", "sedana_quotations",
   ],
 };
 
@@ -152,7 +152,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
 
   // ── عروض الأسعار ──
   "/quotations": "quotations",
-  "/sedana-quotations": "quotations",
+  "/sedana-quotations": ["sedana_quotations", "sedana_quotations.view"],
 
   // ── الاعتمادات ──
   "/financial-approval": ["financial_approval.view", "financial_approval.approve", "financial_approval"],
@@ -320,7 +320,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
 
   // BOQ
   { pattern: /^\/boq\/\d+$/, permission: ["quotations", "requests.view_details", "boq", "boq.add", "boq.edit", "boq.delete"] },
-  { pattern: /^\/sedana-quotations\/[^/]+$/, permission: "quotations" },
+  { pattern: /^\/sedana-quotations\/[^/]+$/, permission: ["sedana_quotations", "sedana_quotations.view"] },
 
   // طلبات الصرف
   { pattern: /^\/disbursements\/new$/, permission: "disbursement_requests" },

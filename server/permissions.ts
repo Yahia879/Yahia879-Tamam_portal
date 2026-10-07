@@ -117,6 +117,8 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "sedana_warehouse.export": ["sedana_warehouse.export"],
   custody_requests: ["custody_requests.view"],
   "custody_requests.view": ["custody_requests.view"],
+  sedana_quotations: ["sedana_quotations.view"],
+  "sedana_quotations.view": ["sedana_quotations.view"],
   disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve", "disbursements.exception_approve"],
   disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.exception_approve", "disbursement_orders.reject", "disbursement_orders.create_direct", "disbursement_orders.remind"],
   "disbursement_orders.remind": ["disbursement_orders.remind"],
@@ -887,6 +889,20 @@ async function ensureAllCustomPermissionsExist(db: any) {
       console.log("Inserted missing custom module: custody_requests");
     }
 
+    // Ensure 'sedana_quotations' module exists in the modules table
+    const [existingSedanaQuoModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "sedana_quotations")).limit(1);
+    if (!existingSedanaQuoModule) {
+      await db.insert(modules).values({
+        id: "sedana_quotations",
+        nameAr: "عروض أسعار سدانة",
+        nameEn: "Sedana Quotations",
+        icon: "Receipt",
+        displayOrder: 7,
+        isActive: true
+      });
+      console.log("Inserted missing custom module: sedana_quotations");
+    }
+
     // Ensure 'signing' module exists in the modules table
     const [existingSigningModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "signing")).limit(1);
     if (!existingSigningModule) {
@@ -1067,6 +1083,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "disbursement_orders.remind", moduleId: "disbursements", action: "remind", nameAr: "إرسال تذكير بالاعتماد", nameEn: "Send Approval Reminder" },
       { id: "board_leadership.remind", moduleId: "board", action: "remind", nameAr: "إرسال تذكير بالاعتماد", nameEn: "Send Approval Reminder" },
       { id: "custody_requests.view", moduleId: "custody_requests", action: "view", nameAr: "عرض قسم العهدة المالية", nameEn: "View Financial Custody" },
+      { id: "sedana_quotations.view", moduleId: "sedana_quotations", action: "view", nameAr: "عرض قسم عروض أسعار سدانة", nameEn: "View Sedana Quotations" },
     ];
 
     for (const p of customPerms) {
@@ -1235,6 +1252,36 @@ async function ensureAllCustomPermissionsExist(db: any) {
     };
 
     for (const [rId, pIds] of Object.entries(custodyDefaultRolePerms)) {
+      for (const pId of pIds) {
+        const [existing] = await db.select({ id: rolePermissions.id })
+          .from(rolePermissions)
+          .where(and(
+            eq(rolePermissions.roleId, rId),
+            eq(rolePermissions.permissionId, pId)
+          ))
+          .limit(1);
+
+        if (!existing) {
+          await db.insert(rolePermissions).values({
+            roleId: rId,
+            permissionId: pId
+          }).catch(() => {});
+        }
+      }
+    }
+
+    // إسناد الصلاحيات الافتراضية لعروض أسعار سدانة للأدوار الأساسية
+    const sedanaQuoDefaultRolePerms: Record<string, string[]> = {
+      super_admin: ["sedana_quotations.view"],
+      system_admin: ["sedana_quotations.view"],
+      general_manager: ["sedana_quotations.view"],
+      executive_director: ["sedana_quotations.view"],
+      financial_manager: ["sedana_quotations.view"],
+      financial: ["sedana_quotations.view"],
+      procurement_officer: ["sedana_quotations.view"],
+    };
+
+    for (const [rId, pIds] of Object.entries(sedanaQuoDefaultRolePerms)) {
       for (const pId of pIds) {
         const [existing] = await db.select({ id: rolePermissions.id })
           .from(rolePermissions)
@@ -1673,6 +1720,11 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   // العهدة المالية
   if (allPermissions.has("custody_requests.view")) {
     allPermissions.add("custody_requests");
+  }
+
+  // عروض أسعار سدانة
+  if (allPermissions.has("sedana_quotations.view")) {
+    allPermissions.add("sedana_quotations");
   }
 
   // أوامر الشراء والخطاب المجتمعي

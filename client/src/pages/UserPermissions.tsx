@@ -824,6 +824,9 @@ export default function UserPermissions() {
       custody_requests: {
         view: "عرض قسم العهدة المالية",
       },
+      sedana_quotations: {
+        view: "عرض قسم عروض أسعار سدانة",
+      },
       sedana_warehouse: {
         view: "عرض المستودع الافتراضي",
         inward: "تسجيل أمر إدخال بالمستودع",
@@ -1001,6 +1004,7 @@ export default function UserPermissions() {
     {
       title: "إدارة المخزون",
       modules: [
+        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view"] },
         { id: "orders_and_letters", nameAr: "أوامر الشراء والخطاب المجتمعي", icon: ShoppingBag, perms: ["view", "create", "export"] },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "export"] },

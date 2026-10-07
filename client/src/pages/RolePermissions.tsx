@@ -962,6 +962,14 @@ export default function RolePermissions() {
       title: "إدارة المخزون",
       modules: [
         {
+          id: "sedana_quotations",
+          nameAr: "عروض أسعار سدانة",
+          icon: Receipt,
+          permissions: [
+            { id: "sedana_quotations.view", nameAr: "عرض قسم عروض أسعار سدانة" },
+          ]
+        },
+        {
           id: "orders_and_letters",
           nameAr: "أوامر الشراء والخطاب المجتمعي",
           icon: ShoppingBag,
@@ -1056,6 +1064,7 @@ export default function RolePermissions() {
     {
       title: "إدارة المخزون",
       modules: [
+        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view"] },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound", "confirm_receipt", "print", "export"] },
@@ -1129,6 +1138,7 @@ export default function RolePermissions() {
     {
       title: "إدارة المخزون",
       modules: [
+        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view"] },
         { id: "orders_and_letters", nameAr: "أوامر الشراء والخطاب المجتمعي", icon: ShoppingBag, perms: ["view", "create", "export"] },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "export"] },
@@ -1382,6 +1392,9 @@ export default function RolePermissions() {
       custody_requests: {
         view: "عرض قسم العهدة المالية",
       },
+      sedana_quotations: {
+        view: "عرض قسم عروض أسعار سدانة",
+      },
       reports: {
         view_stats: "عرض احصائيات الطلبات",
         export_data: "تصدير البيانات"
@@ -1496,6 +1509,7 @@ export default function RolePermissions() {
     {
       title: "إدارة المخزون",
       subsections: [
+        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة" },
         { id: "purchase_orders", nameAr: "أوامر الشراء" },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية" },
         { id: "sedana_warehouse", nameAr: "المستودع الافتراضي" },

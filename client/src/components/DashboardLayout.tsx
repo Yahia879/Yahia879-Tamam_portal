@@ -396,11 +396,13 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
       has("csr_letters") ||
       has("csr_letters.view") ||
       has("sedana_warehouse") ||
-      has("quotations") ||
+      has("sedana_warehouse.view") ||
+      has("sedana_quotations") ||
+      has("sedana_quotations.view") ||
       role === "financial")
   ) {
     const inventoryItems: MenuItem[] = [];
-    if (has("quotations") || ["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector || role === "financial") {
+    if (has("*") || has("sedana_quotations") || has("sedana_quotations.view")) {
       inventoryItems.push({ icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" });
     }
     if (role === "financial" || has("orders_and_letters") || has("orders_and_letters.view") || ["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector) {
