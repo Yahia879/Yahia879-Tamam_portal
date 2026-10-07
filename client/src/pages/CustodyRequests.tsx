@@ -1013,11 +1013,6 @@ export default function CustodyRequests() {
                         <TableCell>
                           <div className="flex flex-col gap-1 items-start">
                             {getStatusBadge(req.status)}
-                            {req.hasException ? (
-                              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-700 gap-1 font-semibold text-[10px] py-0.5">
-                                باستثناء معتمد
-                              </Badge>
-                            ) : null}
                           </div>
                         </TableCell>
 
