@@ -654,26 +654,7 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
                                         <span>إنشاء أمر صرف</span>
                                       </DropdownMenuItem>
                                     </>
-                                  )}
-
-                                  {/* متابعة أمر الصرف المرتبط إن وجد */}
-                                  {order.disbursementOrder && (
-                                    <>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem
-                                        onClick={() => navigate("/disbursement-orders")}
-                                        className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs text-slate-700 dark:text-slate-300"
-                                      >
-                                        <Coins className="w-4 h-4 text-primary shrink-0" />
-                                        <div className="flex flex-col text-right">
-                                          <span className="font-semibold">متابعة أمر الصرف</span>
-                                          <span className="text-[10px] text-muted-foreground font-mono">
-                                            #{order.disbursementOrder.orderNumber} ({order.disbursementOrder.status === "executed" ? "منفّذ" : order.disbursementOrder.status === "approved" ? "معتمد" : "قيد المراجعة"})
-                                          </span>
-                                        </div>
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
+                                   )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>

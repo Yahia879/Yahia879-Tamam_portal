@@ -2187,6 +2187,50 @@ export const disbursementsRouter = router({
       };
     }),
 
+  // إحصائيات أعداد أوامر الصرف المجمعة لكل طلب
+  getDisbursementCountsByRequest: protectedProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) return {};
+
+      const rows = await db
+        .select({
+          reqId: sql<number>`COALESCE(${disbursementOrders.requestId}, ${projects.requestId})`,
+          poNum: disbursementOrders.purchaseOrderNumber,
+          csrNum: disbursementOrders.csrLetterNumber,
+          orderId: disbursementOrders.id,
+        })
+        .from(disbursementOrders)
+        .leftJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
+        .leftJoin(projects, eq(disbursementRequests.projectId, projects.id));
+
+      const counts: Record<number, number> = {};
+      const countedOrderIdsByReq = new Map<number, Set<number>>();
+
+      rows.forEach((r) => {
+        let targetReqId = r.reqId;
+        if (!targetReqId && r.poNum) {
+          const match = r.poNum.match(/^PO-(\d+)-/i);
+          if (match) targetReqId = parseInt(match[1], 10);
+        }
+        if (!targetReqId && r.csrNum) {
+          const match = r.csrNum.match(/^CSR-(\d+)-/i);
+          if (match) targetReqId = parseInt(match[1], 10);
+        }
+
+        if (targetReqId) {
+          const s = countedOrderIdsByReq.get(targetReqId) || new Set<number>();
+          if (!s.has(r.orderId)) {
+            s.add(r.orderId);
+            countedOrderIdsByReq.set(targetReqId, s);
+            counts[targetReqId] = (counts[targetReqId] || 0) + 1;
+          }
+        }
+      });
+
+      return counts;
+    }),
+
   // جلب أمر صرف بالتفصيل
   getOrderById: protectedProcedure
     .input(z.object({ id: z.number() }))

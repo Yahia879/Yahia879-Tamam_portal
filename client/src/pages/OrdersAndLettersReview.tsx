@@ -178,6 +178,14 @@ export default function OrdersAndLettersReview() {
     return disbursementOrdersData?.orders || [];
   }, [disbursementOrdersData]);
 
+  // جلب إحصائيات أعداد أوامر الصرف المجمعة لكافة الطلبات
+  const { data: disbursementCountsData } =
+    trpc.disbursements.getDisbursementCountsByRequest.useQuery();
+
+  const disbursementCounts = useMemo(() => {
+    return disbursementCountsData || {};
+  }, [disbursementCountsData]);
+
 
 
   // دالة مساعدة لتسمية المسجد أو المشروع بدقة
@@ -283,24 +291,28 @@ export default function OrdersAndLettersReview() {
           Object.values(itemsAlloc).some((m: any) => m === "csr_letter")
         );
 
+        const disbursementOrdersCount = Number(disbursementCounts[r.id] || 0);
+
         return {
           ...r,
           parsedProgramData: pData,
           purchaseOrdersCount: purchaseOrders.length,
           csrLettersCount: csrLetters.length,
+          disbursementOrdersCount,
           hasPurchaseOrderAllocation,
           hasCsrLetterAllocation,
           mosqueDisplayName: getMosqueDisplayName(r),
         };
       });
-  }, [requestsData]);
+  }, [requestsData, disbursementCounts]);
 
-  // إحصائيات سريعة للطلبات (3 بطاقات)
+  // إحصائيات سريعة للطلبات (4 بطاقات)
   const sedanaStats = useMemo(() => {
     const total = processedSedanaRequests.length;
     const withPOs = processedSedanaRequests.filter((r) => r.purchaseOrdersCount > 0).length;
     const withCSRs = processedSedanaRequests.filter((r) => r.csrLettersCount > 0).length;
-    return { total, withPOs, withCSRs };
+    const withDOs = processedSedanaRequests.filter((r) => r.disbursementOrdersCount > 0).length;
+    return { total, withPOs, withCSRs, withDOs };
   }, [processedSedanaRequests]);
 
   // تصفية الطلبات حسب البحث ونوع المحتوى
@@ -323,10 +335,16 @@ export default function OrdersAndLettersReview() {
         }
       }
 
-      // فلترة بوجود أوامر شراء أو خطابات
+      // فلترة بوجود أوامر شراء أو خطابات أو أوامر صرف
       if (contentFilter === "with_po" && req.purchaseOrdersCount === 0) return false;
       if (contentFilter === "with_csr" && req.csrLettersCount === 0) return false;
-      if (contentFilter === "has_either" && req.purchaseOrdersCount === 0 && req.csrLettersCount === 0) {
+      if (contentFilter === "with_do" && req.disbursementOrdersCount === 0) return false;
+      if (
+        contentFilter === "has_either" &&
+        req.purchaseOrdersCount === 0 &&
+        req.csrLettersCount === 0 &&
+        req.disbursementOrdersCount === 0
+      ) {
         return false;
       }
 
@@ -679,7 +697,8 @@ export default function OrdersAndLettersReview() {
             </div>
 
             {/* بطاقات الإحصائيات الـ 3 */}
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+            {/* بطاقات الإحصائيات السريعة */}
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
               <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
@@ -721,6 +740,20 @@ export default function OrdersAndLettersReview() {
                   </div>
                 </CardContent>
               </Card>
+
+              <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-semibold text-muted-foreground">تتضمن أوامر صرف</p>
+                    <p className="text-xl sm:text-2xl font-extrabold text-amber-600 dark:text-amber-400 mt-1">
+                      {sedanaStats.withDOs}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/60">
+                    <Coins className="w-5 h-5" />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             {/* شريط البحث والفلترة */}
@@ -752,6 +785,7 @@ export default function OrdersAndLettersReview() {
                     <SelectItem value="all">كافة الطلبات</SelectItem>
                     <SelectItem value="with_po">تحتوي أوامر شراء</SelectItem>
                     <SelectItem value="with_csr">تحتوي خطابات مجتمعية</SelectItem>
+                    <SelectItem value="with_do">تحتوي أوامر صرف</SelectItem>
                     <SelectItem value="has_either">تحتوي أوامر أو خطابات</SelectItem>
                   </SelectContent>
                 </Select>
@@ -869,6 +903,22 @@ export default function OrdersAndLettersReview() {
                               : req.csrLettersCount > 0
                               ? `${req.csrLettersCount} خطاب مجتمعي`
                               : "0 خطابات"}
+                          </span>
+                        </div>
+
+                        {/* أوامر الصرف */}
+                        <div
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold ${
+                            req.disbursementOrdersCount > 0
+                              ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/60"
+                              : "bg-muted/30 text-muted-foreground border-border/50"
+                          }`}
+                        >
+                          <Coins className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                          <span>
+                            {req.disbursementOrdersCount > 0
+                              ? `${req.disbursementOrdersCount} ${req.disbursementOrdersCount === 1 ? "أمر صرف" : "أوامر صرف"}`
+                              : "0 أوامر صرف"}
                           </span>
                         </div>
 
