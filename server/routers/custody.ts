@@ -631,13 +631,8 @@ export const custodyRouter = router({
             and(
               eq(custodyRequests.userId, ctx.user.id),
               ne(custodyRequests.status, "rejected"),
-              or(
-                eq(custodyRequests.status, "pending_executive"),
-                and(
-                  sql`${custodyRequests.disbursementOrderId} IS NOT NULL`,
-                  eq(disbursementOrders.status, "pending")
-                )
-              )
+              sql`${custodyRequests.disbursementOrderId} IS NOT NULL`,
+              eq(disbursementOrders.status, "pending")
             )
           )
           .orderBy(desc(custodyRequests.createdAt))
@@ -1078,15 +1073,8 @@ export const custodyRouter = router({
         and(
           eq(custodyRequests.userId, ctx.user.id),
           ne(custodyRequests.status, "rejected"),
-          or(
-            // حالة 1: لسا العهدة غير معتمدة من المدير التنفيذي
-            eq(custodyRequests.status, "pending_executive"),
-            // حالة 2: حالة أمر الصرف المرتبط "قيد الاعتماد"
-            and(
-              sql`${custodyRequests.disbursementOrderId} IS NOT NULL`,
-              eq(disbursementOrders.status, "pending")
-            )
-          )
+          sql`${custodyRequests.disbursementOrderId} IS NOT NULL`,
+          eq(disbursementOrders.status, "pending")
         )
       )
       .orderBy(desc(custodyRequests.createdAt));
