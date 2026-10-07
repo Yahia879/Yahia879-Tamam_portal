@@ -635,10 +635,7 @@ export const custodyRouter = router({
                 eq(custodyRequests.status, "pending_executive"),
                 and(
                   sql`${custodyRequests.disbursementOrderId} IS NOT NULL`,
-                  or(
-                    eq(disbursementOrders.status, "pending"),
-                    eq(disbursementOrders.status, "pending_executive")
-                  )
+                  eq(disbursementOrders.status, "pending")
                 )
               )
             )
@@ -1087,10 +1084,7 @@ export const custodyRouter = router({
             // حالة 2: حالة أمر الصرف المرتبط "قيد الاعتماد"
             and(
               sql`${custodyRequests.disbursementOrderId} IS NOT NULL`,
-              or(
-                eq(disbursementOrders.status, "pending"),
-                eq(disbursementOrders.status, "pending_executive")
-              )
+              eq(disbursementOrders.status, "pending")
             )
           )
         )
