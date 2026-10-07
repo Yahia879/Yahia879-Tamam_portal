@@ -106,9 +106,15 @@ export interface QuotationsViewProps {
   requestId?: number;
   isEmbedded?: boolean;
   onBack?: () => void;
+  hideAwardButton?: boolean;
 }
 
-export function QuotationsView({ requestId: propRequestId, isEmbedded = false, onBack }: QuotationsViewProps = {}) {
+export function QuotationsView({
+  requestId: propRequestId,
+  isEmbedded = false,
+  onBack,
+  hideAwardButton = false,
+}: QuotationsViewProps = {}) {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
@@ -2652,7 +2658,7 @@ export function QuotationsView({ requestId: propRequestId, isEmbedded = false, o
                           </span>
                         </div>
 
-                        {canApproveQuotations ? (
+                        {!hideAwardButton && !window.location.pathname.includes("sedana-quotations") && canApproveQuotations ? (
                           <Button
                             onClick={handleApproveItemSelections}
                             disabled={approveSedanaMultiVendorMutation.isPending || assignedItemsCount === 0}

@@ -291,6 +291,7 @@ export default function SedanaQuotations() {
             <QuotationsView
               requestId={parseInt(selectedRequestId)}
               isEmbedded={true}
+              hideAwardButton={true}
               onBack={handleClearSelection}
             />
           </div>
