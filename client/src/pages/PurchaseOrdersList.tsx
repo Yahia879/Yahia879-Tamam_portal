@@ -125,9 +125,11 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
   const isExec = isExecutiveDirectorCeo;
 
   // صلاحيات أوامر الشراء
-  const canAddOrder = usePermission("purchase_orders.add");
+  const canAddOrderPerm = usePermission("purchase_orders.add");
+  const canCreateOrdersLetters = usePermission("orders_and_letters.create");
+  const canAddOrder = canAddOrderPerm || canCreateOrdersLetters;
   const isFinancialRole = user?.role === "financial" || user?.role === "financial_manager" || user?.role === "executive_director" || user?.role === "general_manager";
-  const hasDisbPerm = useAnyPermission(["purchase_orders.create_disbursement", "orders_and_letters.create_disbursement", "disbursements.create", "disbursement_orders.create_direct"]);
+  const hasDisbPerm = useAnyPermission(["purchase_orders.create_disbursement", "disbursements.create", "disbursement_orders.create_direct"]);
   const canCreateDisbursement = isSuperAdmin || isFinancialRole || hasDisbPerm;
   const canExport = useAnyPermission(["purchase_orders.export", "orders_and_letters.export"]);
 

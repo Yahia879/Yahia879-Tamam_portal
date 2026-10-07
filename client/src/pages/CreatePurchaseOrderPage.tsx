@@ -46,7 +46,9 @@ export default function CreatePurchaseOrderPage() {
   useDocumentTitle("إنشاء أمر شراء معتمد - سدانة");
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  const canAddOrder = usePermission("purchase_orders.add");
+  const canAddOrderPerm = usePermission("purchase_orders.add");
+  const canOrdersAndLettersCreate = usePermission("orders_and_letters.create");
+  const canAddOrder = canAddOrderPerm || canOrdersAndLettersCreate;
 
   const isExecutiveDirector =
     user?.role === "general_manager" ||

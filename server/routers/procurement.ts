@@ -1277,9 +1277,11 @@ export const procurementRouter = router({
         // فحص الموردين المحددين في suppliersAlloc كـ csr_letter مباشرة إن لم تُضف بنودهم أعلاه
         Object.keys(suppliersAlloc).forEach((k) => {
           if (suppliersAlloc[k] === "csr_letter") {
-            let matchedSupName = "";
-            let matchedSupId: number | null = null;
-            if (k.startsWith("name_")) {
+            let isUnassigned = false;
+            if (k.toLowerCase() === "unassigned") {
+              isUnassigned = true;
+              matchedSupName = "شريك مجتمعي / جهة مانحة (غير محدد)";
+            } else if (k.startsWith("name_")) {
               matchedSupName = k.replace(/^name_/, "").trim().replace(/\s+/g, " ");
             } else if (k.startsWith("sup_")) {
               const idNum = parseInt(k.replace(/^sup_/, ""), 10);
@@ -1297,6 +1299,10 @@ export const procurementRouter = router({
               }
             } else {
               matchedSupName = k.trim().replace(/\s+/g, " ");
+              if (matchedSupName.toLowerCase() === "unassigned") {
+                isUnassigned = true;
+                matchedSupName = "شريك مجتمعي / جهة مانحة (غير محدد)";
+              }
             }
 
             if (matchedSupName && !supplierGroups.has(matchedSupName)) {
@@ -1310,6 +1316,7 @@ export const procurementRouter = router({
                 supplierGroups.set(matchedSupName, {
                   supplierId: matchedSupId,
                   supplierName: matchedSupName,
+                  isUnassigned,
                   items: targetItems.map((it) => ({
                     id: it.id,
                     itemName: it.itemName,
@@ -1319,7 +1326,7 @@ export const procurementRouter = router({
                     unitPrice: itemSuppMap[it.id]?.unitPrice || 0,
                     totalPrice: itemSuppMap[it.id]?.totalPrice || (it.quantity * (itemSuppMap[it.id]?.unitPrice || 0)),
                   })),
-                });
+                } as any);
               }
             }
           }
@@ -1332,16 +1339,23 @@ export const procurementRouter = router({
 
         // بناء قائمة الموردين المعتمدين للمسؤولية المجتمعية حصراً
         const approvedSuppliers: any[] = [];
-        supplierGroups.forEach((group, sName) => {
+        supplierGroups.forEach((group: any, sName) => {
           const reg = (group.supplierId ? supplierMapById.get(group.supplierId) : null) || supplierMapByName.get(sName.toLowerCase());
+          const isUnassigned = group.isUnassigned ||
+            group.supplierName?.toLowerCase() === "unassigned" ||
+            sName.toLowerCase() === "unassigned" ||
+            sName.includes("غير محدد");
+
+          const finalSupName = isUnassigned ? "شريك مجتمعي / جهة مانحة (غير محدد مسبقاً)" : (reg?.name || sName);
 
           approvedSuppliers.push({
-            id: group.supplierId || sName,
+            id: isUnassigned ? "unassigned" : (group.supplierId || sName),
             supplierId: group.supplierId || reg?.id || null,
-            supplierName: sName,
-            recipientName: sName,
+            supplierName: finalSupName,
+            recipientName: isUnassigned ? "" : (reg?.name || sName),
+            isUnassigned,
             recipientContactPerson: reg?.contactPerson || "إدارة المسؤولية المجتمعية",
-            commercialRegister: reg?.commercialRegister || "",
+            commercialRegister: isUnassigned ? "غير محدد مسبقاً" : (reg?.commercialRegister || "مسجل بالنظام"),
             phone: reg?.phone || "",
             email: reg?.email || "",
             city: reg?.city || mosque?.city || "",

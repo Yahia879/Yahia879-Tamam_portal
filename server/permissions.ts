@@ -304,20 +304,14 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   // أوامر الشراء والخطاب المجتمعي
   orders_and_letters: [
     "orders_and_letters.view",
-    "orders_and_letters.approve",
-    "orders_and_letters.create_disbursement",
+    "orders_and_letters.create",
     "orders_and_letters.export",
   ],
   "orders_and_letters.view": [
     "orders_and_letters.view",
   ],
-  "orders_and_letters.approve": [
-    "orders_and_letters.approve",
-  ],
-  "orders_and_letters.create_disbursement": [
-    "orders_and_letters.create_disbursement",
-    "disbursement_orders.view",
-    "disbursement_orders.create_direct",
+  "orders_and_letters.create": [
+    "orders_and_letters.create",
   ],
   "orders_and_letters.export": [
     "orders_and_letters.export",
@@ -339,8 +333,7 @@ export const EXCLUDED_ADMIN_PERMISSIONS: string[] = [
   'disbursement_orders.exception_approve',
   'orders_and_letters',
   'orders_and_letters.view',
-  'orders_and_letters.approve',
-  'orders_and_letters.create_disbursement',
+  'orders_and_letters.create',
   'orders_and_letters.export',
 ];
 
@@ -1037,8 +1030,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "receipt_vouchers.exception_approve", moduleId: "disbursements", action: "exception_approve", nameAr: "استثناء اعتماد السند", nameEn: "Exception Approve Receipt Voucher" },
       { id: "requests.create_quick_request", moduleId: "requests", action: "create_quick_request", nameAr: "إنشاء طلب سريع", nameEn: "Create Quick Request" },
       { id: "orders_and_letters.view", moduleId: "orders_and_letters", action: "view", nameAr: "عرض أوامر الشراء والخطاب المجتمعي", nameEn: "View Orders & CSR Letters" },
-      { id: "orders_and_letters.approve", moduleId: "orders_and_letters", action: "approve", nameAr: "اعتماد أوامر الشراء والخطابات", nameEn: "Approve Orders & CSR Letters" },
-      { id: "orders_and_letters.create_disbursement", moduleId: "orders_and_letters", action: "create_disbursement", nameAr: "إنشاء أمر صرف للطلب", nameEn: "Create Disbursement for Order/Letter" },
+      { id: "orders_and_letters.create", moduleId: "orders_and_letters", action: "create", nameAr: "إنشاء أوامر شراء وخطابات مجتمعية", nameEn: "Create Orders & CSR Letters" },
       { id: "orders_and_letters.export", moduleId: "orders_and_letters", action: "export", nameAr: "تصدير البيانات إكسيل", nameEn: "Export Orders & Letters" },
       { id: "purchase_orders.view", moduleId: "purchase_orders", action: "view", nameAr: "عرض أوامر الشراء", nameEn: "View Purchase Orders" },
       { id: "purchase_orders.add", moduleId: "purchase_orders", action: "add", nameAr: "إنشاء أمر شراء جديد", nameEn: "Create Purchase Order" },
@@ -1185,7 +1177,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
     // إسناد الصلاحيات الافتراضية لأوامر الشراء والخطاب المجتمعي (متاحة افتراضياً حصراً للإدارة المالية فقط دون مدراء النظام)
     const ordersAndLettersDefaultRolePerms: Record<string, string[]> = {
-      financial: ["orders_and_letters.view", "orders_and_letters.approve", "orders_and_letters.create_disbursement", "orders_and_letters.export"],
+      financial: ["orders_and_letters.view", "orders_and_letters.create", "orders_and_letters.export"],
     };
 
     for (const [rId, pIds] of Object.entries(ordersAndLettersDefaultRolePerms)) {
@@ -1282,8 +1274,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (userData?.role === "financial" && !hasCustomRole) {
     rolePermissionsData.push(
       "orders_and_letters.view",
-      "orders_and_letters.approve",
-      "orders_and_letters.create_disbursement",
+      "orders_and_letters.create",
       "orders_and_letters.export"
     );
   }
@@ -1628,8 +1619,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   // أوامر الشراء والخطاب المجتمعي
   if (
     allPermissions.has("orders_and_letters.view") ||
-    allPermissions.has("orders_and_letters.approve") ||
-    allPermissions.has("orders_and_letters.create_disbursement") ||
+    allPermissions.has("orders_and_letters.create") ||
     allPermissions.has("orders_and_letters.export")
   ) {
     allPermissions.add("orders_and_letters");

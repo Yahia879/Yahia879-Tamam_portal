@@ -967,8 +967,7 @@ export default function RolePermissions() {
           icon: ShoppingBag,
           permissions: [
             { id: "orders_and_letters.view", nameAr: "عرض أوامر الشراء والخطاب المجتمعي" },
-            { id: "orders_and_letters.approve", nameAr: "اعتماد أوامر الشراء والخطابات" },
-            { id: "orders_and_letters.create_disbursement", nameAr: "إنشاء أمر صرف للطلب" },
+            { id: "orders_and_letters.create", nameAr: "إنشاء أوامر شراء وخطابات مجتمعية" },
             { id: "orders_and_letters.export", nameAr: "تصدير البيانات إكسيل" },
           ]
         },
@@ -1129,7 +1128,7 @@ export default function RolePermissions() {
     {
       title: "إدارة المخزون",
       modules: [
-        { id: "orders_and_letters", nameAr: "أوامر الشراء والخطاب المجتمعي", icon: ShoppingBag, perms: ["view", "approve", "create_disbursement", "export"] },
+        { id: "orders_and_letters", nameAr: "أوامر الشراء والخطاب المجتمعي", icon: ShoppingBag, perms: ["view", "create", "export"] },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound", "confirm_receipt", "print", "export"] },
@@ -1318,8 +1317,7 @@ export default function RolePermissions() {
       },
       orders_and_letters: {
         view: "عرض أوامر الشراء والخطاب المجتمعي",
-        approve: "اعتماد أوامر الشراء والخطابات",
-        create_disbursement: "إنشاء أمر صرف للطلب",
+        create: "إنشاء أوامر شراء وخطابات مجتمعية",
         export: "تصدير البيانات إكسيل",
       },
       purchase_orders: {

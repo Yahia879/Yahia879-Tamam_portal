@@ -108,7 +108,9 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
   const isExec = isExecutiveDirectorCeo;
   const canApprove = isExecutiveDirectorCeo;
   const showGreenHighlight = isExecutiveDirectorCeo || isSuperAdmin;
-  const canAdd = usePermission("csr_letters.add");
+  const canAddCsrPerm = usePermission("csr_letters.add");
+  const canCreateOrdersLetters = usePermission("orders_and_letters.create");
+  const canAdd = canAddCsrPerm || canCreateOrdersLetters;
   const canExport = useAnyPermission(["csr_letters.export", "orders_and_letters.export"]);
 
   const [searchTerm, setSearchTerm] = useState("");

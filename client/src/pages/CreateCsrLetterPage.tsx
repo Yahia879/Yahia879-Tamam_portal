@@ -41,7 +41,9 @@ export default function CreateCsrLetterPage() {
   useDocumentTitle("إنشاء خطاب مسؤولية مجتمعية - سدانة");
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  const canAddLetter = usePermission("csr_letters.add");
+  const canAddLetterPerm = usePermission("csr_letters.add");
+  const canOrdersAndLettersCreate = usePermission("orders_and_letters.create");
+  const canAddLetter = canAddLetterPerm || canOrdersAndLettersCreate;
   const params = useParams<{ id?: string }>();
   const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
   const initialRequestId = params.id ? parseInt(params.id, 10) : (searchParams.get("requestId") ? parseInt(searchParams.get("requestId")!, 10) : null);
@@ -78,6 +80,9 @@ export default function CreateCsrLetterPage() {
   const { data: signatoriesData = [] } = trpc.organization.getSignatories.useQuery(undefined, {
     staleTime: 10 * 60 * 1000,
   });
+
+  // جلب قائمة الموردين المسجلين في النظام لإتاحة الاختيار السريع
+  const { data: allRegisteredSuppliers = [] } = trpc.projects.getSuppliers.useQuery();
 
   // الحالة للطلب المختار
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(initialRequestId);
@@ -139,7 +144,17 @@ export default function CreateCsrLetterPage() {
   const handleSelectSupplier = (supplier: any, parentReq?: any) => {
     const sKey = String(supplier.id || supplier.supplierName);
     setSelectedSupplierKey(sKey);
-    setRecipientName(supplier.supplierName || supplier.recipientName || "");
+    const isUn = supplier.isUnassigned ||
+      supplier.supplierName === "unassigned" ||
+      supplier.supplierName?.toLowerCase() === "unassigned" ||
+      String(supplier.id).toLowerCase() === "unassigned" ||
+      supplier.supplierName?.includes("غير محدد مسبقاً");
+
+    if (isUn) {
+      setRecipientName("");
+    } else {
+      setRecipientName(supplier.recipientName || supplier.supplierName || "");
+    }
 
     const req = parentReq || currentRequest;
     const year = new Date().getFullYear();
@@ -267,7 +282,7 @@ export default function CreateCsrLetterPage() {
       return;
     }
 
-    if (!recipientName.trim()) {
+    if (!recipientName.trim() || recipientName.trim().toLowerCase() === "unassigned") {
       toast.error("يرجى تحديد أو إدخال اسم الجهة المانحة أو الشريك المجتمعي");
       setStep(2);
       return;
@@ -622,65 +637,120 @@ export default function CreateCsrLetterPage() {
                           <SelectValue placeholder="اختر المورد أو الشريك المجتمعي المعتمد..." />
                         </SelectTrigger>
                         <SelectContent dir="rtl">
-                          {availableSuppliers.map((supp: any) => (
-                            <SelectItem
-                              key={supp.id || supp.supplierName}
-                              value={String(supp.id || supp.supplierName)}
-                              className="text-right text-xs py-2"
-                            >
-                              {supp.supplierName} (السجل: {supp.commercialRegister || "مسجل"} • {supp.itemsCount || supp.items?.length || 0} أصناف)
-                            </SelectItem>
-                          ))}
+                          {availableSuppliers.map((supp: any) => {
+                            const isUn = supp.isUnassigned ||
+                              supp.supplierName === "unassigned" ||
+                              supp.supplierName?.toLowerCase() === "unassigned" ||
+                              String(supp.id).toLowerCase() === "unassigned" ||
+                              supp.supplierName?.includes("غير محدد مسبقاً");
+                            const displayName = isUn ? "شريك مجتمعي / جهة مانحة (غير محدد مسبقاً)" : supp.supplierName;
+                            const displayReg = isUn ? "جهة مانحة / شريك مجتمعي" : (supp.commercialRegister || "مسجل");
+                            return (
+                              <SelectItem
+                                key={supp.id || supp.supplierName}
+                                value={String(supp.id || supp.supplierName)}
+                                className="text-right text-xs py-2"
+                              >
+                                {displayName} (السجل: {displayReg} • {supp.itemsCount || supp.items?.length || 0} أصناف)
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     </div>
 
                     {/* بطاقة تفاصيل المورد / الشريك المجتمعي المعتمد */}
-                    {currentSupplier && (
-                      <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-xl border border-slate-100 dark:border-slate-800/40 space-y-4 text-right animate-in fade-in duration-200">
-                        <div className="flex items-center justify-between border-b border-border/40 pb-3">
-                          <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                            <Building2 className="w-4 h-4 text-sky-600" />
-                            بيانات الشريك المجتمعي / المورد المعتمد:
-                          </span>
-                          <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-300 text-xs">
-                            مسؤولية مجتمعية معتمدة
-                          </Badge>
-                        </div>
+                    {currentSupplier && (() => {
+                      const isUnassigned = currentSupplier.isUnassigned ||
+                        currentSupplier.supplierName === "unassigned" ||
+                        currentSupplier.supplierName?.toLowerCase() === "unassigned" ||
+                        String(currentSupplier.id).toLowerCase() === "unassigned" ||
+                        currentSupplier.supplierName?.includes("غير محدد مسبقاً");
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-                          <div className="space-y-1">
-                            <span className="text-muted-foreground text-[11px] block">اسم الشركة / المؤسسة:</span>
-                            <span className="font-bold text-foreground text-sm">{currentSupplier.supplierName}</span>
-                          </div>
-                          <div className="space-y-1">
-                            <span className="text-muted-foreground text-[11px] block">رقم السجل التجاري:</span>
-                            <span className="font-mono font-bold text-foreground">{currentSupplier.commercialRegister || "مسجل بالنظام"}</span>
-                          </div>
-                          <div className="space-y-1">
-                            <span className="text-muted-foreground text-[11px] block">رقم التواصل / الجوال:</span>
-                            <span className="font-mono font-bold text-foreground">{currentSupplier.phone || "-"}</span>
-                          </div>
-                          <div className="space-y-1">
-                            <span className="text-muted-foreground text-[11px] block">المدينة / المقر:</span>
-                            <span className="font-bold text-foreground">{currentSupplier.city || currentRequest?.mosqueCity || "-"}</span>
-                          </div>
-                        </div>
+                      const displaySupplierName = isUnassigned
+                        ? "شريك مجتمعي / جهة مانحة (غير محدد مسبقاً)"
+                        : currentSupplier.supplierName;
 
-                        {/* إمكانية تعديل صيغة اسم الجهة في الخطاب إن لزم */}
-                        <div className="pt-2 border-t border-border/40 space-y-1.5">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
-                            صيغة اسم الجهة الموجه إليها الخطاب *
-                          </Label>
-                          <Input
-                            value={recipientName}
-                            onChange={(e) => setRecipientName(e.target.value)}
-                            placeholder="اسم الجهة أو الشركة كما سيظهر في الخطاب الرسمي..."
-                            className="text-right border-border focus:ring-sky-600 rounded-xl h-10 bg-background font-bold text-xs"
-                          />
+                      const displayCommercialRegister = isUnassigned
+                        ? "جهة مانحة / شريك مجتمعي"
+                        : (currentSupplier.commercialRegister && currentSupplier.commercialRegister !== "unassigned"
+                            ? currentSupplier.commercialRegister
+                            : "مسجل بالنظام");
+
+                      return (
+                        <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-xl border border-slate-100 dark:border-slate-800/40 space-y-4 text-right animate-in fade-in duration-200">
+                          <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                            <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                              <Building2 className="w-4 h-4 text-sky-600" />
+                              بيانات الشريك المجتمعي / المورد المعتمد:
+                            </span>
+                            <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-300 text-xs">
+                              {isUnassigned ? "مسؤولية مجتمعية (تحديد يدوي)" : "مسؤولية مجتمعية معتمدة"}
+                            </Badge>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                            <div className="space-y-1">
+                              <span className="text-muted-foreground text-[11px] block">اسم الشركة / المؤسسة:</span>
+                              <span className="font-bold text-foreground text-sm">{displaySupplierName}</span>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-muted-foreground text-[11px] block">رقم السجل التجاري:</span>
+                              <span className="font-mono font-bold text-foreground">{displayCommercialRegister}</span>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-muted-foreground text-[11px] block">رقم التواصل / الجوال:</span>
+                              <span className="font-mono font-bold text-foreground">{currentSupplier.phone && currentSupplier.phone !== "unassigned" ? currentSupplier.phone : "-"}</span>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-muted-foreground text-[11px] block">المدينة / المقر:</span>
+                              <span className="font-bold text-foreground">{currentSupplier.city || currentRequest?.mosqueCity || "-"}</span>
+                            </div>
+                          </div>
+
+                          {/* إمكانية تعديل صيغة اسم الجهة في الخطاب إن لزم أو اختيار مورد مسجل */}
+                          <div className="pt-2 border-t border-border/40 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                                صيغة اسم الجهة الموجه إليها الخطاب *
+                              </Label>
+                              {allRegisteredSuppliers.length > 0 && (
+                                <span className="text-[11px] text-muted-foreground">
+                                  يمكنك الكتابة يدوياً أو الاختيار من الموردين المسجلين أدناه
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <Input
+                                value={recipientName}
+                                onChange={(e) => setRecipientName(e.target.value)}
+                                placeholder="اسم الجهة أو الشركة كما سيظهر في الخطاب الرسمي..."
+                                className="text-right border-border focus:ring-sky-600 rounded-xl h-10 bg-background font-bold text-xs flex-1"
+                              />
+                              {allRegisteredSuppliers.length > 0 && (
+                                <Select
+                                  value=""
+                                  onValueChange={(val) => {
+                                    if (val) setRecipientName(val);
+                                  }}
+                                >
+                                  <SelectTrigger className="w-full sm:w-56 h-10 text-xs rounded-xl bg-background border-border text-muted-foreground">
+                                    <SelectValue placeholder="اختر من الموردين المسجلين..." />
+                                  </SelectTrigger>
+                                  <SelectContent dir="rtl">
+                                    {allRegisteredSuppliers.map((s: any) => (
+                                      <SelectItem key={s.id} value={s.name} className="text-right text-xs">
+                                        {s.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* جدول أصناف الطلب وتحديد الكميات */}
                     <div className="space-y-3 pt-2">
@@ -797,7 +867,7 @@ export default function CreateCsrLetterPage() {
                     </Button>
                     <Button
                       onClick={() => {
-                        if (!recipientName.trim()) {
+                        if (!recipientName.trim() || recipientName.trim().toLowerCase() === "unassigned") {
                           toast.error("يرجى اختيار المورد أو إدخال اسم الجهة أو المؤسسة المانحة");
                           return;
                         }
@@ -807,7 +877,7 @@ export default function CreateCsrLetterPage() {
                         }
                         setStep(3);
                       }}
-                      disabled={!recipientName.trim() || selectedItemIds.length === 0}
+                      disabled={!recipientName.trim() || recipientName.trim().toLowerCase() === "unassigned" || selectedItemIds.length === 0}
                       className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
                     >
                       <span>التالي: بيانات وتوثيق الخطاب</span>
