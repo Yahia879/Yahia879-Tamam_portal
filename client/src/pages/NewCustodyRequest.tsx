@@ -86,8 +86,7 @@ export default function NewCustodyRequest() {
   const activeCustody = isExecutiveDirector ? null : custodyCheck?.activeCustody;
   const hasApprovedException = isExecutiveDirector ? false : !!custodyCheck?.hasApprovedException;
   const hasPendingException = isExecutiveDirector ? false : !!custodyCheck?.hasPendingException;
-  const latestException = isExecutiveDirector ? null : custodyCheck?.latestException;
-  const hasExistingException = isExecutiveDirector ? false : !!custodyCheck?.hasExistingException;
+  const hasRejectedException = isExecutiveDirector ? false : !!(custodyCheck as any)?.hasRejectedException;
   const canSubmit = isExecutiveDirector || !hasActiveCustody || hasApprovedException;
 
   // نموذج الطلب
@@ -705,9 +704,9 @@ export default function NewCustodyRequest() {
                   <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
                   <span>
                     {hasPendingException
-                      ? "طلب الاستثناء مرفوع وقيد المراجعة لدى المدير التنفيذي حالياً. لا يمكن تقديم أكثر من استثناء."
-                      : hasExistingException
-                      ? "تم تقديم طلب استثناء مسبقاً لهذه العهدة، ولا يمكن تقديم أكثر من طلب استثناء."
+                      ? "طلب الاستثناء مرفوع وقيد المراجعة لدى المدير التنفيذي حالياً."
+                      : hasRejectedException
+                      ? "تم رفض طلب الاستثناء من المدير التنفيذي لهذه العهدة، ولا يمكن تقديم طلب استثناء آخر."
                       : "لا يمكن إرسال الطلب لوجود عهدة مالية سابقة قائمة. يمكنك تقديم طلب استثناء للمدير التنفيذي."}
                   </span>
                 </div>
@@ -716,9 +715,9 @@ export default function NewCustodyRequest() {
                     <Clock className="w-3 h-3 animate-pulse" />
                     قيد المراجعة
                   </Badge>
-                ) : hasExistingException ? (
+                ) : hasRejectedException ? (
                   <Badge variant="outline" className="bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-200 border-rose-300 gap-1 font-bold shrink-0">
-                    تم استخدام فرصة الاستثناء
+                    تم رفض الاستثناء
                   </Badge>
                 ) : (
                   <Button

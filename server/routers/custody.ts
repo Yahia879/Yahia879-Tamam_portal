@@ -1097,7 +1097,7 @@ export const custodyRouter = router({
       )
       .orderBy(desc(custodyRequests.createdAt));
 
-    const hasActiveCustody = activeCustodies.length > 0;
+    const currentActiveCustody = activeCustodies[0] || null;
 
     // فحص ما إذا كان هناك استثناء معتمد وغير مستخدم
     const [approvedException] = await db
@@ -1113,40 +1113,47 @@ export const custodyRouter = router({
       .orderBy(desc(custodyExceptions.createdAt))
       .limit(1);
 
-    // فحص ما إذا كان هناك استثناء قيد المراجعة
+    // فحص ما إذا كان هناك استثناء قيد المراجعة للعهدة النشطة الحالية
     const [pendingException] = await db
       .select()
       .from(custodyExceptions)
       .where(
         and(
           eq(custodyExceptions.userId, ctx.user.id),
-          eq(custodyExceptions.status, "pending")
+          eq(custodyExceptions.status, "pending"),
+          currentActiveCustody ? eq(custodyExceptions.activeCustodyId, currentActiveCustody.id) : undefined
         )
       )
       .orderBy(desc(custodyExceptions.createdAt))
       .limit(1);
 
-    // أحدث طلب استثناء للمستخدم لمعرفة حالته وملاحظاته
-    const [latestException] = await db
-      .select()
-      .from(custodyExceptions)
-      .where(eq(custodyExceptions.userId, ctx.user.id))
-      .orderBy(desc(custodyExceptions.createdAt))
-      .limit(1);
-
-    const hasExistingException = !!latestException;
+    // فحص ما إذا كان هناك استثناء مرفوض للعهدة النشطة الحالية (عند الرفض لا توجد فرصة لإرسال طلب آخر لنفس العهدة)
+    const [rejectedException] = currentActiveCustody
+      ? await db
+          .select()
+          .from(custodyExceptions)
+          .where(
+            and(
+              eq(custodyExceptions.userId, ctx.user.id),
+              eq(custodyExceptions.activeCustodyId, currentActiveCustody.id),
+              eq(custodyExceptions.status, "rejected")
+            )
+          )
+          .orderBy(desc(custodyExceptions.createdAt))
+          .limit(1)
+      : [null];
 
     return {
       hasActiveCustody,
       activeCustodies,
-      activeCustody: activeCustodies[0] || null,
+      activeCustody: currentActiveCustody,
       canSubmit: !hasActiveCustody || !!approvedException,
       hasApprovedException: !!approvedException,
       approvedException: approvedException || null,
       hasPendingException: !approvedException && !!pendingException,
       pendingException: pendingException || null,
-      latestException: latestException || null,
-      hasExistingException,
+      hasRejectedException: !approvedException && !pendingException && !!rejectedException,
+      rejectedException: rejectedException || null,
     };
   }),
 
@@ -1180,6 +1187,26 @@ export const custodyRouter = router({
         )
         .orderBy(desc(custodyExceptions.createdAt))
         .limit(1);
+
+      // فحص عدم وجود طلب استثناء مرفوض مسبقاً لهذه العهدة (عند الرفض لا توجد فرصة لإرسال طلب آخر لنفس العهدة)
+      const [existingRejected] = await db
+        .select()
+        .from(custodyExceptions)
+        .where(
+          and(
+            eq(custodyExceptions.userId, ctx.user.id),
+            eq(custodyExceptions.activeCustodyId, input.activeCustodyId),
+            eq(custodyExceptions.status, "rejected")
+          )
+        )
+        .limit(1);
+
+      if (existingRejected) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "تم رفض طلب الاستثناء لهذه العهدة مسبقاً من المدير التنفيذي، ولا يمكن تقديم طلب استثناء آخر",
+        });
+      }
 
       if (blockingException) {
         if (blockingException.status === "pending") {
