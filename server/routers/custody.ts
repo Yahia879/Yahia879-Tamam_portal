@@ -631,8 +631,15 @@ export const custodyRouter = router({
             and(
               eq(custodyRequests.userId, ctx.user.id),
               ne(custodyRequests.status, "rejected"),
-              sql`${custodyRequests.disbursementOrderId} IS NOT NULL`,
-              eq(disbursementOrders.status, "pending")
+              or(
+                // حالة 1: لم ينشأ له أمر صرف بعد
+                sql`${custodyRequests.disbursementOrderId} IS NULL`,
+                // حالة 2: أمر الصرف المرتبط به حالته "قيد الاعتماد"
+                and(
+                  sql`${custodyRequests.disbursementOrderId} IS NOT NULL`,
+                  eq(disbursementOrders.status, "pending")
+                )
+              )
             )
           )
           .orderBy(desc(custodyRequests.createdAt))
@@ -1073,8 +1080,15 @@ export const custodyRouter = router({
         and(
           eq(custodyRequests.userId, ctx.user.id),
           ne(custodyRequests.status, "rejected"),
-          sql`${custodyRequests.disbursementOrderId} IS NOT NULL`,
-          eq(disbursementOrders.status, "pending")
+          or(
+            // حالة 1: لم ينشأ له أمر صرف بعد
+            sql`${custodyRequests.disbursementOrderId} IS NULL`,
+            // حالة 2: أمر الصرف المرتبط به حالته "قيد الاعتماد"
+            and(
+              sql`${custodyRequests.disbursementOrderId} IS NOT NULL`,
+              eq(disbursementOrders.status, "pending")
+            )
+          )
         )
       )
       .orderBy(desc(custodyRequests.createdAt));
