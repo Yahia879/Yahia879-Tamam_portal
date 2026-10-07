@@ -473,27 +473,12 @@ export default function SedanaQuotations() {
                     >
                       {/* اليمين: رقم الطلب + اسم المسجد / المشروع + المدينة وتاريخ الإنشاء ومقدم الطلب */}
                       <div className="flex items-center gap-3.5 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 shrink-0">
-                          <Badge
-                            variant="secondary"
-                            className="font-mono font-bold text-xs px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                          >
-                            {req.requestNumber || `REQ-${req.id}`}
-                          </Badge>
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-[10px] px-2 py-0.5 font-bold shrink-0 w-fit",
-                              req.currentStage === "financial_eval_and_approval"
-                                ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300"
-                                : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300"
-                            )}
-                          >
-                            {req.currentStage === "financial_eval_and_approval"
-                              ? "التقييم المالي"
-                              : STAGE_LABELS[req.currentStage] || req.currentStage}
-                          </Badge>
-                        </div>
+                        <Badge
+                          variant="secondary"
+                          className="font-mono font-bold text-xs px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                        >
+                          {req.requestNumber || `REQ-${req.id}`}
+                        </Badge>
 
                         <div className="space-y-1 min-w-0">
                           <div className="flex items-center gap-2">
@@ -540,17 +525,10 @@ export default function SedanaQuotations() {
                         </div>
 
                         {/* شارة حالة العرض */}
-                        {req.hasApprovedQuotation ? (
+                        {req.hasApprovedQuotation || req.currentStage !== "financial_eval_and_approval" ? (
                           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/60">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                            <span>
-                              {req.winningSupplier ? `معتمد: ${req.winningSupplier}` : "تم اعتماد العرض"}
-                            </span>
-                          </div>
-                        ) : req.currentStage !== "financial_eval_and_approval" ? (
-                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/60">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                            <span>مكتمل الترسية</span>
+                            <span>معتمد</span>
                           </div>
                         ) : req.quotationsCount > 0 ? (
                           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-900/60">
