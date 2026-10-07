@@ -70,8 +70,6 @@ export default function NewCustodyRequest() {
   const isExecutiveDirector =
     user?.role === "executive_director" ||
     user?.role === "general_manager" ||
-    user?.role === "super_admin" ||
-    user?.role === "system_admin" ||
     (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
     (user as any)?.customRole?.nameAr === "الرئيس التنفيذي" ||
     user?.name === "المدير التنفيذي" ||

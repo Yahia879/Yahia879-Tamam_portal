@@ -622,8 +622,8 @@ export const custodyRouter = router({
 
       let approvedExceptionId: number | null = null;
 
-      // المدير التنفيذي والمشرف العام مستثنون من شرط المنع ولا يحتاجون إلى طلب استثناء
-      if (!isExecutiveDirector && !isSuperAdmin) {
+      // المدير التنفيذي فقط مستثنى من شرط المنع ولا يحتاج إلى طلب استثناء
+      if (!isExecutiveDirector) {
         const blockingCustodies = await db
           .select({
             id: custodyRequests.id,
@@ -1054,8 +1054,8 @@ export const custodyRouter = router({
 
     const { isExecutiveDirector, isSuperAdmin } = checkCustodyRoles(ctx.user);
 
-    // المدير التنفيذي والمشرف العام مستثنون من شرط المنع ولا يحتاجون إلى طلب استثناء
-    if (isExecutiveDirector || isSuperAdmin) {
+    // المدير التنفيذي فقط مستثنى من شرط المنع ولا يحتاج إلى طلب استثناء
+    if (isExecutiveDirector) {
       return {
         hasActiveCustody: false,
         activeCustody: null,
