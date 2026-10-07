@@ -1155,7 +1155,7 @@ export const custodyRouter = router({
     .input(
       z.object({
         activeCustodyId: z.number(),
-        reason: z.string().min(5, "يرجى كتابة مبررات طلب الاستثناء بشكل واضح"),
+        reason: z.string().trim().min(5, "يرجى كتابة مبررات طلب الاستثناء بشكل واضح (5 أحرف على الأقل)"),
       })
     )
     .mutation(async ({ input, ctx }) => {

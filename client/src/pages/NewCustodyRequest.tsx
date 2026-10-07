@@ -63,7 +63,14 @@ export default function NewCustodyRequest() {
       utils.custody.checkActiveCustody.invalidate();
     },
     onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء رفع طلب الاستثناء");
+      let msg = err.message || "حدث خطأ أثناء رفع طلب الاستثناء";
+      try {
+        const parsed = JSON.parse(msg);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]?.message) {
+          msg = parsed.map((p: any) => p.message).join("، ");
+        }
+      } catch {}
+      toast.error(msg);
     },
   });
 
@@ -325,29 +332,50 @@ export default function NewCustodyRequest() {
               )}
 
               <div className="space-y-2 text-right">
-                <Label className="text-xs sm:text-sm font-bold text-foreground block text-right">
-                  مبررات وأسباب طلب الاستثناء <span className="text-rose-500">*</span>
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs sm:text-sm font-bold text-foreground block text-right">
+                    مبررات وأسباب طلب الاستثناء <span className="text-rose-500">*</span>
+                  </Label>
+                  <span
+                    className={`text-[11px] font-mono transition-colors ${
+                      exceptionReason.trim().length >= 5
+                        ? "text-emerald-600 font-bold"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {exceptionReason.trim().length} / 5 أحرف كحد أدنى
+                  </span>
+                </div>
                 <Textarea
                   value={exceptionReason}
                   onChange={(e) => setExceptionReason(e.target.value)}
-                  placeholder="اكتب هنا مبررات الحاجة لصرف العهدة الجديدة وأسباب طلب الاستثناء..."
+                  placeholder="اكتب هنا مبررات الحاجة لصرف العهدة الجديدة وأسباب طلب الاستثناء (5 أحرف على الأقل)..."
                   rows={4}
                   className="rounded-xl text-xs sm:text-sm bg-background resize-none border-border/70 p-3 leading-relaxed text-right"
                   dir="rtl"
                 />
+                {exceptionReason.trim().length > 0 && exceptionReason.trim().length < 5 && (
+                  <p className="text-[11px] text-amber-600 font-semibold">
+                    يرجى كتابة {5 - exceptionReason.trim().length} أحرف إضافية على الأقل لتوضيح المبررات.
+                  </p>
+                )}
               </div>
             </div>
 
             <DialogFooter className="flex flex-row sm:flex-row justify-start items-center gap-2 pt-3 border-t border-border/40">
               <Button
                 type="button"
-                disabled={!exceptionReason.trim() || requestExceptionMutation.isPending || !activeCustody?.id}
+                disabled={exceptionReason.trim().length < 5 || requestExceptionMutation.isPending || !activeCustody?.id}
                 onClick={() => {
                   if (!activeCustody?.id) return;
+                  const trimmedReason = exceptionReason.trim();
+                  if (trimmedReason.length < 5) {
+                    toast.error("يرجى كتابة مبررات طلب الاستثناء بشكل واضح (5 أحرف على الأقل)");
+                    return;
+                  }
                   requestExceptionMutation.mutate({
                     activeCustodyId: activeCustody.id,
-                    reason: exceptionReason.trim(),
+                    reason: trimmedReason,
                   });
                 }}
                 className="rounded-xl text-xs sm:text-sm font-bold gradient-primary text-white gap-2 cursor-pointer h-10 px-5 shadow-xs"
