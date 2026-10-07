@@ -404,7 +404,7 @@ export default function NewCustodyRequest() {
             <CardContent className="p-4 sm:p-5 space-y-4">
               {/* عنوان العهدة */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">
+                <Label className="text-xs font-bold text-foreground">
                   عنوان العهدة المالية <span className="text-rose-500">*</span>
                 </Label>
                 <Input
@@ -470,14 +470,14 @@ export default function NewCustodyRequest() {
                                 <Input
                                   value={item.description}
                                   onChange={(e) => handleItemChange(item.id, "description", e.target.value)}
-                                  placeholder="اكتب بيان البند أو اسم الصنف..."
+                                  placeholder="عنوان البند..."
                                   className="h-8.5 rounded-lg border-border/70 text-xs sm:text-sm bg-background font-medium"
                                   required
                                 />
                                 <Textarea
                                   value={item.details || ""}
                                   onChange={(e) => handleItemChange(item.id, "details", e.target.value)}
-                                  placeholder="اكتب مواصفات أو تفاصيل إضافية للصنف (اختياري)..."
+                                  placeholder="وصف البند..."
                                   rows={1}
                                   className="text-xs min-h-[36px] max-h-[90px] resize-y bg-muted/20 focus:bg-background border-input/80 py-1.5 px-2.5 leading-relaxed rounded-md transition-colors"
                                 />
@@ -536,44 +536,32 @@ export default function NewCustodyRequest() {
                 </div>
               </div>
 
-              {/* المبلغ الإجمالي المطلوب صرفه - محسوب آلياً */}
-              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-primary/10 pb-3">
-                  <div className="space-y-0.5">
-                    <div className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-2">
-                      <span>المبلغ الإجمالي المطلوب صرفه</span>
-                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 text-[10px] font-bold">
-                        محسوب تلقائياً
-                      </Badge>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground">
-                      إجمالي مبالغ البنود المدخلة أعلاه رقماً وكتابةً
-                    </p>
-                  </div>
-
-                  {/* المبلغ بالأرقام */}
-                  <div className="flex items-center sm:flex-col sm:items-end justify-between sm:justify-start gap-1">
-                    <span className="text-[11px] font-bold text-muted-foreground">المبلغ بالأرقام:</span>
-                    <div className="inline-flex items-center gap-1.5 font-mono text-xl sm:text-2xl font-black text-primary">
+              {/* المبلغ الإجمالي المطلوب صرفه - مبسط وغير بارز بشكل مبالغ فيه */}
+              <div className="rounded-xl border border-border/70 bg-muted/20 p-3.5 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-foreground">إجمالي المبلغ المطلوب:</span>
+                    <div className="inline-flex items-center gap-1 font-mono text-base sm:text-lg font-bold text-foreground">
                       <span>
                         {totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
-                      <SaudiRiyal className="w-5 h-5 inline text-primary" />
+                      <SaudiRiyal className="w-4 h-4 inline text-muted-foreground" />
                     </div>
                   </div>
+
+                  <span className="text-[11px] text-muted-foreground">محسوب تلقائياً</span>
                 </div>
 
                 {/* المبلغ كتابة */}
-                <div className="flex items-start gap-2 text-xs">
-                  <span className="font-bold text-foreground shrink-0">المبلغ كتابة:</span>
+                <div className="text-xs text-muted-foreground pt-1.5 border-t border-border/40 flex items-start gap-1.5">
+                  <span className="font-semibold text-foreground shrink-0">المبلغ كتابة:</span>
                   {tafqeetText ? (
-                    <span className="font-bold text-primary flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-primary shrink-0 inline" />
-                      <span>فقط {tafqeetText} لا غير.</span>
+                    <span className="font-medium text-foreground">
+                      فقط {tafqeetText} لا غير.
                     </span>
                   ) : (
-                    <span className="text-muted-foreground italic">
-                      أدخل مبالغ البنود أعلاه ليتم التحويل التلقائي للمبلغ كتابةً
+                    <span className="text-muted-foreground/80 italic text-[11px]">
+                      سيظهر المبلغ كتابةً تلقائياً عند إدخال مبالغ البنود
                     </span>
                   )}
                 </div>
