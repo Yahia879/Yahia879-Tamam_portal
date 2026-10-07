@@ -1007,6 +1007,8 @@ export const custodyRouter = router({
       .orderBy(desc(custodyExceptions.createdAt))
       .limit(1);
 
+    const hasExistingException = !!latestException;
+
     return {
       hasActiveCustody,
       activeCustodies,
@@ -1017,6 +1019,7 @@ export const custodyRouter = router({
       hasPendingException: !approvedException && !!pendingException,
       pendingException: pendingException || null,
       latestException: latestException || null,
+      hasExistingException,
     };
   }),
 
@@ -1032,22 +1035,35 @@ export const custodyRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // فحص وجود طلب استثناء قيد المراجعة بالفعل
-      const [existingPending] = await db
+      // فحص عدم تقديم أكثر من طلب استثناء
+      const [existingException] = await db
         .select()
         .from(custodyExceptions)
         .where(
           and(
             eq(custodyExceptions.userId, ctx.user.id),
-            eq(custodyExceptions.status, "pending")
+            eq(custodyExceptions.activeCustodyId, input.activeCustodyId)
           )
         )
+        .orderBy(desc(custodyExceptions.createdAt))
         .limit(1);
 
-      if (existingPending) {
+      if (existingException) {
+        if (existingException.status === "pending") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "يوجد لديك طلب استثناء قيد المراجعة بالفعل من المدير التنفيذي، ولا يمكن تقديم أكثر من طلب استثناء",
+          });
+        }
+        if (existingException.status === "approved" && !existingException.isUsed) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "لديك استثناء معتمد بالفعل، يمكنك تقديم طلب العهدة مباشرة",
+          });
+        }
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "يوجد لديك طلب استثناء قيد المراجعة بالفعل من المدير التنفيذي",
+          message: "تم تقديم طلب استثناء مسبقاً لهذه العهدة، ولا يمكن تقديم أكثر من طلب استثناء",
         });
       }
 
