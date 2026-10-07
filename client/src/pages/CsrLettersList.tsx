@@ -215,6 +215,12 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
                 const qParts = [];
                 if (requestId) qParts.push(`requestId=${requestId}`);
                 if (projectId) qParts.push(`projectId=${projectId}`);
+                if (isEmbedded) {
+                  qParts.push(`from=orders-and-letters`);
+                  if (requestId) {
+                    qParts.push(`returnUrl=${encodeURIComponent(`/orders-and-letters?tab=disbursement_orders&requestId=${requestId}`)}`);
+                  }
+                }
                 const qStr = qParts.length > 0 ? `?${qParts.join("&")}` : "";
                 navigate(`/csr-letters/new${qStr}`);
               }}

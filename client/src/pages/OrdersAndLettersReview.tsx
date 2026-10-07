@@ -690,13 +690,14 @@ export default function OrdersAndLettersReview() {
               {/* تبويب أوامر الصرف المرتبطة بالطلب واعتمادها كمسؤول مالي */}
               <TabsContent value="disbursement_orders" className="space-y-5 mt-0 focus-visible:outline-none">
                 <div className="bg-card rounded-xl border border-border/80 shadow-2xs p-4 sm:p-5 space-y-5">
-                  {/* شريط الإجراءات والترويسة لأوامر الصرف - بدون أي زر لإنشاء أمر صرف مباشر */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/60">
+                  {/* شريط الإجراءات والترويسة لأوامر الصرف */}
+                  <div className="flex flex-row items-center justify-between gap-3 border-b border-border/60 pb-3 text-right" dir="rtl">
+                    {/* اليمين: الشعار والنص */}
+                    <div className="flex items-center gap-2.5 text-right">
+                      <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/60 shrink-0">
                         <Coins className="w-5 h-5" />
                       </div>
-                      <div>
+                      <div className="text-right">
                         <h3 className="text-base font-bold text-foreground">
                           أوامر الصرف المرتبطة بالطلب #{selectedRequestId}
                         </h3>
@@ -706,23 +707,14 @@ export default function OrdersAndLettersReview() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    {/* اليسار: شارة عدد أوامر الصرف المرتبطة */}
+                    <div className="flex items-center shrink-0">
                       <Badge
                         variant="secondary"
                         className="text-xs font-bold px-3 py-1 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
                       >
                         {linkedDisbursementOrders.length} {linkedDisbursementOrders.length === 1 ? "أمر صرف مرتبط" : "أوامر صرف مرتبطة"}
                       </Badge>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => refetchDisbursements()}
-                        className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground font-medium"
-                        title="تحديث أوامر الصرف"
-                      >
-                        <RefreshCw className={`w-3.5 h-3.5 ${isDisbLoading ? "animate-spin" : ""}`} />
-                        <span>تحديث</span>
-                      </Button>
                     </div>
                   </div>
 

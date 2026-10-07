@@ -235,7 +235,13 @@ export default function NewDirectDisbursementOrder() {
   const createDirectOrderMutation = trpc.disbursements.createDirectOrder.useMutation({
     onSuccess: (data) => {
       toast.success("تم إنشاء أمر الصرف المباشر بنجاح");
-      navigate("/disbursement-orders");
+      const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+      const returnUrl = searchParams.get("returnUrl");
+      if (returnUrl) {
+        navigate(returnUrl);
+      } else {
+        navigate("/disbursement-orders");
+      }
     },
     onError: (error) => {
       toast.error(`خطأ: ${error.message}`);
@@ -437,7 +443,17 @@ export default function NewDirectDisbursementOrder() {
               size="icon"
               onClick={() => {
                 if (step === 2) setStep(1);
-                else navigate("/disbursement-orders");
+                else {
+                  const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+                  const returnUrl = searchParams.get("returnUrl");
+                  if (returnUrl) {
+                    navigate(returnUrl);
+                  } else if (typeof window !== "undefined" && window.history.length > 1) {
+                    window.history.back();
+                  } else {
+                    navigate("/disbursement-orders");
+                  }
+                }
               }}
               className="rounded-xl flex-shrink-0"
             >

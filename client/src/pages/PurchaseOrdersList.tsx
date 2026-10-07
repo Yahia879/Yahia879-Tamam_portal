@@ -241,6 +241,12 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
                 const qParts = [];
                 if (requestId) qParts.push(`requestId=${requestId}`);
                 if (projectId) qParts.push(`projectId=${projectId}`);
+                if (isEmbedded) {
+                  qParts.push(`from=orders-and-letters`);
+                  if (requestId) {
+                    qParts.push(`returnUrl=${encodeURIComponent(`/orders-and-letters?tab=disbursement_orders&requestId=${requestId}`)}`);
+                  }
+                }
                 const qStr = qParts.length > 0 ? `?${qParts.join("&")}` : "";
                 navigate(`/purchase-orders/new${qStr}`);
               }}
@@ -530,7 +536,12 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => navigate(`/disbursement-orders/new-direct?po=${encodeURIComponent(order.orderNumber)}`)}
+                                  onClick={() => {
+                                    const returnUrlParam = isEmbedded && requestId
+                                      ? `&returnUrl=${encodeURIComponent(`/orders-and-letters?tab=disbursement_orders&requestId=${requestId}`)}`
+                                      : "";
+                                    navigate(`/disbursement-orders/new-direct?po=${encodeURIComponent(order.orderNumber)}${returnUrlParam}`);
+                                  }}
                                   className="h-7 text-[11px] px-2 gap-1 text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 border-amber-300 dark:border-amber-800 font-bold shadow-2xs"
                                 >
                                   <Coins className="w-3.5 h-3.5 text-amber-600" />
@@ -629,7 +640,12 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
                                     <>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem
-                                        onClick={() => navigate(`/disbursement-orders/new-direct?po=${encodeURIComponent(order.orderNumber)}`)}
+                                        onClick={() => {
+                                          const returnUrlParam = isEmbedded && requestId
+                                            ? `&returnUrl=${encodeURIComponent(`/orders-and-letters?tab=disbursement_orders&requestId=${requestId}`)}`
+                                            : "";
+                                          navigate(`/disbursement-orders/new-direct?po=${encodeURIComponent(order.orderNumber)}${returnUrlParam}`);
+                                        }}
                                         className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40"
                                       >
                                         <Coins className="w-4 h-4 text-amber-600 shrink-0" />

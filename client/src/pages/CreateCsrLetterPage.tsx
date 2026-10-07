@@ -48,7 +48,15 @@ export default function CreateCsrLetterPage() {
   const projectId = searchParams.get("projectId") ? parseInt(searchParams.get("projectId")!, 10) : null;
 
   const handleBack = () => {
-    if (projectId) {
+    const returnUrl = searchParams.get("returnUrl");
+    const fromSource = searchParams.get("from");
+    const targetRequestId = selectedRequestId || initialRequestId;
+
+    if (returnUrl) {
+      navigate(returnUrl);
+    } else if (fromSource === "orders-and-letters" && targetRequestId) {
+      navigate(`/orders-and-letters?tab=disbursement_orders&requestId=${targetRequestId}`);
+    } else if (projectId) {
       navigate(`/projects/${projectId}`);
     } else if (typeof window !== "undefined" && window.history.length > 1) {
       window.history.back();
@@ -232,8 +240,16 @@ export default function CreateCsrLetterPage() {
       utils.procurement.getAvailableRequestsForCSR.invalidate();
       utils.procurement.getPendingActionCounts.invalidate();
 
-      // الانتقال إلى تفاصيل المشروع إذا تم الإنشاء منه، أو قائمة خطابات المسؤولية المجتمعية
-      if (projectId) {
+      // الانتقال بعد حفظ خطاب المسؤولية المجتمعية
+      const returnUrl = searchParams.get("returnUrl");
+      const fromSource = searchParams.get("from");
+      const targetRequestId = vars.requestId || selectedRequestId || initialRequestId;
+
+      if (returnUrl) {
+        navigate(returnUrl);
+      } else if (fromSource === "orders-and-letters" && targetRequestId) {
+        navigate(`/orders-and-letters?tab=disbursement_orders&requestId=${targetRequestId}`);
+      } else if (projectId) {
         navigate(`/projects/${projectId}`);
       } else {
         navigate("/csr-letters");
