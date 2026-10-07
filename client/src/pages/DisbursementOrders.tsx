@@ -100,12 +100,19 @@ const PAYMENT_METHOD_MAP: Record<string, string> = {
   sadad: "سداد",
 };
 
-export default function DisbursementOrders() {
+export interface DisbursementOrdersViewProps {
+  requestId?: number;
+  isEmbedded?: boolean;
+}
+
+export function DisbursementOrdersView({ requestId, isEmbedded = false }: DisbursementOrdersViewProps) {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
   const [isExporting, setIsExporting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+
+  const isSolayani = user?.email?.toLowerCase().trim() === "solayani@manarah.org.sa";
 
   const handleExportExcel = async () => {
     try {
@@ -115,6 +122,7 @@ export default function DisbursementOrders() {
         search: debouncedSearch || undefined,
         page: 1,
         limit: 5000,
+        requestId: requestId || undefined,
       });
 
       const columns = [
@@ -181,7 +189,7 @@ export default function DisbursementOrders() {
   };
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [page, setPage, resetPage] = usePersistedPage("disbursement_orders_page", 1);
+  const [page, setPage, resetPage] = usePersistedPage(isEmbedded ? `disbursement_orders_page_${requestId || "embedded"}` : "disbursement_orders_page", 1);
   const limit = 10;
 
   const [showApproveDialog, setShowApproveDialog] = useState(false);
@@ -218,6 +226,7 @@ export default function DisbursementOrders() {
     search: debouncedSearch || undefined,
     page,
     limit,
+    requestId: requestId || undefined,
   });
 
   // Mutations
@@ -227,6 +236,8 @@ export default function DisbursementOrders() {
       setShowApproveDialog(false);
       setApprovalNotes("");
       refetchOrders();
+      utils.disbursements.listOrders.invalidate();
+      utils.procurement.listPurchaseOrders.invalidate();
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء اعتماد أمر الصرف");
@@ -377,10 +388,10 @@ export default function DisbursementOrders() {
 
     return [...ordersData.orders].sort((a: any, b: any) => {
       const checkPendingMyAction = (o: any) => {
-        if ((o.status === "pending" || o.status === "edited" || o.status === "draft") && (isFinancialUser || isSuperAdmin)) {
+        if ((o.status === "pending" || o.status === "edited" || o.status === "draft") && (isSolayani || (!isEmbedded && isSuperAdmin))) {
           return true;
         }
-        if (o.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin)) {
+        if (!isEmbedded && o.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin)) {
           return true;
         }
         return false;
@@ -394,7 +405,7 @@ export default function DisbursementOrders() {
 
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-  }, [ordersData?.orders, isFinancialUser, isExecutiveDirector, isSuperAdmin]);
+  }, [ordersData?.orders, isSolayani, isExecutiveDirector, isSuperAdmin, isEmbedded]);
 
   const filteredOrders = sortedOrders;
 
@@ -408,10 +419,29 @@ export default function DisbursementOrders() {
   const total = ordersData?.total || 0;
   const totalPages = Math.ceil(total / limit);
 
-  return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        {/* العنوان والإحصائيات */}
+  const content = (
+    <div className="space-y-6">
+      {/* العنوان والإحصائيات */}
+      {isEmbedded ? (
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between text-right" dir="rtl">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300">
+                <Banknote className="w-5 h-5" />
+              </div>
+              <h2 className="text-lg sm:text-xl font-bold text-foreground">
+                {requestId ? `أوامر الصرف المرتبطة بالطلب #${requestId}` : "أوامر الصرف"}
+              </h2>
+              <Badge variant="outline" className="text-amber-700 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-xs">
+                برنامج سدانة
+              </Badge>
+            </div>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+              متابعة حالة أوامر الصرف الناتجة عن أوامر الشراء المعتمدة لهذا الطلب واعتمادها كمسؤول مالي
+            </p>
+          </div>
+        </div>
+      ) : (
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl font-bold">أوامر الصرف</h1>
@@ -429,6 +459,7 @@ export default function DisbursementOrders() {
             </div>
           )}
         </div>
+      )}
 
         {/* بطاقات الإحصائيات المحدثة والأنيقة */}
         <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5" dir="rtl">
@@ -577,8 +608,8 @@ export default function DisbursementOrders() {
                     <TableBody>
                       {filteredOrders?.map((order) => {
                         const isPendingMyAction = 
-                          ((order.status === "pending" || order.status === "edited" || order.status === "draft") && (isFinancialUser || isSuperAdmin)) ||
-                          (order.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin));
+                          ((order.status === "pending" || order.status === "edited" || order.status === "draft") && (isSolayani || (!isEmbedded && isSuperAdmin))) ||
+                          (!isEmbedded && order.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin));
 
                         return (
                           <TableRow 
@@ -603,7 +634,7 @@ export default function DisbursementOrders() {
                                         <span>
                                           {order.status === "pending_executive" 
                                             ? (isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي") 
-                                            : (isFinancialUser ? "بانتظار اعتمادك (الإدارة المالية)" : "بانتظار الاعتماد المالي")}
+                                            : (isSolayani ? "بانتظار اعتمادك (الإدارة المالية)" : "بانتظار الاعتماد المالي")}
                                         </span>
                                       </TooltipContent>
                                     </Tooltip>
@@ -729,10 +760,10 @@ export default function DisbursementOrders() {
                                   {(() => {
                                     const isStage1Pending = order.status === "pending" || order.status === "draft" || order.status === "edited";
                                     const isStage2Pending = order.status === "pending_executive";
-                                    const canApproveStage1 = isStage1Pending && user?.email === "solayani@manarah.org.sa";
-                                    const canApproveStage2 = isStage2Pending && user?.email === "ceo@manarah.org.sa";
-                                    const canShowExceptionOption = isStage1Pending && canExceptionApproveOrder && user?.email !== "solayani@manarah.org.sa";
-                                    const canReject = (isStage1Pending && user?.email === "solayani@manarah.org.sa") || (isStage2Pending && user?.email === "ceo@manarah.org.sa");
+                                    const canApproveStage1 = isStage1Pending && isSolayani;
+                                    const canApproveStage2 = !isEmbedded && isStage2Pending && user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa";
+                                    const canShowExceptionOption = !isEmbedded && isStage1Pending && canExceptionApproveOrder && !isSolayani;
+                                    const canReject = (isStage1Pending && isSolayani) || (!isEmbedded && isStage2Pending && user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa");
 
                                     return (
                                       <>
@@ -881,8 +912,8 @@ export default function DisbursementOrders() {
                 <div className="md:hidden grid gap-4 p-4 bg-muted/5" dir="rtl">
                   {filteredOrders?.map((order) => {
                     const isPendingMyAction = 
-                      ((order.status === "pending" || order.status === "edited" || order.status === "draft") && (isFinancialUser || isSuperAdmin)) ||
-                      (order.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin));
+                      ((order.status === "pending" || order.status === "edited" || order.status === "draft") && (isSolayani || (!isEmbedded && isSuperAdmin))) ||
+                      (!isEmbedded && order.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin));
 
                     return (
                       <Card 
@@ -913,7 +944,7 @@ export default function DisbursementOrders() {
                                       <span>
                                         {order.status === "pending_executive" 
                                           ? (isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي") 
-                                          : (isFinancialUser ? "بانتظار اعتمادك (الإدارة المالية)" : "بانتظار الاعتماد المالي")}
+                                          : (isSolayani ? "بانتظار اعتمادك (الإدارة المالية)" : "بانتظار الاعتماد المالي")}
                                       </span>
                                     </TooltipContent>
                                   </Tooltip>
@@ -1038,10 +1069,10 @@ export default function DisbursementOrders() {
                                 {(() => {
                                   const isStage1Pending = order.status === "pending" || order.status === "draft" || order.status === "edited";
                                   const isStage2Pending = order.status === "pending_executive";
-                                  const canApproveStage1 = isStage1Pending && user?.email === "solayani@manarah.org.sa";
-                                  const canApproveStage2 = isStage2Pending && user?.email === "ceo@manarah.org.sa";
-                                  const canShowExceptionOption = isStage1Pending && canExceptionApproveOrder && user?.email !== "solayani@manarah.org.sa";
-                                  const canReject = (isStage1Pending && user?.email === "solayani@manarah.org.sa") || (isStage2Pending && user?.email === "ceo@manarah.org.sa");
+                                  const canApproveStage1 = isStage1Pending && isSolayani;
+                                  const canApproveStage2 = !isEmbedded && isStage2Pending && user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa";
+                                  const canShowExceptionOption = !isEmbedded && isStage1Pending && canExceptionApproveOrder && !isSolayani;
+                                  const canReject = (isStage1Pending && isSolayani) || (!isEmbedded && isStage2Pending && user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa");
 
                                   return (
                                     <>
@@ -1818,6 +1849,19 @@ export default function DisbursementOrders() {
           </DialogContent>
         </Dialog>
       </div>
+  );
+
+  if (isEmbedded) {
+    return content;
+  }
+
+  return (
+    <DashboardLayout>
+      {content}
     </DashboardLayout>
   );
+}
+
+export default function DisbursementOrders() {
+  return <DisbursementOrdersView isEmbedded={false} />;
 }

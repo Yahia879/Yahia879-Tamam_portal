@@ -1926,8 +1926,7 @@ export const disbursementsRouter = router({
 
       const { status, search, page = 1, limit = 10, requestId } = input || {};
 
-      const conditions = [];
-      if (status) conditions.push(eq(disbursementOrders.status, status));
+      const scopeConditions = [];
 
       if (requestId) {
         const [targetReq] = await db
@@ -1970,12 +1969,12 @@ export const disbursementsRouter = router({
           reqConds.push(inArray(disbursementOrders.csrLetterNumber, poNumbers));
         }
 
-        conditions.push(or(...reqConds));
+        scopeConditions.push(or(...reqConds));
       }
 
       if (search) {
         const searchPattern = `%${search.toLowerCase()}%`;
-        conditions.push(
+        scopeConditions.push(
           or(
             like(sql`LOWER(${disbursementOrders.orderNumber})`, searchPattern),
             like(sql`LOWER(${disbursementOrders.beneficiaryName})`, searchPattern),
@@ -1985,6 +1984,9 @@ export const disbursementsRouter = router({
           )
         );
       }
+
+      const conditions = [...scopeConditions];
+      if (status) conditions.push(eq(disbursementOrders.status, status));
 
       const orders = await db
         .select({
@@ -2124,33 +2126,51 @@ export const disbursementsRouter = router({
         .leftJoin(projects, eq(disbursementRequests.projectId, projects.id))
         .where(conditions.length > 0 ? and(...conditions) : undefined);
 
-      // حساب الإحصائيات العامة للمبالغ وأوامر الصرف
+      // حساب الإحصائيات العامة للمبالغ وأوامر الصرف وفق النطاق المحدد (مثل رقم الطلب إن وجد)
+      const buildStatsCondition = (statusCond?: any) => {
+        const conds = [...scopeConditions];
+        if (statusCond) conds.push(statusCond);
+        return conds.length > 0 ? and(...conds) : undefined;
+      };
+
       const [pendingCountResult] = await db
         .select({ count: sql<number>`count(*)` })
         .from(disbursementOrders)
-        .where(or(
+        .leftJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
+        .leftJoin(projects, eq(disbursementRequests.projectId, projects.id))
+        .where(buildStatsCondition(or(
           eq(disbursementOrders.status, "pending"),
-          eq(disbursementOrders.status, "edited")
-        ));
+          eq(disbursementOrders.status, "edited"),
+          eq(disbursementOrders.status, "draft")
+        )));
 
       const [approvedCountResult] = await db
         .select({ count: sql<number>`count(*)` })
         .from(disbursementOrders)
-        .where(eq(disbursementOrders.status, "approved"));
+        .leftJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
+        .leftJoin(projects, eq(disbursementRequests.projectId, projects.id))
+        .where(buildStatsCondition(eq(disbursementOrders.status, "approved")));
 
       const [executedCountResult] = await db
         .select({ count: sql<number>`count(*)` })
         .from(disbursementOrders)
-        .where(eq(disbursementOrders.status, "executed"));
+        .leftJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
+        .leftJoin(projects, eq(disbursementRequests.projectId, projects.id))
+        .where(buildStatsCondition(eq(disbursementOrders.status, "executed")));
 
       const [rejectedCountResult] = await db
         .select({ count: sql<number>`count(*)` })
         .from(disbursementOrders)
-        .where(eq(disbursementOrders.status, "rejected"));
+        .leftJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
+        .leftJoin(projects, eq(disbursementRequests.projectId, projects.id))
+        .where(buildStatsCondition(eq(disbursementOrders.status, "rejected")));
 
       const [totalAmountResult] = await db
-        .select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
-        .from(disbursementOrders);
+        .select({ total: sql<number>`COALESCE(SUM(${disbursementOrders.amount}), 0)` })
+        .from(disbursementOrders)
+        .leftJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
+        .leftJoin(projects, eq(disbursementRequests.projectId, projects.id))
+        .where(buildStatsCondition());
 
       return {
         orders: ordersWithDetails,
