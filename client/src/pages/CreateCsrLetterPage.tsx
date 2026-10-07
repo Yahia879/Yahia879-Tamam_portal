@@ -247,7 +247,7 @@ export default function CreateCsrLetterPage() {
   // Mutation: إنشاء خطاب المسؤولية المجتمعية
   const utils = trpc.useUtils();
   const createCsrMutation = trpc.procurement.createOrUpdateCsrLetter.useMutation({
-    onSuccess: (res) => {
+    onSuccess: (res, vars) => {
       toast.success(res.message || "تم حفظ خطاب المسؤولية المجتمعية بنجاح");
       utils.procurement.listCsrLetters.invalidate();
       utils.procurement.getAvailableRequestsForCSR.invalidate();
