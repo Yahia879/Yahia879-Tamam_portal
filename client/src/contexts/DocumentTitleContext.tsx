@@ -121,6 +121,8 @@ const ROUTE_TITLE_MAP: { pattern: RegExp; title: string }[] = [
   { pattern: /^\/boq-preparations\/?$/, title: "إعداد جداول الكميات" },
   { pattern: /^\/boq\/[^/]+\/?$/, title: "جدول الكميات" },
   { pattern: /^\/quotations\/?$/, title: "عروض الأسعار" },
+  { pattern: /^\/sedana-quotations\/?$/, title: "عروض أسعار سدانة" },
+  { pattern: /^\/sedana-quotations\/[^/]+\/?$/, title: "عروض أسعار سدانة" },
   { pattern: /^\/financial-approval\/?$/, title: "الاعتمادات" },
   { pattern: /^\/financial-report\/?$/, title: "التقرير المالي" },
   { pattern: /^\/categories\/?$/, title: "إدارة التصنيفات" },

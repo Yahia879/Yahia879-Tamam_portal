@@ -65,6 +65,7 @@ import {
   Link2,
   ExternalLink,
   RotateCcw,
+  ArrowRight,
   Edit,
   Trash2,
   Sparkles,
@@ -1843,18 +1844,31 @@ export default function Quotations() {
                     عرض عروض أسعار الطلب رقم <strong className="font-semibold text-foreground">#{selectedRequestId}</strong>
                   </span>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-7 text-xs gap-1.5 px-3 bg-background hover:bg-muted text-gray-700 border-gray-200 rounded-md font-medium shadow-2xs"
-                  onClick={() => {
-                    setSelectedRequestId("");
-                    navigate("/quotations");
-                  }}
-                >
-                  <RotateCcw className="h-3.5 w-3.5 text-gray-500" />
-                  إظهار كافة الطلبات
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-7 text-xs gap-1.5 px-3 bg-background hover:bg-muted text-gray-700 border-gray-200 rounded-md font-medium shadow-2xs"
+                    onClick={() => {
+                      navigate("/sedana-quotations");
+                    }}
+                  >
+                    <ArrowRight className="h-3.5 w-3.5 text-gray-500" />
+                    العودة لعروض أسعار سدانة
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-7 text-xs gap-1.5 px-3 bg-background hover:bg-muted text-gray-700 border-gray-200 rounded-md font-medium shadow-2xs"
+                    onClick={() => {
+                      setSelectedRequestId("");
+                      navigate("/quotations");
+                    }}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 text-gray-500" />
+                    إظهار كافة الطلبات
+                  </Button>
+                </div>
               </div>
             )}
             {displayedRequestsList && displayedRequestsList.length > 0 ? (

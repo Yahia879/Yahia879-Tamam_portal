@@ -3046,6 +3046,51 @@ export const projectsRouter = router({
       return { quotations: quotationsList };
     }),
 
+  // إحصائيات أعداد عروض الأسعار المجمعة لكل طلب
+  getQuotationsCountsByRequest: protectedProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) return {};
+
+      const rows = await db
+        .select({
+          reqId: sql<number>`COALESCE(${quotations.requestId}, ${projects.requestId})`,
+          status: quotations.status,
+          supplierName: suppliers.name,
+          quotationId: quotations.id,
+        })
+        .from(quotations)
+        .leftJoin(projects, eq(quotations.projectId, projects.id))
+        .leftJoin(suppliers, eq(quotations.supplierId, suppliers.id));
+
+      const counts: Record<number, { total: number; hasApproved: boolean; winningSupplier?: string }> = {};
+      const countedQuotationIdsByReq = new Map<number, Set<number>>();
+
+      rows.forEach((r) => {
+        const targetReqId = r.reqId;
+        if (!targetReqId) return;
+
+        const s = countedQuotationIdsByReq.get(targetReqId) || new Set<number>();
+        if (!s.has(r.quotationId)) {
+          s.add(r.quotationId);
+          countedQuotationIdsByReq.set(targetReqId, s);
+
+          if (!counts[targetReqId]) {
+            counts[targetReqId] = { total: 0, hasApproved: false };
+          }
+          counts[targetReqId].total += 1;
+          if (r.status === "accepted" || r.status === "approved") {
+            counts[targetReqId].hasApproved = true;
+            if (r.supplierName) {
+              counts[targetReqId].winningSupplier = r.supplierName;
+            }
+          }
+        }
+      });
+
+      return counts;
+    }),
+
   // تحديث حالة عرض السعر
   updateQuotationStatus: protectedProcedure
     .input(z.object({

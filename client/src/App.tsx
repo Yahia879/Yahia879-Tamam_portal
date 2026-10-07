@@ -105,6 +105,7 @@ import QuickResponseReportForm from "./pages/QuickResponseReportForm";
 import QuickRequestCreate from "./pages/QuickRequestCreate";
 import BOQ from "./pages/BOQ";
 import Quotations from "./pages/Quotations";
+import SedanaQuotations from "./pages/SedanaQuotations";
 import FinancialApproval from "./pages/FinancialApproval";
 import CategoriesManagement from "./pages/CategoriesManagement";
 import ContractTemplates from "./pages/ContractTemplates";
@@ -426,6 +427,8 @@ function Router() {
       <Route path="/boq-preparations/:requestId">{() => <AdminRoute component={BOQ} />}</Route>
       <Route path="/boq/:requestId">{() => <AdminRoute component={BOQ} />}</Route>
       <Route path="/quotations">{() => <AdminRoute component={Quotations} />}</Route>
+      <Route path="/sedana-quotations">{() => <AdminRoute component={SedanaQuotations} />}</Route>
+      <Route path="/sedana-quotations/:requestId">{() => <AdminRoute component={SedanaQuotations} />}</Route>
       <Route path="/financial-approval">{() => <AdminRoute component={FinancialApproval} />}</Route>
       
       {/* إدارة التصنيفات - إدارية */}

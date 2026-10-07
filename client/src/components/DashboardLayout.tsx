@@ -87,10 +87,11 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
     customRoleNameAr === "مسؤول المشتريات" ||
     customRoleNameEn?.toLowerCase() === "procurement officer";
 
-  // تخصيص شاشة واحدة فقط لمسؤول المشتريات (برنامج سدانة - عروض الأسعار)
+  // تخصيص شاشة لمسؤول المشتريات (برنامج سدانة - عروض الأسعار)
   if (isProcurementOfficer) {
     const items: MenuItem[] = [
       { icon: Receipt, label: isEn ? "Quotations" : "عروض الأسعار", path: "/quotations" },
+      { icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" },
     ];
     if (role !== "service_requester") {
       items.push({ icon: Wallet, label: isEn ? "Financial Custody" : "العهد المالية", path: "/custody-requests" });
@@ -169,6 +170,7 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
       { icon: Truck, label: "الموردون", path: "/suppliers" },
       { icon: Calculator, label: "إعداد جداول الكميات", path: "/boq-preparations" },
       { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
+      { icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" },
       { icon: CheckSquare, label: isEn ? "Approvals" : "الاعتمادات", path: "/financial-approval" },
       { icon: FileText, label: "العقود", path: "/contracts" },
       { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
@@ -357,7 +359,10 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("boq") || has("boq.add") || has("boq.edit") || has("boq.delete")) {
     finItems.push({ icon: Calculator,    label: "إعداد جداول الكميات",   path: "/boq-preparations" });
   }
-  if (has("quotations"))          finItems.push({ icon: Receipt,     label: "عروض الأسعار",    path: "/quotations" });
+  if (has("quotations")) {
+    finItems.push({ icon: Receipt, label: "عروض الأسعار", path: "/quotations" });
+    finItems.push({ icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" });
+  }
   if (has("financial_approval"))  finItems.push({ icon: CheckSquare, label: isEn ? "Approvals" : "الاعتمادات", path: "/financial-approval" });
   if (has("contracts") || has("contracts.view") || has("requests")) {
     finItems.push({ icon: FileText, label: "العقود", path: "/contracts" });
