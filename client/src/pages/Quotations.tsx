@@ -2019,9 +2019,9 @@ export function QuotationsView({
                       onClick={() => setShowExportPdfModal(true)}
                       size="sm"
                       variant="outline"
-                      className="border-emerald-600 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 font-bold text-xs h-8 px-3 gap-1.5 shadow-xs transition-colors"
+                      className="border-sky-600 text-sky-700 hover:bg-sky-50 hover:text-sky-800 font-bold text-xs h-8 px-3 gap-1.5 shadow-xs transition-colors"
                     >
-                      <FileDown className="h-3.5 w-3.5 text-emerald-600" />
+                      <FileDown className="h-3.5 w-3.5 text-sky-600" />
                       تصدير ملف PDF للبنود
                     </Button>
                     {!isSuppliersReadOnly && (
