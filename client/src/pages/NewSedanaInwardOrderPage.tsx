@@ -53,7 +53,7 @@ import { usePermission } from "@/hooks/usePermission";
 interface ExtraInwardItem {
   id: string;
   originalItemId?: string;
-  isCustom: boolean;
+  isCustom?: boolean;
   itemName: string;
   quantity: number;
   unit: string;
@@ -101,6 +101,41 @@ export default function NewSedanaInwardOrderPage() {
     return list.filter((d: any) => d.status === "executed" || d.isExecuted);
   }, [data]);
 
+  // جلب تصنيفات سدانة من قاعدة البيانات لمطابقة خيارات نموذج طلب سدانة
+  const { data: sedanaCategoryData } = trpc.categories.getCategoryByType.useQuery({ type: "sedana_items" });
+
+  // قائمة الأصناف المتاحة للاختيار من السلة
+  const selectableOptions = useMemo(() => {
+    const list: { id: string; name: string; unit: string }[] = [];
+    const seenNames = new Set<string>();
+
+    inventoryItems.forEach((it: any) => {
+      const name = (it.name || it.itemName || "").trim();
+      if (name && !seenNames.has(name.toLowerCase())) {
+        seenNames.add(name.toLowerCase());
+        list.push({
+          id: String(it.id),
+          name,
+          unit: it.unit || "وحدة",
+        });
+      }
+    });
+
+    (sedanaCategoryData?.values || []).forEach((v: any) => {
+      const name = (v.valueAr || v.value || "").trim();
+      if (name && !seenNames.has(name.toLowerCase())) {
+        seenNames.add(name.toLowerCase());
+        list.push({
+          id: `cat_${v.id}`,
+          name,
+          unit: v.metadata?.unit || "وحدة",
+        });
+      }
+    });
+
+    return list;
+  }, [inventoryItems, sedanaCategoryData]);
+
   // نوع مستند الإدخال المعتمد (أمر شراء معتمد بأمر صرف مالي أم خطاب مسؤولية مجتمعية معتمد)
   const [sourceCategory, setSourceCategory] = useState<"purchase_order" | "csr_letter">("purchase_order");
 
@@ -121,22 +156,62 @@ export default function NewSedanaInwardOrderPage() {
   );
   const [inwardItems, setInwardItems] = useState<Record<string, number>>({});
   const [extraCsrItems, setExtraCsrItems] = useState<ExtraInwardItem[]>([]);
+  const [showAddCustom, setShowAddCustom] = useState(false);
+  const [customName, setCustomName] = useState("");
+  const [customQty, setCustomQty] = useState(1);
+  const [customUnit, setCustomUnit] = useState("قطعة");
   const [inwardNotes, setInwardNotes] = useState<string>("");
 
-  // إدارة الأصناف الإضافية لخطاب المسؤولية المجتمعية
-  const handleAddExtraItem = () => {
-    const hasInventory = inventoryItems.length > 0;
-    setExtraCsrItems((prev) => [
-      ...prev,
-      {
-        id: `extra_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        originalItemId: "",
-        isCustom: !hasInventory,
-        itemName: "",
-        quantity: 1,
-        unit: "حبة",
-      },
-    ]);
+  // إضافة بند جديد من السلة (مطابق لنموذج طلب سدانة)
+  const handleAddNewRow = () => {
+    const firstOpt = selectableOptions[0];
+    const newItem: ExtraInwardItem = {
+      id: `extra_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      originalItemId: firstOpt ? firstOpt.id : "",
+      itemName: firstOpt ? firstOpt.name : "",
+      quantity: 1,
+      unit: firstOpt ? firstOpt.unit : "وحدة",
+      isCustom: false,
+    };
+    setExtraCsrItems((prev) => [...prev, newItem]);
+  };
+
+  // تغيير الصنف المحدد من المنسدلة
+  const handleSelectInvItem = (rowId: string, selectedId: string) => {
+    const found = selectableOptions.find((opt) => opt.id === selectedId);
+    if (!found) return;
+    setExtraCsrItems((prev) =>
+      prev.map((item) =>
+        item.id === rowId
+          ? {
+              ...item,
+              originalItemId: found.id,
+              itemName: found.name,
+              unit: found.unit,
+            }
+          : item
+      )
+    );
+  };
+
+  // إضافة بند مخصص سريع (مطابق لنموذج طلب سدانة)
+  const handleAddCustom = () => {
+    if (!customName.trim()) {
+      toast.error("يرجى إدخال اسم الصنف المخصص");
+      return;
+    }
+    const newItem: ExtraInwardItem = {
+      id: `custom_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      itemName: customName.trim(),
+      quantity: Number(customQty) || 1,
+      unit: customUnit.trim() || "قطعة",
+      isCustom: true,
+    };
+    setExtraCsrItems((prev) => [...prev, newItem]);
+    setCustomName("");
+    setCustomQty(1);
+    setCustomUnit("قطعة");
+    setShowAddCustom(false);
   };
 
   const handleRemoveExtraItem = (id: string) => {
@@ -152,6 +227,7 @@ export default function NewSedanaInwardOrderPage() {
   // تفريغ الأصناف الإضافية عند تغيير نوع المستند أو رقم الخطاب
   useEffect(() => {
     setExtraCsrItems([]);
+    setShowAddCustom(false);
   }, [sourceCategory, selectedCsrNumber]);
 
   // استخراج أمر الصرف أو الخطاب المجتمعي من الـ URL إن وُجد
@@ -649,24 +725,88 @@ export default function NewSedanaInwardOrderPage() {
                 <CardDescription className="text-xs mt-0.5">
                   {sourceCategory === "purchase_order"
                     ? "أصناف وكميات أمر الصرف المنفّذ المحددة للإدخال المستودعي"
-                    : "أصناف وكميات خطاب المسؤولية المجتمعية المنفّذ المحددة للإدخال المستودعي (يمكن تعديل الكميات وإضافة بنود إضافية)"}
+                    : "أصناف وكميات خطاب المسؤولية المجتمعية المنفّذ المحددة للإدخال المستودعي"}
                 </CardDescription>
               </div>
 
               {sourceCategory === "csr_letter" && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddExtraItem}
-                  className="gap-1.5 h-8 text-xs font-semibold text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer self-start sm:self-auto"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>إضافة صنف إضافي</span>
-                </Button>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddNewRow}
+                    className="gap-1.5 h-8 text-xs font-semibold text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>إضافة صنف</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAddCustom(true)}
+                    className="gap-1.5 h-8 text-xs font-semibold text-primary hover:bg-primary/10 border-primary/30 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>إضافة بند مخصص</span>
+                  </Button>
+                </div>
               )}
             </CardHeader>
             <CardContent className="p-0 text-right" dir="rtl">
+              {/* نموذج إضافة بند مخصص سريع - مطابق تماماً لصفحة طلب سدانة */}
+              {showAddCustom && sourceCategory === "csr_letter" && (
+                <div className="p-3.5 m-4 rounded-lg bg-muted/20 border border-primary/30 space-y-3 animate-in fade-in duration-150">
+                  <p className="text-xs font-bold text-foreground">إضافة صنف مخصص لسلة التوريد</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 text-xs">
+                    <div className="sm:col-span-3">
+                      <Label className="text-[11px] mb-1 block text-muted-foreground">اسم الصنف *</Label>
+                      <Input
+                        value={customName}
+                        onChange={(e) => setCustomName(e.target.value)}
+                        placeholder="مثال: سجاد خارجي، معطر سجاد..."
+                        className="h-8 text-xs bg-background"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="sm:col-span-1">
+                      <Label className="text-[11px] mb-1 block text-muted-foreground">الكمية *</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={customQty}
+                        onChange={(e) => setCustomQty(Number(e.target.value) || 0)}
+                        className="h-8 text-xs bg-background text-center font-mono"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label className="text-[11px] mb-1 block text-muted-foreground">وحدة القياس *</Label>
+                      <Input
+                        value={customUnit}
+                        onChange={(e) => setCustomUnit(e.target.value)}
+                        placeholder="مثال: قطعة، كرتون، لتر..."
+                        className="h-8 text-xs bg-background"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowAddCustom(false)}
+                      className="h-7 text-xs"
+                    >
+                      إلغاء
+                    </Button>
+                    <Button type="button" size="sm" onClick={handleAddCustom} className="h-7 text-xs">
+                      إضافة للجدول
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <div className="overflow-x-auto">
                 <Table className="w-full text-right text-xs">
                   <TableHeader className="bg-muted/40">
@@ -767,129 +907,51 @@ export default function NewSedanaInwardOrderPage() {
                         {sourceCategory === "csr_letter" && extraCsrItems.map((extraItem, extraIdx) => (
                           <TableRow
                             key={extraItem.id}
-                            className="border-b border-border/40 bg-emerald-50/20 dark:bg-emerald-950/10 transition-colors hover:bg-emerald-50/30"
+                            className="border-b border-border/40 hover:bg-muted/20 transition-colors"
                           >
                             {/* رقم البند */}
-                            <TableCell className="text-center font-mono text-muted-foreground font-bold align-top pt-4">
+                            <TableCell className="text-center font-mono text-muted-foreground font-bold">
                               {displayItems.length + extraIdx + 1}
                             </TableCell>
 
-                            {/* اختيار الصنف والوصف */}
-                            <TableCell className="min-w-[280px]">
-                              <div className="space-y-2 py-1.5">
-                                {/* محدد نوع الإضافة: من سلة المسجد أو صنف مخصص جديد */}
-                                <div className="flex items-center gap-1 p-0.5 bg-muted/70 rounded-lg w-fit border border-border/60">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleUpdateExtraItem(extraItem.id, {
-                                        isCustom: false,
-                                      })
-                                    }
-                                    className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
-                                      !extraItem.isCustom
-                                        ? "bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 shadow-xs border border-border/50"
-                                        : "text-muted-foreground hover:text-foreground"
-                                    }`}
-                                  >
-                                    من سلة المسجد
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleUpdateExtraItem(extraItem.id, {
-                                        isCustom: true,
-                                        originalItemId: "",
-                                      })
-                                    }
-                                    className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
-                                      extraItem.isCustom
-                                        ? "bg-white dark:bg-slate-800 text-amber-700 dark:text-amber-400 shadow-xs border border-border/50"
-                                        : "text-muted-foreground hover:text-foreground"
-                                    }`}
-                                  >
-                                    صنف مخصص جديد
-                                  </button>
+                            {/* اسم الصنف / الاختيار */}
+                            <TableCell>
+                              {extraItem.isCustom ? (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-foreground text-xs sm:text-sm">
+                                    {extraItem.itemName}
+                                  </span>
+                                  <Badge variant="outline" className="text-[10px] text-primary border-primary/30 bg-primary/5 font-normal">
+                                    مخصص
+                                  </Badge>
                                 </div>
-
-                                {!extraItem.isCustom ? (
-                                  <div className="space-y-1">
-                                    <Select
-                                      value={extraItem.originalItemId || ""}
-                                      onValueChange={(val) => {
-                                        const found = inventoryItems.find((inv: any) => String(inv.id) === val);
-                                        if (found) {
-                                          handleUpdateExtraItem(extraItem.id, {
-                                            isCustom: false,
-                                            originalItemId: String(found.id),
-                                            itemName: found.name || found.itemName || "",
-                                            unit: found.unit || "وحدة",
-                                          });
-                                        }
-                                      }}
-                                    >
-                                      <SelectTrigger
-                                        className="h-9 text-xs font-semibold bg-background border-border/80 focus:ring-emerald-500"
-                                        dir="rtl"
-                                      >
-                                        <SelectValue placeholder="-- اختر الصنف من سلة المسجد --" />
-                                      </SelectTrigger>
-                                      <SelectContent dir="rtl" className="max-h-60">
-                                        {inventoryItems.map((inv: any) => (
-                                          <SelectItem
-                                            key={inv.id}
-                                            value={String(inv.id)}
-                                            className="text-xs cursor-pointer py-1.5"
-                                          >
-                                            <div className="flex items-center justify-between gap-4 w-full">
-                                              <span className="font-semibold text-foreground">
-                                                {inv.name || inv.itemName}
-                                              </span>
-                                              <span className="text-[11px] text-muted-foreground font-mono">
-                                                ({inv.unit || "وحدة"})
-                                              </span>
-                                            </div>
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                    {extraItem.itemName && (
-                                      <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
-                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                                        <span>تم اختيار: <strong className="font-bold">{extraItem.itemName}</strong></span>
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div className="space-y-1">
-                                    <Input
-                                      type="text"
-                                      placeholder="أدخل اسم الصنف الإضافي المخصص..."
-                                      value={extraItem.itemName}
-                                      onChange={(e) =>
-                                        handleUpdateExtraItem(extraItem.id, {
-                                          itemName: e.target.value,
-                                        })
-                                      }
-                                      className="h-9 text-xs font-bold bg-background border-border/80 focus:ring-emerald-500"
-                                      autoFocus
-                                    />
-                                    <p className="text-[10px] text-muted-foreground">
-                                      سيتم إدراج هذا البند الجديد ورصيده ضمن بنود المستودع الافتراضي للمسجد.
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
+                              ) : (
+                                <Select
+                                  value={extraItem.originalItemId || ""}
+                                  onValueChange={(val) => handleSelectInvItem(extraItem.id, val)}
+                                >
+                                  <SelectTrigger size="sm" className="h-8 text-xs w-full max-w-sm bg-background border-input font-medium">
+                                    <SelectValue placeholder="اختر الصنف..." />
+                                  </SelectTrigger>
+                                  <SelectContent dir="rtl">
+                                    {selectableOptions.map((opt) => (
+                                      <SelectItem key={opt.id} value={opt.id} className="text-xs">
+                                        {opt.name} {opt.unit ? `(${opt.unit})` : ""}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              )}
                             </TableCell>
 
                             {/* الكمية المعتمدة */}
-                            <TableCell className="text-center font-mono text-xs text-muted-foreground align-top pt-4">
-                              <span>— (إضافي)</span>
+                            <TableCell className="text-center font-mono text-xs text-muted-foreground">
+                              —
                             </TableCell>
 
                             {/* خانة الكمية والوحدة */}
-                            <TableCell className="text-center align-top pt-3">
-                              <div className="flex items-center justify-center gap-1.5 max-w-[160px] mx-auto">
+                            <TableCell className="text-center">
+                              <div className="flex items-center justify-center gap-1.5 max-w-[130px] mx-auto">
                                 <Input
                                   type="number"
                                   min={0.01}
@@ -901,31 +963,23 @@ export default function NewSedanaInwardOrderPage() {
                                       quantity: isNaN(val) ? 0 : Math.max(0, val),
                                     });
                                   }}
-                                  className="h-9 text-center font-mono font-bold text-xs rounded-lg text-foreground bg-background border-border focus:ring-emerald-500"
+                                  className="h-8 text-center font-mono font-bold text-xs rounded-lg text-foreground bg-background border-border focus:ring-emerald-500"
                                 />
-                                <Input
-                                  type="text"
-                                  placeholder="الوحدة"
-                                  value={extraItem.unit}
-                                  onChange={(e) =>
-                                    handleUpdateExtraItem(extraItem.id, {
-                                      unit: e.target.value,
-                                    })
-                                  }
-                                  className="h-9 w-16 text-center text-xs font-semibold bg-background border-border focus:ring-emerald-500"
-                                />
+                                <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                                  {extraItem.unit}
+                                </span>
                               </div>
                             </TableCell>
 
                             {/* إجراء الحذف */}
-                            <TableCell className="text-center align-top pt-3">
+                            <TableCell className="text-center">
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleRemoveExtraItem(extraItem.id)}
-                                className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer"
-                                title="حذف الصنف الإضافي"
+                                className="h-7 w-7 text-muted-foreground hover:text-destructive cursor-pointer"
+                                title="حذف الصنف"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -937,6 +991,34 @@ export default function NewSedanaInwardOrderPage() {
                   </TableBody>
                 </Table>
               </div>
+
+              {/* أزرار إضافة بند جديد أسفل الجدول عند اختيار خطاب مسؤولية مجتمعية - مطابقة لنموذج سدانة */}
+              {sourceCategory === "csr_letter" && (
+                <div className="flex items-center justify-between p-3 border-t border-border/40 bg-muted/10">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddNewRow}
+                      className="h-8 text-xs font-medium gap-1.5 text-cyan-700 border-cyan-500/40 hover:bg-cyan-50 dark:text-cyan-300 dark:hover:bg-cyan-950/40 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>إضافة بند جديد</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowAddCustom(true)}
+                      className="h-8 text-xs font-medium gap-1.5 text-primary hover:bg-primary/10 border-primary/30 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>إضافة بند مخصص</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* شريط ملخص الكميات */}
               <div className="p-4 bg-muted/20 border-t border-border/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
