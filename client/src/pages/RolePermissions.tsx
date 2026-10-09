@@ -273,13 +273,6 @@ export default function RolePermissions() {
       }
     }
 
-    // منع تفعيل أي صلاحية في قسم أوامر الشراء والخطاب المجتمعي إلا إذا كانت صلاحية العرض مفعلة
-    if (permId.startsWith("orders_and_letters.") && permId !== "orders_and_letters.view") {
-      if (!selectedPerms.includes("orders_and_letters.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض أوامر الشراء والخطاب المجتمعي' أولاً");
-        return;
-      }
-    }
 
     // منع تفعيل أي صلاحية في قسم أوامر الشراء إلا إذا كانت صلاحية العرض مفعلة
     if (permId.startsWith("purchase_orders.") && permId !== "purchase_orders.view") {
@@ -406,10 +399,6 @@ export default function RolePermissions() {
           next = next.filter(id => !id.startsWith("disbursement_orders."));
         }
 
-        // عند إلغاء تفعيل صلاحية 'عرض أوامر الشراء والخطاب المجتمعي'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات أوامر الشراء والخطابات الأخرى
-        if (permId === "orders_and_letters.view") {
-          next = next.filter(id => !id.startsWith("orders_and_letters."));
-        }
 
         // عند إلغاء تفعيل صلاحية 'عرض أوامر الشراء'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات أوامر الشراء الأخرى
         if (permId === "purchase_orders.view") {
@@ -971,12 +960,12 @@ export default function RolePermissions() {
         },
         {
           id: "orders_and_letters",
-          nameAr: "أوامر الشراء والخطاب المجتمعي",
+          nameAr: "مالية سدانة",
           icon: ShoppingBag,
           permissions: [
-            { id: "orders_and_letters.view", nameAr: "عرض أوامر الشراء والخطاب المجتمعي" },
-            { id: "orders_and_letters.create", nameAr: "إنشاء أوامر شراء وخطابات مجتمعية" },
-            { id: "orders_and_letters.export", nameAr: "تصدير البيانات إكسيل" },
+            { id: "orders_and_letters.disbursement_orders", nameAr: "أوامر الصرف" },
+            { id: "orders_and_letters.csr_letters", nameAr: "الخطاب المجتمعي" },
+            { id: "orders_and_letters.purchase_orders", nameAr: "أوامر الشراء" },
           ]
         },
         {
@@ -1139,7 +1128,7 @@ export default function RolePermissions() {
       title: "إدارة المخزون",
       modules: [
         { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view"] },
-        { id: "orders_and_letters", nameAr: "أوامر الشراء والخطاب المجتمعي", icon: ShoppingBag, perms: ["view", "create", "export"] },
+        { id: "orders_and_letters", nameAr: "مالية سدانة", icon: ShoppingBag, perms: ["disbursement_orders", "csr_letters", "purchase_orders"] },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound", "confirm_receipt", "print", "export"] },
@@ -1327,9 +1316,9 @@ export default function RolePermissions() {
         clause_add: "إضافة بند للعقد"
       },
       orders_and_letters: {
-        view: "عرض أوامر الشراء والخطاب المجتمعي",
-        create: "إنشاء أوامر شراء وخطابات مجتمعية",
-        export: "تصدير البيانات إكسيل",
+        disbursement_orders: "أوامر الصرف",
+        csr_letters: "الخطاب المجتمعي",
+        purchase_orders: "أوامر الشراء",
       },
       purchase_orders: {
         view: "عرض أوامر الشراء",
