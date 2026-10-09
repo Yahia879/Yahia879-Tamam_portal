@@ -306,11 +306,6 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "board_leadership.board_chairman_view": ["board_chairman_view"],
   "board_leadership.board_member": ["board_member"],
   // مالية سدانة
-  orders_and_letters: [
-    "orders_and_letters.disbursement_orders",
-    "orders_and_letters.csr_letters",
-    "orders_and_letters.purchase_orders",
-  ],
   "orders_and_letters.disbursement_orders": [
     "orders_and_letters.disbursement_orders",
   ],
@@ -319,16 +314,6 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   ],
   "orders_and_letters.purchase_orders": [
     "orders_and_letters.purchase_orders",
-  ],
-  // توافق مؤقت مع المعرفات القديمة إن وجدت
-  "orders_and_letters.view": [
-    "orders_and_letters.disbursement_orders",
-    "orders_and_letters.csr_letters",
-    "orders_and_letters.purchase_orders",
-  ],
-  "orders_and_letters.create": [
-    "orders_and_letters.purchase_orders",
-    "orders_and_letters.csr_letters",
   ],
 };
 
@@ -1227,6 +1212,29 @@ async function ensureAllCustomPermissionsExist(db: any) {
       )
     ).catch(() => {});
 
+    // تنظيف أي صلاحيات قديمة متبقية لـ orders_and_letters من جدول صلاحيات الأدوار والمستخدمين
+    await db.delete(rolePermissions).where(
+      and(
+        sql`${rolePermissions.permissionId} LIKE 'orders_and_letters%'`,
+        notInArray(rolePermissions.permissionId, [
+          "orders_and_letters.disbursement_orders",
+          "orders_and_letters.csr_letters",
+          "orders_and_letters.purchase_orders",
+        ])
+      )
+    ).catch(() => {});
+
+    await db.delete(userPermissions).where(
+      and(
+        sql`${userPermissions.permissionId} LIKE 'orders_and_letters%'`,
+        notInArray(userPermissions.permissionId, [
+          "orders_and_letters.disbursement_orders",
+          "orders_and_letters.csr_letters",
+          "orders_and_letters.purchase_orders",
+        ])
+      )
+    ).catch(() => {});
+
     // إسناد الصلاحيات الافتراضية لمالية سدانة (متاحة افتراضياً حصراً للإدارة المالية فقط دون مدراء النظام)
     const ordersAndLettersDefaultRolePerms: Record<string, string[]> = {
       financial: [
@@ -1394,13 +1402,6 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     rolePermissionsData.push("quotations.view", "quotations.create", "quotations.add");
   }
 
-  if (userData?.role === "financial" && !hasCustomRole) {
-    rolePermissionsData.push(
-      "orders_and_letters.disbursement_orders",
-      "orders_and_letters.csr_letters",
-      "orders_and_letters.purchase_orders"
-    );
-  }
 
   if (userData?.role === "board_chairman" || roleIds.includes("board_chairman")) {
     rolePermissionsData.push("board_chairman");
