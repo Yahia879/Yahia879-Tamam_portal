@@ -305,20 +305,30 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "board_leadership.board_chairman": ["board_chairman", "board_chairman_view"],
   "board_leadership.board_chairman_view": ["board_chairman_view"],
   "board_leadership.board_member": ["board_member"],
-  // أوامر الشراء والخطاب المجتمعي
+  // مالية سدانة
   orders_and_letters: [
-    "orders_and_letters.view",
-    "orders_and_letters.create",
-    "orders_and_letters.export",
+    "orders_and_letters.disbursement_orders",
+    "orders_and_letters.csr_letters",
+    "orders_and_letters.purchase_orders",
   ],
+  "orders_and_letters.disbursement_orders": [
+    "orders_and_letters.disbursement_orders",
+  ],
+  "orders_and_letters.csr_letters": [
+    "orders_and_letters.csr_letters",
+  ],
+  "orders_and_letters.purchase_orders": [
+    "orders_and_letters.purchase_orders",
+  ],
+  // توافق مؤقت مع المعرفات القديمة إن وجدت
   "orders_and_letters.view": [
-    "orders_and_letters.view",
+    "orders_and_letters.disbursement_orders",
+    "orders_and_letters.csr_letters",
+    "orders_and_letters.purchase_orders",
   ],
   "orders_and_letters.create": [
-    "orders_and_letters.create",
-  ],
-  "orders_and_letters.export": [
-    "orders_and_letters.export",
+    "orders_and_letters.purchase_orders",
+    "orders_and_letters.csr_letters",
   ],
 };
 
@@ -336,6 +346,9 @@ export const EXCLUDED_ADMIN_PERMISSIONS: string[] = [
   'disbursements.exception_approve',
   'disbursement_orders.exception_approve',
   'orders_and_letters',
+  'orders_and_letters.disbursement_orders',
+  'orders_and_letters.csr_letters',
+  'orders_and_letters.purchase_orders',
   'orders_and_letters.view',
   'orders_and_letters.create',
   'orders_and_letters.export',
@@ -819,18 +832,23 @@ async function ensureAllCustomPermissionsExist(db: any) {
       console.log("Inserted missing custom module: requesters");
     }
 
-    // Ensure 'orders_and_letters' module exists in the modules table
+    // Ensure 'orders_and_letters' module exists in the modules table with name 'مالية سدانة'
     const [existingOrdersLettersModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "orders_and_letters")).limit(1);
     if (!existingOrdersLettersModule) {
       await db.insert(modules).values({
         id: "orders_and_letters",
-        nameAr: "أوامر الشراء والخطاب المجتمعي",
-        nameEn: "Purchase Orders & CSR Letters",
+        nameAr: "مالية سدانة",
+        nameEn: "Sedana Financials",
         icon: "ShoppingBag",
         displayOrder: 8,
         isActive: true
       });
-      console.log("Inserted missing custom module: orders_and_letters");
+      console.log("Inserted missing custom module: orders_and_letters (مالية سدانة)");
+    } else {
+      await db.update(modules).set({
+        nameAr: "مالية سدانة",
+        nameEn: "Sedana Financials",
+      }).where(eq(modules.id, "orders_and_letters")).catch(() => {});
     }
 
     // Ensure 'purchase_orders' module exists in the modules table
@@ -1061,9 +1079,9 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "receipt_vouchers.edit", moduleId: "disbursements", action: "edit", nameAr: "تعديل سند القبض", nameEn: "Edit Receipt Voucher" },
       { id: "receipt_vouchers.exception_approve", moduleId: "disbursements", action: "exception_approve", nameAr: "استثناء اعتماد السند", nameEn: "Exception Approve Receipt Voucher" },
       { id: "requests.create_quick_request", moduleId: "requests", action: "create_quick_request", nameAr: "إنشاء طلب سريع", nameEn: "Create Quick Request" },
-      { id: "orders_and_letters.view", moduleId: "orders_and_letters", action: "view", nameAr: "عرض أوامر الشراء والخطاب المجتمعي", nameEn: "View Orders & CSR Letters" },
-      { id: "orders_and_letters.create", moduleId: "orders_and_letters", action: "create", nameAr: "إنشاء أوامر شراء وخطابات مجتمعية", nameEn: "Create Orders & CSR Letters" },
-      { id: "orders_and_letters.export", moduleId: "orders_and_letters", action: "export", nameAr: "تصدير البيانات إكسيل", nameEn: "Export Orders & Letters" },
+      { id: "orders_and_letters.disbursement_orders", moduleId: "orders_and_letters", action: "disbursement_orders", nameAr: "أوامر الصرف", nameEn: "Payment Orders" },
+      { id: "orders_and_letters.csr_letters", moduleId: "orders_and_letters", action: "csr_letters", nameAr: "الخطاب المجتمعي", nameEn: "Community Letters" },
+      { id: "orders_and_letters.purchase_orders", moduleId: "orders_and_letters", action: "purchase_orders", nameAr: "أوامر الشراء", nameEn: "Purchase Orders" },
       { id: "purchase_orders.view", moduleId: "purchase_orders", action: "view", nameAr: "عرض أوامر الشراء", nameEn: "View Purchase Orders" },
       { id: "purchase_orders.add", moduleId: "purchase_orders", action: "add", nameAr: "إنشاء أمر شراء جديد", nameEn: "Create Purchase Order" },
       { id: "purchase_orders.approve", moduleId: "purchase_orders", action: "approve", nameAr: "اعتماد أوامر الشراء", nameEn: "Approve Purchase Orders" },
@@ -1209,9 +1227,13 @@ async function ensureAllCustomPermissionsExist(db: any) {
       )
     ).catch(() => {});
 
-    // إسناد الصلاحيات الافتراضية لأوامر الشراء والخطاب المجتمعي (متاحة افتراضياً حصراً للإدارة المالية فقط دون مدراء النظام)
+    // إسناد الصلاحيات الافتراضية لمالية سدانة (متاحة افتراضياً حصراً للإدارة المالية فقط دون مدراء النظام)
     const ordersAndLettersDefaultRolePerms: Record<string, string[]> = {
-      financial: ["orders_and_letters.view", "orders_and_letters.create", "orders_and_letters.export"],
+      financial: [
+        "orders_and_letters.disbursement_orders",
+        "orders_and_letters.csr_letters",
+        "orders_and_letters.purchase_orders",
+      ],
     };
 
     for (const [rId, pIds] of Object.entries(ordersAndLettersDefaultRolePerms)) {
@@ -1374,9 +1396,9 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
   if (userData?.role === "financial" && !hasCustomRole) {
     rolePermissionsData.push(
-      "orders_and_letters.view",
-      "orders_and_letters.create",
-      "orders_and_letters.export"
+      "orders_and_letters.disbursement_orders",
+      "orders_and_letters.csr_letters",
+      "orders_and_letters.purchase_orders"
     );
   }
 
@@ -1727,8 +1749,11 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.add("sedana_quotations");
   }
 
-  // أوامر الشراء والخطاب المجتمعي
+  // مالية سدانة
   if (
+    allPermissions.has("orders_and_letters.disbursement_orders") ||
+    allPermissions.has("orders_and_letters.csr_letters") ||
+    allPermissions.has("orders_and_letters.purchase_orders") ||
     allPermissions.has("orders_and_letters.view") ||
     allPermissions.has("orders_and_letters.create") ||
     allPermissions.has("orders_and_letters.export")
