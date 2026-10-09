@@ -45,7 +45,7 @@ import {
 } from "lucide-react";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { usePermission } from "@/hooks/usePermission";
+import { useUserPermissions } from "@/hooks/usePermission";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -56,6 +56,7 @@ export default function OrdersAndLettersReview() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const utils = trpc.useUtils();
+  const userPermissions = useUserPermissions();
 
   const isSuperAdmin =
     user?.role === "super_admin" ||
@@ -65,21 +66,21 @@ export default function OrdersAndLettersReview() {
   // الصلاحيات الدقيقة الثلاث لقسم مالية سدانة
   const canDisbursementOrders =
     isSuperAdmin ||
-    usePermission("orders_and_letters.disbursement_orders") ||
-    usePermission("orders_and_letters.view") ||
-    usePermission("orders_and_letters");
+    userPermissions.includes("orders_and_letters.disbursement_orders") ||
+    userPermissions.includes("orders_and_letters.view") ||
+    userPermissions.includes("orders_and_letters");
 
   const canCsrLetters =
     isSuperAdmin ||
-    usePermission("orders_and_letters.csr_letters") ||
-    usePermission("orders_and_letters.view") ||
-    usePermission("orders_and_letters");
+    userPermissions.includes("orders_and_letters.csr_letters") ||
+    userPermissions.includes("orders_and_letters.view") ||
+    userPermissions.includes("orders_and_letters");
 
   const canPurchaseOrders =
     isSuperAdmin ||
-    usePermission("orders_and_letters.purchase_orders") ||
-    usePermission("orders_and_letters.view") ||
-    usePermission("orders_and_letters");
+    userPermissions.includes("orders_and_letters.purchase_orders") ||
+    userPermissions.includes("orders_and_letters.view") ||
+    userPermissions.includes("orders_and_letters");
 
   const hasAnyFinancialPermission =
     isSuperAdmin ||
