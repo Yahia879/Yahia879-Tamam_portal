@@ -1002,6 +1002,16 @@ export default function SedanaExecutionPage() {
                     متابعة الأصناف المعتمدة بالطلب، فترات الصرف المقررة (شهرياً / ربع سنوياً)، رصيد المستودع، ومواعيد خروج الدفعات الدورية
                   </CardDescription>
                 </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <Button
+                    size="sm"
+                    onClick={handleOpenOutboundModal}
+                    className="text-xs font-bold gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>إضافة أمر إخراج</span>
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto" dir="rtl">
@@ -1229,7 +1239,7 @@ export default function SedanaExecutionPage() {
                     <Layers className="w-8 h-8 mx-auto text-muted-foreground/40 stroke-1" />
                     <p className="text-sm font-bold text-foreground">لا توجد أوامر إخراج مجدولة بعد</p>
                     <p className="text-xs max-w-sm mx-auto">
-                      يمكنك إصدار أمر إخراج للبنود المستحقة للصرف بعد مرور الوقت وتحديد الكميات المراد إخراجها.
+                      يمكنك إصدار أمر إخراج للبنود المتوفرة بالمستودع في أي وقت وتحديد الكميات المراد إخراجها.
                     </p>
                     <Button
                       size="sm"
