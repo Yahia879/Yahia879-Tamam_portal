@@ -85,26 +85,32 @@ export default function NewSedanaOutboundOrderPage() {
   const [outboundItems, setOutboundItems] = useState<Record<string, number>>({});
   const [showAllItems, setShowAllItems] = useState(false);
 
-  // البنود المستحقة للصرف بعد مرور الوقت (المؤقت وصل للصفر) ويتوفر لها رصيد بالمستودع
-  const dueItems = useMemo(() => {
+  // البنود المتاحة للصرف بالمستودع (يتوفر لها رصيد بالمستودع ولم يكتمل صرفها)
+  const availableItems = useMemo(() => {
     return inventoryItems.filter((it: any) => {
-      const isDueTime = it.isDue || (it.nextDueDate && new Date(it.nextDueDate).getTime() <= Date.now());
       const hasStock = Number(it.availableStock || 0) > 0;
       const notCompleted = Number(it.remainingToDisburse || 0) > 0;
-      return isDueTime && hasStock && notCompleted;
+      return hasStock && notCompleted;
     });
   }, [inventoryItems]);
 
-  // البنود المتاحة للإخراج هي حصراً البنود المستحقة
-  const itemsToDisplay = dueItems;
+  // البنود المستحقة دورياً (لأغراض العرض والإحصاء)
+  const dueItems = useMemo(() => {
+    return availableItems.filter((it: any) => {
+      return it.isDue || (it.nextDueDate && new Date(it.nextDueDate).getTime() <= Date.now());
+    });
+  }, [availableItems]);
 
-  // تهيئة الاختيارات والكميات الأولية تلقائياً للبنود المستحقة فقط
+  // البنود المعروضة للإخراج: جميع الأصناف المتوفرة برصيد في المستودع
+  const itemsToDisplay = availableItems;
+
+  // تهيئة الاختيارات والكميات الأولية تلقائياً للبنود المتاحة
   useEffect(() => {
-    if (dueItems.length > 0 && selectedItemIds.size === 0) {
+    if (availableItems.length > 0 && selectedItemIds.size === 0) {
       const initialSelected = new Set<string>();
       const initialQtys: Record<string, number> = {};
 
-      dueItems.forEach((it: any) => {
+      availableItems.forEach((it: any) => {
         initialSelected.add(String(it.id));
         const maxAllowed = Math.min(Number(it.availableStock || 0), Number(it.remainingToDisburse || 0));
         const suggested = Math.min(Number(it.cycleQuantity || 1), maxAllowed);
@@ -114,16 +120,9 @@ export default function NewSedanaOutboundOrderPage() {
       setSelectedItemIds(initialSelected);
       setOutboundItems(initialQtys);
     }
-  }, [dueItems]);
+  }, [availableItems]);
 
   const toggleItemSelection = (id: string, it: any) => {
-    // التحقق من استحقاق البند
-    const isDueTime = it.isDue || (it.nextDueDate && new Date(it.nextDueDate).getTime() <= Date.now());
-    if (!isDueTime) {
-      toast.error(`لا يمكن اختيار الصنف (${it.itemName || it.name}) لعدم انتهاء مؤقته التنازلي بعد`);
-      return;
-    }
-
     setSelectedItemIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -158,17 +157,6 @@ export default function NewSedanaOutboundOrderPage() {
   });
 
   const handleSubmit = () => {
-    // التحقق من أن الأصناف المختارة حان موعدها
-    for (const id of Array.from(selectedItemIds)) {
-      const found = inventoryItems.find((i: any) => String(i.id) === String(id));
-      if (found) {
-        const isDueTime = found.isDue || (found.nextDueDate && new Date(found.nextDueDate).getTime() <= Date.now());
-        if (!isDueTime) {
-          toast.error(`لا يمكن إخراج الصنف (${found.name || found.itemName}) لعدم حلول موعد صرفه الدوري بعد.`);
-          return;
-        }
-      }
-    }
 
     const items = Array.from(selectedItemIds)
       .map((id) => {
@@ -314,16 +302,23 @@ export default function NewSedanaOutboundOrderPage() {
           </CardContent>
         </Card>
 
-        {/* شريط حالة استحقاق البنود */}
-        {dueItems.length > 0 ? (
-          <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>يوجد {dueItems.length} صنف حان موعد إخراجها الدوري (وصل مؤقتها للصفر) وتتوفر كمياتها بالمستودع.</span>
+        {/* شريط حالة استحقاق وتوفر البنود */}
+        {availableItems.length > 0 ? (
+          <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>يوجد {availableItems.length} صنف متوفر بالمستودع متاح للإخراج المباشر أو المبكر.</span>
+            </div>
+            {dueItems.length > 0 && (
+              <Badge variant="outline" className="border-emerald-300 bg-white/80 dark:bg-emerald-900/50 text-[11px] font-bold">
+                {dueItems.length} صنف حان موعده الدوري
+              </Badge>
+            )}
           </div>
         ) : (
           <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center gap-2.5 text-xs text-amber-900 dark:text-amber-200 font-bold">
             <Clock className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>تنبيه: لا توجد بنود حان موعد إخراجها الدوري حالياً (لا يمكن إخراج أي بند لم يصل وقته في العداد التنازلي إلى الصفر).</span>
+            <span>تنبيه: لا توجد أصناف يتوفر لها رصيد متاح للإخراج في المستودع حالياً.</span>
           </div>
         )}
 
@@ -336,11 +331,11 @@ export default function NewSedanaOutboundOrderPage() {
                 <span>البنود المشمولة بأمر الإخراج وتحديد الكميات</span>
               </CardTitle>
               <CardDescription className="text-xs">
-                حدد البنود والكميات المستحقة للصرف (التي انتهى مؤقتها التنازلي) بناءً على الرصيد المتوفر بالمستودع
+                حدد البنود والكميات المراد صرفها بناءً على الرصيد المتوفر بالمستودع (يمكن الإخراج في أي وقت حتى قبل انتهاء المؤقت الدوري)
               </CardDescription>
             </div>
 
-            {dueItems.length > 0 && (
+            {itemsToDisplay.length > 0 && (
               <div className="flex items-center gap-2 shrink-0">
                 <Button
                   type="button"
@@ -383,10 +378,10 @@ export default function NewSedanaOutboundOrderPage() {
                     <TableRow>
                       <TableCell colSpan={5} className="p-8 text-center text-muted-foreground">
                         <div className="flex flex-col items-center justify-center gap-2">
-                          <Clock className="w-8 h-8 text-amber-500/80 stroke-1" />
-                          <p className="font-bold text-sm text-foreground">لا توجد بنود مستحقة للصرف حالياً</p>
+                          <Package className="w-8 h-8 text-muted-foreground/60 stroke-1" />
+                          <p className="font-bold text-sm text-foreground">لا توجد بنود متاحة للصرف حالياً</p>
                           <p className="text-xs text-muted-foreground max-w-sm">
-                            لا يمكن إخراج أي بند ما زال مؤقته التنازلي جارياً. ستظهر البنود هنا تلقائياً فور انتهاء العداد التنازلي.
+                            لا تتوفر أصناف ذات رصيد متاح في المستودع حالياً. يمكنك تسجيل أمر إدخال أولاً لتغذية رصيد المستودع.
                           </p>
                         </div>
                       </TableCell>
@@ -419,9 +414,16 @@ export default function NewSedanaOutboundOrderPage() {
                             )}
                           </TableCell>
                           <TableCell className="p-3 text-center">
-                            <Badge variant="outline" className="text-[10px] px-2 py-0.5">
-                              {it.frequency || "شهري"}
-                            </Badge>
+                            <div className="inline-flex flex-col items-center gap-0.5">
+                              <Badge variant="outline" className="text-[10px] px-2 py-0.5">
+                                {it.frequency || "شهري"}
+                              </Badge>
+                              {it.nextDueDate && new Date(it.nextDueDate).getTime() > Date.now() ? (
+                                <span className="text-[9px] text-sky-600 dark:text-sky-400 font-semibold">صرف مبكر</span>
+                              ) : (
+                                <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold">مستحق</span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="p-3 text-center">
                             <div className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-mono font-bold">
