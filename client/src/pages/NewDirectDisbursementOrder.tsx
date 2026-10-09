@@ -41,7 +41,6 @@ import {
   Package,
   AlertCircle,
   Calculator,
-  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
