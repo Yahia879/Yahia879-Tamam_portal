@@ -63,27 +63,17 @@ export default function OrdersAndLettersReview() {
     user?.role === "system_admin" ||
     (user?.role as string | undefined) === "admin";
 
-  // الصلاحيات الدقيقة الثلاث لقسم مالية سدانة
+  // الصلاحيات الدقيقة الثلاث لقسم مالية سدانة (مرتبطة حصراً باختيارات بطاقة مالية سدانة)
   const canDisbursementOrders =
-    isSuperAdmin ||
-    userPermissions.includes("orders_and_letters.disbursement_orders") ||
-    userPermissions.includes("orders_and_letters.view") ||
-    userPermissions.includes("orders_and_letters");
+    userPermissions.includes("orders_and_letters.disbursement_orders");
 
   const canCsrLetters =
-    isSuperAdmin ||
-    userPermissions.includes("orders_and_letters.csr_letters") ||
-    userPermissions.includes("orders_and_letters.view") ||
-    userPermissions.includes("orders_and_letters");
+    userPermissions.includes("orders_and_letters.csr_letters");
 
   const canPurchaseOrders =
-    isSuperAdmin ||
-    userPermissions.includes("orders_and_letters.purchase_orders") ||
-    userPermissions.includes("orders_and_letters.view") ||
-    userPermissions.includes("orders_and_letters");
+    userPermissions.includes("orders_and_letters.purchase_orders");
 
   const hasAnyFinancialPermission =
-    isSuperAdmin ||
     canDisbursementOrders ||
     canCsrLetters ||
     canPurchaseOrders;
@@ -119,7 +109,7 @@ export default function OrdersAndLettersReview() {
     if (canDisbursementOrders) return "disbursement_orders";
     if (canCsrLetters) return "csr_letters";
     if (canPurchaseOrders) return "purchase_orders";
-    return "disbursement_orders";
+    return "";
   };
 
   const initialReqId = routeParams.requestId || getUrlParams().get("requestId") || "";
@@ -135,12 +125,16 @@ export default function OrdersAndLettersReview() {
       const q = getUrlParams();
       const tab = q.get("tab");
       const reqId = q.get("requestId");
-      if (tab === "csr_letters" || tab === "csr") {
+      if ((tab === "csr_letters" || tab === "csr") && canCsrLetters) {
         setActiveTab("csr_letters");
-      } else if (tab === "disbursement_orders" || tab === "disbursements") {
+      } else if ((tab === "disbursement_orders" || tab === "disbursements") && canDisbursementOrders) {
         setActiveTab("disbursement_orders");
-      } else {
+      } else if (tab === "purchase_orders" && canPurchaseOrders) {
         setActiveTab("purchase_orders");
+      } else {
+        if (canDisbursementOrders) setActiveTab("disbursement_orders");
+        else if (canCsrLetters) setActiveTab("csr_letters");
+        else if (canPurchaseOrders) setActiveTab("purchase_orders");
       }
       if (reqId) {
         setSelectedRequestId(reqId);
@@ -666,78 +660,84 @@ export default function OrdersAndLettersReview() {
             {/* محتوى الشاشة بناءً على التبويب المختار */}
             <Tabs value={activeTab} onValueChange={handleTabChange}>
               {/* محتوى أوامر الشراء */}
-              <TabsContent value="purchase_orders" className="space-y-5 mt-0 focus-visible:outline-none">
-                {activeSelectedRequest && !activeSelectedRequest.hasPurchaseOrderAllocation ? (
-                  <div className="bg-card rounded-xl border border-dashed border-border/80 p-8 text-center space-y-3 shadow-2xs">
-                    <div className="w-12 h-12 rounded-full bg-muted/60 text-muted-foreground flex items-center justify-center mx-auto">
-                      <Lock className="w-6 h-6" />
+              {canPurchaseOrders && (
+                <TabsContent value="purchase_orders" className="space-y-5 mt-0 focus-visible:outline-none">
+                  {activeSelectedRequest && !activeSelectedRequest.hasPurchaseOrderAllocation ? (
+                    <div className="bg-card rounded-xl border border-dashed border-border/80 p-8 text-center space-y-3 shadow-2xs">
+                      <div className="w-12 h-12 rounded-full bg-muted/60 text-muted-foreground flex items-center justify-center mx-auto">
+                        <Lock className="w-6 h-6" />
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="text-base font-bold text-foreground">تبويب أوامر الشراء مغلق لهذا الطلب</h3>
+                        <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                          لا يوجد مورد أو بنود مخصصة للتوريد عبر (أمر شراء) في مرحلة اعتماد التوريد لهذا الطلب.
+                        </p>
+                      </div>
+                      {activeSelectedRequest.hasCsrLetterAllocation && canCsrLetters && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleTabChange("csr_letters")}
+                          className="text-xs font-bold gap-1.5 mt-2"
+                        >
+                          <HeartHandshake className="w-3.5 h-3.5" />
+                          <span>الانتقال للخطاب المجتمعي</span>
+                        </Button>
+                      )}
                     </div>
-                    <div className="space-y-1">
-                      <h3 className="text-base font-bold text-foreground">تبويب أوامر الشراء مغلق لهذا الطلب</h3>
-                      <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                        لا يوجد مورد أو بنود مخصصة للتوريد عبر (أمر شراء) في مرحلة اعتماد التوريد لهذا الطلب.
-                      </p>
-                    </div>
-                    {activeSelectedRequest.hasCsrLetterAllocation && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleTabChange("csr_letters")}
-                        className="text-xs font-bold gap-1.5 mt-2"
-                      >
-                        <HeartHandshake className="w-3.5 h-3.5" />
-                        <span>الانتقال للخطاب المجتمعي</span>
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <PurchaseOrdersView
-                    requestId={parseInt(selectedRequestId)}
-                    isEmbedded={true}
-                  />
-                )}
-              </TabsContent>
+                  ) : (
+                    <PurchaseOrdersView
+                      requestId={parseInt(selectedRequestId)}
+                      isEmbedded={true}
+                    />
+                  )}
+                </TabsContent>
+              )}
 
               {/* محتوى الخطاب المجتمعي */}
-              <TabsContent value="csr_letters" className="space-y-5 mt-0 focus-visible:outline-none">
-                {activeSelectedRequest && !activeSelectedRequest.hasCsrLetterAllocation ? (
-                  <div className="bg-card rounded-xl border border-dashed border-border/80 p-8 text-center space-y-3 shadow-2xs">
-                    <div className="w-12 h-12 rounded-full bg-muted/60 text-muted-foreground flex items-center justify-center mx-auto">
-                      <Lock className="w-6 h-6" />
+              {canCsrLetters && (
+                <TabsContent value="csr_letters" className="space-y-5 mt-0 focus-visible:outline-none">
+                  {activeSelectedRequest && !activeSelectedRequest.hasCsrLetterAllocation ? (
+                    <div className="bg-card rounded-xl border border-dashed border-border/80 p-8 text-center space-y-3 shadow-2xs">
+                      <div className="w-12 h-12 rounded-full bg-muted/60 text-muted-foreground flex items-center justify-center mx-auto">
+                        <Lock className="w-6 h-6" />
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="text-base font-bold text-foreground">تبويب الخطاب المجتمعي مغلق لهذا الطلب</h3>
+                        <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                          لا يوجد مورد أو بنود مخصصة للتوريد عبر (المسؤولية المجتمعية) في مرحلة اعتماد التوريد لهذا الطلب.
+                        </p>
+                      </div>
+                      {activeSelectedRequest.hasPurchaseOrderAllocation && canPurchaseOrders && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleTabChange("purchase_orders")}
+                          className="text-xs font-bold gap-1.5 mt-2"
+                        >
+                          <ShoppingCart className="w-3.5 h-3.5" />
+                          <span>الانتقال لأوامر الشراء</span>
+                        </Button>
+                      )}
                     </div>
-                    <div className="space-y-1">
-                      <h3 className="text-base font-bold text-foreground">تبويب الخطاب المجتمعي مغلق لهذا الطلب</h3>
-                      <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                        لا يوجد مورد أو بنود مخصصة للتوريد عبر (المسؤولية المجتمعية) في مرحلة اعتماد التوريد لهذا الطلب.
-                      </p>
-                    </div>
-                    {activeSelectedRequest.hasPurchaseOrderAllocation && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleTabChange("purchase_orders")}
-                        className="text-xs font-bold gap-1.5 mt-2"
-                      >
-                        <ShoppingCart className="w-3.5 h-3.5" />
-                        <span>الانتقال لأوامر الشراء</span>
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <CsrLettersView
+                  ) : (
+                    <CsrLettersView
+                      requestId={parseInt(selectedRequestId)}
+                      isEmbedded={true}
+                    />
+                  )}
+                </TabsContent>
+              )}
+
+              {/* تبويب أوامر الصرف المرتبطة بالطلب واعتمادها كمسؤول مالي */}
+              {canDisbursementOrders && (
+                <TabsContent value="disbursement_orders" className="space-y-5 mt-0 focus-visible:outline-none">
+                  <DisbursementOrdersView
                     requestId={parseInt(selectedRequestId)}
                     isEmbedded={true}
                   />
-                )}
-              </TabsContent>
-
-              {/* تبويب أوامر الصرف المرتبطة بالطلب واعتمادها كمسؤول مالي */}
-              <TabsContent value="disbursement_orders" className="space-y-5 mt-0 focus-visible:outline-none">
-                <DisbursementOrdersView
-                  requestId={parseInt(selectedRequestId)}
-                  isEmbedded={true}
-                />
-              </TabsContent>
+                </TabsContent>
+              )}
             </Tabs>
           </div>
         ) : (
@@ -758,7 +758,11 @@ export default function OrdersAndLettersReview() {
                       variant="outline"
                       className="text-xs font-bold px-2.5 py-0.5 border-primary/30 text-primary bg-primary/5"
                     >
-                      أوامر الصرف والخطاب المجتمعي وأوامر الشراء
+                      {[
+                        canDisbursementOrders ? "أوامر الصرف" : null,
+                        canCsrLetters ? "الخطاب المجتمعي" : null,
+                        canPurchaseOrders ? "أوامر الشراء" : null,
+                      ].filter(Boolean).join(" و ") || "مالية سدانة"}
                     </Badge>
                   </div>
                   <p className="text-xs sm:text-sm text-muted-foreground mt-1">
@@ -768,9 +772,10 @@ export default function OrdersAndLettersReview() {
               </div>
             </div>
 
-            {/* بطاقات الإحصائيات الـ 3 */}
             {/* بطاقات الإحصائيات السريعة */}
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <div className={`grid gap-3 grid-cols-1 sm:grid-cols-2 ${
+              visibleTabsCount === 3 ? "lg:grid-cols-4" : visibleTabsCount === 2 ? "lg:grid-cols-3" : "lg:grid-cols-2"
+            }`}>
               <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
@@ -785,47 +790,53 @@ export default function OrdersAndLettersReview() {
                 </CardContent>
               </Card>
 
-              <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground">تتضمن أوامر شراء</p>
-                    <p className="text-xl sm:text-2xl font-extrabold text-sky-700 dark:text-sky-300 mt-1">
-                      {sedanaStats.withPOs}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-sky-50 dark:bg-sky-950/40 text-sky-600 border border-sky-200 dark:border-sky-900/60">
-                    <ShoppingCart className="w-5 h-5" />
-                  </div>
-                </CardContent>
-              </Card>
+              {canPurchaseOrders && (
+                <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-semibold text-muted-foreground">تتضمن أوامر شراء</p>
+                      <p className="text-xl sm:text-2xl font-extrabold text-sky-700 dark:text-sky-300 mt-1">
+                        {sedanaStats.withPOs}
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-sky-50 dark:bg-sky-950/40 text-sky-600 border border-sky-200 dark:border-sky-900/60">
+                      <ShoppingCart className="w-5 h-5" />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-              <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground">تتضمن خطابات مجتمعية</p>
-                    <p className="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">
-                      {sedanaStats.withCSRs}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-900/60">
-                    <HeartHandshake className="w-5 h-5" />
-                  </div>
-                </CardContent>
-              </Card>
+              {canCsrLetters && (
+                <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-semibold text-muted-foreground">تتضمن خطابات مجتمعية</p>
+                      <p className="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">
+                        {sedanaStats.withCSRs}
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-900/60">
+                      <HeartHandshake className="w-5 h-5" />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-              <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground">تتضمن أوامر صرف</p>
-                    <p className="text-xl sm:text-2xl font-extrabold text-amber-600 dark:text-amber-400 mt-1">
-                      {sedanaStats.withDOs}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/60">
-                    <Coins className="w-5 h-5" />
-                  </div>
-                </CardContent>
-              </Card>
+              {canDisbursementOrders && (
+                <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-semibold text-muted-foreground">تتضمن أوامر صرف</p>
+                      <p className="text-xl sm:text-2xl font-extrabold text-amber-600 dark:text-amber-400 mt-1">
+                        {sedanaStats.withDOs}
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/60">
+                      <Coins className="w-5 h-5" />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* شريط البحث والفلترة */}
@@ -855,10 +866,10 @@ export default function OrdersAndLettersReview() {
                   </SelectTrigger>
                   <SelectContent align="end" dir="rtl">
                     <SelectItem value="all">كافة الطلبات</SelectItem>
-                    <SelectItem value="with_po">تحتوي أوامر شراء</SelectItem>
-                    <SelectItem value="with_csr">تحتوي خطابات مجتمعية</SelectItem>
-                    <SelectItem value="with_do">تحتوي أوامر صرف</SelectItem>
-                    <SelectItem value="has_either">تحتوي أوامر أو خطابات</SelectItem>
+                    {canPurchaseOrders && <SelectItem value="with_po">تحتوي أوامر شراء</SelectItem>}
+                    {canCsrLetters && <SelectItem value="with_csr">تحتوي خطابات مجتمعية</SelectItem>}
+                    {canDisbursementOrders && <SelectItem value="with_do">تحتوي أوامر صرف</SelectItem>}
+                    {visibleTabsCount > 1 && <SelectItem value="has_either">تحتوي أوامر أو خطابات</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
@@ -939,60 +950,66 @@ export default function OrdersAndLettersReview() {
                       {/* اليسار: أوامر الشراء + الخطابات المجتمعية + زر اختيار الطلب */}
                       <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap justify-between sm:justify-end border-t sm:border-t-0 pt-2.5 sm:pt-0 border-border/50">
                         {/* أوامر الشراء */}
-                        <div
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold ${
-                            !req.hasPurchaseOrderAllocation
-                              ? "bg-muted/20 text-muted-foreground border-border/40 opacity-70"
-                              : req.purchaseOrdersCount > 0
-                              ? "bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-900/60"
-                              : "bg-muted/30 text-muted-foreground border-border/50"
-                          }`}
-                        >
-                          <ShoppingCart className="w-3.5 h-3.5" />
-                          <span>
-                            {!req.hasPurchaseOrderAllocation
-                              ? "غير مخصص أمر شراء"
-                              : req.purchaseOrdersCount > 0
-                              ? `${req.purchaseOrdersCount} أمر شراء`
-                              : "0 أوامر"}
-                          </span>
-                        </div>
+                        {canPurchaseOrders && (
+                          <div
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold ${
+                              !req.hasPurchaseOrderAllocation
+                                ? "bg-muted/20 text-muted-foreground border-border/40 opacity-70"
+                                : req.purchaseOrdersCount > 0
+                                ? "bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-900/60"
+                                : "bg-muted/30 text-muted-foreground border-border/50"
+                            }`}
+                          >
+                            <ShoppingCart className="w-3.5 h-3.5" />
+                            <span>
+                              {!req.hasPurchaseOrderAllocation
+                                ? "غير مخصص أمر شراء"
+                                : req.purchaseOrdersCount > 0
+                                ? `${req.purchaseOrdersCount} أمر شراء`
+                                : "0 أوامر"}
+                            </span>
+                          </div>
+                        )}
 
                         {/* الخطابات المجتمعية */}
-                        <div
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold ${
-                            !req.hasCsrLetterAllocation
-                              ? "bg-muted/20 text-muted-foreground border-border/40 opacity-70"
-                              : req.csrLettersCount > 0
-                              ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/60"
-                              : "bg-muted/30 text-muted-foreground border-border/50"
-                          }`}
-                        >
-                          <HeartHandshake className="w-3.5 h-3.5" />
-                          <span>
-                            {!req.hasCsrLetterAllocation
-                              ? "غير مخصص خطاب مجتمعي"
-                              : req.csrLettersCount > 0
-                              ? `${req.csrLettersCount} خطاب مجتمعي`
-                              : "0 خطابات"}
-                          </span>
-                        </div>
+                        {canCsrLetters && (
+                          <div
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold ${
+                              !req.hasCsrLetterAllocation
+                                ? "bg-muted/20 text-muted-foreground border-border/40 opacity-70"
+                                : req.csrLettersCount > 0
+                                ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/60"
+                                : "bg-muted/30 text-muted-foreground border-border/50"
+                            }`}
+                          >
+                            <HeartHandshake className="w-3.5 h-3.5" />
+                            <span>
+                              {!req.hasCsrLetterAllocation
+                                ? "غير مخصص خطاب مجتمعي"
+                                : req.csrLettersCount > 0
+                                ? `${req.csrLettersCount} خطاب مجتمعي`
+                                : "0 خطابات"}
+                            </span>
+                          </div>
+                        )}
 
                         {/* أوامر الصرف */}
-                        <div
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold ${
-                            req.disbursementOrdersCount > 0
-                              ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/60"
-                              : "bg-muted/30 text-muted-foreground border-border/50"
-                          }`}
-                        >
-                          <Coins className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                          <span>
-                            {req.disbursementOrdersCount > 0
-                              ? `${req.disbursementOrdersCount} ${req.disbursementOrdersCount === 1 ? "أمر صرف" : "أوامر صرف"}`
-                              : "0 أوامر صرف"}
-                          </span>
-                        </div>
+                        {canDisbursementOrders && (
+                          <div
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold ${
+                              req.disbursementOrdersCount > 0
+                                ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/60"
+                                : "bg-muted/30 text-muted-foreground border-border/50"
+                            }`}
+                          >
+                            <Coins className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                            <span>
+                              {req.disbursementOrdersCount > 0
+                                ? `${req.disbursementOrdersCount} ${req.disbursementOrdersCount === 1 ? "أمر صرف" : "أوامر صرف"}`
+                                : "0 أوامر صرف"}
+                            </span>
+                          </div>
+                        )}
 
                         {/* زر الاختيار */}
                         <Button
