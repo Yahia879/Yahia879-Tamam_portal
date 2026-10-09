@@ -302,11 +302,11 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
           const styleTags = clonedDoc.getElementsByTagName("style");
           for (let i = 0; i < styleTags.length; i++) {
             let css = styleTags[i].innerHTML;
-            css = css.replace(/--primary:\s*oklch\([^)]+\)/g, "--primary: #0284c7");
+            css = css.replace(/--primary:\s*oklch\([^)]+\)/g, "--primary: #0891B2");
             css = css.replace(/--foreground:\s*oklch\([^)]+\)/g, "--foreground: #0f172a");
             css = css.replace(/--background:\s*oklch\([^)]+\)/g, "--background: #ffffff");
             css = css.replace(/--border:\s*oklch\([^)]+\)/g, "--border: #e2e8f0");
-            css = css.replace(/oklch\([^)]+\)/g, "#0284c7");
+            css = css.replace(/oklch\([^)]+\)/g, "#0891B2");
             styleTags[i].innerHTML = css;
           }
         },
@@ -367,13 +367,13 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
           <DialogHeader className="p-5 pb-4 bg-muted/30 dark:bg-slate-900/40 border-b border-border">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 flex items-center justify-center shadow-xs shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shadow-xs shrink-0">
                   <FileSpreadsheet className="w-5 h-5" />
                 </div>
                 <div>
                   <DialogTitle className="text-lg md:text-xl font-extrabold text-foreground flex items-center gap-2">
                     <span>تصدير بنود التسعير كملف PDF للموردين</span>
-                    <Badge variant="outline" className="text-[11px] font-bold py-0.5 px-2 bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800">
+                    <Badge variant="outline" className="text-[11px] font-bold py-0.5 px-2 bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-800">
                       برنامج سدانة
                     </Badge>
                   </DialogTitle>
@@ -392,7 +392,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="ابحث باسم البند، التصنيف، أو المواصفات..."
-                  className="pr-9 h-9 text-xs bg-background border-sky-200/70 focus-visible:ring-sky-500"
+                  className="pr-9 h-9 text-xs bg-background border-cyan-200/70 focus-visible:ring-cyan-500"
                 />
                 {searchQuery && (
                   <button
@@ -411,9 +411,9 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
                   variant="outline"
                   size="sm"
                   onClick={selectAll}
-                  className="h-8 text-xs font-semibold border-sky-300 text-sky-800 hover:bg-sky-50 dark:border-sky-700 dark:text-sky-300"
+                  className="h-8 text-xs font-semibold border-cyan-300 text-cyan-800 hover:bg-cyan-50 dark:border-cyan-700 dark:text-cyan-300"
                 >
-                  <CheckSquare className="w-3.5 h-3.5 ml-1.5 text-sky-600" />
+                  <CheckSquare className="w-3.5 h-3.5 ml-1.5 text-cyan-600" />
                   تحديد الكل ({normalizedItems.length})
                 </Button>
                 <Button
@@ -433,7 +433,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
             {categories.length > 0 && (
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs scrollbar-none">
                 <span className="text-muted-foreground font-semibold text-[11px] ml-1 shrink-0 flex items-center gap-1">
-                  <Layers className="w-3 h-3 text-sky-600" /> التصنيف:
+                  <Layers className="w-3 h-3 text-cyan-600" /> التصنيف:
                 </span>
                 <button
                   type="button"
@@ -441,7 +441,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
                   className={cn(
                     "px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors shrink-0",
                     selectedCategory === "ALL"
-                      ? "bg-sky-600 text-white shadow-xs"
+                      ? "bg-cyan-600 text-white shadow-xs"
                       : "bg-background text-muted-foreground border border-border hover:bg-muted"
                   )}
                 >
@@ -458,12 +458,12 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
                       className={cn(
                         "px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors shrink-0 flex items-center gap-1",
                         isSelected
-                          ? "bg-sky-600 text-white font-bold shadow-xs"
+                          ? "bg-cyan-600 text-white font-bold shadow-xs"
                           : "bg-background text-muted-foreground border border-border hover:bg-muted"
                       )}
                     >
                       <span>{cat}</span>
-                      <span className={cn("text-[10px]", isSelected ? "text-sky-100" : "text-muted-foreground")}>
+                      <span className={cn("text-[10px]", isSelected ? "text-cyan-100" : "text-muted-foreground")}>
                         ({count})
                       </span>
                     </button>
@@ -493,7 +493,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
                           checked={isAllFilteredSelected}
                           onCheckedChange={toggleSelectFiltered}
                           aria-label="تحديد كافة البنود المعروضة"
-                          className="data-[state=checked]:bg-sky-600 data-[state=checked]:border-sky-600"
+                          className="data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
                         />
                       </TableHead>
                       <TableHead className="w-12 text-center font-bold">#</TableHead>
@@ -514,7 +514,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
                           className={cn(
                             "cursor-pointer transition-colors",
                             isSelected
-                              ? "bg-sky-50/70 dark:bg-sky-950/20 hover:bg-sky-50 dark:hover:bg-sky-950/30"
+                              ? "bg-cyan-50/70 dark:bg-cyan-950/20 hover:bg-cyan-50 dark:hover:bg-cyan-950/30"
                               : "hover:bg-muted/40"
                           )}
                         >
@@ -523,7 +523,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
                               checked={isSelected}
                               onCheckedChange={() => toggleItem(item.id)}
                               aria-label={`تحديد بند ${item.name}`}
-                              className="data-[state=checked]:bg-sky-600 data-[state=checked]:border-sky-600"
+                              className="data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
                             />
                           </TableCell>
                           <TableCell className="text-center font-mono text-xs text-muted-foreground">
@@ -556,13 +556,13 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
                                   ? "bg-blue-50 text-blue-700 border-blue-200"
                                   : item.frequency === "ربع سنوي"
                                   ? "bg-amber-50 text-amber-700 border-amber-200"
-                                  : "bg-sky-50 text-sky-700 border-sky-200"
+                                  : "bg-cyan-50 text-cyan-700 border-cyan-200"
                               )}
                             >
                               {item.frequency}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-center font-extrabold text-xs text-sky-800 dark:text-sky-300">
+                          <TableCell className="text-center font-extrabold text-xs text-cyan-800 dark:text-cyan-300">
                             {typeof item.quantity === "number"
                               ? item.quantity.toLocaleString("ar-SA")
                               : item.quantity}
@@ -587,7 +587,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
                 className={cn(
                   "font-bold text-xs py-1 px-3 gap-1.5",
                   selectedItemsList.length > 0
-                    ? "bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-200 border-sky-300"
+                    ? "bg-cyan-100 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-200 border-cyan-300"
                     : "bg-red-50 text-red-700 border-red-200"
                 )}
               >
@@ -616,7 +616,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
                 type="button"
                 onClick={handleExportPdf}
                 disabled={isExporting || selectedItemsList.length === 0}
-                className="h-9 px-4 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white shadow-md shadow-sky-600/20 gap-2"
+                className="h-9 px-4 text-xs font-bold bg-cyan-600 hover:bg-cyan-700 text-white shadow-md shadow-cyan-600/20 gap-2"
               >
                 {isExporting ? (
                   <>
@@ -666,7 +666,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
               justifyContent: "space-between",
               alignItems: "center",
               paddingBottom: "16px",
-              borderBottom: "2px solid #0284c7",
+              borderBottom: "2px solid #0891B2",
               marginBottom: "22px",
             }}
           >
@@ -685,7 +685,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
                 />
               ) : null}
               <div>
-                <div style={{ fontSize: "17px", fontWeight: "bold", color: "#0369a1", fontFamily: "'Cairo', sans-serif" }}>
+                <div style={{ fontSize: "17px", fontWeight: "bold", color: "#0e7490", fontFamily: "'Cairo', sans-serif" }}>
                   {orgName}
                 </div>
                 <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px", fontFamily: "'Cairo', sans-serif" }}>
@@ -699,7 +699,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
               <div style={{ fontSize: "20px", fontWeight: "800", color: "#0f172a", fontFamily: "'Cairo', sans-serif" }}>
                 جدول بنود التسعير
               </div>
-              <div style={{ fontSize: "12px", color: "#0284c7", fontWeight: "bold", marginTop: "3px", fontFamily: "'Cairo', sans-serif" }}>
+              <div style={{ fontSize: "12px", color: "#0891B2", fontWeight: "bold", marginTop: "3px", fontFamily: "'Cairo', sans-serif" }}>
                 استدراج عروض أسعار للموردين
               </div>
               <div style={{ fontSize: "11px", color: "#64748b", fontWeight: "600", marginTop: "4px", fontFamily: "'Cairo', sans-serif" }}>
@@ -722,17 +722,17 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
             }}
           >
             <thead>
-              <tr style={{ backgroundColor: "#0284c7", color: "#ffffff", textAlign: "center" }}>
-                <th style={{ border: "1px solid #0369a1", padding: "10px 6px", width: "40px" }}>م</th>
-                <th style={{ border: "1px solid #0369a1", padding: "10px 12px", textAlign: "right" }}>
+              <tr style={{ backgroundColor: "#0891B2", color: "#ffffff", textAlign: "center" }}>
+                <th style={{ border: "1px solid #0e7490", padding: "10px 6px", width: "40px" }}>م</th>
+                <th style={{ border: "1px solid #0e7490", padding: "10px 12px", textAlign: "right" }}>
                   بيان البند والمواصفات
                 </th>
-                <th style={{ border: "1px solid #0369a1", padding: "10px 8px", width: "85px" }}>الكمية المعتمدة</th>
-                <th style={{ border: "1px solid #0369a1", padding: "10px 8px", width: "65px" }}>الوحدة</th>
-                <th style={{ border: "1px solid #0369a1", padding: "10px 8px", width: "120px" }}>
+                <th style={{ border: "1px solid #0e7490", padding: "10px 8px", width: "85px" }}>الكمية المعتمدة</th>
+                <th style={{ border: "1px solid #0e7490", padding: "10px 8px", width: "65px" }}>الوحدة</th>
+                <th style={{ border: "1px solid #0e7490", padding: "10px 8px", width: "120px" }}>
                   سعر الوحدة (ر.س)
                 </th>
-                <th style={{ border: "1px solid #0369a1", padding: "10px 8px", width: "120px" }}>
+                <th style={{ border: "1px solid #0e7490", padding: "10px 8px", width: "120px" }}>
                   الإجمالي (ر.س)
                 </th>
               </tr>
@@ -765,7 +765,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
                           style={{
                             fontSize: "11px",
                             fontWeight: "normal",
-                            color: "#0369a1",
+                            color: "#0e7490",
                             marginRight: "6px",
                           }}
                         >
@@ -836,7 +836,7 @@ export const SedanaExportPdfModal: React.FC<SedanaExportPdfModalProps> = ({
               alignItems: "center",
               padding: "16px 24px",
               border: "1px solid #cbd5e1",
-              borderRight: "4px solid #0284c7",
+              borderRight: "4px solid #0891B2",
               borderRadius: "6px",
               backgroundColor: "#f8fafc",
               fontSize: "12.5px",
