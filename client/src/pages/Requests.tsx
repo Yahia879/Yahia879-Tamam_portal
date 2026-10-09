@@ -569,8 +569,8 @@ export default function Requests({
                                 )
                               : isSedana 
                               ? cn(
-                                  "bg-blue-50/60 hover:bg-blue-100/60 dark:bg-blue-950/25 dark:hover:bg-blue-950/45",
-                                  isEn ? "border-l-4 border-l-blue-600 dark:border-l-blue-400" : "border-r-4 border-r-blue-600 dark:border-r-blue-400"
+                                  "bg-cyan-50/60 hover:bg-cyan-100/60 dark:bg-cyan-950/25 dark:hover:bg-cyan-950/45",
+                                  isEn ? "border-l-4 border-l-cyan-600 dark:border-l-cyan-400" : "border-r-4 border-r-cyan-600 dark:border-r-cyan-400"
                                 )
                               : cn(
                                   "hover:bg-muted/30",
@@ -586,8 +586,8 @@ export default function Requests({
                                 <MultiMosquesIcon className="w-4.5 h-4.5" />
                               </div>
                             ) : isSedana ? (
-                              <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-300 dark:border-blue-700 shadow-xs" title={isEn ? "Sedana Program" : "برنامج سدانة"}>
-                                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                              <div className="w-8 h-8 rounded-lg bg-cyan-100 dark:bg-cyan-950/70 text-cyan-600 dark:text-cyan-400 flex items-center justify-center border border-cyan-300 dark:border-cyan-700 shadow-xs" title={isEn ? "Sedana Program" : "برنامج سدانة"}>
+                                <Sparkles className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                               </div>
                             ) : (
                               <ProgramIcon program={request.programType} size="md" />
@@ -603,8 +603,8 @@ export default function Requests({
                                     <MultiMosquesIcon className="w-4.5 h-4.5" />
                                   </div>
                                 ) : isSedana ? (
-                                  <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-300 dark:border-blue-700 shadow-xs" title={isEn ? "Sedana Program" : "برنامج سدانة"}>
-                                    <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                  <div className="w-8 h-8 rounded-lg bg-cyan-100 dark:bg-cyan-950/70 text-cyan-600 dark:text-cyan-400 flex items-center justify-center border border-cyan-300 dark:border-cyan-700 shadow-xs" title={isEn ? "Sedana Program" : "برنامج سدانة"}>
+                                    <Sparkles className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                                   </div>
                                 ) : (
                                   <ProgramIcon program={request.programType} size="md" />
@@ -630,8 +630,8 @@ export default function Requests({
                                             : (request.mosqueName?.trim().startsWith("مسجد") ? `طلب ${request.mosqueName}` : `طلب مسجد ${request.mosqueName || ""}`))}
                                   </p>
                                   {isSedana && (
-                                    <Badge variant="outline" className="bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0">
-                                      <Sparkles className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400" />
+                                    <Badge variant="outline" className="bg-cyan-100 dark:bg-cyan-950/70 text-cyan-700 dark:text-cyan-300 border-cyan-300 dark:border-cyan-700 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0">
+                                      <Sparkles className="w-2.5 h-2.5 text-cyan-600 dark:text-cyan-400" />
                                       <span>{isEn ? "Sedana" : "سدانة"}</span>
                                     </Badge>
                                   )}
@@ -752,7 +752,7 @@ export default function Requests({
                           <div className="md:hidden flex flex-col gap-2.5">
                             <div className={cn(
                               "flex items-center gap-1.5 text-xs text-foreground p-2 rounded-md",
-                              isSedana ? "bg-white/80 dark:bg-blue-900/30 border border-blue-200/60 dark:border-blue-800/40" : "bg-muted/50"
+                              isSedana ? "bg-white/80 dark:bg-cyan-900/30 border border-cyan-200/60 dark:border-cyan-800/40" : "bg-muted/50"
                             )}>
                               <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                               <span className="truncate">{request.multiMosqueNames || request.mosqueName || "—"}</span>
@@ -760,7 +760,7 @@ export default function Requests({
 
                             <div className={cn(
                               "flex items-center justify-between text-xs px-2.5 py-1.5 rounded-md",
-                              isSedana ? "bg-white/60 dark:bg-blue-900/20 border border-blue-200/40 dark:border-blue-800/30" : "bg-muted/30"
+                              isSedana ? "bg-white/60 dark:bg-cyan-900/20 border border-cyan-200/40 dark:border-cyan-800/30" : "bg-muted/30"
                             )}>
                               <span className="flex items-center gap-1 text-muted-foreground">
                                 <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
