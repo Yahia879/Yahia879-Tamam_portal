@@ -323,16 +323,16 @@ export const sedanaExecutionRouter = router({
             baseItems.push({
               id: targetId,
               name: it.itemName || it.name || "صنف إضافي",
-              description: it.description || "صنف مضاف عبر أمر إدخال مستودعي",
+              description: it.description || (inOrder.referenceType === "manual" ? "صنف مضاف عبر أمر إدخال يدوي مباشر" : "صنف مضاف عبر أمر إدخال مستودعي"),
               quantity: qty,
               unit: it.unit || "وحدة",
-              category: it.category || "مسؤولية مجتمعية وأصناف إضافية",
+              category: it.category || (inOrder.referenceType === "manual" ? "إدخال يدوي وأصناف إضافية" : "مسؤولية مجتمعية وأصناف إضافية"),
               frequency: "شهري",
               period: "شهري",
               cycleQuantity: Math.max(1, qty),
               monthlyLimit: null,
               periodLimits: null,
-              allocationMethod: inOrder.referenceType || "csr_letter",
+              allocationMethod: inOrder.referenceType || "manual",
             });
           }
         });

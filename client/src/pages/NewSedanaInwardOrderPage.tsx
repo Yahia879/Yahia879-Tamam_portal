@@ -136,8 +136,8 @@ export default function NewSedanaInwardOrderPage() {
     return list;
   }, [inventoryItems, sedanaCategoryData]);
 
-  // نوع مستند الإدخال المعتمد (أمر شراء معتمد بأمر صرف مالي أم خطاب مسؤولية مجتمعية معتمد)
-  const [sourceCategory, setSourceCategory] = useState<"purchase_order" | "csr_letter">("purchase_order");
+  // نوع مستند الإدخال المعتمد (أمر شراء معتمد بأمر صرف مالي أم خطاب مسؤولية مجتمعية معتمد أم بدون مرجع يدوي)
+  const [sourceCategory, setSourceCategory] = useState<"purchase_order" | "csr_letter" | "manual">("purchase_order");
 
   // أمر الصرف المحدد
   const [selectedDisbOrderId, setSelectedDisbOrderId] = useState<number | null>(null);
@@ -168,10 +168,10 @@ export default function NewSedanaInwardOrderPage() {
     const newItem: ExtraInwardItem = {
       id: `extra_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       originalItemId: firstOpt ? firstOpt.id : "",
-      itemName: firstOpt ? firstOpt.name : "",
+      itemName: firstOpt ? firstOpt.name : "صنف جديد",
       quantity: 1,
       unit: firstOpt ? firstOpt.unit : "وحدة",
-      isCustom: false,
+      isCustom: !firstOpt,
     };
     setExtraCsrItems((prev) => [...prev, newItem]);
   };
@@ -237,7 +237,9 @@ export default function NewSedanaInwardOrderPage() {
     const sourceParam = urlParams.get("source") || urlParams.get("referenceType");
     const csrParam = urlParams.get("csrLetterNumber") || urlParams.get("csr");
 
-    if (csrParam || sourceParam === "csr" || sourceParam === "csr_letter") {
+    if (sourceParam === "manual" || sourceParam === "direct" || sourceParam === "none") {
+      setSourceCategory("manual");
+    } else if (csrParam || sourceParam === "csr" || sourceParam === "csr_letter") {
       setSourceCategory("csr_letter");
       if (csrParam) setSelectedCsrNumber(csrParam);
     } else if (disbParam) {
@@ -282,27 +284,33 @@ export default function NewSedanaInwardOrderPage() {
     return approvedCsrLetters.length > 0 ? approvedCsrLetters[0] : null;
   }, [sourceCategory, approvedCsrLetters, selectedCsrNumber]);
 
-  // المستند المعتمد النشط
+  // المستند المعتمد النشط وجاهزية نموذج الإدخال
   const activeDoc = sourceCategory === "purchase_order" ? activeDisb : activeCsr;
+  const isDocReady = sourceCategory === "manual" || !!activeDoc;
 
-  // قائمة الأصناف المعروضة للإدخال، مأخوذة حصراً من المستند المختار
+  // قائمة الأصناف المعروضة للإدخال، مأخوذة حصراً من المستند المختار (أو فارغة في حالة الإدخال اليدوي المباشر)
   const displayItems = useMemo(() => {
     if (sourceCategory === "purchase_order") {
       if (activeDisb && Array.isArray(activeDisb.items) && activeDisb.items.length > 0) {
         return activeDisb.items;
       }
       return [];
-    } else {
+    } else if (sourceCategory === "csr_letter") {
       if (activeCsr && Array.isArray(activeCsr.items) && activeCsr.items.length > 0) {
         return activeCsr.items;
       }
       return [];
     }
+    return [];
   }, [sourceCategory, activeDisb, activeCsr]);
 
   // عند تغيير المستند المختار: تحديث المرجع وتعبئة الكميات المتبقية تلقائياً
   useEffect(() => {
-    if (sourceCategory === "purchase_order" && activeDisb) {
+    if (sourceCategory === "manual") {
+      setInwardRefType("manual");
+      if (!inwardRefNumber) setInwardRefNumber("إدخال يدوي مباشر");
+      setInwardItems({});
+    } else if (sourceCategory === "purchase_order" && activeDisb) {
       setInwardRefType("purchase_order");
       setInwardRefNumber(activeDisb.referenceNumber || activeDisb.orderNumber || "");
       if (activeDisb.beneficiaryName) setInwardSupplierName(activeDisb.beneficiaryName);
@@ -337,6 +345,7 @@ export default function NewSedanaInwardOrderPage() {
 
   // التحقق من تعليق أو حظر أمر الإدخال
   const isInwardBlocked = useMemo(() => {
+    if (sourceCategory === "manual") return false;
     if (sourceCategory === "purchase_order") {
       return !activeDisb || !activeDisb.canCreateInward;
     } else {
@@ -345,6 +354,7 @@ export default function NewSedanaInwardOrderPage() {
   }, [sourceCategory, activeDisb, activeCsr]);
 
   const blockedReason = useMemo(() => {
+    if (sourceCategory === "manual") return null;
     if (sourceCategory === "purchase_order") {
       if (disbursementOrders.length === 0) {
         return "لا يوجد أمر صرف مالي منفّذ لهذا الطلب حتى الآن";
@@ -362,7 +372,7 @@ export default function NewSedanaInwardOrderPage() {
 
   // الأصناف الإضافية الصالحة (المكتملة الاسم والكمية)
   const validExtraItems = useMemo(() => {
-    if (sourceCategory !== "csr_letter") return [];
+    if (sourceCategory !== "csr_letter" && sourceCategory !== "manual") return [];
     return extraCsrItems.filter((item) => item.itemName.trim().length > 0 && item.quantity > 0);
   }, [sourceCategory, extraCsrItems]);
 
@@ -403,8 +413,8 @@ export default function NewSedanaInwardOrderPage() {
       return;
     }
 
-    // التحقق من اكتمال الأصناف الإضافية في حال وجودها
-    if (sourceCategory === "csr_letter" && extraCsrItems.length > 0) {
+    // التحقق من اكتمال الأصناف الإضافية / اليدوية في حال وجودها
+    if ((sourceCategory === "csr_letter" || sourceCategory === "manual") && extraCsrItems.length > 0) {
       const emptyNameItem = extraCsrItems.find((it) => !it.itemName.trim());
       if (emptyNameItem) {
         toast.error("يرجى إدخال اسم الصنف لكل بند إضافي تمت إضافته");
@@ -412,7 +422,7 @@ export default function NewSedanaInwardOrderPage() {
       }
       const invalidQtyItem = extraCsrItems.find((it) => (it.quantity || 0) <= 0);
       if (invalidQtyItem) {
-        toast.error(`يرجى تحديد كمية موجبة للصنف الإضافي (${invalidQtyItem.itemName || "صنف إضافي"})`);
+        toast.error(`يرجى تحديد كمية موجبة للصنف (${invalidQtyItem.itemName || "صنف"})`);
         return;
       }
     }
@@ -429,7 +439,7 @@ export default function NewSedanaInwardOrderPage() {
         };
       });
 
-    const extraItems = sourceCategory === "csr_letter"
+    const extraItems = (sourceCategory === "csr_letter" || sourceCategory === "manual")
       ? validExtraItems.map((it) => ({
           id: it.originalItemId || it.id,
           itemName: it.itemName.trim(),
@@ -463,6 +473,7 @@ export default function NewSedanaInwardOrderPage() {
     if (sourceCategory === "purchase_order") {
       createInwardMutation.mutate({
         requestId,
+        orderDate: inwardDate || undefined,
         receivedBy: inwardReceivedBy || user?.name || "أمين المستودع",
         disbursementOrderId: activeDisb?.id,
         disbursementOrderNumber: activeDisb?.orderNumber,
@@ -473,9 +484,10 @@ export default function NewSedanaInwardOrderPage() {
         notes: inwardNotes.trim() || undefined,
         items,
       });
-    } else {
+    } else if (sourceCategory === "csr_letter") {
       createInwardMutation.mutate({
         requestId,
+        orderDate: inwardDate || undefined,
         receivedBy: inwardReceivedBy || user?.name || "أمين المستودع",
         disbursementOrderId: null,
         disbursementOrderNumber: null,
@@ -483,6 +495,20 @@ export default function NewSedanaInwardOrderPage() {
         referenceNumber: (activeCsr?.letterNumber || inwardRefNumber || "").trim(),
         supplierInvoiceNumber: inwardSupplierInvoice.trim() || undefined,
         supplierName: (activeCsr?.recipientName || inwardSupplierName || "").trim() || undefined,
+        notes: inwardNotes.trim() || undefined,
+        items,
+      });
+    } else {
+      createInwardMutation.mutate({
+        requestId,
+        orderDate: inwardDate || undefined,
+        receivedBy: inwardReceivedBy || user?.name || "أمين المستودع",
+        disbursementOrderId: null,
+        disbursementOrderNumber: null,
+        referenceType: "manual",
+        referenceNumber: inwardRefNumber.trim() || "إدخال يدوي مباشر",
+        supplierInvoiceNumber: inwardSupplierInvoice.trim() || undefined,
+        supplierName: inwardSupplierName.trim() || undefined,
         notes: inwardNotes.trim() || undefined,
         items,
       });
@@ -535,7 +561,7 @@ export default function NewSedanaInwardOrderPage() {
 
         </div>
 
-        {/* القسم الأول: اختيار مستند التوريد والاعتماد (أمر شراء معتمد أم خطاب مجتمعي معتمد) */}
+        {/* القسم الأول: اختيار مستند التوريد والاعتماد (أمر شراء معتمد أم خطاب مجتمعي معتمد أم بدون مرجع يدوي) */}
         <Card className="border-border/80 shadow-xs rounded-xl overflow-hidden bg-white dark:bg-slate-900">
           <CardHeader className="bg-muted/30 border-b border-border/50 py-3.5 px-5 text-right">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -545,7 +571,9 @@ export default function NewSedanaInwardOrderPage() {
                   <span>مستند التوريد والاعتماد (المصدر المعتمد وسقف الكميات)</span>
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">
-                  حدد نوع ومستند التوريد المعتمد؛ كميات المستند تمثل الحد الأقصى (الماكسيموم) المسموح بإدخاله
+                  {sourceCategory === "manual"
+                    ? "إدخال مباشر بدون اشتراط ربط بأمر صرف أو خطاب مجتمعي؛ يتيح إضافة وتحديد الأصناف بحرية"
+                    : "حدد نوع ومستند التوريد المعتمد؛ كميات المستند تمثل الحد الأقصى (الماكسيموم) المسموح بإدخاله"}
                 </CardDescription>
               </div>
 
@@ -559,10 +587,15 @@ export default function NewSedanaInwardOrderPage() {
                   {approvedCsrLetters.length === 1 ? "خطاب مجتمعي معتمد واحد" : `${approvedCsrLetters.length} خطابات مجتمعية معتمدة`}
                 </Badge>
               )}
+              {sourceCategory === "manual" && (
+                <Badge variant="outline" className="text-xs bg-muted/60 self-start sm:self-auto text-blue-700 dark:text-blue-400 border-blue-300 font-bold">
+                  إدخال مباشر بدون مرجع إلزامي
+                </Badge>
+              )}
             </div>
           </CardHeader>
           <CardContent className="p-5 space-y-5 text-right" dir="rtl">
-            {/* 1. قائمة اختيار نوع المستند (أمر صرف منفذ أم خطاب مسؤولية مجتمعية منفذ) */}
+            {/* 1. قائمة اختيار نوع المستند (أمر صرف منفذ أم خطاب مسؤولية مجتمعية منفذ أم بدون مرجع) */}
             <div className="space-y-2">
               <Label className="text-xs font-bold text-foreground">
                 نوع مستند الإدخال المعتمد:
@@ -570,7 +603,7 @@ export default function NewSedanaInwardOrderPage() {
               <div className="max-w-xl">
                 <Select
                   value={sourceCategory}
-                  onValueChange={(val: "purchase_order" | "csr_letter") => setSourceCategory(val)}
+                  onValueChange={(val: "purchase_order" | "csr_letter" | "manual") => setSourceCategory(val)}
                 >
                   <SelectTrigger className="h-11 text-xs font-bold bg-background border-border/80" dir="rtl">
                     <SelectValue placeholder="-- اختر نوع مستند الإدخال المعتمد --" />
@@ -582,12 +615,15 @@ export default function NewSedanaInwardOrderPage() {
                     <SelectItem value="csr_letter" className="text-xs font-semibold cursor-pointer">
                       خطاب مسؤولية مجتمعية منفذ
                     </SelectItem>
+                    <SelectItem value="manual" className="text-xs font-semibold cursor-pointer">
+                      بدون مرجع (إدخال يدوي مباشر)
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            {/* 2. اختيار المستند المحدد بناءً على النوع المختار */}
+            {/* 2. اختيار المستند المحدد أو بيانات الإدخال المباشر */}
             {sourceCategory === "purchase_order" ? (
               <div className="space-y-2 pt-2 border-t border-border/50">
                 <Label className="text-xs font-bold text-foreground">
@@ -647,7 +683,7 @@ export default function NewSedanaInwardOrderPage() {
                   </div>
                 )}
               </div>
-            ) : (
+            ) : sourceCategory === "csr_letter" ? (
               <div className="space-y-2 pt-2 border-t border-border/50">
                 <Label className="text-xs font-bold text-foreground">
                   خطاب المسؤولية المجتمعية المنفّذ (CSR):
@@ -704,13 +740,101 @@ export default function NewSedanaInwardOrderPage() {
                   </div>
                 )}
               </div>
+            ) : (
+              <div className="space-y-4 pt-2 border-t border-border/50">
+                <div className="p-3.5 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/70 dark:bg-blue-950/30 text-xs flex items-start gap-2.5">
+                  <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-1">
+                    <p className="font-bold text-blue-950 dark:text-blue-200">
+                      إدخال يدوي مباشر للمستودع الافتراضي (بدون مرجع إلزامي)
+                    </p>
+                    <p className="text-blue-900/80 dark:text-blue-300/80 leading-relaxed">
+                      يمكنك إضافة وتحديد الأصناف والكميات بحرية تامة في الجدول أدناه دون اشتراط الربط بأمر صرف منفّذ أو خطاب مجتمعي معتمد. الحقول أدناه اختيارية لتوثيق المصدر وتفاصيل التوريد.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                  <div>
+                    <Label className="text-[11px] font-bold text-foreground mb-1 block">
+                      اسم المورد / الجهة الموردة (اختياري):
+                    </Label>
+                    <Input
+                      value={inwardSupplierName}
+                      onChange={(e) => setInwardSupplierName(e.target.value)}
+                      placeholder="مثال: توريد مباشر، اسم المورد..."
+                      className="h-9 text-xs bg-background"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-[11px] font-bold text-foreground mb-1 block">
+                      رقم الفاتورة أو إشعار التوريد (اختياري):
+                    </Label>
+                    <Input
+                      value={inwardSupplierInvoice}
+                      onChange={(e) => setInwardSupplierInvoice(e.target.value)}
+                      placeholder="مثال: INV-1002..."
+                      className="h-9 text-xs bg-background font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-[11px] font-bold text-foreground mb-1 block">
+                      مرجع أمر الإدخال (اختياري):
+                    </Label>
+                    <Input
+                      value={inwardRefNumber}
+                      onChange={(e) => setInwardRefNumber(e.target.value)}
+                      placeholder="إدخال يدوي مباشر"
+                      className="h-9 text-xs bg-background font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-[11px] font-bold text-foreground mb-1 block">
+                      تاريخ التوريد:
+                    </Label>
+                    <Input
+                      type="date"
+                      value={inwardDate}
+                      onChange={(e) => setInwardDate(e.target.value)}
+                      className="h-9 text-xs bg-background font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-[11px] font-bold text-foreground mb-1 block">
+                      اسم المستلم / أمين المستودع:
+                    </Label>
+                    <Input
+                      value={inwardReceivedBy}
+                      onChange={(e) => setInwardReceivedBy(e.target.value)}
+                      placeholder="اسم المستلم"
+                      className="h-9 text-xs bg-background"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-[11px] font-bold text-foreground mb-1 block">
+                      ملاحظات أو بيان الإدخال (اختياري):
+                    </Label>
+                    <Input
+                      value={inwardNotes}
+                      onChange={(e) => setInwardNotes(e.target.value)}
+                      placeholder="أي تفاصيل أو ملاحظات..."
+                      className="h-9 text-xs bg-background"
+                    />
+                  </div>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
 
 
-        {/* القسم الثاني: جدول الأصناف والكميات (يظهر بعد تحديد المستند) */}
-        {activeDoc && (
+        {/* القسم الثاني: جدول الأصناف والكميات (يظهر بعد تحديد المستند أو في وضع الإدخال اليدوي المباشر) */}
+        {isDocReady && (
           <Card className="border-border/80 shadow-xs rounded-xl overflow-hidden bg-white dark:bg-slate-900">
             <CardHeader className="bg-muted/30 border-b border-border/50 py-3.5 px-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-right">
               <div>
@@ -719,17 +843,21 @@ export default function NewSedanaInwardOrderPage() {
                   <span>
                     {sourceCategory === "purchase_order"
                       ? `أصناف وكميات أمر الصرف المنفّذ (${activeDisb?.orderNumber})`
-                      : `أصناف وكميات خطاب المسؤولية المجتمعية المنفّذ (${activeCsr?.letterNumber})`}
+                      : sourceCategory === "csr_letter"
+                      ? `أصناف وكميات خطاب المسؤولية المجتمعية المنفّذ (${activeCsr?.letterNumber})`
+                      : "أصناف وكميات الإدخال المستودعي المباشر"}
                   </span>
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">
                   {sourceCategory === "purchase_order"
                     ? "أصناف وكميات أمر الصرف المنفّذ المحددة للإدخال المستودعي"
-                    : "أصناف وكميات خطاب المسؤولية المجتمعية المنفّذ المحددة للإدخال المستودعي"}
+                    : sourceCategory === "csr_letter"
+                    ? "أصناف وكميات خطاب المسؤولية المجتمعية المنفّذ المحددة للإدخال المستودعي"
+                    : "أضف وحدد الأصناف والكميات المراد إدخالها إلى المستودع الافتراضي بحرية"}
                 </CardDescription>
               </div>
 
-              {sourceCategory === "csr_letter" && (
+              {(sourceCategory === "csr_letter" || sourceCategory === "manual") && (
                 <div className="flex items-center gap-2 self-start sm:self-auto">
                   <Button
                     type="button"
@@ -756,7 +884,7 @@ export default function NewSedanaInwardOrderPage() {
             </CardHeader>
             <CardContent className="p-0 text-right" dir="rtl">
               {/* نموذج إضافة بند مخصص سريع - مطابق تماماً لصفحة طلب سدانة */}
-              {showAddCustom && sourceCategory === "csr_letter" && (
+              {showAddCustom && (sourceCategory === "csr_letter" || sourceCategory === "manual") && (
                 <div className="p-3.5 m-4 rounded-lg bg-muted/20 border border-primary/30 space-y-3 animate-in fade-in duration-150">
                   <p className="text-xs font-bold text-foreground">إضافة صنف مخصص لسلة التوريد</p>
                   <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 text-xs">
@@ -813,9 +941,11 @@ export default function NewSedanaInwardOrderPage() {
                     <TableRow className="border-b border-border/60 hover:bg-transparent">
                       <TableHead className="w-12 text-center font-bold">#</TableHead>
                       <TableHead className="min-w-[200px] font-bold text-foreground">الصنف والوصف</TableHead>
-                      <TableHead className="w-32 text-center font-bold text-foreground">الكمية المعتمدة</TableHead>
+                      <TableHead className="w-32 text-center font-bold text-foreground">
+                        {sourceCategory === "manual" ? "الحد الأقصى" : "الكمية المعتمدة"}
+                      </TableHead>
                       <TableHead className="w-36 text-center font-bold text-primary">الكمية</TableHead>
-                      {sourceCategory === "csr_letter" && (
+                      {sourceCategory !== "purchase_order" && (
                         <TableHead className="w-14 text-center font-bold text-muted-foreground">إجراء</TableHead>
                       )}
                     </TableRow>
@@ -823,8 +953,44 @@ export default function NewSedanaInwardOrderPage() {
                   <TableBody>
                     {displayItems.length === 0 && extraCsrItems.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={sourceCategory === "csr_letter" ? 5 : 4} className="h-28 text-center text-muted-foreground text-xs">
-                          لا توجد أصناف مسجلة في هذا المستند
+                        <TableCell colSpan={sourceCategory !== "purchase_order" ? 5 : 4} className="h-32 text-center text-muted-foreground text-xs py-6">
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <Package className="w-8 h-8 text-muted-foreground/40" />
+                            <p className="font-semibold text-foreground">
+                              {sourceCategory === "manual"
+                                ? "لم يتم إضافة أي أصناف بعد في أمر الإدخال المباشر"
+                                : "لا توجد أصناف مسجلة في هذا المستند"}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {sourceCategory === "manual"
+                                ? "يمكنك إضافة أصناف من سلة وتصنيفات المسجد أو إدراج أصناف مخصصة بالكميات المطلوبة"
+                                : "يرجى اختيار مستند يحتوي على أصناف معتمدة للمتابعة"}
+                            </p>
+                            {sourceCategory === "manual" && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={handleAddNewRow}
+                                  className="gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                  <span>إضافة صنف من السلة</span>
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setShowAddCustom(true)}
+                                  className="gap-1.5 text-xs text-primary border-primary/30 hover:bg-primary/10 cursor-pointer"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                  <span>إضافة بند مخصص</span>
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -893,8 +1059,8 @@ export default function NewSedanaInwardOrderPage() {
                                 </div>
                               </TableCell>
 
-                              {/* عمود الإجراء في حال كان الخطاب المجتمعي مفعلاً */}
-                              {sourceCategory === "csr_letter" && (
+                              {/* عمود الإجراء في حال كان غير مقيد بأمر صرف */}
+                              {sourceCategory !== "purchase_order" && (
                                 <TableCell className="text-center text-muted-foreground text-[11px]">
                                   —
                                 </TableCell>
@@ -903,8 +1069,8 @@ export default function NewSedanaInwardOrderPage() {
                           );
                         })}
 
-                        {/* صفوف الأصناف الإضافية لخطاب المسؤولية المجتمعية */}
-                        {sourceCategory === "csr_letter" && extraCsrItems.map((extraItem, extraIdx) => (
+                        {/* صفوف الأصناف الإضافية / اليدوية */}
+                        {(sourceCategory === "csr_letter" || sourceCategory === "manual") && extraCsrItems.map((extraItem, extraIdx) => (
                           <TableRow
                             key={extraItem.id}
                             className="border-b border-border/40 hover:bg-muted/20 transition-colors"
@@ -917,11 +1083,14 @@ export default function NewSedanaInwardOrderPage() {
                             {/* اسم الصنف / الاختيار */}
                             <TableCell>
                               {extraItem.isCustom ? (
-                                <div className="flex items-center gap-2">
-                                  <span className="font-bold text-foreground text-xs sm:text-sm">
-                                    {extraItem.itemName}
-                                  </span>
-                                  <Badge variant="outline" className="text-[10px] text-primary border-primary/30 bg-primary/5 font-normal">
+                                <div className="flex items-center gap-2 max-w-sm">
+                                  <Input
+                                    value={extraItem.itemName}
+                                    onChange={(e) => handleUpdateExtraItem(extraItem.id, { itemName: e.target.value })}
+                                    placeholder="اسم الصنف المخصص..."
+                                    className="h-8 text-xs bg-background font-bold text-foreground"
+                                  />
+                                  <Badge variant="outline" className="text-[10px] text-primary border-primary/30 bg-primary/5 font-normal shrink-0">
                                     مخصص
                                   </Badge>
                                 </div>
@@ -951,7 +1120,7 @@ export default function NewSedanaInwardOrderPage() {
 
                             {/* خانة الكمية والوحدة */}
                             <TableCell className="text-center">
-                              <div className="flex items-center justify-center gap-1.5 max-w-[130px] mx-auto">
+                              <div className="flex items-center justify-center gap-1.5 max-w-[140px] mx-auto">
                                 <Input
                                   type="number"
                                   min={0.01}
@@ -963,11 +1132,21 @@ export default function NewSedanaInwardOrderPage() {
                                       quantity: isNaN(val) ? 0 : Math.max(0, val),
                                     });
                                   }}
-                                  className="h-8 text-center font-mono font-bold text-xs rounded-lg text-foreground bg-background border-border focus:ring-emerald-500"
+                                  className="h-8 text-center font-mono font-bold text-xs rounded-lg text-foreground bg-background border-border focus:ring-emerald-500 w-16"
                                 />
-                                <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                                  {extraItem.unit}
-                                </span>
+                                {extraItem.isCustom ? (
+                                  <Input
+                                    value={extraItem.unit}
+                                    onChange={(e) => handleUpdateExtraItem(extraItem.id, { unit: e.target.value })}
+                                    className="h-8 w-14 text-center text-[11px] bg-background border-border px-1"
+                                    placeholder="الوحدة"
+                                    title="تعديل وحدة القياس"
+                                  />
+                                ) : (
+                                  <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                                    {extraItem.unit}
+                                  </span>
+                                )}
                               </div>
                             </TableCell>
 
@@ -992,8 +1171,8 @@ export default function NewSedanaInwardOrderPage() {
                 </Table>
               </div>
 
-              {/* أزرار إضافة بند جديد أسفل الجدول عند اختيار خطاب مسؤولية مجتمعية - مطابقة لنموذج سدانة */}
-              {sourceCategory === "csr_letter" && (
+              {/* أزرار إضافة بند جديد أسفل الجدول عند اختيار خطاب مسؤولية مجتمعية أو إدخال يدوي */}
+              {(sourceCategory === "csr_letter" || sourceCategory === "manual") && (
                 <div className="flex items-center justify-between p-3 border-t border-border/40 bg-muted/10">
                   <div className="flex items-center gap-2">
                     <Button
@@ -1001,7 +1180,7 @@ export default function NewSedanaInwardOrderPage() {
                       variant="outline"
                       size="sm"
                       onClick={handleAddNewRow}
-                      className="h-8 text-xs font-medium gap-1.5 text-cyan-700 border-cyan-500/40 hover:bg-cyan-50 dark:text-cyan-300 dark:hover:bg-cyan-950/40 cursor-pointer"
+                      className="h-8 text-xs font-medium gap-1.5 text-emerald-700 border-emerald-500/40 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/40 cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>إضافة بند جديد</span>
@@ -1035,9 +1214,11 @@ export default function NewSedanaInwardOrderPage() {
                 <div className="text-muted-foreground text-[11px]">
                   {sourceCategory === "purchase_order" && activeDisb ? (
                     <>أمر الصرف: <strong className="font-mono text-foreground">{activeDisb.orderNumber}</strong> ({activeDisb.referenceNumber || activeDisb.referenceType})</>
-                  ) : activeCsr ? (
+                  ) : sourceCategory === "csr_letter" && activeCsr ? (
                     <>خطاب المسؤولية المجتمعية: <strong className="font-mono text-foreground">{activeCsr.letterNumber}</strong> ({activeCsr.recipientName})</>
-                  ) : null}
+                  ) : (
+                    <>نوع الإدخال: <strong className="text-foreground">إدخال يدوي مباشر</strong> {inwardSupplierName ? `(المورد: ${inwardSupplierName})` : ""}</>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -1056,7 +1237,7 @@ export default function NewSedanaInwardOrderPage() {
             إلغاء والعودة للمستودع
           </Button>
 
-          {activeDoc && (
+          {isDocReady && (
             <Button
               type="button"
               onClick={handleSubmit}
