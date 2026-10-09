@@ -52,6 +52,8 @@ import { usePermission } from "@/hooks/usePermission";
 
 interface ExtraInwardItem {
   id: string;
+  originalItemId?: string;
+  isCustom: boolean;
   itemName: string;
   quantity: number;
   unit: string;
@@ -123,10 +125,13 @@ export default function NewSedanaInwardOrderPage() {
 
   // إدارة الأصناف الإضافية لخطاب المسؤولية المجتمعية
   const handleAddExtraItem = () => {
+    const hasInventory = inventoryItems.length > 0;
     setExtraCsrItems((prev) => [
       ...prev,
       {
         id: `extra_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        originalItemId: "",
+        isCustom: !hasInventory,
         itemName: "",
         quantity: 1,
         unit: "حبة",
@@ -138,9 +143,9 @@ export default function NewSedanaInwardOrderPage() {
     setExtraCsrItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleUpdateExtraItem = (id: string, field: keyof ExtraInwardItem, value: any) => {
+  const handleUpdateExtraItem = (id: string, patch: Partial<ExtraInwardItem>) => {
     setExtraCsrItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
+      prev.map((item) => (item.id === id ? { ...item, ...patch } : item))
     );
   };
 
@@ -350,7 +355,7 @@ export default function NewSedanaInwardOrderPage() {
 
     const extraItems = sourceCategory === "csr_letter"
       ? validExtraItems.map((it) => ({
-          id: it.id,
+          id: it.originalItemId || it.id,
           itemName: it.itemName.trim(),
           quantity: it.quantity,
           unit: it.unit.trim() || "وحدة",
@@ -762,43 +767,129 @@ export default function NewSedanaInwardOrderPage() {
                         {sourceCategory === "csr_letter" && extraCsrItems.map((extraItem, extraIdx) => (
                           <TableRow
                             key={extraItem.id}
-                            className="border-b border-border/40 bg-emerald-50/20 dark:bg-emerald-950/10 transition-colors hover:bg-emerald-50/40"
+                            className="border-b border-border/40 bg-emerald-50/20 dark:bg-emerald-950/10 transition-colors hover:bg-emerald-50/30"
                           >
                             {/* رقم البند */}
-                            <TableCell className="text-center font-mono text-muted-foreground font-bold">
+                            <TableCell className="text-center font-mono text-muted-foreground font-bold align-top pt-4">
                               {displayItems.length + extraIdx + 1}
                             </TableCell>
 
-                            {/* اسم الصنف الإضافي */}
-                            <TableCell>
-                              <div className="space-y-1 py-1">
-                                <Input
-                                  type="text"
-                                  placeholder="اسم الصنف الإضافي..."
-                                  value={extraItem.itemName}
-                                  onChange={(e) => handleUpdateExtraItem(extraItem.id, "itemName", e.target.value)}
-                                  list="available-inventory-suggestions"
-                                  className="h-8 text-xs font-bold bg-background border-border/80 focus:ring-emerald-500"
-                                />
-                                <div className="flex items-center gap-1.5">
-                                  <Badge variant="outline" className="text-[10px] text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800">
-                                    صنف إضافي
-                                  </Badge>
-                                  <span className="text-[10px] text-muted-foreground">
-                                    يمكنك اختيار صنف مقترح أو كتابة صنف مخصص
-                                  </span>
+                            {/* اختيار الصنف والوصف */}
+                            <TableCell className="min-w-[280px]">
+                              <div className="space-y-2 py-1.5">
+                                {/* محدد نوع الإضافة: من سلة المسجد أو صنف مخصص جديد */}
+                                <div className="flex items-center gap-1 p-0.5 bg-muted/70 rounded-lg w-fit border border-border/60">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleUpdateExtraItem(extraItem.id, {
+                                        isCustom: false,
+                                      })
+                                    }
+                                    className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
+                                      !extraItem.isCustom
+                                        ? "bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 shadow-xs border border-border/50"
+                                        : "text-muted-foreground hover:text-foreground"
+                                    }`}
+                                  >
+                                    من سلة المسجد
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleUpdateExtraItem(extraItem.id, {
+                                        isCustom: true,
+                                        originalItemId: "",
+                                      })
+                                    }
+                                    className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
+                                      extraItem.isCustom
+                                        ? "bg-white dark:bg-slate-800 text-amber-700 dark:text-amber-400 shadow-xs border border-border/50"
+                                        : "text-muted-foreground hover:text-foreground"
+                                    }`}
+                                  >
+                                    صنف مخصص جديد
+                                  </button>
                                 </div>
+
+                                {!extraItem.isCustom ? (
+                                  <div className="space-y-1">
+                                    <Select
+                                      value={extraItem.originalItemId || ""}
+                                      onValueChange={(val) => {
+                                        const found = inventoryItems.find((inv: any) => String(inv.id) === val);
+                                        if (found) {
+                                          handleUpdateExtraItem(extraItem.id, {
+                                            isCustom: false,
+                                            originalItemId: String(found.id),
+                                            itemName: found.name || found.itemName || "",
+                                            unit: found.unit || "وحدة",
+                                          });
+                                        }
+                                      }}
+                                    >
+                                      <SelectTrigger
+                                        className="h-9 text-xs font-semibold bg-background border-border/80 focus:ring-emerald-500"
+                                        dir="rtl"
+                                      >
+                                        <SelectValue placeholder="-- اختر الصنف من سلة المسجد --" />
+                                      </SelectTrigger>
+                                      <SelectContent dir="rtl" className="max-h-60">
+                                        {inventoryItems.map((inv: any) => (
+                                          <SelectItem
+                                            key={inv.id}
+                                            value={String(inv.id)}
+                                            className="text-xs cursor-pointer py-1.5"
+                                          >
+                                            <div className="flex items-center justify-between gap-4 w-full">
+                                              <span className="font-semibold text-foreground">
+                                                {inv.name || inv.itemName}
+                                              </span>
+                                              <span className="text-[11px] text-muted-foreground font-mono">
+                                                ({inv.unit || "وحدة"})
+                                              </span>
+                                            </div>
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    {extraItem.itemName && (
+                                      <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
+                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                        <span>تم اختيار: <strong className="font-bold">{extraItem.itemName}</strong></span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="space-y-1">
+                                    <Input
+                                      type="text"
+                                      placeholder="أدخل اسم الصنف الإضافي المخصص..."
+                                      value={extraItem.itemName}
+                                      onChange={(e) =>
+                                        handleUpdateExtraItem(extraItem.id, {
+                                          itemName: e.target.value,
+                                        })
+                                      }
+                                      className="h-9 text-xs font-bold bg-background border-border/80 focus:ring-emerald-500"
+                                      autoFocus
+                                    />
+                                    <p className="text-[10px] text-muted-foreground">
+                                      سيتم إدراج هذا البند الجديد ورصيده ضمن بنود المستودع الافتراضي للمسجد.
+                                    </p>
+                                  </div>
+                                )}
                               </div>
                             </TableCell>
 
                             {/* الكمية المعتمدة */}
-                            <TableCell className="text-center font-mono text-xs text-muted-foreground">
+                            <TableCell className="text-center font-mono text-xs text-muted-foreground align-top pt-4">
                               <span>— (إضافي)</span>
                             </TableCell>
 
                             {/* خانة الكمية والوحدة */}
-                            <TableCell className="text-center">
-                              <div className="flex items-center justify-center gap-1.5 max-w-[150px] mx-auto">
+                            <TableCell className="text-center align-top pt-3">
+                              <div className="flex items-center justify-center gap-1.5 max-w-[160px] mx-auto">
                                 <Input
                                   type="number"
                                   min={0.01}
@@ -806,7 +897,9 @@ export default function NewSedanaInwardOrderPage() {
                                   value={extraItem.quantity}
                                   onChange={(e) => {
                                     const val = parseFloat(e.target.value);
-                                    handleUpdateExtraItem(extraItem.id, "quantity", isNaN(val) ? 0 : Math.max(0, val));
+                                    handleUpdateExtraItem(extraItem.id, {
+                                      quantity: isNaN(val) ? 0 : Math.max(0, val),
+                                    });
                                   }}
                                   className="h-9 text-center font-mono font-bold text-xs rounded-lg text-foreground bg-background border-border focus:ring-emerald-500"
                                 />
@@ -814,14 +907,18 @@ export default function NewSedanaInwardOrderPage() {
                                   type="text"
                                   placeholder="الوحدة"
                                   value={extraItem.unit}
-                                  onChange={(e) => handleUpdateExtraItem(extraItem.id, "unit", e.target.value)}
-                                  className="h-9 w-14 text-center text-xs font-medium bg-background border-border"
+                                  onChange={(e) =>
+                                    handleUpdateExtraItem(extraItem.id, {
+                                      unit: e.target.value,
+                                    })
+                                  }
+                                  className="h-9 w-16 text-center text-xs font-semibold bg-background border-border focus:ring-emerald-500"
                                 />
                               </div>
                             </TableCell>
 
                             {/* إجراء الحذف */}
-                            <TableCell className="text-center">
+                            <TableCell className="text-center align-top pt-3">
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -840,13 +937,6 @@ export default function NewSedanaInwardOrderPage() {
                   </TableBody>
                 </Table>
               </div>
-
-              {/* اقتراحات الأصناف من المخزون المتوفر بالطلب */}
-              <datalist id="available-inventory-suggestions">
-                {inventoryItems.map((inv: any, idx: number) => (
-                  <option key={inv.id || idx} value={inv.itemName || inv.name} />
-                ))}
-              </datalist>
 
               {/* شريط ملخص الكميات */}
               <div className="p-4 bg-muted/20 border-t border-border/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
