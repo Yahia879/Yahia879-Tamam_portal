@@ -301,24 +301,35 @@ export const sedanaExecutionRouter = router({
           globalFirstInwardDate = orderDate;
         }
         (inOrder.items || []).forEach((it: any) => {
-          inwardMap[it.id] = (inwardMap[it.id] || 0) + Number(it.quantity || 0);
-          if (orderDate && (!firstInwardDateMap[it.id] || orderDate < firstInwardDateMap[it.id])) {
-            firstInwardDateMap[it.id] = orderDate;
+          const qty = Number(it.quantity || 0);
+          const rawName = (it.itemName || it.name || "").trim().toLowerCase();
+
+          // البحث عما إذا كان الصنف موجوداً مسبقاً في الأصناف الأساسية إما بالمعرّف أو بالاسم
+          const matchedBase = baseItems.find(
+            (b) =>
+              String(b.id) === String(it.id) ||
+              (rawName && b.name && b.name.trim().toLowerCase() === rawName)
+          );
+
+          const targetId = matchedBase ? String(matchedBase.id) : String(it.id);
+
+          inwardMap[targetId] = (inwardMap[targetId] || 0) + qty;
+          if (orderDate && (!firstInwardDateMap[targetId] || orderDate < firstInwardDateMap[targetId])) {
+            firstInwardDateMap[targetId] = orderDate;
           }
 
-          // دمج أي صنف إضافي مورد في baseItems إن لم يكن موجوداً
-          const exists = baseItems.some((b) => String(b.id) === String(it.id));
-          if (!exists) {
+          // دمج أي صنف إضافي مخصص في baseItems إن لم يكن موجوداً
+          if (!matchedBase) {
             baseItems.push({
-              id: String(it.id),
+              id: targetId,
               name: it.itemName || it.name || "صنف إضافي",
               description: it.description || "صنف مضاف عبر أمر إدخال مستودعي",
-              quantity: Number(it.quantity || 0),
+              quantity: qty,
               unit: it.unit || "وحدة",
               category: it.category || "مسؤولية مجتمعية وأصناف إضافية",
               frequency: "شهري",
               period: "شهري",
-              cycleQuantity: Number(it.quantity || 1),
+              cycleQuantity: Math.max(1, qty),
               monthlyLimit: null,
               periodLimits: null,
               allocationMethod: inOrder.referenceType || "csr_letter",
