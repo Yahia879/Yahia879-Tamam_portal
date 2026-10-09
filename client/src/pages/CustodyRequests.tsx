@@ -120,6 +120,7 @@ export default function CustodyRequests() {
       user.role === "executive_director" ||
       user.role === "general_manager" ||
       (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+      (user as any)?.customRole?.nameAr === "الرئيس التنفيذي" ||
       user.name === "المدير التنفيذي" ||
       user.email === "ceo@manarah.org.sa"
     );
@@ -622,18 +623,14 @@ export default function CustodyRequests() {
                                   >
                                     {ex.status === "approved" ? "معتمد" : ex.status === "rejected" ? "مرفوض" : "قيد المراجعة"}
                                   </Badge>
-                                  {ex.isUsed ? (
-                                    <Badge variant="secondary" className="text-[9px] py-0">
-                                      تم الاستخدام
-                                    </Badge>
-                                  ) : null}
+
                                 </div>
                               </TableCell>
 
-                              {/* الإجراءات: تظهر للمدير التنفيذي ولـ super_admin عند استعراض طلبات الموظفين */}
+                              {/* الإجراءات: تظهر حصراً للمدير التنفيذي */}
                               <TableCell>
                                 <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                                  {isPending && (isExecutiveDirector || (isSuperAdmin && exceptionScope === "staff")) ? (
+                                  {isPending && isExecutiveDirector ? (
                                     <>
                                       <Button
                                         size="sm"
@@ -667,12 +664,12 @@ export default function CustodyRequests() {
                                       </Button>
                                     </>
                                   ) : (
-                                    <span className="text-[11px] text-muted-foreground">
+                                    <span className="text-[11px] text-muted-foreground font-medium">
                                       {ex.status === "approved"
                                         ? "معتمد"
                                         : ex.status === "rejected"
                                         ? "مرفوض"
-                                        : "—"}
+                                        : "بانتظار اعتماد المدير التنفيذي"}
                                     </span>
                                   )}
                                 </div>

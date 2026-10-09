@@ -243,6 +243,12 @@ const DEFAULT_TEMPLATES: Record<string, string> = {
   disbursement_order_approved_request_only: "تم الاعتماد المالي لأمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) بقيمة {القيمة} ريال",
   disbursement_order_approved_general: "تم تحويل أمر الصرف رقم \"{رقم_أمر_الصرف}\" بقيمة {القيمة} ريال إلى الاعتماد المالي",
   disbursement_order_rejected: "تم رفض أمر الصرف رقم \"{رقم_أمر_الصرف}\" للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال بسبب: {السبب}",
+  // مشغلات العهد المالية والاستثناءات
+  custody_request_created: 'قام المسؤول {اسم_المسؤول} بتقديم طلب صرف عهدة مالية جديد رقم "{رقم_الطلب}" بمبلغ {المبلغ} ريال',
+  custody_request_approved: 'تم اعتماد طلب العهدة المالية رقم "{رقم_الطلب}" بمبلغ {المبلغ} ريال من قبل المدير التنفيذي وتحويله لأمر صرف رقم "{رقم_أمر_الصرف}"',
+  custody_order_executed: 'تم تنفيذ وصرف العهدة المالية رقم "{رقم_الطلب}" (أمر صرف رقم "{رقم_أمر_الصرف}") بمبلغ {المبلغ} ريال بنجاح',
+  custody_exception_submitted: 'قام المسؤول {اسم_المسؤول} بتقديم طلب استثناء لصرف عهدة مالية جديدة لوجود عهدة سابقة قائمة برقم "{رقم_العهدة_السابقة}"',
+  custody_exception_approved: 'تمت موافقة المدير التنفيذي على طلب الاستثناء الخاص بك، يمكنك الآن تقديم طلب عهدة مالية جديدة',
   // مشغلات إشعارات المستفيد (service_requester)
   beneficiary_account_approved: "مرحباً {اسم_المستفيد}، تم اعتماد وتفعيل حسابك بنجاح في بوابة تمام. يمكنك الآن تسجيل الدخول والاستفادة من الخدمات.",
   beneficiary_account_suspended: "مرحباً {اسم_المستفيد}، نود إفادتك بأنه تم تعليق/رفض حسابك في بوابة تمام بسبب: {السبب}. يرجى مراجعة البوابة وتعديل المطلوب.",
@@ -418,6 +424,27 @@ const ALTERNATIVE_PATTERNS: Record<string, string[]> = {
     'تم الانتهاء من أعمال التنفيذ والانتقال إلى مرحلة التسليم النهائي لطلبك رقم {رقم_الطلب}.',
     'اكتملت أعمال التنفيذ في مسجدك للطلب رقم {رقم_الطلب} وجارٍ الاستلام الرسمي.',
     'اكتملت أعمال التنفيذ لطلبك رقم {رقم_الطلب}، وهو الآن في مرحلة التسليم النهائي.'
+  ],
+  custody_request_created: [
+    'قام المسؤول {اسم_المسؤول} بتقديم طلب صرف عهدة مالية جديد رقم "{رقم_الطلب}" بمبلغ {المبلغ} ريال',
+    'قام المسؤول {اسم_المسؤول} بتقديم طلب صرف عهدة مالية جديد رقم "{رقم_الطلب}" لـ "{عنوان_العهدة}" بمبلغ {المبلغ} ريال',
+    'قام الموظف ({اسم_المسؤول}) بتقديم طلب صرف عهدة مالية رقم {رقم_الطلب} بمبلغ {المبلغ} ريال. بانتظار الاعتماد.'
+  ],
+  custody_request_approved: [
+    'تم اعتماد طلب العهدة المالية رقم "{رقم_الطلب}" بمبلغ {المبلغ} ريال من قبل المدير التنفيذي وتحويله لأمر صرف رقم "{رقم_أمر_الصرف}"',
+    'تم اعتماد طلب العهدة ({رقم_الطلب}) بمبلغ {المبلغ} ريال وتحويله لأمر صرف رقم ({رقم_أمر_الصرف}) لدى الإدارة المالية.'
+  ],
+  custody_order_executed: [
+    'تم تنفيذ وصرف العهدة المالية رقم "{رقم_الطلب}" (أمر صرف رقم "{رقم_أمر_الصرف}") بمبلغ {المبلغ} ريال بنجاح',
+    'تم تنفيذ وصرف العهدة المالية رقم "{رقم_الطلب}" (أمر صرف رقم "{رقم_أمر_الصرف}") بنجاح'
+  ],
+  custody_exception_submitted: [
+    'قام المسؤول {اسم_المسؤول} بتقديم طلب استثناء لصرف عهدة مالية جديدة لوجود عهدة سابقة قائمة برقم "{رقم_العهدة_السابقة}"',
+    'قام الموظف ({اسم_المسؤول}) بطلب استثناء لتقديم عهدة جديدة رغم وجود عهدة سابقة قائمة ({رقم_العهدة_السابقة}). بانتظار المراجعة والاعتماد.'
+  ],
+  custody_exception_approved: [
+    'تمت موافقة المدير التنفيذي على طلب الاستثناء الخاص بك، يمكنك الآن تقديم طلب عهدة مالية جديدة',
+    'وافق المدير التنفيذي على طلب الاستثناء الخاص بك. يمكنك الآن تقديم طلب صرف عهدة جديدة.'
   ]
 };
 
@@ -717,7 +744,12 @@ export async function createNotification(data: {
       "disbursement_order_approved",
       "disbursement_order_approved_request_only",
       "disbursement_order_approved_general",
-      "disbursement_order_rejected"
+      "disbursement_order_rejected",
+      "custody_request_created",
+      "custody_request_approved",
+      "custody_order_executed",
+      "custody_exception_submitted",
+      "custody_exception_approved"
     ];
 
     let isInAppEnabled = false;
@@ -779,16 +811,41 @@ export async function createNotification(data: {
           )
         );
 
-      if (triggerOverrides && triggerOverrides.length > 0) {
-        const inAppOverride = triggerOverrides.find(ts => ts.channel === "in_app");
-        const emailOverride = triggerOverrides.find(ts => ts.channel === "email");
-        const whatsappOverride = triggerOverrides.find(ts => ts.channel === "whatsapp");
-        const smsOverride = triggerOverrides.find(ts => ts.channel === "sms");
+      const inAppOverride = triggerOverrides?.find(ts => ts.channel === "in_app");
+      const emailOverride = triggerOverrides?.find(ts => ts.channel === "email");
+      const whatsappOverride = triggerOverrides?.find(ts => ts.channel === "whatsapp");
+      const smsOverride = triggerOverrides?.find(ts => ts.channel === "sms");
 
-        if (inAppOverride !== undefined) isInAppEnabled = inAppOverride.enabled;
-        if (emailOverride !== undefined) isEmailEnabled = emailOverride.enabled;
-        if (whatsappOverride !== undefined) isWhatsappEnabled = whatsappOverride.enabled;
-        if (smsOverride !== undefined) isSmsEnabled = smsOverride.enabled;
+      const custodyTriggerIds = [
+        "custody_request_created",
+        "custody_request_approved",
+        "custody_order_executed",
+        "custody_exception_submitted",
+        "custody_exception_approved"
+      ];
+      const isCustodyTrigger = custodyTriggerIds.includes(triggerId);
+
+      if (inAppOverride !== undefined) {
+        isInAppEnabled = Boolean(inAppOverride.enabled);
+      } else if (isCustodyTrigger) {
+        const isExecTrigger = triggerId === "custody_request_created" || triggerId === "custody_exception_submitted";
+        const isExecRole = ["executive_director", "general_manager", "custom_role_1781420621086"].includes(user.role);
+        if (isExecTrigger) {
+          isInAppEnabled = isExecRole || isInAppEnabled;
+        } else {
+          // إشعارات اعتماد العهدة وتنفيذ الصرف وقبول الاستثناء موجهة لصاحب الطلب ومفعلة له افتراضياً
+          isInAppEnabled = true;
+        }
+      }
+
+      if (emailOverride !== undefined) {
+        isEmailEnabled = Boolean(emailOverride.enabled);
+      }
+      if (whatsappOverride !== undefined) {
+        isWhatsappEnabled = Boolean(whatsappOverride.enabled);
+      }
+      if (smsOverride !== undefined) {
+        isSmsEnabled = Boolean(smsOverride.enabled);
       }
     }
 

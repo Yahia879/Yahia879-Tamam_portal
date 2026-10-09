@@ -331,8 +331,8 @@ export default function CustodyRequestPrint() {
             </>
           )}
 
-          {/* زر مراجعة طلب الاستثناء للمدير التنفيذي أو المشرف العام إن وجد طلب استثناء معلق لهذه العهدة */}
-          {Boolean((request as any).pendingException) && (canApprove || user?.role === "super_admin") && (
+          {/* زر مراجعة طلب الاستثناء للمدير التنفيذي حصراً إن وجد طلب استثناء معلق لهذه العهدة */}
+          {Boolean((request as any).pendingException) && canApprove && (
             <Button
               size="sm"
               variant="outline"
@@ -388,12 +388,7 @@ export default function CustodyRequestPrint() {
                     <span className="font-bold text-gray-600 hidden xs:inline sm:inline">رقم الطلب:</span>
                     <span className="border-b border-dotted border-gray-400 px-1 font-mono text-gray-900 font-bold">{request.requestNumber}</span>
                   </div>
-                  {request.disbursementOrderNumber && (
-                    <div className="flex gap-1 justify-end">
-                      <span className="font-bold text-emerald-700 hidden xs:inline sm:inline">أمر الصرف:</span>
-                      <span className="border-b border-dotted border-emerald-400 px-1 font-mono text-emerald-800 font-bold">{request.disbursementOrderNumber}</span>
-                    </div>
-                  )}
+
                 </div>
               </div>
 
@@ -609,19 +604,7 @@ export default function CustodyRequestPrint() {
               </div>
             ) : null}
 
-            {request.hasException && (
-              <div className="my-1 p-2 rounded-lg bg-purple-50/80 border border-purple-300 text-[10px] text-purple-900 flex flex-wrap items-center justify-between gap-1">
-                <div className="flex items-center gap-1.5 font-bold">
-                  <ShieldCheck className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                  <span>تم تقديم وصرف هذه العهدة بناءً على استثناء معتمد من المدير التنفيذي</span>
-                </div>
-                {(request as any).exceptionDetails?.reason && (
-                  <span className="text-purple-800 font-medium truncate max-w-xs">
-                    مبررات الاستثناء: {(request as any).exceptionDetails.reason}
-                  </span>
-                )}
-              </div>
-            )}
+
 
             {/* تذييل المستند الفاخر المطابق لتقارير الجمعية */}
             <div className="mt-3 sm:mt-5 pt-2 sm:pt-2.5 border-t border-gray-100 text-center text-slate-400 text-[9px] sm:text-[10px] flex flex-col sm:flex-row justify-between items-center px-1 sm:px-2 gap-1 sm:gap-0">

@@ -23,6 +23,7 @@ import {
   projectFinancialDetails,
   receiptVouchers,
   quantitySchedules,
+  custodyRequests,
 } from "../../drizzle/schema";
 import { eq, desc, asc, count, and, sql, isNull, isNotNull, or, like, inArray, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -3873,6 +3874,35 @@ export const disbursementsRouter = router({
         } catch (e) {
           console.error("Error updating linked donation opportunity status on order execution:", e);
         }
+      }
+
+      // إشعار المسؤول بصرف العهدة في حال كان أمر الصرف مرتبطاً بعهدة مالية
+      try {
+        const [linkedCustody] = await db
+          .select({
+            id: custodyRequests.id,
+            requestNumber: custodyRequests.requestNumber,
+            userId: custodyRequests.userId,
+            amount: custodyRequests.amount,
+          })
+          .from(custodyRequests)
+          .where(eq(custodyRequests.disbursementOrderId, order.id))
+          .limit(1);
+
+        if (linkedCustody) {
+          const formattedAmount = Number(order.amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          await createNotification({
+            userId: linkedCustody.userId,
+            title: "تنفيذ صرف العهدة المالية",
+            message: `تم تنفيذ وصرف العهدة المالية رقم "${linkedCustody.requestNumber}" (أمر صرف رقم "${order.orderNumber}") بمبلغ ${formattedAmount} ريال بنجاح`,
+            type: "system",
+            relatedType: "custody_request",
+            relatedId: linkedCustody.id,
+            triggerId: "custody_order_executed",
+          }).catch(() => {});
+        }
+      } catch (err) {
+        console.warn("Failed to notify custody requester on order execution:", err);
       }
 
       return { success: true, message: "تم تنفيذ أمر الصرف بنجاح" };

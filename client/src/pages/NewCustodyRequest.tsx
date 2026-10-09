@@ -87,7 +87,7 @@ export default function NewCustodyRequest() {
   const hasApprovedException = isExecutiveDirector ? false : !!custodyCheck?.hasApprovedException;
   const hasPendingException = isExecutiveDirector ? false : !!custodyCheck?.hasPendingException;
   const hasRejectedException = isExecutiveDirector ? false : !!(custodyCheck as any)?.hasRejectedException;
-  const canSubmit = isExecutiveDirector || !hasActiveCustody || hasApprovedException;
+  const canSubmit = !isCheckingCustody && (isExecutiveDirector || (!hasActiveCustody || hasApprovedException));
 
   // نموذج الطلب
   const [title, setTitle] = useState("");
@@ -209,7 +209,7 @@ export default function NewCustodyRequest() {
 
     if (hasActiveCustody && !hasApprovedException) {
       toast.error(
-        `لا يمكن تقديم طلب جديد لوجود عهدة مالية سابقة قائمة برقم (${activeCustody?.requestNumber || ""}). يمكنكم تقديم طلب استثناء للمدير التنفيذي.`
+        "لا يمكن تقديم طلب عهدة جديد لوجود عهدة مالية سابقة يمكنكم رفع طلب استثناء لاعتماده من المدير التنفيذي"
       );
       return;
     }
@@ -256,62 +256,67 @@ export default function NewCustodyRequest() {
 
         {/* تنبيه وجود عهدة سابقة قائمة أو استثناء معتمد */}
         {hasActiveCustody && !hasApprovedException && (
-          <div className="rounded-2xl border border-amber-300 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/20 p-4 sm:p-4.5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
+          <div className="rounded-2xl border border-amber-300 dark:border-amber-800/60 bg-amber-50/80 dark:bg-amber-950/30 p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5 flex-1 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
                 <AlertTriangle className="w-5 h-5" />
               </div>
-              <div className="space-y-0.5 text-right flex-1 min-w-0">
+              <div className="space-y-1 text-right flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-xs sm:text-sm font-black text-amber-900 dark:text-amber-200">
-                    تنبيه: توجد عهدة مالية سابقة قائمة ({activeCustody?.requestNumber})
+                  <h3 className="text-sm sm:text-base font-black text-amber-900 dark:text-amber-200">
+                    لا يمكن تقديم طلب عهدة جديد لوجود عهدة مالية سابقة يمكنكم رفع طلب استثناء لاعتماده من المدير التنفيذي
                   </h3>
-                  <Badge variant="outline" className="text-[10px] font-bold border-amber-400/50 bg-amber-500/10 text-amber-800 dark:text-amber-300">
-                    عهدة قائمة
-                  </Badge>
+                  {activeCustody?.requestNumber && (
+                    <Badge variant="outline" className="text-[10px] font-bold border-amber-400/50 bg-amber-500/10 text-amber-800 dark:text-amber-300">
+                      العهدة السابقة: {activeCustody.requestNumber}
+                    </Badge>
+                  )}
                 </div>
-                <p className="text-[11px] sm:text-xs text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
-                  قيمة العهدة السابقة <span className="font-bold text-amber-950 dark:text-amber-100">{Number(activeCustody?.amount || 0).toLocaleString()} ر.س</span>. تنص اللائحة على عدم إمكانية طلب عهدة جديدة بوجود عهدة سابقة، أو يمكنكم رفع طلب استثناء لاعتماده من المدير التنفيذي (من قسم الإجراءات بالأسفل).
-                </p>
+                {activeCustody?.amount && (
+                  <p className="text-xs text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
+                    قيمة العهدة السابقة: <span className="font-bold text-amber-950 dark:text-amber-100">{Number(activeCustody.amount).toLocaleString()} ر.س</span>. للتمكن من رفع طلب عهدة جديد، يرجى تقديم طلب استثناء للمدير التنفيذي للموافقة عليه.
+                  </p>
+                )}
               </div>
             </div>
 
-            {activeCustody?.id && (
-              <Link
-                href={`/custody-requests/${activeCustody.id}/print`}
-                target="_blank"
-                className="text-xs font-bold text-amber-800 hover:text-amber-950 dark:text-amber-300 dark:hover:text-amber-100 underline flex items-center gap-1 shrink-0 mr-auto sm:mr-0"
-              >
-                <span>معاينة العهدة</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </Link>
-            )}
-          </div>
-        )}
+            <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto justify-end">
+              {activeCustody?.id && (
+                <Link
+                  href={`/custody-requests/${activeCustody.id}/print`}
+                  target="_blank"
+                  className="text-xs font-bold text-amber-800 hover:text-amber-950 dark:text-amber-300 dark:hover:text-amber-100 underline flex items-center gap-1"
+                >
+                  <span>معاينة العهدة</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </Link>
+              )}
 
-        {/* تنبيه الاستثناء المعتمد */}
-        {hasApprovedException && (
-          <div className="rounded-2xl border border-emerald-300 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/20 p-4 sm:p-4.5 shadow-xs flex items-center justify-between gap-3">
-            <div className="flex items-start sm:items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div className="space-y-0.5 text-right flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-xs sm:text-sm font-black text-emerald-900 dark:text-emerald-200">
-                    تم اعتماد استثناء صرف عهدة جديدة
-                  </h3>
-                  <Badge variant="outline" className="text-[10px] font-bold border-emerald-400/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
-                    استثناء معتمد من المدير التنفيذي
-                  </Badge>
-                </div>
-                <p className="text-[11px] sm:text-xs text-emerald-800 dark:text-emerald-300/90 leading-relaxed">
-                  وافق المدير التنفيذي على استثناء تقديم طلب عهدة جديدة رغم وجود عهدة سابقة قائمة. يمكنك الآن تعبئة وتقديم هذا الطلب وسيتم ربط الاستثناء به تلقائياً.
-                </p>
-              </div>
+              {hasPendingException ? (
+                <Badge variant="outline" className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 border-amber-300 gap-1.5 py-1.5 px-3 font-bold">
+                  <Clock className="w-3.5 h-3.5 animate-pulse" />
+                  <span>طلب الاستثناء قيد المراجعة</span>
+                </Badge>
+              ) : hasRejectedException ? (
+                <Badge variant="outline" className="bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-200 border-rose-300 gap-1 py-1.5 px-3 font-bold">
+                  تم رفض الاستثناء
+                </Badge>
+              ) : (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setIsExceptionDialogOpen(true)}
+                  className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold gap-1.5 h-9 px-3.5 cursor-pointer shadow-sm shrink-0"
+                >
+                  <ShieldAlert className="w-4 h-4" />
+                  <span>طلب استثناء</span>
+                </Button>
+              )}
             </div>
           </div>
         )}
+
+
 
 
         {/* نافذة طلب الاستثناء */}
@@ -718,41 +723,6 @@ export default function NewCustodyRequest() {
 
           {/* قسم الإجراءات */}
           <div className="space-y-3 pt-3 border-t border-border/60">
-            {/* بطاقة إجراء الاستثناء في حال وجود عهدة سابقة قائمة */}
-            {hasActiveCustody && !hasApprovedException && (
-              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-300 dark:border-amber-700/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200">
-                  <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>
-                    {hasPendingException
-                      ? "طلب الاستثناء مرفوع وقيد المراجعة لدى المدير التنفيذي حالياً."
-                      : hasRejectedException
-                      ? "تم رفض طلب الاستثناء من المدير التنفيذي لهذه العهدة، ولا يمكن تقديم طلب استثناء آخر."
-                      : "لا يمكن إرسال الطلب لوجود عهدة مالية سابقة قائمة. يمكنك تقديم طلب استثناء للمدير التنفيذي."}
-                  </span>
-                </div>
-                {hasPendingException ? (
-                  <Badge variant="outline" className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 border-amber-300 gap-1 font-bold shrink-0">
-                    <Clock className="w-3 h-3 animate-pulse" />
-                    قيد المراجعة
-                  </Badge>
-                ) : hasRejectedException ? (
-                  <Badge variant="outline" className="bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-200 border-rose-300 gap-1 font-bold shrink-0">
-                    تم رفض الاستثناء
-                  </Badge>
-                ) : (
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => setIsExceptionDialogOpen(true)}
-                    className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold gap-1.5 h-8 shrink-0 cursor-pointer shadow-xs"
-                  >
-                    <ShieldAlert className="w-3.5 h-3.5" />
-                    <span>طلب استثناء من المدير التنفيذي</span>
-                  </Button>
-                )}
-              </div>
-            )}
 
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
               <Link href="/custody-requests">
@@ -763,10 +733,11 @@ export default function NewCustodyRequest() {
 
               <Button
                 type="submit"
-                disabled={createMutation.isPending || !canSubmit}
+                disabled={createMutation.isPending || isCheckingCustody || !canSubmit}
+                title={!canSubmit ? "لا يمكن تقديم طلب عهدة جديد لوجود عهدة مالية سابقة يمكنكم رفع طلب استثناء لاعتماده من المدير التنفيذي" : undefined}
                 className={`w-full sm:w-auto font-bold h-11 px-8 rounded-xl text-xs sm:text-sm shadow-md gap-2 ${
                   !canSubmit
-                    ? "bg-muted text-muted-foreground cursor-not-allowed border border-border/80 opacity-60"
+                    ? "bg-muted text-muted-foreground cursor-not-allowed border border-border/80 opacity-50 pointer-events-none"
                     : "gradient-primary text-white cursor-pointer"
                 }`}
               >

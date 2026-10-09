@@ -9,8 +9,9 @@ import {
   disbursementRequests,
   disbursementOrders,
   signatories,
+  notificationTriggerSettings,
 } from "../../drizzle/schema";
-import { eq, desc, and, sql, like, or, ne } from "drizzle-orm";
+import { eq, desc, and, sql, like, or, ne, inArray } from "drizzle-orm";
 import { createNotification } from "./notifications";
 
 // توليد رقم تسلسلي لطلب العهدة المالية بصيغة CR-YYYY-XXXX
@@ -665,7 +666,7 @@ export const custodyRouter = router({
           if (!approvedException) {
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: `لا يمكن تقديم طلب عهدة جديد لوجود عهدة مالية سابقة قائمة برقم (${unsettledCustody.requestNumber}). يمكنكم رفع طلب استثناء لاعتماده من المدير التنفيذي.`,
+              message: "لا يمكن تقديم طلب عهدة جديد لوجود عهدة مالية سابقة يمكنكم رفع طلب استثناء لاعتماده من المدير التنفيذي",
             });
           }
 
@@ -749,30 +750,68 @@ export const custodyRouter = router({
           .where(eq(custodyExceptions.id, approvedExceptionId));
       }
 
-      // إشعار للمدير التنفيذي والمدير العام
-      try {
-        const managers = await db
-          .select({ id: users.id })
-          .from(users)
-          .where(
-            and(
-              sql`${users.role} IN ('super_admin', 'system_admin', 'general_manager', 'executive_director')`,
-              sql`${users.deletedAt} IS NULL`
-            )
-          );
+      // إشعار للمدير التنفيذي عند فتح طلب عهدة جديد من أي مسؤول غيره
+      if (!isExecutiveDirector) {
+        try {
+          const execManagers = await db
+            .select({ id: users.id, role: users.role })
+            .from(users)
+            .where(
+              and(
+                or(
+                  sql`${users.role} IN ('executive_director', 'general_manager')`,
+                  eq(users.email, "ceo@manarah.org.sa")
+                ),
+                sql`${users.deletedAt} IS NULL`
+              )
+            );
 
-        for (const m of managers) {
-          await createNotification({
-            userId: m.id,
-            title: "طلب صرف عهدة مالية جديد",
-            message: `قام الموظف (${userData?.name || ctx.user.name}) بتقديم طلب صرف عهدة مالية رقم ${requestNumber} بمبلغ ${input.amount.toLocaleString()} ريال. بانتظار الاعتماد.`,
-            type: "system",
-            relatedType: "custody_request",
-            relatedId: requestId,
-          }).catch(() => {});
+          const customSubscribedRoles = await db
+            .select({ roleId: notificationTriggerSettings.roleId })
+            .from(notificationTriggerSettings)
+            .where(
+              and(
+                eq(notificationTriggerSettings.triggerId, "custody_request_created"),
+                eq(notificationTriggerSettings.enabled, true)
+              )
+            );
+
+          const extraRoleIds = customSubscribedRoles.map(r => r.roleId);
+          let extraUsers: { id: number; role: string }[] = [];
+          if (extraRoleIds.length > 0) {
+            extraUsers = await db
+              .select({ id: users.id, role: users.role })
+              .from(users)
+              .where(
+                and(
+                  inArray(users.role, extraRoleIds as any),
+                  sql`${users.deletedAt} IS NULL`
+                )
+              );
+          }
+
+          const allRecipients = new Map<number, string>();
+          execManagers.forEach(u => allRecipients.set(u.id, u.role));
+          extraUsers.forEach(u => allRecipients.set(u.id, u.role));
+          allRecipients.delete(ctx.user.id);
+
+          const formattedAmount = Number(input.amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          const applicantName = applicantSigName || userData?.name || ctx.user.name;
+
+          for (const userId of Array.from(allRecipients.keys())) {
+            await createNotification({
+              userId,
+              title: "طلب صرف عهدة مالية جديد",
+              message: `قام المسؤول ${applicantName} بتقديم طلب صرف عهدة مالية جديد رقم "${requestNumber}" بمبلغ ${formattedAmount} ريال`,
+              type: "system",
+              relatedType: "custody_request",
+              relatedId: requestId,
+              triggerId: "custody_request_created",
+            }).catch(() => {});
+          }
+        } catch (notifyErr) {
+          console.warn("Failed to notify executive director of custody request:", notifyErr);
         }
-      } catch (notifyErr) {
-        console.warn("Failed to notify managers of custody request:", notifyErr);
       }
 
       return {
@@ -933,14 +972,16 @@ export const custodyRouter = router({
 
       // 4. إشعار مقدم الطلب والإدارة المالية
       try {
-        // إشعار الموظف
+        // إشعار المسؤول مقدم الطلب باعتماد العهدة من المدير التنفيذي
+        const formattedAmount = Number(request.amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         await createNotification({
           userId: request.userId,
-          title: "تم اعتماد طلب العهدة المالية وتوليد أمر صرف",
-          message: `تم اعتماد طلب العهدة (${request.requestNumber}) بمبلغ ${Number(request.amount).toLocaleString()} ريال وتحويله لأمر صرف رقم (${doNumber}) لدى الإدارة المالية.`,
+          title: "اعتماد طلب العهدة المالية",
+          message: `تم اعتماد طلب العهدة المالية رقم "${request.requestNumber}" بمبلغ ${formattedAmount} ريال من قبل المدير التنفيذي وتحويله لأمر صرف رقم "${doNumber}"`,
           type: "system",
           relatedType: "custody_request",
           relatedId: request.id,
+          triggerId: "custody_request_approved",
         }).catch(() => {});
 
         // إشعار الإدارة المالية
@@ -1135,6 +1176,8 @@ export const custodyRouter = router({
           .limit(1)
       : [null];
 
+    const hasActiveCustody = !!currentActiveCustody;
+
     return {
       hasActiveCustody,
       activeCustodies,
@@ -1234,30 +1277,64 @@ export const custodyRouter = router({
 
       const exceptionId = Number(insertResult.insertId);
 
-      // إشعار المدير التنفيذي
+      // إشعار المدير التنفيذي عند إرسال طلب استثناء من مسؤول
       try {
-        const managers = await db
-          .select({ id: users.id })
+        const execManagers = await db
+          .select({ id: users.id, role: users.role })
           .from(users)
           .where(
             and(
-              sql`${users.role} IN ('super_admin', 'system_admin', 'general_manager', 'executive_director')`,
+              or(
+                sql`${users.role} IN ('executive_director', 'general_manager')`,
+                eq(users.email, "ceo@manarah.org.sa")
+              ),
               sql`${users.deletedAt} IS NULL`
             )
           );
 
-        for (const m of managers) {
+        const customSubscribedRoles = await db
+          .select({ roleId: notificationTriggerSettings.roleId })
+          .from(notificationTriggerSettings)
+          .where(
+            and(
+              eq(notificationTriggerSettings.triggerId, "custody_exception_submitted"),
+              eq(notificationTriggerSettings.enabled, true)
+            )
+          );
+
+        const extraRoleIds = customSubscribedRoles.map(r => r.roleId);
+        let extraUsers: { id: number; role: string }[] = [];
+        if (extraRoleIds.length > 0) {
+          extraUsers = await db
+            .select({ id: users.id, role: users.role })
+            .from(users)
+            .where(
+              and(
+                inArray(users.role, extraRoleIds as any),
+                sql`${users.deletedAt} IS NULL`
+              )
+            );
+        }
+
+        const allRecipients = new Map<number, string>();
+        execManagers.forEach(u => allRecipients.set(u.id, u.role));
+        extraUsers.forEach(u => allRecipients.set(u.id, u.role));
+        allRecipients.delete(ctx.user.id);
+
+        const prevCustodyNum = activeCustody?.requestNumber || `#${input.activeCustodyId}`;
+        for (const userId of Array.from(allRecipients.keys())) {
           await createNotification({
-            userId: m.id,
+            userId,
             title: "طلب استثناء عهدة مالية جديدة",
-            message: `قام الموظف (${ctx.user.name}) بطلب استثناء لتقديم عهدة جديدة رغم وجود عهدة سابقة قائمة (${activeCustody?.requestNumber || `#${input.activeCustodyId}`}). بانتظار المراجعة والاعتماد.`,
+            message: `قام المسؤول ${ctx.user.name} بتقديم طلب استثناء لصرف عهدة مالية جديدة لوجود عهدة سابقة قائمة برقم "${prevCustodyNum}"`,
             type: "system",
             relatedType: "custody_request",
             relatedId: input.activeCustodyId,
+            triggerId: "custody_exception_submitted",
           }).catch(() => {});
         }
       } catch (err) {
-        console.warn("Failed to notify managers of custody exception:", err);
+        console.warn("Failed to notify executive director of custody exception:", err);
       }
 
       return {
@@ -1390,8 +1467,8 @@ export const custodyRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const { isExecutiveDirector, isSuperAdmin } = checkCustodyRoles(ctx.user);
-      if (!isExecutiveDirector && !isSuperAdmin) {
+      const { isExecutiveDirector } = checkCustodyRoles(ctx.user);
+      if (!isExecutiveDirector) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "صلاحية مراجعة طلبات الاستثناء محصورة بالمدير التنفيذي فقط",
@@ -1424,16 +1501,26 @@ export const custodyRouter = router({
       // إشعار مقدم الطلب بنتيجة الاستثناء
       try {
         const isApproved = newStatus === "approved";
-        await createNotification({
-          userId: exceptionRecord.userId,
-          title: isApproved ? "تمت الموافقة على طلب استثناء العهدة المالية" : "تم رفض طلب استثناء العهدة المالية",
-          message: isApproved
-            ? `وافق المدير التنفيذي على طلب الاستثناء الخاص بك. يمكنك الآن تقديم طلب صرف عهدة جديدة.`
-            : `نعتذر، رفض المدير التنفيذي طلب الاستثناء لصرف عهدة جديدة. ${input.notes ? `السبب: ${input.notes}` : "يرجى تصفية العهدة السابقة أولاً."}`,
-          type: "system",
-          relatedType: "custody_request",
-          relatedId: exceptionRecord.activeCustodyId,
-        }).catch(() => {});
+        if (isApproved) {
+          await createNotification({
+            userId: exceptionRecord.userId,
+            title: "الموافقة على طلب استثناء العهدة المالية",
+            message: `تمت موافقة المدير التنفيذي على طلب الاستثناء الخاص بك، يمكنك الآن تقديم طلب عهدة مالية جديدة`,
+            type: "system",
+            relatedType: "custody_request",
+            relatedId: exceptionRecord.activeCustodyId,
+            triggerId: "custody_exception_approved",
+          }).catch(() => {});
+        } else {
+          await createNotification({
+            userId: exceptionRecord.userId,
+            title: "تم رفض طلب استثناء العهدة المالية",
+            message: `نعتذر، رفض المدير التنفيذي طلب الاستثناء لصرف عهدة جديدة. ${input.notes ? `السبب: ${input.notes}` : "يرجى تصفية العهدة السابقة أولاً."}`,
+            type: "system",
+            relatedType: "custody_request",
+            relatedId: exceptionRecord.activeCustodyId,
+          }).catch(() => {});
+        }
       } catch (e) {}
 
       return {

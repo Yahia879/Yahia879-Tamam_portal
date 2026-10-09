@@ -1322,6 +1322,70 @@ export default function NotificationCustomization() {
       ]
     },
 
+    // === مشغلات العهد المالية والاستثناءات ===
+    {
+      id: "custody_request_created",
+      category: "financial",
+      nameAr: "فتح طلب عهدة مالية جديد من مسؤول",
+      description: "إشعار للمدير التنفيذي عند قيام مسؤول بتقديم طلب صرف عهدة مالية جديدة",
+      defaultTemplate: "قام المسؤول {اسم_المسؤول} بتقديم طلب صرف عهدة مالية جديد رقم \"{رقم_الطلب}\" بمبلغ {المبلغ} ريال",
+      variables: [
+        { placeholder: "{اسم_المسؤول}", nameAr: "اسم المسؤول" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{المبلغ}", nameAr: "المبلغ" },
+        { placeholder: "{عنوان_العهدة}", nameAr: "عنوان أو غرض العهدة" }
+      ]
+    },
+    {
+      id: "custody_request_approved",
+      category: "financial",
+      nameAr: "اعتماد طلب العهدة المالية من المدير التنفيذي",
+      description: "إشعار للمسؤول مقدم الطلب عند قيام المدير التنفيذي باعتماد طلب العهدة وتحويله لأمر صرف",
+      defaultTemplate: "تم اعتماد طلب العهدة المالية رقم \"{رقم_الطلب}\" بمبلغ {المبلغ} ريال من قبل المدير التنفيذي وتحويله لأمر صرف رقم \"{رقم_أمر_الصرف}\"",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{المبلغ}", nameAr: "المبلغ" },
+        { placeholder: "{رقم_أمر_الصرف}", nameAr: "رقم أمر الصرف" },
+        { placeholder: "{عنوان_العهدة}", nameAr: "عنوان العهدة" }
+      ]
+    },
+    {
+      id: "custody_order_executed",
+      category: "financial",
+      nameAr: "تنفيذ صرف العهدة المالية",
+      description: "إشعار للمسؤول بصرف العهدة عند تحويل حالة أمر الصرف المرتبط بالعهدة إلى منفذ",
+      defaultTemplate: "تم تنفيذ وصرف العهدة المالية رقم \"{رقم_الطلب}\" (أمر صرف رقم \"{رقم_أمر_الصرف}\") بمبلغ {المبلغ} ريال بنجاح",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{رقم_أمر_الصرف}", nameAr: "رقم أمر الصرف" },
+        { placeholder: "{المبلغ}", nameAr: "المبلغ" },
+        { placeholder: "{رقم_الحوالة}", nameAr: "رقم الحوالة أو المرجع" }
+      ]
+    },
+    {
+      id: "custody_exception_submitted",
+      category: "financial",
+      nameAr: "إرسال طلب استثناء عهدة مالية من مسؤول",
+      description: "إشعار للمدير التنفيذي عند قيام مسؤول برفع طلب استثناء لتقديم عهدة جديدة لوجود عهدة قائمة",
+      defaultTemplate: "قام المسؤول {اسم_المسؤول} بتقديم طلب استثناء لصرف عهدة مالية جديدة لوجود عهدة سابقة قائمة برقم \"{رقم_العهدة_السابقة}\"",
+      variables: [
+        { placeholder: "{اسم_المسؤول}", nameAr: "اسم المسؤول" },
+        { placeholder: "{رقم_العهدة_السابقة}", nameAr: "رقم العهدة السابقة" },
+        { placeholder: "{مبررات_الاستثناء}", nameAr: "مبررات الاستثناء" }
+      ]
+    },
+    {
+      id: "custody_exception_approved",
+      category: "financial",
+      nameAr: "موافقة المدير التنفيذي على طلب استثناء العهدة",
+      description: "إشعار للمسؤول عند موافقة المدير التنفيذي على طلب الاستثناء الخاص به لتمكينه من تقديم عهدة جديدة",
+      defaultTemplate: "تمت موافقة المدير التنفيذي على طلب الاستثناء الخاص بك، يمكنك الآن تقديم طلب عهدة مالية جديدة",
+      variables: [
+        { placeholder: "{اسم_المسؤول}", nameAr: "اسم المسؤول" },
+        { placeholder: "{رقم_العهدة_السابقة}", nameAr: "رقم العهدة السابقة" }
+      ]
+    },
+
     // === مشغلات برنامج سدانة والمستودع الافتراضي (ضمن قسم الطلبات والمساجد) ===
     {
       id: "sedana_inquiry_submitted",
@@ -1702,12 +1766,21 @@ export default function NotificationCustomization() {
     "{مسوغ_الصرف}": "DV-SED-001",
     "{عدد_البنود}": "4",
     "{التقييم}": "5",
+    "{المبلغ}": "5,000",
+    "{عنوان_العهدة}": "شراء أدوات صيانة طارئة",
+    "{رقم_الحوالة}": "TXN-984210",
+    "{رقم_العهدة_السابقة}": "CR-2026-0001",
+    "{مبررات_الاستثناء}": "حاجة ماسة لشراء مواد قبل تصفية العهدة السابقة",
   };
 
   const getTemplatePreview = (triggerId: string) => {
     let template = getTemplateMessage(triggerId);
     if (!template) return "";
-    Object.entries(DUMMY_SAMPLES).forEach(([placeholder, sample]) => {
+    const samples: Record<string, string> = { ...DUMMY_SAMPLES };
+    if (triggerId.startsWith("custody_")) {
+      samples["{رقم_الطلب}"] = "CR-2026-0001";
+    }
+    Object.entries(samples).forEach(([placeholder, sample]) => {
       template = template.replace(new RegExp(placeholder, 'g'), sample);
     });
     return template;
@@ -1981,12 +2054,31 @@ export default function NotificationCustomization() {
       "disbursement_order_approved",
       "disbursement_order_approved_request_only",
       "disbursement_order_approved_general",
-      "disbursement_order_rejected"
+      "disbursement_order_rejected",
+      "custody_request_created",
+      "custody_request_approved",
+      "custody_order_executed",
+      "custody_exception_submitted",
+      "custody_exception_approved"
     ];
     const isFinancial = financialTriggers.includes(triggerId);
     
     let inherited = false;
-    if (isFinancial) {
+    if (triggerId.startsWith("custody_")) {
+      if (channel === 'in_app') {
+        const isExecTrigger = triggerId === "custody_request_created" || triggerId === "custody_exception_submitted";
+        const isExecRole = ["executive_director", "general_manager", "custom_role_1781420621086"].includes(selectedTriggerRoleId);
+        if (isExecTrigger) {
+          inherited = isExecRole;
+        } else {
+          inherited = true;
+        }
+      } else {
+        if (channel === 'email') inherited = !!roleObj?.receiveFinancialEmail;
+        if (channel === 'whatsapp') inherited = !!roleObj?.receiveFinancialWhatsapp;
+        if (channel === 'sms') inherited = !!roleObj?.receiveFinancialSms;
+      }
+    } else if (isFinancial) {
       if (channel === 'in_app') inherited = !!roleObj?.receiveFinancialAndContractNotifications;
       if (channel === 'email') inherited = !!roleObj?.receiveFinancialEmail;
       if (channel === 'whatsapp') inherited = !!roleObj?.receiveFinancialWhatsapp;
@@ -2233,7 +2325,64 @@ export default function NotificationCustomization() {
                           قسم المالية والعقود
                         </TableCell>
                       </TableRow>
-                      {NOTIFICATION_TRIGGERS.filter(t => t.category === "financial").map(trig => {
+                      {NOTIFICATION_TRIGGERS.filter(t => t.category === "financial" && !t.id.startsWith("custody_")).map(trig => {
+                        const inAppState = getTriggerChannelState(trig.id, 'in_app');
+                        const emailState = getTriggerChannelState(trig.id, 'email');
+                        const whatsappState = getTriggerChannelState(trig.id, 'whatsapp');
+                        const smsState = getTriggerChannelState(trig.id, 'sms');
+
+                        return (
+                          <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
+                            <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
+                              <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
+                              {renderTruncatedPreview(trig.id)}
+                            </TableCell>
+                            <TableCell className="text-center py-3 sm:py-4">
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-7 w-7 text-teal-650 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/90 hover:text-teal-700 dark:bg-teal-950/20 dark:hover:bg-teal-950/40 border border-teal-100/30 dark:border-teal-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
+                                      onClick={() => handleOpenEditTemplateModal(trig)}
+                                      type="button"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">
+                                    <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </TableCell>
+                            <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
+                              <ChannelToggles
+                                inApp={inAppState.enabled}
+                                whatsapp={whatsappState.enabled}
+                                sms={smsState.enabled}
+                                email={emailState.enabled}
+                                onToggle={(channel, val) => handleToggleTriggerSetting(trig.id, channel, val)}
+                                inherited={{
+                                  inApp: inAppState.isInherited,
+                                  whatsapp: whatsappState.isInherited,
+                                  sms: smsState.isInherited,
+                                  email: emailState.isInherited,
+                                }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+
+                      {/* === قسم العهد المالية والاستثناءات === */}
+                      <TableRow className="bg-slate-50/50 dark:bg-slate-900/30 hover:bg-transparent">
+                        <TableCell colSpan={3} className="py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40 border-t">
+                          العهد المالية والاستثناءات
+                        </TableCell>
+                      </TableRow>
+                      {NOTIFICATION_TRIGGERS.filter(t => t.id.startsWith("custody_")).map(trig => {
                         const inAppState = getTriggerChannelState(trig.id, 'in_app');
                         const emailState = getTriggerChannelState(trig.id, 'email');
                         const whatsappState = getTriggerChannelState(trig.id, 'whatsapp');
