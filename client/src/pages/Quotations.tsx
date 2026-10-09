@@ -343,7 +343,11 @@ export function QuotationsView({
     return displayedRequestsList.find((r: any) => r.id.toString() === selectedRequestId);
   }, [singleRequestData, displayedRequestsList, selectedRequestId]);
 
-  const isSedanaProgram = currentSelectedRequest?.programType === 'sedana';
+  const isSedanaProgram = 
+    currentSelectedRequest?.programType === 'sedana' ||
+    Boolean(currentSelectedRequest?.isSedana) ||
+    Boolean(currentSelectedRequest?.parsedProgramData?.isSedana) ||
+    (typeof window !== "undefined" && window.location.pathname.includes("sedana-quotations"));
 
   // الطلب تجاوز مرحلة التقييم المالي واعتماد العرض (مثل التعاقد/اعتماد نوع التوريد، التنفيذ، إلخ)
   const isPastFinancialEval = useMemo(() => {
@@ -2003,7 +2007,7 @@ export function QuotationsView({
             <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <ClipboardList className="h-5 w-5" />
+                  <ClipboardList className={cn("h-5 w-5", isSedanaProgram && "text-cyan-600")} />
                   {isSedanaProgram ? "جدول الكميات ومقارنة عروض أسعار الموردين (سدانة)" : "جدول الكميات للطلب"}
                 </CardTitle>
                 <CardDescription>
@@ -2019,16 +2023,16 @@ export function QuotationsView({
                       onClick={() => setShowExportPdfModal(true)}
                       size="sm"
                       variant="outline"
-                      className="border-sky-600 text-sky-700 hover:bg-sky-50 hover:text-sky-800 font-bold text-xs h-8 px-3 gap-1.5 shadow-xs transition-colors"
+                      className="border-cyan-600 text-cyan-700 hover:bg-cyan-50 hover:text-cyan-800 dark:border-cyan-500 dark:text-cyan-300 dark:hover:bg-cyan-950/40 font-bold text-xs h-8 px-3 gap-1.5 shadow-xs transition-colors"
                     >
-                      <FileDown className="h-3.5 w-3.5 text-sky-600" />
+                      <FileDown className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
                       تصدير ملف PDF للبنود
                     </Button>
                     {!isSuppliersReadOnly && (
                       <Button
                         onClick={() => setShowAddDialog(true)}
                         size="sm"
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-3 gap-1 shadow-xs"
+                        className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs h-8 px-3 gap-1 shadow-xs"
                       >
                         <Plus className="h-3.5 w-3.5" />
                         إضافة عرض سعر
@@ -2077,7 +2081,7 @@ export function QuotationsView({
                     {/* 1. لوحة المؤشرات التنفيذية للترسية */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {/* بطاقة نسبة اكتمال الترسية */}
-                      <div className="p-3.5 rounded-xl border bg-card text-card-foreground shadow-xs">
+                      <div className="p-3.5 rounded-xl border border-cyan-100 dark:border-cyan-900/40 bg-card text-card-foreground shadow-xs">
                         <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
                           <span className="font-semibold">اكتمال الترسية</span>
                           <span className="font-bold text-foreground">{assignedItemsCount} من {totalBoqItemsCount} بند</span>
@@ -2087,7 +2091,7 @@ export function QuotationsView({
                             <div 
                               className={cn(
                                 "h-full transition-all duration-500 rounded-full",
-                                awardProgressPercentage === 100 ? "bg-emerald-600" : "bg-amber-500"
+                                awardProgressPercentage === 100 ? "bg-cyan-600" : "bg-amber-500"
                               )}
                               style={{ width: `${awardProgressPercentage}%` }}
                             />
@@ -2102,12 +2106,12 @@ export function QuotationsView({
                       </div>
 
                       {/* بطاقة إجمالي تكلفة الترسية */}
-                      <div className="p-3.5 rounded-xl border bg-card text-card-foreground shadow-xs">
+                      <div className="p-3.5 rounded-xl border border-cyan-100 dark:border-cyan-900/40 bg-card text-card-foreground shadow-xs">
                         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                           <span className="font-semibold">إجمالي التكلفة المعتمدة</span>
-                          <Receipt className="h-4 w-4 text-primary" />
+                          <Receipt className="h-4 w-4 text-cyan-600" />
                         </div>
-                        <div className="text-lg font-extrabold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 my-1">
+                        <div className="text-lg font-extrabold text-cyan-700 dark:text-cyan-400 flex items-center gap-1 my-1">
                           <span>{totalSelectedItemsCost.toLocaleString("ar-SA")}</span>
                           <SaudiRiyal className="w-4 h-4 inline" />
                         </div>
@@ -2117,10 +2121,10 @@ export function QuotationsView({
                       </div>
 
                       {/* بطاقة الموردين المعتمدين */}
-                      <div className="p-3.5 rounded-xl border bg-card text-card-foreground shadow-xs">
+                      <div className="p-3.5 rounded-xl border border-cyan-100 dark:border-cyan-900/40 bg-card text-card-foreground shadow-xs">
                         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                           <span className="font-semibold">الموردين المعتمدين</span>
-                          <Store className="h-4 w-4 text-blue-600" />
+                          <Store className="h-4 w-4 text-cyan-600" />
                         </div>
                         <div className="text-lg font-extrabold text-foreground flex items-center gap-1.5 my-1">
                           <span>{winningVendorsCount}</span>
@@ -2136,10 +2140,10 @@ export function QuotationsView({
 
                     {/* 2. توزيع الترسية على الموردين المشاركين مع إجراءات الترسية الفورية */}
                     {participatingVendors.length > 0 && (
-                      <div className="p-4 bg-slate-50/80 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <div className="p-4 bg-cyan-50/30 dark:bg-cyan-950/20 rounded-xl border border-cyan-200/70 dark:border-cyan-900/40">
                         <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
                           <div className="flex items-center gap-2">
-                            <Store className="h-4 w-4 text-primary" />
+                            <Store className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
                             <h4 className="text-xs font-bold text-foreground">توزيع الترسية على الموردين المشاركين ({participatingVendors.length})</h4>
                           </div>
                           <span className="text-[11px] text-muted-foreground">يمكنك ترسية كافة بنود مورد محدد بنقرة واحدة أو إلغاء ترسيته</span>
@@ -2155,9 +2159,9 @@ export function QuotationsView({
                                 className={cn(
                                   "p-3 rounded-lg border transition-all duration-200 flex flex-col justify-between gap-2.5",
                                   isFullyAwarded 
-                                    ? "bg-emerald-50/80 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800/80 shadow-2xs" 
+                                    ? "bg-cyan-50/90 dark:bg-cyan-950/40 border-cyan-300 dark:border-cyan-700 shadow-2xs ring-1 ring-cyan-400/30" 
                                     : isPartiallyAwarded
-                                      ? "bg-blue-50/60 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/40"
+                                      ? "bg-cyan-50/40 dark:bg-cyan-950/20 border-cyan-200 dark:border-cyan-900/40"
                                       : "bg-background border-border"
                                 )}
                               >
@@ -2175,7 +2179,7 @@ export function QuotationsView({
                                     className={cn(
                                       "text-[10px] py-0 px-2 font-bold shrink-0",
                                       vendor.awardedCount > 0 
-                                        ? "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 border-emerald-300" 
+                                        ? "bg-cyan-100 dark:bg-cyan-900/60 text-cyan-800 dark:text-cyan-200 border-cyan-300 dark:border-cyan-800" 
                                         : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                                     )}
                                   >
@@ -2186,7 +2190,7 @@ export function QuotationsView({
                                 <div className="flex items-center justify-between text-xs pt-1 border-t border-border/60">
                                   <div>
                                     <span className="text-[10px] text-muted-foreground block">مبلغ الترسية:</span>
-                                    <span className="font-extrabold text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-0.5">
+                                    <span className="font-extrabold text-cyan-700 dark:text-cyan-400 inline-flex items-center gap-0.5">
                                       {vendor.awardedTotal.toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3 inline" />
                                     </span>
                                   </div>
@@ -2197,7 +2201,7 @@ export function QuotationsView({
                                            size="sm"
                                            variant="outline"
                                            onClick={() => handleAwardAllForVendor(vendor.quotationId)}
-                                           className="h-7 text-[11px] px-2.5 bg-background border-emerald-600/40 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 hover:border-emerald-500"
+                                           className="h-7 text-[11px] px-2.5 bg-background border-cyan-600/40 text-cyan-700 hover:bg-cyan-50 dark:text-cyan-300 dark:hover:bg-cyan-950/40 hover:border-cyan-500"
                                            title="ترسية جميع البنود التي قدم فيها هذا المورد عرضاً"
                                          >
                                            ترسية كل بنوده ({vendor.offeredCount})
@@ -2267,7 +2271,10 @@ export function QuotationsView({
                             size="sm"
                             variant={sedanaViewMode === "matrix" ? "default" : "ghost"}
                             onClick={() => setSedanaViewMode("matrix")}
-                            className="h-7 px-2.5 text-xs gap-1 rounded-md"
+                            className={cn(
+                              "h-7 px-2.5 text-xs gap-1 rounded-md",
+                              sedanaViewMode === "matrix" && "bg-cyan-600 hover:bg-cyan-700 text-white shadow-2xs"
+                            )}
                             title="عرض مصفوفة المقارنة الشاملة للموردين"
                           >
                             <LayoutGrid className="h-3.5 w-3.5" />
@@ -2277,7 +2284,10 @@ export function QuotationsView({
                             size="sm"
                             variant={sedanaViewMode === "table" ? "default" : "ghost"}
                             onClick={() => setSedanaViewMode("table")}
-                            className="h-7 px-2.5 text-xs gap-1 rounded-md"
+                            className={cn(
+                              "h-7 px-2.5 text-xs gap-1 rounded-md",
+                              sedanaViewMode === "table" && "bg-cyan-600 hover:bg-cyan-700 text-white shadow-2xs"
+                            )}
                             title="عرض الجدول التفصيلي للبنود"
                           >
                             <ListFilter className="h-3.5 w-3.5" />
@@ -2321,12 +2331,12 @@ export function QuotationsView({
                                     </div>
                                     <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1.5">
                                       <span>إجمالي: {vendor.totalAmount.toLocaleString("ar-SA")} ر.س</span>
-                                      <span className="text-emerald-700 dark:text-emerald-400 font-bold">({vendor.awardedCount} معتمد)</span>
+                                      <span className="text-cyan-700 dark:text-cyan-400 font-bold">({vendor.awardedCount} معتمد)</span>
                                     </div>
                                   </TableHead>
                                 ))}
 
-                                <TableHead className="text-center font-bold min-w-[190px] bg-emerald-500/5 border-r border-emerald-500/20">
+                                <TableHead className="text-center font-bold min-w-[190px] bg-cyan-500/10 dark:bg-cyan-950/30 border-r border-cyan-500/20 text-cyan-950 dark:text-cyan-200">
                                   المورد المعتمد حالياً
                                 </TableHead>
                               </TableRow>
@@ -2356,7 +2366,7 @@ export function QuotationsView({
                                         </div>
                                       )}
                                       {item.category && (
-                                        <Badge variant="outline" className="text-[9px] py-0 px-1.5 mt-1 bg-slate-100 dark:bg-slate-800">
+                                        <Badge variant="outline" className="text-[9px] py-0 px-1.5 mt-1 bg-cyan-50/60 dark:bg-cyan-950/40 text-cyan-800 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800">
                                           {item.category}
                                         </Badge>
                                       )}
@@ -2395,22 +2405,22 @@ export function QuotationsView({
                                                 "p-2 rounded-lg border text-center transition-all duration-150 select-none group",
                                                 isSuppliersReadOnly ? "cursor-default" : "cursor-pointer",
                                                 isSelected
-                                                  ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 ring-2 ring-emerald-500/80 shadow-2xs"
+                                                  ? "bg-cyan-50 dark:bg-cyan-950/40 border-cyan-500 ring-2 ring-cyan-500/80 shadow-2xs"
                                                   : isLowest
-                                                    ? "bg-emerald-50/40 dark:bg-emerald-950/15 border-emerald-300 dark:border-emerald-800/60 hover:border-emerald-400 hover:shadow-2xs"
+                                                    ? "bg-sky-50/50 dark:bg-sky-950/20 border-sky-300 dark:border-sky-800/60 hover:border-sky-400 hover:shadow-2xs"
                                                     : "bg-background border-border hover:border-slate-400 dark:hover:border-slate-600"
                                               )}
                                               title={isSuppliersReadOnly ? (isSelected ? "المورد المعتمد لهذا البند" : "") : (isSelected ? "انقر لإلغاء الترسية" : "انقر لاختيار هذا المورد لهذا البند")}
                                             >
                                               <div className="flex items-center justify-between gap-1 mb-1">
                                                 {isLowest ? (
-                                                  <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white text-[9px] py-0 px-1.5 h-4 gap-0.5 font-bold">
+                                                  <Badge className="bg-sky-600 hover:bg-sky-600 text-white text-[9px] py-0 px-1.5 h-4 gap-0.5 font-bold">
                                                     <Sparkles className="w-2.5 h-2.5" />
                                                     الأقل
                                                   </Badge>
                                                 ) : <span />}
                                                 {isSelected ? (
-                                                  <Badge className="bg-emerald-700 hover:bg-emerald-700 text-white text-[9px] py-0 px-1.5 h-4 gap-0.5 font-bold">
+                                                  <Badge className="bg-cyan-600 hover:bg-cyan-600 text-white text-[9px] py-0 px-1.5 h-4 gap-0.5 font-bold">
                                                     <Check className="w-2.5 h-2.5" />
                                                     معتمد
                                                   </Badge>
@@ -2438,11 +2448,11 @@ export function QuotationsView({
                                     })}
 
                                     {/* خانة المورد المعتمد حالياً */}
-                                    <TableCell className="p-2 align-middle text-center bg-emerald-500/5 border-r border-emerald-500/20">
+                                    <TableCell className="p-2 align-middle text-center bg-cyan-500/5 dark:bg-cyan-950/20 border-r border-cyan-500/20">
                                       {currentWinningOffer ? (
-                                        <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 shadow-2xs text-right relative group">
+                                        <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-cyan-200 dark:border-cyan-800 shadow-2xs text-right relative group">
                                           <div className="flex items-center justify-between gap-1">
-                                            <span className="font-bold text-xs text-emerald-800 dark:text-emerald-200 truncate" title={currentWinningOffer.quotation.supplierName}>
+                                            <span className="font-bold text-xs text-cyan-800 dark:text-cyan-200 truncate" title={currentWinningOffer.quotation.supplierName}>
                                               {currentWinningOffer.quotation.supplierName || "المورد المعتمد"}
                                             </span>
                                             {!isSuppliersReadOnly && (
@@ -2465,7 +2475,7 @@ export function QuotationsView({
                                             <span className="text-[10px] text-muted-foreground font-normal">سعر الوحدة:</span>
                                             <span>{currentWinningOffer.unitPrice.toLocaleString("ar-SA")} ر.س</span>
                                           </div>
-                                          <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-extrabold flex items-center justify-between mt-0.5">
+                                          <div className="text-[11px] text-cyan-700 dark:text-cyan-400 font-extrabold flex items-center justify-between mt-0.5">
                                             <span className="text-[10px] text-muted-foreground font-normal">الإجمالي:</span>
                                             <span>{currentWinningOffer.totalPrice.toLocaleString("ar-SA")} ر.س</span>
                                           </div>
@@ -2581,12 +2591,12 @@ export function QuotationsView({
                                                     <div className="flex items-center gap-1.5 truncate">
                                                       <span>{quotation.supplierName || "مورد"}</span>
                                                       {isMin && (
-                                                        <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100 dark:bg-emerald-950/80 px-1 rounded">
+                                                        <span className="text-[9px] font-bold text-cyan-700 bg-cyan-100 dark:bg-cyan-950/80 dark:text-cyan-300 px-1 rounded">
                                                           الأقل سعراً
                                                         </span>
                                                       )}
                                                     </div>
-                                                    <span className="font-bold text-emerald-700 dark:text-emerald-400 mr-2 shrink-0">
+                                                    <span className="font-bold text-cyan-700 dark:text-cyan-400 mr-2 shrink-0">
                                                       {unitPrice.toLocaleString("ar-SA")} ر.س/وحدة
                                                     </span>
                                                   </div>
@@ -2606,7 +2616,7 @@ export function QuotationsView({
                                                 [item.id]: lowestOffer.quotation.id
                                               }));
                                             }}
-                                            className="text-[10px] text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                                            className="text-[10px] text-cyan-700 hover:text-cyan-800 dark:text-cyan-400 font-bold flex items-center gap-1 hover:underline cursor-pointer"
                                           >
                                             <Sparkles className="w-3 h-3" />
                                             اختيار الأقل سعراً: {lowestOffer.quotation.supplierName} ({lowestOffer.unitPrice.toLocaleString("ar-SA")} ر.س)
@@ -2620,14 +2630,14 @@ export function QuotationsView({
 
                                   <TableCell className="text-center font-bold text-xs">
                                     {displayUnitPrice !== null ? (
-                                      <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
+                                      <span className="inline-flex items-center gap-1 text-cyan-700 dark:text-cyan-400">
                                         {displayUnitPrice.toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3" />
                                       </span>
                                     ) : "-"}
                                   </TableCell>
                                   <TableCell className="text-center font-bold text-xs">
                                     {displayTotalPrice !== null ? (
-                                      <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
+                                      <span className="inline-flex items-center gap-1 text-cyan-700 dark:text-cyan-400">
                                         {displayTotalPrice.toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3" />
                                       </span>
                                     ) : "-"}
@@ -2638,7 +2648,7 @@ export function QuotationsView({
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                          className="h-7 w-7 text-cyan-600 hover:text-cyan-700 hover:bg-cyan-50"
                                           title="تعديل البند"
                                           onClick={() => {
                                             setEditingBoqItem(item);
@@ -2671,13 +2681,13 @@ export function QuotationsView({
                     <div className="p-4 bg-muted/40 dark:bg-slate-900/90 rounded-xl border border-border mt-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm" dir="rtl">
                       <div>
                         <h4 className="font-bold text-sm flex items-center gap-2 text-foreground">
-                          <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" />
+                          <CheckCircle2 className="h-4.5 w-4.5 text-cyan-600 dark:text-cyan-400" />
                           اعتماد وترسية عروض الأسعار متعددة الموردين
                         </h4>
                         <div className="flex items-center gap-2 mt-1 flex-wrap text-xs text-muted-foreground">
                           <span>تم تحديد موردين لـ <strong className="text-foreground font-extrabold">{assignedItemsCount}</strong> من أصل <strong className="text-foreground">{totalBoqItemsCount}</strong> بند.</span>
                           {winningVendorsCount > 0 && (
-                            <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold px-2 py-0.5 rounded text-[11px]">
+                            <span className="bg-cyan-100 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-300 font-bold px-2 py-0.5 rounded text-[11px]">
                               موزعة على {winningVendorsCount} موردين معتمدين
                             </span>
                           )}
@@ -2687,7 +2697,7 @@ export function QuotationsView({
                       <div className="flex items-center gap-5 w-full md:w-auto justify-between md:justify-end">
                         <div className="text-right">
                           <span className="text-[11px] text-muted-foreground block">إجمالي مبالغ الترسية:</span>
-                          <span className="text-lg font-extrabold text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-1">
+                          <span className="text-lg font-extrabold text-cyan-700 dark:text-cyan-400 inline-flex items-center gap-1">
                             {totalSelectedItemsCost.toLocaleString("ar-SA")} <SaudiRiyal className="w-4 h-4 inline" />
                           </span>
                         </div>
@@ -2696,7 +2706,7 @@ export function QuotationsView({
                           <Button
                             onClick={handleApproveItemSelections}
                             disabled={approveSedanaMultiVendorMutation.isPending || assignedItemsCount === 0}
-                            className="font-bold text-xs h-10 px-5 shadow-sm transition-all bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                            className="font-bold text-xs h-10 px-5 shadow-sm transition-all bg-cyan-600 hover:bg-cyan-700 text-white cursor-pointer"
                           >
                             {approveSedanaMultiVendorMutation.isPending ? (
                               <>
@@ -2976,7 +2986,7 @@ export function QuotationsView({
                                     {isSedanaProgram && Array.isArray(quotation.items) && quotation.items.length > 0 && (
                                       <div className="flex flex-wrap gap-1 max-w-[250px] pt-0.5">
                                         {quotation.items.map((it: any, idx: number) => (
-                                          <Badge key={idx} variant="outline" className="text-[10px] bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 font-medium">
+                                          <Badge key={idx} variant="outline" className="text-[10px] bg-cyan-50 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800 font-medium">
                                             {it.itemName || it.name}
                                           </Badge>
                                         ))}
