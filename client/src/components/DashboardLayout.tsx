@@ -405,7 +405,16 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     if (has("*") || has("sedana_quotations") || has("sedana_quotations.view")) {
       inventoryItems.push({ icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" });
     }
-    if (role === "financial" || has("orders_and_letters") || has("orders_and_letters.view") || ["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector) {
+    if (
+      role === "financial" ||
+      has("orders_and_letters") ||
+      has("orders_and_letters.view") ||
+      has("orders_and_letters.disbursement_orders") ||
+      has("orders_and_letters.csr_letters") ||
+      has("orders_and_letters.purchase_orders") ||
+      ["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) ||
+      isExecDirector
+    ) {
       inventoryItems.push({ icon: ShoppingBag, label: isEn ? "Sedana Finance" : "مالية سدانة", path: "/orders-and-letters" });
     }
     if (["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector || has("purchase_orders") || has("purchase_orders.view")) {
