@@ -561,25 +561,23 @@ export default function NewSedanaInwardOrderPage() {
 
         </div>
 
-        {/* القسم الأول: اختيار مستند التوريد والاعتماد (أمر شراء معتمد أم خطاب مجتمعي معتمد أم بدون مرجع يدوي) */}
+        {/* القسم الأول: اختيار مستند التوريد والاعتماد */}
         <Card className="border-border/80 shadow-xs rounded-xl overflow-hidden bg-white dark:bg-slate-900">
           <CardHeader className="bg-muted/30 border-b border-border/50 py-3.5 px-5 text-right">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
                 <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
                   <Coins className="w-4 h-4 text-emerald-600" />
-                  <span>مستند التوريد والاعتماد (المصدر المعتمد وسقف الكميات)</span>
+                  <span>مستند التوريد والاعتماد</span>
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">
-                  {sourceCategory === "manual"
-                    ? "إدخال مباشر بدون اشتراط ربط بأمر صرف أو خطاب مجتمعي؛ يتيح إضافة وتحديد الأصناف بحرية"
-                    : "حدد نوع ومستند التوريد المعتمد؛ كميات المستند تمثل الحد الأقصى (الماكسيموم) المسموح بإدخاله"}
+                  حدد مستند التوريد المعتمد أو اختر بدون مرجع للإدخال المباشر
                 </CardDescription>
               </div>
 
               {sourceCategory === "purchase_order" && disbursementOrders.length > 0 && (
                 <Badge variant="outline" className="text-xs bg-muted/60 self-start sm:self-auto text-emerald-700 dark:text-emerald-400 border-emerald-300 font-bold">
-                  {disbursementOrders.length === 1 ? "أمر صرف منفّذ واحد مسجل" : `${disbursementOrders.length} أوامر صرف منفّذة مسجلة`}
+                  {disbursementOrders.length === 1 ? "أمر صرف منفّذ واحد" : `${disbursementOrders.length} أوامر صرف منفّذة`}
                 </Badge>
               )}
               {sourceCategory === "csr_letter" && approvedCsrLetters.length > 0 && (
@@ -587,15 +585,10 @@ export default function NewSedanaInwardOrderPage() {
                   {approvedCsrLetters.length === 1 ? "خطاب مجتمعي معتمد واحد" : `${approvedCsrLetters.length} خطابات مجتمعية معتمدة`}
                 </Badge>
               )}
-              {sourceCategory === "manual" && (
-                <Badge variant="outline" className="text-xs bg-muted/60 self-start sm:self-auto text-blue-700 dark:text-blue-400 border-blue-300 font-bold">
-                  إدخال مباشر بدون مرجع إلزامي
-                </Badge>
-              )}
             </div>
           </CardHeader>
-          <CardContent className="p-5 space-y-5 text-right" dir="rtl">
-            {/* 1. قائمة اختيار نوع المستند (أمر صرف منفذ أم خطاب مسؤولية مجتمعية منفذ أم بدون مرجع) */}
+          <CardContent className="p-5 space-y-4 text-right" dir="rtl">
+            {/* 1. قائمة اختيار نوع المستند */}
             <div className="space-y-2">
               <Label className="text-xs font-bold text-foreground">
                 نوع مستند الإدخال المعتمد:
@@ -623,7 +616,7 @@ export default function NewSedanaInwardOrderPage() {
               </div>
             </div>
 
-            {/* 2. اختيار المستند المحدد أو بيانات الإدخال المباشر */}
+            {/* 2. اختيار المستند المحدد عند الارتباط بأمر صرف أو خطاب مجتمعي */}
             {sourceCategory === "purchase_order" ? (
               <div className="space-y-2 pt-2 border-t border-border/50">
                 <Label className="text-xs font-bold text-foreground">
@@ -740,100 +733,12 @@ export default function NewSedanaInwardOrderPage() {
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="space-y-4 pt-2 border-t border-border/50">
-                <div className="p-3.5 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/70 dark:bg-blue-950/30 text-xs flex items-start gap-2.5">
-                  <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                  <div className="flex-1 space-y-1">
-                    <p className="font-bold text-blue-950 dark:text-blue-200">
-                      إدخال يدوي مباشر للمستودع الافتراضي (بدون مرجع إلزامي)
-                    </p>
-                    <p className="text-blue-900/80 dark:text-blue-300/80 leading-relaxed">
-                      يمكنك إضافة وتحديد الأصناف والكميات بحرية تامة في الجدول أدناه دون اشتراط الربط بأمر صرف منفّذ أو خطاب مجتمعي معتمد. الحقول أدناه اختيارية لتوثيق المصدر وتفاصيل التوريد.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-                  <div>
-                    <Label className="text-[11px] font-bold text-foreground mb-1 block">
-                      اسم المورد / الجهة الموردة (اختياري):
-                    </Label>
-                    <Input
-                      value={inwardSupplierName}
-                      onChange={(e) => setInwardSupplierName(e.target.value)}
-                      placeholder="مثال: توريد مباشر، اسم المورد..."
-                      className="h-9 text-xs bg-background"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-[11px] font-bold text-foreground mb-1 block">
-                      رقم الفاتورة أو إشعار التوريد (اختياري):
-                    </Label>
-                    <Input
-                      value={inwardSupplierInvoice}
-                      onChange={(e) => setInwardSupplierInvoice(e.target.value)}
-                      placeholder="مثال: INV-1002..."
-                      className="h-9 text-xs bg-background font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-[11px] font-bold text-foreground mb-1 block">
-                      مرجع أمر الإدخال (اختياري):
-                    </Label>
-                    <Input
-                      value={inwardRefNumber}
-                      onChange={(e) => setInwardRefNumber(e.target.value)}
-                      placeholder="إدخال يدوي مباشر"
-                      className="h-9 text-xs bg-background font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-[11px] font-bold text-foreground mb-1 block">
-                      تاريخ التوريد:
-                    </Label>
-                    <Input
-                      type="date"
-                      value={inwardDate}
-                      onChange={(e) => setInwardDate(e.target.value)}
-                      className="h-9 text-xs bg-background font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-[11px] font-bold text-foreground mb-1 block">
-                      اسم المستلم / أمين المستودع:
-                    </Label>
-                    <Input
-                      value={inwardReceivedBy}
-                      onChange={(e) => setInwardReceivedBy(e.target.value)}
-                      placeholder="اسم المستلم"
-                      className="h-9 text-xs bg-background"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-[11px] font-bold text-foreground mb-1 block">
-                      ملاحظات أو بيان الإدخال (اختياري):
-                    </Label>
-                    <Input
-                      value={inwardNotes}
-                      onChange={(e) => setInwardNotes(e.target.value)}
-                      placeholder="أي تفاصيل أو ملاحظات..."
-                      className="h-9 text-xs bg-background"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
+            ) : null}
           </CardContent>
         </Card>
 
 
-        {/* القسم الثاني: جدول الأصناف والكميات (يظهر بعد تحديد المستند أو في وضع الإدخال اليدوي المباشر) */}
+        {/* القسم الثاني: جدول الأصناف والكميات */}
         {isDocReady && (
           <Card className="border-border/80 shadow-xs rounded-xl overflow-hidden bg-white dark:bg-slate-900">
             <CardHeader className="bg-muted/30 border-b border-border/50 py-3.5 px-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-right">
@@ -844,49 +749,24 @@ export default function NewSedanaInwardOrderPage() {
                     {sourceCategory === "purchase_order"
                       ? `أصناف وكميات أمر الصرف المنفّذ (${activeDisb?.orderNumber})`
                       : sourceCategory === "csr_letter"
-                      ? `أصناف وكميات خطاب المسؤولية المجتمعية المنفّذ (${activeCsr?.letterNumber})`
-                      : "أصناف وكميات الإدخال المستودعي المباشر"}
+                      ? `أصناف وكميات خطاب المسؤولية المجتمعية (${activeCsr?.letterNumber})`
+                      : "أصناف وكميات أمر الإدخال"}
                   </span>
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">
                   {sourceCategory === "purchase_order"
                     ? "أصناف وكميات أمر الصرف المنفّذ المحددة للإدخال المستودعي"
                     : sourceCategory === "csr_letter"
-                    ? "أصناف وكميات خطاب المسؤولية المجتمعية المنفّذ المحددة للإدخال المستودعي"
-                    : "أضف وحدد الأصناف والكميات المراد إدخالها إلى المستودع الافتراضي بحرية"}
+                    ? "أصناف وكميات خطاب المسؤولية المجتمعية المحددة للإدخال المستودعي"
+                    : "إدخال وتحديد البنود والكميات المراد توريدها للمستودع"}
                 </CardDescription>
               </div>
-
-              {(sourceCategory === "csr_letter" || sourceCategory === "manual") && (
-                <div className="flex items-center gap-2 self-start sm:self-auto">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddNewRow}
-                    className="gap-1.5 h-8 text-xs font-semibold text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>إضافة صنف</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowAddCustom(true)}
-                    className="gap-1.5 h-8 text-xs font-semibold text-primary hover:bg-primary/10 border-primary/30 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>إضافة بند مخصص</span>
-                  </Button>
-                </div>
-              )}
             </CardHeader>
             <CardContent className="p-0 text-right" dir="rtl">
-              {/* نموذج إضافة بند مخصص سريع - مطابق تماماً لصفحة طلب سدانة */}
+              {/* نموذج إضافة بند مخصص سريع */}
               {showAddCustom && (sourceCategory === "csr_letter" || sourceCategory === "manual") && (
                 <div className="p-3.5 m-4 rounded-lg bg-muted/20 border border-primary/30 space-y-3 animate-in fade-in duration-150">
-                  <p className="text-xs font-bold text-foreground">إضافة صنف مخصص لسلة التوريد</p>
+                  <p className="text-xs font-bold text-foreground">إضافة بند مخصص</p>
                   <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 text-xs">
                     <div className="sm:col-span-3">
                       <Label className="text-[11px] mb-1 block text-muted-foreground">اسم الصنف *</Label>
@@ -924,11 +804,11 @@ export default function NewSedanaInwardOrderPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowAddCustom(false)}
-                      className="h-7 text-xs"
+                      className="h-7 text-xs cursor-pointer"
                     >
                       إلغاء
                     </Button>
-                    <Button type="button" size="sm" onClick={handleAddCustom} className="h-7 text-xs">
+                    <Button type="button" size="sm" onClick={handleAddCustom} className="h-7 text-xs cursor-pointer">
                       إضافة للجدول
                     </Button>
                   </div>
@@ -940,11 +820,14 @@ export default function NewSedanaInwardOrderPage() {
                   <TableHeader className="bg-muted/40">
                     <TableRow className="border-b border-border/60 hover:bg-transparent">
                       <TableHead className="w-12 text-center font-bold">#</TableHead>
-                      <TableHead className="min-w-[200px] font-bold text-foreground">الصنف والوصف</TableHead>
-                      <TableHead className="w-32 text-center font-bold text-foreground">
-                        {sourceCategory === "manual" ? "الحد الأقصى" : "الكمية المعتمدة"}
-                      </TableHead>
-                      <TableHead className="w-36 text-center font-bold text-primary">الكمية</TableHead>
+                      <TableHead className="min-w-[200px] font-bold text-foreground">الصنف</TableHead>
+                      {sourceCategory !== "manual" && (
+                        <TableHead className="w-32 text-center font-bold text-foreground">الكمية المعتمدة</TableHead>
+                      )}
+                      <TableHead className="w-32 text-center font-bold text-primary">الكمية</TableHead>
+                      {sourceCategory === "manual" && (
+                        <TableHead className="w-24 text-center font-bold text-foreground">الوحدة</TableHead>
+                      )}
                       {sourceCategory !== "purchase_order" && (
                         <TableHead className="w-14 text-center font-bold text-muted-foreground">إجراء</TableHead>
                       )}
@@ -953,44 +836,10 @@ export default function NewSedanaInwardOrderPage() {
                   <TableBody>
                     {displayItems.length === 0 && extraCsrItems.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={sourceCategory !== "purchase_order" ? 5 : 4} className="h-32 text-center text-muted-foreground text-xs py-6">
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <Package className="w-8 h-8 text-muted-foreground/40" />
-                            <p className="font-semibold text-foreground">
-                              {sourceCategory === "manual"
-                                ? "لم يتم إضافة أي أصناف بعد في أمر الإدخال المباشر"
-                                : "لا توجد أصناف مسجلة في هذا المستند"}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground">
-                              {sourceCategory === "manual"
-                                ? "يمكنك إضافة أصناف من سلة وتصنيفات المسجد أو إدراج أصناف مخصصة بالكميات المطلوبة"
-                                : "يرجى اختيار مستند يحتوي على أصناف معتمدة للمتابعة"}
-                            </p>
-                            {sourceCategory === "manual" && (
-                              <div className="flex items-center gap-2 mt-2">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={handleAddNewRow}
-                                  className="gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
-                                >
-                                  <Plus className="w-3.5 h-3.5" />
-                                  <span>إضافة صنف من السلة</span>
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setShowAddCustom(true)}
-                                  className="gap-1.5 text-xs text-primary border-primary/30 hover:bg-primary/10 cursor-pointer"
-                                >
-                                  <Plus className="w-3.5 h-3.5" />
-                                  <span>إضافة بند مخصص</span>
-                                </Button>
-                              </div>
-                            )}
-                          </div>
+                        <TableCell colSpan={sourceCategory === "manual" ? 5 : sourceCategory === "csr_letter" ? 5 : 4} className="h-24 text-center text-muted-foreground text-xs">
+                          {sourceCategory === "manual"
+                            ? "لم يتم إضافة أي بنود بعد. اضغط على «إضافة بند جديد» أو «إضافة بند مخصص» أدناه للبدء."
+                            : "لا توجد أصناف مسجلة في هذا المستند"}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -1113,14 +962,16 @@ export default function NewSedanaInwardOrderPage() {
                               )}
                             </TableCell>
 
-                            {/* الكمية المعتمدة */}
-                            <TableCell className="text-center font-mono text-xs text-muted-foreground">
-                              —
-                            </TableCell>
+                            {/* الكمية المعتمدة (فقط إذا لم يكن يدوي) */}
+                            {sourceCategory !== "manual" && (
+                              <TableCell className="text-center font-mono text-xs text-muted-foreground">
+                                —
+                              </TableCell>
+                            )}
 
-                            {/* خانة الكمية والوحدة */}
+                            {/* خانة الكمية */}
                             <TableCell className="text-center">
-                              <div className="flex items-center justify-center gap-1.5 max-w-[140px] mx-auto">
+                              {sourceCategory === "manual" ? (
                                 <Input
                                   type="number"
                                   min={0.01}
@@ -1132,23 +983,57 @@ export default function NewSedanaInwardOrderPage() {
                                       quantity: isNaN(val) ? 0 : Math.max(0, val),
                                     });
                                   }}
-                                  className="h-8 text-center font-mono font-bold text-xs rounded-lg text-foreground bg-background border-border focus:ring-emerald-500 w-16"
+                                  className="h-8 text-center font-mono font-bold text-xs rounded-lg text-foreground bg-background border-border focus:ring-emerald-500 w-24 mx-auto"
                                 />
+                              ) : (
+                                <div className="flex items-center justify-center gap-1.5 max-w-[140px] mx-auto">
+                                  <Input
+                                    type="number"
+                                    min={0.01}
+                                    step="any"
+                                    value={extraItem.quantity}
+                                    onChange={(e) => {
+                                      const val = parseFloat(e.target.value);
+                                      handleUpdateExtraItem(extraItem.id, {
+                                        quantity: isNaN(val) ? 0 : Math.max(0, val),
+                                      });
+                                    }}
+                                    className="h-8 text-center font-mono font-bold text-xs rounded-lg text-foreground bg-background border-border focus:ring-emerald-500 w-16"
+                                  />
+                                  {extraItem.isCustom ? (
+                                    <Input
+                                      value={extraItem.unit}
+                                      onChange={(e) => handleUpdateExtraItem(extraItem.id, { unit: e.target.value })}
+                                      className="h-8 w-14 text-center text-[11px] bg-background border-border px-1"
+                                      placeholder="الوحدة"
+                                      title="تعديل وحدة القياس"
+                                    />
+                                  ) : (
+                                    <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                                      {extraItem.unit}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </TableCell>
+
+                            {/* خانة الوحدة (فقط عند الإدخال اليدوي) */}
+                            {sourceCategory === "manual" && (
+                              <TableCell className="text-center">
                                 {extraItem.isCustom ? (
                                   <Input
                                     value={extraItem.unit}
                                     onChange={(e) => handleUpdateExtraItem(extraItem.id, { unit: e.target.value })}
-                                    className="h-8 w-14 text-center text-[11px] bg-background border-border px-1"
+                                    className="h-8 w-20 text-center text-xs bg-background border-border mx-auto"
                                     placeholder="الوحدة"
-                                    title="تعديل وحدة القياس"
                                   />
                                 ) : (
-                                  <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                                  <span className="text-xs text-muted-foreground font-medium">
                                     {extraItem.unit}
                                   </span>
                                 )}
-                              </div>
-                            </TableCell>
+                              </TableCell>
+                            )}
 
                             {/* إجراء الحذف */}
                             <TableCell className="text-center">
@@ -1171,54 +1056,42 @@ export default function NewSedanaInwardOrderPage() {
                 </Table>
               </div>
 
-              {/* أزرار إضافة بند جديد أسفل الجدول عند اختيار خطاب مسؤولية مجتمعية أو إدخال يدوي */}
+              {/* أزرار إضافة بند جديد وبند مخصص في مكان واحد أسفل الجدول */}
               {(sourceCategory === "csr_letter" || sourceCategory === "manual") && (
-                <div className="flex items-center justify-between p-3 border-t border-border/40 bg-muted/10">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAddNewRow}
-                      className="h-8 text-xs font-medium gap-1.5 text-emerald-700 border-emerald-500/40 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/40 cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>إضافة بند جديد</span>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowAddCustom(true)}
-                      className="h-8 text-xs font-medium gap-1.5 text-primary hover:bg-primary/10 border-primary/30 cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>إضافة بند مخصص</span>
-                    </Button>
-                  </div>
+                <div className="flex items-center gap-2 p-3 border-t border-border/40 bg-muted/10">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddNewRow}
+                    className="h-8 text-xs font-medium gap-1.5 text-cyan-700 border-cyan-500/40 hover:bg-cyan-50 dark:text-cyan-300 dark:hover:bg-cyan-950/40 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>إضافة بند جديد</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAddCustom(true)}
+                    className="h-8 text-xs font-medium gap-1.5 text-primary border-primary/30 hover:bg-primary/10 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>إضافة بند مخصص</span>
+                  </Button>
                 </div>
               )}
 
               {/* شريط ملخص الكميات */}
-              <div className="p-4 bg-muted/20 border-t border-border/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+              <div className="p-3 bg-muted/20 border-t border-border/60 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-4 flex-wrap">
                   <span className="text-muted-foreground">
-                    الأصناف المشمولة بالإدخال: <strong className="font-mono text-foreground font-bold">{totalItemsToInwardCount}</strong> صنف
+                    الأصناف: <strong className="font-mono text-foreground font-bold">{totalItemsToInwardCount}</strong> صنف
                   </span>
                   <span>•</span>
                   <span className="text-muted-foreground">
-                    إجمالي الوحدات الموردة في هذا الأمر: <strong className="font-mono text-emerald-700 dark:text-emerald-400 font-bold">{totalUnitsToInward}</strong> وحدة
+                    إجمالي الكميات: <strong className="font-mono text-emerald-700 dark:text-emerald-400 font-bold">{totalUnitsToInward}</strong> وحدة
                   </span>
-                </div>
-
-                <div className="text-muted-foreground text-[11px]">
-                  {sourceCategory === "purchase_order" && activeDisb ? (
-                    <>أمر الصرف: <strong className="font-mono text-foreground">{activeDisb.orderNumber}</strong> ({activeDisb.referenceNumber || activeDisb.referenceType})</>
-                  ) : sourceCategory === "csr_letter" && activeCsr ? (
-                    <>خطاب المسؤولية المجتمعية: <strong className="font-mono text-foreground">{activeCsr.letterNumber}</strong> ({activeCsr.recipientName})</>
-                  ) : (
-                    <>نوع الإدخال: <strong className="text-foreground">إدخال يدوي مباشر</strong> {inwardSupplierName ? `(المورد: ${inwardSupplierName})` : ""}</>
-                  )}
                 </div>
               </div>
             </CardContent>
