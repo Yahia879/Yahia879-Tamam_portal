@@ -158,10 +158,28 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/financial-approval": ["financial_approval.view", "financial_approval.approve", "financial_approval"],
   "/boq-preparations": ["quotations", "requests.view_details", "requests.view", "boq", "boq.add", "boq.edit", "boq.delete"],
 
-  // ── العقود وأوامر الشراء والمسؤولية المجتمعية والمراجعة الموحدة ──
-  "/orders-and-letters": ["orders_and_letters.view", "orders_and_letters"],
-  "/financial-officer": ["orders_and_letters.view", "orders_and_letters"],
-  "/financial-tasks": ["orders_and_letters.view", "orders_and_letters"],
+  // ── مالية سدانة (أوامر الشراء والخطاب المجتمعي وأوامر الصرف) ──
+  "/orders-and-letters": [
+    "orders_and_letters.disbursement_orders",
+    "orders_and_letters.csr_letters",
+    "orders_and_letters.purchase_orders",
+    "orders_and_letters.view",
+    "orders_and_letters",
+  ],
+  "/financial-officer": [
+    "orders_and_letters.disbursement_orders",
+    "orders_and_letters.csr_letters",
+    "orders_and_letters.purchase_orders",
+    "orders_and_letters.view",
+    "orders_and_letters",
+  ],
+  "/financial-tasks": [
+    "orders_and_letters.disbursement_orders",
+    "orders_and_letters.csr_letters",
+    "orders_and_letters.purchase_orders",
+    "orders_and_letters.view",
+    "orders_and_letters",
+  ],
   "/contracts": "contracts",
   "/contracts/new": "contracts",
   "/purchase-orders": ["purchase_orders.view", "purchase_orders"],
@@ -261,8 +279,17 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   pattern: RegExp;
   permission: string | string[];
 }> = [
-  // أوامر الشراء والخطاب المجتمعي والمراجعة الموحدة
-  { pattern: /^\/orders-and-letters\/[^/]+$/, permission: ["orders_and_letters.view", "orders_and_letters"] },
+  // مالية سدانة (أوامر الشراء والخطاب المجتمعي وأوامر الصرف)
+  {
+    pattern: /^\/orders-and-letters\/[^/]+$/,
+    permission: [
+      "orders_and_letters.disbursement_orders",
+      "orders_and_letters.csr_letters",
+      "orders_and_letters.purchase_orders",
+      "orders_and_letters.view",
+      "orders_and_letters",
+    ],
+  },
 
   // تخصيص نماذج الخدمات والتسجيل
   { pattern: /^\/forms-customization\/services\/[^/]+$/, permission: "forms_customization.services" },
@@ -447,7 +474,7 @@ export function hasRouteAccess(
   userPermissions: string[],
   hasCustomRole: boolean,
 ): boolean {
-  // مسار أوامر الشراء والخطاب المجتمعي متاح افتراضياً حصراً للإدارة المالية (حتى مدراء النظام ليس لهم وصول تلقائي إلا إذا مُنحوا الصلاحية صراحةً)
+  // مسار مالية سدانة متاح افتراضياً للإدارة المالية أو لمن يملك إحدى صلاحيات مالية سدانة
   const isOrdersAndLettersRoute =
     pathname === "/orders-and-letters" ||
     pathname.startsWith("/orders-and-letters/") ||
@@ -455,7 +482,13 @@ export function hasRouteAccess(
     pathname === "/financial-tasks";
   if (isOrdersAndLettersRoute) {
     if (userRole === "financial") return true;
-    return userPermissions.includes("orders_and_letters") || userPermissions.includes("orders_and_letters.view");
+    return (
+      userPermissions.includes("orders_and_letters") ||
+      userPermissions.includes("orders_and_letters.view") ||
+      userPermissions.includes("orders_and_letters.disbursement_orders") ||
+      userPermissions.includes("orders_and_letters.csr_letters") ||
+      userPermissions.includes("orders_and_letters.purchase_orders")
+    );
   }
 
   // السماح للإدارة المالية بمعاينة وطباعة خطابات المسؤولية المجتمعية وأوامر الشراء
