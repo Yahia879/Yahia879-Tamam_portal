@@ -305,6 +305,25 @@ export const sedanaExecutionRouter = router({
           if (orderDate && (!firstInwardDateMap[it.id] || orderDate < firstInwardDateMap[it.id])) {
             firstInwardDateMap[it.id] = orderDate;
           }
+
+          // دمج أي صنف إضافي مورد في baseItems إن لم يكن موجوداً
+          const exists = baseItems.some((b) => String(b.id) === String(it.id));
+          if (!exists) {
+            baseItems.push({
+              id: String(it.id),
+              name: it.itemName || it.name || "صنف إضافي",
+              description: it.description || "صنف مضاف عبر أمر إدخال مستودعي",
+              quantity: Number(it.quantity || 0),
+              unit: it.unit || "وحدة",
+              category: it.category || "مسؤولية مجتمعية وأصناف إضافية",
+              frequency: "شهري",
+              period: "شهري",
+              cycleQuantity: Number(it.quantity || 1),
+              monthlyLimit: null,
+              periodLimits: null,
+              allocationMethod: inOrder.referenceType || "csr_letter",
+            });
+          }
         });
       });
 
@@ -449,8 +468,8 @@ export const sedanaExecutionRouter = router({
       });
 
       const inventoryItems = baseItems.map((it) => {
-        const approvedQty = it.quantity;
         const totalInward = inwardMap[it.id] || 0;
+        const approvedQty = Math.max(Number(it.quantity || 0), totalInward);
         const totalOutbound = outboundMap[it.id] || 0;
         const totalDelivered = deliveredMap[it.id] || 0;
         const pendingConfirmationQty = pendingConfirmationMap[it.id] || 0;
@@ -663,7 +682,7 @@ export const sedanaExecutionRouter = router({
       const enrichedPurchaseOrders = rawPoList.map((p) => {
         const disb = enrichedDisbOrders.find(d => 
           (d.referenceType === "purchase_order" && d.referenceNumber === p.orderNumber) ||
-          d.purchaseOrderNumber === p.orderNumber ||
+          (d as any).purchaseOrderNumber === p.orderNumber ||
           d.orderNumber === p.disbursementOrderNumber
         ) || disbByPo.get(p.orderNumber);
 
@@ -704,10 +723,10 @@ export const sedanaExecutionRouter = router({
           };
         });
 
-        const totalUnits = resolvedItems.reduce((s, i) => s + i.maxDisbursedQty, 0);
-        const totalInwardUnits = resolvedItems.reduce((s, i) => s + i.alreadyInwardQty, 0);
-        const totalRemainingUnits = resolvedItems.reduce((s, i) => s + i.remainingAllowedQty, 0);
-        const isFullyInwarded = resolvedItems.length > 0 && resolvedItems.every(i => i.remainingAllowedQty <= 0);
+        const totalUnits = resolvedItems.reduce((s: number, i: any) => s + i.maxDisbursedQty, 0);
+        const totalInwardUnits = resolvedItems.reduce((s: number, i: any) => s + i.alreadyInwardQty, 0);
+        const totalRemainingUnits = resolvedItems.reduce((s: number, i: any) => s + i.remainingAllowedQty, 0);
+        const isFullyInwarded = resolvedItems.length > 0 && resolvedItems.every((i: any) => i.remainingAllowedQty <= 0);
 
         let canCreateInward = !isFullyInwarded && resolvedItems.length > 0;
         let blockedReason: string | null = null;
@@ -785,10 +804,10 @@ export const sedanaExecutionRouter = router({
           };
         });
 
-        const totalUnits = resolvedItems.reduce((s, i) => s + i.maxDisbursedQty, 0);
-        const totalInwardUnits = resolvedItems.reduce((s, i) => s + i.alreadyInwardQty, 0);
-        const totalRemainingUnits = resolvedItems.reduce((s, i) => s + i.remainingAllowedQty, 0);
-        const isFullyInwarded = resolvedItems.length > 0 && resolvedItems.every(i => i.remainingAllowedQty <= 0);
+        const totalUnits = resolvedItems.reduce((s: number, i: any) => s + i.maxDisbursedQty, 0);
+        const totalInwardUnits = resolvedItems.reduce((s: number, i: any) => s + i.alreadyInwardQty, 0);
+        const totalRemainingUnits = resolvedItems.reduce((s: number, i: any) => s + i.remainingAllowedQty, 0);
+        const isFullyInwarded = resolvedItems.length > 0 && resolvedItems.every((i: any) => i.remainingAllowedQty <= 0);
 
         let blockedReason: string | null = null;
         if (isFullyInwarded) {
@@ -807,8 +826,8 @@ export const sedanaExecutionRouter = router({
           totalInwardUnits,
           totalRemainingUnits,
           isFullyInwarded,
-          canCreateInward: !isFullyInwarded && resolvedItems.length > 0,
-          blockedReason,
+          canCreateInward: c.status === "approved",
+          blockedReason: c.status !== "approved" ? "خطاب المسؤولية المجتمعية بانتظار اعتماد المدير التنفيذي." : null,
         };
       });
 
@@ -868,13 +887,11 @@ export const sedanaExecutionRouter = router({
         const csrNum = activeCSR?.letterNumber || enrichedCsrLetters[0]?.letterNumber || `CSR-${req.id}-${new Date().getFullYear()}`;
         const matchingCsr = enrichedCsrLetters.find(c => c.letterNumber === csrNum);
         const isApproved = activeCSR?.status === "approved" || matchingCsr?.status === "approved";
-        const canCreateInward = !!matchingCsr?.canCreateInward;
+        const canCreateInward = isApproved;
 
         let blockedReason: string | null = null;
         if (!isApproved) {
           blockedReason = "لا يمكن عمل أمر إدخال؛ خطاب المسؤولية المجتمعية بانتظار اعتماد المدير التنفيذي.";
-        } else if (matchingCsr?.isFullyInwarded) {
-          blockedReason = matchingCsr.blockedReason;
         }
 
         availableReferences.push({
@@ -1294,50 +1311,6 @@ export const sedanaExecutionRouter = router({
             code: "PRECONDITION_FAILED",
             message: `لا يمكن إصدار أمر إدخال؛ خطاب المسؤولية المجتمعية (${input.referenceNumber}) لم يتم اعتماده بعد من المدير التنفيذي.`,
           });
-        }
-
-        // حساب ما تم إدخاله مسبقاً لهذا الخطاب المجتمعي
-        const alreadyInwardForThisCsr: Record<string, number> = {};
-        (pData.sedanaExecution.inwardOrders || []).forEach((inOrder: any) => {
-          const isSameCsr = (inOrder.referenceType === "csr_letter" && inOrder.referenceNumber === matchedCsr.letterNumber) ||
-                            (inOrder.referenceNumber === matchedCsr.letterNumber);
-          if (isSameCsr) {
-            (inOrder.items || []).forEach((it: any) => {
-              const k = String(it.id);
-              alreadyInwardForThisCsr[k] = (alreadyInwardForThisCsr[k] || 0) + Number(it.quantity || 0);
-              if (it.itemName) {
-                alreadyInwardForThisCsr[`name:${it.itemName.trim().toLowerCase()}`] = 
-                  (alreadyInwardForThisCsr[`name:${it.itemName.trim().toLowerCase()}`] || 0) + Number(it.quantity || 0);
-              }
-            });
-          }
-        });
-
-        // التحقق من الكميات مقارنة بخطاب المسؤولية المجتمعية
-        const csrItems: any[] = Array.isArray(matchedCsr.items) && matchedCsr.items.length > 0 
-          ? matchedCsr.items 
-          : (pData.basketItems || []);
-
-        for (const inputItem of input.items) {
-          const target = csrItems.find((ci: any) => 
-            String(ci.id) === String(inputItem.id) ||
-            (ci.itemName && ci.itemName.trim().toLowerCase() === inputItem.itemName.trim().toLowerCase()) ||
-            (ci.name && ci.name.trim().toLowerCase() === inputItem.itemName.trim().toLowerCase())
-          );
-
-          if (target) {
-            const maxCsrQty = Number(target.quantity || target.approvedQty || 0);
-            const prevInward = alreadyInwardForThisCsr[String(inputItem.id)] || 
-                               alreadyInwardForThisCsr[`name:${inputItem.itemName.trim().toLowerCase()}`] || 0;
-            const remainingAllowed = Math.max(0, maxCsrQty - prevInward);
-
-            if (inputItem.quantity > remainingAllowed + 0.0001) {
-              throw new TRPCError({
-                code: "BAD_REQUEST",
-                message: `الكمية المدخلة للصنف (${inputItem.itemName}) وقدرها ${inputItem.quantity} تتجاوز الحد الأقصى المتبقي من خطاب المسؤولية المجتمعية ${matchedCsr.letterNumber}. (المحدد بالخطاب: ${maxCsrQty}، المدخل سابقاً: ${prevInward}، الحد الأقصى المتاح للإدخال الآن: ${remainingAllowed} ${inputItem.unit})`,
-              });
-            }
-          }
         }
       } else if (input.referenceType === "purchase_order") {
         // =========================================================================
