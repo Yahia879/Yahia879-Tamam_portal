@@ -45,11 +45,12 @@ import {
 } from "lucide-react";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
 export default function OrdersAndLettersReview() {
-  useDocumentTitle("أوامر الشراء والخطاب المجتمعي");
+  useDocumentTitle("مالية سدانة");
 
   const routeParams = useParams<{ requestId?: string }>();
   const [, navigate] = useLocation();
@@ -59,13 +60,38 @@ export default function OrdersAndLettersReview() {
   const isSuperAdmin =
     user?.role === "super_admin" ||
     user?.role === "system_admin" ||
-    user?.role === "admin";
+    (user?.role as string | undefined) === "admin";
+
+  // الصلاحيات الدقيقة الثلاث لقسم مالية سدانة
+  const canDisbursementOrders =
+    isSuperAdmin ||
+    usePermission("orders_and_letters.disbursement_orders") ||
+    usePermission("orders_and_letters.view") ||
+    usePermission("orders_and_letters");
+
+  const canCsrLetters =
+    isSuperAdmin ||
+    usePermission("orders_and_letters.csr_letters") ||
+    usePermission("orders_and_letters.view") ||
+    usePermission("orders_and_letters");
+
+  const canPurchaseOrders =
+    isSuperAdmin ||
+    usePermission("orders_and_letters.purchase_orders") ||
+    usePermission("orders_and_letters.view") ||
+    usePermission("orders_and_letters");
+
+  const hasAnyFinancialPermission =
+    isSuperAdmin ||
+    canDisbursementOrders ||
+    canCsrLetters ||
+    canPurchaseOrders;
 
   const isFinancialOfficer =
     isSuperAdmin ||
     user?.role === "financial" ||
-    user?.role === "financial_manager" ||
-    user?.role === "accountant" ||
+    (user?.role as string | undefined) === "financial_manager" ||
+    (user?.role as string | undefined) === "accountant" ||
     user?.email?.toLowerCase().trim() === "solayani@manarah.org.sa" ||
     (user as any)?.customRole?.nameAr?.includes("مالي") ||
     (user as any)?.customRole?.name?.toLowerCase().includes("financial");
@@ -85,9 +111,14 @@ export default function OrdersAndLettersReview() {
 
   const initialTab = () => {
     const tab = getUrlParams().get("tab");
-    if (tab === "csr_letters" || tab === "csr") return "csr_letters";
-    if (tab === "disbursement_orders" || tab === "disbursements" || tab === "disbursement") return "disbursement_orders";
-    return "purchase_orders";
+    if ((tab === "csr_letters" || tab === "csr") && canCsrLetters) return "csr_letters";
+    if ((tab === "disbursement_orders" || tab === "disbursements" || tab === "disbursement") && canDisbursementOrders) return "disbursement_orders";
+    if (tab === "purchase_orders" && canPurchaseOrders) return "purchase_orders";
+
+    if (canDisbursementOrders) return "disbursement_orders";
+    if (canCsrLetters) return "csr_letters";
+    if (canPurchaseOrders) return "purchase_orders";
+    return "disbursement_orders";
   };
 
   const initialReqId = routeParams.requestId || getUrlParams().get("requestId") || "";
@@ -118,7 +149,21 @@ export default function OrdersAndLettersReview() {
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [routeParams.requestId]);
+  }, [routeParams.requestId, canCsrLetters, canDisbursementOrders, canPurchaseOrders]);
+
+  // التحقق التلقائي من توافق التبويب النشط مع صلاحيات المستخدم
+  useEffect(() => {
+    if (activeTab === "disbursement_orders" && !canDisbursementOrders) {
+      if (canCsrLetters) setActiveTab("csr_letters");
+      else if (canPurchaseOrders) setActiveTab("purchase_orders");
+    } else if (activeTab === "csr_letters" && !canCsrLetters) {
+      if (canDisbursementOrders) setActiveTab("disbursement_orders");
+      else if (canPurchaseOrders) setActiveTab("purchase_orders");
+    } else if (activeTab === "purchase_orders" && !canPurchaseOrders) {
+      if (canDisbursementOrders) setActiveTab("disbursement_orders");
+      else if (canCsrLetters) setActiveTab("csr_letters");
+    }
+  }, [activeTab, canDisbursementOrders, canCsrLetters, canPurchaseOrders]);
 
   // تحديث الرابط عند تغيير التبويب أو الطلب
   const updateUrl = (tab: string, reqId: string) => {
@@ -451,6 +496,24 @@ export default function OrdersAndLettersReview() {
 
 
 
+  if (!hasAnyFinancialPermission) {
+    return (
+      <DashboardLayout>
+        <div className="p-8 text-center" dir="rtl">
+          <Card className="max-w-md mx-auto p-8 space-y-3">
+            <Lock className="w-10 h-10 text-muted-foreground mx-auto" />
+            <h2 className="text-base font-bold text-foreground">لا تملك صلاحية الوصول إلى مالية سدانة</h2>
+            <p className="text-xs text-muted-foreground">
+              يرجى مراجعة مسؤول النظام لمنحك إحدى صلاحيات مالية سدانة (أوامر الصرف، الخطاب المجتمعي، أوامر الشراء).
+            </p>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  const visibleTabsCount = (canPurchaseOrders ? 1 : 0) + (canCsrLetters ? 1 : 0) + (canDisbursementOrders ? 1 : 0);
+
   return (
     <DashboardLayout>
       <div className="space-y-5 text-right font-sans" dir="rtl">
@@ -509,83 +572,91 @@ export default function OrdersAndLettersReview() {
               {/* تبويبات التنقل العلوية الـ 3 الخاصة بالطلب مع إغلاق التبويب غير المخصص */}
               <div className="pt-2 border-t border-border/60">
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                  <TabsList className="bg-muted/70 p-1 rounded-lg border border-border/80 h-auto grid grid-cols-3 gap-1.5 w-full sm:w-auto sm:inline-grid">
-                    {/* تبويب أوامر الشراء */}
-                    <TabsTrigger
-                      value="purchase_orders"
-                      disabled={!activeSelectedRequest?.hasPurchaseOrderAllocation}
-                      className={`font-bold text-xs sm:text-sm px-4 py-1.5 gap-2 rounded-md transition-all ${
-                        !activeSelectedRequest?.hasPurchaseOrderAllocation
-                          ? "opacity-40 cursor-not-allowed text-muted-foreground hover:text-muted-foreground"
-                          : "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs"
-                      }`}
-                    >
-                      <ShoppingCart className="w-4 h-4 text-sky-600" />
-                      <span>أوامر الشراء</span>
-                      {!activeSelectedRequest?.hasPurchaseOrderAllocation ? (
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] px-1.5 py-0 h-4 border-dashed text-muted-foreground gap-1 inline-flex items-center"
-                        >
-                          <Lock className="w-2.5 h-2.5" />
-                          <span>مغلق</span>
-                        </Badge>
-                      ) : activeSelectedRequest?.purchaseOrdersCount > 0 ? (
-                        <Badge
-                          variant="secondary"
-                          className="text-[11px] px-1.5 py-0 h-4 bg-sky-100 dark:bg-sky-900/60 text-sky-800 dark:text-sky-200 mr-1"
-                        >
-                          {activeSelectedRequest.purchaseOrdersCount}
-                        </Badge>
-                      ) : null}
-                    </TabsTrigger>
+                  <TabsList className={`bg-muted/70 p-1 rounded-lg border border-border/80 h-auto grid gap-1.5 w-full sm:w-auto sm:inline-grid ${
+                    visibleTabsCount === 3 ? "grid-cols-3" : visibleTabsCount === 2 ? "grid-cols-2" : "grid-cols-1"
+                  }`}>
+                    {/* تبويب أوامر الصرف */}
+                    {canDisbursementOrders && (
+                      <TabsTrigger
+                        value="disbursement_orders"
+                        className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-bold text-xs sm:text-sm px-4 py-1.5 gap-2 rounded-md transition-all"
+                      >
+                        <Coins className="w-4 h-4 text-amber-600" />
+                        <span>أوامر الصرف</span>
+                        {linkedDisbursementOrders.length > 0 && (
+                          <Badge
+                            variant="secondary"
+                            className="text-[11px] px-1.5 py-0 h-4 bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 mr-1"
+                          >
+                            {linkedDisbursementOrders.length}
+                          </Badge>
+                        )}
+                      </TabsTrigger>
+                    )}
 
                     {/* تبويب الخطاب المجتمعي */}
-                    <TabsTrigger
-                      value="csr_letters"
-                      disabled={!activeSelectedRequest?.hasCsrLetterAllocation}
-                      className={`font-bold text-xs sm:text-sm px-4 py-1.5 gap-2 rounded-md transition-all ${
-                        !activeSelectedRequest?.hasCsrLetterAllocation
-                          ? "opacity-40 cursor-not-allowed text-muted-foreground hover:text-muted-foreground"
-                          : "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs"
-                      }`}
-                    >
-                      <HeartHandshake className="w-4 h-4 text-emerald-600" />
-                      <span>الخطاب المجتمعي</span>
-                      {!activeSelectedRequest?.hasCsrLetterAllocation ? (
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] px-1.5 py-0 h-4 border-dashed text-muted-foreground gap-1 inline-flex items-center"
-                        >
-                          <Lock className="w-2.5 h-2.5" />
-                          <span>مغلق</span>
-                        </Badge>
-                      ) : activeSelectedRequest?.csrLettersCount > 0 ? (
-                        <Badge
-                          variant="secondary"
-                          className="text-[11px] px-1.5 py-0 h-4 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 mr-1"
-                        >
-                          {activeSelectedRequest.csrLettersCount}
-                        </Badge>
-                      ) : null}
-                    </TabsTrigger>
+                    {canCsrLetters && (
+                      <TabsTrigger
+                        value="csr_letters"
+                        disabled={!activeSelectedRequest?.hasCsrLetterAllocation}
+                        className={`font-bold text-xs sm:text-sm px-4 py-1.5 gap-2 rounded-md transition-all ${
+                          !activeSelectedRequest?.hasCsrLetterAllocation
+                            ? "opacity-40 cursor-not-allowed text-muted-foreground hover:text-muted-foreground"
+                            : "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs"
+                        }`}
+                      >
+                        <HeartHandshake className="w-4 h-4 text-emerald-600" />
+                        <span>الخطاب المجتمعي</span>
+                        {!activeSelectedRequest?.hasCsrLetterAllocation ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] px-1.5 py-0 h-4 border-dashed text-muted-foreground gap-1 inline-flex items-center"
+                          >
+                            <Lock className="w-2.5 h-2.5" />
+                            <span>مغلق</span>
+                          </Badge>
+                        ) : activeSelectedRequest?.csrLettersCount > 0 ? (
+                          <Badge
+                            variant="secondary"
+                            className="text-[11px] px-1.5 py-0 h-4 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 mr-1"
+                          >
+                            {activeSelectedRequest.csrLettersCount}
+                          </Badge>
+                        ) : null}
+                      </TabsTrigger>
+                    )}
 
-                    {/* تبويب أوامر الصرف */}
-                    <TabsTrigger
-                      value="disbursement_orders"
-                      className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-bold text-xs sm:text-sm px-4 py-1.5 gap-2 rounded-md transition-all"
-                    >
-                      <Coins className="w-4 h-4 text-amber-600" />
-                      <span>أوامر الصرف</span>
-                      {linkedDisbursementOrders.length > 0 && (
-                        <Badge
-                          variant="secondary"
-                          className="text-[11px] px-1.5 py-0 h-4 bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 mr-1"
-                        >
-                          {linkedDisbursementOrders.length}
-                        </Badge>
-                      )}
-                    </TabsTrigger>
+                    {/* تبويب أوامر الشراء */}
+                    {canPurchaseOrders && (
+                      <TabsTrigger
+                        value="purchase_orders"
+                        disabled={!activeSelectedRequest?.hasPurchaseOrderAllocation}
+                        className={`font-bold text-xs sm:text-sm px-4 py-1.5 gap-2 rounded-md transition-all ${
+                          !activeSelectedRequest?.hasPurchaseOrderAllocation
+                            ? "opacity-40 cursor-not-allowed text-muted-foreground hover:text-muted-foreground"
+                            : "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs"
+                        }`}
+                      >
+                        <ShoppingCart className="w-4 h-4 text-sky-600" />
+                        <span>أوامر الشراء</span>
+                        {!activeSelectedRequest?.hasPurchaseOrderAllocation ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] px-1.5 py-0 h-4 border-dashed text-muted-foreground gap-1 inline-flex items-center"
+                          >
+                            <Lock className="w-2.5 h-2.5" />
+                            <span>مغلق</span>
+                          </Badge>
+                        ) : activeSelectedRequest?.purchaseOrdersCount > 0 ? (
+                          <Badge
+                            variant="secondary"
+                            className="text-[11px] px-1.5 py-0 h-4 bg-sky-100 dark:bg-sky-900/60 text-sky-800 dark:text-sky-200 mr-1"
+                          >
+                            {activeSelectedRequest.purchaseOrdersCount}
+                          </Badge>
+                        ) : null}
+                      </TabsTrigger>
+                    )}
                   </TabsList>
                 </Tabs>
               </div>
@@ -680,17 +751,17 @@ export default function OrdersAndLettersReview() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
-                      طلبات برنامج سدانة
+                      مالية سدانة
                     </h1>
                     <Badge
                       variant="outline"
                       className="text-xs font-bold px-2.5 py-0.5 border-primary/30 text-primary bg-primary/5"
                     >
-                      أوامر الشراء والصرف والخطاب المجتمعي
+                      أوامر الصرف والخطاب المجتمعي وأوامر الشراء
                     </Badge>
                   </div>
                   <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                    طلبات سدانة في مرحلة التشغيل والتنفيذ لإدارة أوامر الشراء وأوامر الصرف والخطابات المجتمعية
+                    إدارة ومراجعة المعاملات المالية لبرنامج سدانة (أوامر الصرف، خطابات المسؤولية المجتمعية، وأوامر الشراء)
                   </p>
                 </div>
               </div>
