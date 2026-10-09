@@ -257,12 +257,12 @@ export default function SedanaQuotations() {
                     onClick={handleClearSelection}
                     className="gap-1.5 h-8 text-xs font-bold bg-background hover:bg-muted text-foreground shadow-2xs shrink-0"
                   >
-                    <ArrowRight className="w-3.5 h-3.5 text-primary" />
+                    <ArrowRight className="w-3.5 h-3.5 text-cyan-600" />
                     <span>العودة إلى قائمة طلبات سدانة</span>
                   </Button>
 
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Building2 className="w-4 h-4 text-primary shrink-0" />
+                    <Building2 className="w-4 h-4 text-cyan-600 shrink-0" />
                     <h2 className="text-base sm:text-lg font-bold text-foreground">
                       {activeSelectedRequest
                         ? activeSelectedRequest.mosqueDisplayName
@@ -270,7 +270,7 @@ export default function SedanaQuotations() {
                     </h2>
                     <Badge
                       variant="secondary"
-                      className="font-mono text-xs px-2 py-0.5 bg-primary/10 text-primary border border-primary/20"
+                      className="font-mono text-xs px-2 py-0.5 bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800"
                     >
                       {activeSelectedRequest?.requestNumber || `REQ-${selectedRequestId}`}
                     </Badge>
@@ -318,7 +318,7 @@ export default function SedanaQuotations() {
             {/* رأس الصفحة الرئيسي */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-border/70 pb-4">
               <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20 shadow-xs">
+                <div className="p-3 rounded-2xl bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 border border-cyan-200 dark:border-cyan-800 shadow-xs">
                   <Receipt className="w-6 h-6" />
                 </div>
                 <div>
@@ -328,7 +328,7 @@ export default function SedanaQuotations() {
                     </h1>
                     <Badge
                       variant="outline"
-                      className="text-xs font-bold px-2.5 py-0.5 border-primary/30 text-primary bg-primary/5"
+                      className="text-xs font-bold px-2.5 py-0.5 border-cyan-300 text-cyan-700 bg-cyan-50 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-800"
                     >
                       التقييم المالي واعتماد العرض
                     </Badge>
@@ -350,7 +350,7 @@ export default function SedanaQuotations() {
                       {sedanaStats.total}
                     </p>
                   </div>
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10 text-primary border border-primary/20">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 border border-cyan-200 dark:border-cyan-800">
                     <Building2 className="w-5 h-5" />
                   </div>
                 </CardContent>
@@ -437,7 +437,7 @@ export default function SedanaQuotations() {
             {/* محتوى قائمة طلبات سدانة كصفوف متباعدة */}
             {isRequestsLoading ? (
               <div className="py-16 text-center space-y-3 bg-card rounded-xl border border-border/80 shadow-2xs">
-                <RefreshCw className="w-8 h-8 mx-auto animate-spin text-primary" />
+                <RefreshCw className="w-8 h-8 mx-auto animate-spin text-cyan-600" />
                 <p className="text-sm font-medium text-foreground">جاري تحميل طلبات برنامج سدانة...</p>
                 <p className="text-xs text-muted-foreground">يرجى الانتظار قليلاً</p>
               </div>
@@ -469,21 +469,21 @@ export default function SedanaQuotations() {
                     <div
                       key={req.id}
                       onClick={() => handleSelectRequest(String(req.id))}
-                      className="group cursor-pointer bg-card hover:bg-muted/20 border border-border/80 hover:border-primary/50 rounded-xl p-4 sm:p-4.5 shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                      className="group cursor-pointer bg-card hover:bg-muted/20 border border-border/80 hover:border-cyan-400/60 rounded-xl p-4 sm:p-4.5 shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                     >
                       {/* اليمين: رقم الطلب + اسم المسجد / المشروع + المدينة وتاريخ الإنشاء ومقدم الطلب */}
                       <div className="flex items-center gap-3.5 min-w-0">
                         <Badge
                           variant="secondary"
-                          className="font-mono font-bold text-xs px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                          className="font-mono font-bold text-xs px-2.5 py-1 bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 shrink-0 group-hover:bg-cyan-600 group-hover:text-white transition-colors"
                         >
                           {req.requestNumber || `REQ-${req.id}`}
                         </Badge>
 
                         <div className="space-y-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <Building2 className="w-4 h-4 text-primary shrink-0" />
-                            <h3 className="text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                            <Building2 className="w-4 h-4 text-cyan-600 shrink-0" />
+                            <h3 className="text-sm sm:text-base font-bold text-foreground group-hover:text-cyan-600 transition-colors truncate">
                               {req.mosqueDisplayName}
                             </h3>
                           </div>
@@ -545,7 +545,7 @@ export default function SedanaQuotations() {
                         {/* زر الاختيار */}
                         <Button
                           size="sm"
-                          className="h-8 text-xs px-3.5 gap-1.5 font-bold group-hover:bg-primary group-hover:text-primary-foreground"
+                          className="h-8 text-xs px-3.5 gap-1.5 font-bold group-hover:bg-cyan-600 group-hover:text-white"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleSelectRequest(String(req.id));
