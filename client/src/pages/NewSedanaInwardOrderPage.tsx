@@ -43,10 +43,19 @@ import {
   ShieldCheck,
   Info,
   Lock,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { usePermission } from "@/hooks/usePermission";
+
+interface ExtraInwardItem {
+  id: string;
+  itemName: string;
+  quantity: number;
+  unit: string;
+}
 
 export default function NewSedanaInwardOrderPage() {
   const params = useParams<{ id?: string }>();
@@ -109,7 +118,36 @@ export default function NewSedanaInwardOrderPage() {
     new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())
   );
   const [inwardItems, setInwardItems] = useState<Record<string, number>>({});
+  const [extraCsrItems, setExtraCsrItems] = useState<ExtraInwardItem[]>([]);
   const [inwardNotes, setInwardNotes] = useState<string>("");
+
+  // إدارة الأصناف الإضافية لخطاب المسؤولية المجتمعية
+  const handleAddExtraItem = () => {
+    setExtraCsrItems((prev) => [
+      ...prev,
+      {
+        id: `extra_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        itemName: "",
+        quantity: 1,
+        unit: "حبة",
+      },
+    ]);
+  };
+
+  const handleRemoveExtraItem = (id: string) => {
+    setExtraCsrItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleUpdateExtraItem = (id: string, field: keyof ExtraInwardItem, value: any) => {
+    setExtraCsrItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
+    );
+  };
+
+  // تفريغ الأصناف الإضافية عند تغيير نوع المستند أو رقم الخطاب
+  useEffect(() => {
+    setExtraCsrItems([]);
+  }, [sourceCategory, selectedCsrNumber]);
 
   // استخراج أمر الصرف أو الخطاب المجتمعي من الـ URL إن وُجد
   useEffect(() => {
@@ -241,12 +279,26 @@ export default function NewSedanaInwardOrderPage() {
     }
   }, [sourceCategory, disbursementOrders.length, approvedCsrLetters.length, activeDisb, activeCsr]);
 
-  // إحصائيات الإدخال الحالي
-  const totalItemsToInwardCount = Object.keys(inwardItems).filter((k) => (inwardItems[k] || 0) > 0).length;
-  const totalUnitsToInward = Object.keys(inwardItems).reduce((sum, k) => sum + (inwardItems[k] || 0), 0);
+  // الأصناف الإضافية الصالحة (المكتملة الاسم والكمية)
+  const validExtraItems = useMemo(() => {
+    if (sourceCategory !== "csr_letter") return [];
+    return extraCsrItems.filter((item) => item.itemName.trim().length > 0 && item.quantity > 0);
+  }, [sourceCategory, extraCsrItems]);
 
-  // هل يوجد أي تجاوز للحد الأقصى في أي صنف؟
-  const hasExceededItems = displayItems.some((it: any) => {
+  // إحصائيات الإدخال الحالي (تشمل الأصناف المستوردة والأصناف الإضافية)
+  const totalItemsToInwardCount = useMemo(() => {
+    const regularCount = Object.keys(inwardItems).filter((k) => (inwardItems[k] || 0) > 0).length;
+    return regularCount + validExtraItems.length;
+  }, [inwardItems, validExtraItems]);
+
+  const totalUnitsToInward = useMemo(() => {
+    const regularUnits = Object.keys(inwardItems).reduce((sum, k) => sum + (inwardItems[k] || 0), 0);
+    const extraUnits = validExtraItems.reduce((sum, it) => sum + (it.quantity || 0), 0);
+    return regularUnits + extraUnits;
+  }, [inwardItems, validExtraItems]);
+
+  // هل يوجد أي تجاوز للحد الأقصى في أي صنف؟ (ينطبق حصراً على أوامر الشراء المقيدة بأسقف الصرف المالي)
+  const hasExceededItems = sourceCategory === "purchase_order" && displayItems.some((it: any) => {
     const entered = inwardItems[it.id] || 0;
     const maxAllowed = it.remainingAllowedQty !== undefined ? it.remainingAllowedQty : 999999;
     return entered > maxAllowed + 0.0001;
@@ -270,7 +322,21 @@ export default function NewSedanaInwardOrderPage() {
       return;
     }
 
-    const items = Object.keys(inwardItems)
+    // التحقق من اكتمال الأصناف الإضافية في حال وجودها
+    if (sourceCategory === "csr_letter" && extraCsrItems.length > 0) {
+      const emptyNameItem = extraCsrItems.find((it) => !it.itemName.trim());
+      if (emptyNameItem) {
+        toast.error("يرجى إدخال اسم الصنف لكل بند إضافي تمت إضافته");
+        return;
+      }
+      const invalidQtyItem = extraCsrItems.find((it) => (it.quantity || 0) <= 0);
+      if (invalidQtyItem) {
+        toast.error(`يرجى تحديد كمية موجبة للصنف الإضافي (${invalidQtyItem.itemName || "صنف إضافي"})`);
+        return;
+      }
+    }
+
+    const regularItems = Object.keys(inwardItems)
       .filter((k) => (inwardItems[k] || 0) > 0)
       .map((k) => {
         const found = displayItems.find((i: any) => String(i.id) === String(k));
@@ -282,20 +348,33 @@ export default function NewSedanaInwardOrderPage() {
         };
       });
 
+    const extraItems = sourceCategory === "csr_letter"
+      ? validExtraItems.map((it) => ({
+          id: it.id,
+          itemName: it.itemName.trim(),
+          quantity: it.quantity,
+          unit: it.unit.trim() || "وحدة",
+        }))
+      : [];
+
+    const items = [...regularItems, ...extraItems];
+
     if (items.length === 0) {
       toast.error("يرجى إدخال كمية موجبة لصنف واحد على الأقل للمتابعة");
       return;
     }
 
-    // التحقق المسبق من عدم تجاوز الحد الأقصى المتبقي
-    for (const item of items) {
-      const target = displayItems.find((di: any) => String(di.id) === String(item.id));
-      if (target && target.remainingAllowedQty !== undefined) {
-        if (item.quantity > target.remainingAllowedQty + 0.0001) {
-          toast.error(
-            `الكمية المدخلة للصنف (${item.itemName}) وقدرها ${item.quantity} تتجاوز الحد الأقصى المتبقي (الحد الأقصى المسموح الآن: ${target.remainingAllowedQty} ${item.unit})`
-          );
-          return;
+    // التحقق المسبق من عدم تجاوز الحد الأقصى المتبقي (خاص بأمر الشراء المقيد بأسقف الصرف فقط)
+    if (sourceCategory === "purchase_order") {
+      for (const item of items) {
+        const target = displayItems.find((di: any) => String(di.id) === String(item.id));
+        if (target && target.remainingAllowedQty !== undefined) {
+          if (item.quantity > target.remainingAllowedQty + 0.0001) {
+            toast.error(
+              `الكمية المدخلة للصنف (${item.itemName}) وقدرها ${item.quantity} تتجاوز الحد الأقصى المتبقي (الحد الأقصى المسموح الآن: ${target.remainingAllowedQty} ${item.unit})`
+            );
+            return;
+          }
         }
       }
     }
@@ -565,9 +644,22 @@ export default function NewSedanaInwardOrderPage() {
                 <CardDescription className="text-xs mt-0.5">
                   {sourceCategory === "purchase_order"
                     ? "أصناف وكميات أمر الصرف المنفّذ المحددة للإدخال المستودعي"
-                    : "أصناف وكميات خطاب المسؤولية المجتمعية المنفّذ المحددة للإدخال المستودعي"}
+                    : "أصناف وكميات خطاب المسؤولية المجتمعية المنفّذ المحددة للإدخال المستودعي (يمكن تعديل الكميات وإضافة بنود إضافية)"}
                 </CardDescription>
               </div>
+
+              {sourceCategory === "csr_letter" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddExtraItem}
+                  className="gap-1.5 h-8 text-xs font-semibold text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer self-start sm:self-auto"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>إضافة صنف إضافي</span>
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="p-0 text-right" dir="rtl">
               <div className="overflow-x-auto">
@@ -578,71 +670,183 @@ export default function NewSedanaInwardOrderPage() {
                       <TableHead className="min-w-[200px] font-bold text-foreground">الصنف والوصف</TableHead>
                       <TableHead className="w-32 text-center font-bold text-foreground">الكمية المعتمدة</TableHead>
                       <TableHead className="w-36 text-center font-bold text-primary">الكمية</TableHead>
+                      {sourceCategory === "csr_letter" && (
+                        <TableHead className="w-14 text-center font-bold text-muted-foreground">إجراء</TableHead>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {displayItems.length === 0 ? (
+                    {displayItems.length === 0 && extraCsrItems.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="h-28 text-center text-muted-foreground text-xs">
+                        <TableCell colSpan={sourceCategory === "csr_letter" ? 5 : 4} className="h-28 text-center text-muted-foreground text-xs">
                           لا توجد أصناف مسجلة في هذا المستند
                         </TableCell>
                       </TableRow>
                     ) : (
-                      displayItems.map((it: any, idx: number) => {
-                        const enteredQty = inwardItems[it.id] !== undefined ? inwardItems[it.id] : (it.remainingAllowedQty ?? it.maxDisbursedQty ?? 0);
+                      <>
+                        {displayItems.map((it: any, idx: number) => {
+                          const enteredQty = inwardItems[it.id] !== undefined ? inwardItems[it.id] : (it.remainingAllowedQty ?? it.maxDisbursedQty ?? it.quantity ?? 0);
 
-                        return (
+                          return (
+                            <TableRow
+                              key={it.id || idx}
+                              className="border-b border-border/40 transition-colors hover:bg-muted/20"
+                            >
+                              {/* رقم البند */}
+                              <TableCell className="text-center font-mono text-muted-foreground font-bold">
+                                {idx + 1}
+                              </TableCell>
+
+                              {/* اسم الصنف والوصف */}
+                              <TableCell>
+                                <div className="space-y-0.5">
+                                  <div className="font-bold text-foreground text-xs sm:text-sm">
+                                    {it.itemName || it.name}
+                                  </div>
+                                  {it.description && (
+                                    <div className="text-[11px] text-muted-foreground line-clamp-1">
+                                      {it.description}
+                                    </div>
+                                  )}
+                                </div>
+                              </TableCell>
+
+                              {/* الكمية المعتمدة */}
+                              <TableCell className="text-center font-mono text-xs font-semibold">
+                                <span className="text-foreground">{it.maxDisbursedQty ?? it.quantity ?? 0}</span>
+                                <span className="text-muted-foreground mr-1 text-[11px]">{it.unit}</span>
+                              </TableCell>
+
+                              {/* خانة الكمية */}
+                              <TableCell className="text-center">
+                                <div className="flex items-center justify-center gap-1.5 max-w-[130px] mx-auto">
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    step="any"
+                                    readOnly={sourceCategory === "purchase_order"}
+                                    disabled={sourceCategory === "purchase_order"}
+                                    value={enteredQty}
+                                    onChange={(e) => {
+                                      if (sourceCategory === "csr_letter") {
+                                        const val = parseFloat(e.target.value);
+                                        setInwardItems((prev) => ({
+                                          ...prev,
+                                          [it.id]: isNaN(val) ? 0 : Math.max(0, val),
+                                        }));
+                                      }
+                                    }}
+                                    className={`h-9 text-center font-mono font-bold text-xs rounded-lg text-foreground border-border ${
+                                      sourceCategory === "purchase_order"
+                                        ? "bg-muted/40 cursor-not-allowed"
+                                        : "bg-background focus:ring-emerald-500"
+                                    }`}
+                                  />
+                                  <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                                    {it.unit}
+                                  </span>
+                                </div>
+                              </TableCell>
+
+                              {/* عمود الإجراء في حال كان الخطاب المجتمعي مفعلاً */}
+                              {sourceCategory === "csr_letter" && (
+                                <TableCell className="text-center text-muted-foreground text-[11px]">
+                                  —
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          );
+                        })}
+
+                        {/* صفوف الأصناف الإضافية لخطاب المسؤولية المجتمعية */}
+                        {sourceCategory === "csr_letter" && extraCsrItems.map((extraItem, extraIdx) => (
                           <TableRow
-                            key={it.id || idx}
-                            className="border-b border-border/40 transition-colors hover:bg-muted/20"
+                            key={extraItem.id}
+                            className="border-b border-border/40 bg-emerald-50/20 dark:bg-emerald-950/10 transition-colors hover:bg-emerald-50/40"
                           >
                             {/* رقم البند */}
                             <TableCell className="text-center font-mono text-muted-foreground font-bold">
-                              {idx + 1}
+                              {displayItems.length + extraIdx + 1}
                             </TableCell>
 
-                            {/* اسم الصنف والوصف */}
+                            {/* اسم الصنف الإضافي */}
                             <TableCell>
-                              <div className="space-y-0.5">
-                                <div className="font-bold text-foreground text-xs sm:text-sm">
-                                  {it.itemName || it.name}
+                              <div className="space-y-1 py-1">
+                                <Input
+                                  type="text"
+                                  placeholder="اسم الصنف الإضافي..."
+                                  value={extraItem.itemName}
+                                  onChange={(e) => handleUpdateExtraItem(extraItem.id, "itemName", e.target.value)}
+                                  list="available-inventory-suggestions"
+                                  className="h-8 text-xs font-bold bg-background border-border/80 focus:ring-emerald-500"
+                                />
+                                <div className="flex items-center gap-1.5">
+                                  <Badge variant="outline" className="text-[10px] text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800">
+                                    صنف إضافي
+                                  </Badge>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    يمكنك اختيار صنف مقترح أو كتابة صنف مخصص
+                                  </span>
                                 </div>
-                                {it.description && (
-                                  <div className="text-[11px] text-muted-foreground line-clamp-1">
-                                    {it.description}
-                                  </div>
-                                )}
                               </div>
                             </TableCell>
 
                             {/* الكمية المعتمدة */}
-                            <TableCell className="text-center font-mono text-xs font-semibold">
-                              <span className="text-foreground">{it.maxDisbursedQty}</span>
-                              <span className="text-muted-foreground mr-1 text-[11px]">{it.unit}</span>
+                            <TableCell className="text-center font-mono text-xs text-muted-foreground">
+                              <span>— (إضافي)</span>
                             </TableCell>
 
-                            {/* خانة الكمية (غير قابلة للتعديل) */}
+                            {/* خانة الكمية والوحدة */}
                             <TableCell className="text-center">
-                              <div className="flex items-center justify-center gap-1.5 max-w-[130px] mx-auto">
+                              <div className="flex items-center justify-center gap-1.5 max-w-[150px] mx-auto">
                                 <Input
                                   type="number"
-                                  readOnly
-                                  disabled
-                                  value={enteredQty}
-                                  className="h-9 text-center font-mono font-bold text-xs rounded-lg bg-muted/40 cursor-not-allowed text-foreground border-border"
+                                  min={0.01}
+                                  step="any"
+                                  value={extraItem.quantity}
+                                  onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    handleUpdateExtraItem(extraItem.id, "quantity", isNaN(val) ? 0 : Math.max(0, val));
+                                  }}
+                                  className="h-9 text-center font-mono font-bold text-xs rounded-lg text-foreground bg-background border-border focus:ring-emerald-500"
                                 />
-                                <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                                  {it.unit}
-                                </span>
+                                <Input
+                                  type="text"
+                                  placeholder="الوحدة"
+                                  value={extraItem.unit}
+                                  onChange={(e) => handleUpdateExtraItem(extraItem.id, "unit", e.target.value)}
+                                  className="h-9 w-14 text-center text-xs font-medium bg-background border-border"
+                                />
                               </div>
                             </TableCell>
+
+                            {/* إجراء الحذف */}
+                            <TableCell className="text-center">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveExtraItem(extraItem.id)}
+                                className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer"
+                                title="حذف الصنف الإضافي"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </TableCell>
                           </TableRow>
-                        );
-                      })
+                        ))}
+                      </>
                     )}
                   </TableBody>
                 </Table>
               </div>
+
+              {/* اقتراحات الأصناف من المخزون المتوفر بالطلب */}
+              <datalist id="available-inventory-suggestions">
+                {inventoryItems.map((inv: any, idx: number) => (
+                  <option key={inv.id || idx} value={inv.itemName || inv.name} />
+                ))}
+              </datalist>
 
               {/* شريط ملخص الكميات */}
               <div className="p-4 bg-muted/20 border-t border-border/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
