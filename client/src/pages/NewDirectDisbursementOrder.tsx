@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -165,7 +165,9 @@ export default function NewDirectDisbursementOrder() {
     }
   }, [requestType, selectedOrderNumber, filteredProcurementOrders]);
 
-  // عند اختيار أمر شراء أو خطاب مسؤولية مجتمعية: تعبئة البيانات والبنود تلقائياً
+  const lastLoadedOrderRef = useRef<string | null>(null);
+
+  // عند اختيار أمر شراء أو خطاب مسؤولية مجتمعية: تعبئة البيانات والبنود ووصف الأعمال تلقائياً
   useEffect(() => {
     if (!selectedOrderNumber || !approvedProcurement) return;
     const found = approvedProcurement.find((o: any) => 
@@ -190,19 +192,53 @@ export default function NewDirectDisbursementOrder() {
       const itemsSum = items.reduce((sum: number, it: any) => sum + (it.totalPrice || 0), 0);
       const totalAmt = itemsSum + (adminFees || 0);
 
+      // إنشاء وصف الأعمال التلقائي من تفاصيل أمر الشراء وبنود التوريد
+      const itemsSummary = items
+        .map((it: any) => {
+          const qty = it.quantity ? ` (${it.quantity} ${it.unit || "وحدة"})` : "";
+          const desc = it.description && it.description.trim() !== it.itemName?.trim() ? ` - ${it.description}` : "";
+          return `${it.itemName}${qty}${desc}`;
+        })
+        .filter(Boolean)
+        .join("، ");
+
+      let autoWorkDesc = "";
+      const sourceNotes = (found.notes || found.description || "").trim();
+      const requestWorkDesc = (found.requestWorkDescription || "").trim();
+
+      if (sourceNotes) {
+        autoWorkDesc = sourceNotes;
+        if (itemsSummary && !autoWorkDesc.includes(itemsSummary)) {
+          autoWorkDesc += ` (البنود: ${itemsSummary})`;
+        }
+      } else if (requestWorkDesc) {
+        autoWorkDesc = requestWorkDesc;
+        if (itemsSummary && !autoWorkDesc.includes(itemsSummary)) {
+          autoWorkDesc += ` - البنود: ${itemsSummary}`;
+        }
+      } else if (itemsSummary) {
+        autoWorkDesc = `توريد وتنفيذ أصناف ومستلزمات: ${itemsSummary}`;
+        if (found.mosqueName) {
+          autoWorkDesc += ` لصالح (${found.mosqueName})`;
+        }
+      } else {
+        autoWorkDesc = `توريد وتنفيذ الأعمال المطلوبة بموجب ${found.typeLabel} رقم ${found.orderNumber}${found.mosqueName ? ` لصالح (${found.mosqueName})` : ""}`;
+      }
+
       setFormData(prev => ({
         ...prev,
         mainProjectName: prev.mainProjectName || "برنامج سدانة لعمارة المساجد",
         fundingSupport: prev.fundingSupport || "دعم مخصص / سدانة",
         customProjectName: found.mosqueName ? `مشروع سدانة - ${found.mosqueName}` : `طلب سدانة #${found.requestNumber}`,
         title: `${found.typeLabel} رقم ${found.orderNumber} - ${found.supplierName}`,
-        requiredWorksDesc: prev.requiredWorksDesc || "",
+        requiredWorksDesc: (lastLoadedOrderRef.current !== found.orderNumber || !prev.requiredWorksDesc) ? autoWorkDesc : prev.requiredWorksDesc,
         amount: totalAmt,
         beneficiaryName: found.supplierName || prev.beneficiaryName,
         bankAccountName: found.supplierAccountName || found.supplierName || prev.bankAccountName,
         beneficiaryBank: found.supplierBank || prev.beneficiaryBank,
         beneficiaryIban: found.supplierIban || prev.beneficiaryIban,
       }));
+      lastLoadedOrderRef.current = found.orderNumber;
     }
   }, [selectedOrderNumber, approvedProcurement]);
 
@@ -294,6 +330,7 @@ export default function NewDirectDisbursementOrder() {
   const handleRequestTypeChange = (value: string) => {
     setRequestType(value);
     setSelectedOrderNumber("");
+    lastLoadedOrderRef.current = null;
     setProcurementItems([]);
     setAdminFees(0);
     setFormData(prev => ({
@@ -307,6 +344,7 @@ export default function NewDirectDisbursementOrder() {
       billerName: "",
       amount: 0,
       title: "",
+      requiredWorksDesc: "",
     }));
   };
 
@@ -317,6 +355,7 @@ export default function NewDirectDisbursementOrder() {
       if (!selectedOrderNumber) missing.push(requestType === "purchase_order" ? "اختيار أمر الشراء المعتمد" : "اختيار خطاب المسؤولية المعتمد");
       if (procurementItems.length === 0) missing.push("بنود المشتريات المعتمدة");
       if (!formData.title) missing.push("عنوان أمر الصرف");
+      if (!formData.requiredWorksDesc) missing.push("وصف الأعمال المطلوبة");
       if (formData.amount <= 0) missing.push("المبلغ الإجمالي المحسوب");
       if (!formData.dateMiladi) missing.push("تاريخ الصرف");
       if (!formData.beneficiaryName) missing.push("اسم المورد / المستفيد");
@@ -417,6 +456,7 @@ export default function NewDirectDisbursementOrder() {
       itemsTotal: isProcurement ? itemsTotal : undefined,
       adminFees: isProcurement ? (Number(adminFees) || 0) : undefined,
       title: formData.title,
+      description: formData.requiredWorksDesc,
       amount: formData.amount,
       dateMiladi: formData.dateMiladi,
       attachments: attachmentsList,
@@ -746,7 +786,7 @@ export default function NewDirectDisbursementOrder() {
                   <Textarea
                     placeholder="أدخل وصف الأعمال المطلوبة المصاحبة لأمر الصرف..."
                     value={formData.requiredWorksDesc}
-                    onChange={(e) => setFormData({ ...formData, requiredWorksDesc: e.target.value })}
+                    onChange={(e) => setFormData(prev => ({ ...prev, requiredWorksDesc: e.target.value }))}
                     rows={3}
                     required
                     className="text-right border-border focus:ring-primary rounded-xl text-xs leading-relaxed bg-background"
