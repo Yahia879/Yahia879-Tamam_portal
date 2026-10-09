@@ -371,13 +371,6 @@ export default function UserPermissions() {
       }
     }
 
-    // منع تفعيل أي صلاحية في قسم أوامر الشراء والخطاب المجتمعي إلا إذا كانت صلاحية العرض مفعلة
-    if (permId.startsWith("orders_and_letters.") && permId !== "orders_and_letters.view") {
-      if (!isChecked("orders_and_letters.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض أوامر الشراء والخطاب المجتمعي' أولاً");
-        return;
-      }
-    }
 
     // منع تفعيل أي صلاحية في قسم أوامر الشراء إلا إذا كانت صلاحية العرض مفعلة
     if (permId.startsWith("purchase_orders.") && permId !== "purchase_orders.view") {
@@ -525,9 +518,6 @@ export default function UserPermissions() {
         }
         if (permId === "disbursement_orders.view") {
           cascadeRevoke("disbursement_orders.");
-        }
-        if (permId === "orders_and_letters.view") {
-          cascadeRevoke("orders_and_letters.");
         }
         if (permId === "purchase_orders.view") {
           cascadeRevoke("purchase_orders.");
@@ -803,9 +793,9 @@ export default function UserPermissions() {
         clause_add: "إضافة بند للعقد"
       },
       orders_and_letters: {
-        view: "عرض أوامر الشراء والخطاب المجتمعي",
-        create: "إنشاء أوامر شراء وخطابات مجتمعية",
-        export: "تصدير البيانات إكسيل",
+        disbursement_orders: "أوامر الصرف",
+        csr_letters: "الخطاب المجتمعي",
+        purchase_orders: "أوامر الشراء",
       },
       purchase_orders: {
         view: "عرض أوامر الشراء",
@@ -1005,7 +995,7 @@ export default function UserPermissions() {
       title: "إدارة المخزون",
       modules: [
         { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view"] },
-        { id: "orders_and_letters", nameAr: "أوامر الشراء والخطاب المجتمعي", icon: ShoppingBag, perms: ["view", "create", "export"] },
+        { id: "orders_and_letters", nameAr: "مالية سدانة", icon: ShoppingBag, perms: ["disbursement_orders", "csr_letters", "purchase_orders"] },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound", "confirm_receipt", "print", "export"] },
