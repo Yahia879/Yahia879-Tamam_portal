@@ -1002,16 +1002,6 @@ export default function SedanaExecutionPage() {
                     متابعة الأصناف المعتمدة بالطلب، فترات الصرف المقررة (شهرياً / ربع سنوياً)، رصيد المستودع، ومواعيد خروج الدفعات الدورية
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-2 self-start sm:self-auto">
-                  <Button
-                    size="sm"
-                    onClick={handleOpenOutboundModal}
-                    className="text-xs font-bold gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xs"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>إضافة أمر إخراج</span>
-                  </Button>
-                </div>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto" dir="rtl">
