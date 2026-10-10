@@ -163,8 +163,10 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
   const isFaaa8User = user?.email === "solayani@manarah.org.sa";
   const hasExceptionApprove = usePermission("receipt_vouchers.exception_approve");
   const hasFinancials = usePermission("projects.financials");
-  const canEditSupportAndFees = hasFinancials && usePermission("projects.edit_support_and_fees");
-  const canAddReceiptVoucher = hasFinancials && usePermission("projects.add_receipt_voucher");
+  const canEditSupportPerm = usePermission("projects.edit_support_and_fees");
+  const canAddReceiptPerm = usePermission("projects.add_receipt_voucher");
+  const canEditSupportAndFees = hasFinancials && canEditSupportPerm;
+  const canAddReceiptVoucher = hasFinancials && canAddReceiptPerm;
 
   const [activeSupporterTab, setActiveSupporterTab] = useState<string>("all");
   const [supportAmount, setSupportAmount] = useState<number>(0);

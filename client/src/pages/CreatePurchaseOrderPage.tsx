@@ -48,7 +48,8 @@ export default function CreatePurchaseOrderPage() {
   const [, navigate] = useLocation();
   const canAddOrderPerm = usePermission("purchase_orders.add");
   const canOrdersAndLettersCreate = usePermission("orders_and_letters.create");
-  const canAddOrder = canAddOrderPerm || canOrdersAndLettersCreate;
+  const canOrdersAndLettersPO = usePermission("orders_and_letters.purchase_orders");
+  const canAddOrder = canAddOrderPerm || canOrdersAndLettersCreate || canOrdersAndLettersPO;
 
   const isExecutiveDirector =
     user?.role === "general_manager" ||
@@ -74,7 +75,7 @@ export default function CreatePurchaseOrderPage() {
     if (returnUrl) {
       navigate(returnUrl);
     } else if (fromSource === "orders-and-letters" && targetRequestId) {
-      navigate(`/orders-and-letters?tab=disbursement_orders&requestId=${targetRequestId}`);
+      navigate(`/orders-and-letters?tab=purchase_orders&requestId=${targetRequestId}`);
     } else if (projectId) {
       navigate(`/projects/${projectId}`);
     } else if (typeof window !== "undefined" && window.history.length > 1) {
@@ -232,7 +233,7 @@ export default function CreatePurchaseOrderPage() {
       if (returnUrl) {
         navigate(returnUrl);
       } else if (fromSource === "orders-and-letters" && targetRequestId) {
-        navigate(`/orders-and-letters?tab=disbursement_orders&requestId=${targetRequestId}`);
+        navigate(`/orders-and-letters?tab=purchase_orders&requestId=${targetRequestId}`);
       } else if (projectId) {
         navigate(`/projects/${projectId}`);
       } else {

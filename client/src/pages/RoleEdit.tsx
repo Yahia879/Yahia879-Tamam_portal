@@ -99,8 +99,8 @@ const superAdminGroups = [
     modules: [
       { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["export_pdf", "add", "recommend", "approve"] },
       { id: "orders_and_letters", nameAr: "مالية سدانة", icon: ShoppingBag, perms: ["disbursement_orders", "csr_letters", "purchase_orders"] },
-      { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
-      { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "export"] },
+      { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "create_disbursement"] },
+      { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add"] },
       { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound", "confirm_receipt", "print", "export"] },
     ]
   },
@@ -277,22 +277,17 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     purchase_orders: {
       view: "عرض أوامر الشراء",
       add: "إنشاء أمر شراء جديد",
-      approve: "اعتماد أوامر الشراء",
       create_disbursement: "إنشاء أمر صرف لأمر الشراء",
-      export: "تصدير أوامر الشراء إكسيل",
     },
     csr_letters: {
       view: "عرض خطابات المسؤولية المجتمعية",
       add: "إنشاء خطاب مسؤولية مجتمعية جديد",
-      approve: "اعتماد خطابات المسؤولية المجتمعية",
-      create_disbursement: "إنشاء أمر صرف للخطاب",
-      print: "معاينة وطباعة الخطاب الرسمي",
-      export: "تصدير الخطابات إكسيل",
     },
     custody_requests: {
       view: "عرض قسم العهدة المالية",
     },
     sedana_quotations: {
+      view: "عرض عروض أسعار سدانة",
       export_pdf: "تصدير ملف pdf للبنود",
       add: "اضافة عروض الاسعار",
       recommend: "التوصية",
@@ -645,21 +640,7 @@ export default function RoleEdit() {
     }
 
 
-    // منع تفعيل أي صلاحية فرعية لأوامر الشراء إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("purchase_orders.") && permId !== "purchase_orders.view") {
-      if (!selectedPerms.includes("purchase_orders.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض أوامر الشراء' أولاً");
-        return;
-      }
-    }
 
-    // منع تفعيل أي صلاحية فرعية للمسؤولية المجتمعية إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("csr_letters.") && permId !== "csr_letters.view") {
-      if (!selectedPerms.includes("csr_letters.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض خطابات المسؤولية المجتمعية' أولاً");
-        return;
-      }
-    }
 
     // منع تفعيل أي صلاحية فرعية للمستودع الافتراضي إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("sedana_warehouse.") && permId !== "sedana_warehouse.view") {
@@ -855,7 +836,17 @@ export default function RoleEdit() {
             duration: 4500,
           });
         }
-        if (permId === "purchase_orders.create_disbursement" || permId === "csr_letters.create_disbursement") {
+        if (permId.startsWith("purchase_orders.") && permId !== "purchase_orders.view") {
+          if (!next.includes("purchase_orders.view")) {
+            next.push("purchase_orders.view");
+          }
+        }
+        if (permId.startsWith("csr_letters.") && permId !== "csr_letters.view") {
+          if (!next.includes("csr_letters.view")) {
+            next.push("csr_letters.view");
+          }
+        }
+        if (permId === "purchase_orders.create_disbursement") {
           ["disbursement_orders.view", "disbursement_orders.create_direct"].forEach(targetId => {
             if (!next.includes(targetId)) {
               next.push(targetId);
@@ -1094,8 +1085,6 @@ export default function RoleEdit() {
                             const isChecked = isPermissionGranted(perm.id);
                             const isDisabled = 
                               (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !selectedPerms.includes("contracts.view")) ||
-                              (perm.id.startsWith("purchase_orders.") && perm.id !== "purchase_orders.view" && !selectedPerms.includes("purchase_orders.view")) ||
-                              (perm.id.startsWith("csr_letters.") && perm.id !== "csr_letters.view" && !selectedPerms.includes("csr_letters.view")) ||
                               (perm.id.startsWith("sedana_warehouse.") && perm.id !== "sedana_warehouse.view" && !selectedPerms.includes("sedana_warehouse.view")) ||
                               (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && !selectedPerms.includes("disbursement_orders.view")) ||
                               (perm.id === "board_leadership.remind" && !selectedPerms.includes("board_chairman")) ||

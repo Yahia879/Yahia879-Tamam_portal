@@ -79,24 +79,19 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   purchase_orders: [
     "purchase_orders.view",
     "purchase_orders.add",
-    "purchase_orders.approve",
     "purchase_orders.create_disbursement",
-    "purchase_orders.export",
   ],
   "purchase_orders.view": ["purchase_orders.view"],
-  "purchase_orders.add": ["purchase_orders.add"],
+  "purchase_orders.add": ["purchase_orders.add", "purchase_orders.view"],
   "purchase_orders.approve": ["purchase_orders.approve"],
-  "purchase_orders.create_disbursement": ["purchase_orders.create_disbursement"],
+  "purchase_orders.create_disbursement": ["purchase_orders.create_disbursement", "purchase_orders.view"],
   "purchase_orders.export": ["purchase_orders.export"],
   csr_letters: [
     "csr_letters.view",
     "csr_letters.add",
-    "csr_letters.approve",
-    "csr_letters.create_disbursement",
-    "csr_letters.export",
   ],
   "csr_letters.view": ["csr_letters.view", "csr_letters.print"],
-  "csr_letters.add": ["csr_letters.add"],
+  "csr_letters.add": ["csr_letters.add", "csr_letters.view"],
   "csr_letters.approve": ["csr_letters.approve"],
   "csr_letters.create_disbursement": ["csr_letters.create_disbursement"],
   "csr_letters.print": ["csr_letters.print"],
@@ -119,6 +114,10 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "custody_requests.view": ["custody_requests.view"],
   sedana_quotations: ["sedana_quotations.view"],
   "sedana_quotations.view": ["sedana_quotations.view"],
+  "sedana_quotations.export_pdf": ["sedana_quotations.export_pdf", "sedana_quotations.view"],
+  "sedana_quotations.add": ["sedana_quotations.add", "sedana_quotations.view"],
+  "sedana_quotations.recommend": ["sedana_quotations.recommend", "sedana_quotations.view"],
+  "sedana_quotations.approve": ["sedana_quotations.approve", "sedana_quotations.view"],
   disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve", "disbursements.exception_approve"],
   disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.exception_approve", "disbursement_orders.reject", "disbursement_orders.create_direct", "disbursement_orders.remind"],
   "disbursement_orders.remind": ["disbursement_orders.remind"],
@@ -308,12 +307,17 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   // مالية سدانة
   "orders_and_letters.disbursement_orders": [
     "orders_and_letters.disbursement_orders",
+    "orders_and_letters.view",
   ],
   "orders_and_letters.csr_letters": [
     "orders_and_letters.csr_letters",
+    "orders_and_letters.view",
+    "orders_and_letters.create",
   ],
   "orders_and_letters.purchase_orders": [
     "orders_and_letters.purchase_orders",
+    "orders_and_letters.view",
+    "orders_and_letters.create",
   ],
 };
 
@@ -1781,22 +1785,21 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (
     allPermissions.has("purchase_orders.view") ||
     allPermissions.has("purchase_orders.add") ||
-    allPermissions.has("purchase_orders.approve") ||
-    allPermissions.has("purchase_orders.create_disbursement") ||
-    allPermissions.has("purchase_orders.export")
+    allPermissions.has("purchase_orders.create_disbursement")
   ) {
     allPermissions.add("purchase_orders");
+  } else {
+    allPermissions.delete("purchase_orders");
   }
 
   // خطابات المسؤولية المجتمعية
   if (
     allPermissions.has("csr_letters.view") ||
-    allPermissions.has("csr_letters.add") ||
-    allPermissions.has("csr_letters.approve") ||
-    allPermissions.has("csr_letters.create_disbursement") ||
-    allPermissions.has("csr_letters.export")
+    allPermissions.has("csr_letters.add")
   ) {
     allPermissions.add("csr_letters");
+  } else {
+    allPermissions.delete("csr_letters");
   }
 
   // المستودع الافتراضي
@@ -1817,20 +1820,28 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   }
 
   // عروض أسعار سدانة
-  if (
-    allPermissions.has("sedana_quotations.view") ||
-    allPermissions.has("sedana_quotations.export_pdf") ||
-    allPermissions.has("sedana_quotations.add") ||
-    allPermissions.has("sedana_quotations.recommend") ||
-    allPermissions.has("sedana_quotations.approve") ||
-    allPermissions.has("quotations.view_sedana")
-  ) {
-    if (!revokedPermissions.has("sedana_quotations")) {
-      allPermissions.add("sedana_quotations");
-    }
-    if (!revokedPermissions.has("sedana_quotations.view")) {
-      allPermissions.add("sedana_quotations.view");
-    }
+  const hasSedanaQuoAction =
+    (!revokedPermissions.has("sedana_quotations.export_pdf") && allPermissions.has("sedana_quotations.export_pdf")) ||
+    (!revokedPermissions.has("sedana_quotations.add") && allPermissions.has("sedana_quotations.add")) ||
+    (!revokedPermissions.has("sedana_quotations.recommend") && allPermissions.has("sedana_quotations.recommend")) ||
+    (!revokedPermissions.has("sedana_quotations.approve") && allPermissions.has("sedana_quotations.approve"));
+
+  const allSedanaQuoRevoked =
+    revokedPermissions.has("sedana_quotations") ||
+    revokedPermissions.has("sedana_quotations.view") ||
+    (
+      revokedPermissions.has("sedana_quotations.export_pdf") &&
+      revokedPermissions.has("sedana_quotations.add") &&
+      revokedPermissions.has("sedana_quotations.recommend") &&
+      revokedPermissions.has("sedana_quotations.approve")
+    );
+
+  if (hasSedanaQuoAction && !allSedanaQuoRevoked) {
+    allPermissions.add("sedana_quotations");
+    allPermissions.add("sedana_quotations.view");
+  } else {
+    allPermissions.delete("sedana_quotations");
+    allPermissions.delete("sedana_quotations.view");
   }
 
   // مالية سدانة
@@ -1843,6 +1854,13 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.has("orders_and_letters.export")
   ) {
     allPermissions.add("orders_and_letters");
+    allPermissions.add("orders_and_letters.view");
+  }
+  if (allPermissions.has("orders_and_letters.purchase_orders")) {
+    allPermissions.add("orders_and_letters.create");
+  }
+  if (allPermissions.has("orders_and_letters.csr_letters")) {
+    allPermissions.add("orders_and_letters.create");
   }
   if (
     allPermissions.has("progress_reports.view") ||

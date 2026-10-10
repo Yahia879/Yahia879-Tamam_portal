@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { usePermission, useAnyPermission } from "@/hooks/usePermission";
+import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
 import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { Button } from "@/components/ui/button";
@@ -126,12 +126,15 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
 
   // صلاحيات أوامر الشراء
   const canAddOrderPerm = usePermission("purchase_orders.add");
-  const canCreateOrdersLetters = usePermission("orders_and_letters.create");
-  const canAddOrder = canAddOrderPerm || canCreateOrdersLetters;
-  const isFinancialRole = user?.role === "financial" || user?.role === "financial_manager" || user?.role === "executive_director" || user?.role === "general_manager";
-  const hasDisbPerm = useAnyPermission(["purchase_orders.create_disbursement", "disbursements.create", "disbursement_orders.create_direct"]);
-  const canCreateDisbursement = isSuperAdmin || isFinancialRole || hasDisbPerm;
-  const canExport = useAnyPermission(["purchase_orders.export", "orders_and_letters.export"]);
+  const canOrdersAndLettersPO = usePermission("orders_and_letters.purchase_orders");
+  const hasPoDisbursementPerm = usePermission("purchase_orders.create_disbursement");
+  const hasOrdersDisbursementPerm = usePermission("orders_and_letters.disbursement_orders");
+  const hasPoViewPerm = usePermission("purchase_orders.view");
+  const hasPoExportPerm = usePermission("purchase_orders.export");
+
+  const canAddOrder = isSuperAdmin || canAddOrderPerm || canOrdersAndLettersPO;
+  const canCreateDisbursement = isSuperAdmin || hasPoDisbursementPerm || hasOrdersDisbursementPerm;
+  const canExport = isSuperAdmin || hasPoViewPerm || canOrdersAndLettersPO || hasPoExportPerm;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -246,7 +249,7 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
                 if (isEmbedded) {
                   qParts.push(`from=orders-and-letters`);
                   if (requestId) {
-                    qParts.push(`returnUrl=${encodeURIComponent(`/orders-and-letters?tab=disbursement_orders&requestId=${requestId}`)}`);
+                    qParts.push(`returnUrl=${encodeURIComponent(`/orders-and-letters?tab=purchase_orders&requestId=${requestId}`)}`);
                   }
                 }
                 const qStr = qParts.length > 0 ? `?${qParts.join("&")}` : "";
@@ -651,7 +654,7 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
                                         className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40"
                                       >
                                         <Coins className="w-4 h-4 text-amber-600 shrink-0" />
-                                        <span>إنشاء أمر صرف</span>
+                                        <span>تحويل لأمر صرف</span>
                                       </DropdownMenuItem>
                                     </>
                                    )}

@@ -387,14 +387,19 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
 
   // 4. إدارة المخزون
   const inventoryItems: MenuItem[] = [];
-  if (
-    has("sedana_quotations") ||
-    has("sedana_quotations.view") ||
-    has("sedana_quotations.export_pdf") ||
-    has("sedana_quotations.add") ||
-    has("sedana_quotations.recommend") ||
-    has("sedana_quotations.approve")
-  ) {
+  const canSeeSedanaQuotations =
+    has("*") ||
+    (
+      (has("sedana_quotations") || has("sedana_quotations.view")) &&
+      (
+        has("sedana_quotations.export_pdf") ||
+        has("sedana_quotations.add") ||
+        has("sedana_quotations.recommend") ||
+        has("sedana_quotations.approve")
+      )
+    );
+
+  if (canSeeSedanaQuotations) {
     inventoryItems.push({ icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" });
   }
   if (

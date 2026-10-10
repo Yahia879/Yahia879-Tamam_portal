@@ -43,7 +43,8 @@ export default function CreateCsrLetterPage() {
   const [, navigate] = useLocation();
   const canAddLetterPerm = usePermission("csr_letters.add");
   const canOrdersAndLettersCreate = usePermission("orders_and_letters.create");
-  const canAddLetter = canAddLetterPerm || canOrdersAndLettersCreate;
+  const canOrdersAndLettersCSR = usePermission("orders_and_letters.csr_letters");
+  const canAddLetter = canAddLetterPerm || canOrdersAndLettersCreate || canOrdersAndLettersCSR;
   const params = useParams<{ id?: string }>();
   const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
   const initialRequestId = params.id ? parseInt(params.id, 10) : (searchParams.get("requestId") ? parseInt(searchParams.get("requestId")!, 10) : null);
@@ -57,7 +58,7 @@ export default function CreateCsrLetterPage() {
     if (returnUrl) {
       navigate(returnUrl);
     } else if (fromSource === "orders-and-letters" && targetRequestId) {
-      navigate(`/orders-and-letters?tab=disbursement_orders&requestId=${targetRequestId}`);
+      navigate(`/orders-and-letters?tab=csr_letters&requestId=${targetRequestId}`);
     } else if (projectId) {
       navigate(`/projects/${projectId}`);
     } else if (typeof window !== "undefined" && window.history.length > 1) {
@@ -261,7 +262,7 @@ export default function CreateCsrLetterPage() {
       if (returnUrl) {
         navigate(returnUrl);
       } else if (fromSource === "orders-and-letters" && targetRequestId) {
-        navigate(`/orders-and-letters?tab=disbursement_orders&requestId=${targetRequestId}`);
+        navigate(`/orders-and-letters?tab=csr_letters&requestId=${targetRequestId}`);
       } else if (projectId) {
         navigate(`/projects/${projectId}`);
       } else {

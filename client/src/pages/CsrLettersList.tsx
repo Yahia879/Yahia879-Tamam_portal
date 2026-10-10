@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { usePermission, useAnyPermission } from "@/hooks/usePermission";
+import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
 import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { Button } from "@/components/ui/button";
@@ -109,9 +109,10 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
   const canApprove = isExecutiveDirectorCeo;
   const showGreenHighlight = isExecutiveDirectorCeo || isSuperAdmin;
   const canAddCsrPerm = usePermission("csr_letters.add");
-  const canCreateOrdersLetters = usePermission("orders_and_letters.create");
-  const canAdd = canAddCsrPerm || canCreateOrdersLetters;
-  const canExport = useAnyPermission(["csr_letters.export", "orders_and_letters.export"]);
+  const canOrdersAndLettersCSR = usePermission("orders_and_letters.csr_letters");
+  const canViewCsrPerm = usePermission("csr_letters.view");
+  const canAdd = isSuperAdmin || canAddCsrPerm || canOrdersAndLettersCSR;
+  const canExport = isSuperAdmin || canViewCsrPerm || canOrdersAndLettersCSR;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -220,7 +221,7 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
                 if (isEmbedded) {
                   qParts.push(`from=orders-and-letters`);
                   if (requestId) {
-                    qParts.push(`returnUrl=${encodeURIComponent(`/orders-and-letters?tab=disbursement_orders&requestId=${requestId}`)}`);
+                    qParts.push(`returnUrl=${encodeURIComponent(`/orders-and-letters?tab=csr_letters&requestId=${requestId}`)}`);
                   }
                 }
                 const qStr = qParts.length > 0 ? `?${qParts.join("&")}` : "";

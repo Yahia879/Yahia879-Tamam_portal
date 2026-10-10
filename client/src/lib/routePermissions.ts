@@ -155,7 +155,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/sedana-quotations": [
     "sedana_quotations",
     "sedana_quotations.view",
-    "quotations.view_sedana",
     "sedana_quotations.export_pdf",
     "sedana_quotations.add",
     "sedana_quotations.recommend",
@@ -190,10 +189,10 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   ],
   "/contracts": "contracts",
   "/contracts/new": "contracts",
-  "/purchase-orders": ["purchase_orders.view", "purchase_orders"],
-  "/purchase-orders/new": ["purchase_orders.add", "purchase_orders", "orders_and_letters.create"],
-  "/csr-letters": ["csr_letters.view", "csr_letters"],
-  "/csr-letters/new": ["csr_letters.add", "csr_letters", "orders_and_letters.create"],
+  "/purchase-orders": ["purchase_orders.view", "purchase_orders", "orders_and_letters.purchase_orders"],
+  "/purchase-orders/new": ["purchase_orders.add", "purchase_orders", "orders_and_letters.create", "orders_and_letters.purchase_orders"],
+  "/csr-letters": ["csr_letters.view", "csr_letters", "orders_and_letters.csr_letters"],
+  "/csr-letters/new": ["csr_letters.add", "csr_letters", "orders_and_letters.create", "orders_and_letters.csr_letters"],
   "/sedana-warehouse": ["sedana_warehouse.view", "sedana_warehouse"],
   "/sedana-warehouse/inward/new": ["sedana_warehouse.inward", "sedana_warehouse"],
   "/sedana-warehouse/outbound/new": ["sedana_warehouse.outbound", "sedana_warehouse"],
@@ -357,7 +356,14 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
 
   // BOQ
   { pattern: /^\/boq\/\d+$/, permission: ["quotations", "requests.view_details", "boq", "boq.add", "boq.edit", "boq.delete"] },
-  { pattern: /^\/sedana-quotations\/[^/]+$/, permission: ["sedana_quotations", "sedana_quotations.view"] },
+  { pattern: /^\/sedana-quotations\/[^/]+$/, permission: [
+    "sedana_quotations",
+    "sedana_quotations.view",
+    "sedana_quotations.export_pdf",
+    "sedana_quotations.add",
+    "sedana_quotations.recommend",
+    "sedana_quotations.approve"
+  ] },
 
   // طلبات الصرف
   { pattern: /^\/disbursements\/new$/, permission: "disbursement_requests" },
@@ -380,14 +386,14 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/custody-requests\/[^/]+\/print$/, permission: ["custody_requests", "custody_requests.view"] },
 
   // معاينة وطباعة أمر الشراء
-  { pattern: /^\/requests\/\d+\/purchase-order$/, permission: ["purchase_orders.view", "purchase_orders", "orders_and_letters.view", "orders_and_letters"] },
-  { pattern: /^\/requests\/\d+\/sedana-po$/, permission: ["purchase_orders.view", "purchase_orders", "orders_and_letters.view", "orders_and_letters"] },
-  { pattern: /^\/requests\/\d+\/new-purchase-order$/, permission: ["purchase_orders.add", "purchase_orders", "orders_and_letters.create", "orders_and_letters"] },
+  { pattern: /^\/requests\/\d+\/purchase-order$/, permission: ["purchase_orders.view", "purchase_orders", "orders_and_letters.view", "orders_and_letters.purchase_orders", "orders_and_letters"] },
+  { pattern: /^\/requests\/\d+\/sedana-po$/, permission: ["purchase_orders.view", "purchase_orders", "orders_and_letters.view", "orders_and_letters.purchase_orders", "orders_and_letters"] },
+  { pattern: /^\/requests\/\d+\/new-purchase-order$/, permission: ["purchase_orders.add", "purchase_orders", "orders_and_letters.create", "orders_and_letters.purchase_orders", "orders_and_letters"] },
 
   // خطابات المسؤولية المجتمعية
-  { pattern: /^\/requests\/\d+\/csr-letter$/, permission: ["csr_letters.view", "csr_letters", "orders_and_letters.view", "orders_and_letters"] },
-  { pattern: /^\/requests\/\d+\/sedana-csr$/, permission: ["csr_letters.view", "csr_letters", "orders_and_letters.view", "orders_and_letters"] },
-  { pattern: /^\/requests\/\d+\/new-csr-letter$/, permission: ["csr_letters.add", "csr_letters", "orders_and_letters.create", "orders_and_letters"] },
+  { pattern: /^\/requests\/\d+\/csr-letter$/, permission: ["csr_letters.view", "csr_letters", "orders_and_letters.view", "orders_and_letters.csr_letters", "orders_and_letters"] },
+  { pattern: /^\/requests\/\d+\/sedana-csr$/, permission: ["csr_letters.view", "csr_letters", "orders_and_letters.view", "orders_and_letters.csr_letters", "orders_and_letters"] },
+  { pattern: /^\/requests\/\d+\/new-csr-letter$/, permission: ["csr_letters.add", "csr_letters", "orders_and_letters.create", "orders_and_letters.csr_letters", "orders_and_letters"] },
 
   // المستودع الافتراضي وتنفيذ سدانة
   { pattern: /^\/requests\/\d+\/sedana-execution$/, permission: ["sedana_warehouse.view", "sedana_warehouse"] },

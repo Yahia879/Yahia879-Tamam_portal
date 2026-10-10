@@ -291,21 +291,7 @@ export default function UserPermissions() {
       }
     }
 
-    // منع تفعيل أي صلاحية فرعية لأوامر الشراء إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("purchase_orders.") && permId !== "purchase_orders.view") {
-      if (!isChecked("purchase_orders.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض أوامر الشراء' أولاً");
-        return;
-      }
-    }
 
-    // منع تفعيل أي صلاحية فرعية للمسؤولية المجتمعية إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("csr_letters.") && permId !== "csr_letters.view") {
-      if (!isChecked("csr_letters.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض خطابات المسؤولية المجتمعية' أولاً");
-        return;
-      }
-    }
 
     // منع تفعيل أي صلاحية فرعية للمستودع الافتراضي إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("sedana_warehouse.") && permId !== "sedana_warehouse.view") {
@@ -381,21 +367,7 @@ export default function UserPermissions() {
     }
 
 
-    // منع تفعيل أي صلاحية في قسم أوامر الشراء إلا إذا كانت صلاحية العرض مفعلة
-    if (permId.startsWith("purchase_orders.") && permId !== "purchase_orders.view") {
-      if (!isChecked("purchase_orders.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض أوامر الشراء' أولاً");
-        return;
-      }
-    }
 
-    // منع تفعيل أي صلاحية في قسم المسؤولية المجتمعية إلا إذا كانت صلاحية العرض مفعلة
-    if (permId.startsWith("csr_letters.") && permId !== "csr_letters.view") {
-      if (!isChecked("csr_letters.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض خطابات المسؤولية المجتمعية' أولاً");
-        return;
-      }
-    }
 
     // منع تفعيل أي صلاحية في قسم المستودع الافتراضي إلا إذا كانت صلاحية العرض مفعلة
     if (permId.startsWith("sedana_warehouse.") && permId !== "sedana_warehouse.view") {
@@ -468,6 +440,27 @@ export default function UserPermissions() {
               updated[targetId] = true;
             }
           });
+        } else if (permId.startsWith("purchase_orders.") && permId !== "purchase_orders.view") {
+          const defVal = rolePermissions?.includes("purchase_orders.view") || false;
+          if (defVal) {
+            delete updated["purchase_orders.view"];
+          } else {
+            updated["purchase_orders.view"] = true;
+          }
+        } else if (permId.startsWith("csr_letters.") && permId !== "csr_letters.view") {
+          const defVal = rolePermissions?.includes("csr_letters.view") || false;
+          if (defVal) {
+            delete updated["csr_letters.view"];
+          } else {
+            updated["csr_letters.view"] = true;
+          }
+        } else if (permId.startsWith("sedana_quotations.") && permId !== "sedana_quotations.view") {
+          const defVal = rolePermissions?.includes("sedana_quotations.view") || false;
+          if (defVal) {
+            delete updated["sedana_quotations.view"];
+          } else {
+            updated["sedana_quotations.view"] = true;
+          }
         }
       }
 
@@ -539,6 +532,21 @@ export default function UserPermissions() {
         }
         if (permId === "sedana_requests.view") {
           cascadeRevoke("sedana_requests.");
+        }
+        if (permId === "sedana_quotations.view") {
+          cascadeRevoke("sedana_quotations.");
+        }
+        if (permId.startsWith("sedana_quotations.")) {
+          const allSedanaKeys = ["sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve"];
+          const hasRemaining = allSedanaKeys.some(k => k !== permId && isChecked(k));
+          if (!hasRemaining) {
+            const defVal = rolePermissions?.includes("sedana_quotations.view") || false;
+            if (defVal) {
+              updated["sedana_quotations.view"] = false;
+            } else {
+              delete updated["sedana_quotations.view"];
+            }
+          }
         }
         if (permId === "board_chairman") {
           const defVal = rolePermissions?.includes("board_leadership.remind") || false;
@@ -813,21 +821,17 @@ export default function UserPermissions() {
       purchase_orders: {
         view: "عرض أوامر الشراء",
         add: "إنشاء أمر شراء جديد",
-        approve: "اعتماد أوامر الشراء",
         create_disbursement: "إنشاء أمر صرف لأمر الشراء",
-        export: "تصدير أوامر الشراء إكسيل",
       },
       csr_letters: {
         view: "عرض خطابات المسؤولية المجتمعية",
         add: "إنشاء خطاب مسؤولية مجتمعية جديد",
-        approve: "اعتماد خطابات المسؤولية المجتمعية",
-        create_disbursement: "إنشاء أمر صرف للخطاب",
-        export: "تصدير الخطابات إكسيل",
       },
       custody_requests: {
         view: "عرض قسم العهدة المالية",
       },
       sedana_quotations: {
+        view: "عرض عروض أسعار سدانة",
         export_pdf: "تصدير ملف pdf للبنود",
         add: "اضافة عروض الاسعار",
         recommend: "التوصية",
@@ -1018,8 +1022,8 @@ export default function UserPermissions() {
       modules: [
         { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["export_pdf", "add", "recommend", "approve"] },
         { id: "orders_and_letters", nameAr: "مالية سدانة", icon: ShoppingBag, perms: ["disbursement_orders", "csr_letters", "purchase_orders"] },
-        { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
-        { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "export"] },
+        { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "create_disbursement"] },
+        { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add"] },
         { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound", "confirm_receipt", "print", "export"] },
       ]
     },
@@ -1287,8 +1291,6 @@ export default function UserPermissions() {
 
                             const isDisabled = 
                               (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !isChecked("contracts.view")) ||
-                              (perm.id.startsWith("purchase_orders.") && perm.id !== "purchase_orders.view" && !isChecked("purchase_orders.view")) ||
-                              (perm.id.startsWith("csr_letters.") && perm.id !== "csr_letters.view" && !isChecked("csr_letters.view")) ||
                               (perm.id.startsWith("sedana_warehouse.") && perm.id !== "sedana_warehouse.view" && !isChecked("sedana_warehouse.view")) ||
                               (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && !isChecked("disbursement_orders.view")) ||
                               (perm.id === "board_leadership.remind" && !isChecked("board_chairman")) ||
