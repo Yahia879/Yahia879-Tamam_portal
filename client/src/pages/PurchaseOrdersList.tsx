@@ -132,9 +132,9 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
   const hasPoViewPerm = usePermission("purchase_orders.view");
   const hasPoExportPerm = usePermission("purchase_orders.export");
 
-  const canAddOrder = isSuperAdmin || canAddOrderPerm || canOrdersAndLettersPO;
-  const canCreateDisbursement = isSuperAdmin || hasPoDisbursementPerm || hasOrdersDisbursementPerm;
-  const canExport = isSuperAdmin || hasPoViewPerm || canOrdersAndLettersPO || hasPoExportPerm;
+  const canAddOrder = isSuperAdmin || canAddOrderPerm || (isEmbedded && canOrdersAndLettersPO);
+  const canCreateDisbursement = isSuperAdmin || hasPoDisbursementPerm || (isEmbedded && hasOrdersDisbursementPerm);
+  const canExport = isSuperAdmin || hasPoViewPerm || (isEmbedded && canOrdersAndLettersPO) || hasPoExportPerm;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");

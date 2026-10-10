@@ -49,21 +49,10 @@ export default function CreatePurchaseOrderPage() {
   const canAddOrderPerm = usePermission("purchase_orders.add");
   const canOrdersAndLettersCreate = usePermission("orders_and_letters.create");
   const canOrdersAndLettersPO = usePermission("orders_and_letters.purchase_orders");
-  const canAddOrder = canAddOrderPerm || canOrdersAndLettersCreate || canOrdersAndLettersPO;
-
-  const isExecutiveDirector =
-    user?.role === "general_manager" ||
-    user?.role === "executive_director" ||
-    (user as any)?.customRole?.nameAr === "المدير العام" ||
-    (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
-    (user as any)?.customRole?.nameAr === "الرئيس التنفيذي" ||
-    user?.email === "ceo@manarah.org.sa" ||
-    user?.email === "test10@gmail.com";
-  const isSuperAdmin = user?.role === "super_admin";
-  const isExec = isExecutiveDirector || isSuperAdmin;
-
   const params = useParams<{ id?: string }>();
   const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+  const isFromOrdersAndLetters = searchParams.get("from") === "orders-and-letters" || Boolean(searchParams.get("returnUrl")?.includes("orders-and-letters"));
+  const canAddOrder = canAddOrderPerm || (isFromOrdersAndLetters && (canOrdersAndLettersCreate || canOrdersAndLettersPO));
   const initialRequestId = params.id ? parseInt(params.id, 10) : (searchParams.get("requestId") ? parseInt(searchParams.get("requestId")!, 10) : null);
   const projectId = searchParams.get("projectId") ? parseInt(searchParams.get("projectId")!, 10) : null;
 
