@@ -2448,11 +2448,14 @@ export default function RequestDetailsNew() {
                                   } : undefined)
                                 : {
                                     label: "الانتقال إلى مرحلة الاستلام",
-                                    onClick: () => updateStageMutation.mutate({ requestId, newStage: 'handover' as any }),
+                                    onClick: () => {
+                                      if (request.programType === 'sedana') return;
+                                      updateStageMutation.mutate({ requestId, newStage: 'handover' as any });
+                                    },
                                     variant: 'default' as const,
-                                    disabled: isPendingClosure || (request.programType === 'sedana' ? !canManageSedana : cannotTransitionToHandover) || updateStageMutation.isPending,
+                                    disabled: isPendingClosure || (request.programType === 'sedana' ? true : cannotTransitionToHandover) || updateStageMutation.isPending,
                                     title: request.programType === 'sedana'
-                                      ? (!canManageSedana ? "ليس لديك صلاحية إدارة طلب سدانة للتنقل بين المراحل" : undefined)
+                                      ? "الانتقال إلى مرحلة الاستلام غير متاح حالياً لطلبات سدانة"
                                       : (cannotTransitionToHandover
                                         ? (!hasPayments
                                           ? "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع"
