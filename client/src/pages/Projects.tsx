@@ -85,7 +85,6 @@ export default function Projects() {
   const limit = 20;
 
   const serverPermissions = useUserPermissions();
-  const isSuperAdmin = user?.role === "super_admin";
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
   const canViewDetails = isAdmin || serverPermissions.includes("projects.view_details");
   const canViewFinancials = serverPermissions.includes("projects.financials") || serverPermissions.includes("projects.edit_support_and_fees") || serverPermissions.includes("projects.add_receipt_voucher");
@@ -94,20 +93,13 @@ export default function Projects() {
     isAdmin || 
     serverPermissions.includes("projects.create_multi_mosque");
 
-  // خيارات نوع المشروع: مشاريع سدانة تظهر حصرياً للـ super_admin فقط
+  // خيارات نوع المشروع
   const typeFilterOptions = useMemo(() => [
     { value: "all", label: "جميع أنواع المشاريع" },
-    ...(isSuperAdmin ? [{ value: "sedana", label: "مشاريع برنامج سدانة" }] : []),
+    { value: "sedana", label: "مشاريع برنامج سدانة" },
     { value: "multi", label: "مشاريع متعددة المساجد" },
     { value: "single", label: "مشاريع مفردة (مسجد واحد)" },
-  ], [isSuperAdmin]);
-
-  // إعادة ضبط الفلتر إذا لم يكن المستخدم super_admin
-  useEffect(() => {
-    if (!isSuperAdmin && typeFilter === "sedana") {
-      setTypeFilter("all");
-    }
-  }, [isSuperAdmin, typeFilter]);
+  ], []);
 
   // جلب المشاريع من قاعدة البيانات
   const { data, isLoading } = trpc.projects.search.useQuery({
@@ -118,11 +110,7 @@ export default function Projects() {
     limit,
   });
 
-  const rawProjects = data?.projects || [];
-  // تصفية إضافية لضمان عدم ظهور مشاريع سدانة إلا للـ super_admin
-  const projectsList = isSuperAdmin
-    ? rawProjects
-    : rawProjects.filter((p: any) => p.programType !== "sedana");
+  const projectsList = data?.projects || [];
   const total = data?.total || 0;
   const filteredStats = data?.stats;
   const totalPages = Math.ceil(total / limit);

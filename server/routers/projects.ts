@@ -479,20 +479,7 @@ export const projectsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض سجل المشاريع" });
       }
 
-      const isSuperAdmin = ctx.user?.role === "super_admin";
-
       const conditions = [];
-
-      // مشاريع سدانة تظهر حصرياً للـ super_admin فقط
-      if (!isSuperAdmin) {
-        conditions.push(
-          and(
-            ne(sql`COALESCE(${projects.programType}, ${mosqueRequests.programType})`, "sedana"),
-            or(ne(projects.programType, "sedana"), sql`${projects.programType} IS NULL`)!,
-            or(ne(mosqueRequests.programType, "sedana"), sql`${mosqueRequests.programType} IS NULL`)!
-          )!
-        );
-      }
 
       if (ctx.user?.role === "project_manager") {
         conditions.push(eq(projects.managerId, ctx.user.id));
@@ -501,16 +488,12 @@ export const projectsRouter = router({
         if (input.type === "multi") {
           conditions.push(eq(projects.isMultiMosque, true));
         } else if (input.type === "sedana") {
-          if (!isSuperAdmin) {
-            conditions.push(sql`1 = 0`); // منع ظهور أي مشروع سدانة لغير السوبر أدمن
-          } else {
-            conditions.push(
-              or(
-                eq(projects.programType, "sedana"),
-                eq(mosqueRequests.programType, "sedana")
-              )!
-            );
-          }
+          conditions.push(
+            or(
+              eq(projects.programType, "sedana"),
+              eq(mosqueRequests.programType, "sedana")
+            )!
+          );
         } else if (input.type === "single") {
           conditions.push(
             and(
@@ -552,7 +535,7 @@ export const projectsRouter = router({
           sql`${projects.projectNumber} LIKE ${`%${input.search}%`}`,
           sql`${mosqueRequests.requestNumber} LIKE ${`%${input.search}%`}`,
         ];
-        if (isSearchingSedana && isSuperAdmin) {
+        if (isSearchingSedana) {
           searchConditions.push(
             or(
               eq(projects.programType, "sedana"),
