@@ -842,11 +842,11 @@ export default function NotificationCustomization() {
       ]
     },
 
-    // === مشغلات برنامج سدانة للمستفيد (ضمن قسم الطلبات والمراحل) ===
+    // === مشغلات برنامج سدانة للمستفيد ===
     {
       id: "beneficiary_sedana_inquiry_approved",
-      category: "request",
-      categoryNameAr: "الطلبات والمراحل",
+      category: "sedana",
+      categoryNameAr: "برنامج سدانة",
       nameAr: "اعتماد استبيان الاحتياج",
       description: "إشعار إمام المسجد باعتماد وتأهيل مسجده لبرنامج سدانة وتوقيع الاتفاقية",
       defaultTemplate: "مرحباً {اسم_المستفيد}، يسرنا إبلاغك باعتماد تأهيل {اسم_المسجد} لبرنامج سدانة. يمكنك الآن الدخول وتوقيع الاتفاقية وتقديم طلب الاحتياج السنوي.",
@@ -857,8 +857,8 @@ export default function NotificationCustomization() {
     },
     {
       id: "beneficiary_sedana_inquiry_rejected",
-      category: "request",
-      categoryNameAr: "الطلبات والمراحل",
+      category: "sedana",
+      categoryNameAr: "برنامج سدانة",
       nameAr: "تحديث وتوجيه بشأن استبيان الاحتياج",
       description: "إشعار إمام المسجد بنتائج مراجعة استبيان سدانة وتوجيه الفريق",
       defaultTemplate: "مرحباً {اسم_المستفيد}، نود إفادتك بأنه تمت مراجعة استبيان {اسم_المسجد}: {السبب}",
@@ -870,8 +870,8 @@ export default function NotificationCustomization() {
     },
     {
       id: "beneficiary_sedana_evaluation_approved",
-      category: "request",
-      categoryNameAr: "الطلبات والمراحل",
+      category: "sedana",
+      categoryNameAr: "برنامج سدانة",
       nameAr: "اعتماد دراسة وتدقيق الاحتياج السنوي",
       description: "إشعار المستفيد باعتماد سلة الاحتياج ومعدلات التوريد الدوري لمسجده",
       defaultTemplate: "السلام عليكم {اسم_المستفيد}، تم تدقيق واعتماد سلة الاحتياج السنوي ومعدلات التوريد الدوري لـ {اسم_المسجد} للطلب رقم {رقم_الطلب}.",
@@ -883,8 +883,8 @@ export default function NotificationCustomization() {
     },
     {
       id: "beneficiary_sedana_procurement_approved",
-      category: "request",
-      categoryNameAr: "الطلبات والمراحل",
+      category: "sedana",
+      categoryNameAr: "برنامج سدانة",
       nameAr: "اعتماد مسار تأمين المستلزمات",
       description: "إشعار المستفيد باكتمال إجراءات التأمين والانتقال للتشغيل والتنفيذ",
       defaultTemplate: "تم اعتماد مسار تأمين مستلزمات سدانة لطلبك رقم {رقم_الطلب} والانتقال لمرحلة التشغيل والتنفيذ الميداني.",
@@ -895,8 +895,8 @@ export default function NotificationCustomization() {
     },
     {
       id: "beneficiary_sedana_outbound_dispatched",
-      category: "request",
-      categoryNameAr: "الطلبات والمراحل",
+      category: "sedana",
+      categoryNameAr: "برنامج سدانة",
       nameAr: "انطلاق وجدولة شحنة المستلزمات",
       description: "إشعار إمام المسجد بجدولة وتجهيز شحنة المواد النظافة والتعطير في طريقها للمسجد",
       defaultTemplate: "السلام عليكم {اسم_المستفيد}، تم تجهيز وجدولة شحنة مستلزمات سدانة رقم \"{رقم_الشحنة}\" لـ {اسم_المسجد} بتاريخ {تاريخ_التسليم}. يرجى التكرم بالاستلام والتأكيد فور وصولها.",
@@ -909,8 +909,8 @@ export default function NotificationCustomization() {
     },
     {
       id: "beneficiary_sedana_delivery_confirmed",
-      category: "request",
-      categoryNameAr: "الطلبات والمراحل",
+      category: "sedana",
+      categoryNameAr: "برنامج سدانة",
       nameAr: "شكر وتوثيق استلام الشحنة",
       description: "رسالة شكر وتوثيق للمستفيد بعد توقيعه وتأكيده استلام شحنة المواد",
       defaultTemplate: "شكراً لتعاونكم إمام {اسم_المسجد}، تم توثيق استلام شحنة مستلزمات سدانة رقم \"{رقم_الشحنة}\" بنجاح وتقييمكم المعتمد. نسأل الله أن يتقبل من الجميع.",
@@ -921,8 +921,8 @@ export default function NotificationCustomization() {
     },
     {
       id: "beneficiary_sedana_cycle_reminder",
-      category: "request",
-      categoryNameAr: "الطلبات والمراحل",
+      category: "sedana",
+      categoryNameAr: "برنامج سدانة",
       nameAr: "تذكير بموعد الدفعة الدورية القادمة",
       description: "إشعار المستفيد باقتراب موعد استحقاق التوريد الدوري الجديد للمسجد",
       defaultTemplate: "السلام عليكم {اسم_المستفيد}، نود إحاطتكم باقتراب موعد استحقاق الدفعة القادمة من مستلزمات النظافة والتعطير لـ {اسم_المسجد}.",
@@ -933,8 +933,8 @@ export default function NotificationCustomization() {
     },
     {
       id: "beneficiary_sedana_handover",
-      category: "request",
-      categoryNameAr: "الطلبات والمراحل",
+      category: "sedana",
+      categoryNameAr: "برنامج سدانة",
       nameAr: "اكتمال التوريدات والتشغيل النهائي",
       description: "إشعار المستفيد باستيفاء كافة بنود التوريد ونقل الطلب لمرحلة التسليم النهائي",
       defaultTemplate: "تم الانتهاء من أعمال التوريد والتشغيل والانتقال لمرحلة التسليم النهائي للطلب رقم {رقم_الطلب} لـ {اسم_المسجد}.",
@@ -1322,10 +1322,10 @@ export default function NotificationCustomization() {
       ]
     },
 
-    // === مشغلات برنامج سدانة والمستودع الافتراضي (ضمن قسم الطلبات والمساجد) ===
+    // === مشغلات برنامج سدانة والمستودع الافتراضي ===
     {
       id: "sedana_inquiry_submitted",
-      category: "request",
+      category: "sedana",
       nameAr: "تقديم استبيان احتياج جديد من إمام المسجد",
       description: "قام إمام المسجد بتقديم استبيان تأهيل جديد لمسجده بانتظار المراجعة والتدقيق",
       defaultTemplate: "قام إمام {اسم_المسجد} بتقديم استبيان احتياج جديد وهو بانتظار المراجعة والتدقيق",
@@ -1335,7 +1335,7 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_request_created",
-      category: "request",
+      category: "sedana",
       nameAr: "تقديم طلب رعاية وتشغيل جديد",
       description: "تم تقديم طلب رعاية وتشغيل جديد بانتظار دراسة وتدقيق الاحتياج المكتبي",
       defaultTemplate: "تم تقديم طلب رعاية وتشغيل جديد رقم {رقم_الطلب} لـ {اسم_المسجد} وهو بانتظار دراسة الاحتياج المكتبي",
@@ -1346,7 +1346,7 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_evaluation_approved",
-      category: "request",
+      category: "sedana",
       nameAr: "اعتماد دراسة وتدقيق الاحتياج السنوي",
       description: "قام المسؤول باعتماد الخطة السنوية والكميات الدورية للطلب",
       defaultTemplate: "قام المسؤول {اسم_المسؤول} باعتماد دراسة وتدقيق الاحتياج السنوي للطلب رقم {رقم_الطلب} لـ {اسم_المسجد}",
@@ -1358,7 +1358,7 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_po_created",
-      category: "request",
+      category: "sedana",
       nameAr: "إصدار أمر شراء مستلزمات",
       description: "تم إصدار أمر شراء معتمد لتأمين المستلزمات",
       defaultTemplate: "تم إصدار أمر شراء جديد رقم \"{رقم_الأمر}\" لتأمين المستلزمات للطلب رقم {رقم_الطلب} بقيمة {القيمة} ريال",
@@ -1370,7 +1370,7 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_csr_created",
-      category: "request",
+      category: "sedana",
       nameAr: "إصدار خطاب مسؤولية مجتمعية للشريك",
       description: "تم إصدار خطاب شراكة مجتمعية موجه لشركاء الدعم لتوريد المستلزمات",
       defaultTemplate: "تم إصدار خطاب مسؤولية مجتمعية رقم \"{رقم_الخطاب}\" للشريك \"{اسم_الشريك}\" لتوريد المستلزمات للطلب رقم {رقم_الطلب}",
@@ -1382,7 +1382,7 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_inward_received",
-      category: "request",
+      category: "sedana",
       nameAr: "تسجيل إذن إدخال مستودعي للمستلزمات",
       description: "تم توريد وإدخال بضائع ومواد إلى المستودع الافتراضي بعد صرف المستحقات",
       defaultTemplate: "تم تسجيل إذن إدخال مستودعي رقم \"{رقم_الإذن}\" بعدد {عدد_البنود} بنود لمستلزمات الطلب رقم {رقم_الطلب} لـ {اسم_المسجد}",
@@ -1395,7 +1395,7 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_outbound_created",
-      category: "request",
+      category: "sedana",
       nameAr: "إصدار أمر صرف وتجهيز الشحنة",
       description: "تم تجهيز وجدولة أمر خروج مواد مع مسوغ الصرف لتسليمها للمسجد",
       defaultTemplate: "تم إصدار أمر صرف وتوزيع مجدول رقم \"{رقم_الأمر}\" للمستلزمات لـ {اسم_المسجد} ومسوغ صرف {مسوغ_الصرف}",
@@ -1407,7 +1407,7 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_delivery_confirmed",
-      category: "request",
+      category: "sedana",
       nameAr: "تأكيد إمام المسجد استلام الشحنة بنجاح",
       description: "قام إمام المسجد بتوقيع إثبات الاستلام وتقييم جودة الخدمة",
       defaultTemplate: "قام إمام {اسم_المسجد} بتأكيد استلام شحنة المستلزمات رقم \"{رقم_الشحنة}\" بنجاح مع تقييم الخدمة {التقييم} من 5 نجوم",
@@ -1419,7 +1419,7 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_delivery_rejected",
-      category: "request",
+      category: "sedana",
       nameAr: "رفض إمام المسجد استلام الشحنة",
       description: "إشعار تحذيري برفض إمام المسجد استلام المواد مع بيان السبب",
       defaultTemplate: "قام إمام {اسم_المسجد} برفض استلام شحنة المستلزمات رقم \"{رقم_الشحنة}\" بسبب: {السبب}",
@@ -1431,7 +1431,7 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_cycle_reminder",
-      category: "request",
+      category: "sedana",
       nameAr: "تذكير دوري بحلول دورة التوريد القادمة",
       description: "تنبيه موظفي العمليات بحلول موعد التوريد المجدول القادم لتجهيز المواد",
       defaultTemplate: "تذكير: اقترب موعد دورة التوريد القادمة لـ {اسم_المسجد} للطلب رقم {رقم_الطلب}. يرجى مراجعة المخزون وتجهيز أمر الصرف",
@@ -1442,7 +1442,7 @@ export default function NotificationCustomization() {
     },
     {
       id: "sedana_handover_submitted",
-      category: "request",
+      category: "sedana",
       nameAr: "تسليم الطلب ونقله لمرحلة التسليم النهائي",
       description: "تم التحقق من استيفاء الدفعات والتوريدات ونقل الطلب لمرحلة التسليم",
       defaultTemplate: "تم نقل الطلب رقم {رقم_الطلب} لـ {اسم_المسجد} إلى مرحلة التسليم النهائي بعد استيفاء التوريدات",
@@ -2227,6 +2227,63 @@ export default function NotificationCustomization() {
                         );
                       })}
 
+                      {/* === برنامج سدانة === */}
+                      <TableRow className="bg-slate-50/50 dark:bg-slate-900/30 hover:bg-transparent">
+                        <TableCell colSpan={3} className="py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40 border-t">
+                          برنامج سدانة
+                        </TableCell>
+                      </TableRow>
+                      {NOTIFICATION_TRIGGERS.filter(t => t.category === "sedana").map(trig => {
+                        const inAppState = getTriggerChannelState(trig.id, 'in_app');
+                        const emailState = getTriggerChannelState(trig.id, 'email');
+                        const whatsappState = getTriggerChannelState(trig.id, 'whatsapp');
+                        const smsState = getTriggerChannelState(trig.id, 'sms');
+
+                        return (
+                          <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
+                            <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
+                              <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
+                              {renderTruncatedPreview(trig.id)}
+                            </TableCell>
+                            <TableCell className="text-center py-3 sm:py-4">
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-7 w-7 text-teal-650 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/90 hover:text-teal-700 dark:bg-teal-950/20 dark:hover:bg-teal-950/40 border border-teal-100/30 dark:border-teal-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
+                                      onClick={() => handleOpenEditTemplateModal(trig)}
+                                      type="button"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">
+                                    <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </TableCell>
+                            <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
+                              <ChannelToggles
+                                inApp={inAppState.enabled}
+                                whatsapp={whatsappState.enabled}
+                                sms={smsState.enabled}
+                                email={emailState.enabled}
+                                onToggle={(channel, val) => handleToggleTriggerSetting(trig.id, channel, val)}
+                                inherited={{
+                                  inApp: inAppState.isInherited,
+                                  whatsapp: whatsappState.isInherited,
+                                  sms: smsState.isInherited,
+                                  email: emailState.isInherited,
+                                }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+
                       {/* === قسم المالية والعقود === */}
                       <TableRow className="bg-slate-50/50 dark:bg-slate-900/30 hover:bg-transparent">
                         <TableCell colSpan={3} className="py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40 border-t">
@@ -2400,6 +2457,10 @@ export default function NotificationCustomization() {
                 {
                   title: "قسم الطلبات والمراحل",
                   triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "request")
+                },
+                {
+                  title: "برنامج سدانة",
+                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "sedana")
                 },
                 {
                   title: "قسم طلبات الاستثناء",
