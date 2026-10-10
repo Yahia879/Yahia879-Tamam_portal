@@ -150,6 +150,35 @@ export function QuotationsView({
   // اعتماد عروض الأسعار يظل من اختصاص المدير التنفيذي فقط دون مسؤول المشتريات
   const canApproveQuotations = !isProcurementOfficer && (isExecDirector || isSystemAdmin);
 
+  // جلب صلاحيات المستخدم للتحكم الدقيق بصلاحيات عروض أسعار سدانة
+  const { data: userPermissions = [] } = trpc.permissions.getUserPermissions.useQuery(
+    user?.id ? { userId: user.id } : ({} as any)
+  );
+
+  const isSuperOrSystemAdmin = ["super_admin", "system_admin"].includes(user?.role || "") || (userPermissions as string[]).includes("*");
+
+  const canExportSedanaPdf =
+    isSuperOrSystemAdmin ||
+    (userPermissions as string[]).includes("sedana_quotations.export_pdf");
+
+  const canAddSedanaQuotation =
+    isSuperOrSystemAdmin ||
+    (userPermissions as string[]).includes("sedana_quotations.add");
+
+  const canRecommendSedana =
+    isSuperOrSystemAdmin ||
+    (userPermissions as string[]).includes("sedana_quotations.recommend");
+
+  const canViewSedanaInQuotations = (userPermissions as string[]).includes("quotations.view_sedana") || (userPermissions as string[]).includes("*");
+  const canApproveSedanaQuotations = (userPermissions as string[]).includes("sedana_quotations.approve") || (userPermissions as string[]).includes("*");
+  const canViewSedanaQuotations =
+    canViewSedanaInQuotations ||
+    (userPermissions as string[]).includes("sedana_quotations.view") ||
+    (userPermissions as string[]).includes("sedana_quotations.export_pdf") ||
+    (userPermissions as string[]).includes("sedana_quotations.add") ||
+    (userPermissions as string[]).includes("sedana_quotations.recommend") ||
+    (userPermissions as string[]).includes("sedana_quotations.approve");
+
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showAddLinkDialog, setShowAddLinkDialog] = useState(false);
   const [linkName, setLinkName] = useState("");
@@ -264,7 +293,15 @@ export function QuotationsView({
     return "غير محدد";
   };
 
-  const allRequestsList = requests?.requests || [];
+  const allRequestsList = useMemo(() => {
+    const raw = requests?.requests || [];
+    if (canViewSedanaInQuotations) return raw;
+    return raw.filter((r: any) => 
+      r.programType !== "sedana" && 
+      !r.isSedana && 
+      !(typeof r.requestNumber === "string" && r.requestNumber.includes("-SED-"))
+    );
+  }, [requests?.requests, canViewSedanaInQuotations]);
 
   const displayedRequestsList = useMemo(() => {
     if (!selectedRequestId) return allRequestsList;
@@ -273,6 +310,12 @@ export function QuotationsView({
     if (singleRequestData) {
       const targetReq = (singleRequestData as any).request || singleRequestData;
       if (targetReq && targetReq.id) {
+        if (
+          !canViewSedanaInQuotations &&
+          (targetReq.programType === "sedana" || targetReq.isSedana || (typeof targetReq.requestNumber === "string" && targetReq.requestNumber.includes("-SED-")))
+        ) {
+          return allRequestsList;
+        }
         // إذا كان الطلب المحدد قد تم اعتماده مسبقاً وانتقل لمرحلة أخرى (وليس في مرحلة التقييم المالي)،
         // فلا يتم عرضه كطلب نشط في عروض الأسعار العادية فقط (أما في سدانة أو الوضع المضمن فيُعرض دائماً)
         if (
@@ -357,6 +400,7 @@ export function QuotationsView({
   }, [isSedanaProgram, currentSelectedRequest]);
 
   const isSuppliersReadOnly = isPastFinancialEval || Boolean(readOnlySuppliers);
+  const isAwardingReadOnly = isSuppliersReadOnly || (isSedanaProgram && !canRecommendSedana);
 
   const allQuotations = useMemo(() => quotationsData?.quotations ?? [], [quotationsData?.quotations]);
   const hasAcceptedQuotation = useMemo(() => {
@@ -431,7 +475,12 @@ export function QuotationsView({
         utils.projects.getQuotationsByRequest.invalidate({ requestId: parseInt(selectedRequestId) });
       }
       setSelectedRequestId("");
-      window.history.replaceState({}, "", "/quotations");
+      if (window.location.pathname.includes("sedana-quotations")) {
+        window.history.replaceState({}, "", "/sedana-quotations");
+        if (onBack) onBack();
+      } else {
+        window.history.replaceState({}, "", "/quotations");
+      }
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء اعتماد عروض الموردين");
@@ -1986,10 +2035,12 @@ export function QuotationsView({
             )}
             {selectedRequestId && (
               <div className="mt-4 flex justify-end gap-3">
-                <Button onClick={() => setShowAddDialog(true)}>
-                  <Plus className="h-4 w-4 ml-2" />
-                  إضافة عرض سعر للطلب المحدد
-                </Button>
+                {(!isSedanaProgram || canAddSedanaQuotation) && (
+                  <Button onClick={() => setShowAddDialog(true)}>
+                    <Plus className="h-4 w-4 ml-2" />
+                    إضافة عرض سعر للطلب المحدد
+                  </Button>
+                )}
                 <Button variant="outline" onClick={() => setShowAddLinkDialog(true)}>
                   <Link2 className="h-4 w-4 ml-2" />
                   إضافة رابط
@@ -2002,7 +2053,13 @@ export function QuotationsView({
     )}
 
         {/* عرض جدول الكميات وتحديد الموردين للطلب المحدد */}
-        {selectedRequestId && (
+        {selectedRequestId && isSedanaProgram && !canViewSedanaQuotations ? (
+          <Card className="mt-4 border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 text-center p-8">
+            <AlertCircle className="h-10 w-10 text-amber-600 mx-auto mb-3" />
+            <h3 className="font-bold text-base mb-1">غير مصرح لك بعرض عروض أسعار سدانة</h3>
+            <p className="text-xs text-muted-foreground">تحتاج إلى صلاحية "عرض عروض أسعار سدانة" للاطلاع على عروض الأسعار لهذا الطلب.</p>
+          </Card>
+        ) : selectedRequestId && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
               <div>
@@ -2019,16 +2076,18 @@ export function QuotationsView({
               <div className="flex items-center gap-2 flex-wrap">
                 {isSedanaProgram ? (
                   <>
-                    <Button
-                      onClick={() => setShowExportPdfModal(true)}
-                      size="sm"
-                      variant="outline"
-                      className="border-cyan-600 text-cyan-700 hover:bg-cyan-50 hover:text-cyan-800 dark:border-cyan-500 dark:text-cyan-300 dark:hover:bg-cyan-950/40 font-bold text-xs h-8 px-3 gap-1.5 shadow-xs transition-colors"
-                    >
-                      <FileDown className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
-                      تصدير ملف PDF للبنود
-                    </Button>
-                    {!isSuppliersReadOnly && (
+                    {canExportSedanaPdf && (
+                      <Button
+                        onClick={() => setShowExportPdfModal(true)}
+                        size="sm"
+                        variant="outline"
+                        className="border-cyan-600 text-cyan-700 hover:bg-cyan-50 hover:text-cyan-800 dark:border-cyan-500 dark:text-cyan-300 dark:hover:bg-cyan-950/40 font-bold text-xs h-8 px-3 gap-1.5 shadow-xs transition-colors"
+                      >
+                        <FileDown className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+                        تصدير ملف PDF للبنود
+                      </Button>
+                    )}
+                    {!isSuppliersReadOnly && canAddSedanaQuotation && (
                       <Button
                         onClick={() => setShowAddDialog(true)}
                         size="sm"
@@ -2194,7 +2253,7 @@ export function QuotationsView({
                                       {vendor.awardedTotal.toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3 inline" />
                                     </span>
                                   </div>
-                                   {!isSuppliersReadOnly && (
+                                   {!isAwardingReadOnly && (
                                      <div className="flex items-center gap-1.5">
                                        {vendor.awardedCount < vendor.offeredCount && (
                                          <Button
@@ -2390,7 +2449,7 @@ export function QuotationsView({
                                             {vOffer && hasOffer ? (
                                             <div
                                               onClick={() => {
-                                                if (isSuppliersReadOnly) return;
+                                                if (isAwardingReadOnly) return;
                                                 setSelectedWinningVendors(prev => {
                                                   const updated = { ...prev };
                                                   if (isSelected) {
@@ -2403,7 +2462,7 @@ export function QuotationsView({
                                               }}
                                               className={cn(
                                                 "p-2 rounded-lg border text-center transition-all duration-150 select-none group",
-                                                isSuppliersReadOnly ? "cursor-default" : "cursor-pointer",
+                                                isAwardingReadOnly ? "cursor-default" : "cursor-pointer",
                                                 isSelected
                                                   ? "bg-cyan-50 dark:bg-cyan-950/40 border-cyan-500 ring-2 ring-cyan-500/80 shadow-2xs"
                                                   : isLowest
@@ -2455,7 +2514,7 @@ export function QuotationsView({
                                             <span className="font-bold text-xs text-cyan-800 dark:text-cyan-200 truncate" title={currentWinningOffer.quotation.supplierName}>
                                               {currentWinningOffer.quotation.supplierName || "المورد المعتمد"}
                                             </span>
-                                            {!isSuppliersReadOnly && (
+                                            {!isAwardingReadOnly && (
                                               <button
                                                 onClick={() => {
                                                   setSelectedWinningVendors(prev => {
@@ -2570,9 +2629,9 @@ export function QuotationsView({
                                       <div className="space-y-1.5">
                                         <Select
                                           value={selectedQuotationId ? String(selectedQuotationId) : ""}
-                                          disabled={isSuppliersReadOnly}
+                                          disabled={isAwardingReadOnly}
                                           onValueChange={(val) => {
-                                            if (isSuppliersReadOnly) return;
+                                            if (isAwardingReadOnly) return;
                                             setSelectedWinningVendors(prev => ({
                                               ...prev,
                                               [item.id]: parseInt(val)
@@ -2607,7 +2666,7 @@ export function QuotationsView({
                                         </Select>
 
                                         {/* زر سريع لاختيار الأقل سعراً إذا لم يكن محدداً */}
-                                        {!isSuppliersReadOnly && lowestOffer && selectedQuotationId !== lowestOffer.quotation.id && (
+                                        {!isAwardingReadOnly && lowestOffer && selectedQuotationId !== lowestOffer.quotation.id && (
                                           <button
                                             type="button"
                                             onClick={() => {
@@ -2702,7 +2761,8 @@ export function QuotationsView({
                           </span>
                         </div>
 
-                        {!hideAwardButton && !isSuppliersReadOnly && !window.location.pathname.includes("sedana-quotations") && canApproveQuotations ? (
+                        {((isSedanaProgram && canApproveSedanaQuotations && !isSuppliersReadOnly) ||
+                          (!isSedanaProgram && !hideAwardButton && !isAwardingReadOnly && !window.location.pathname.includes("sedana-quotations") && canApproveQuotations)) ? (
                           <Button
                             onClick={handleApproveItemSelections}
                             disabled={approveSedanaMultiVendorMutation.isPending || assignedItemsCount === 0}
@@ -3089,10 +3149,12 @@ export function QuotationsView({
                         <h3 className="text-lg font-semibold mb-2">لا توجد عروض أسعار مسجلة</h3>
                         <p className="text-muted-foreground mb-6">يرجى إضافة عروض الأسعار أو مراجعة روابط عروض الأسعار الخارجية المرفقة أعلاه.</p>
                           <div className="flex gap-3 justify-center">
-                            <Button onClick={() => setShowAddDialog(true)}>
-                              <Plus className="h-4 w-4 ml-2" />
-                              إضافة أول عرض سعر
-                            </Button>
+                            {(!isSedanaProgram || canAddSedanaQuotation) && (
+                              <Button onClick={() => setShowAddDialog(true)}>
+                                <Plus className="h-4 w-4 ml-2" />
+                                إضافة أول عرض سعر
+                              </Button>
+                            )}
                             {linkQuotations.length === 0 && (
                               <Button
                                 variant="outline"

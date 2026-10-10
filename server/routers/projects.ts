@@ -3269,12 +3269,17 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // اعتماد وترسية عروض الأسعار يظل من اختصاص المدير التنفيذي فقط دون مسؤول المشتريات
-      const isExecOrAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role);
-      if (!isExecOrAdmin || ctx.user.role === "procurement_officer") {
+      // التحقق من صلاحية اعتماد عروض أسعار سدانة
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const hasApprovePerm =
+        userPerms.includes("sedana_quotations.approve") ||
+        userPerms.includes("*") ||
+        (["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role) && ctx.user.role !== "procurement_officer");
+      if (!hasApprovePerm) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "اعتماد وترسية عروض الأسعار من اختصاص المدير التنفيذي فقط دون مسؤول المشتريات"
+          message: "ليس لديك صلاحية اعتماد عروض أسعار سدانة"
         });
       }
 

@@ -187,12 +187,17 @@ export default function Requests({
   const isEn = user?.role === "quick_response" && lang === "en";
   const userPermissions = (user as any)?.permissions ?? [];
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const canViewSedana = isAdmin || userPermissions.includes("sedana_requests.view") || userPermissions.includes("sedana_requests.manage");
+  const canViewGeneral = isAdmin || userPermissions.includes("requests.view") || userPermissions.includes("requests.view_details") || userPermissions.includes("*");
   const isExecutiveDirector = ["executive_director", "general_manager"].includes(user?.role || "");
   const canViewDetails = isAdmin || 
                          userPermissions.includes("requests.view_details") || 
                          userPermissions.includes("requests.manage_as_field_team") ||
                          userPermissions.includes("requests.manage_as_quick_response") ||
-                         userPermissions.includes("requests.upload_final_report");
+                         userPermissions.includes("requests.upload_final_report") ||
+                         userPermissions.includes("sedana_requests.view") ||
+                         userPermissions.includes("sedana_requests.desk_review") ||
+                         userPermissions.includes("sedana_requests.manage");
 
   // عدد الطلبات التي بانتظار تأكيد الإغلاق من المدير التنفيذي
   const { data: pendingClosureData } = trpc.requests.getPendingClosureCount.useQuery(undefined, {
@@ -246,7 +251,7 @@ export default function Requests({
     
     const program = params.get("program");
     if (program && (PROGRAM_LABELS[program] || program === "all")) {
-      if (program === "sedana" && !isAdmin) {
+      if (program === "sedana" && !canViewSedana) {
         setProgramFilter("all");
       } else {
         setProgramFilter(program);
@@ -277,12 +282,12 @@ export default function Requests({
       resetPage();
     }
     isFirstMount.current = false;
-  }, [searchParamsStr, isAdmin, resetPage, setPage]);
+  }, [searchParamsStr, canViewSedana, resetPage, setPage]);
 
   const { data: requestsData, isLoading } = trpc.requests.search.useQuery({
     search: search || undefined,
-    programType: (!isAdmin && programFilter === "sedana") ? undefined : (programFilter !== "all" ? programFilter as any : undefined),
-    excludeSedana: !isAdmin,
+    programType: (!canViewSedana && programFilter === "sedana") ? undefined : (!canViewGeneral && canViewSedana && programFilter === "all" ? "sedana" as any : (programFilter !== "all" ? programFilter as any : undefined)),
+    excludeSedana: !canViewSedana,
     status: statusFilter !== "all" ? statusFilter as any : undefined,
     currentStage: stageFilter !== "all" ? stageFilter as any : undefined,
     closureStatusFilter: closureFilter !== "all" ? closureFilter : undefined,
@@ -293,7 +298,9 @@ export default function Requests({
   });
 
   const rawRequests = requestsData?.requests || [];
-  const requests = isAdmin ? rawRequests : rawRequests.filter((r: any) => (r.request?.programType || r.programType) !== "sedana");
+  const requests = canViewSedana
+    ? (canViewGeneral ? rawRequests : rawRequests.filter((r: any) => (r.request?.programType || r.programType) === "sedana"))
+    : rawRequests.filter((r: any) => (r.request?.programType || r.programType) !== "sedana");
   const total = requestsData?.total || 0;
   const totalPages = Math.ceil(total / limit);
 
@@ -476,7 +483,7 @@ export default function Requests({
                     <SelectContent>
                       <SelectItem value="all">{isEn ? "All Programs" : "جميع البرامج"}</SelectItem>
                       {Object.entries(PROGRAM_LABELS)
-                        .filter(([key]) => isAdmin || key !== "sedana")
+                        .filter(([key]) => canViewGeneral ? (canViewSedana || key !== "sedana") : (key === "sedana" && canViewSedana))
                         .map(([key]) => (
                         <SelectItem key={key} value={key}>{translateProgram(key)}</SelectItem>
                       ))}

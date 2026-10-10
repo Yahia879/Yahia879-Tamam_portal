@@ -140,6 +140,10 @@ export function getActiveAction(
         redirectUrl: "/requests/:requestId/procurement",
       };
     }
+
+    const hasSedanaManage = Boolean((userRole && ['super_admin', 'system_admin'].includes(userRole)) || userPerms.includes("sedana_requests.manage") || userPerms.includes("*"));
+    hasRole = hasSedanaManage;
+    isAssignedToUser = hasSedanaManage;
   }
 
   const canPerformAction = Boolean(hasRole && isAssignedToUser);

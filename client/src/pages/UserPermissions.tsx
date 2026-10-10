@@ -54,7 +54,8 @@ import {
   ShieldAlert,
   ShoppingCart,
   ShoppingBag,
-  Boxes
+  Boxes,
+  Sparkles
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import DashboardLayout from "../components/DashboardLayout";
@@ -314,6 +315,14 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية لطلبات سدانة إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("sedana_requests.") && permId !== "sedana_requests.view") {
+      if (!isChecked("sedana_requests.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض طلبات سدانة' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية للتقارير إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("reports.") && permId !== "reports.view_stats") {
       if (!isChecked("reports.view_stats")) {
@@ -527,6 +536,9 @@ export default function UserPermissions() {
         }
         if (permId === "sedana_warehouse.view") {
           cascadeRevoke("sedana_warehouse.");
+        }
+        if (permId === "sedana_requests.view") {
+          cascadeRevoke("sedana_requests.");
         }
         if (permId === "board_chairman") {
           const defVal = rolePermissions?.includes("board_leadership.remind") || false;
@@ -775,6 +787,7 @@ export default function UserPermissions() {
       },
       quotations: {
         view: "عرض قائمة عروض الأسعار",
+        view_sedana: "عرض عروض أسعار سدانة",
         add: "إضافة عرض سعر",
         approve: "الاعتمادات (اعتماد عروض الأسعار)"
       },
@@ -815,7 +828,10 @@ export default function UserPermissions() {
         view: "عرض قسم العهدة المالية",
       },
       sedana_quotations: {
-        view: "عرض قسم عروض أسعار سدانة",
+        export_pdf: "تصدير ملف pdf للبنود",
+        add: "اضافة عروض الاسعار",
+        recommend: "التوصية",
+        approve: "اعتماد عروض الاسعار",
       },
       sedana_warehouse: {
         view: "عرض المستودع الافتراضي",
@@ -824,6 +840,11 @@ export default function UserPermissions() {
         confirm_receipt: "اعتماد وتأكيد الاستلام",
         print: "معاينة وطباعة محاضر وأوامر التسليم",
         export: "تصدير بيانات المستودع إكسيل",
+      },
+      sedana_requests: {
+        view: "عرض طلبات سدانة",
+        desk_review: "مراجعة الطلب مكتبيا",
+        manage: "ادارة طلب سدانة",
       },
       disbursements: {
         view: "عرض طلبات الصرف",
@@ -961,6 +982,7 @@ export default function UserPermissions() {
           icon: Zap, 
           perms: ["view", "create", "view_details", "add_review_note", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"]
         },
+        { id: "sedana_requests", nameAr: "طلبات سدانة", icon: Sparkles, perms: ["view", "desk_review", "manage"] },
         { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["view"] },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
@@ -981,7 +1003,7 @@ export default function UserPermissions() {
       modules: [
         { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "edit", "approve"] },
         { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
-        { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
+        { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
@@ -994,7 +1016,7 @@ export default function UserPermissions() {
     {
       title: "إدارة المخزون",
       modules: [
-        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view"] },
+        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["export_pdf", "add", "recommend", "approve"] },
         { id: "orders_and_letters", nameAr: "مالية سدانة", icon: ShoppingBag, perms: ["disbursement_orders", "csr_letters", "purchase_orders"] },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "export"] },

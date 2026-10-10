@@ -80,6 +80,7 @@ export default function RequestDetailsNew() {
   const hasCustomRole = !!(user as any)?.customRole || (!!userRole && !isBaseRole);
   const userPermissions: string[] = (user as any)?.permissions ?? [];
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const canManageSedana = isAdmin || userPermissions.includes("sedana_requests.manage") || userPermissions.includes("*");
   const isExecutiveDirector = ["executive_director", "general_manager"].includes(user?.role || "");
   const canAssignAdmin = Boolean(
     user && (
@@ -1129,6 +1130,11 @@ export default function RequestDetailsNew() {
     
     if (request.closureStatus === 'pending_confirmation') {
       toast.error(isEn ? "Cannot progress request stages while awaiting closure confirmation" : "لا يمكن الانتقال بين المراحل أو متابعة الطلب أثناء انتظار قرار إغلاق الطلب من المدير التنفيذي");
+      return;
+    }
+
+    if (request.programType === 'sedana' && !canManageSedana) {
+      toast.error("ليس لديك صلاحية إدارة طلب سدانة للتنقل بين المراحل");
       return;
     }
     
@@ -2289,7 +2295,9 @@ export default function RequestDetailsNew() {
                           : undefined
                       }
                       detailsButton={
-                        request.programType === 'sedana' && ['submitted', 'initial_review'].includes(request.currentStage)
+                        request.programType === 'sedana' &&
+                        ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage) &&
+                        (isAdmin || userPermissions.includes("sedana_requests.desk_review") || userPermissions.includes("*"))
                           ? {
                               label: 'عرض التفاصيل',
                               onClick: () => setLocation(`/requests/${requestId}/sedana-evaluation`),
@@ -2317,7 +2325,8 @@ export default function RequestDetailsNew() {
                         (
                           request.currentStage !== 'technical_eval' ||
                           translatedAction.actionButton.openModal === 'field_visit_report' ||
-                          translatedAction.actionButton.openModal === 'quick_response_report'
+                          translatedAction.actionButton.openModal === 'quick_response_report' ||
+                          request.programType === 'sedana'
                         )
                           ? {
                               label: isPendingClosure
@@ -2334,9 +2343,19 @@ export default function RequestDetailsNew() {
                               onClick: isPendingClosure
                                 ? () => toast.warning(isEn ? "Request workflow is paused awaiting executive closure confirmation" : "مراحل وسير عمل الطلب متوقفة بانتظار قرار إغلاق الطلب من المدير التنفيذي")
                                 : (request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage)
-                                  ? () => updateStageMutation.mutate({ requestId, newStage: 'financial_eval_and_approval' as any })
+                                  ? () => {
+                                      if (!canManageSedana) {
+                                        toast.error("ليس لديك صلاحية إدارة طلب سدانة للتنقل بين المراحل");
+                                        return;
+                                      }
+                                      updateStageMutation.mutate({ requestId, newStage: 'financial_eval_and_approval' as any });
+                                    }
                                   : (request.programType === 'sedana' && request.currentStage === 'financial_eval_and_approval'
                                     ? () => {
+                                        if (!canManageSedana) {
+                                          toast.error("ليس لديك صلاحية إدارة طلب سدانة للتنقل بين المراحل");
+                                          return;
+                                        }
                                         if (!isSedanaFullyAwarded) {
                                           toast.error("يرجى ترسية واعتماد عروض أسعار لجميع بنود جدول الكميات أولاً من صفحة عروض الأسعار");
                                           setLocation(`/quotations?requestId=${requestId}`);
@@ -2351,6 +2370,7 @@ export default function RequestDetailsNew() {
                                         : (translatedAction.actionButton as any).onClick || handleStageTransition)))),
                               disabled: isPendingClosure || 
                                         !translatedAction.canPerformAction || 
+                                        (request.programType === 'sedana' && !canManageSedana) ||
                                         updateStageMutation.isPending || 
                                         (request.currentStage === 'initial_review' && request.programType !== 'sedana' && !request.reviewCompleted) ||
                                         (request.programType === 'sedana' && request.currentStage === 'financial_eval_and_approval' && !isSedanaFullyAwarded),
@@ -2380,10 +2400,14 @@ export default function RequestDetailsNew() {
                               onClick: () => setLocation(`/quotations?requestId=${requestId}`),
                               variant: 'outline' as const,
                             }
-                          : request.currentStage === 'contracting' && request.programType === 'sedana' && (canTransitionStage(user?.role || '', 'contracting') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
+                          : request.currentStage === 'contracting' && request.programType === 'sedana' && (canManageSedana || canTransitionStage(user?.role || '', 'contracting') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
                           ? {
                               label: "الانتقال للمرحلة التالية",
                               onClick: () => {
+                                if (!canManageSedana) {
+                                  toast.error("ليس لديك صلاحية إدارة طلب سدانة للتنقل بين المراحل");
+                                  return;
+                                }
                                 if (!isSedanaProcurementComplete) {
                                   toast.error("لا يمكن الانتقال للمرحلة التالية إلا بعد تحديد نوع التوريد لجميع الموردين في صفحة اعتماد التوريد");
                                   setLocation(`/requests/${requestId}/procurement`);
@@ -2392,8 +2416,8 @@ export default function RequestDetailsNew() {
                                 updateStageMutation.mutate({ requestId, newStage: 'execution' as any });
                               },
                               variant: isSedanaProcurementComplete ? ('default' as const) : ('secondary' as const),
-                              disabled: isPendingClosure || !isSedanaProcurementComplete || updateStageMutation.isPending,
-                              title: isPendingClosure ? "مراحل الطلب معلقة بانتظار قرار إغلاق من المدير التنفيذي" : (!isSedanaProcurementComplete ? "يرجى تحديد نوع التوريد لجميع الموردين أولاً" : undefined),
+                              disabled: isPendingClosure || !canManageSedana || !isSedanaProcurementComplete || updateStageMutation.isPending,
+                              title: isPendingClosure ? "مراحل الطلب معلقة بانتظار قرار إغلاق من المدير التنفيذي" : (!canManageSedana ? "ليس لديك صلاحية إدارة طلب سدانة للتنقل بين المراحل" : (!isSedanaProcurementComplete ? "يرجى تحديد نوع التوريد لجميع الموردين أولاً" : undefined)),
                             }
                           : request.currentStage === 'contracting' && request.programType !== 'sedana' && hasApprovedContract && (canTransitionStage(user?.role || '', 'contracting') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
                           ? {
@@ -2403,7 +2427,7 @@ export default function RequestDetailsNew() {
                               disabled: isPendingClosure || updateStageMutation.isPending,
                               title: isPendingClosure ? "مراحل الطلب معلقة بانتظار قرار إغلاق من المدير التنفيذي" : undefined,
                             }
-                          : request.currentStage === 'execution' && (canTransitionStage(user?.role || '', 'execution') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
+                          : request.currentStage === 'execution' && (canTransitionStage(user?.role || '', 'execution') || userPermissions.includes("requests.view_details") || (request.programType === 'sedana' && canManageSedana)) && !isQuickResponseUser
                             ? request.requestTrack === 'quick_response'
                               ? (request.quickReports && request.quickReports.length > 0 && user?.role !== 'quick_response' && isAdmin)
                                 ? {
@@ -2426,18 +2450,20 @@ export default function RequestDetailsNew() {
                                     label: "الانتقال إلى مرحلة الاستلام",
                                     onClick: () => updateStageMutation.mutate({ requestId, newStage: 'handover' as any }),
                                     variant: 'default' as const,
-                                    disabled: isPendingClosure || cannotTransitionToHandover || updateStageMutation.isPending,
-                                    title: cannotTransitionToHandover
-                                      ? !hasPayments
-                                        ? "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع"
-                                        : !allPaymentsPaid
-                                          ? "لا يمكن الانتقال لمرحلة الاستلام: يجب سداد جميع الدفعات أولاً"
-                                          : "لا يمكن الانتقال لمرحلة الاستلام: إجمالي قيم المدفوعات لا يساوي إجمالي قيمة العقد"
-                                      : undefined,
+                                    disabled: isPendingClosure || (request.programType === 'sedana' ? !canManageSedana : cannotTransitionToHandover) || updateStageMutation.isPending,
+                                    title: request.programType === 'sedana'
+                                      ? (!canManageSedana ? "ليس لديك صلاحية إدارة طلب سدانة للتنقل بين المراحل" : undefined)
+                                      : (cannotTransitionToHandover
+                                        ? (!hasPayments
+                                          ? "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع"
+                                          : !allPaymentsPaid
+                                            ? "لا يمكن الانتقال لمرحلة الاستلام: يجب سداد جميع الدفعات أولاً"
+                                            : "لا يمكن الانتقال لمرحلة الاستلام: إجمالي قيم المدفوعات لا يساوي إجمالي قيمة العقد")
+                                        : undefined),
                                   }
                           : request.currentStage === 'handover' &&
                             user?.role !== 'corporate_comm' &&
-                            isAdmin &&
+                            (isAdmin || (request.programType === 'sedana' && canManageSedana)) &&
                             !isQuickResponseUser
                           ? {
                               label: "إغلاق الطلب رسمياً",
@@ -2457,7 +2483,7 @@ export default function RequestDetailsNew() {
                           : [])
                       ]}
                       revertButton={
-                        canRevertStage && (translatedAction.canPerformAction || canTransitionStage(user?.role || '', request.currentStage) || isAdmin) && !isPendingClosure && !isFieldTeam && !isQuickResponseUser
+                        canRevertStage && (translatedAction.canPerformAction || canTransitionStage(user?.role || '', request.currentStage) || isAdmin || (request.programType === 'sedana' && canManageSedana)) && !isPendingClosure && !isFieldTeam && !isQuickResponseUser
                           ? {
                               label: "الرجوع للمرحلة السابقة",
                               onClick: () => setShowRevertStageModal(true),

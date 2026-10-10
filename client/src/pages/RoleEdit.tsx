@@ -49,7 +49,8 @@ import {
   ShieldAlert,
   ShoppingCart,
   ShoppingBag,
-  Boxes
+  Boxes,
+  Sparkles
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -62,6 +63,7 @@ const superAdminGroups = [
       { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
       { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
       { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"] },
+      { id: "sedana_requests", nameAr: "طلبات سدانة", icon: Sparkles, perms: ["view", "desk_review", "manage"] },
       { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["view"] },
       { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
       { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
@@ -82,7 +84,7 @@ const superAdminGroups = [
     modules: [
       { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "edit", "approve"] },
       { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
-      { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
+      { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
       { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
       { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
       { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
@@ -95,7 +97,7 @@ const superAdminGroups = [
   {
     title: "إدارة المخزون",
     modules: [
-      { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view"] },
+      { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["export_pdf", "add", "recommend", "approve"] },
       { id: "orders_and_letters", nameAr: "مالية سدانة", icon: ShoppingBag, perms: ["disbursement_orders", "csr_letters", "purchase_orders"] },
       { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
       { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "export"] },
@@ -249,6 +251,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     },
     quotations: {
       view: "عرض قائمة عروض الأسعار",
+      view_sedana: "عرض عروض أسعار سدانة",
       add: "إضافة عرض سعر",
       approve: "الاعتمادات (اعتماد أو رفض طلب صرف)"
     },
@@ -290,7 +293,10 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       view: "عرض قسم العهدة المالية",
     },
     sedana_quotations: {
-      view: "عرض قسم عروض أسعار سدانة",
+      export_pdf: "تصدير ملف pdf للبنود",
+      add: "اضافة عروض الاسعار",
+      recommend: "التوصية",
+      approve: "اعتماد عروض الاسعار",
     },
     sedana_warehouse: {
       view: "عرض المستودع الافتراضي",
@@ -299,6 +305,11 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       confirm_receipt: "اعتماد وتأكيد الاستلام",
       print: "معاينة وطباعة محاضر وأوامر التسليم",
       export: "تصدير بيانات المستودع إكسيل",
+    },
+    sedana_requests: {
+      view: "عرض طلبات سدانة",
+      desk_review: "مراجعة الطلب مكتبيا",
+      manage: "ادارة طلب سدانة",
     },
     disbursements: {
       view: "عرض طلبات الصرف",
@@ -658,6 +669,14 @@ export default function RoleEdit() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية لطلبات سدانة إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("sedana_requests.") && permId !== "sedana_requests.view") {
+      if (!selectedPerms.includes("sedana_requests.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض طلبات سدانة' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية للتقارير إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("reports.") && permId !== "reports.view_stats") {
       if (!selectedPerms.includes("reports.view_stats")) {
@@ -796,6 +815,11 @@ export default function RoleEdit() {
         // عند إلغاء تفعيل صلاحية 'عرض المستودع الافتراضي'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات المستودع الأخرى
         if (permId === "sedana_warehouse.view") {
           next = next.filter(id => !id.startsWith("sedana_warehouse."));
+        }
+
+        // عند إلغاء تفعيل صلاحية 'عرض طلبات سدانة'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات طلبات سدانة الأخرى
+        if (permId === "sedana_requests.view") {
+          next = next.filter(id => !id.startsWith("sedana_requests."));
         }
 
         // عند إلغاء تفعيل صلاحية 'عرض مركز الاعتماد المالي'، نقوم تلقائياً بإلغاء تفعيل إرسال التذكير

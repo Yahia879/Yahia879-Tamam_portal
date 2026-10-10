@@ -825,17 +825,34 @@ export const requestsRouter = router({
       const isSuperOrSystemAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role || "");
       const isProcurementOfficer = ctx.user.role === "procurement_officer";
       const isFinancialOrInventory = ctx.user.role === "financial" || userPermissions.includes("orders_and_letters") || userPermissions.includes("orders_and_letters.view") || userPermissions.includes("purchase_orders.view") || userPermissions.includes("csr_letters.view");
-      const canViewSedana = isSuperOrSystemAdmin || isProcurementOfficer || isFinancialOrInventory;
+      const hasSedanaPermission = userPermissions.includes("sedana_requests.view") || 
+        userPermissions.includes("sedana_requests.manage") || 
+        userPermissions.includes("sedana_requests.desk_review") ||
+        userPermissions.includes("quotations.view_sedana") ||
+        userPermissions.includes("sedana_quotations.view") ||
+        userPermissions.includes("sedana_quotations.export_pdf") ||
+        userPermissions.includes("sedana_quotations.add") ||
+        userPermissions.includes("sedana_quotations.recommend");
+      const canViewSedana = isSuperOrSystemAdmin || isProcurementOfficer || isFinancialOrInventory || hasSedanaPermission;
       const hasGeneralRequestsView = userPermissions.includes("requests.view") || userPermissions.includes("requests.view_details") || userPermissions.includes("*");
 
-      if (isProcurementOfficer && !hasGeneralRequestsView) {
-        // مسؤول المشتريات مخصص لبرنامج سدانة فقط افتراضياً
+      if (input.currentStage === "financial_eval_and_approval") {
+        const canViewSedanaInQuotations = userPermissions.includes("quotations.view_sedana") || userPermissions.includes("*");
+        if (!canViewSedanaInQuotations) {
+          conditions.push(
+            sql`(${mosqueRequests.programType} IS NULL OR ${mosqueRequests.programType} != 'sedana')`
+          );
+        }
+      }
+
+      if ((isProcurementOfficer || (hasSedanaPermission && !hasGeneralRequestsView)) && !hasGeneralRequestsView) {
+        // مخصص لبرنامج سدانة فقط إذا كان يملك صلاحية سدانة بدون صلاحية عامة لعرض الطلبات
         conditions.push(eq(mosqueRequests.programType, "sedana"));
       } else if (input.programType === "sedana") {
         if (!canViewSedana) {
           conditions.push(sql`1 = 0`);
         }
-      } else if (input.excludeSedana || (!isSuperOrSystemAdmin && !input.programType && !isProcurementOfficer && !isFinancialOrInventory)) {
+      } else if (input.excludeSedana || (!isSuperOrSystemAdmin && !input.programType && !isProcurementOfficer && !isFinancialOrInventory && !hasSedanaPermission)) {
         if (!isSuperOrSystemAdmin || input.excludeSedana) {
           conditions.push(
             sql`(${mosqueRequests.programType} IS NULL OR ${mosqueRequests.programType} != 'sedana')`
@@ -1343,8 +1360,10 @@ export const requestsRouter = router({
       const { calculateUserPermissions } = await import("../permissions");
       const userPermissions = await calculateUserPermissions(ctx.user.id);
       const hasViewDetailsPermission = userPermissions.includes("requests.view_details");
+      const isSedanaRequest = request[0].programType === 'sedana';
+      const hasSedanaManagePermission = isSedanaRequest && (userPermissions.includes("sedana_requests.manage") || userPermissions.includes("*"));
 
-      if (!allowedRoles.includes(ctx.user.role) && !hasViewDetailsPermission) {
+      if (!allowedRoles.includes(ctx.user.role) && !hasViewDetailsPermission && !hasSedanaManagePermission) {
         const currentStageName = STAGE_LABELS[oldStage] || oldStage;
         throw new TRPCError({ 
           code: "FORBIDDEN", 

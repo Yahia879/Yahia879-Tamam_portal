@@ -46,7 +46,8 @@ import {
   ShieldAlert,
   ShoppingCart,
   ShoppingBag,
-  Boxes
+  Boxes,
+  Sparkles
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -298,6 +299,14 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية في قسم طلبات سدانة إلا إذا كانت صلاحية العرض مفعلة
+    if (permId.startsWith("sedana_requests.") && permId !== "sedana_requests.view") {
+      if (!selectedPerms.includes("sedana_requests.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض طلبات سدانة' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية في قسم طلبات الصرف إلا إذا كانت صلاحية العرض مفعلة
     if (permId.startsWith("disbursements.") && permId !== "disbursements.view" && permId !== "disbursements.sign") {
       if (!selectedPerms.includes("disbursements.view")) {
@@ -413,6 +422,11 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض المستودع الافتراضي'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات المستودع الأخرى
         if (permId === "sedana_warehouse.view") {
           next = next.filter(id => !id.startsWith("sedana_warehouse."));
+        }
+
+        // عند إلغاء تفعيل صلاحية 'عرض طلبات سدانة'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات طلبات سدانة الأخرى
+        if (permId === "sedana_requests.view") {
+          next = next.filter(id => !id.startsWith("sedana_requests."));
         }
 
         // عند إلغاء تفعيل صلاحية 'عرض مركز الاعتماد المالي'، نقوم تلقائياً بإلغاء تفعيل إرسال التذكير
@@ -819,6 +833,16 @@ export default function RolePermissions() {
           ]
         },
         {
+          id: "sedana_requests",
+          nameAr: "طلبات سدانة",
+          icon: Sparkles,
+          permissions: [
+            { id: "sedana_requests.view", nameAr: "عرض طلبات سدانة" },
+            { id: "sedana_requests.desk_review", nameAr: "مراجعة الطلب مكتبيا" },
+            { id: "sedana_requests.manage", nameAr: "ادارة طلب سدانة" },
+          ]
+        },
+        {
           id: "escalation",
           nameAr: "التصعيد الإداري",
           icon: AlertTriangle,
@@ -882,6 +906,7 @@ export default function RolePermissions() {
           icon: Receipt,
           permissions: [
             { id: "quotations.view", nameAr: "عرض عروض الأسعار" },
+            { id: "quotations.view_sedana", nameAr: "عرض عروض أسعار سدانة" },
             { id: "quotations.add", nameAr: "إضافة عرض سعر" },
             { id: "quotations.edit", nameAr: "تعديل عرض سعر" },
             { id: "quotations.approve", nameAr: "اعتماد عروض الأسعار" },
@@ -955,7 +980,10 @@ export default function RolePermissions() {
           nameAr: "عروض أسعار سدانة",
           icon: Receipt,
           permissions: [
-            { id: "sedana_quotations.view", nameAr: "عرض قسم عروض أسعار سدانة" },
+            { id: "sedana_quotations.export_pdf", nameAr: "تصدير ملف pdf للبنود" },
+            { id: "sedana_quotations.add", nameAr: "إضافة عروض الأسعار" },
+            { id: "sedana_quotations.recommend", nameAr: "التوصية" },
+            { id: "sedana_quotations.approve", nameAr: "اعتماد عروض الاسعار" },
           ]
         },
         {
@@ -1032,6 +1060,7 @@ export default function RolePermissions() {
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report", "create_quick_request"] },
+        { id: "sedana_requests", nameAr: "طلبات سدانة", icon: Sparkles, perms: ["view", "desk_review", "manage"] },
         { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["view"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials", "edit_support_and_fees", "add_receipt_voucher"] },
@@ -1042,7 +1071,7 @@ export default function RolePermissions() {
       title: "المالية والعقود",
       modules: [
         { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve"] },
-        { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
+        { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
@@ -1053,7 +1082,7 @@ export default function RolePermissions() {
     {
       title: "إدارة المخزون",
       modules: [
-        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view"] },
+        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["export_pdf", "add", "recommend", "approve"] },
         { id: "orders_and_letters", nameAr: "مالية سدانة", icon: ShoppingBag, perms: ["disbursement_orders", "csr_letters", "purchase_orders"] },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "export"] },
@@ -1095,6 +1124,7 @@ export default function RolePermissions() {
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"] },
+        { id: "sedana_requests", nameAr: "طلبات سدانة", icon: Sparkles, perms: ["view", "desk_review", "manage"] },
         { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["view"] },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
@@ -1115,7 +1145,7 @@ export default function RolePermissions() {
       modules: [
         { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve"] },
         { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
-        { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
+        { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
@@ -1128,7 +1158,7 @@ export default function RolePermissions() {
     {
       title: "إدارة المخزون",
       modules: [
-        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view"] },
+        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["export_pdf", "add", "recommend", "approve"] },
         { id: "orders_and_letters", nameAr: "مالية سدانة", icon: ShoppingBag, perms: ["disbursement_orders", "csr_letters", "purchase_orders"] },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "export"] },
@@ -1299,6 +1329,7 @@ export default function RolePermissions() {
       },
       quotations: {
         view: "عرض قائمة عروض الأسعار",
+        view_sedana: "عرض عروض أسعار سدانة",
         add: "إضافة عرض سعر",
         approve: "الاعتمادات (اعتماد أو رفض طلب صرف)"
       },
@@ -1343,6 +1374,11 @@ export default function RolePermissions() {
         print: "معاينة وطباعة محاضر وأوامر التسليم",
         export: "تصدير بيانات المستودع إكسيل",
       },
+      sedana_requests: {
+        view: "عرض طلبات سدانة",
+        desk_review: "مراجعة الطلب مكتبيا",
+        manage: "ادارة طلب سدانة",
+      },
       disbursements: {
         view: "عرض طلبات الصرف",
         add: "إنشاء طلب صرف",
@@ -1383,7 +1419,11 @@ export default function RolePermissions() {
         view: "عرض قسم العهدة المالية",
       },
       sedana_quotations: {
-        view: "عرض قسم عروض أسعار سدانة",
+        export_pdf: "تصدير ملف pdf للبنود",
+        add: "إضافة عروض الأسعار",
+        recommend: "التوصية (اعتماد واختيار البند)",
+        approve: "اعتماد عروض الاسعار",
+        view: "عرض عروض أسعار سدانة",
       },
       reports: {
         view_stats: "عرض احصائيات الطلبات",
@@ -1476,6 +1516,7 @@ export default function RolePermissions() {
         { id: "mosques", nameAr: "المساجد" },
         { id: "mosques_map", nameAr: "خريطة المساجد" },
         { id: "requests", nameAr: "الطلبات" },
+        { id: "sedana_requests", nameAr: "طلبات سدانة" },
         { id: "escalation", nameAr: "التصعيد الإداري" },
         { id: "appointments_calendar", nameAr: "تقويم المواعيد" },
         { id: "projects", nameAr: "المشاريع" },

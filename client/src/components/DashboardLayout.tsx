@@ -310,7 +310,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   const mosqueItems: MenuItem[] = [];
   if (has("mosques"))                      mosqueItems.push({ icon: Building2,     label: "المساجد",               path: "/mosques" });
   if (has("mosques_map"))                  mosqueItems.push({ icon: MapPin,        label: "خريطة المساجد",         path: "/mosques/map" });
-  if (has("requests") || has("requests.view") || has("requests.create") || has("requests.view_details"))                     mosqueItems.push({ icon: FileText,      label: isEn ? "Requests" : "الطلبات",               path: "/requests" });
+  if (has("requests") || has("requests.view") || has("requests.create") || has("requests.view_details") || has("sedana_requests.view") || has("sedana_requests.manage") || has("sedana_requests"))                     mosqueItems.push({ icon: FileText,      label: isEn ? "Requests" : "الطلبات",               path: "/requests" });
   if (has("escalation") || has("escalation.view")) {
     mosqueItems.push({ icon: AlertTriangle, label: isEn ? "Admin Escalation" : "التصعيد الإداري", path: "/escalation" });
   }
@@ -386,52 +386,40 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   }
 
   // 4. إدارة المخزون
+  const inventoryItems: MenuItem[] = [];
   if (
-    ["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) ||
-    isExecDirector ||
-    (has("orders_and_letters") ||
-      has("orders_and_letters.view") ||
-      has("purchase_orders") ||
-      has("purchase_orders.view") ||
-      has("csr_letters") ||
-      has("csr_letters.view") ||
-      has("sedana_warehouse") ||
-      has("sedana_warehouse.view") ||
-      has("sedana_quotations") ||
-      has("sedana_quotations.view") ||
-      role === "financial")
+    has("sedana_quotations") ||
+    has("sedana_quotations.view") ||
+    has("sedana_quotations.export_pdf") ||
+    has("sedana_quotations.add") ||
+    has("sedana_quotations.recommend") ||
+    has("sedana_quotations.approve")
   ) {
-    const inventoryItems: MenuItem[] = [];
-    if (has("*") || has("sedana_quotations") || has("sedana_quotations.view")) {
-      inventoryItems.push({ icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" });
-    }
-    if (
-      role === "financial" ||
-      has("orders_and_letters") ||
-      has("orders_and_letters.view") ||
-      has("orders_and_letters.disbursement_orders") ||
-      has("orders_and_letters.csr_letters") ||
-      has("orders_and_letters.purchase_orders") ||
-      ["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) ||
-      isExecDirector
-    ) {
-      inventoryItems.push({ icon: ShoppingBag, label: isEn ? "Sedana Finance" : "مالية سدانة", path: "/orders-and-letters" });
-    }
-    if (["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector || has("purchase_orders") || has("purchase_orders.view")) {
-      inventoryItems.push({ icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" });
-    }
-    if (["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector || has("csr_letters") || has("csr_letters.view")) {
-      inventoryItems.push({ icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" });
-    }
-    if (["super_admin", "system_admin"].includes(role) || has("sedana_warehouse") || has("sedana_warehouse.view")) {
-      inventoryItems.push({ icon: Boxes, label: "المستودع الافتراضي", path: "/sedana-warehouse" });
-    }
-    if (inventoryItems.length > 0) {
-      groups.push({
-        label: isEn ? "Inventory Management" : "إدارة المخزون",
-        items: inventoryItems,
-      });
-    }
+    inventoryItems.push({ icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" });
+  }
+  if (
+    has("orders_and_letters") ||
+    has("orders_and_letters.view") ||
+    has("orders_and_letters.disbursement_orders") ||
+    has("orders_and_letters.csr_letters") ||
+    has("orders_and_letters.purchase_orders")
+  ) {
+    inventoryItems.push({ icon: ShoppingBag, label: isEn ? "Sedana Finance" : "مالية سدانة", path: "/orders-and-letters" });
+  }
+  if (has("purchase_orders") || has("purchase_orders.view")) {
+    inventoryItems.push({ icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" });
+  }
+  if (has("csr_letters") || has("csr_letters.view")) {
+    inventoryItems.push({ icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" });
+  }
+  if (has("sedana_warehouse") || has("sedana_warehouse.view")) {
+    inventoryItems.push({ icon: Boxes, label: "المستودع الافتراضي", path: "/sedana-warehouse" });
+  }
+  if (inventoryItems.length > 0) {
+    groups.push({
+      label: isEn ? "Inventory Management" : "إدارة المخزون",
+      items: inventoryItems,
+    });
   }
 
   // 4. الاتصال المؤسسي والشركاء

@@ -1,4 +1,4 @@
-import { eq, and, sql, inArray, isNull } from "drizzle-orm";
+import { eq, and, sql, inArray, notInArray, isNull } from "drizzle-orm";
 import { getDb } from "./db";
 import {
   modules,
@@ -484,8 +484,47 @@ async function ensureRequestsPermissionsExist(db: any) {
         action: "hide",
         nameAr: "إخفاء وإظهار التقييمات",
         nameEn: "Hide & Show Evaluations"
+      },
+      {
+        id: "sedana_requests.view",
+        moduleId: "sedana_requests",
+        action: "view",
+        nameAr: "عرض طلبات سدانة",
+        nameEn: "View Sedana Requests"
+      },
+      {
+        id: "sedana_requests.desk_review",
+        moduleId: "sedana_requests",
+        action: "desk_review",
+        nameAr: "مراجعة الطلب مكتبيا",
+        nameEn: "Desk Review of Request"
+      },
+      {
+        id: "sedana_requests.manage",
+        moduleId: "sedana_requests",
+        action: "manage",
+        nameAr: "ادارة طلب سدانة",
+        nameEn: "Manage Sedana Request"
       }
     ];
+
+    // التأكد من وجود وحدة طلبات سدانة أولاً في جدول الوحدات
+    const [existingSedanaReqMod] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "sedana_requests")).limit(1);
+    if (!existingSedanaReqMod) {
+      await db.insert(modules).values({
+        id: "sedana_requests",
+        nameAr: "طلبات سدانة",
+        nameEn: "Sedana Requests",
+        icon: "Sparkles",
+        displayOrder: 5,
+        isActive: true
+      }).catch(() => {});
+    } else {
+      await db.update(modules).set({
+        nameAr: "طلبات سدانة",
+        nameEn: "Sedana Requests",
+      }).where(eq(modules.id, "sedana_requests")).catch(() => {});
+    }
 
     // التأكد من وجود وحدة رضا المستفيدين أولاً في جدول الوحدات
     const [existingEvalMod] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "beneficiary_evaluations")).limit(1);
@@ -906,6 +945,25 @@ async function ensureAllCustomPermissionsExist(db: any) {
       console.log("Inserted missing custom module: sedana_quotations");
     }
 
+    // Ensure 'sedana_requests' module exists in the modules table
+    const [existingSedanaRequestsMod] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "sedana_requests")).limit(1);
+    if (!existingSedanaRequestsMod) {
+      await db.insert(modules).values({
+        id: "sedana_requests",
+        nameAr: "طلبات سدانة",
+        nameEn: "Sedana Requests",
+        icon: "Sparkles",
+        displayOrder: 5,
+        isActive: true
+      }).catch(() => {});
+      console.log("Inserted missing custom module: sedana_requests");
+    } else {
+      await db.update(modules).set({
+        nameAr: "طلبات سدانة",
+        nameEn: "Sedana Requests",
+      }).where(eq(modules.id, "sedana_requests")).catch(() => {});
+    }
+
     // Ensure 'signing' module exists in the modules table
     const [existingSigningModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "signing")).limit(1);
     if (!existingSigningModule) {
@@ -1086,7 +1144,15 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "disbursement_orders.remind", moduleId: "disbursements", action: "remind", nameAr: "إرسال تذكير بالاعتماد", nameEn: "Send Approval Reminder" },
       { id: "board_leadership.remind", moduleId: "board", action: "remind", nameAr: "إرسال تذكير بالاعتماد", nameEn: "Send Approval Reminder" },
       { id: "custody_requests.view", moduleId: "custody_requests", action: "view", nameAr: "عرض قسم العهدة المالية", nameEn: "View Financial Custody" },
-      { id: "sedana_quotations.view", moduleId: "sedana_quotations", action: "view", nameAr: "عرض قسم عروض أسعار سدانة", nameEn: "View Sedana Quotations" },
+      { id: "quotations.view_sedana", moduleId: "quotations", action: "view_sedana", nameAr: "عرض عروض أسعار سدانة", nameEn: "View Sedana Quotations" },
+      { id: "sedana_quotations.view", moduleId: "sedana_quotations", action: "view", nameAr: "عرض عروض أسعار سدانة", nameEn: "View Sedana Quotations" },
+      { id: "sedana_quotations.export_pdf", moduleId: "sedana_quotations", action: "export_pdf", nameAr: "تصدير ملف pdf للبنود", nameEn: "Export BOQ Items PDF" },
+      { id: "sedana_quotations.add", moduleId: "sedana_quotations", action: "add", nameAr: "اضافة عروض الاسعار", nameEn: "Add Quotations" },
+      { id: "sedana_quotations.recommend", moduleId: "sedana_quotations", action: "recommend", nameAr: "التوصية", nameEn: "Recommend & Award Items" },
+      { id: "sedana_quotations.approve", moduleId: "sedana_quotations", action: "approve", nameAr: "اعتماد عروض الاسعار", nameEn: "Approve Sedana Quotations" },
+      { id: "sedana_requests.view", moduleId: "sedana_requests", action: "view", nameAr: "عرض طلبات سدانة", nameEn: "View Sedana Requests" },
+      { id: "sedana_requests.desk_review", moduleId: "sedana_requests", action: "desk_review", nameAr: "مراجعة الطلب مكتبيا", nameEn: "Desk Review of Request" },
+      { id: "sedana_requests.manage", moduleId: "sedana_requests", action: "manage", nameAr: "ادارة طلب سدانة", nameEn: "Manage Sedana Request" },
     ];
 
     for (const p of customPerms) {
@@ -1302,13 +1368,13 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
     // إسناد الصلاحيات الافتراضية لعروض أسعار سدانة للأدوار الأساسية
     const sedanaQuoDefaultRolePerms: Record<string, string[]> = {
-      super_admin: ["sedana_quotations.view"],
-      system_admin: ["sedana_quotations.view"],
-      general_manager: ["sedana_quotations.view"],
-      executive_director: ["sedana_quotations.view"],
-      financial_manager: ["sedana_quotations.view"],
-      financial: ["sedana_quotations.view"],
-      procurement_officer: ["sedana_quotations.view"],
+      super_admin: ["sedana_quotations.view", "sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve", "quotations.view_sedana"],
+      system_admin: ["sedana_quotations.view", "sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve", "quotations.view_sedana"],
+      general_manager: ["sedana_quotations.view", "sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve", "quotations.view_sedana"],
+      executive_director: ["sedana_quotations.view", "sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve", "quotations.view_sedana"],
+      financial_manager: ["sedana_quotations.view", "sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve", "quotations.view_sedana"],
+      financial: ["sedana_quotations.view", "sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve", "quotations.view_sedana"],
+      procurement_officer: ["sedana_quotations.view", "sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve", "quotations.view_sedana"],
     };
 
     for (const [rId, pIds] of Object.entries(sedanaQuoDefaultRolePerms)) {
@@ -1509,6 +1575,11 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
       revokedPermissions.add(perm.permissionId);
     }
   });
+
+  // إذا تم سحب أي صلاحية لم يعد المستخدم يملك جميع الصلاحيات (*)
+  if (revokedPermissions.size > 0) {
+    allPermissions.delete("*");
+  }
 
   // إزالة المفاتيح الأب/البديلة التي تعتمد على صلاحيات محجوبة
   // مثلاً: حجب mosque_map.view يزيل أيضاً mosque_map و mosques_map
@@ -1746,8 +1817,20 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   }
 
   // عروض أسعار سدانة
-  if (allPermissions.has("sedana_quotations.view")) {
-    allPermissions.add("sedana_quotations");
+  if (
+    allPermissions.has("sedana_quotations.view") ||
+    allPermissions.has("sedana_quotations.export_pdf") ||
+    allPermissions.has("sedana_quotations.add") ||
+    allPermissions.has("sedana_quotations.recommend") ||
+    allPermissions.has("sedana_quotations.approve") ||
+    allPermissions.has("quotations.view_sedana")
+  ) {
+    if (!revokedPermissions.has("sedana_quotations")) {
+      allPermissions.add("sedana_quotations");
+    }
+    if (!revokedPermissions.has("sedana_quotations.view")) {
+      allPermissions.add("sedana_quotations.view");
+    }
   }
 
   // مالية سدانة
@@ -1817,6 +1900,11 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (allPermissions.has("board_chairman") || allPermissions.has("board_member") || allPermissions.has("board_leadership.remind") || allPermissions.has("board_chairman_remind")) {
     allPermissions.add("board_leadership");
   }
+
+  // ضمان إزالة أي صلاحيات تم سحبها صراحة للتأكيد التام
+  revokedPermissions.forEach(p => {
+    allPermissions.delete(p);
+  });
 
   return Array.from(allPermissions);
 }

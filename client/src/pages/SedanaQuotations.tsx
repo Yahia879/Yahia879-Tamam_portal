@@ -46,6 +46,22 @@ export default function SedanaQuotations() {
   const [searchQuery, setSearchQuery] = useState("");
   const [contentFilter, setContentFilter] = useState("all");
 
+  // التحقق من صلاحيات المستخدم
+  const { data: currentUser } = trpc.auth.me.useQuery();
+  const { data: userPermissions = [], isLoading: isPermissionsLoading } = trpc.permissions.getUserPermissions.useQuery(
+    currentUser?.id ? { userId: currentUser.id } : ({} as any)
+  );
+
+  const isSuperOrSystemAdmin = ["super_admin", "system_admin"].includes(currentUser?.role || "") || (userPermissions as string[]).includes("*");
+
+  const canViewSedanaQuotations =
+    isSuperOrSystemAdmin ||
+    (userPermissions as string[]).includes("quotations.view_sedana") ||
+    (userPermissions as string[]).includes("sedana_quotations.view") ||
+    (userPermissions as string[]).includes("sedana_quotations.export_pdf") ||
+    (userPermissions as string[]).includes("sedana_quotations.add") ||
+    (userPermissions as string[]).includes("sedana_quotations.recommend");
+
   // مزامنة حالة الرابط عند التنقل عبر أزرار المتصفح
   useEffect(() => {
     const handlePopState = () => {
@@ -242,6 +258,25 @@ export default function SedanaQuotations() {
     navigate("/sedana-quotations");
   };
 
+  if (!isPermissionsLoading && !canViewSedanaQuotations) {
+    return (
+      <DashboardLayout>
+        <div className="py-20 text-center space-y-4 max-w-md mx-auto" dir="rtl">
+          <div className="w-16 h-16 bg-amber-100 dark:bg-amber-950/50 text-amber-600 rounded-full flex items-center justify-center mx-auto">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold">غير مصرح لك بعرض عروض أسعار سدانة</h2>
+          <p className="text-muted-foreground text-sm">
+            تحتاج إلى صلاحية "عرض عروض أسعار سدانة" للوصول إلى هذه الصفحة وإدارة عروض أسعار مشاريع سدانة.
+          </p>
+          <Button onClick={() => navigate("/quotations")} variant="outline">
+            الذهاب إلى قائمة عروض الأسعار
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6" dir="rtl">
@@ -308,7 +343,7 @@ export default function SedanaQuotations() {
             <QuotationsView
               requestId={parseInt(selectedRequestId)}
               isEmbedded={true}
-              hideAwardButton={true}
+              hideAwardButton={false}
               readOnlySuppliers={Boolean(activeSelectedRequest?.currentStage && activeSelectedRequest.currentStage !== "financial_eval_and_approval")}
               onBack={handleClearSelection}
             />

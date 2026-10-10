@@ -124,7 +124,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   // /mosques/:id و /mosques/:id/edit تُعالج بنمط regex
 
   // ── الطلبات ──
-  "/requests": "requests.view",
+  "/requests": ["requests.view", "sedana_requests.view", "sedana_requests.manage"],
   "/requests/new": "requests.create",
   "/requests/quick-create": ["requests.create_quick_request", "requests.manage_as_quick_response"],
   "/field-visits": "requests.view",
@@ -152,7 +152,15 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
 
   // ── عروض الأسعار ──
   "/quotations": "quotations",
-  "/sedana-quotations": ["sedana_quotations", "sedana_quotations.view"],
+  "/sedana-quotations": [
+    "sedana_quotations",
+    "sedana_quotations.view",
+    "quotations.view_sedana",
+    "sedana_quotations.export_pdf",
+    "sedana_quotations.add",
+    "sedana_quotations.recommend",
+    "sedana_quotations.approve"
+  ],
 
   // ── الاعتمادات ──
   "/financial-approval": ["financial_approval.view", "financial_approval.approve", "financial_approval"],
@@ -309,7 +317,9 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/requests\/\d+\/field-inspection$/, permission: ["requests.view_details", "requests.manage_as_field_team", "pending_reports.intervene"] },
   { pattern: /^\/requests\/\d+\/quick-response$/, permission: ["requests.view_details", "requests.manage_as_quick_response", "pending_reports.intervene"] },
   { pattern: /^\/requests\/\d+\/assign-final-report$/, permission: "requests.view_details" },
-  { pattern: /^\/requests\/\d+$/, permission: ["requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response", "requests.upload_final_report", "pending_reports.intervene"] },
+  { pattern: /^\/requests\/\d+$/, permission: ["requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response", "requests.upload_final_report", "pending_reports.intervene", "sedana_requests.view", "sedana_requests.desk_review", "sedana_requests.manage"] },
+  { pattern: /^\/requests\/\d+\/sedana-evaluation$/, permission: ["sedana_requests.desk_review", "sedana_requests.view", "sedana_requests.manage", "requests.view_details"] },
+  { pattern: /^\/requester\/requests\/\d+\/sedana-evaluation$/, permission: ["sedana_requests.desk_review", "sedana_requests.view", "sedana_requests.manage", "requests.view_details"] },
 
   // الزيارات الميدانية
   { pattern: /^\/field-visits\/schedule\/\d+$/, permission: ["appointments_calendar", "requests.view_details"] },
@@ -481,13 +491,14 @@ export function hasRouteAccess(
     pathname === "/financial-officer" ||
     pathname === "/financial-tasks";
   if (isOrdersAndLettersRoute) {
-    if (userRole === "financial") return true;
+    if (userPermissions.includes("*")) return true;
     return (
       userPermissions.includes("orders_and_letters") ||
       userPermissions.includes("orders_and_letters.view") ||
       userPermissions.includes("orders_and_letters.disbursement_orders") ||
       userPermissions.includes("orders_and_letters.csr_letters") ||
-      userPermissions.includes("orders_and_letters.purchase_orders")
+      userPermissions.includes("orders_and_letters.purchase_orders") ||
+      (userRole === "financial" && userPermissions.length === 0)
     );
   }
 
