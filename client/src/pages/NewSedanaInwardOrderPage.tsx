@@ -439,7 +439,19 @@ export default function NewSedanaInwardOrderPage() {
         };
       });
 
-    const extraItems = (sourceCategory === "csr_letter" || sourceCategory === "manual")
+    const extraItems = sourceCategory === "manual"
+      ? validExtraItems.map((it) => {
+          const rawId = it.originalItemId || it.id;
+          const id = String(rawId).startsWith("manual_") ? String(rawId) : `manual_${rawId}`;
+          return {
+            id,
+            itemName: it.itemName.trim(),
+            quantity: it.quantity,
+            unit: it.unit.trim() || "وحدة",
+            isManualInward: true,
+          };
+        })
+      : sourceCategory === "csr_letter"
       ? validExtraItems.map((it) => ({
           id: it.originalItemId || it.id,
           itemName: it.itemName.trim(),

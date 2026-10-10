@@ -288,6 +288,11 @@ export const sedanaExecutionRouter = router({
       const pendingReceiptMap: Record<string, number> = {};
       const deliveredMap: Record<string, number> = {};
 
+      const manualItemsMap = new Map<string, any>();
+      const manualInwardMap: Record<string, number> = {};
+      const manualOutboundMap: Record<string, number> = {};
+      const manualDeliveredMap: Record<string, number> = {};
+
       // تتبع أول أمر إدخال وآخر تأكيد إخراج لكل صنف
       const firstInwardDateMap: Record<string, string> = {};
       const lastConfirmedOutboundDateMap: Record<string, string> = {};
@@ -300,80 +305,122 @@ export const sedanaExecutionRouter = router({
         if (orderDate && (!globalFirstInwardDate || orderDate < globalFirstInwardDate)) {
           globalFirstInwardDate = orderDate;
         }
+        const isManualOrder = inOrder.referenceType === "manual" || inOrder.referenceType === "none";
+
         (inOrder.items || []).forEach((it: any) => {
           const qty = Number(it.quantity || 0);
-          const rawName = (it.itemName || it.name || "").trim().toLowerCase();
 
-          // البحث عما إذا كان الصنف موجوداً مسبقاً في الأصناف الأساسية إما بالمعرّف أو بالاسم
-          const matchedBase = baseItems.find(
-            (b) =>
-              String(b.id) === String(it.id) ||
-              (rawName && b.name && b.name.trim().toLowerCase() === rawName)
-          );
+          if (isManualOrder || it.isManualInward) {
+            // بنود مدخلة بدون مرجع (يدوية مباشرة): تظهر حصراً في رصيد المستودع الافتراضي ولا تظهر في جدول الصرف الدوري
+            const rawKey = it.id || it.itemName || it.name || "extra";
+            const manualKey = String(rawKey).startsWith("manual_") ? String(rawKey) : `manual_${rawKey}`;
+            manualInwardMap[manualKey] = (manualInwardMap[manualKey] || 0) + qty;
 
-          const targetId = matchedBase ? String(matchedBase.id) : String(it.id);
+            if (!manualItemsMap.has(manualKey)) {
+              manualItemsMap.set(manualKey, {
+                id: manualKey,
+                name: it.itemName || it.name || "بند إضافي",
+                itemName: it.itemName || it.name || "بند إضافي",
+                description: it.description || "صنف مضاف عبر أمر إدخال بدون مرجع",
+                quantity: qty,
+                unit: it.unit || "وحدة",
+                category: it.category || "بنود إضافية (بدون مرجع)",
+                frequency: "عند الطلب",
+                period: "عند الطلب",
+                cycleQuantity: qty,
+                monthlyLimit: null,
+                periodLimits: null,
+                allocationMethod: "manual",
+                isAgreedItem: false,
+                isManualInward: true,
+              });
+            } else {
+              const existing = manualItemsMap.get(manualKey);
+              existing.quantity += qty;
+            }
+          } else {
+            // بنود رسمية مرتبطة بأمر صرف أو خطاب مجتمعي: تتبع البنود المقررة بالطلب
+            const rawName = (it.itemName || it.name || "").trim().toLowerCase();
+            const matchedBase = baseItems.find(
+              (b) =>
+                String(b.id) === String(it.id) ||
+                (rawName && b.name && b.name.trim().toLowerCase() === rawName)
+            );
 
-          inwardMap[targetId] = (inwardMap[targetId] || 0) + qty;
-          if (orderDate && (!firstInwardDateMap[targetId] || orderDate < firstInwardDateMap[targetId])) {
-            firstInwardDateMap[targetId] = orderDate;
-          }
+            const targetId = matchedBase ? String(matchedBase.id) : String(it.id);
 
-          // دمج أي صنف إضافي مخصص في baseItems إن لم يكن موجوداً
-          if (!matchedBase) {
-            baseItems.push({
-              id: targetId,
-              name: it.itemName || it.name || "صنف إضافي",
-              description: it.description || (inOrder.referenceType === "manual" ? "صنف مضاف عبر أمر إدخال يدوي مباشر" : "صنف مضاف عبر أمر إدخال مستودعي"),
-              quantity: qty,
-              unit: it.unit || "وحدة",
-              category: it.category || (inOrder.referenceType === "manual" ? "إدخال يدوي وأصناف إضافية" : "مسؤولية مجتمعية وأصناف إضافية"),
-              frequency: "شهري",
-              period: "شهري",
-              cycleQuantity: Math.max(1, qty),
-              monthlyLimit: null,
-              periodLimits: null,
-              allocationMethod: inOrder.referenceType || "manual",
-            });
+            inwardMap[targetId] = (inwardMap[targetId] || 0) + qty;
+            if (orderDate && (!firstInwardDateMap[targetId] || orderDate < firstInwardDateMap[targetId])) {
+              firstInwardDateMap[targetId] = orderDate;
+            }
+
+            if (!matchedBase) {
+              baseItems.push({
+                id: targetId,
+                name: it.itemName || it.name || "صنف إضافي",
+                description: it.description || "صنف مضاف عبر أمر إدخال مستودعي",
+                quantity: qty,
+                unit: it.unit || "وحدة",
+                category: it.category || "مسؤولية مجتمعية وأصناف إضافية",
+                frequency: "شهري",
+                period: "شهري",
+                cycleQuantity: Math.max(1, qty),
+                monthlyLimit: null,
+                periodLimits: null,
+                allocationMethod: inOrder.referenceType || "purchase_order",
+                isAgreedItem: true,
+                isManualInward: false,
+              });
+            }
           }
         });
       });
 
       (executionData.outboundOrders || []).forEach((outOrder: any) => {
-        if (outOrder.status === "pending_confirmation") {
-          // أوامر إخراج مجدولة بانتظار تأكيد المسؤول - لا تُخصم من الرصيد المتوفر رسمياً حتى يؤكدها المسؤول
-          (outOrder.items || []).forEach((it: any) => {
-            pendingConfirmationMap[it.id] = (pendingConfirmationMap[it.id] || 0) + Number(it.quantity || 0);
-          });
-        } else if (outOrder.status === "pending_receipt") {
-          // أوامر إخراج خرجت من المستودع بانتظار تأكيد واستلام المستفيد
-          (outOrder.items || []).forEach((it: any) => {
-            outboundMap[it.id] = (outboundMap[it.id] || 0) + Number(it.quantity || 0);
-            pendingReceiptMap[it.id] = (pendingReceiptMap[it.id] || 0) + Number(it.quantity || 0);
-          });
-        } else if (outOrder.status === "delivered") {
-          // أوامر إخراج تم تأكيد استلامها نهائياً من قبل المستفيد
-          (outOrder.items || []).forEach((it: any) => {
-            outboundMap[it.id] = (outboundMap[it.id] || 0) + Number(it.quantity || 0);
-            deliveredMap[it.id] = (deliveredMap[it.id] || 0) + Number(it.quantity || 0);
-          });
-          // تتبع تاريخ آخر إخراج مؤكد ومستلم لبدء العداد التنازلي للدفعة التالية
-          const confirmedDate = outOrder.confirmation?.confirmedAt || outOrder.deliveredDate || outOrder.confirmedBySupervisorAt || outOrder.scheduledDate || outOrder.createdAt;
-          if (confirmedDate) {
-            (outOrder.items || []).forEach((it: any) => {
-              if (!lastConfirmedOutboundDateMap[it.id] || confirmedDate > lastConfirmedOutboundDateMap[it.id]) {
-                lastConfirmedOutboundDateMap[it.id] = confirmedDate;
+        (outOrder.items || []).forEach((it: any) => {
+          const k = String(it.id);
+          const qty = Number(it.quantity || 0);
+
+          if (k.startsWith("manual_") || manualItemsMap.has(k)) {
+            // إخراج خاص بالبنود الإضافية المدخلة بدون مرجع
+            manualOutboundMap[k] = (manualOutboundMap[k] || 0) + qty;
+            if (outOrder.status === "delivered") {
+              manualDeliveredMap[k] = (manualDeliveredMap[k] || 0) + qty;
+            }
+          } else {
+            if (outOrder.status === "pending_confirmation") {
+              pendingConfirmationMap[k] = (pendingConfirmationMap[k] || 0) + qty;
+            } else if (outOrder.status === "pending_receipt") {
+              outboundMap[k] = (outboundMap[k] || 0) + qty;
+              pendingReceiptMap[k] = (pendingReceiptMap[k] || 0) + qty;
+            } else if (outOrder.status === "delivered") {
+              outboundMap[k] = (outboundMap[k] || 0) + qty;
+              deliveredMap[k] = (deliveredMap[k] || 0) + qty;
+            }
+
+            if (outOrder.status === "delivered") {
+              const confirmedDate = outOrder.confirmation?.confirmedAt || outOrder.deliveredDate || outOrder.confirmedBySupervisorAt || outOrder.scheduledDate || outOrder.createdAt;
+              if (confirmedDate) {
+                if (!lastConfirmedOutboundDateMap[k] || confirmedDate > lastConfirmedOutboundDateMap[k]) {
+                  lastConfirmedOutboundDateMap[k] = confirmedDate;
+                }
+                confirmedOutboundCountMap[k] = (confirmedOutboundCountMap[k] || 0) + 1;
               }
-              confirmedOutboundCountMap[it.id] = (confirmedOutboundCountMap[it.id] || 0) + 1;
-            });
+            }
           }
-        }
+        });
       });
 
       // أي أمر تسليم مستقل مؤكد
       (executionData.deliveryOrders || []).forEach((delOrder: any) => {
         if (delOrder.status === "confirmed" && !delOrder.outboundOrderId) {
           (delOrder.items || []).forEach((it: any) => {
-            deliveredMap[it.id] = (deliveredMap[it.id] || 0) + Number(it.quantity || 0);
+            const k = String(it.id);
+            if (k.startsWith("manual_") || manualItemsMap.has(k)) {
+              manualDeliveredMap[k] = (manualDeliveredMap[k] || 0) + Number(it.quantity || 0);
+            } else {
+              deliveredMap[k] = (deliveredMap[k] || 0) + Number(it.quantity || 0);
+            }
           });
         }
       });
@@ -418,6 +465,8 @@ export const sedanaExecutionRouter = router({
         currentCycleNumber: number;
         totalCycles: number;
         frequencyDays: number;
+        currentCycleDisbursed: number;
+        cycleQuantity: number;
         isDue: boolean;
         isCompleted: boolean;
         hasStock: boolean;
@@ -430,10 +479,16 @@ export const sedanaExecutionRouter = router({
         const avail = Math.max(0, totalIn - totalOut);
         const rem = Math.max(0, it.quantity - totalOut);
         const frequencyDays = getFrequencyDays(it.frequency);
-        const totalCycles = Math.ceil(it.quantity / (it.cycleQuantity || 1));
-        const confirmedCount = confirmedOutboundCountMap[it.id] || 0;
-        const currentCycleNumber = confirmedCount;
-        // تحديد تاريخ بدء الدورة: أول إدخال للصنف > أول إدخال عام > بدء مرحلة التنفيذ
+        const cycleQty = it.cycleQuantity || 1;
+        const totalCycles = Math.ceil(it.quantity / cycleQty);
+
+        // عدد الدورات التي تم صرف كامل كميتها المتفق عليها
+        const completedCycles = Math.floor(totalOut / cycleQty);
+        // الكمية المصروفة حتى الآن في الدورة الحالية
+        const currentCycleDisbursed = totalOut - (completedCycles * cycleQty);
+        // رقم الدورة الحالية
+        const currentCycleNumber = Math.min(totalCycles, completedCycles + 1);
+
         const cycleStartDate = firstInwardDateMap[it.id] || globalFirstInwardDate || executionStageStartDate;
         const lastConfirmedDate = lastConfirmedOutboundDateMap[it.id] || null;
 
@@ -441,19 +496,19 @@ export const sedanaExecutionRouter = router({
         let daysUntilNextDue: number | null = null;
         let isDue = false;
 
-        if (!cycleStartDate && !lastConfirmedDate) {
-          // لا يوجد تاريخ بدء بعد (لم يُورّد أي شيء ولم تبدأ مرحلة التنفيذ)
+        if (!cycleStartDate) {
           nextDueDate = null;
           daysUntilNextDue = null;
         } else {
-          // حساب موعد الدفعة التالية: بعد آخر إخراج مؤكد + فترة الدورية، أو من تاريخ أول إدخال
+          // في حال الصرف المبكر الجزئي (لم تكتمل كمية الدورة الحالية):
+          // يبقى العداد للبند شغالاً حتى موعد استحقاق الدورة الحالية
+          // وفي حال اكتمال صرف كمية الدورة المتفق عليها بالكامل:
+          // يرجع العداد يبدأ حسب الدورية المتفقة للبند من تاريخ اكتمال الدورة
           let refDate: Date;
-          if (lastConfirmedDate) {
-            // بعد آخر إخراج مؤكد + فترة الدورية
+          if (completedCycles > 0 && lastConfirmedDate) {
             refDate = new Date(lastConfirmedDate);
           } else {
-            // أول دفعة: من تاريخ أول إدخال + فترة الدورية
-            refDate = new Date(cycleStartDate || now);
+            refDate = new Date(cycleStartDate);
           }
           const nextDue = new Date(refDate.getTime() + frequencyDays * 24 * 60 * 60 * 1000);
           nextDueDate = nextDue.toISOString();
@@ -462,23 +517,25 @@ export const sedanaExecutionRouter = router({
           isDue = diffMs <= 0;
         }
 
-        const hasStock = avail > 0 && rem > 0;
+        const isCompleted = totalOut >= it.quantity;
 
         itemTimingMap[it.id] = {
           cycleStartDate,
           lastConfirmedOutboundDate: lastConfirmedDate,
           nextDueDate,
           daysUntilNextDue,
-          currentCycleNumber: Math.min(currentCycleNumber, totalCycles),
+          currentCycleNumber,
           totalCycles,
           frequencyDays,
+          currentCycleDisbursed,
+          cycleQuantity: cycleQty,
           isDue,
-          isCompleted: false, // لا يُغلق المستودع ولا يُعتبر مكتمل الصرف لضمان استمرار عمل العداد التنازلي للدفعة التالية
-          hasStock,
+          isCompleted,
+          hasStock: avail > 0 && rem > 0,
         };
       });
 
-      const inventoryItems = baseItems.map((it) => {
+      const baseInventoryItems = baseItems.map((it) => {
         const totalInward = inwardMap[it.id] || 0;
         const approvedQty = Math.max(Number(it.quantity || 0), totalInward);
         const totalOutbound = outboundMap[it.id] || 0;
@@ -492,6 +549,8 @@ export const sedanaExecutionRouter = router({
 
         return {
           ...it,
+          isAgreedItem: true,
+          isManualInward: false,
           approvedQty,
           totalInward,
           totalOutbound,
@@ -506,13 +565,53 @@ export const sedanaExecutionRouter = router({
           lastConfirmedOutboundDate: timing?.lastConfirmedOutboundDate || null,
           nextDueDate: timing?.nextDueDate || null,
           daysUntilNextDue: timing?.daysUntilNextDue ?? null,
-          currentCycleNumber: timing?.currentCycleNumber ?? 0,
+          currentCycleNumber: timing?.currentCycleNumber ?? 1,
           totalCycles: timing?.totalCycles || 1,
           frequencyDays: timing?.frequencyDays || 30,
+          currentCycleDisbursed: timing?.currentCycleDisbursed ?? 0,
+          cycleQuantity: timing?.cycleQuantity ?? (it.cycleQuantity || 1),
           isDue: timing?.isDue || false,
           isAllCompleted: timing?.isCompleted || false,
         };
       });
+
+      // البنود الإضافية المدخلة بدون مرجع: تظهر فقط في رصيد المستودع الافتراضي
+      const manualInventoryItems = Array.from(manualItemsMap.values()).map((m) => {
+        const totalInward = manualInwardMap[m.id] || 0;
+        const totalOutbound = manualOutboundMap[m.id] || 0;
+        const totalDelivered = manualDeliveredMap[m.id] || 0;
+        const availableStock = Math.max(0, totalInward - totalOutbound);
+        const approvedQty = totalInward;
+        const remainingToDisburse = availableStock;
+
+        return {
+          ...m,
+          isAgreedItem: false,
+          isManualInward: true,
+          approvedQty,
+          totalInward,
+          totalOutbound,
+          pendingConfirmationQty: 0,
+          pendingReceiptQty: 0,
+          totalDelivered,
+          availableStock,
+          pendingInward: 0,
+          remainingToDisburse,
+          cycleStartDate: null,
+          lastConfirmedOutboundDate: null,
+          nextDueDate: null,
+          daysUntilNextDue: null,
+          currentCycleNumber: 0,
+          totalCycles: 1,
+          frequencyDays: 0,
+          currentCycleDisbursed: 0,
+          cycleQuantity: totalInward,
+          isDue: false,
+          isAllCompleted: remainingToDisburse === 0,
+        };
+      });
+
+      const inventoryItems = [...baseInventoryItems, ...manualInventoryItems];
 
       // جلب أوامر الصرف المنفذة فقط المرتبطة بهذا الطلب (أمر شراء، خطاب مجتمعي، أو طلب صرف خاص بالطلب نفسه)
       const activePO = sedanaProc.activePurchaseOrder || null;
@@ -1403,6 +1502,13 @@ export const sedanaExecutionRouter = router({
       const orderCount = pData.sedanaExecution.inwardOrders.length + 1;
       const orderNumber = input.orderNumber || `IN-${req.id}-${String(orderCount).padStart(2, "0")}`;
 
+      const isManual = input.referenceType === "manual";
+      const processedItems = input.items.map((it: any) => ({
+        ...it,
+        id: isManual && !String(it.id).startsWith("manual_") ? `manual_${it.id}` : String(it.id),
+        isManualInward: isManual,
+      }));
+
       const newInwardOrder = {
         id: `IN-${req.id}-${Date.now()}`,
         orderNumber,
@@ -1416,7 +1522,7 @@ export const sedanaExecutionRouter = router({
         supplierInvoiceNumber: input.supplierInvoiceNumber || "",
         supplierName: input.supplierName || matchedDisbursementOrder?.beneficiaryName || "",
         notes: input.notes || "",
-        items: input.items,
+        items: processedItems,
         createdBy: ctx.user.id,
         createdByName: ctx.user.name,
         createdAt: new Date().toISOString(),
@@ -1526,15 +1632,18 @@ export const sedanaExecutionRouter = router({
       const outboundMap: Record<string, number> = {};
 
       (pData.sedanaExecution.inwardOrders || []).forEach((inOrder: any) => {
+        const isManual = inOrder.referenceType === "manual" || inOrder.referenceType === "none";
         (inOrder.items || []).forEach((it: any) => {
-          inwardMap[it.id] = (inwardMap[it.id] || 0) + Number(it.quantity || 0);
+          const k = (isManual || it.isManualInward) && !String(it.id).startsWith("manual_") ? `manual_${it.id}` : String(it.id);
+          inwardMap[k] = (inwardMap[k] || 0) + Number(it.quantity || 0);
         });
       });
 
       (pData.sedanaExecution.outboundOrders || []).forEach((outOrder: any) => {
         if (outOrder.status !== "cancelled") {
           (outOrder.items || []).forEach((it: any) => {
-            outboundMap[it.id] = (outboundMap[it.id] || 0) + Number(it.quantity || 0);
+            const k = String(it.id);
+            outboundMap[k] = (outboundMap[k] || 0) + Number(it.quantity || 0);
           });
         }
       });
@@ -1544,7 +1653,7 @@ export const sedanaExecutionRouter = router({
         if (item.quantity > available + 0.0001) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: `الكمية المدخلة للصنف (${item.itemName}) وقدرها ${item.quantity} تتجاوز الرصيد المتوفر حالياً في المستودع (${available} ${item.unit})`,
+            message: `الكمية المدخلة للصنف (${item.itemName}) وقدرها ${item.quantity} تتجاوز الرصيد المتوفر حالياً في المستودع (${available} ${item.unit || "وحدة"})`,
           });
         }
       }

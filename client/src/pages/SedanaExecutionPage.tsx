@@ -907,7 +907,14 @@ export default function SedanaExecutionPage() {
                             </span>
                           </td>
                           <td className="p-3">
-                            <div className="font-bold text-foreground text-sm">{it.name}</div>
+                            <div className="font-bold text-foreground text-sm flex items-center gap-1.5 flex-wrap">
+                              <span>{it.name}</span>
+                              {it.isManualInward && (
+                                <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-300 dark:border-amber-700 font-bold px-1.5 py-0">
+                                  بند إضافي (بدون مرجع)
+                                </Badge>
+                              )}
+                            </div>
                             <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-1">
                               <span className="bg-muted px-2 py-0.5 rounded font-medium">{it.category || "مواد وتجهيزات"}</span>
                               {it.description && (
@@ -1001,7 +1008,7 @@ export default function SedanaExecutionPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody className="divide-y divide-border">
-                      {inventoryItems.map((it: any, idx: number) => {
+                      {inventoryItems.filter((it: any) => !it.isManualInward).map((it: any, idx: number) => {
                         const freq = it.frequency || it.period || "شهري";
                         const isMonthly = freq.includes("شهر") || freq === "شهري";
                         const isQuarterly = freq.includes("ربع") || freq === "ربع سنوي";
@@ -1056,7 +1063,7 @@ export default function SedanaExecutionPage() {
                             <td className="p-3 text-center">
                               <div className="inline-flex flex-col items-center justify-center px-3 py-1.5 rounded-lg bg-muted/60 border border-border/80 shadow-2xs">
                                 <span className="font-mono text-base font-black text-primary">
-                                  {it.currentCycleNumber ?? 0}
+                                  {it.currentCycleNumber ?? 1}
                                 </span>
                                 <span className="text-[10px] text-muted-foreground font-medium">الدفعة الحالية</span>
                               </div>
@@ -1086,21 +1093,12 @@ export default function SedanaExecutionPage() {
                               </div>
                             </td>
                             <td className="p-3 text-center">
-                              {hasPendingConfirmation ? (
+                              {isCompleted ? (
                                 <div className="flex flex-col items-center gap-1">
-                                  <Badge variant="outline" className="border-amber-400 bg-amber-50 text-amber-900 text-[10px] font-bold gap-1 animate-pulse">
-                                    <Clock className="w-3 h-3" />
-                                    بانتظار تأكيد المسؤول
+                                  <Badge variant="outline" className="border-emerald-400 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 text-[10px] font-bold gap-1">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    تم صرف كامل الكمية المعتمدة
                                   </Badge>
-                                  <span className="text-[9px] text-muted-foreground">العداد متوقف مؤقتاً</span>
-                                </div>
-                              ) : hasPendingReceipt ? (
-                                <div className="flex flex-col items-center gap-1">
-                                  <Badge variant="outline" className="border-sky-400 bg-sky-50 text-sky-900 text-[10px] font-bold gap-1 animate-pulse">
-                                    <Clock className="w-3 h-3 text-sky-600" />
-                                    بانتظار استلام الإمام
-                                  </Badge>
-                                  <span className="text-[9px] text-muted-foreground">العداد يبدأ بعد تأكيد الاستلام</span>
                                 </div>
                               ) : !it.nextDueDate ? (
                                 <div className="flex flex-col items-center gap-1">
@@ -1133,7 +1131,7 @@ export default function SedanaExecutionPage() {
                                       )}
                                     </div>
                                   </div>
-                                  {/* العداد التفصيلي */}
+                                  {/* العداد التفصيلي التنازلي الحي */}
                                   {countdown.isOverdue ? (
                                     <div className="flex flex-col items-center gap-0.5">
                                       <Badge variant="outline" className="border-red-400 bg-red-50 text-red-800 text-[10px] font-bold gap-1 animate-pulse">
@@ -1141,7 +1139,7 @@ export default function SedanaExecutionPage() {
                                         حان موعد الإخراج!
                                       </Badge>
                                       <span className="text-[9px] text-muted-foreground font-medium">
-                                        يجب إخراج {it.cycleQuantity || 1} {it.unit}
+                                        الكمية الدورية: {cycleQty} {it.unit}
                                       </span>
                                     </div>
                                   ) : (
@@ -1158,11 +1156,27 @@ export default function SedanaExecutionPage() {
                                       <span className="text-[9px] text-muted-foreground">
                                         {countdown.days < 1 ? "أقل من يوم!" : countdown.days < 3 ? "اقترب الموعد" : `${countdown.days} يوم متبقي`}
                                       </span>
-                                      <span className="text-[8px] text-muted-foreground/60">
-                                        يجب إخراج {it.cycleQuantity || 1} {it.unit}
-                                      </span>
                                     </div>
                                   )}
+
+                                  {/* تنبيه الصرف المبكر الجزئي */}
+                                  {it.currentCycleDisbursed > 0 && it.currentCycleDisbursed < cycleQty && (
+                                    <span className="text-[9px] font-bold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded border border-sky-200 dark:border-sky-800">
+                                      صرف مبكر: صُرف {it.currentCycleDisbursed} من {cycleQty} {it.unit}
+                                    </span>
+                                  )}
+
+                                  {/* حالة أمر الإخراج قيد التأكيد أو الاستلام */}
+                                  {hasPendingConfirmation ? (
+                                    <span className="text-[9px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800 animate-pulse">
+                                      أمر إخراج بانتظار تأكيد المسؤول
+                                    </span>
+                                  ) : hasPendingReceipt ? (
+                                    <span className="text-[9px] font-bold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded border border-sky-200 dark:border-sky-800 animate-pulse">
+                                      أمر إخراج بانتظار استلام الإمام
+                                    </span>
+                                  ) : null}
+
                                   {!isStockAvailable && (
                                     <span className="text-[9px] text-red-600 font-bold bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-900">
                                       المخزون بالمستودع غير كافٍ

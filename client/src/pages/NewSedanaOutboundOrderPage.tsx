@@ -36,6 +36,7 @@ import {
   Clock,
   Check,
   CalendarDays,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
@@ -85,32 +86,50 @@ export default function NewSedanaOutboundOrderPage() {
   const [outboundItems, setOutboundItems] = useState<Record<string, number>>({});
   const [showAllItems, setShowAllItems] = useState(false);
 
-  // البنود المتاحة للصرف بالمستودع (يتوفر لها رصيد بالمستودع ولم يكتمل صرفها)
-  const availableItems = useMemo(() => {
+  // البنود المتفق عليها للصرف المتاحة بالمستودع
+  const agreedItems = useMemo(() => {
     return inventoryItems.filter((it: any) => {
+      const isAgreed = !it.isManualInward;
       const hasStock = Number(it.availableStock || 0) > 0;
       const notCompleted = Number(it.remainingToDisburse || 0) > 0;
-      return hasStock && notCompleted;
+      return isAgreed && hasStock && notCompleted;
     });
   }, [inventoryItems]);
 
+  // البنود الإضافية المدخلة بدون مرجع المتاحة بالمستودع
+  const extraManualItems = useMemo(() => {
+    return inventoryItems.filter((it: any) => {
+      const isManual = it.isManualInward === true;
+      const hasStock = Number(it.availableStock || 0) > 0;
+      return isManual && hasStock;
+    });
+  }, [inventoryItems]);
+
+  // حالة إظهار البنود الإضافية في أمر الإخراج
+  const [showExtraItems, setShowExtraItems] = useState(false);
+
   // البنود المستحقة دورياً (لأغراض العرض والإحصاء)
   const dueItems = useMemo(() => {
-    return availableItems.filter((it: any) => {
+    return agreedItems.filter((it: any) => {
       return it.isDue || (it.nextDueDate && new Date(it.nextDueDate).getTime() <= Date.now());
     });
-  }, [availableItems]);
+  }, [agreedItems]);
 
-  // البنود المعروضة للإخراج: جميع الأصناف المتوفرة برصيد في المستودع
-  const itemsToDisplay = availableItems;
+  // البنود المعروضة للإخراج: البنود المتفق عليها افتراضياً، وتضاف البنود الإضافية عند طلب المسؤول
+  const itemsToDisplay = useMemo(() => {
+    if (showExtraItems) {
+      return [...agreedItems, ...extraManualItems];
+    }
+    return agreedItems;
+  }, [agreedItems, extraManualItems, showExtraItems]);
 
-  // تهيئة الاختيارات والكميات الأولية تلقائياً للبنود المتاحة
+  // تهيئة الاختيارات والكميات الأولية تلقائياً للبنود المتفق عليها
   useEffect(() => {
-    if (availableItems.length > 0 && selectedItemIds.size === 0) {
+    if (agreedItems.length > 0 && selectedItemIds.size === 0) {
       const initialSelected = new Set<string>();
       const initialQtys: Record<string, number> = {};
 
-      availableItems.forEach((it: any) => {
+      agreedItems.forEach((it: any) => {
         initialSelected.add(String(it.id));
         const maxAllowed = Math.min(Number(it.availableStock || 0), Number(it.remainingToDisburse || 0));
         const suggested = Math.min(Number(it.cycleQuantity || 1), maxAllowed);
@@ -120,7 +139,7 @@ export default function NewSedanaOutboundOrderPage() {
       setSelectedItemIds(initialSelected);
       setOutboundItems(initialQtys);
     }
-  }, [availableItems]);
+  }, [agreedItems]);
 
   const toggleItemSelection = (id: string, it: any) => {
     setSelectedItemIds((prev) => {
@@ -130,8 +149,12 @@ export default function NewSedanaOutboundOrderPage() {
       } else {
         next.add(id);
         if (!outboundItems[id]) {
-          const maxAllowed = Math.min(Number(it.availableStock || 0), Number(it.remainingToDisburse || 0));
-          const suggested = Math.min(Number(it.cycleQuantity || 1), maxAllowed);
+          const maxAllowed = it.isManualInward 
+            ? Number(it.availableStock || 0)
+            : Math.min(Number(it.availableStock || 0), Number(it.remainingToDisburse || 0));
+          const suggested = it.isManualInward
+            ? maxAllowed
+            : Math.min(Number(it.cycleQuantity || 1), maxAllowed);
           setOutboundItems((q) => ({ ...q, [id]: suggested > 0 ? suggested : maxAllowed }));
         }
       }
@@ -303,11 +326,14 @@ export default function NewSedanaOutboundOrderPage() {
         </Card>
 
         {/* شريط حالة استحقاق وتوفر البنود */}
-        {availableItems.length > 0 ? (
+        {agreedItems.length > 0 || extraManualItems.length > 0 ? (
           <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>يوجد {availableItems.length} صنف متوفر بالمستودع متاح للإخراج المباشر أو المبكر.</span>
+              <span>
+                يوجد {agreedItems.length} بند متفق عليه للصرف متاح بالمستودع
+                {extraManualItems.length > 0 ? `، بالإضافة إلى ${extraManualItems.length} بند إضافي مدخل بدون مرجع` : ""}.
+              </span>
             </div>
             {dueItems.length > 0 && (
               <Badge variant="outline" className="border-emerald-300 bg-white/80 dark:bg-emerald-900/50 text-[11px] font-bold">
@@ -331,35 +357,59 @@ export default function NewSedanaOutboundOrderPage() {
                 <span>البنود المشمولة بأمر الإخراج وتحديد الكميات</span>
               </CardTitle>
               <CardDescription className="text-xs">
-                حدد البنود والكميات المراد صرفها بناءً على الرصيد المتوفر بالمستودع (يمكن الإخراج في أي وقت حتى قبل انتهاء المؤقت الدوري)
+                {showExtraItems
+                  ? "يتم عرض البنود المتفق عليها بالطلب بالإضافة إلى البنود الإضافية المدخلة بدون مرجع"
+                  : "يتم عرض البنود المتفق عليها للصرف وفق جدول الطلب الدوري"}
               </CardDescription>
             </div>
 
-            {itemsToDisplay.length > 0 && (
-              <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              {extraManualItems.length > 0 && (
                 <Button
                   type="button"
-                  variant="outline"
+                  variant={showExtraItems ? "default" : "outline"}
                   size="sm"
-                  onClick={() => {
-                    const allIds = new Set((itemsToDisplay || []).map((it: any) => String(it.id)));
-                    setSelectedItemIds(allIds);
-                  }}
-                  className="text-xs h-7 px-2.5 cursor-pointer font-semibold"
+                  onClick={() => setShowExtraItems((prev) => !prev)}
+                  className={`text-xs h-8 px-3 gap-1.5 cursor-pointer font-bold shadow-2xs ${
+                    showExtraItems
+                      ? "bg-amber-600 hover:bg-amber-700 text-white border-amber-600"
+                      : "text-amber-800 border-amber-300 bg-amber-50/70 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                  }`}
                 >
-                  تحديد الكل
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{showExtraItems ? "إخفاء البنود الإضافية" : "إضافة كمية من البنود الإضافية"}</span>
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-amber-200 text-amber-900 font-bold dark:bg-amber-900 dark:text-amber-200">
+                    {extraManualItems.length}
+                  </Badge>
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedItemIds(new Set())}
-                  className="text-xs h-7 px-2.5 cursor-pointer font-semibold"
-                >
-                  إلغاء التحديد
-                </Button>
-              </div>
-            )}
+              )}
+
+              {itemsToDisplay.length > 0 && (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const allIds = new Set((itemsToDisplay || []).map((it: any) => String(it.id)));
+                      setSelectedItemIds(allIds);
+                    }}
+                    className="text-xs h-8 px-2.5 cursor-pointer font-semibold"
+                  >
+                    تحديد الكل
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedItemIds(new Set())}
+                    className="text-xs h-8 px-2.5 cursor-pointer font-semibold"
+                  >
+                    إلغاء التحديد
+                  </Button>
+                </>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto" dir="rtl">
@@ -379,9 +429,11 @@ export default function NewSedanaOutboundOrderPage() {
                       <TableCell colSpan={5} className="p-8 text-center text-muted-foreground">
                         <div className="flex flex-col items-center justify-center gap-2">
                           <Package className="w-8 h-8 text-muted-foreground/60 stroke-1" />
-                          <p className="font-bold text-sm text-foreground">لا توجد بنود متاحة للصرف حالياً</p>
+                          <p className="font-bold text-sm text-foreground">لا توجد بنود متفق عليها متاحة للصرف حالياً</p>
                           <p className="text-xs text-muted-foreground max-w-sm">
-                            لا تتوفر أصناف ذات رصيد متاح في المستودع حالياً. يمكنك تسجيل أمر إدخال أولاً لتغذية رصيد المستودع.
+                            {extraManualItems.length > 0
+                              ? "يمكنك الضغط على زر «إضافة كمية من البنود الإضافية» أعلاه لإخراج كميات من الأصناف المدخلة بدون مرجع."
+                              : "لا تتوفر أصناف ذات رصيد متاح في المستودع حالياً. يمكنك تسجيل أمر إدخال أولاً لتغذية رصيد المستودع."}
                           </p>
                         </div>
                       </TableCell>
@@ -389,8 +441,10 @@ export default function NewSedanaOutboundOrderPage() {
                   ) : (
                     itemsToDisplay.map((it: any) => {
                       const isSelected = selectedItemIds.has(String(it.id));
-                      const maxAllowed = Math.min(Number(it.availableStock || 0), Number(it.remainingToDisburse || 0));
-                      const currentVal = outboundItems[String(it.id)] ?? Math.min(Number(it.cycleQuantity || 1), maxAllowed);
+                      const maxAllowed = it.isManualInward
+                        ? Number(it.availableStock || 0)
+                        : Math.min(Number(it.availableStock || 0), Number(it.remainingToDisburse || 0));
+                      const currentVal = outboundItems[String(it.id)] ?? (it.isManualInward ? maxAllowed : Math.min(Number(it.cycleQuantity || 1), maxAllowed));
 
                       return (
                         <TableRow
@@ -408,22 +462,35 @@ export default function NewSedanaOutboundOrderPage() {
                             />
                           </TableCell>
                           <TableCell className="p-3">
-                            <div className="font-bold text-foreground text-xs sm:text-sm">{it.itemName || it.name}</div>
+                            <div className="font-bold text-foreground text-xs sm:text-sm flex items-center gap-1.5 flex-wrap">
+                              <span>{it.itemName || it.name}</span>
+                              {it.isManualInward && (
+                                <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-300 dark:border-amber-700 font-bold px-1.5 py-0">
+                                  بند إضافي (بدون مرجع)
+                                </Badge>
+                              )}
+                            </div>
                             {it.category && (
                               <div className="text-[10px] text-muted-foreground mt-0.5">{it.category}</div>
                             )}
                           </TableCell>
                           <TableCell className="p-3 text-center">
-                            <div className="inline-flex flex-col items-center gap-0.5">
-                              <Badge variant="outline" className="text-[10px] px-2 py-0.5">
-                                {it.frequency || "شهري"}
+                            {it.isManualInward ? (
+                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-muted font-bold text-muted-foreground">
+                                عند الطلب
                               </Badge>
-                              {it.nextDueDate && new Date(it.nextDueDate).getTime() > Date.now() ? (
-                                <span className="text-[9px] text-sky-600 dark:text-sky-400 font-semibold">صرف مبكر</span>
-                              ) : (
-                                <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold">مستحق</span>
-                              )}
-                            </div>
+                            ) : (
+                              <div className="inline-flex flex-col items-center gap-0.5">
+                                <Badge variant="outline" className="text-[10px] px-2 py-0.5">
+                                  {it.frequency || "شهري"}
+                                </Badge>
+                                {it.nextDueDate && new Date(it.nextDueDate).getTime() > Date.now() ? (
+                                  <span className="text-[9px] text-sky-600 dark:text-sky-400 font-semibold">صرف مبكر</span>
+                                ) : (
+                                  <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold">مستحق</span>
+                                )}
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell className="p-3 text-center">
                             <div className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-mono font-bold">
