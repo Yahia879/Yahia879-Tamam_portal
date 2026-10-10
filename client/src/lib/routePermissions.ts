@@ -584,18 +584,75 @@ export function hasRouteAccess(
 export function getUserHomeRoute(user: any): string {
   if (!user) return "/login";
   if (user.role === "service_requester") return "/requester";
+
   const userPerms: string[] = (user as any)?.permissions ?? [];
+  const isBaseRole = [
+    "super_admin", "system_admin", "board_chairman", "board_member",
+    "general_manager", "executive_director", "projects_office", "field_team",
+    "quick_response", "financial", "financial_manager", "project_manager",
+    "corporate_comm", "service_requester", "procurement_officer"
+  ].includes(user.role);
+  const hasCustom = !!(user as any)?.customRole || !isBaseRole;
+
+  const canAccess = (path: string) => hasRouteAccess(path, user.role, userPerms, hasCustom);
+
   const hasDashboard = userPerms.includes("dashboard") || userPerms.includes("dashboard.view") || userPerms.includes("*");
-  if (
-    (user.role === "procurement_officer" ||
-    (user as any)?.customRole?.nameAr === "مسؤول المشتريات" ||
-    ((user as any)?.customRole?.nameEn || "").toLowerCase() === "procurement officer") &&
-    !hasDashboard
-  ) {
-    return "/quotations";
+
+  // 1. أدوار مجلس الإدارة
+  if (user.role === "board_chairman" || user.role === "board_member") {
+    if (canAccess("/board-dashboard")) return "/board-dashboard";
+    if (canAccess("/board-executive")) return "/board-executive";
+    if (canAccess("/board-analytics")) return "/board-analytics";
   }
 
-  // جميع الموظفين والمستخدمين الإداريين صفحتهم الرئيسية هي لوحة التحكم المخصصة لدورهم
-  return "/dashboard";
+  // 2. مسؤول المشتريات (سواء دور أساسي أو مخصص)
+  const isProcurement =
+    user.role === "procurement_officer" ||
+    (user as any)?.customRole?.nameAr === "مسؤول المشتريات" ||
+    ((user as any)?.customRole?.nameEn || "").toLowerCase() === "procurement officer";
+
+  if (isProcurement) {
+    if (hasDashboard) return "/dashboard";
+    if (canAccess("/quotations")) return "/quotations";
+    if (canAccess("/sedana-quotations")) return "/sedana-quotations";
+    if (canAccess("/custody-requests")) return "/custody-requests";
+    if (canAccess("/purchase-orders")) return "/purchase-orders";
+    if (canAccess("/orders-and-letters")) return "/orders-and-letters";
+  }
+
+  // 3. لوحة التحكم العامة (الافتراضية لمعظم الموظفين والمدراء)
+  if (canAccess("/dashboard")) {
+    return "/dashboard";
+  }
+
+  // 4. في حال لم تكن لوحة التحكم متاحة للمستخدم (أو تم حجبها أو تخصيص الصلاحيات):
+  // نبحث ديناميكياً عن أول مسار متاح له من قائمة الصفحات النظامية
+  const candidateRoutes = [
+    "/quotations",
+    "/sedana-quotations",
+    "/custody-requests",
+    "/projects",
+    "/requests",
+    "/mosques",
+    "/suppliers",
+    "/contracts",
+    "/purchase-orders",
+    "/orders-and-letters",
+    "/financial-approval",
+    "/disbursements",
+    "/reports",
+    "/staff",
+    "/profile"
+  ];
+
+  for (const route of candidateRoutes) {
+    if (canAccess(route)) {
+      return route;
+    }
+  }
+
+  // الملاذ الأخير
+  return "/profile";
 }
+
 

@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/usePermission";
+import { getUserHomeRoute } from "@/lib/routePermissions";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -209,7 +210,7 @@ export default function Dashboard() {
       customRoleNameEn === "procurement officer") &&
       !hasDashboardPermission
     ) {
-      navigate("/quotations", { replace: true });
+      navigate(getUserHomeRoute(user), { replace: true });
       return;
     }
   }, [user, navigate, customRoleNameAr, customRoleNameEn]);
