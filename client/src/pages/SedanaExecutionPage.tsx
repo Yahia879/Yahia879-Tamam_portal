@@ -87,12 +87,9 @@ export default function SedanaExecutionPage() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
 
-  // صلاحيات المستودع الافتراضي (نفس طريقة أوامر الشراء بدون تعقيد)
+  // صلاحيات المستودع الافتراضي
   const canInward = usePermission("sedana_warehouse.inward");
   const canOutbound = usePermission("sedana_warehouse.outbound");
-  const canConfirmReceipt = usePermission("sedana_warehouse.confirm_receipt");
-  const canPrint = usePermission("sedana_warehouse.print");
-  const canExport = usePermission("sedana_warehouse.export");
 
   const [isExporting, setIsExporting] = useState(false);
 
@@ -492,18 +489,16 @@ export default function SedanaExecutionPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                {canExport && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleExportExcel}
-                    disabled={isExporting}
-                    className="text-xs font-bold gap-1.5 h-9"
-                  >
-                    {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />}
-                    <span>{isExporting ? "جاري التصدير..." : "تصدير إلى Excel"}</span>
-                  </Button>
-                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleExportExcel}
+                  disabled={isExporting}
+                  className="text-xs font-bold gap-1.5 h-9"
+                >
+                  {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />}
+                  <span>{isExporting ? "جاري التصدير..." : "تصدير إلى Excel"}</span>
+                </Button>
                 <Badge className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 px-3 py-1.5 font-bold text-xs gap-1.5 shadow-2xs">
                   <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
                   <span>{executionStageCount} طلبات في مرحلة التشغيل والتنفيذ</span>
@@ -785,18 +780,6 @@ export default function SedanaExecutionPage() {
                   <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                     إدارة إدخال البنود الموردة، جدولة أوامر الإخراج ومسوغات الصرف، وإصدار أوامر التسليم الميداني لمسجد <span className="font-bold text-foreground">{mosque?.name || "المسجد"}</span> {req?.requestNumber ? `(#${req.requestNumber})` : ""}
                   </p>
-                </div>
-
-                <div className="flex items-center gap-2 mt-2 md:mt-0 shrink-0">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsNotificationModalOpen(true)}
-                    className="h-8 px-3 text-xs font-bold gap-1.5 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 bg-card cursor-pointer shadow-2xs"
-                  >
-                    <Bell className="w-3.5 h-3.5" />
-                    <span>إرسال إشعار للإمام</span>
-                  </Button>
                 </div>
               </div>
             </div>
@@ -1786,19 +1769,17 @@ export default function SedanaExecutionPage() {
               >
                 إغلاق
               </Button>
-              {canPrint && (
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setIsViewOutboundModalOpen(false);
-                    setLocation(`/requests/${requestId}/sedana-delivery`);
-                  }}
-                  className="text-xs font-bold gap-1.5 bg-primary text-primary-foreground"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>طباعة محضر الاستلام الرسمي</span>
-                </Button>
-              )}
+              <Button
+                size="sm"
+                onClick={() => {
+                  setIsViewOutboundModalOpen(false);
+                  setLocation(`/requests/${requestId}/sedana-delivery`);
+                }}
+                className="text-xs font-bold gap-1.5 bg-primary text-primary-foreground"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>طباعة محضر الاستلام الرسمي</span>
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

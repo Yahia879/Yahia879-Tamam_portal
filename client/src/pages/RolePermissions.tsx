@@ -277,13 +277,6 @@ export default function RolePermissions() {
 
 
 
-    // منع تفعيل أي صلاحية في قسم المستودع الافتراضي إلا إذا كانت صلاحية العرض مفعلة
-    if (permId.startsWith("sedana_warehouse.") && permId !== "sedana_warehouse.view") {
-      if (!selectedPerms.includes("sedana_warehouse.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض المستودع الافتراضي' أولاً");
-        return;
-      }
-    }
 
     // منع تفعيل أي صلاحية في قسم طلبات سدانة إلا إذا كانت صلاحية العرض مفعلة
     if (permId.startsWith("sedana_requests.") && permId !== "sedana_requests.view") {
@@ -456,6 +449,11 @@ export default function RolePermissions() {
         if (permId.startsWith("csr_letters.") && permId !== "csr_letters.view") {
           if (!next.includes("csr_letters.view")) {
             next.push("csr_letters.view");
+          }
+        }
+        if (permId.startsWith("sedana_warehouse.") && permId !== "sedana_warehouse.view") {
+          if (!next.includes("sedana_warehouse.view")) {
+            next.push("sedana_warehouse.view");
           }
         }
         if (permId === "purchase_orders.create_disbursement") {
@@ -779,9 +777,6 @@ export default function RolePermissions() {
             { id: "sedana_warehouse.view", nameAr: "عرض المستودع الافتراضي" },
             { id: "sedana_warehouse.inward", nameAr: "تسجيل أمر إدخال بالمستودع" },
             { id: "sedana_warehouse.outbound", nameAr: "إنشاء أمر إخراج ومسوغ صرف" },
-            { id: "sedana_warehouse.confirm_receipt", nameAr: "اعتماد وتأكيد الاستلام" },
-            { id: "sedana_warehouse.print", nameAr: "معاينة وطباعة محاضر وأوامر التسليم" },
-            { id: "sedana_warehouse.export", nameAr: "تصدير بيانات المستودع إكسيل" },
           ]
         }
       ]
@@ -1014,9 +1009,6 @@ export default function RolePermissions() {
             { id: "sedana_warehouse.view", nameAr: "عرض المستودع الافتراضي" },
             { id: "sedana_warehouse.inward", nameAr: "تسجيل أمر إدخال بالمستودع" },
             { id: "sedana_warehouse.outbound", nameAr: "إنشاء أمر إخراج ومسوغ صرف" },
-            { id: "sedana_warehouse.confirm_receipt", nameAr: "اعتماد وتأكيد الاستلام" },
-            { id: "sedana_warehouse.print", nameAr: "معاينة وطباعة محاضر وأوامر التسليم" },
-            { id: "sedana_warehouse.export", nameAr: "تصدير بيانات المستودع إكسيل" },
           ]
         }
       ]
@@ -1072,7 +1064,7 @@ export default function RolePermissions() {
         { id: "orders_and_letters", nameAr: "مالية سدانة", icon: ShoppingBag, perms: ["disbursement_orders", "csr_letters", "purchase_orders"] },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "create_disbursement"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add"] },
-        { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound", "confirm_receipt", "print", "export"] },
+        { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound"] },
       ]
     },
     {
@@ -1148,7 +1140,7 @@ export default function RolePermissions() {
         { id: "orders_and_letters", nameAr: "مالية سدانة", icon: ShoppingBag, perms: ["disbursement_orders", "csr_letters", "purchase_orders"] },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "create_disbursement"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add"] },
-        { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound", "confirm_receipt", "print", "export"] },
+        { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound"] },
       ]
     },
     {
@@ -1351,9 +1343,6 @@ export default function RolePermissions() {
         view: "عرض المستودع الافتراضي",
         inward: "تسجيل أمر إدخال بالمستودع",
         outbound: "إنشاء أمر إخراج ومسوغ صرف",
-        confirm_receipt: "اعتماد وتأكيد الاستلام",
-        print: "معاينة وطباعة محاضر وأوامر التسليم",
-        export: "تصدير بيانات المستودع إكسيل",
       },
       sedana_requests: {
         view: "عرض طلبات سدانة",
@@ -1764,7 +1753,6 @@ export default function RolePermissions() {
                               const isChecked = isPermissionGranted(perm.id);
                                const isDisabled = 
                                  (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !selectedPerms.includes("contracts.view")) ||
-                                 (perm.id.startsWith("sedana_warehouse.") && perm.id !== "sedana_warehouse.view" && !selectedPerms.includes("sedana_warehouse.view")) ||
                                  (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && !selectedPerms.includes("disbursement_orders.view")) ||
                                  (perm.id === "board_leadership.remind" && !selectedPerms.includes("board_chairman")) ||
                                  (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||

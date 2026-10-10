@@ -293,13 +293,7 @@ export default function UserPermissions() {
 
 
 
-    // منع تفعيل أي صلاحية فرعية للمستودع الافتراضي إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("sedana_warehouse.") && permId !== "sedana_warehouse.view") {
-      if (!isChecked("sedana_warehouse.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض المستودع الافتراضي' أولاً");
-        return;
-      }
-    }
+
 
     // منع تفعيل أي صلاحية فرعية لطلبات سدانة إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("sedana_requests.") && permId !== "sedana_requests.view") {
@@ -369,13 +363,7 @@ export default function UserPermissions() {
 
 
 
-    // منع تفعيل أي صلاحية في قسم المستودع الافتراضي إلا إذا كانت صلاحية العرض مفعلة
-    if (permId.startsWith("sedana_warehouse.") && permId !== "sedana_warehouse.view") {
-      if (!isChecked("sedana_warehouse.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض المستودع الافتراضي' أولاً");
-        return;
-      }
-    }
+
 
 
 
@@ -460,6 +448,13 @@ export default function UserPermissions() {
             delete updated["sedana_quotations.view"];
           } else {
             updated["sedana_quotations.view"] = true;
+          }
+        } else if (permId.startsWith("sedana_warehouse.") && permId !== "sedana_warehouse.view") {
+          const defVal = rolePermissions?.includes("sedana_warehouse.view") || false;
+          if (defVal) {
+            delete updated["sedana_warehouse.view"];
+          } else {
+            updated["sedana_warehouse.view"] = true;
           }
         }
       }
@@ -841,9 +836,6 @@ export default function UserPermissions() {
         view: "عرض المستودع الافتراضي",
         inward: "تسجيل أمر إدخال بالمستودع",
         outbound: "إنشاء أمر إخراج ومسوغ صرف",
-        confirm_receipt: "اعتماد وتأكيد الاستلام",
-        print: "معاينة وطباعة محاضر وأوامر التسليم",
-        export: "تصدير بيانات المستودع إكسيل",
       },
       sedana_requests: {
         view: "عرض طلبات سدانة",
@@ -1024,7 +1016,7 @@ export default function UserPermissions() {
         { id: "orders_and_letters", nameAr: "مالية سدانة", icon: ShoppingBag, perms: ["disbursement_orders", "csr_letters", "purchase_orders"] },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "create_disbursement"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add"] },
-        { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound", "confirm_receipt", "print", "export"] },
+        { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound"] },
       ]
     },
     {
@@ -1291,7 +1283,6 @@ export default function UserPermissions() {
 
                             const isDisabled = 
                               (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !isChecked("contracts.view")) ||
-                              (perm.id.startsWith("sedana_warehouse.") && perm.id !== "sedana_warehouse.view" && !isChecked("sedana_warehouse.view")) ||
                               (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && !isChecked("disbursement_orders.view")) ||
                               (perm.id === "board_leadership.remind" && !isChecked("board_chairman")) ||
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !isChecked("mosques.view")) ||

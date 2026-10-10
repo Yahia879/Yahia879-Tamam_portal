@@ -10,8 +10,6 @@ import { usePermission } from "@/hooks/usePermission";
 export default function SedanaDeliveryOrderPrint() {
   const params = useParams<{ id: string; deliveryId?: string }>();
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
-  const canPrint = usePermission("sedana_warehouse.print");
   const requestId = parseInt(params.id || "0");
 
   useDocumentTitle(`أمر تسليم مستودعي #${requestId} - سدانة`);
