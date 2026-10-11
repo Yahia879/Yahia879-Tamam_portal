@@ -1175,15 +1175,9 @@ async function ensureAllCustomPermissionsExist(db: any) {
       }
     }
 
-    // إسناد الصلاحيات الافتراضية لأوامر الشراء للأدوار الأساسية إن لم تكن مسندة
+    // إسناد الصلاحيات الافتراضية لأوامر الشراء (مسندة تلقائياً حصراً لـ super_admin)
     const poDefaultRolePerms: Record<string, string[]> = {
       super_admin: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
-      system_admin: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
-      general_manager: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
-      executive_director: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
-      financial_manager: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
-      projects_office: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
-      project_manager: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.export"],
     };
 
     for (const [rId, pIds] of Object.entries(poDefaultRolePerms)) {
@@ -1205,15 +1199,9 @@ async function ensureAllCustomPermissionsExist(db: any) {
       }
     }
 
-    // إسناد الصلاحيات الافتراضية للمسؤولية المجتمعية للأدوار الأساسية إن لم تكن مسندة
+    // إسناد الصلاحيات الافتراضية للمسؤولية المجتمعية (مسندة تلقائياً حصراً لـ super_admin)
     const csrDefaultRolePerms: Record<string, string[]> = {
       super_admin: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
-      system_admin: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
-      general_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
-      executive_director: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
-      financial_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
-      projects_office: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
-      project_manager: ["csr_letters.view", "csr_letters.add", "csr_letters.export"],
     };
 
     for (const [rId, pIds] of Object.entries(csrDefaultRolePerms)) {
@@ -1235,17 +1223,9 @@ async function ensureAllCustomPermissionsExist(db: any) {
       }
     }
 
-
-    // إسناد الصلاحيات الافتراضية للمستودع الافتراضي للأدوار الأساسية إن لم تكن مسندة
+    // إسناد الصلاحيات الافتراضية للمستودع الافتراضي (مسندة تلقائياً حصراً لـ super_admin)
     const warehouseDefaultRolePerms: Record<string, string[]> = {
       super_admin: ["sedana_warehouse.view", "sedana_warehouse.inward", "sedana_warehouse.outbound"],
-      system_admin: ["sedana_warehouse.view", "sedana_warehouse.inward", "sedana_warehouse.outbound"],
-      general_manager: ["sedana_warehouse.view", "sedana_warehouse.inward", "sedana_warehouse.outbound"],
-      executive_director: ["sedana_warehouse.view", "sedana_warehouse.inward", "sedana_warehouse.outbound"],
-      financial_manager: ["sedana_warehouse.view", "sedana_warehouse.inward", "sedana_warehouse.outbound"],
-      financial: ["sedana_warehouse.view"],
-      projects_office: ["sedana_warehouse.view", "sedana_warehouse.inward", "sedana_warehouse.outbound"],
-      project_manager: ["sedana_warehouse.view", "sedana_warehouse.inward", "sedana_warehouse.outbound"],
     };
 
     for (const [rId, pIds] of Object.entries(warehouseDefaultRolePerms)) {
@@ -1267,10 +1247,10 @@ async function ensureAllCustomPermissionsExist(db: any) {
       }
     }
 
-    // التأكد من عدم وجود صلاحيات أوامر الشراء والخطاب المجتمعي لمدراء النظام تلقائياً
+    // تنظيف صلاحيات أوامر الشراء والخطاب المجتمعي لمدير النظام
     await db.delete(rolePermissions).where(
       and(
-        inArray(rolePermissions.roleId, ['system_admin', 'super_admin']),
+        eq(rolePermissions.roleId, 'system_admin'),
         sql`${rolePermissions.permissionId} LIKE 'orders_and_letters%'`
       )
     ).catch(() => {});
@@ -1298,9 +1278,9 @@ async function ensureAllCustomPermissionsExist(db: any) {
       )
     ).catch(() => {});
 
-    // إسناد الصلاحيات الافتراضية لمالية سدانة (متاحة افتراضياً حصراً للإدارة المالية فقط دون مدراء النظام)
+    // إسناد الصلاحيات الافتراضية لمالية سدانة (مسندة تلقائياً حصراً لـ super_admin)
     const ordersAndLettersDefaultRolePerms: Record<string, string[]> = {
-      financial: [
+      super_admin: [
         "orders_and_letters.disbursement_orders",
         "orders_and_letters.csr_letters",
         "orders_and_letters.purchase_orders",
@@ -1363,15 +1343,9 @@ async function ensureAllCustomPermissionsExist(db: any) {
       }
     }
 
-    // إسناد الصلاحيات الافتراضية لعروض أسعار سدانة للأدوار الأساسية
+    // إسناد الصلاحيات الافتراضية لعروض أسعار سدانة للأدوار الأساسية (فقط super_admin)
     const sedanaQuoDefaultRolePerms: Record<string, string[]> = {
       super_admin: ["sedana_quotations.view", "sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve", "quotations.view_sedana"],
-      system_admin: ["sedana_quotations.view", "sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve", "quotations.view_sedana"],
-      general_manager: ["sedana_quotations.view", "sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve", "quotations.view_sedana"],
-      executive_director: ["sedana_quotations.view", "sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve", "quotations.view_sedana"],
-      financial_manager: ["sedana_quotations.view", "sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve", "quotations.view_sedana"],
-      financial: ["sedana_quotations.view", "sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve", "quotations.view_sedana"],
-      procurement_officer: ["sedana_quotations.view", "sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve", "quotations.view_sedana"],
     };
 
     for (const [rId, pIds] of Object.entries(sedanaQuoDefaultRolePerms)) {
@@ -1392,6 +1366,23 @@ async function ensureAllCustomPermissionsExist(db: any) {
         }
       }
     }
+
+    // تنظيف صلاحيات إدارة المخزون بالكامل من جميع الأدوار الأخرى باستثناء super_admin
+    await db.delete(rolePermissions).where(
+      and(
+        ne(rolePermissions.roleId, "super_admin"),
+        or(
+          sql`${rolePermissions.permissionId} LIKE 'sedana_quotations%'`,
+          sql`${rolePermissions.permissionId} LIKE 'orders_and_letters%'`,
+          sql`${rolePermissions.permissionId} LIKE 'purchase_orders%'`,
+          sql`${rolePermissions.permissionId} LIKE 'csr_letters%'`,
+          sql`${rolePermissions.permissionId} LIKE 'sedana_warehouse%'`,
+          eq(rolePermissions.permissionId, "quotations.view_sedana")
+        )
+      )
+    ).catch(() => {});
+
+
   } catch (err) {
     console.error("Error in ensureAllCustomPermissionsExist:", err);
   }
@@ -1416,7 +1407,10 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
   // إذا كان المستخدم super_admin أو system_admin، نمنحه جميع الصلاحيات افتراضياً كبداية
   if (userData?.role === 'super_admin' || userData?.role === 'system_admin') {
-    const excludedAdminPerms = EXCLUDED_ADMIN_PERMISSIONS;
+    const isSuperAdmin = userData?.role === 'super_admin';
+    const excludedAdminPerms = isSuperAdmin
+      ? EXCLUDED_ADMIN_PERMISSIONS.filter(p => !p.startsWith('orders_and_letters'))
+      : EXCLUDED_ADMIN_PERMISSIONS;
     const allPerms = await db.select({ id: permissions.id }).from(permissions);
     // يحصلان أيضاً على جميع الصلاحيات الموسعة (باستثناء appointments.view_own والصلاحيات المستبعدة)
     const expandedSet = new Set(
@@ -1523,12 +1517,16 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   // إضافة الصلاحيات المجمعة من كل المصادر
   rolePermissionsData.forEach(p => allPermissions.add(p));
 
+  const isSuperAdminUser = userData?.role === 'super_admin';
+  const effectiveExcludedAdminPerms = isSuperAdminUser
+    ? EXCLUDED_ADMIN_PERMISSIONS.filter(p => !p.startsWith('orders_and_letters'))
+    : EXCLUDED_ADMIN_PERMISSIONS;
+
   // دعم الـ Wildcard (إذا وجد '*')
   if (allPermissions.has("*")) {
-    const excludedAdminPerms = EXCLUDED_ADMIN_PERMISSIONS;
     const allAvailablePerms = await db.select({ id: permissions.id }).from(permissions);
     allAvailablePerms.forEach(p => {
-      if (!excludedAdminPerms.includes(p.id)) {
+      if (!effectiveExcludedAdminPerms.includes(p.id)) {
         allPermissions.add(p.id);
       }
     });
@@ -1536,12 +1534,11 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
   // توسيع الصلاحيات البسيطة إلى صلاحيات دقيقة لجميع الصلاحيات المجمعة
   const permissionsToExpand = Array.from(allPermissions);
-  const excludedAdminPerms = EXCLUDED_ADMIN_PERMISSIONS;
   for (const perm of permissionsToExpand) {
     const expanded = PERMISSION_EXPANSION[perm];
     if (expanded) {
       expanded.forEach(sub => {
-        if (!excludedAdminPerms.includes(sub)) {
+        if (!effectiveExcludedAdminPerms.includes(sub)) {
           allPermissions.add(sub);
         }
       });

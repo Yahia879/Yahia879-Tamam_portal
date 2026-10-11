@@ -23,21 +23,21 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   general_manager: [
     "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
-    "contracts", "purchase_orders", "csr_letters", "sedana_warehouse", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
-    "progress_reports", "financial_report", "reports", "staff_management", "settings_center", "custody_requests", "sedana_quotations",
+    "contracts", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
+    "progress_reports", "financial_report", "reports", "staff_management", "settings_center", "custody_requests",
   ],
 
   executive_director: [
     "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
-    "contracts", "purchase_orders", "csr_letters", "sedana_warehouse", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
-    "progress_reports", "financial_report", "reports", "staff_management", "settings_center", "custody_requests", "sedana_quotations",
+    "contracts", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
+    "progress_reports", "financial_report", "reports", "staff_management", "settings_center", "custody_requests",
   ],
 
   projects_office: [
     "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts",
-    "suppliers", "quotations", "financial_approval", "contracts", "purchase_orders", "csr_letters", "sedana_warehouse",
+    "suppliers", "quotations", "financial_approval", "contracts",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers",
     "progress_reports", "financial_report", "reports", "custody_requests",
   ],
@@ -53,18 +53,17 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   financial: [
     "dashboard", "suppliers", "quotations", "financial_approval",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers", "financial_report",
-    "contracts", "sedana_warehouse",
-    "orders_and_letters", "orders_and_letters.view", "custody_requests", "sedana_quotations",
+    "contracts", "custody_requests",
   ],
 
   financial_manager: [
     "dashboard", "suppliers", "quotations", "financial_approval",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers", "financial_report",
-    "contracts", "purchase_orders", "csr_letters", "sedana_warehouse", "requests", "custody_requests", "sedana_quotations",
+    "contracts", "requests", "custody_requests",
   ],
 
   project_manager: [
-    "dashboard", "projects", "progress_reports", "requests", "contracts", "purchase_orders", "csr_letters", "sedana_warehouse", "disbursement_requests", "receipt_vouchers", "custody_requests",
+    "dashboard", "projects", "progress_reports", "requests", "contracts", "disbursement_requests", "receipt_vouchers", "custody_requests",
   ],
 
   corporate_comm: [
@@ -85,7 +84,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   service_requester: [], // طالب الخدمة لا يملك صلاحيات إدارية
 
   procurement_officer: [
-    "quotations", "quotations.view", "quotations.add", "custody_requests", "sedana_quotations",
+    "quotations", "quotations.view", "quotations.add", "custody_requests",
   ],
 };
 

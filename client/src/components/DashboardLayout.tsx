@@ -87,11 +87,10 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
     customRoleNameAr === "مسؤول المشتريات" ||
     customRoleNameEn?.toLowerCase() === "procurement officer";
 
-  // تخصيص شاشة لمسؤول المشتريات (برنامج سدانة - عروض الأسعار)
+  // تخصيص شاشة لمسؤول المشتريات
   if (isProcurementOfficer) {
     const items: MenuItem[] = [
       { icon: Receipt, label: isEn ? "Quotations" : "عروض الأسعار", path: "/quotations" },
-      { icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" },
     ];
     if (role !== "service_requester") {
       items.push({ icon: Wallet, label: isEn ? "Financial Custody" : "العهد المالية", path: "/custody-requests" });
@@ -183,22 +182,13 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
       items,
     });
 
-    if (["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector) {
+    if (role === "super_admin") {
       const inventoryItems = [
         { icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" },
         { icon: ShoppingBag, label: isEn ? "Sedana Finance" : "مالية سدانة", path: "/orders-and-letters" },
         { icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" },
         { icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" },
         { icon: Boxes, label: "المستودع الافتراضي", path: "/sedana-warehouse" },
-      ];
-      groups.push({
-        label: isEn ? "Inventory Management" : "إدارة المخزون",
-        items: inventoryItems,
-      });
-    } else if (role === "financial") {
-      const inventoryItems = [
-        { icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" },
-        { icon: ShoppingBag, label: isEn ? "Sedana Finance" : "مالية سدانة", path: "/orders-and-letters" },
       ];
       groups.push({
         label: isEn ? "Inventory Management" : "إدارة المخزون",
