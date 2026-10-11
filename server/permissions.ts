@@ -1278,9 +1278,14 @@ async function ensureAllCustomPermissionsExist(db: any) {
       )
     ).catch(() => {});
 
-    // إسناد الصلاحيات الافتراضية لمالية سدانة (مسندة تلقائياً حصراً لـ super_admin)
+    // إسناد الصلاحيات الافتراضية لمالية سدانة (مسندة لـ super_admin والمسؤول المالي financial)
     const ordersAndLettersDefaultRolePerms: Record<string, string[]> = {
       super_admin: [
+        "orders_and_letters.disbursement_orders",
+        "orders_and_letters.csr_letters",
+        "orders_and_letters.purchase_orders",
+      ],
+      financial: [
         "orders_and_letters.disbursement_orders",
         "orders_and_letters.csr_letters",
         "orders_and_letters.purchase_orders",
@@ -1343,9 +1348,31 @@ async function ensureAllCustomPermissionsExist(db: any) {
       }
     }
 
-    // إسناد الصلاحيات الافتراضية لعروض أسعار سدانة للأدوار الأساسية (فقط super_admin)
+    // إسناد الصلاحيات الافتراضية لعروض أسعار سدانة:
+    // - super_admin: كافة الصلاحيات
+    // - procurement_officer: عروض الأسعار باستثناء الاعتماد
+    // - executive_director: العرض واعتماد عروض الأسعار فقط
     const sedanaQuoDefaultRolePerms: Record<string, string[]> = {
-      super_admin: ["sedana_quotations.view", "sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve", "quotations.view_sedana"],
+      super_admin: [
+        "sedana_quotations.view",
+        "sedana_quotations.export_pdf",
+        "sedana_quotations.add",
+        "sedana_quotations.recommend",
+        "sedana_quotations.approve",
+        "quotations.view_sedana",
+      ],
+      procurement_officer: [
+        "sedana_quotations.view",
+        "sedana_quotations.export_pdf",
+        "sedana_quotations.add",
+        "sedana_quotations.recommend",
+        "quotations.view_sedana",
+      ],
+      executive_director: [
+        "sedana_quotations.view",
+        "sedana_quotations.approve",
+        "quotations.view_sedana",
+      ],
     };
 
     for (const [rId, pIds] of Object.entries(sedanaQuoDefaultRolePerms)) {
@@ -1367,10 +1394,30 @@ async function ensureAllCustomPermissionsExist(db: any) {
       }
     }
 
-    // تنظيف صلاحيات إدارة المخزون بالكامل من جميع الأدوار الأخرى باستثناء super_admin
+    // التأكد من عدم وجود صلاحية الاعتماد لمسؤول المشتريات
     await db.delete(rolePermissions).where(
       and(
-        ne(rolePermissions.roleId, "super_admin"),
+        eq(rolePermissions.roleId, "procurement_officer"),
+        eq(rolePermissions.permissionId, "sedana_quotations.approve")
+      )
+    ).catch(() => {});
+
+    // التأكد من عدم وجود صلاحيات الإضافة/التوصية/التصدير للمدير التنفيذي في عروض أسعار سدانة
+    await db.delete(rolePermissions).where(
+      and(
+        eq(rolePermissions.roleId, "executive_director"),
+        inArray(rolePermissions.permissionId, [
+          "sedana_quotations.add",
+          "sedana_quotations.recommend",
+          "sedana_quotations.export_pdf",
+        ])
+      )
+    ).catch(() => {});
+
+    // تنظيف صلاحيات إدارة المخزون للأدوار غير المصرح لها
+    await db.delete(rolePermissions).where(
+      and(
+        notInArray(rolePermissions.roleId, ["super_admin", "procurement_officer", "executive_director", "financial"]),
         or(
           sql`${rolePermissions.permissionId} LIKE 'sedana_quotations%'`,
           sql`${rolePermissions.permissionId} LIKE 'orders_and_letters%'`,
@@ -1378,6 +1425,26 @@ async function ensureAllCustomPermissionsExist(db: any) {
           sql`${rolePermissions.permissionId} LIKE 'csr_letters%'`,
           sql`${rolePermissions.permissionId} LIKE 'sedana_warehouse%'`,
           eq(rolePermissions.permissionId, "quotations.view_sedana")
+        )
+      )
+    ).catch(() => {});
+
+    // حصر مالية سدانة في super_admin و financial فقط
+    await db.delete(rolePermissions).where(
+      and(
+        notInArray(rolePermissions.roleId, ["super_admin", "financial"]),
+        sql`${rolePermissions.permissionId} LIKE 'orders_and_letters%'`
+      )
+    ).catch(() => {});
+
+    // حصر أوامر الشراء والخطاب المجتمعي والمستودع في super_admin فقط
+    await db.delete(rolePermissions).where(
+      and(
+        ne(rolePermissions.roleId, "super_admin"),
+        or(
+          sql`${rolePermissions.permissionId} LIKE 'purchase_orders%'`,
+          sql`${rolePermissions.permissionId} LIKE 'csr_letters%'`,
+          sql`${rolePermissions.permissionId} LIKE 'sedana_warehouse%'`
         )
       )
     ).catch(() => {});

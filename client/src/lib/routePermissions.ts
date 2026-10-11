@@ -32,6 +32,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
     "contracts", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
     "progress_reports", "financial_report", "reports", "staff_management", "settings_center", "custody_requests",
+    "sedana_quotations",
   ],
 
   projects_office: [
@@ -53,7 +54,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   financial: [
     "dashboard", "suppliers", "quotations", "financial_approval",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers", "financial_report",
-    "contracts", "custody_requests",
+    "contracts", "custody_requests", "orders_and_letters",
   ],
 
   financial_manager: [
@@ -84,7 +85,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   service_requester: [], // طالب الخدمة لا يملك صلاحيات إدارية
 
   procurement_officer: [
-    "quotations", "quotations.view", "quotations.add", "custody_requests",
+    "quotations", "quotations.view", "quotations.add", "sedana_quotations", "custody_requests",
   ],
 };
 

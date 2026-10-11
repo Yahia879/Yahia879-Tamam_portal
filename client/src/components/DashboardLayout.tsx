@@ -87,10 +87,11 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
     customRoleNameAr === "مسؤول المشتريات" ||
     customRoleNameEn?.toLowerCase() === "procurement officer";
 
-  // تخصيص شاشة لمسؤول المشتريات
+  // تخصيص شاشة لمسؤول المشتريات (عروض الأسعار وسدانة)
   if (isProcurementOfficer) {
     const items: MenuItem[] = [
       { icon: Receipt, label: isEn ? "Quotations" : "عروض الأسعار", path: "/quotations" },
+      { icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" },
     ];
     if (role !== "service_requester") {
       items.push({ icon: Wallet, label: isEn ? "Financial Custody" : "العهد المالية", path: "/custody-requests" });
@@ -193,6 +194,20 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
       groups.push({
         label: isEn ? "Inventory Management" : "إدارة المخزون",
         items: inventoryItems,
+      });
+    } else if (role === "executive_director" || isExecDirector) {
+      groups.push({
+        label: isEn ? "Inventory Management" : "إدارة المخزون",
+        items: [
+          { icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" },
+        ],
+      });
+    } else if (role === "financial") {
+      groups.push({
+        label: isEn ? "Inventory Management" : "إدارة المخزون",
+        items: [
+          { icon: ShoppingBag, label: isEn ? "Sedana Finance" : "مالية سدانة", path: "/orders-and-letters" },
+        ],
       });
     }
   } else if (role !== "service_requester") {
