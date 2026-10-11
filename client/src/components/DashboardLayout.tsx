@@ -370,7 +370,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     finItems.push({ icon: Receipt, label: "عروض الأسعار", path: "/quotations" });
   }
   if (has("financial_approval"))  finItems.push({ icon: CheckSquare, label: isEn ? "Approvals" : "الاعتمادات", path: "/financial-approval" });
-  if (has("contracts") || has("contracts.view") || has("requests")) {
+  if (has("contracts") || has("contracts.view")) {
     finItems.push({ icon: FileText, label: "العقود", path: "/contracts" });
   }
   if (has("disbursement_requests")) finItems.push({ icon: Banknote,  label: "طلبات الصرف",    path: "/disbursements" });

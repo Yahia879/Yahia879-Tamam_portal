@@ -177,6 +177,12 @@ export default function Dashboard() {
 
   const isEn = isQuickResponse && quickResponseLang === "en";
 
+  const userPermissions: string[] = (user as any)?.permissions ?? [];
+  const canManageSedanaRequests =
+    userPermissions.includes("sedana_requests.manage") ||
+    userPermissions.includes("sedana_requests.view") ||
+    userPermissions.includes("*");
+
   const handleToggleQuickResponseLang = () => {
     const nextLang = quickResponseLang === "ar" ? "en" : "ar";
     setQuickResponseLang(nextLang);
@@ -701,13 +707,16 @@ export default function Dashboard() {
     }
 
     if (isFieldRole) {
-      return [
+      const fieldActions = [
         { title: "تقويم المواعيد", href: "/field-visits/calendar", icon: Calendar, color: "text-orange-600", bg: "bg-orange-50" },
         { title: "الزيارات الميدانية", href: "/field-visits", icon: Activity, color: "text-blue-600", bg: "bg-blue-50" },
         { title: "طلباتي المسندة", href: "/my-requests", icon: FileText, color: "text-emerald-600", bg: "bg-emerald-50" },
-        { title: "خدمات التشغيل (سدانة)", href: "/service-request?service=sedana", icon: Sparkles, color: "text-cyan-600", bg: "bg-cyan-50" },
-        { title: "إنشاء استجابة سريعة", href: "/requests/quick-create", icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50" },
       ];
+      if (canManageSedanaRequests) {
+        fieldActions.push({ title: "خدمات التشغيل (سدانة)", href: "/service-request?service=sedana", icon: Sparkles, color: "text-cyan-600", bg: "bg-cyan-50" });
+      }
+      fieldActions.push({ title: "إنشاء استجابة سريعة", href: "/requests/quick-create", icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50" });
+      return fieldActions;
     }
 
     if (isCorporateCommRole) {
@@ -1147,12 +1156,14 @@ export default function Dashboard() {
                 <>
                   {isQuickResponse ? (
                     <>
-                      <Link href="/service-request?service=sedana">
-                        <Button size="sm" className="bg-cyan-600 hover:bg-cyan-700 text-white border-0 text-xs font-bold gap-1.5 h-9 rounded-xl shadow-xs">
-                          <Sparkles className="w-3.5 h-3.5 text-cyan-200" />
-                          <span>خدمات التشغيل (سدانة)</span>
-                        </Button>
-                      </Link>
+                      {canManageSedanaRequests && (
+                        <Link href="/service-request?service=sedana">
+                          <Button size="sm" className="bg-cyan-600 hover:bg-cyan-700 text-white border-0 text-xs font-bold gap-1.5 h-9 rounded-xl shadow-xs">
+                            <Sparkles className="w-3.5 h-3.5 text-cyan-200" />
+                            <span>{isEn ? "Sedana Services" : "خدمات التشغيل (سدانة)"}</span>
+                          </Button>
+                        </Link>
+                      )}
                       <Link href="/requests/quick-create">
                         <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0 text-xs font-bold gap-1.5 h-9 rounded-xl shadow-xs">
                           <Zap className="w-3.5 h-3.5" />

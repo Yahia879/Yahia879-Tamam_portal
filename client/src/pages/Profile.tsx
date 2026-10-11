@@ -263,6 +263,7 @@ export default function Profile() {
   ]);
 
   const hasSignaturePermission =
+    Boolean(user && user.role !== "service_requester") ||
     user?.role === "super_admin" ||
     user?.role === "system_admin" ||
     hasDisbursementSignPermission ||
