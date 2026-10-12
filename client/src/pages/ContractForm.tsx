@@ -334,7 +334,7 @@ export default function ContractForm() {
   const [selectedTemplateChanged, setSelectedTemplateChanged] = useState(false);
   
   // جدول الدفعات ونظام الصرف
-  const [paymentSystem, setPaymentSystem] = useState<"installments" | "milestones">("installments");
+  const [paymentSystem, setPaymentSystem] = useState<"installments" | "milestones" | "">("");
   const [paymentSchedule, setPaymentSchedule] = useState<PaymentScheduleItem[]>([]);
   const [expandedGuidanceMap, setExpandedGuidanceMap] = useState<Record<string, boolean>>({});
 
@@ -1403,6 +1403,10 @@ export default function ContractForm() {
 
   // إضافة دفعة أو مستخلص جديد في نهاية الجدول
   const addPayment = () => {
+    if (!paymentSystem) {
+      toast.info("يرجى اختيار آلية استحقاق وصرف مستحقات العقد (دفعات أو مستخلصات) أولاً");
+      return;
+    }
     const has100 = paymentSchedule.some(p => Number(p.completionPercentage) >= 100);
     if (paymentSystem === "milestones" && has100) {
       toast.info("لا يمكن إضافة مستخلص في حال وجود مستخلص نسبته 100%");
@@ -1778,11 +1782,14 @@ export default function ContractForm() {
         }
         return true;
       case 4:
-        if (paymentSchedule.length === 0) {
-          toast.error(paymentSystem === "milestones"
-            ? "يرجى إضافة مستخلص واحد على الأقل وتحديد مراحل الإنجاز حتى 100%"
-            : "يرجى إضافة دفعة واحدة على الأقل في نظام الدفعات");
+        if (!paymentSystem) {
+          toast.error("يرجى اختيار آلية استحقاق وصرف مستحقات العقد (دفعات أو مستخلصات)");
           return false;
+        }
+
+        // في حال عدم إضافة دفعات أو مستخلصات، يمكن تخطي هذه الخطوة
+        if (paymentSchedule.length === 0) {
+          return true;
         }
 
         // في نظام المستخلصات: التحقق من صحة المراحل ونسبة إنجاز المستخلص الأخير (100%)
@@ -1955,8 +1962,8 @@ export default function ContractForm() {
         startDate: contractData.startDate,
         customTerms: contractData.notes || undefined,
         // جدول الدفعات ونظام الصرف
-        paymentSchedule: JSON.stringify({ paymentSystem, schedule: paymentSchedule }),
-        paymentSystem,
+        paymentSchedule: JSON.stringify({ paymentSystem: paymentSystem || "installments", schedule: paymentSchedule }),
+        paymentSystem: (paymentSystem || undefined) as any,
         // بنود العقد المخصصة
         clauseValues: JSON.stringify(clauseValues.filter(c => c.isIncluded)),
         customClausesJson: JSON.stringify(customClauses.filter(c => (c.title && c.title.trim()) || (c.description && c.description.trim()))),
@@ -2013,8 +2020,8 @@ export default function ContractForm() {
       contractDateHijri: contractData.startDateHijri ? `${contractData.startDateHijri.replace(/[^0-9/]/g, '')} هـ` : (contractData.startDate ? `${toHijriDate(contractData.startDate)} هـ` : undefined),
       startDate: contractData.startDate,
       // جدول الدفعات ونظام الصرف
-      paymentSchedule: JSON.stringify({ paymentSystem, schedule: paymentSchedule }),
-      paymentSystem,
+      paymentSchedule: JSON.stringify({ paymentSystem: paymentSystem || "installments", schedule: paymentSchedule }),
+      paymentSystem: (paymentSystem || undefined) as any,
       // بنود العقد
       clauseValues: clauseValues.length > 0 ? JSON.stringify(clauseValues.filter(c => c.isIncluded)) : undefined,
       customClausesJson: JSON.stringify(customClauses.filter(c => (c.title && c.title.trim()) || (c.description && c.description.trim()))),
@@ -2083,8 +2090,8 @@ export default function ContractForm() {
       customTerms: contractData.notes || undefined,
       
       // جدول الدفعات والبنود ونظام الصرف
-      paymentSchedule: JSON.stringify({ paymentSystem, schedule: paymentSchedule }),
-      paymentSystem,
+      paymentSchedule: JSON.stringify({ paymentSystem: paymentSystem || "installments", schedule: paymentSchedule }),
+      paymentSystem: (paymentSystem || undefined) as any,
       clauseValues: clauseValues.length > 0 ? JSON.stringify(clauseValues.filter(c => c.isIncluded)) : undefined,
       customClausesJson: JSON.stringify({
         clauses: customClauses.filter(c => (c.title && c.title.trim()) || (c.description && c.description.trim())),
@@ -3059,10 +3066,24 @@ export default function ContractForm() {
                 )}
 
                 {paymentSchedule.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                  <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg space-y-1">
                     <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>لم يتم إضافة دفعات بعد</p>
-                    <p className="text-sm">يمكنك تخطي هذه الخطوة إذا لم تكن هناك دفعات محددة</p>
+                    {paymentSystem === "milestones" ? (
+                      <>
+                        <p className="font-semibold text-foreground">لم يتم إضافة مستخلصات بعد</p>
+                        <p className="text-sm">يمكنك تخطي هذه الخطوة إذا لم تكن هناك مستخلصات محددة</p>
+                      </>
+                    ) : paymentSystem === "installments" ? (
+                      <>
+                        <p className="font-semibold text-foreground">لم يتم إضافة دفعات بعد</p>
+                        <p className="text-sm">يمكنك تخطي هذه الخطوة إذا لم تكن هناك دفعات محددة</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-semibold text-foreground">لم يتم اختيار آلية الصرف بعد</p>
+                        <p className="text-sm text-amber-600 dark:text-amber-400">يرجى اختيار آلية الاستحقاق (دفعات أو مستخلصات) من الخيارات أعلاه للمتابعة</p>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">

@@ -49,6 +49,7 @@ import {
   Plus,
   Eye,
   FileText,
+  FileSpreadsheet,
   CheckCircle,
   Clock,
   AlertCircle,
@@ -575,7 +576,65 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     ?.filter((p: any) => p.status !== "rejected" && p.status !== "cancelled")
     ?.reduce((sum: number, p: any) => sum + getPaymentEffectiveAmount(p), 0) || 0;
 
-  const hasIncompleteSchedule = newReport.projectId > 0 && !isProjectDetailsLoading && (totalContractAmount === 0 || (totalContractAmount - totalScheduledPayments) > 0.05);
+  // التحقق مما إذا كان المشروع مرتبطاً بنظام المستخلصات
+  const isMilestonesProject = useMemo(() => {
+    if (!projectDetails?.contracts || projectDetails.contracts.length === 0) return false;
+    return projectDetails.contracts.some((c: any) => {
+      if (c.paymentSystem === "milestones") return true;
+      if (c.paymentScheduleJson) {
+        try {
+          const parsed = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+          if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.paymentSystem === "milestones") {
+            return true;
+          }
+        } catch (e) {}
+      }
+      return false;
+    });
+  }, [projectDetails]);
+
+  // استخراج مستخلصات العقد
+  const projectMilestones = useMemo(() => {
+    if (!projectDetails?.contracts || projectDetails.contracts.length === 0) return [];
+    const list: any[] = [];
+    projectDetails.contracts.forEach((c: any) => {
+      if (c.paymentScheduleJson) {
+        try {
+          let parsed = c.paymentScheduleJson;
+          if (typeof parsed === "string") {
+            parsed = JSON.parse(parsed);
+            if (typeof parsed === "string") parsed = JSON.parse(parsed);
+          }
+          const isMilestones = parsed?.paymentSystem === "milestones" || (c as any).paymentSystem === "milestones";
+          const sched = Array.isArray(parsed) ? parsed : (parsed?.schedule || []);
+          if (isMilestones && Array.isArray(sched)) {
+            sched.forEach((m: any, idx: number) => {
+              list.push({
+                ...m,
+                id: m.id || `milestone-${c.id}-${idx}`,
+                contractId: c.id,
+                contractNumber: c.contractNumber,
+                orderIndex: idx + 1,
+              });
+            });
+          }
+        } catch (e) {}
+      }
+    });
+    return list;
+  }, [projectDetails]);
+
+  // التحقق من وجود مستخلص واحد على الأقل بنسبة إنجاز 100%
+  const has100Milestone = useMemo(() => {
+    return (
+      projectMilestones.some((m: any) => Number(m.completionPercentage) >= 100) ||
+      Boolean(projectDetails?.payments && projectDetails.payments.some((p: any) => Number(p.completionPercentage) >= 100))
+    );
+  }, [projectMilestones, projectDetails?.payments]);
+
+  // في المشاريع المرتبطة بمستخلصات لا يشترط جدولة دفعات، بل يشترط وجود مستخلص واحد على الأقل بنسبة 100%
+  const hasIncompleteSchedule = !isMilestonesProject && newReport.projectId > 0 && !isProjectDetailsLoading && (totalContractAmount === 0 || (totalContractAmount - totalScheduledPayments) > 0.05);
+  const hasMilestonesRequirementError = isMilestonesProject && newReport.projectId > 0 && !isProjectDetailsLoading && !has100Milestone;
 
   // Mutations
   const createMutation = trpc.progressReports.create.useMutation({
@@ -818,14 +877,73 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     toast.success("تم اختيار الدفعة وملء البيانات تلقائياً");
   };
 
-  // معالجة اختيار الدفعة الممررة عبر الرابط تلقائياً فور تحميل بيانات المشروع
+  // معالجة اختيار المستخلص وملء الحقول تلقائياً
+  const handleSelectMilestone = (milestone: any) => {
+    const milestoneTitle = `تقرير إنجاز - ${milestone.name || `مستخلص ${milestone.orderIndex || 1}`}`;
+    const milestoneKey = milestone.name || `مستخلص ${milestone.orderIndex || 1}`;
+    const milestoneId = String(milestone.id || `milestone-${milestone.orderIndex || 1}`);
+
+    const isAlreadyReported = (allReportsData || []).some((report: any) => {
+      if (Number(report.projectId) !== Number(newReport.projectId)) return false;
+      if (report.status === "rejected" || report.status === "revoked") return false;
+      const ws = report.workSummary || "";
+      if (ws.includes("[معرف المستخلص:") || ws.includes("[معرف الدفعة:")) {
+        return ws.includes(`[معرف المستخلص: ${milestoneId}]`) || ws.includes(`[معرف الدفعة: ${milestoneId}]`);
+      }
+      return !!(milestoneKey && milestoneKey.trim() !== "" && report.title === milestoneTitle);
+    });
+
+    if (isAlreadyReported) {
+      toast.error("عذراً، تم تقديم تقرير إنجاز سابق لهذا المستخلص بالفعل ولا يمكن تكراره.");
+      return;
+    }
+
+    setSelectedPaymentId(milestoneId);
+
+    const completionPercentage = Math.min(100, Math.max(0, Number(milestone.completionPercentage) || 0));
+    const effectiveAmt = Number(milestone.amount || 0);
+    setNewReport(prev => ({
+      ...prev,
+      title: milestoneTitle,
+      plannedProgress: completionPercentage,
+      actualProgress: completionPercentage,
+      overallProgress: completionPercentage,
+      budgetSpent: effectiveAmt.toString(),
+      workSummary: milestone.description || milestone.name || "",
+      agreedPaymentAmount: effectiveAmt.toString(),
+    }));
+
+    toast.success("تم اختيار المستخلص وملء البيانات تلقائياً");
+  };
+
+  // معالجة اختيار الدفعة أو المستخلص الممرر عبر الرابط تلقائياً
   const queryPaymentHandled = useRef(false);
   useEffect(() => {
     if (queryPaymentHandled.current) return;
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    const queryPaymentId = params.get("paymentId");
+    const queryPaymentId = params.get("paymentId") || params.get("milestoneId");
     const queryPaymentNumber = params.get("paymentNumber");
+
+    if (isMilestonesProject && projectMilestones.length > 0 && (queryPaymentId || queryPaymentNumber)) {
+      const targetMilestone = projectMilestones.find((m: any, idx: number) => {
+        if (queryPaymentId) {
+          const cleanQ = String(queryPaymentId).replace(/^(milestone-|cp-|manual-|disb-)/i, "");
+          const cleanM = String(m.id).replace(/^(milestone-|cp-|manual-|disb-)/i, "");
+          if (String(m.id) === String(queryPaymentId) || cleanM === cleanQ) return true;
+        }
+        if (queryPaymentNumber) {
+          if (String(m.name).includes(String(queryPaymentNumber)) || String(idx + 1) === String(queryPaymentNumber)) return true;
+        }
+        return false;
+      });
+
+      if (targetMilestone) {
+        queryPaymentHandled.current = true;
+        handleSelectMilestone(targetMilestone);
+        return;
+      }
+    }
 
     if (projectDetails?.payments && projectDetails.payments.length > 0 && (queryPaymentId || queryPaymentNumber)) {
       const targetPayment = projectDetails.payments.find((p: any, idx: number) => {
@@ -846,27 +964,27 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         handleSelectPayment(targetPayment);
       }
     }
-  }, [projectDetails?.payments]);
+  }, [projectDetails?.payments, projectMilestones, isMilestonesProject]);
 
   // تحليل ملخص الأعمال المنفذة
   const parseWorkSummary = (combined: string) => {
-    const paymentIdMatch = combined.match(/\[معرف الدفعة:\s*([^\]]+)\]/);
+    const paymentIdMatch = combined.match(/\[(?:معرف الدفعة|معرف المستخلص):\s*([^\]]+)\]/);
     const paymentId = paymentIdMatch ? paymentIdMatch[1] : null;
 
     let scheduled = "";
     let actual = "";
 
-    const regex = /الأعمال المجدولة للدفعة:\r?\n([\s\S]*?)\r?\n\r?الأعمال المنفذة فعلياً:\r?\n([\s\S]*?)(?:\r?\n\r?\[معرف الدفعة:|$)/;
+    const regex = /(?:الأعمال المجدولة للدفعة|الأعمال المجدولة للمستخلص):\r?\n([\s\S]*?)\r?\n\r?الأعمال المنفذة فعلياً:\r?\n([\s\S]*?)(?:\r?\n\r?\[(?:معرف الدفعة|معرف المستخلص):|$)/;
     const match = combined.match(regex);
 
     if (match) {
       scheduled = match[1].trim();
       actual = match[2].trim();
     } else {
-      const schedMatch = combined.match(/الأعمال المجدولة للدفعة:\r?\n([\s\S]*?)(?:\r?\n\r?الأعمال المنفذة فعلياً:|\r?\n\r?\[معرف الدفعة:|$)/);
-      const actualMatch = combined.match(/الأعمال المنفذة فعلياً:\r?\n([\s\S]*?)(?:\r?\n\r?\[معرف الدفعة:|$)/);
+      const schedMatch = combined.match(/(?:الأعمال المجدولة للدفعة|الأعمال المجدولة للمستخلص):\r?\n([\s\S]*?)(?:\r?\n\r?الأعمال المنفذة فعلياً:|\r?\n\r?\[(?:معرف الدفعة|معرف المستخلص):|$)/);
+      const actualMatch = combined.match(/الأعمال المنفذة فعلياً:\r?\n([\s\S]*?)(?:\r?\n\r?\[(?:معرف الدفعة|معرف المستخلص):|$)/);
       
-      scheduled = schedMatch ? schedMatch[1].trim() : combined.replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "").trim();
+      scheduled = schedMatch ? schedMatch[1].trim() : combined.replace(/\[(?:معرف الدفعة|معرف المستخلص):\s*[^\]]+\]/g, "").trim();
       actual = actualMatch ? actualMatch[1].trim() : "";
     }
 
@@ -959,7 +1077,11 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
       return;
     }
 
-    const combinedWorkSummary = `الأعمال المجدولة للدفعة:\n${newReport.workSummary}\n\nالأعمال المنفذة فعلياً:\n${newReport.actualWorkDone}\n\n[معرف الدفعة: ${selectedPaymentId}]`;
+    const prefix = isMilestonesProject ? "الأعمال المجدولة للمستخلص" : "الأعمال المجدولة للدفعة";
+    const tag = isMilestonesProject 
+      ? `[معرف المستخلص: ${selectedPaymentId}] [معرف الدفعة: ${selectedPaymentId}]` 
+      : `[معرف الدفعة: ${selectedPaymentId}]`;
+    const combinedWorkSummary = `${prefix}:\n${newReport.workSummary}\n\nالأعمال المنفذة فعلياً:\n${newReport.actualWorkDone}\n\n${tag}`;
     
     setIsSubmitting(true);
     try {
@@ -996,6 +1118,11 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
           photos: uploadedUrls,
         });
       } else {
+        if (hasMilestonesRequirementError) {
+          toast.error("لا يمكن إنشاء تقرير إنجاز حتى يكون هناك مستخلص واحد على الأقل بنسبة إنجاز 100% في العقد.");
+          setIsSubmitting(false);
+          return;
+        }
         if (hasIncompleteSchedule) {
           toast.error("لا يمكن صرف تقرير إنجاز حتى تجدول كل دفعات المشروع");
           setIsSubmitting(false);
@@ -1206,136 +1333,237 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   />
                 </div>
 
-                {/* Payments Section */}
+                {/* Payments / Milestones Section */}
                 {newReport.projectId > 0 && (
-                  <div className="space-y-3 pt-4 border-t border-dashed border-border/80">
-                    <Label className="text-sm font-bold text-foreground flex items-center gap-2">
-                      <CreditCard className="w-4 h-4 text-primary" />
-                      الدفعات وجدولة الإنجاز المرتبطة للمشروع
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      اختر الدفعة التي ترغب بإنشاء تقرير إنجاز لها لملء البيانات والمبالغ تلقائياً:
-                    </p>
-                    {isProjectDetailsLoading ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="h-28 rounded-xl border border-dashed border-muted-foreground/20 animate-pulse bg-muted/40" />
-                        <div className="h-28 rounded-xl border border-dashed border-muted-foreground/20 animate-pulse bg-muted/40" />
-                      </div>
-                    ) : projectDetails?.payments && projectDetails.payments.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-1.5 bg-muted/30 rounded-xl border border-border/60">
-                        {projectDetails.payments.map((payment: any, index: number) => {
-                          const isAdvance = isAdvancePayment(payment, index);
-                          const isSelected = selectedPaymentId === payment.id;
-                          const isIncomplete = !isAdvance && payment.source !== "manual" && (
-                            payment.completionPercentage === null || 
-                            payment.completionPercentage === undefined || 
-                            payment.completionPercentage === 0 ||
-                            !payment.workDescription || 
-                            payment.workDescription.trim() === ""
-                          );
-                          const paymentKey = payment.description || payment.paymentNumber;
-                          const isAlreadyReported = !isAdvance && (allReportsData || []).some((report: any) => {
-                            if (Number(report.projectId) !== Number(newReport.projectId)) return false;
-                            if (report.status === "rejected" || report.status === "revoked") return false;
-                            const hasPaymentIdTag = report.workSummary && report.workSummary.includes("[معرف الدفعة:");
-                            if (hasPaymentIdTag) {
-                              return !!(payment.id && report.workSummary.includes(`[معرف الدفعة: ${payment.id}]`));
-                            }
-                            const expectedTitle = `تقرير إنجاز - ${paymentKey}`;
-                            return !!(paymentKey && paymentKey.trim() !== "" && report.title === expectedTitle);
-                          });
-                          
-                          const statusStyles = isAdvance
-                            ? "bg-slate-200/90 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700 font-bold"
-                            : isIncomplete
-                            ? "bg-destructive/10 text-destructive border-destructive/20 animate-pulse"
-                            : isAlreadyReported
-                            ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900/50 font-bold"
-                            : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50 font-medium";
-                            
-                          const statusLabel = isAdvance
-                            ? "دفعة مقدمة لا ينشأ لها تقرير انجاز"
-                            : isIncomplete 
-                            ? "بيانات غير مكتملة" 
-                            : isAlreadyReported
-                            ? "تم تقديم تقرير"
-                            : "قيد الانتظار";
-                          
-                          return (
-                            <div
-                              key={payment.id}
-                              onClick={() => {
-                                if (isAdvance) {
-                                  toast.info("دفعة مقدمة لا ينشأ لها تقرير انجاز");
-                                  return;
-                                }
-                                if (editingReportId) return;
-                                handleSelectPayment(payment);
-                              }}
-                              className={`relative p-4 rounded-xl border-2 text-right transition-all duration-300 flex flex-col justify-between gap-3 ${
-                                isAdvance
-                                  ? "border-slate-200/80 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-800/30 opacity-60 cursor-not-allowed select-none shadow-none"
-                                  : isSelected
-                                  ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-sm ring-1 ring-primary/20 cursor-pointer"
-                                  : isIncomplete
-                                  ? "border-destructive/20 bg-destructive/[0.02] hover:border-destructive/40 hover:bg-destructive/[0.04] opacity-75 cursor-not-allowed"
-                                  : isAlreadyReported
-                                  ? "border-green-200 bg-green-50/10 hover:border-green-400 opacity-90 cursor-not-allowed font-bold"
-                                  : editingReportId
-                                  ? "border-transparent bg-background opacity-60 cursor-not-allowed"
-                                  : "border-transparent bg-background hover:border-primary/40 hover:bg-accent/10 hover:shadow-sm cursor-pointer"
-                              }`}
-                            >
-                              {isSelected && !isAdvance && (
-                                <div className="absolute top-2 left-2 bg-primary text-primary-foreground rounded-full p-1 shadow-sm animate-in zoom-in duration-200">
-                                  <Check className="w-3 h-3" />
-                                </div>
-                              )}
-                              
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex items-center gap-2">
-                                  <div className={`p-1.5 rounded-lg ${isSelected ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-                                    <Coins className="w-4 h-4" />
+                  isMilestonesProject ? (
+                    <div className="space-y-3 pt-4 border-t border-dashed border-border/80">
+                      <Label className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                        مستخلصات ومراحل الإنجاز المرتبطة للمشروع
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        اختر المستخلص الذي ترغب بإنشاء تقرير إنجاز له لملء البيانات ونسب الإنجاز تلقائياً:
+                      </p>
+                      {isProjectDetailsLoading ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="h-28 rounded-xl border border-dashed border-muted-foreground/20 animate-pulse bg-muted/40" />
+                          <div className="h-28 rounded-xl border border-dashed border-muted-foreground/20 animate-pulse bg-muted/40" />
+                        </div>
+                      ) : projectMilestones && projectMilestones.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-1.5 bg-muted/30 rounded-xl border border-border/60">
+                          {projectMilestones.map((milestone: any, index: number) => {
+                            const milestoneId = String(milestone.id || `milestone-${milestone.orderIndex || index + 1}`);
+                            const isSelected = selectedPaymentId === milestoneId;
+                            const milestoneKey = milestone.name || `مستخلص ${index + 1}`;
+                            const isAlreadyReported = (allReportsData || []).some((report: any) => {
+                              if (Number(report.projectId) !== Number(newReport.projectId)) return false;
+                              if (report.status === "rejected" || report.status === "revoked") return false;
+                              const ws = report.workSummary || "";
+                              if (ws.includes("[معرف المستخلص:") || ws.includes("[معرف الدفعة:")) {
+                                return ws.includes(`[معرف المستخلص: ${milestoneId}]`) || ws.includes(`[معرف الدفعة: ${milestoneId}]`);
+                              }
+                              return !!(milestoneKey && milestoneKey.trim() !== "" && report.title === `تقرير إنجاز - ${milestoneKey}`);
+                            });
+
+                            const is100 = Number(milestone.completionPercentage) >= 100;
+
+                            return (
+                              <div
+                                key={milestoneId}
+                                onClick={() => {
+                                  if (editingReportId) return;
+                                  handleSelectMilestone(milestone);
+                                }}
+                                className={`relative p-4 rounded-xl border-2 text-right transition-all duration-300 flex flex-col justify-between gap-3 ${
+                                  isSelected
+                                    ? "border-emerald-600 bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/20 cursor-pointer"
+                                    : isAlreadyReported
+                                    ? "border-green-200 bg-green-50/10 opacity-90 cursor-not-allowed font-bold"
+                                    : editingReportId
+                                    ? "border-transparent bg-background opacity-60 cursor-not-allowed"
+                                    : "border-transparent bg-background hover:border-emerald-500/40 hover:bg-emerald-500/5 hover:shadow-sm cursor-pointer"
+                                }`}
+                              >
+                                {isSelected && (
+                                  <div className="absolute top-2 left-2 bg-emerald-600 text-white rounded-full p-1 shadow-sm animate-in zoom-in duration-200">
+                                    <Check className="w-3 h-3" />
                                   </div>
-                                  <span className="font-bold text-sm leading-none block text-foreground">
-                                    {payment.description || payment.paymentNumber}
+                                )}
+
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`p-1.5 rounded-lg ${isSelected ? "bg-emerald-600/20 text-emerald-600" : "bg-muted text-muted-foreground"}`}>
+                                      <FileSpreadsheet className="w-4 h-4" />
+                                    </div>
+                                    <span className="font-bold text-sm leading-none block text-foreground">
+                                      {milestone.name || `مستخلص ${index + 1}`}
+                                    </span>
+                                  </div>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
+                                    isAlreadyReported
+                                      ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400"
+                                      : is100
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold"
+                                      : "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 font-medium"
+                                  }`}>
+                                    {isAlreadyReported ? "تم تقديم تقرير" : is100 ? "مستخلص منجز 100%" : "قيد الإنجاز"}
                                   </span>
                                 </div>
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${statusStyles}`}>
-                                  {statusLabel}
-                                </span>
-                              </div>
-                              
-                              <div className="flex items-baseline justify-between mt-1 border-t border-dashed border-border/40 pt-2">
-                                <span className="text-[11px] text-muted-foreground">قيمة الدفعة:</span>
-                                <span className="font-extrabold text-base text-foreground inline-flex items-center gap-1">
-                                  {getPaymentEffectiveAmount(payment).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
-                                  {payment.isPartiallyPaid && (
-                                    <span className="text-[10px] font-normal text-muted-foreground mr-1">
-                                      (مسدد جزئياً من {parseFloat(payment.agreedAmount || payment.amount || "0").toLocaleString()})
-                                    </span>
-                                  )}
-                                </span>
-                              </div>
 
-                              <div className="space-y-1">
-                                <div className="flex items-center justify-between text-[11px]">
-                                  <span className="text-muted-foreground">نسبة الإنجاز المطلوبة:</span>
-                                  <span className="font-bold text-primary">{payment.completionPercentage || 0}%</span>
+                                {milestone.description && (
+                                  <p className="text-xs text-muted-foreground line-clamp-2">
+                                    {milestone.description}
+                                  </p>
+                                )}
+
+                                <div className="space-y-1 mt-1">
+                                  <div className="flex items-center justify-between text-[11px]">
+                                    <span className="text-muted-foreground">نسبة الإنجاز:</span>
+                                    <span className="font-bold text-emerald-600">{milestone.completionPercentage || 0}%</span>
+                                  </div>
+                                  <Progress value={Number(milestone.completionPercentage) || 0} className="h-1.5 bg-muted/60" />
                                 </div>
-                                <Progress value={payment.completionPercentage || 0} className="h-1.5 bg-muted/60" />
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="p-6 rounded-xl border border-dashed border-muted-foreground/30 text-center bg-muted/10">
-                        <AlertCircle className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                        <p className="text-sm font-medium text-muted-foreground">لا توجد دفعات أو جدولة إنجاز معرفة لهذا المشروع.</p>
-                      </div>
-                    )}
-                  </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-6 rounded-xl border border-dashed border-muted-foreground/30 text-center bg-muted/10">
+                          <AlertCircle className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                          <p className="text-sm font-medium text-muted-foreground">لا توجد مستخلصات مجدولة مسجلة في عقد هذا المشروع.</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-3 pt-4 border-t border-dashed border-border/80">
+                      <Label className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <CreditCard className="w-4 h-4 text-primary" />
+                        الدفعات وجدولة الإنجاز المرتبطة للمشروع
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        اختر الدفعة التي ترغب بإنشاء تقرير إنجاز لها لملء البيانات والمبالغ تلقائياً:
+                      </p>
+                      {isProjectDetailsLoading ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="h-28 rounded-xl border border-dashed border-muted-foreground/20 animate-pulse bg-muted/40" />
+                          <div className="h-28 rounded-xl border border-dashed border-muted-foreground/20 animate-pulse bg-muted/40" />
+                        </div>
+                      ) : projectDetails?.payments && projectDetails.payments.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-1.5 bg-muted/30 rounded-xl border border-border/60">
+                          {projectDetails.payments.map((payment: any, index: number) => {
+                            const isAdvance = isAdvancePayment(payment, index);
+                            const isSelected = selectedPaymentId === payment.id;
+                            const isIncomplete = !isAdvance && payment.source !== "manual" && (
+                              payment.completionPercentage === null || 
+                              payment.completionPercentage === undefined || 
+                              payment.completionPercentage === 0 ||
+                              !payment.workDescription || 
+                              payment.workDescription.trim() === ""
+                            );
+                            const paymentKey = payment.description || payment.paymentNumber;
+                            const isAlreadyReported = !isAdvance && (allReportsData || []).some((report: any) => {
+                              if (Number(report.projectId) !== Number(newReport.projectId)) return false;
+                              if (report.status === "rejected" || report.status === "revoked") return false;
+                              const hasPaymentIdTag = report.workSummary && report.workSummary.includes("[معرف الدفعة:");
+                              if (hasPaymentIdTag) {
+                                return !!(payment.id && report.workSummary.includes(`[معرف الدفعة: ${payment.id}]`));
+                              }
+                              const expectedTitle = `تقرير إنجاز - ${paymentKey}`;
+                              return !!(paymentKey && paymentKey.trim() !== "" && report.title === expectedTitle);
+                            });
+                            
+                            const statusStyles = isAdvance
+                              ? "bg-slate-200/90 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700 font-bold"
+                              : isIncomplete
+                              ? "bg-destructive/10 text-destructive border-destructive/20 animate-pulse"
+                              : isAlreadyReported
+                              ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900/50 font-bold"
+                              : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50 font-medium";
+                              
+                            const statusLabel = isAdvance
+                              ? "دفعة مقدمة لا ينشأ لها تقرير انجاز"
+                              : isIncomplete 
+                              ? "بيانات غير مكتملة" 
+                              : isAlreadyReported
+                              ? "تم تقديم تقرير"
+                              : "قيد الانتظار";
+                            
+                            return (
+                              <div
+                                key={payment.id}
+                                onClick={() => {
+                                  if (isAdvance) {
+                                    toast.info("دفعة مقدمة لا ينشأ لها تقرير انجاز");
+                                    return;
+                                  }
+                                  if (editingReportId) return;
+                                  handleSelectPayment(payment);
+                                }}
+                                className={`relative p-4 rounded-xl border-2 text-right transition-all duration-300 flex flex-col justify-between gap-3 ${
+                                  isAdvance
+                                    ? "border-slate-200/80 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-800/30 opacity-60 cursor-not-allowed select-none shadow-none"
+                                    : isSelected
+                                    ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-sm ring-1 ring-primary/20 cursor-pointer"
+                                    : isIncomplete
+                                    ? "border-destructive/20 bg-destructive/[0.02] hover:border-destructive/40 hover:bg-destructive/[0.04] opacity-75 cursor-not-allowed"
+                                    : isAlreadyReported
+                                    ? "border-green-200 bg-green-50/10 hover:border-green-400 opacity-90 cursor-not-allowed font-bold"
+                                    : editingReportId
+                                    ? "border-transparent bg-background opacity-60 cursor-not-allowed"
+                                    : "border-transparent bg-background hover:border-primary/40 hover:bg-accent/10 hover:shadow-sm cursor-pointer"
+                                }`}
+                              >
+                                {isSelected && !isAdvance && (
+                                  <div className="absolute top-2 left-2 bg-primary text-primary-foreground rounded-full p-1 shadow-sm animate-in zoom-in duration-200">
+                                    <Check className="w-3 h-3" />
+                                  </div>
+                                )}
+                                
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`p-1.5 rounded-lg ${isSelected ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+                                      <Coins className="w-4 h-4" />
+                                    </div>
+                                    <span className="font-bold text-sm leading-none block text-foreground">
+                                      {payment.description || payment.paymentNumber}
+                                    </span>
+                                  </div>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${statusStyles}`}>
+                                    {statusLabel}
+                                  </span>
+                                </div>
+                                
+                                <div className="flex items-baseline justify-between mt-1 border-t border-dashed border-border/40 pt-2">
+                                  <span className="text-[11px] text-muted-foreground">قيمة الدفعة:</span>
+                                  <span className="font-extrabold text-base text-foreground inline-flex items-center gap-1">
+                                    {getPaymentEffectiveAmount(payment).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                    {payment.isPartiallyPaid && (
+                                      <span className="text-[10px] font-normal text-muted-foreground mr-1">
+                                        (مسدد جزئياً من {parseFloat(payment.agreedAmount || payment.amount || "0").toLocaleString()})
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+
+                                <div className="space-y-1">
+                                  <div className="flex items-center justify-between text-[11px]">
+                                    <span className="text-muted-foreground">نسبة الإنجاز المطلوبة:</span>
+                                    <span className="font-bold text-primary">{payment.completionPercentage || 0}%</span>
+                                  </div>
+                                  <Progress value={payment.completionPercentage || 0} className="h-1.5 bg-muted/60" />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-6 rounded-xl border border-dashed border-muted-foreground/30 text-center bg-muted/10">
+                          <AlertCircle className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                          <p className="text-sm font-medium text-muted-foreground">لا توجد دفعات أو جدولة إنجاز معرفة لهذا المشروع.</p>
+                        </div>
+                      )}
+                    </div>
+                  )
                 )}
               </CardContent>
             </Card>
@@ -1343,6 +1571,18 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
             {/* Card 2: Report Info & Progress */}
             {newReport.projectId > 0 && (
               <>
+                {hasMilestonesRequirementError && (
+                  <div className="bg-amber-50/80 border border-amber-200/60 dark:bg-amber-950/20 dark:border-amber-900/40 rounded-xl p-4 flex items-start gap-3 text-right backdrop-blur-sm animate-in fade-in">
+                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
+                    <div className="space-y-1.5 flex-1">
+                      <h4 className="font-bold text-amber-900 dark:text-amber-400 text-sm">لا يمكن إنشاء تقرير إنجاز للمشروع</h4>
+                      <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                        هذا المشروع مرتبط بنظام المستخلصات. يشترط لإنشاء تقرير الإنجاز وجود مستخلص واحد على الأقل بنسبة إنجاز 100% في العقد.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {hasIncompleteSchedule && (
                   <div className="bg-amber-50/80 border border-amber-200/60 dark:bg-amber-950/20 dark:border-amber-900/40 rounded-xl p-4 flex items-start gap-3 text-right backdrop-blur-sm animate-in fade-in">
                     <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
@@ -1552,7 +1792,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                       isSubmitting || 
                       (editingReportId 
                         ? updateMutation.isPending 
-                        : (createMutation.isPending || hasIncompleteSchedule || !selectedPaymentId)
+                        : (createMutation.isPending || hasIncompleteSchedule || hasMilestonesRequirementError || !selectedPaymentId)
                       ) || 
                       !newReport.projectId ||
                       !newReport.title.trim() || 
