@@ -514,14 +514,15 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
 
                     {/* السطر الفرعي الموسع: خانة المواصفات تمتد بعرض الجدول بالكامل */}
                     <tr>
-                      <td colSpan={6} className="px-3 pb-3 pt-0">
-                        <Input
+                      <td colSpan={6} className="px-3 pt-1.5 pb-3.5">
+                        <Textarea
                           value={item.description || ''}
                           onChange={(e) =>
                             handleUpdateItem(item.id, { description: e.target.value })
                           }
                           placeholder="اكتب مواصفات أو تفاصيل إضافية للصنف (اختياري)..."
-                          className="h-8 text-xs bg-muted/20 focus:bg-background border-input/80 rounded-md focus:border-sky-500 w-full"
+                          rows={2}
+                          className="text-xs min-h-[48px] resize-y bg-muted/20 focus:bg-background border-input/80 py-2.5 px-3 leading-relaxed rounded-lg focus:border-sky-500 w-full transition-colors"
                         />
                       </td>
                     </tr>
