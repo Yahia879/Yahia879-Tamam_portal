@@ -768,6 +768,12 @@ export default function ProjectDetailsPage() {
     return sum + (isNaN(amt) ? 0 : amt);
   }, 0) || 0;
 
+  const has100Payment = Boolean(
+    project?.payments?.some((p: any) =>
+      p.status !== "rejected" && p.status !== "cancelled" && Number(p.completionPercentage) >= 100
+    )
+  );
+
   const unscheduledContractSum = Math.max(0, totalContractsSum - allPaymentsSum);
   const remainingContractSum = Math.max(0, totalContractsSum - paidPaymentsSum);
   const isContractFullyAllocated = totalContractsSum > 0 && allPaymentsSum >= (totalContractsSum - 0.05);
@@ -2090,11 +2096,6 @@ export default function ProjectDetailsPage() {
                           <CreditCard className="w-4 h-4 text-primary" />
                         )}
                         <span>{isMilestonesContract ? "مستخلصات المشروع" : "الدفعات المالية"}</span>
-                        {isMilestonesContract && (
-                          <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold text-xs">
-                            عقد مستخلصات مرنة
-                          </Badge>
-                        )}
                       </CardTitle>
                       <CardDescription className="text-xs mt-0.5">
                         {isMilestonesContract
@@ -2110,10 +2111,16 @@ export default function ProjectDetailsPage() {
                             navigate(`/disbursements/new/${project.id}`);
                           }
                         }}
-                        disabled={isContractFullyAllocated || isRequestClosed}
+                        disabled={
+                          isRequestClosed ||
+                          (!isMilestonesContract && isContractFullyAllocated) ||
+                          (isMilestonesContract && has100Payment)
+                        }
                         title={
                           isRequestClosed
                             ? "لا يمكن إضافة دفعات لأن الطلب المرتبط بالمشروع مغلق"
+                            : (isMilestonesContract && has100Payment)
+                            ? "لا يمكن إضافة مستخلص في حال وجود مستخلص نسبته 100%"
                             : isContractFullyAllocated
                             ? "تم الوصول للحد الأقصى لقيمة العقد"
                             : ""
@@ -2182,7 +2189,6 @@ export default function ProjectDetailsPage() {
                                     <TableHead className="text-right font-bold py-3 px-3.5">نسبة الإنجاز المستهدفة</TableHead>
                                     <TableHead className="text-right font-bold py-3 px-3.5">التاريخ المتوقع</TableHead>
                                     <TableHead className="text-right font-bold py-3 px-3.5">وصف أعمال ومراحل المستخلص</TableHead>
-                                    <TableHead className="text-center font-bold py-3 px-3.5">الإجراء</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -2202,22 +2208,6 @@ export default function ProjectDetailsPage() {
                                         </TableCell>
                                         <TableCell className="text-right py-3 px-3.5 text-xs leading-relaxed max-w-xs text-foreground">
                                           {m.description || m.notes || "----"}
-                                        </TableCell>
-                                        <TableCell className="text-center py-3 px-3.5">
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-8 text-xs rounded-lg hover:border-emerald-500 hover:text-emerald-700 font-semibold gap-1"
-                                            onClick={() => {
-                                              if (!isRequestClosed) {
-                                                navigate(`/disbursements/new/${project.id}?milestone=${encodeURIComponent(m.name || `مستخلص ${idx + 1}`)}&completionPercentage=${comp}&description=${encodeURIComponent(m.description || "")}`);
-                                              }
-                                            }}
-                                            disabled={isRequestClosed || isContractFullyAllocated}
-                                          >
-                                            <Plus className="w-3.5 h-3.5 text-emerald-600" />
-                                            <span>رفع المستخلص</span>
-                                          </Button>
                                         </TableCell>
                                       </TableRow>
                                     );
@@ -2288,24 +2278,7 @@ export default function ProjectDetailsPage() {
                           </div>
                         )}
 
-                        {isMilestonesContract && sortedPayments.length === 0 && (
-                          <div className="p-4 rounded-xl border border-dashed border-emerald-500/30 bg-emerald-50/20 dark:bg-emerald-950/10 text-xs text-muted-foreground flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
-                            <div className="flex items-center gap-2 text-foreground font-medium">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                              <span>مراحل المستخلصات معتمدة في العقد أعلاه. يمكنك الضغط على "رفع المستخلص" بجانب أي مرحلة عند إنجازها لبدء مسار الصرف.</span>
-                            </div>
-                            {!isPaymentsLocked && !isRequestClosed && (
-                              <Button
-                                size="sm"
-                                className="gradient-primary text-white rounded-lg text-xs font-bold h-8 shrink-0"
-                                onClick={() => navigate(`/disbursements/new/${project.id}`)}
-                              >
-                                <Plus className="w-3.5 h-3.5 ml-1" />
-                                رفع مستخلص جديد
-                              </Button>
-                            )}
-                          </div>
-                        )}
+
 
                         {sortedPayments.length > 0 && (
                           <div className="space-y-3">
@@ -2561,12 +2534,14 @@ export default function ProjectDetailsPage() {
                               <span className="font-bold text-sm sm:text-base text-foreground font-sans">{formatCurrency(totalContractsSum.toString())}</span>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground font-semibold text-xs sm:text-sm">
-                                {isMilestonesContract ? "إجمالي المستخلصات المطلوبة:" : "إجمالي مبالغ الدفعات:"}
-                              </span>
-                              <span className="font-bold text-sm sm:text-base text-primary font-sans">{formatCurrency(allPaymentsSum.toString())}</span>
-                            </div>
+                            {!isMilestonesContract && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground font-semibold text-xs sm:text-sm">
+                                  إجمالي مبالغ الدفعات:
+                                </span>
+                                <span className="font-bold text-sm sm:text-base text-primary font-sans">{formatCurrency(allPaymentsSum.toString())}</span>
+                              </div>
+                            )}
 
                             <div className="flex items-center gap-2">
                               <span className="text-muted-foreground font-semibold text-xs sm:text-sm">إجمالي المسدد:</span>
@@ -2574,22 +2549,23 @@ export default function ProjectDetailsPage() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            {unscheduledContractSum > 0.05 ? (
-                              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs font-bold bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20">
-                                <AlertTriangle className="h-4 w-4 shrink-0" />
-                                <span>
-                                  {isMilestonesContract ? "المتبقي المتاح للمستخلصات: " : "متبقي غير مجدول: "}
-                                  {formatCurrency(unscheduledContractSum.toString())}
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-bold bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
-                                <CheckCircle2 className="h-4 w-4 shrink-0" />
-                                <span>{isMilestonesContract ? "تم استنفاد كامل سقف العقد" : "تمت تغطية كامل قيمة العقد"}</span>
-                              </div>
-                            )}
-                          </div>
+                          {!isMilestonesContract && (
+                            <div className="flex items-center gap-2">
+                              {unscheduledContractSum > 0.05 ? (
+                                <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs font-bold bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20">
+                                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                                  <span>
+                                    متبقي غير مجدول: {formatCurrency(unscheduledContractSum.toString())}
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-bold bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
+                                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                                  <span>تمت تغطية كامل قيمة العقد</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </>
                     ) : (

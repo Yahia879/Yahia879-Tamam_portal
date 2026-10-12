@@ -1403,10 +1403,15 @@ export default function ContractForm() {
 
   // إضافة دفعة أو مستخلص جديد في نهاية الجدول
   const addPayment = () => {
+    const has100 = paymentSchedule.some(p => Number(p.completionPercentage) >= 100);
+    if (paymentSystem === "milestones" && has100) {
+      toast.info("لا يمكن إضافة مستخلص في حال وجود مستخلص نسبته 100%");
+      return;
+    }
     const lastPayment = paymentSchedule.length > 0 ? paymentSchedule[paymentSchedule.length - 1] : null;
     if (lastPayment && Number(lastPayment.completionPercentage) >= 100) {
       toast.info(paymentSystem === "milestones"
-        ? "المستخلص الأخير بلغ نسبة الإنجاز 100%. تم إقفال الجدول."
+        ? "لا يمكن إضافة مستخلص في حال وجود مستخلص نسبته 100%"
         : "الدفعة الأخيرة بلغت نسبة إنجازها 100%. لا يمكن إضافة دفعات بعد إنجاز كامل.");
       return;
     }
@@ -2938,8 +2943,8 @@ export default function ContractForm() {
                 </div>
 
                 {(() => {
-                  const lastPayment = paymentSchedule.length > 0 ? paymentSchedule[paymentSchedule.length - 1] : null;
-                  const isScheduleClosed = paymentSystem === "milestones" && lastPayment !== null && Number(lastPayment.completionPercentage) >= 100;
+                  const has100Milestone = paymentSchedule.some(p => Number(p.completionPercentage) >= 100);
+                  const isScheduleClosed = paymentSystem === "milestones" && has100Milestone;
 
                   return (
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -3715,9 +3720,10 @@ export default function ContractForm() {
                     {/* ملخص الدفعات أو المستخلصات */}
                     {paymentSystem === "milestones" ? (
                       (() => {
+                        const has100Milestone = paymentSchedule.some(p => Number(p.completionPercentage) >= 100);
                         const lastPayment = paymentSchedule.length > 0 ? paymentSchedule[paymentSchedule.length - 1] : null;
                         const lastPct = lastPayment ? (Number(lastPayment.completionPercentage) || 0) : 0;
-                        const isScheduleClosed = lastPct >= 100;
+                        const isScheduleClosed = has100Milestone;
                         const remainingPct = Math.max(0, 100 - lastPct);
 
                         return (
