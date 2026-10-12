@@ -512,23 +512,17 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                       </td>
                     </tr>
 
-                    {/* السطر الفرعي الموسع: خانة المواصفات والملاحظات تمتد بعرض الجدول بالكامل */}
+                    {/* السطر الفرعي الموسع: خانة المواصفات تمتد بعرض الجدول بالكامل */}
                     <tr>
                       <td colSpan={6} className="px-3 pb-3 pt-0">
-                        <div className="flex items-center gap-2 bg-muted/20 dark:bg-muted/10 p-2 rounded-lg border border-border/60">
-                          <span className="text-[11px] font-bold text-muted-foreground whitespace-nowrap flex items-center gap-1.5 shrink-0">
-                            <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
-                            <span>المواصفات أو ملاحظات إضافية للصنف:</span>
-                          </span>
-                          <Input
-                            value={item.description || ''}
-                            onChange={(e) =>
-                              handleUpdateItem(item.id, { description: e.target.value })
-                            }
-                            placeholder="اكتب مواصفات أو تفاصيل إضافية للصنف (اختياري)..."
-                            className="h-8 text-xs bg-background border-input/80 rounded-md focus:border-sky-500 flex-1"
-                          />
-                        </div>
+                        <Input
+                          value={item.description || ''}
+                          onChange={(e) =>
+                            handleUpdateItem(item.id, { description: e.target.value })
+                          }
+                          placeholder="اكتب مواصفات أو تفاصيل إضافية للصنف (اختياري)..."
+                          className="h-8 text-xs bg-muted/20 focus:bg-background border-input/80 rounded-md focus:border-sky-500 w-full"
+                        />
                       </td>
                     </tr>
                   </tbody>
