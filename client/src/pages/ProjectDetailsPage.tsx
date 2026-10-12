@@ -2108,7 +2108,7 @@ export default function ProjectDetailsPage() {
                         className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9" 
                         onClick={() => {
                           if (!isRequestClosed) {
-                            navigate(`/disbursements/new/${project.id}`);
+                            navigate(isMilestonesContract ? `/milestones/new/${project.id}` : `/disbursements/new/${project.id}`);
                           }
                         }}
                         disabled={
@@ -2507,10 +2507,14 @@ export default function ProjectDetailsPage() {
                                           )}
                                           onClick={() => {
                                             if (!isRequestClosed) {
-                                              navigate(`/payments/edit/${payment.id}`);
+                                              navigate(isMilestonesContract ? `/milestones/edit/${payment.id}` : `/payments/edit/${payment.id}`);
                                             }
                                           }}
-                                          title={isRequestClosed ? "لا يمكن تعديل الدفعة لأن الطلب المرتبط بالمشروع مغلق" : "تعديل الدفعة"}
+                                          title={
+                                            isRequestClosed 
+                                              ? (isMilestonesContract ? "لا يمكن تعديل المستخلص لأن الطلب المرتبط بالمشروع مغلق" : "لا يمكن تعديل الدفعة لأن الطلب المرتبط بالمشروع مغلق")
+                                              : (isMilestonesContract ? "تعديل المستخلص" : "تعديل الدفعة")
+                                          }
                                         >
                                           <Edit className="h-4 w-4" />
                                         </Button>

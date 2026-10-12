@@ -119,6 +119,8 @@ import FinalReportView from "./pages/FinalReportView";
 import AssignFinalReport from "./pages/AssignFinalReport";
 import KPIDashboard from "./pages/KPIDashboard";
 import NewDisbursementRequest from "./pages/NewDisbursementRequest";
+import NewMilestoneRequest from "./pages/NewMilestoneRequest";
+import EditMilestonePage from "./pages/EditMilestonePage";
 import NewLinkedDisbursementRequest from "./pages/NewLinkedDisbursementRequest";
 import EditLinkedDisbursementRequest from "./pages/EditLinkedDisbursementRequest";
 import NewDisbursementOrder from "./pages/NewDisbursementOrder";
@@ -444,6 +446,9 @@ function Router() {
       <Route path="/disbursements/new/:projectId">{() => <AdminRoute component={NewDisbursementRequest} />}</Route>
       <Route path="/disbursements/new/contract/:contractId">{() => <AdminRoute component={NewDisbursementRequest} />}</Route>
       <Route path="/payments/edit/:id">{() => <AdminRoute component={EditPaymentPage} />}</Route>
+      <Route path="/milestones/new">{() => <AdminRoute component={NewMilestoneRequest} />}</Route>
+      <Route path="/milestones/new/:projectId">{() => <AdminRoute component={NewMilestoneRequest} />}</Route>
+      <Route path="/milestones/edit/:id">{() => <AdminRoute component={EditMilestonePage} />}</Route>
       
       {/* أوامر الصرف - إدارية */}
       <Route path="/disbursement-orders">{() => <AdminRoute component={DisbursementOrders} />}</Route>
