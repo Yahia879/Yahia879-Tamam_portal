@@ -824,6 +824,22 @@ export const projectsRouter = router({
           )
         );
 
+      // فك ترميز paymentScheduleJson لضمان عدم وجود تسلسل JSON مكرر وتحديد نظام الدفع
+      projectContracts.forEach((c: any) => {
+        let val = c.paymentScheduleJson;
+        while (typeof val === "string") {
+          try {
+            val = JSON.parse(val);
+          } catch {
+            break;
+          }
+        }
+        c.paymentScheduleJson = val;
+        if (val && typeof val === "object" && !Array.isArray(val) && val.paymentSystem) {
+          c.paymentSystem = val.paymentSystem;
+        }
+      });
+
       const contractIds = projectContracts.map(c => c.id);
 
       // جلب دفعات العقود مرتبة تصاعدياً

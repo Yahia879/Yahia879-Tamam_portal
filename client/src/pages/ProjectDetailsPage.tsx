@@ -719,19 +719,28 @@ export default function ProjectDetailsPage() {
     }, 0) || 0;
 
   const isMilestonesContract = Boolean(
-    project?.contracts && project.contracts.length > 0 &&
+    (project?.contracts && project.contracts.length > 0 &&
     project.contracts.some((c: any) => {
       if (c.paymentSystem === "milestones") return true;
       if (c.paymentScheduleJson) {
         try {
-          const parsed = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+          let parsed = c.paymentScheduleJson;
+          while (typeof parsed === "string") {
+            try {
+              parsed = JSON.parse(parsed);
+            } catch {
+              break;
+            }
+          }
           if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.paymentSystem === "milestones") {
             return true;
           }
         } catch (e) {}
       }
       return false;
-    })
+    })) ||
+    // التحقق أيضاً إذا كان في المشروع أي مستخلص مرفوع (source: milestone أو معرف disb-)
+    (project?.payments && project.payments.some((p: any) => p.source === "milestone" || String(p.id).startsWith("disb-")))
   );
 
   const contractMilestones = (() => {
@@ -741,9 +750,12 @@ export default function ProjectDetailsPage() {
         if (c.paymentScheduleJson) {
           try {
             let parsed = c.paymentScheduleJson;
-            if (typeof parsed === "string") {
-              parsed = JSON.parse(parsed);
-              if (typeof parsed === "string") parsed = JSON.parse(parsed);
+            while (typeof parsed === "string") {
+              try {
+                parsed = JSON.parse(parsed);
+              } catch {
+                break;
+              }
             }
             const isMilestones = parsed?.paymentSystem === "milestones" || (c as any).paymentSystem === "milestones";
             const sched = Array.isArray(parsed) ? parsed : (parsed?.schedule || []);

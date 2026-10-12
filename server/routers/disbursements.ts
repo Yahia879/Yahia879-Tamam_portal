@@ -1223,7 +1223,14 @@ export const disbursementsRouter = router({
             const cAny = c as any;
             let parsedSched: any = { paymentSystem: cAny.paymentSystem || "milestones", schedule: [] };
             if (c.paymentScheduleJson) {
-              const raw = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+              let raw: any = c.paymentScheduleJson;
+              while (typeof raw === "string") {
+                try {
+                  raw = JSON.parse(raw);
+                } catch {
+                  break;
+                }
+              }
               if (Array.isArray(raw)) {
                 parsedSched = { paymentSystem: cAny.paymentSystem || "milestones", schedule: raw };
               } else if (raw && typeof raw === "object") {
@@ -1253,7 +1260,7 @@ export const disbursementsRouter = router({
                 schedList.push(newMilestoneItem);
               }
               await db.update(contractsEnhanced).set({
-                paymentScheduleJson: JSON.stringify(parsedSched),
+                paymentScheduleJson: parsedSched as any,
               }).where(eq(contractsEnhanced.id, targetContractId));
             }
           }
@@ -1444,7 +1451,14 @@ export const disbursementsRouter = router({
         try {
           const [c] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, request.contractId));
           if (c?.paymentScheduleJson) {
-            let parsedSched: any = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+            let parsedSched: any = c.paymentScheduleJson;
+            while (typeof parsedSched === "string") {
+              try {
+                parsedSched = JSON.parse(parsedSched);
+              } catch {
+                break;
+              }
+            }
             const schedList = Array.isArray(parsedSched) ? parsedSched : (parsedSched?.schedule || []);
             const existingIdx = schedList.findIndex((m: any) => m.name === request.title || m.id === `disb-${input.id}` || m.id === `milestone-${input.id}`);
             if (existingIdx >= 0) {
@@ -1460,7 +1474,7 @@ export const disbursementsRouter = router({
               };
               const newJson = Array.isArray(parsedSched) ? schedList : { ...parsedSched, schedule: schedList };
               await db.update(contractsEnhanced).set({
-                paymentScheduleJson: JSON.stringify(newJson),
+                paymentScheduleJson: newJson as any,
               }).where(eq(contractsEnhanced.id, request.contractId));
             }
           }
