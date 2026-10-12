@@ -808,7 +808,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
   const content = (
     <>
-      <div className="max-w-4xl mx-auto px-0 sm:px-4 print:hidden">
+      <div className={`${isSedana ? 'max-w-6xl xl:max-w-7xl' : 'max-w-4xl'} mx-auto px-0 sm:px-4 print:hidden transition-all duration-300`}>
       {/* رأس الصفحة مع زر الرجوع للإداريين */}
       {showLayout && user?.role !== 'service_requester' && (
         <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8 pb-4 border-b border-border/40">
