@@ -663,6 +663,39 @@ export default function ContractPreview() {
     ? clauseValues
     : parsedClauseValues;
 
+  let parsedPaymentSchedule: any = null;
+  if (contract.paymentScheduleJson) {
+    try {
+      parsedPaymentSchedule = typeof contract.paymentScheduleJson === 'string'
+        ? JSON.parse(contract.paymentScheduleJson)
+        : contract.paymentScheduleJson;
+      if (typeof parsedPaymentSchedule === 'string') {
+        parsedPaymentSchedule = JSON.parse(parsedPaymentSchedule);
+      }
+    } catch (e) {
+      console.error("Error parsing paymentScheduleJson:", e);
+    }
+  }
+
+  const isMilestonesContract = Boolean(
+    (contract as any)?.paymentSystem === "milestones" ||
+    parsedPaymentSchedule?.paymentSystem === "milestones"
+  );
+
+  const effectiveMilestones: any[] = (() => {
+    if (!isMilestonesContract) return [];
+    if (parsedPaymentSchedule && Array.isArray(parsedPaymentSchedule.schedule) && parsedPaymentSchedule.schedule.length > 0) {
+      return parsedPaymentSchedule.schedule;
+    }
+    if (Array.isArray(parsedPaymentSchedule) && parsedPaymentSchedule.length > 0) {
+      return parsedPaymentSchedule;
+    }
+    if (payments && payments.length > 0) {
+      return payments;
+    }
+    return [];
+  })();
+
   // دالة لاستبدال المتغيرات في نصوص البنود
   const replaceVariables = (content: string) => {
     if (!content) return "";
@@ -990,13 +1023,13 @@ export default function ContractPreview() {
                   </div>
                 )}
 
-                {/* المدة وجدول الدفعات */}
+                {/* المدة وجدول الدفعات أو المستخلصات */}
                 <div className="mb-6 break-inside-avoid">
                   <h3 
                     className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
                     style={{ backgroundColor: '#1a5f4a', color: 'white', minHeight: '40px' }}
                   >
-                    المدة وجدول الدفعات:
+                    {isMilestonesContract ? "المدة وجدول المستخلصات والمراحل:" : "المدة وجدول الدفعات:"}
                   </h3>
                   <div className="pr-2 sm:pr-4">
                     {/* مدة العقد وتواريخه */}
@@ -1018,53 +1051,104 @@ export default function ContractPreview() {
                       </div>
                     </div>
 
-                    {/* جدول الدفعات */}
-                    <div className="text-xs sm:text-sm mb-6">
-                      <p className="mb-2 font-medium text-gray-800">جدول استحقاق الدفعات المالية المعتمدة:</p>
-                      {payments && payments.length > 0 ? (
-                        <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                          <table className="w-full border-collapse text-right text-xs sm:text-sm">
-                            <thead>
-                              <tr className="bg-gray-100/80 border-b border-gray-200">
-                                <th className="py-2.5 px-3 font-bold text-gray-700 w-12 border-l border-gray-200">م</th>
-                                <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">اسم الدفعة / المرحلة</th>
-                                <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">قيمة الدفعة</th>
-                                <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">نسبة الإنجاز المتحققة</th>
-                                <th className="py-2.5 px-3 font-bold text-gray-700">تاريخ الاستحقاق المتوقع</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {payments.map((p: any, idx: number) => {
-                                const pAmount = parseFloat(p.amount);
-                                const totalContractAmount = parseFloat(contract.contractAmount) || 1;
-                                const percentage = Math.round((pAmount / totalContractAmount) * 100);
-                                return (
-                                  <tr key={p.id} className="border-b border-gray-200 last:border-b-0">
-                                    <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">{idx + 1}</td>
-                                    <td className="py-2.5 px-3 border-l border-gray-200 font-semibold text-gray-900">
-                                      <div>{p.phaseName || p.name || p.description || `الدفعة ${idx + 1}`}</div>
-                                    </td>
-                                    <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a]">
-                                      <span className="inline-flex items-center gap-1">
-                                        {pAmount.toLocaleString('ar-SA')} <SaudiRiyal className="w-3.5 h-3.5 inline align-middle mx-0.5" />
-                                      </span>
-                                    </td>
-                                    <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">
-                                      {(p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "") ? p.completionPercentage : percentage}%
-                                    </td>
-                                    <td className="py-2.5 px-3 text-gray-600">
-                                      {p.dueDate ? (String(p.dueDate).includes('T') ? String(p.dueDate).split('T')[0] : String(p.dueDate).split(' ')[0]) : "عند الانتهاء من المرحلة"}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
+                    {/* جدول الدفعات أو المستخلصات */}
+                    {isMilestonesContract ? (
+                      <div className="text-xs sm:text-sm mb-6">
+                        <div className="mb-2">
+                          <p className="font-medium text-gray-800">جدول استحقاق ومراحل المستخلصات بحسب نسبة الإنجاز:</p>
                         </div>
-                      ) : (
-                        <p className="text-xs sm:text-sm text-gray-500 italic pr-2">لا يوجد جدول دفعات محدد لهذا العقد.</p>
-                      )}
-                    </div>
+                        {effectiveMilestones && effectiveMilestones.length > 0 ? (
+                          <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                            <table className="w-full border-collapse text-right text-xs sm:text-sm">
+                              <thead>
+                                <tr className="bg-gray-100/80 border-b border-gray-200">
+                                  <th className="py-2.5 px-3 font-bold text-gray-700 w-12 border-l border-gray-200">م</th>
+                                  <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">اسم المستخلص / المرحلة</th>
+                                  <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">نسبة الإنجاز المستهدفة</th>
+                                  <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">التاريخ المتوقع</th>
+                                  <th className="py-2.5 px-3 font-bold text-gray-700">وصف أعمال ومراحل المستخلص</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {effectiveMilestones.map((m: any, idx: number) => {
+                                  const comp = m.completionPercentage !== undefined && m.completionPercentage !== null && m.completionPercentage !== ""
+                                    ? m.completionPercentage
+                                    : "--";
+                                  return (
+                                    <tr key={m.id || idx} className="border-b border-gray-200 last:border-b-0">
+                                      <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">{idx + 1}</td>
+                                      <td className="py-2.5 px-3 border-l border-gray-200 font-semibold text-gray-900">
+                                        <div>{m.name || m.phaseName || `مستخلص ${idx + 1}`}</div>
+                                      </td>
+                                      <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a]">
+                                        <span className="font-mono">
+                                          {comp}%
+                                        </span>
+                                      </td>
+                                      <td className="py-2.5 px-3 border-l border-gray-200 text-gray-600 font-mono">
+                                        {m.dueDate ? (String(m.dueDate).includes('T') ? String(m.dueDate).split('T')[0] : String(m.dueDate).split(' ')[0]) : "عند الإنجاز"}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-gray-700 leading-relaxed">
+                                        {m.description || m.notes || "----"}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <p className="text-xs sm:text-sm text-gray-500 italic pr-2">لا يوجد جدول مستخلصات محدد لهذا العقد.</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-xs sm:text-sm mb-6">
+                        <p className="mb-2 font-medium text-gray-800">جدول استحقاق الدفعات المالية المعتمدة:</p>
+                        {payments && payments.length > 0 ? (
+                          <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                            <table className="w-full border-collapse text-right text-xs sm:text-sm">
+                              <thead>
+                                <tr className="bg-gray-100/80 border-b border-gray-200">
+                                  <th className="py-2.5 px-3 font-bold text-gray-700 w-12 border-l border-gray-200">م</th>
+                                  <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">اسم الدفعة / المرحلة</th>
+                                  <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">قيمة الدفعة</th>
+                                  <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">نسبة الإنجاز المتحققة</th>
+                                  <th className="py-2.5 px-3 font-bold text-gray-700">تاريخ الاستحقاق المتوقع</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {payments.map((p: any, idx: number) => {
+                                  const pAmount = parseFloat(p.amount);
+                                  const totalContractAmount = parseFloat(contract.contractAmount) || 1;
+                                  const percentage = Math.round((pAmount / totalContractAmount) * 100);
+                                  return (
+                                    <tr key={p.id} className="border-b border-gray-200 last:border-b-0">
+                                      <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">{idx + 1}</td>
+                                      <td className="py-2.5 px-3 border-l border-gray-200 font-semibold text-gray-900">
+                                        <div>{p.phaseName || p.name || p.description || `الدفعة ${idx + 1}`}</div>
+                                      </td>
+                                      <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a]">
+                                        <span className="inline-flex items-center gap-1">
+                                          {pAmount.toLocaleString('ar-SA')} <SaudiRiyal className="w-3.5 h-3.5 inline align-middle mx-0.5" />
+                                        </span>
+                                      </td>
+                                      <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">
+                                        {(p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "") ? p.completionPercentage : percentage}%
+                                      </td>
+                                      <td className="py-2.5 px-3 text-gray-600">
+                                        {p.dueDate ? (String(p.dueDate).includes('T') ? String(p.dueDate).split('T')[0] : String(p.dueDate).split(' ')[0]) : "عند الانتهاء من المرحلة"}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <p className="text-xs sm:text-sm text-gray-500 italic pr-2">لا يوجد جدول دفعات محدد لهذا العقد.</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 

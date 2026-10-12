@@ -43,6 +43,8 @@ import {
   Lock,
   Info,
   ArrowUpDown,
+  CreditCard,
+  FileSpreadsheet,
 } from "lucide-react";
 import {
   Table,
@@ -331,7 +333,8 @@ export default function ContractForm() {
   const [clauseValues, setClauseValues] = useState<ClauseValue[]>([]);
   const [selectedTemplateChanged, setSelectedTemplateChanged] = useState(false);
   
-  // جدول الدفعات
+  // جدول الدفعات ونظام الصرف
+  const [paymentSystem, setPaymentSystem] = useState<"installments" | "milestones">("installments");
   const [paymentSchedule, setPaymentSchedule] = useState<PaymentScheduleItem[]>([]);
   const [expandedGuidanceMap, setExpandedGuidanceMap] = useState<Record<string, boolean>>({});
 
@@ -942,7 +945,7 @@ export default function ContractForm() {
       let jsonSchedule: any[] = [];
       if (c.paymentScheduleJson) {
         try {
-          let schedule = c.paymentScheduleJson;
+          let schedule: any = c.paymentScheduleJson;
           if (typeof schedule === 'string') {
             try {
               schedule = JSON.parse(schedule);
@@ -953,7 +956,12 @@ export default function ContractForm() {
               console.error("Failed to parse paymentScheduleJson string:", e);
             }
           }
-          if (Array.isArray(schedule) && schedule.length > 0) {
+          if (schedule && !Array.isArray(schedule) && schedule.paymentSystem) {
+            setPaymentSystem(schedule.paymentSystem);
+            if (Array.isArray(schedule.schedule)) {
+              jsonSchedule = schedule.schedule;
+            }
+          } else if (Array.isArray(schedule) && schedule.length > 0) {
             jsonSchedule = schedule;
           }
         } catch (e) {
@@ -1393,22 +1401,24 @@ export default function ContractForm() {
     }
   }, [requestDetails]);
 
-  // إضافة دفعة جديدة في نهاية الجدول
+  // إضافة دفعة أو مستخلص جديد في نهاية الجدول
   const addPayment = () => {
     const lastPayment = paymentSchedule.length > 0 ? paymentSchedule[paymentSchedule.length - 1] : null;
     if (lastPayment && Number(lastPayment.completionPercentage) >= 100) {
-      toast.error("الدفعة الأخيرة بلغت نسبة إنجازها 100%. لا يمكن إضافة دفعة تالية بنسبة أعلى. يمكنك إدراج دفعة بين الدفعات السابقة.");
+      toast.info(paymentSystem === "milestones"
+        ? "المستخلص الأخير بلغ نسبة الإنجاز 100%. تم إقفال الجدول."
+        : "الدفعة الأخيرة بلغت نسبة إنجازها 100%. لا يمكن إضافة دفعات بعد إنجاز كامل.");
       return;
     }
     let suggestedCompletion: number | undefined = undefined;
     if (lastPayment && lastPayment.completionPercentage !== undefined && lastPayment.completionPercentage !== null && !isNaN(Number(lastPayment.completionPercentage))) {
-      suggestedCompletion = Math.min(100, Number(lastPayment.completionPercentage) + 10);
+      suggestedCompletion = Math.min(100, Number(lastPayment.completionPercentage) + (paymentSystem === "milestones" ? 25 : 10));
     } else if (paymentSchedule.length === 0) {
-      suggestedCompletion = 0;
+      suggestedCompletion = paymentSystem === "milestones" ? 25 : 0;
     }
     const newPayment: PaymentScheduleItem = {
       id: `payment-${Date.now()}`,
-      name: `الدفعة ${paymentSchedule.length + 1}`,
+      name: paymentSystem === "milestones" ? `مستخلص ${paymentSchedule.length + 1}` : `الدفعة ${paymentSchedule.length + 1}`,
       type: "progress",
       percentage: 0,
       amount: 0,
@@ -1463,9 +1473,10 @@ export default function ContractForm() {
       suggestedDueDate = prevPayment.dueDate;
     }
 
+    const isMilestones = paymentSystem === "milestones";
     const newPayment: PaymentScheduleItem = {
       id: `payment-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-      name: `الدفعة ${targetIndex + 1}`,
+      name: isMilestones ? `مستخلص ${targetIndex + 1}` : `الدفعة ${targetIndex + 1}`,
       type: "progress",
       percentage: 0,
       amount: 0,
@@ -1478,17 +1489,23 @@ export default function ContractForm() {
     newSchedule.splice(targetIndex, 0, newPayment);
     const sorted = sortPaymentsByDate(newSchedule);
 
-    // إعادة ترقيم أسماء الدفعات التلقائية غير المعدلة يدوياً
+    // إعادة ترقيم أسماء الدفعات والمستخلصات التلقائية غير المعدلة يدوياً
     const renamed = sorted.map((p, idx) => {
       if (p.isPaid) return p;
       if (/^الدفعة \d+$/.test(p.name)) {
         return { ...p, name: `الدفعة ${idx + 1}` };
       }
+      if (/^مستخلص \d+$/.test(p.name)) {
+        return { ...p, name: `مستخلص ${idx + 1}` };
+      }
       return p;
     });
 
     setPaymentSchedule(renamed);
-    toast.success(`تم إدراج دفعة جديدة بين الدفعات (الموضع: الدفعة ${targetIndex + 1})`);
+    toast.success(isMilestones
+      ? `تم إدراج مستخلص جديد بين المستخلصات (الموضع: مستخلص ${targetIndex + 1})`
+      : `تم إدراج دفعة جديدة بين الدفعات (الموضع: الدفعة ${targetIndex + 1})`
+    );
   };
 
   // إضافة صنف لدفعة محددة (خاص بسدانة)
@@ -1756,12 +1773,59 @@ export default function ContractForm() {
         }
         return true;
       case 4:
-        // التحقق من صحة جدول الدفعات
         if (paymentSchedule.length === 0) {
+          toast.error(paymentSystem === "milestones"
+            ? "يرجى إضافة مستخلص واحد على الأقل وتحديد مراحل الإنجاز حتى 100%"
+            : "يرجى إضافة دفعة واحدة على الأقل في نظام الدفعات");
+          return false;
+        }
+
+        // في نظام المستخلصات: التحقق من صحة المراحل ونسبة إنجاز المستخلص الأخير (100%)
+        if (paymentSystem === "milestones") {
+          for (let i = 0; i < paymentSchedule.length; i++) {
+            const p = paymentSchedule[i];
+            if (!p.name) {
+              toast.error(`يرجى إدخال عنوان للمستخلص ${i + 1}`);
+              return false;
+            }
+            if (!p.description || !p.description.trim()) {
+              toast.error(`يرجى إدخال وصف الأعمال للمستخلص ${i + 1}`);
+              return false;
+            }
+            if (p.completionPercentage === undefined || p.completionPercentage === null || isNaN(p.completionPercentage) || p.completionPercentage < 0 || p.completionPercentage > 100) {
+              toast.error(`يرجى تحديد نسبة إنجاز صحيحة (بين 0 و 100) للمستخلص ${i + 1}`);
+              return false;
+            }
+            if (i > 0) {
+              const prevComp = paymentSchedule[i - 1].completionPercentage;
+              if (prevComp !== undefined && prevComp !== null && !isNaN(prevComp)) {
+                if (p.completionPercentage <= prevComp) {
+                  toast.error(`نسبة إنجاز المستخلص ${i + 1} (${p.completionPercentage}%) يجب أن تكون أكبر من نسبة إنجاز المستخلص السابق (${paymentSchedule[i - 1].name || `مستخلص ${i}`}: ${prevComp}%)`);
+                  return false;
+                }
+              }
+            }
+            if (i < paymentSchedule.length - 1) {
+              const nextComp = paymentSchedule[i + 1].completionPercentage;
+              if (nextComp !== undefined && nextComp !== null && !isNaN(nextComp)) {
+                if (p.completionPercentage >= nextComp) {
+                  toast.error(`نسبة إنجاز المستخلص ${i + 1} (${p.completionPercentage}%) يجب أن تكون أقل من نسبة إنجاز المستخلص التالي (${paymentSchedule[i + 1].name || `مستخلص ${i + 2}`}: ${nextComp}%)`);
+                  return false;
+                }
+              }
+            }
+          }
+
+          const lastMilestone = paymentSchedule[paymentSchedule.length - 1];
+          if (Number(lastMilestone.completionPercentage) !== 100) {
+            toast.error(`يجب أن تصل نسبة إنجاز المستخلص الأخير (${lastMilestone.name || `مستخلص ${paymentSchedule.length}`}) إلى 100% لإقفال جدول المستخلصات (النسبة الحالية: ${lastMilestone.completionPercentage || 0}%)`);
+            return false;
+          }
+
           return true;
         }
 
-        // التأكد من صحة حقول الدفعات أولاً
+        // التأكد من صحة حقول الدفعات في نظام الدفعات المجدولة أولاً
         for (let i = 0; i < paymentSchedule.length; i++) {
           const p = paymentSchedule[i];
           if (!p.dueDate) {
@@ -1885,8 +1949,9 @@ export default function ContractForm() {
         contractDateHijri: contractData.startDateHijri ? `${contractData.startDateHijri.replace(/[^0-9/]/g, '')} هـ` : (contractData.startDate ? `${toHijriDate(contractData.startDate)} هـ` : undefined),
         startDate: contractData.startDate,
         customTerms: contractData.notes || undefined,
-        // جدول الدفعات
-        paymentSchedule: paymentSchedule.length > 0 ? JSON.stringify(paymentSchedule) : undefined,
+        // جدول الدفعات ونظام الصرف
+        paymentSchedule: JSON.stringify({ paymentSystem, schedule: paymentSchedule }),
+        paymentSystem,
         // بنود العقد المخصصة
         clauseValues: JSON.stringify(clauseValues.filter(c => c.isIncluded)),
         customClausesJson: JSON.stringify(customClauses.filter(c => (c.title && c.title.trim()) || (c.description && c.description.trim()))),
@@ -1942,8 +2007,9 @@ export default function ContractForm() {
       contractDate: contractData.startDate,
       contractDateHijri: contractData.startDateHijri ? `${contractData.startDateHijri.replace(/[^0-9/]/g, '')} هـ` : (contractData.startDate ? `${toHijriDate(contractData.startDate)} هـ` : undefined),
       startDate: contractData.startDate,
-      // جدول الدفعات
-      paymentSchedule: paymentSchedule.length > 0 ? JSON.stringify(paymentSchedule) : undefined,
+      // جدول الدفعات ونظام الصرف
+      paymentSchedule: JSON.stringify({ paymentSystem, schedule: paymentSchedule }),
+      paymentSystem,
       // بنود العقد
       clauseValues: clauseValues.length > 0 ? JSON.stringify(clauseValues.filter(c => c.isIncluded)) : undefined,
       customClausesJson: JSON.stringify(customClauses.filter(c => (c.title && c.title.trim()) || (c.description && c.description.trim()))),
@@ -2011,8 +2077,9 @@ export default function ContractForm() {
       startDate: contractData.startDate || undefined,
       customTerms: contractData.notes || undefined,
       
-      // جدول الدفعات والبنود
-      paymentSchedule: paymentSchedule.length > 0 ? JSON.stringify(paymentSchedule) : undefined,
+      // جدول الدفعات والبنود ونظام الصرف
+      paymentSchedule: JSON.stringify({ paymentSystem, schedule: paymentSchedule }),
+      paymentSystem,
       clauseValues: clauseValues.length > 0 ? JSON.stringify(clauseValues.filter(c => c.isIncluded)) : undefined,
       customClausesJson: JSON.stringify({
         clauses: customClauses.filter(c => (c.title && c.title.trim()) || (c.description && c.description.trim())),
@@ -2810,45 +2877,139 @@ export default function ContractForm() {
               </div>
             )}
 
-            {/* الخطوة 4: جدول الدفعات */}
+            {/* الخطوة 4: آلية الدفعات والمستخلصات */}
             {currentStep === 4 && (
               <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <h3 className="font-medium flex items-center gap-2">
-                      <span>جدول الدفعات</span>
-                      {isSedanaProgram && (
-                        <Badge variant="outline" className="bg-sky-50 text-sky-800 border-sky-300 font-bold text-xs">
-                          برنامج سدانة - ربط البنود التوريدية
-                        </Badge>
-                      )}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {isSedanaProgram
-                        ? "حدد الدفعات واربط كل دفعة بالأصناف أو البنود الموردة خلالها لتسهيل الربط بأمر الإدخال المستودعي لاحقاً"
-                        : "حدد الدفعات ومواعيدها (اختياري)"}
-                    </p>
+                {/* اختيار نظام الدفعات أو المستخلصات */}
+                <div className="bg-slate-50 dark:bg-slate-900/60 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-primary/10 rounded-xl text-primary">
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground">آلية استحقاق وصرف مستحقات العقد</h4>
+                      <p className="text-xs text-muted-foreground">اختر كيف سيتم التعامل مع دفعات ومستخلصات هذا العقد</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      type="button" 
-                      onClick={() => {
-                        setPaymentSchedule(prev => sortPaymentsByDate(prev));
-                        toast.success("تم ترتيب الدفعات حسب التاريخ بنجاح");
-                      }} 
-                      variant="outline" 
-                      size="sm" 
-                      className="rounded-xl flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+                    {/* خيار 1: نظام الدفعات المجدولة */}
+                    <div 
+                      onClick={() => setPaymentSystem("installments")}
+                      className={cn(
+                        "cursor-pointer p-3.5 rounded-xl border-2 transition-all flex items-center justify-between text-right",
+                        paymentSystem === "installments"
+                          ? "border-primary bg-primary/5 shadow-xs"
+                          : "border-border hover:border-muted-foreground/30 bg-card"
+                      )}
                     >
-                      <ArrowUpDown className="h-3.5 w-3.5" />
-                      ترتيب حسب التاريخ
-                    </Button>
-                    <Button onClick={addPayment} variant="outline" size="sm" className="rounded-xl">
-                      <Plus className="h-4 w-4 ml-1.5" />
-                      إضافة دفعة
-                    </Button>
+                      <span className="font-bold text-sm text-foreground flex items-center gap-2">
+                        <span>📅 نظام الدفعات المجدولة</span>
+                      </span>
+                      <div className={cn(
+                        "w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mr-2",
+                        paymentSystem === "installments" ? "border-primary bg-primary text-white" : "border-muted-foreground/40"
+                      )}>
+                        {paymentSystem === "installments" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                    </div>
+
+                    {/* خيار 2: نظام المستخلصات بحسب الإنجاز */}
+                    <div 
+                      onClick={() => setPaymentSystem("milestones")}
+                      className={cn(
+                        "cursor-pointer p-3.5 rounded-xl border-2 transition-all flex items-center justify-between text-right",
+                        paymentSystem === "milestones"
+                          ? "border-emerald-600 bg-emerald-500/5 shadow-xs ring-1 ring-emerald-500/20"
+                          : "border-border hover:border-muted-foreground/30 bg-card"
+                      )}
+                    >
+                      <span className="font-bold text-sm text-foreground flex items-center gap-2">
+                        <span>🏗️ نظام المستخلصات بحسب الإنجاز</span>
+                      </span>
+                      <div className={cn(
+                        "w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mr-2",
+                        paymentSystem === "milestones" ? "border-emerald-600 bg-emerald-600 text-white" : "border-muted-foreground/40"
+                      )}>
+                        {paymentSystem === "milestones" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                    </div>
                   </div>
                 </div>
+
+                {(() => {
+                  const lastPayment = paymentSchedule.length > 0 ? paymentSchedule[paymentSchedule.length - 1] : null;
+                  const isScheduleClosed = paymentSystem === "milestones" && lastPayment !== null && Number(lastPayment.completionPercentage) >= 100;
+
+                  return (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <h3 className="font-medium flex items-center gap-2">
+                          <span>{paymentSystem === "milestones" ? "جدول المستخلصات والمراحل" : "جدول الدفعات"}</span>
+                          {isSedanaProgram && (
+                            <Badge variant="outline" className="bg-sky-50 text-sky-800 border-sky-300 font-bold text-xs">
+                              برنامج سدانة - ربط البنود التوريدية
+                            </Badge>
+                          )}
+                          {paymentSystem === "milestones" && (
+                            <Badge variant="outline" className={cn(
+                              "font-bold text-xs",
+                              isScheduleClosed 
+                                ? "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300" 
+                                : "bg-sky-50 text-sky-800 border-sky-300"
+                            )}>
+                              {isScheduleClosed ? "مكتمل ومقفل (100% إنجاز)" : "نظام مستخلصات"}
+                            </Badge>
+                          )}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {paymentSystem === "milestones"
+                            ? "حدد المستخلصات ومراحل الإنجاز حتى الوصول إلى 100% (تُحدد وتصرف المبالغ مرناً لاحقاً بناءً على الإنجاز الفعلي)"
+                            : (isSedanaProgram
+                              ? "حدد الدفعات واربط كل دفعة بالأصناف أو البنود الموردة خلالها لتسهيل الربط بأمر الإدخال المستودعي لاحقاً"
+                              : "حدد الدفعات ومواعيدها وقيمها")}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          type="button" 
+                          onClick={() => {
+                            setPaymentSchedule(prev => sortPaymentsByDate(prev));
+                            toast.success("تم ترتيب الجدول حسب التاريخ بنجاح");
+                          }} 
+                          variant="outline" 
+                          size="sm" 
+                          className="rounded-xl flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <ArrowUpDown className="h-3.5 w-3.5" />
+                          ترتيب حسب التاريخ
+                        </Button>
+                        <Button 
+                          onClick={addPayment} 
+                          disabled={isScheduleClosed}
+                          variant={isScheduleClosed ? "secondary" : "outline"}
+                          size="sm" 
+                          className={cn(
+                            "rounded-xl",
+                            isScheduleClosed && "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 cursor-not-allowed opacity-90"
+                          )}
+                        >
+                          {isScheduleClosed ? (
+                            <>
+                              <Check className="h-4 w-4 ml-1.5 text-emerald-600" />
+                              تم إقفال الجدول (100%)
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-4 w-4 ml-1.5" />
+                              {paymentSystem === "milestones" ? "إضافة مستخلص" : "إضافة دفعة"}
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* لوحة استعراض بنود العقد والكميات المتفق عليها - تظهر لبرامج سدانة */}
                 {isSedanaProgram && availableContractItems.length > 0 && (
@@ -2924,7 +3085,11 @@ export default function ContractForm() {
                               className="mx-3 text-xs text-muted-foreground hover:text-primary hover:border-primary/50 rounded-full h-7 px-3.5 flex items-center gap-1.5 shadow-2xs transition-all bg-background"
                             >
                               <Plus className="w-3.5 h-3.5" />
-                              <span>إدراج دفعة بين الدفعة {index} والدفعة {index + 1}</span>
+                              <span>
+                                {paymentSystem === "milestones"
+                                  ? `إدراج مستخلص بين مستخلص ${index} ومستخلص ${index + 1}`
+                                  : `إدراج دفعة بين الدفعة ${index} والدفعة ${index + 1}`}
+                              </span>
                             </Button>
                             <div className="h-[1px] flex-1 bg-border/60 group-hover:bg-primary/40 transition-all" />
                           </div>
@@ -2974,7 +3139,9 @@ export default function ContractForm() {
                               <div className="flex items-center gap-2">
                                 {!isPaid && <GripVertical className="h-5 w-5 hidden md:block" />}
                                 {isPaid && <Lock className="h-4 w-4 hidden md:block text-emerald-600 dark:text-emerald-400" />}
-                                <span className="font-bold text-primary md:text-foreground">الدفعة {index + 1}</span>
+                                <span className="font-bold text-primary md:text-foreground">
+                                  {paymentSystem === "milestones" ? `مستخلص ${index + 1}` : `الدفعة ${index + 1}`}
+                                </span>
                               </div>
                               {!isPaid && (
                                 <Button
@@ -2989,10 +3156,15 @@ export default function ContractForm() {
                             </div>
                             
                             <div className="flex-1 space-y-4 w-full">
-                              {/* الصف الأول: معلومات الدفعة الأساسية */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 w-full">
+                              {/* الصف الأول: معلومات الدفعة أو المستخلص */}
+                              <div className={cn(
+                                "grid gap-4 w-full",
+                                paymentSystem === "milestones" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-2 md:grid-cols-4"
+                              )}>
                                 <div className="space-y-1">
-                                  <Label className="text-xs font-semibold">التاريخ الميلادي</Label>
+                                  <Label className="text-xs font-semibold">
+                                    {paymentSystem === "milestones" ? "التاريخ المتوقع للمستخلص" : "التاريخ الميلادي"}
+                                  </Label>
                                   <Input
                                     type="date"
                                     value={payment.dueDate}
@@ -3068,7 +3240,9 @@ export default function ContractForm() {
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <Label className="text-xs font-semibold">عنوان طلب الصرف</Label>
+                                  <Label className="text-xs font-semibold">
+                                    {paymentSystem === "milestones" ? "عنوان المستخلص" : "عنوان طلب الصرف"}
+                                  </Label>
                                   <Input
                                     value={payment.name}
                                     disabled={isPaid}
@@ -3081,75 +3255,82 @@ export default function ContractForm() {
                                       if (isPaid) return;
                                       updatePayment(payment.id, "name", e.target.value);
                                     }}
-                                    placeholder="عنوان الطلب"
+                                    placeholder={paymentSystem === "milestones" ? `مستخلص ${index + 1}` : "عنوان الطلب"}
                                   />
                                 </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs font-semibold text-foreground">النسبة (%) *</Label>
-                                  <Input
-                                    type="number"
-                                    value={payment.percentage || ""}
-                                    disabled={isPaid}
-                                    required
-                                    className={cn(
-                                      "w-full rounded-xl font-bold font-sans", 
-                                      isPaid 
-                                        ? "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner" 
-                                        : "text-primary"
-                                    )}
-                                    onChange={(e) => {
-                                      if (isPaid) return;
-                                      const pct = parseFloat(e.target.value) || 0;
-                                      const amount = contractData.totalValue ? (contractData.totalValue * pct) / 100 : 0;
-                                      setPaymentSchedule(prev => prev.map(p => 
-                                        p.id === payment.id ? { ...p, percentage: pct, amount: Number(amount.toFixed(2)) } : p
-                                      ));
-                                    }}
-                                    placeholder="0"
-                                    min="0"
-                                    max="100"
-                                  />
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs font-semibold">
-                                    {isPaid ? (isPartiallyPaid ? "المبلغ المتفق عليه (ر.س)" : "المبلغ المسدد (ر.س)") : "المبلغ"}
-                                  </Label>
-                                  <Input
-                                    type="number"
-                                    value={payment.amount || ""}
-                                    disabled={isPaid}
-                                    required
-                                    className={cn(
-                                      "w-full rounded-xl font-bold font-sans", 
-                                      isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
-                                    )}
-                                    onChange={(e) => {
-                                      if (isPaid) return;
-                                      const val = parseFloat(e.target.value) || 0;
-                                      const pct = contractData.totalValue ? (val / contractData.totalValue) * 100 : 0;
-                                      setPaymentSchedule(prev => prev.map(p => 
-                                        p.id === payment.id ? { ...p, amount: val, percentage: Number(pct.toFixed(2)) } : p
-                                      ));
-                                    }}
-                                    placeholder="0.00"
-                                  />
-                                  {isPartiallyPaid && paidAmt > 0 && (
-                                    <p className="text-[11px] text-amber-700 dark:text-amber-400 font-semibold pt-0.5">
-                                      المبلغ المسدد الفعلي: {paidAmt.toLocaleString()} ر.س
-                                    </p>
-                                  )}
-                                </div>
+
+                                {paymentSystem !== "milestones" && (
+                                  <>
+                                    <div className="space-y-1">
+                                      <Label className="text-xs font-semibold text-foreground">النسبة (%) *</Label>
+                                      <Input
+                                        type="number"
+                                        value={payment.percentage || ""}
+                                        disabled={isPaid}
+                                        required
+                                        className={cn(
+                                          "w-full rounded-xl font-bold font-sans", 
+                                          isPaid 
+                                            ? "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner" 
+                                            : "text-primary"
+                                        )}
+                                        onChange={(e) => {
+                                          if (isPaid) return;
+                                          const pct = parseFloat(e.target.value) || 0;
+                                          const amount = contractData.totalValue ? (contractData.totalValue * pct) / 100 : 0;
+                                          setPaymentSchedule(prev => prev.map(p => 
+                                            p.id === payment.id ? { ...p, percentage: pct, amount: Number(amount.toFixed(2)) } : p
+                                          ));
+                                        }}
+                                        placeholder="0"
+                                        min="0"
+                                        max="100"
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-xs font-semibold">
+                                        {isPaid ? (isPartiallyPaid ? "المبلغ المتفق عليه (ر.س)" : "المبلغ المسدد (ر.س)") : "المبلغ"}
+                                      </Label>
+                                      <Input
+                                        type="number"
+                                        value={payment.amount || ""}
+                                        disabled={isPaid}
+                                        required
+                                        className={cn(
+                                          "w-full rounded-xl font-bold font-sans", 
+                                          isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
+                                        )}
+                                        onChange={(e) => {
+                                          if (isPaid) return;
+                                          const val = parseFloat(e.target.value) || 0;
+                                          const pct = contractData.totalValue ? (val / contractData.totalValue) * 100 : 0;
+                                          setPaymentSchedule(prev => prev.map(p => 
+                                            p.id === payment.id ? { ...p, amount: val, percentage: Number(pct.toFixed(2)) } : p
+                                          ));
+                                        }}
+                                        placeholder="0.00"
+                                      />
+                                      {isPartiallyPaid && paidAmt > 0 && (
+                                        <p className="text-[11px] text-amber-700 dark:text-amber-400 font-semibold pt-0.5">
+                                          المبلغ المسدد الفعلي: {paidAmt.toLocaleString()} ر.س
+                                        </p>
+                                      )}
+                                    </div>
+                                  </>
+                                )}
                               </div>
 
                               {/* الصف الثاني: تفاصيل الأعمال المطلوبة ونسبة الإنجاز لتفعيل الدفعة */}
                               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full">
                                 <div className="space-y-1 md:col-span-2 lg:col-span-2 text-right">
-                                  <Label className="text-xs font-semibold">وصف الأعمال التي سوف تنفذ *</Label>
+                                  <Label className="text-xs font-semibold">
+                                    {paymentSystem === "milestones" ? "وصف أعمال ومراحل المستخلص *" : "وصف الأعمال التي سوف تنفذ *"}
+                                  </Label>
                                   <Textarea
                                     value={payment.description || ""}
                                     disabled={isPaid}
                                     required
-                                    placeholder="وصف تفصيلي للأعمال التي سوف تنفذ..."
+                                    placeholder={paymentSystem === "milestones" ? "وصف تفصيلي لأعمال ومراحل هذا المستخلص..." : "وصف تفصيلي للأعمال التي سوف تنفذ..."}
                                     rows={3}
                                     className={cn(
                                       "w-full rounded-xl text-right", 
@@ -3162,7 +3343,16 @@ export default function ContractForm() {
                                   />
                                 </div>
                                 <div className="space-y-1 md:col-span-2 lg:col-span-2 text-right">
-                                  <Label className="text-xs font-semibold text-foreground">نسبة الإنجاز (%) *</Label>
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-xs font-semibold text-foreground">
+                                      {paymentSystem === "milestones" ? "نسبة الإنجاز المستهدفة للمستخلص (%) *" : "نسبة الإنجاز (%) *"}
+                                    </Label>
+                                    {paymentSystem === "milestones" && Number(payment.completionPercentage) === 100 && (
+                                      <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 text-[10px] font-bold">
+                                        المستخلص الختامي (100%)
+                                      </Badge>
+                                    )}
+                                  </div>
                                   {(() => {
                                     const prevComp = (prevPayment?.completionPercentage !== undefined && prevPayment?.completionPercentage !== null && !isNaN(Number(prevPayment.completionPercentage)))
                                       ? Number(prevPayment.completionPercentage)
@@ -3522,62 +3712,112 @@ export default function ContractForm() {
                     );
                     })}
 
-                    {/* ملخص الدفعات */}
-                    {(() => {
-                      const totalPaymentsAmount = paymentSchedule.reduce((sum, p) => sum + getPaymentEffectiveAmount(p), 0);
-                      const isExact = Math.abs(totalPaymentsAmount - contractData.totalValue) <= 0.05;
-                      const isOver = totalPaymentsAmount > contractData.totalValue + 0.05;
-                      const isUnder = totalPaymentsAmount < contractData.totalValue - 0.05;
-                      const diff = contractData.totalValue - totalPaymentsAmount;
+                    {/* ملخص الدفعات أو المستخلصات */}
+                    {paymentSystem === "milestones" ? (
+                      (() => {
+                        const lastPayment = paymentSchedule.length > 0 ? paymentSchedule[paymentSchedule.length - 1] : null;
+                        const lastPct = lastPayment ? (Number(lastPayment.completionPercentage) || 0) : 0;
+                        const isScheduleClosed = lastPct >= 100;
+                        const remainingPct = Math.max(0, 100 - lastPct);
 
-                      return (
-                        <Card className="bg-muted/50 p-4 rounded-xl border-dashed border-2">
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                              <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground">إجمالي المبالغ:</span>
-                                <span className={`font-black text-base ${
-                                  isExact 
-                                    ? "text-green-600 dark:text-green-400" 
-                                    : isOver 
-                                      ? "text-destructive" 
-                                      : "text-amber-600"
-                                }`}>
-                                    {totalPaymentsAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
-                                </span>
+                        return (
+                          <Card className="bg-muted/50 p-4 rounded-xl border-dashed border-2">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground">عدد المستخلصات:</span>
+                                  <span className="font-bold text-foreground text-base">
+                                    {paymentSchedule.length} مستخلص
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground">نسبة إنجاز آخر مستخلص:</span>
+                                  <span className={`font-black text-base ${isScheduleClosed ? "text-green-600 dark:text-green-400" : "text-amber-600"}`}>
+                                    {lastPct}%
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground">سقف العقد الإجمالي:</span>
+                                  <span className="font-bold text-foreground inline-flex items-center gap-1">
+                                    {contractData.totalValue.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                  </span>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground">من قيمة العقد:</span>
-                                <span className="font-bold text-foreground inline-flex items-center gap-1">
-                                  {contractData.totalValue.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
-                                </span>
+
+                              <div className="flex flex-col gap-2">
+                                {isScheduleClosed ? (
+                                  <div className="flex items-center gap-2 text-green-600 text-xs font-bold bg-green-500/10 p-2.5 rounded-lg border border-green-500/20">
+                                    <Check className="h-4 w-4 shrink-0" />
+                                    <span>تم إقفال الجدول بنجاح - نسبة إنجاز المستخلص الأخير بلغت 100%</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2 text-amber-600 text-xs font-bold bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20">
+                                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                                    <span>متبقي {remainingPct}% لإقفال الجدول (يجب أن يصل المستخلص الأخير إلى 100%)</span>
+                                  </div>
+                                )}
                               </div>
                             </div>
+                          </Card>
+                        );
+                      })()
+                    ) : (
+                      (() => {
+                        const totalPaymentsAmount = paymentSchedule.reduce((sum, p) => sum + getPaymentEffectiveAmount(p), 0);
+                        const isExact = Math.abs(totalPaymentsAmount - contractData.totalValue) <= 0.05;
+                        const isOver = totalPaymentsAmount > contractData.totalValue + 0.05;
+                        const isUnder = totalPaymentsAmount < contractData.totalValue - 0.05;
+                        const diff = contractData.totalValue - totalPaymentsAmount;
 
-                            <div className="flex flex-col gap-2">
-                              {isOver && (
-                                <div className="flex items-center gap-2 text-destructive text-xs font-bold bg-destructive/10 p-2 rounded-lg">
-                                  <AlertTriangle className="h-4 w-4 shrink-0" />
-                                  <span>تنبيه: إجمالي الدفعات يتجاوز قيمة العقد</span>
+                        return (
+                          <Card className="bg-muted/50 p-4 rounded-xl border-dashed border-2">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground">إجمالي المبالغ:</span>
+                                  <span className={`font-black text-base ${
+                                    isExact 
+                                      ? "text-green-600 dark:text-green-400" 
+                                      : isOver 
+                                        ? "text-destructive" 
+                                        : "text-amber-600"
+                                  }`}>
+                                      {totalPaymentsAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                  </span>
                                 </div>
-                              )}
-                              {isUnder && (
-                                <div className="flex items-center gap-2 text-amber-600 text-xs font-bold bg-amber-500/10 p-2 rounded-lg">
-                                  <AlertTriangle className="h-4 w-4 shrink-0" />
-                                  <span className="inline-flex items-center gap-1">تنبيه: متبقي للصرف { diff.toLocaleString() } <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground">من قيمة العقد:</span>
+                                  <span className="font-bold text-foreground inline-flex items-center gap-1">
+                                    {contractData.totalValue.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                  </span>
                                 </div>
-                              )}
-                              {isExact && (
-                                <div className="flex items-center gap-2 text-green-600 text-xs font-bold bg-green-500/10 p-2 rounded-lg">
-                                  <Check className="h-4 w-4 shrink-0" />
-                                  <span>تمت تغطية كامل قيمة العقد</span>
-                                </div>
-                              )}
+                              </div>
+
+                              <div className="flex flex-col gap-2">
+                                {isOver && (
+                                  <div className="flex items-center gap-2 text-destructive text-xs font-bold bg-destructive/10 p-2 rounded-lg">
+                                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                                    <span>تنبيه: إجمالي الدفعات يتجاوز قيمة العقد</span>
+                                  </div>
+                                )}
+                                {isUnder && (
+                                  <div className="flex items-center gap-2 text-amber-600 text-xs font-bold bg-amber-500/10 p-2 rounded-lg">
+                                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                                    <span className="inline-flex items-center gap-1">تنبيه: متبقي للصرف { diff.toLocaleString() } <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
+                                  </div>
+                                )}
+                                {isExact && (
+                                  <div className="flex items-center gap-2 text-green-600 text-xs font-bold bg-green-500/10 p-2 rounded-lg">
+                                    <Check className="h-4 w-4 shrink-0" />
+                                    <span>تمت تغطية كامل قيمة العقد</span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </Card>
-                      );
-                    })()}
+                          </Card>
+                        );
+                      })()
+                    )}
                   </div>
                 )}
               </div>

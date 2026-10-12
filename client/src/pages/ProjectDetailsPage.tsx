@@ -41,6 +41,7 @@ import {
   HeartHandshake,
   Printer,
   ExternalLink,
+  FileSpreadsheet,
 } from "lucide-react";
 import { PurchaseOrdersView } from "./PurchaseOrdersList";
 import { CsrLettersView } from "./CsrLettersList";
@@ -717,6 +718,51 @@ export default function ProjectDetailsPage() {
       return sum + getPaymentEffectiveAmount(p);
     }, 0) || 0;
 
+  const isMilestonesContract = Boolean(
+    project?.contracts && project.contracts.length > 0 &&
+    project.contracts.some((c: any) => {
+      if (c.paymentSystem === "milestones") return true;
+      if (c.paymentScheduleJson) {
+        try {
+          const parsed = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+          if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.paymentSystem === "milestones") {
+            return true;
+          }
+        } catch (e) {}
+      }
+      return false;
+    })
+  );
+
+  const contractMilestones = (() => {
+    if (!project?.contracts || project.contracts.length === 0) return [];
+    const list: any[] = [];
+    project.contracts.forEach((c: any) => {
+      if (c.paymentScheduleJson) {
+        try {
+          let parsed = c.paymentScheduleJson;
+          if (typeof parsed === "string") {
+            parsed = JSON.parse(parsed);
+            if (typeof parsed === "string") parsed = JSON.parse(parsed);
+          }
+          const isMilestones = parsed?.paymentSystem === "milestones" || (c as any).paymentSystem === "milestones";
+          const sched = Array.isArray(parsed) ? parsed : (parsed?.schedule || []);
+          if (isMilestones && Array.isArray(sched)) {
+            sched.forEach((m: any, idx: number) => {
+              list.push({
+                ...m,
+                contractId: c.id,
+                contractNumber: c.contractNumber,
+                orderIndex: idx + 1,
+              });
+            });
+          }
+        } catch (e) {}
+      }
+    });
+    return list;
+  })();
+
   const totalContractsSum = project?.contracts?.reduce((sum, c) => {
     const amt = parseFloat(String(c.amount || "0").replace(/,/g, ""));
     return sum + (isNaN(amt) ? 0 : amt);
@@ -727,7 +773,7 @@ export default function ProjectDetailsPage() {
   const isContractFullyAllocated = totalContractsSum > 0 && allPaymentsSum >= (totalContractsSum - 0.05);
 
   // التحقق من اكتمال جدولة وبيانات كافة الدفعات
-  const hasIncompletePaymentsData = Boolean(project?.payments?.some(payment => payment.source !== "manual" && (
+  const hasIncompletePaymentsData = Boolean(!isMilestonesContract && project?.payments?.some(payment => payment.source !== "manual" && (
     payment.completionPercentage === null || 
     payment.completionPercentage === undefined || 
     !payment.workDescription || 
@@ -735,8 +781,10 @@ export default function ProjectDetailsPage() {
   )));
 
   const arePaymentsComplete = Boolean(
-    (totalContractsSum > 0 ? (allPaymentsSum >= totalContractsSum - 0.5) : (project?.payments && project.payments.length > 0)) &&
-    !hasIncompletePaymentsData
+    isMilestonesContract
+      ? (contractMilestones.length > 0 || (project?.payments && project.payments.length > 0))
+      : ((totalContractsSum > 0 ? (allPaymentsSum >= totalContractsSum - 0.5) : (project?.payments && project.payments.length > 0)) &&
+        !hasIncompletePaymentsData)
   );
 
   const completedPhasesCount = project?.phases?.filter(p => p.status === "completed").length || 0;
@@ -805,9 +853,11 @@ export default function ProjectDetailsPage() {
       },
       { 
         id: "payments", 
-        label: "الدفعات", 
-        icon: CreditCard, 
-        badge: paymentsCount > 0 ? `${paymentsCount}` : undefined,
+        label: isMilestonesContract ? "المستخلصات" : "الدفعات", 
+        icon: isMilestonesContract ? FileSpreadsheet : CreditCard, 
+        badge: (isMilestonesContract ? (contractMilestones.length || paymentsCount) : paymentsCount) > 0 
+          ? `${isMilestonesContract ? (contractMilestones.length || paymentsCount) : paymentsCount}` 
+          : undefined,
         isLocked: isPaymentsLocked 
       },
     ] : []),
@@ -2034,11 +2084,22 @@ export default function ProjectDetailsPage() {
                   <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4 border-b border-border/40 bg-muted/20 p-5">
                     <div className="flex-1">
                       <CardTitle className="text-base font-bold flex items-center gap-2">
-                        <CreditCard className="w-4 h-4 text-primary" />
-                        الدفعات المالية
+                        {isMilestonesContract ? (
+                          <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                        ) : (
+                          <CreditCard className="w-4 h-4 text-primary" />
+                        )}
+                        <span>{isMilestonesContract ? "مستخلصات المشروع" : "الدفعات المالية"}</span>
+                        {isMilestonesContract && (
+                          <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold text-xs">
+                            عقد مستخلصات مرنة
+                          </Badge>
+                        )}
                       </CardTitle>
                       <CardDescription className="text-xs mt-0.5">
-                        سجل الدفعات والمستخلصات المالية للمشروع
+                        {isMilestonesContract
+                          ? "سجل المستخلصات المعتمدة والمصروفة بحسب نسب الإنجاز والمراحل"
+                          : "سجل الدفعات والمستخلصات المالية للمشروع"}
                       </CardDescription>
                     </div>
                     {!isPaymentsLocked && (
@@ -2059,7 +2120,7 @@ export default function ProjectDetailsPage() {
                         }
                       >
                         <Plus className="w-4 h-4 ml-1.5" />
-                        إضافة دفعة
+                        {isMilestonesContract ? "رفع مستخلص جديد" : "إضافة دفعة"}
                       </Button>
                     )}
                   </CardHeader>
@@ -2070,9 +2131,11 @@ export default function ProjectDetailsPage() {
                           <div className="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-5 mx-auto border border-amber-500/20">
                             <Lock className="w-7 h-7 text-amber-600 dark:text-amber-400" />
                           </div>
-                          <h3 className="text-lg font-bold text-amber-900 dark:text-amber-200 mb-2">قسم الدفعات مقفل حالياً</h3>
+                          <h3 className="text-lg font-bold text-amber-900 dark:text-amber-200 mb-2">
+                            {isMilestonesContract ? "قسم المستخلصات مقفل حالياً" : "قسم الدفعات مقفل حالياً"}
+                          </h3>
                           <p className="text-amber-800/80 dark:text-amber-300/80 text-xs sm:text-sm leading-relaxed mb-5">
-                            هذا القسم غير متاح للصرف أو العرض حالياً. سيتم إلغاء قفل قسم الدفعات وتفعيله بالكامل تلقائياً بمجرد اكتمال <strong>المرحلة الرابعة: التعاقد</strong> للمشروع.
+                            هذا القسم غير متاح للصرف أو العرض حالياً. سيتم إلغاء قفل {isMilestonesContract ? "قسم المستخلصات" : "قسم الدفعات"} وتفعيله بالكامل تلقائياً بمجرد اكتمال <strong>المرحلة الرابعة: التعاقد</strong> للمشروع.
                           </p>
                           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-semibold">
                             <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
@@ -2080,7 +2143,7 @@ export default function ProjectDetailsPage() {
                           </div>
                         </div>
                       </div>
-                    ) : project.payments && project.payments.length > 0 ? (
+                    ) : ((project.payments && project.payments.length > 0) || (isMilestonesContract && contractMilestones.length > 0)) ? (
                       <>
                         {isRequestClosed && (
                           <Alert className="bg-amber-50/70 border-amber-200 text-amber-900 dark:bg-amber-950/20 dark:border-amber-900/50 mb-5 text-right rounded-2xl">
@@ -2091,7 +2154,81 @@ export default function ProjectDetailsPage() {
                             </AlertDescription>
                           </Alert>
                         )}
-                        {project.payments.some(payment => payment.source !== "manual" && (
+
+                        {/* جدول مراحل ومستخلصات العقد المعتمدة */}
+                        {isMilestonesContract && contractMilestones.length > 0 && (
+                          <div className="space-y-3 mb-6 p-4 sm:p-5 rounded-2xl bg-card border border-border/70 shadow-xs">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div>
+                                <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
+                                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                                  <span>جدول المستخلصات ومراحل العقد المعتمدة</span>
+                                </h4>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  مراحل وجدول المستخلصات المحددة في العقد ونسب الإنجاز المستهدفة لكل مرحلة
+                                </p>
+                              </div>
+                              <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold text-xs w-fit">
+                                {contractMilestones.length} مستخلصات
+                              </Badge>
+                            </div>
+
+                            <div className="overflow-x-auto w-full scrollbar-hide rounded-xl border border-border/40">
+                              <Table>
+                                <TableHeader className="bg-muted/40">
+                                  <TableRow>
+                                    <TableHead className="text-right font-bold py-3 px-3.5 w-12">م</TableHead>
+                                    <TableHead className="text-right font-bold py-3 px-3.5">اسم المستخلص / المرحلة</TableHead>
+                                    <TableHead className="text-right font-bold py-3 px-3.5">نسبة الإنجاز المستهدفة</TableHead>
+                                    <TableHead className="text-right font-bold py-3 px-3.5">التاريخ المتوقع</TableHead>
+                                    <TableHead className="text-right font-bold py-3 px-3.5">وصف أعمال ومراحل المستخلص</TableHead>
+                                    <TableHead className="text-center font-bold py-3 px-3.5">الإجراء</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {contractMilestones.map((m: any, idx: number) => {
+                                    const comp = m.completionPercentage !== undefined && m.completionPercentage !== null && m.completionPercentage !== "" ? m.completionPercentage : "--";
+                                    return (
+                                      <TableRow key={m.id || idx} className="hover:bg-muted/20">
+                                        <TableCell className="font-mono text-right py-3 px-3.5 text-muted-foreground">{idx + 1}</TableCell>
+                                        <TableCell className="font-bold text-right py-3 px-3.5 text-xs sm:text-sm">
+                                          {m.name || m.phaseName || `مستخلص ${idx + 1}`}
+                                        </TableCell>
+                                        <TableCell className="font-bold text-right py-3 px-3.5 text-[#1a5f4a] font-mono">
+                                          {comp}%
+                                        </TableCell>
+                                        <TableCell className="text-right py-3 px-3.5 text-xs text-muted-foreground font-mono">
+                                          {m.dueDate ? (String(m.dueDate).includes('T') ? String(m.dueDate).split('T')[0] : String(m.dueDate).split(' ')[0]) : "عند الإنجاز"}
+                                        </TableCell>
+                                        <TableCell className="text-right py-3 px-3.5 text-xs leading-relaxed max-w-xs text-foreground">
+                                          {m.description || m.notes || "----"}
+                                        </TableCell>
+                                        <TableCell className="text-center py-3 px-3.5">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 text-xs rounded-lg hover:border-emerald-500 hover:text-emerald-700 font-semibold gap-1"
+                                            onClick={() => {
+                                              if (!isRequestClosed) {
+                                                navigate(`/disbursements/new/${project.id}?milestone=${encodeURIComponent(m.name || `مستخلص ${idx + 1}`)}&completionPercentage=${comp}&description=${encodeURIComponent(m.description || "")}`);
+                                              }
+                                            }}
+                                            disabled={isRequestClosed || isContractFullyAllocated}
+                                          >
+                                            <Plus className="w-3.5 h-3.5 text-emerald-600" />
+                                            <span>رفع المستخلص</span>
+                                          </Button>
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </div>
+                        )}
+
+                        {project.payments && project.payments.length > 0 && project.payments.some(payment => payment.source !== "manual" && (
                           payment.completionPercentage === null || 
                           payment.completionPercentage === undefined || 
                           !payment.workDescription || 
@@ -2151,19 +2288,46 @@ export default function ProjectDetailsPage() {
                           </div>
                         )}
 
-                        <div className="overflow-x-auto w-full scrollbar-hide rounded-xl border border-border/40">
-                          <Table>
-                            <TableHeader className="bg-muted/40">
-                              <TableRow>
-                                <TableHead className="text-right font-bold py-3.5 px-4">رقم الدفعة</TableHead>
-                                <TableHead className="text-right font-bold py-3.5 px-4">عنوان الدفعة</TableHead>
-                                <TableHead className="text-right font-bold py-3.5 px-4">المتفق</TableHead>
-                                <TableHead className="text-right font-bold py-3.5 px-4">المسدد</TableHead>
-                                <TableHead className="text-right font-bold py-3.5 px-4">الحالة</TableHead>
-                                <TableHead className="text-right font-bold py-3.5 px-4">التاريخ</TableHead>
-                                <TableHead className="text-center font-bold py-3.5 px-4">الإجراءات</TableHead>
-                              </TableRow>
-                            </TableHeader>
+                        {isMilestonesContract && sortedPayments.length === 0 && (
+                          <div className="p-4 rounded-xl border border-dashed border-emerald-500/30 bg-emerald-50/20 dark:bg-emerald-950/10 text-xs text-muted-foreground flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
+                            <div className="flex items-center gap-2 text-foreground font-medium">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                              <span>مراحل المستخلصات معتمدة في العقد أعلاه. يمكنك الضغط على "رفع المستخلص" بجانب أي مرحلة عند إنجازها لبدء مسار الصرف.</span>
+                            </div>
+                            {!isPaymentsLocked && !isRequestClosed && (
+                              <Button
+                                size="sm"
+                                className="gradient-primary text-white rounded-lg text-xs font-bold h-8 shrink-0"
+                                onClick={() => navigate(`/disbursements/new/${project.id}`)}
+                              >
+                                <Plus className="w-3.5 h-3.5 ml-1" />
+                                رفع مستخلص جديد
+                              </Button>
+                            )}
+                          </div>
+                        )}
+
+                        {sortedPayments.length > 0 && (
+                          <div className="space-y-3">
+                            {isMilestonesContract && (
+                              <h4 className="font-bold text-sm text-foreground flex items-center gap-2 pt-2">
+                                <CreditCard className="w-4 h-4 text-primary" />
+                                <span>سجل طلبات الصرف والمستخلصات المرفوعة</span>
+                              </h4>
+                            )}
+                            <div className="overflow-x-auto w-full scrollbar-hide rounded-xl border border-border/40">
+                              <Table>
+                                <TableHeader className="bg-muted/40">
+                                  <TableRow>
+                                    <TableHead className="text-right font-bold py-3.5 px-4">{isMilestonesContract ? "رقم المستخلص" : "رقم الدفعة"}</TableHead>
+                                    <TableHead className="text-right font-bold py-3.5 px-4">{isMilestonesContract ? "عنوان المستخلص" : "عنوان الدفعة"}</TableHead>
+                                    <TableHead className="text-right font-bold py-3.5 px-4">{isMilestonesContract ? "قيمة الطلب" : "المتفق"}</TableHead>
+                                    <TableHead className="text-right font-bold py-3.5 px-4">المسدد</TableHead>
+                                    <TableHead className="text-right font-bold py-3.5 px-4">الحالة</TableHead>
+                                    <TableHead className="text-right font-bold py-3.5 px-4">التاريخ</TableHead>
+                                    <TableHead className="text-center font-bold py-3.5 px-4">الإجراءات</TableHead>
+                                  </TableRow>
+                                </TableHeader>
                             <TableBody>
                               {sortedPayments.map((payment, index) => {
                                 const paidAmt = parseFloat(String(payment.paidAmount || 0).replace(/,/g, ""));
@@ -2386,15 +2550,21 @@ export default function ProjectDetailsPage() {
                             </TableBody>
                           </Table>
                         </div>
+                      </div>
+                    )}
                         <div className="mt-5 p-4 sm:p-5 bg-muted/30 rounded-2xl flex flex-col md:flex-row items-center justify-between border border-border/50 gap-4">
                           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                             <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground font-semibold text-xs sm:text-sm">قيمة العقد:</span>
+                              <span className="text-muted-foreground font-semibold text-xs sm:text-sm">
+                                {isMilestonesContract ? "إجمالي سقف العقد:" : "قيمة العقد:"}
+                              </span>
                               <span className="font-bold text-sm sm:text-base text-foreground font-sans">{formatCurrency(totalContractsSum.toString())}</span>
                             </div>
 
                             <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground font-semibold text-xs sm:text-sm">إجمالي مبالغ الدفعات:</span>
+                              <span className="text-muted-foreground font-semibold text-xs sm:text-sm">
+                                {isMilestonesContract ? "إجمالي المستخلصات المطلوبة:" : "إجمالي مبالغ الدفعات:"}
+                              </span>
                               <span className="font-bold text-sm sm:text-base text-primary font-sans">{formatCurrency(allPaymentsSum.toString())}</span>
                             </div>
 
@@ -2408,21 +2578,44 @@ export default function ProjectDetailsPage() {
                             {unscheduledContractSum > 0.05 ? (
                               <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs font-bold bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20">
                                 <AlertTriangle className="h-4 w-4 shrink-0" />
-                                <span>متبقي غير مجدول: {formatCurrency(unscheduledContractSum.toString())}</span>
+                                <span>
+                                  {isMilestonesContract ? "المتبقي المتاح للمستخلصات: " : "متبقي غير مجدول: "}
+                                  {formatCurrency(unscheduledContractSum.toString())}
+                                </span>
                               </div>
                             ) : (
                               <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-bold bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
                                 <CheckCircle2 className="h-4 w-4 shrink-0" />
-                                <span>تمت تغطية كامل قيمة العقد</span>
+                                <span>{isMilestonesContract ? "تم استنفاد كامل سقف العقد" : "تمت تغطية كامل قيمة العقد"}</span>
                               </div>
                             )}
                           </div>
                         </div>
                       </>
                     ) : (
-                      <div className="text-center py-12">
-                        <CreditCard className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
-                        <p className="text-muted-foreground text-sm font-medium">لا توجد دفعات مسجلة</p>
+                      <div className="text-center py-12 space-y-3">
+                        {isMilestonesContract ? (
+                          <FileSpreadsheet className="w-12 h-12 text-emerald-600/60 mx-auto mb-2" />
+                        ) : (
+                          <CreditCard className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
+                        )}
+                        <h4 className="font-bold text-sm text-foreground">
+                          {isMilestonesContract ? "عقد مستخلصات مرنة - لا توجد مستخلصات مرفوعة بعد" : "لا توجد دفعات مسجلة"}
+                        </h4>
+                        <p className="text-muted-foreground text-xs max-w-md mx-auto">
+                          {isMilestonesContract
+                            ? "يتم رفع مستخلصات المقاول دورياً بناءً على إنجاز الأعمال ومراحل المشروع المحددة في تبويب المراحل."
+                            : "لا توجد دفعات مجدولة مسجلة لهذا المشروع."}
+                        </p>
+                        {isMilestonesContract && !isPaymentsLocked && !isRequestClosed && (
+                          <Button
+                            className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9 mt-2"
+                            onClick={() => navigate(`/disbursements/new/${project.id}`)}
+                          >
+                            <Plus className="w-4 h-4 ml-1.5" />
+                            رفع أول مستخلص للمقاول
+                          </Button>
+                        )}
                       </div>
                     )}
                   </CardContent>

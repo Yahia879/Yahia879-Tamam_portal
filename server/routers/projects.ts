@@ -817,7 +817,12 @@ export const projectsRouter = router({
           paymentScheduleJson: contractsEnhanced.paymentScheduleJson,
         })
         .from(contractsEnhanced)
-        .where(eq(contractsEnhanced.projectId, targetProjectId));
+        .where(
+          or(
+            eq(contractsEnhanced.projectId, targetProjectId),
+            project.requestId ? eq(contractsEnhanced.requestId, project.requestId) : sql`1=0`
+          )
+        );
 
       const contractIds = projectContracts.map(c => c.id);
 
@@ -965,9 +970,10 @@ export const projectsRouter = router({
         const parentContract = projectContracts.find(c => c.id === cp.contractId);
         if (parentContract?.paymentScheduleJson) {
           try {
-            const sched = typeof parentContract.paymentScheduleJson === "string" 
+            const rawSched = typeof parentContract.paymentScheduleJson === "string" 
               ? JSON.parse(parentContract.paymentScheduleJson) 
               : parentContract.paymentScheduleJson;
+            const sched = Array.isArray(rawSched) ? rawSched : (rawSched?.schedule || []);
             if (Array.isArray(sched)) {
               const matchedSched = sched.find((s: any, idx: number) => 
                 s.id === `cp-${cp.id}` || 
@@ -1081,9 +1087,10 @@ export const projectsRouter = router({
           const parentContract = projectContracts.find(c => c.id === p.contractId);
           if (parentContract?.paymentScheduleJson) {
             try {
-              const sched = typeof parentContract.paymentScheduleJson === "string" 
+              const rawSched = typeof parentContract.paymentScheduleJson === "string" 
                 ? JSON.parse(parentContract.paymentScheduleJson) 
                 : parentContract.paymentScheduleJson;
+              const sched = Array.isArray(rawSched) ? rawSched : (rawSched?.schedule || []);
               if (Array.isArray(sched)) {
                 const matchedSched = sched.find((s: any) => 
                   s.id === `manual-${p.id}` || 
@@ -2836,11 +2843,18 @@ export const projectsRouter = router({
 
             const [existingContract] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, cpRec.contractId));
             let existingSchedule: any[] = [];
+            let existingPaymentSystem = "installments";
             if (existingContract?.paymentScheduleJson) {
               try {
-                existingSchedule = typeof existingContract.paymentScheduleJson === "string"
+                const parsed = typeof existingContract.paymentScheduleJson === "string"
                   ? JSON.parse(existingContract.paymentScheduleJson)
                   : existingContract.paymentScheduleJson;
+                if (Array.isArray(parsed)) {
+                  existingSchedule = parsed;
+                } else if (parsed && typeof parsed === "object") {
+                  existingSchedule = Array.isArray(parsed.schedule) ? parsed.schedule : [];
+                  if (parsed.paymentSystem) existingPaymentSystem = parsed.paymentSystem;
+                }
               } catch (e) {}
             }
 
@@ -2868,7 +2882,10 @@ export const projectsRouter = router({
             });
 
             await db.update(contractsEnhanced).set({
-              paymentScheduleJson: JSON.stringify(syncedSchedule),
+              paymentScheduleJson: JSON.stringify({
+                paymentSystem: existingPaymentSystem,
+                schedule: syncedSchedule,
+              }),
             }).where(eq(contractsEnhanced.id, cpRec.contractId));
 
             const [c] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, cpRec.contractId));
@@ -3726,10 +3743,16 @@ export const projectsRouter = router({
           startDate: contractsEnhanced.startDate,
           endDate: contractsEnhanced.endDate,
           supplierName: contractsEnhanced.secondPartyName,
+          paymentScheduleJson: contractsEnhanced.paymentScheduleJson,
           managementPercentage: contractsEnhanced.managementPercentage,
         })
         .from(contractsEnhanced)
-        .where(eq(contractsEnhanced.projectId, proj.id));
+        .where(
+          or(
+            eq(contractsEnhanced.projectId, proj.id),
+            proj.requestId ? eq(contractsEnhanced.requestId, proj.requestId) : sql`1=0`
+          )
+        );
 
       const contractIds = projectContracts.map(c => c.id);
 
@@ -3921,6 +3944,8 @@ export const projectsRouter = router({
             dueDate: z.string().optional(),
             actualStartDate: z.string().optional(),
             status: z.string().optional(),
+            targetProgress: z.number().min(0).max(100).optional(),
+            notes: z.string().optional(),
           })
         ).optional(),
       })

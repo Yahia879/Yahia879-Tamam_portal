@@ -1927,7 +1927,7 @@ export const disbursementsRouter = router({
 
       const { status, search, page = 1, limit = 10, requestId } = input || {};
 
-      const scopeConditions = [];
+      const scopeConditions: any[] = [];
 
       if (requestId) {
         const [targetReq] = await db

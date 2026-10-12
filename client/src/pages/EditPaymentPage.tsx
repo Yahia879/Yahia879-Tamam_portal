@@ -31,6 +31,14 @@ import {
 } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   ArrowRight,
   Send,
   Plus,
@@ -38,6 +46,7 @@ import {
   Building2,
   FileText,
   AlertCircle,
+  AlertTriangle,
   CheckCircle,
   Loader2,
   Package,
@@ -84,6 +93,8 @@ export default function EditPaymentPage() {
   
   // قائمة الموردين
   const [suppliers, setSuppliers] = useState<SupplierEntry[]>([]);
+  const [showExceedingWarningDialog, setShowExceedingWarningDialog] = useState(false);
+  const [exceedingReason, setExceedingReason] = useState("");
 
   // جلب تفاصيل الدفعة الموحدة الحالية
   const { data: payment, isLoading: isPaymentLoading } = trpc.projects.getUnifiedPayment.useQuery(
@@ -470,6 +481,28 @@ const isRequestClosed = Boolean(
   const isDateAfter100 = Boolean(dateOf100 && normalizedSelectedDate && normalizedSelectedDate > dateOf100);
   const isAfter100PercentPayment = (prevPaymentCompletion !== null && prevPaymentCompletion >= 100) || isDateAfter100;
 
+  // نسبة الإنجاز المعتمدة من تقرير الإنجاز أو بيانات المشروع
+  const benchmarkActualProgress = Number(projectDetails?.completionPercentage || 0);
+  const currentComp = formData.completionPercentage !== "" ? Number(formData.completionPercentage) : 0;
+  const isExceedingProgress = benchmarkActualProgress > 0 && (currentComp > benchmarkActualProgress);
+
+  const executeUpdatePayment = (reasonOverride?: string) => {
+    let finalDescription = formData.description || formData.title;
+    if (reasonOverride && reasonOverride.trim()) {
+      finalDescription += `\n[ملاحظة المستخلص: تم تأكيد تعديل دفعة تتجاوز نسبة الإنجاز المعتمدة (${benchmarkActualProgress}%): ${reasonOverride.trim()}]`;
+    }
+
+    updateMutation.mutate({
+      id: paymentId,
+      title: formData.title,
+      description: finalDescription,
+      amount: totalAmount,
+      dateMiladi: formData.dateMiladi,
+      completionPercentage: Number(formData.completionPercentage),
+      items: isSedanaProgram ? sedanaItems : undefined,
+    });
+  };
+
   // حفظ التغييرات
   const handleSubmit = () => {
     if (isPaid) {
@@ -508,18 +541,6 @@ const isRequestClosed = Boolean(
       toast.error("يرجى إدخال نسبة إنجاز صحيحة (من 0 إلى 100)");
       return;
     }
-    const currentComp = Number(formData.completionPercentage);
-    const prevDate = prevPaymentRef ? (formatDateToYYYYMMDD(prevPaymentRef.date || prevPaymentRef.dateMiladi || prevPaymentRef.paidAt || prevPaymentRef.createdAt) || "") : "";
-    const nextDate = nextPaymentRef ? (formatDateToYYYYMMDD(nextPaymentRef.date || nextPaymentRef.dateMiladi || nextPaymentRef.paidAt || nextPaymentRef.createdAt) || "") : "";
-
-    if (prevPaymentCompletion !== null && currentComp <= prevPaymentCompletion) {
-      toast.error(`نسبة إنجاز الدفعة (${currentComp}%) يجب أن تكون أكبر من نسبة الدفعة السابقة بتاريخ ${prevDate} (${prevPaymentCompletion}%)`);
-      return;
-    }
-    if (nextPaymentCompletion !== null && currentComp >= nextPaymentCompletion) {
-      toast.error(`نسبة إنجاز الدفعة (${currentComp}%) يجب أن تكون أقل من نسبة الدفعة التالية بتاريخ ${nextDate} (${nextPaymentCompletion}%)`);
-      return;
-    }
     if (totalAmount <= 0) {
       toast.error("يرجى إدخال مبلغ صحيح");
       return;
@@ -541,16 +562,14 @@ const isRequestClosed = Boolean(
         return;
       }
     }
+
+    // تنبيه ذكي: إذا كان المستخلص أعلى من تقرير الإنجاز الفعلي
+    if (isExceedingProgress) {
+      setShowExceedingWarningDialog(true);
+      return;
+    }
     
-    updateMutation.mutate({
-      id: paymentId,
-      title: formData.title,
-      description: formData.description,
-      amount: totalAmount,
-      dateMiladi: formData.dateMiladi,
-      completionPercentage: Number(formData.completionPercentage),
-      items: isSedanaProgram ? sedanaItems : undefined,
-    });
+    executeUpdatePayment();
   };
   
   if (isPaymentLoading) {
@@ -825,12 +844,22 @@ const isRequestClosed = Boolean(
                             {!formData.dateMiladi && (
                               <p className="text-xs text-amber-600">⚠ حدد التاريخ أولاً لمعرفة النطاق المسموح لنسبة الإنجاز</p>
                             )}
+                            {benchmarkActualProgress > 0 && (
+                              <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 rounded-lg p-2.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                                <span className="font-semibold flex items-center gap-1.5">
+                                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                  نسبة تقرير الإنجاز الفعلي المعتمدة للمشروع:
+                                </span>
+                                <span className="font-bold font-sans text-sm">{benchmarkActualProgress}%</span>
+                              </div>
+                            )}
+
                             <Input
                               type="number"
-                              min={minAllowed}
-                              max={maxAllowed}
+                              min={0}
+                              max={100}
                               required
-                              placeholder={!formData.dateMiladi ? "حدد التاريخ أولاً" : prevPaymentCompletion === null ? "مثال: 0" : `الحد الأدنى: ${minAllowed}%`}
+                              placeholder="أدخل نسبة الإنجاز المرتبطة بالدفعة (مثال: 30%)"
                               value={formData.completionPercentage}
                               disabled={!formData.dateMiladi || isPaid}
                               onKeyDown={(e) => {
@@ -850,38 +879,32 @@ const isRequestClosed = Boolean(
                                   });
                                 }
                               }}
-                              onBlur={(e) => {
-                                if (isPaid) return;
-                                const val = e.target.value === "" ? null : parseInt(e.target.value);
-                                if (val !== null && !isNaN(val)) {
-                                  if (prevPaymentCompletion !== null && val <= prevPaymentCompletion) {
-                                    toast.error(`نسبة إنجاز الدفعة (${val}%) غير مقبولة — يجب أن تكون أكبر من نسبة الدفعة السابقة بتاريخ ${prevDate} (${prevPaymentCompletion}%). تم ضبطها على الحد الأدنى (${minAllowed}%).`);
-                                    setFormData({ ...formData, completionPercentage: minAllowed });
-                                  } else if (nextPaymentCompletion !== null && val >= nextPaymentCompletion) {
-                                    const maxVal = Math.max(minAllowed, nextPaymentCompletion - 1);
-                                    toast.error(`نسبة إنجاز الدفعة (${val}%) غير مقبولة — يجب أن تكون أقل من نسبة الدفعة التالية بتاريخ ${nextDate} (${nextPaymentCompletion}%). تم ضبطها على (${maxVal}%).`);
-                                    setFormData({ ...formData, completionPercentage: maxVal });
-                                  }
-                                }
-                              }}
                               className={cn(
                                 "text-right rounded-xl h-10 font-bold transition-all",
-                                (isBelowPrev || isAboveNext)
-                                  ? "border-2 border-destructive bg-destructive/5 text-destructive ring-2 ring-destructive/20" 
+                                isExceedingProgress
+                                  ? "border-amber-400 bg-amber-500/5 text-amber-900 ring-1 ring-amber-400/40"
                                   : "border-border/60",
                                 isPaid && "bg-muted cursor-not-allowed opacity-80"
                               )}
                             />
-                            {isBelowPrev && (
-                              <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/30 mt-1.5 animate-in fade-in">
-                                <AlertCircle className="h-4 w-4 shrink-0" />
-                                <span>غير مقبول: يجب أن تكون النسبة ({currentComp}%) أكبر من الدفعة بتاريخ ${prevDate} (${prevPaymentCompletion}%). الحد الأدنى هو {minAllowed}%.</span>
+
+                            {/* التنبيه الذكي عند تجاوز نسبة الإنجاز الفعلي */}
+                            {isExceedingProgress && (
+                              <div className="flex items-start gap-2 text-xs font-semibold bg-amber-500/10 text-amber-900 dark:text-amber-200 p-2.5 rounded-lg border border-amber-500/30 mt-1.5 animate-in fade-in">
+                                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                                <div className="space-y-0.5">
+                                  <span>تنبيه: المستخلص الحالي ({currentComp}%) يتجاوز تقرير الإنجاز الفعلي المعتمد للمشروع ({benchmarkActualProgress}%).</span>
+                                  <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 font-normal">
+                                    تطبيقاً لمرونة المستخلصات، يمكنك المتابعة وسيطلب منك النظام تأكيد الصرف الاستثنائي عند الإرسال.
+                                  </p>
+                                </div>
                               </div>
                             )}
-                            {isAboveNext && (
-                              <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/30 mt-1.5 animate-in fade-in">
-                                <AlertCircle className="h-4 w-4 shrink-0" />
-                                <span>غير مقبول: يجب أن تكون النسبة ({currentComp}%) أقل من الدفعة بتاريخ ${nextDate} (${nextPaymentCompletion}%). الحد الأقصى هو {maxAllowed}%.</span>
+
+                            {prevPaymentCompletion !== null && currentComp !== null && currentComp <= prevPaymentCompletion && (
+                              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/40 p-2 rounded-lg border border-border/50 mt-1">
+                                <AlertCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <span>ملاحظة: نسبة الإنجاز ({currentComp}%) أقل أو مساوية للدفعة السابقة ({prevPaymentCompletion}%). النظام يسمح بذلك لمرونة المستخلصات.</span>
                               </div>
                             )}
                           </>
@@ -1172,6 +1195,73 @@ const isRequestClosed = Boolean(
           </div>
         </div>
       </div>
+
+      {/* نافذة التأكيد الذكية عند تجاوز المستخلص لتقرير الإنجاز الفعلي */}
+      <Dialog open={showExceedingWarningDialog} onOpenChange={setShowExceedingWarningDialog}>
+        <DialogContent className="max-w-md text-right font-sans" dir="rtl">
+          <DialogHeader className="text-right">
+            <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2 text-amber-800 dark:text-amber-300">
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              <span>تأكيد تعديل مستخلص أعلى من تقرير الإنجاز</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground mt-1 text-right">
+              التحقق من صحة صرف دفعة تتجاوز نسبة الإنجاز الفعلي المعتمدة للمشروع
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3.5 py-2 text-xs text-right">
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200/80 dark:border-amber-900/50 space-y-2">
+              <div className="flex justify-between items-center text-amber-900 dark:text-amber-200">
+                <span className="font-medium">نسبة تقرير الإنجاز المعتمد للمشروع:</span>
+                <span className="font-bold text-sm font-sans">{benchmarkActualProgress}%</span>
+              </div>
+              <div className="flex justify-between items-center text-amber-900 dark:text-amber-200">
+                <span className="font-medium">نسبة هذا المستخلص / الدفعة:</span>
+                <span className="font-bold text-sm text-primary font-sans">{currentComp}%</span>
+              </div>
+            </div>
+
+            <p className="text-muted-foreground leading-relaxed">
+              ترى الدفعة والمستخلص أعلى من تقرير الإنجاز الفعلي المسجل للمشروع. هل أنت متأكد من حفظ هذه التعديلات وصرف الدفعة للمقاول؟
+            </p>
+
+            <div className="space-y-1.5 text-right">
+              <Label className="text-xs font-bold text-foreground">
+                سبب / مبرر الصرف الاستثنائي (اختياري):
+              </Label>
+              <Textarea
+                placeholder="مثال: دفعة لشراء وتأمين مواد التشطيب بالموقع قبل بدء المرحلة..."
+                value={exceedingReason}
+                onChange={(e) => setExceedingReason(e.target.value)}
+                className="text-xs min-h-[70px] bg-background text-right"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex-row-reverse sm:justify-start gap-2 pt-2">
+            <Button
+              type="button"
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
+              onClick={() => {
+                setShowExceedingWarningDialog(false);
+                executeUpdatePayment(exceedingReason);
+              }}
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-1.5" /> : null}
+              نعم، تأكيد ومتابعة الصرف
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="text-xs font-semibold"
+              onClick={() => setShowExceedingWarningDialog(false)}
+            >
+              مراجعة وتعديل القيمة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

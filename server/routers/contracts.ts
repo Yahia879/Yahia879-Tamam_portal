@@ -760,8 +760,9 @@ export const contractsRouter = router({
         customNotifications: z.string().optional(),
         customGeneralTerms: z.string().optional(),
         
-        // جدول الدفعات (JSON string)
+        // جدول الدفعات ونظام الصرف
         paymentSchedule: z.string().optional(),
+        paymentSystem: z.enum(["installments", "milestones"]).optional(),
         
         // بنود العقد المخصصة (JSON string)
         clauseValues: z.string().optional(),
@@ -913,7 +914,26 @@ export const contractsRouter = router({
         customGeneralTerms: input.customGeneralTerms ?? null,
         templateId: input.templateId ?? null,
         signatoryId: signatoryIdValue ? signatoryIdValue : null,
-        paymentScheduleJson: input.paymentSchedule ? (typeof input.paymentSchedule === 'string' ? JSON.parse(input.paymentSchedule) : input.paymentSchedule) : null,
+        paymentScheduleJson: (() => {
+          if (!input.paymentSchedule) {
+            return input.paymentSystem ? { paymentSystem: input.paymentSystem, schedule: [] } : null;
+          }
+          try {
+            const parsed = typeof input.paymentSchedule === 'string' ? JSON.parse(input.paymentSchedule) : input.paymentSchedule;
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+              return {
+                paymentSystem: input.paymentSystem || parsed.paymentSystem || "installments",
+                ...parsed,
+              };
+            }
+            return {
+              paymentSystem: input.paymentSystem || "installments",
+              schedule: Array.isArray(parsed) ? parsed : [],
+            };
+          } catch {
+            return null;
+          }
+        })(),
         clauseValuesJson: input.clauseValues ? (typeof input.clauseValues === 'string' ? JSON.parse(input.clauseValues) : input.clauseValues) : null,
         customClausesJson: input.customClausesJson ? (typeof input.customClausesJson === 'string' ? JSON.parse(input.customClausesJson) : input.customClausesJson) : null,
         documentUrl: null,
@@ -948,11 +968,14 @@ export const contractsRouter = router({
         await syncProjectActualCost(db, input.projectId);
       }
       
-      // إضافة الدفعات من paymentSchedule JSON
+      // إضافة الدفعات من paymentSchedule JSON فقط إذا كان العقد بنظام الدفعات المجدولة
       if (input.paymentSchedule) {
         try {
-          const schedule = JSON.parse(input.paymentSchedule);
-          if (Array.isArray(schedule) && schedule.length > 0) {
+          const scheduleParsed = typeof input.paymentSchedule === 'string' ? JSON.parse(input.paymentSchedule) : input.paymentSchedule;
+          const isMilestonesSystem = input.paymentSystem === "milestones" || (scheduleParsed && scheduleParsed.paymentSystem === "milestones");
+          const schedule = Array.isArray(scheduleParsed) ? scheduleParsed : (scheduleParsed?.schedule || []);
+
+          if (!isMilestonesSystem && Array.isArray(schedule) && schedule.length > 0) {
             await db.insert(contractPayments).values(
               schedule.map((p: any, index: number) => ({
                 contractId,
@@ -1105,6 +1128,7 @@ export const contractsRouter = router({
         customNotifications: z.string().optional(),
         customGeneralTerms: z.string().optional(),
         paymentSchedule: z.any().optional(),
+        paymentSystem: z.enum(["installments", "milestones"]).optional(),
         clauseValues: z.any().optional(),
         customClausesJson: z.any().optional(),
         signatoryId: z.number().nullable().optional(),
@@ -1250,8 +1274,25 @@ export const contractsRouter = router({
       }
 
       // إضافة الحقول الجديدة للتحديث
-      if (paymentSchedule) {
-        updates.paymentScheduleJson = typeof paymentSchedule === 'string' ? JSON.parse(paymentSchedule) : paymentSchedule;
+      if (paymentSchedule !== undefined) {
+        let parsed = typeof paymentSchedule === 'string' ? JSON.parse(paymentSchedule) : paymentSchedule;
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          updates.paymentScheduleJson = {
+            paymentSystem: input.paymentSystem || parsed.paymentSystem || "installments",
+            ...parsed,
+          };
+        } else {
+          updates.paymentScheduleJson = {
+            paymentSystem: input.paymentSystem || "installments",
+            schedule: Array.isArray(parsed) ? parsed : [],
+          };
+        }
+      } else if (input.paymentSystem !== undefined) {
+        const cur = contract.paymentScheduleJson as any;
+        updates.paymentScheduleJson = {
+          ...(cur && typeof cur === 'object' && !Array.isArray(cur) ? cur : { schedule: Array.isArray(cur) ? cur : [] }),
+          paymentSystem: input.paymentSystem,
+        };
       }
       if (clauseValues) {
         updates.clauseValuesJson = typeof clauseValues === 'string' ? JSON.parse(clauseValues) : clauseValues;
@@ -1293,11 +1334,14 @@ export const contractsRouter = router({
         .set(updates)
         .where(eq(contractsEnhanced.id, id));
 
-      // تحديث الدفعات إذا تم توفير جدول جديد
+      // تحديث الدفعات إذا تم توفير جدول جديد ولم يكن العقد بنظام المستخلصات
       if (paymentSchedule) {
         try {
-          const schedule = typeof paymentSchedule === 'string' ? JSON.parse(paymentSchedule) : paymentSchedule;
-          if (Array.isArray(schedule)) {
+          const scheduleParsed = typeof paymentSchedule === 'string' ? JSON.parse(paymentSchedule) : paymentSchedule;
+          const isMilestonesSystem = input.paymentSystem === "milestones" || (scheduleParsed && scheduleParsed.paymentSystem === "milestones");
+          const schedule = Array.isArray(scheduleParsed) ? scheduleParsed : (scheduleParsed?.schedule || []);
+
+          if (!isMilestonesSystem && Array.isArray(schedule)) {
             // جلب الدفعات الحالية للعقد
             const existingPayments = await db
               .select()
