@@ -2320,19 +2320,13 @@ export default function ProjectDetailsPage() {
 
 
 
-                        {sortedPayments.length > 0 && (
+                        {!isMilestonesContract && sortedPayments.length > 0 && (
                           <div className="space-y-3">
-                            {isMilestonesContract && (
-                              <h4 className="font-bold text-sm text-foreground flex items-center gap-2 pt-2">
-                                <CreditCard className="w-4 h-4 text-primary" />
-                                <span>سجل طلبات الصرف والمستخلصات المرفوعة</span>
-                              </h4>
-                            )}
                             <div className="overflow-x-auto w-full scrollbar-hide rounded-xl border border-border/40">
                               <Table>
                                 <TableHeader className="bg-muted/40">
                                   <TableRow>
-                                    <TableHead className="text-right font-bold py-3.5 px-4">{isMilestonesContract ? "رقم المستخلص" : "رقم الدفعة"}</TableHead>
+                                    <TableHead className="text-right font-bold py-3.5 px-4">رقم الدفعة</TableHead>
                                     <TableHead className="text-right font-bold py-3.5 px-4">{isMilestonesContract ? "عنوان المستخلص" : "عنوان الدفعة"}</TableHead>
                                     <TableHead className="text-right font-bold py-3.5 px-4">{isMilestonesContract ? "قيمة الطلب" : "المتفق"}</TableHead>
                                     <TableHead className="text-right font-bold py-3.5 px-4">المسدد</TableHead>
