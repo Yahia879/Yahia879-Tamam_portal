@@ -1198,22 +1198,43 @@ export const projectsRouter = router({
           return r.title === expectedTitle;
         });
 
+        const isProgressDisb = 
+          Boolean(d.title?.startsWith("طلب صرف") || 
+          d.description?.includes("تقرير إنجاز") || 
+          d.description?.includes("[معرف المستخلص:") || 
+          d.description?.includes("[معرف الدفعة:"));
+
+        const linkedDisbReqs = projectDisbursements.filter(other => 
+          other.id !== d.id && (
+            other.description?.includes(`[معرف المستخلص: disb-${cleanId}]`) ||
+            other.description?.includes(`[معرف المستخلص: ${cleanId}]`) ||
+            other.description?.includes(`[معرف الدفعة: disb-${cleanId}]`) ||
+            other.description?.includes(`[معرف الدفعة: ${cleanId}]`)
+          )
+        );
+        const hasLinkedDisbursement = linkedDisbReqs.length > 0;
+
+        let effectiveAgreedAmount = agreedAmount;
+        if (effectiveAgreedAmount === 0 && hasLinkedDisbursement) {
+          effectiveAgreedAmount = parseFloat(String(linkedDisbReqs[0].amount || "0"));
+        }
+
         unifiedPayments.push({
           id: `disb-${d.id}`,
           paymentNumber: d.requestNumber,
           paymentType: d.paymentType || "progress",
-          amount: agreedAmount,
-          agreedAmount: agreedAmount,
+          amount: effectiveAgreedAmount,
+          agreedAmount: effectiveAgreedAmount,
           paidAmount: paidAmount,
           status: paymentStatus,
           description: d.title || d.description || `مستخلص ${d.requestNumber}`,
           date: toLocalDateString(rawDate),
           paidAt: paidAtDate ? toLocalDateString(paidAtDate) : null,
-          source: "milestone",
+          source: isProgressDisb ? "disbursement" : "milestone",
           workDescription: (d as any).workDescription || d.description,
           completionPercentage: (d.completionPercentage !== null && d.completionPercentage !== undefined) ? d.completionPercentage : null,
           contractId: d.contractId || undefined,
-          hasDisbursementRequest: true,
+          hasDisbursementRequest: isProgressDisb || hasLinkedDisbursement,
           hasProgressReport: hasReport,
           items: [],
         });

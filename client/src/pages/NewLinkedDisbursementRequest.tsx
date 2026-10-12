@@ -258,6 +258,9 @@ export default function NewLinkedDisbursementRequest() {
   const [showSupporterDeficitDialog, setShowSupporterDeficitDialog] = useState(false);
   const [disburseFromGeneralAccount, setDisburseFromGeneralAccount] = useState(false);
 
+  // حالة تنبيه وتأكيد كون طلب الصرف أقل من نسبة الإنجاز المعتمدة لتقرير المستخلص
+  const [showUnderProgressDialog, setShowUnderProgressDialog] = useState(false);
+  const [isUnderProgressConfirmed, setIsUnderProgressConfirmed] = useState(false);
 
   // إعادة ضبط التغطيّة التلقائية عند دخول الخطوة الثانية أو تغيير المشروع أو تقرير الإنجاز لضمان إظهار النافذة المنبثقة
   useEffect(() => {
@@ -265,6 +268,10 @@ export default function NewLinkedDisbursementRequest() {
       setDisburseFromGeneralAccount(false);
     }
   }, [step, selectedReportId, isAdvanceSelected, formData.projectId]);
+
+  useEffect(() => {
+    setIsUnderProgressConfirmed(false);
+  }, [selectedReportId]);
 
   // قائمة الموردين
   const [suppliers, setSuppliers] = useState<SupplierEntry[]>(() => savedState?.suppliers ?? [
@@ -852,10 +859,19 @@ export default function NewLinkedDisbursementRequest() {
 
 
 
+  // تنظيف ملخص الأعمال وإزالة وسوم المعرفات البرمجية الداخلية
+  const cleanWorkSummary = (text?: string | null): string => {
+    if (!text) return "";
+    return text
+      .replace(/\[(?:معرف المستخلص|معرف الدفعة):\s*[^\]]+\]/g, "")
+      .replace(/\n\s*\n\s*\n/g, "\n\n")
+      .trim();
+  };
+
   // دالة للتحقق مما إذا كان تقرير الإنجاز مرتبطاً بطلب صرف سابق
   const isReportLinked = (report: any) => {
     if (!projectRequests || !projectRequests.requests) return false;
-    const match = (report.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
+    const match = (report.workSummary || "").match(/\[(?:معرف الدفعة|معرف المستخلص):\s*([^\]]+)\]/);
     let paymentIdNumeric = 0;
     let isManual = false;
     if (match) {
@@ -913,8 +929,8 @@ export default function NewLinkedDisbursementRequest() {
     const workSummary = report.workSummary || "";
     const title = report.title || "";
     
-    // 1. استخراج معرف الدفعة من الملخص [معرف الدفعة: xxx]
-    const match = workSummary.match(/\[معرف الدفعة:\s*([^\]]+)\]/);
+    // 1. استخراج معرف الدفعة أو المستخلص من الملخص
+    const match = workSummary.match(/\[(?:معرف الدفعة|معرف المستخلص):\s*([^\]]+)\]/);
     if (match) {
       const rawId = match[1].trim();
       const numId = parseInt(rawId.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
@@ -971,8 +987,8 @@ export default function NewLinkedDisbursementRequest() {
     const workSummary = selectedReport.workSummary || "";
     const title = selectedReport.title || "";
 
-    // 1. استخراج معرف الدفعة من ملخص الأعمال إذا وُجد
-    const paymentIdMatch = workSummary.match(/\[معرف الدفعة:\s*([^\]]+)\]/);
+    // 1. استخراج معرف الدفعة أو المستخلص من ملخص الأعمال إذا وُجد
+    const paymentIdMatch = workSummary.match(/\[(?:معرف الدفعة|معرف المستخلص):\s*([^\]]+)\]/);
     if (paymentIdMatch) {
       const rawId = paymentIdMatch[1].trim();
       const numId = parseInt(rawId.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
@@ -1018,8 +1034,9 @@ export default function NewLinkedDisbursementRequest() {
   useEffect(() => {
     if (selectedReport) {
       const workSummaryText = selectedReport.workSummary || "";
-      const actualMatch = workSummaryText.match(/الأعمال المنفذة فعلياً:\r?\n([\s\S]*?)(?:\r?\n\r?\[معرف الدفعة:|$)/);
-      const actual = actualMatch ? actualMatch[1].trim() : workSummaryText.replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "").trim();
+      const cleaned = cleanWorkSummary(workSummaryText);
+      const actualMatch = cleaned.match(/الأعمال المنفذة فعلياً:\r?\n([\s\S]*?)$/);
+      const actual = actualMatch ? actualMatch[1].trim() : cleaned;
 
       const targetPaymentId = paymentInfo ? (parseInt(String(paymentInfo.id).replace(/^(cp-|disb-|manual-)/i, "")) || 0) : 0;
       const targetContractId = (paymentInfo as any)?.contractId || (projectContracts?.contracts?.[0]?.id || 0);
@@ -1237,6 +1254,28 @@ export default function NewLinkedDisbursementRequest() {
   const remainingForDisbursement = contractAmount - totalPaymentsSum;
   const remainingAmount = remainingForDisbursement - totalAmount;
 
+  // التحقق عند كون طلب الصرف مرتبطاً بتقرير إنجاز لمستخلص، ومبلغه أقل من نسبة الإنجاز
+  const isMilestoneLinkedReport = Boolean(
+    !isAdvanceSelected && (
+      (selectedReport?.workSummary && /\[معرف المستخلص:/i.test(selectedReport.workSummary)) ||
+      (paymentInfo && (paymentInfo.source === "milestone" || String(paymentInfo.id).startsWith("disb-"))) ||
+      (projectDetails?.contracts?.some((c: any) => c.paymentSystem === "milestones" || String(c.paymentScheduleJson || "").includes("milestones")))
+    )
+  );
+
+  const reportProgress = Number(selectedReport?.actualProgress ?? formData.completionPercentage ?? 0);
+  const disbPct = contractAmount > 0 ? Number(((totalAmount / contractAmount) * 100).toFixed(2)) : 0;
+  const expectedProgressAmount = contractAmount > 0 
+    ? (contractAmount * reportProgress) / 100 
+    : (paymentInfo?.agreedAmount || paymentInfo?.amount ? Number(paymentInfo.agreedAmount || paymentInfo.amount) : 0);
+
+  const isDisbursementUnderProgress = Boolean(
+    isMilestoneLinkedReport && reportProgress > 0 && (
+      (contractAmount > 0 && disbPct < (reportProgress - 0.01)) ||
+      (expectedProgressAmount > 0 && totalAmount < (expectedProgressAmount - 1))
+    )
+  );
+
   // تحديث الحساب البنكي والآيبان تلقائياً عند تغيير اسم البنك لمورد جديد
   const handleBankChange = (id: string, bankName: string) => {
     setSuppliers(suppliers.map(s => s.id === id ? { ...s, bank: bankName } : s));
@@ -1447,7 +1486,13 @@ export default function NewLinkedDisbursementRequest() {
       }
     }
 
-    // 1. التحقق الذكي من رصيد مدفوعات الداعم الفعلية (سندات القبض)
+    // 1. التحقق عند كون طلب الصرف المرتبط بتقرير مستخلص أقل من نسبة الإنجاز المعتمدة
+    if (isDisbursementUnderProgress && !isUnderProgressConfirmed) {
+      setShowUnderProgressDialog(true);
+      return;
+    }
+
+    // 2. التحقق الذكي من رصيد مدفوعات الداعم الفعلية (سندات القبض)
     if (hasFunderPaymentDeficit && !disburseFromGeneralAccount) {
       setShowSupporterDeficitDialog(true);
       return;
@@ -2982,7 +3027,7 @@ export default function NewLinkedDisbursementRequest() {
                 <div className="space-y-1.5">
                   <h3 className="font-bold text-sm text-slate-800">الأعمال المنجزة</h3>
                   <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                    {selectedReport.workSummary as string}
+                    {cleanWorkSummary(selectedReport.workSummary as string)}
                   </p>
                 </div>
               )}
@@ -3050,6 +3095,99 @@ export default function NewLinkedDisbursementRequest() {
       </Dialog>
 
 
+
+      {/* Modal تنبيه وتأكيد عند كون طلب الصرف أقل من نسبة الإنجاز لتقرير المستخلص */}
+      <Dialog open={showUnderProgressDialog} onOpenChange={setShowUnderProgressDialog}>
+        <DialogContent className="dir-rtl text-right max-w-lg rounded-2xl p-6 overflow-hidden border border-amber-300 dark:border-amber-900/70 shadow-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" dir="rtl">
+          {/* Header Title */}
+          <div className="flex items-start gap-3.5 pb-4 border-b border-slate-100 dark:border-slate-800 pr-1 pl-8">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 flex items-center justify-center shrink-0 mt-0.5">
+              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="space-y-1 text-right">
+              <DialogTitle className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 leading-snug">
+                تنبيه: طلب الصرف أقل من نسبة إنجاز المستخلص
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                نسبة أو مبلغ الصرف المطلوب إدخاله أقل من نسبة الإنجاز الفعلي المعتمدة في تقرير إنجاز المستخلص.
+              </DialogDescription>
+            </div>
+          </div>
+
+          <div className="space-y-4 py-4 text-xs text-right">
+            {/* Comparison Card */}
+            <div className="p-4 bg-amber-50/60 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-900/40 space-y-2.5">
+              <div className="flex justify-between items-center text-xs sm:text-sm font-semibold border-b border-amber-200/50 dark:border-amber-900/40 pb-2">
+                <span className="text-slate-700 dark:text-slate-300">نسبة الإنجاز المعتمدة للمستخلص:</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-400 text-sm sm:text-base">
+                  {reportProgress}%
+                </span>
+              </div>
+
+              {contractAmount > 0 && (
+                <div className="flex justify-between items-center text-xs sm:text-sm">
+                  <span className="text-slate-600 dark:text-slate-400">نسبة طلب الصرف الحالي من العقد:</span>
+                  <span className="font-bold text-amber-700 dark:text-amber-400">
+                    {disbPct}%
+                  </span>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center text-xs sm:text-sm">
+                <span className="text-slate-600 dark:text-slate-400">مبلغ طلب الصرف الحالي:</span>
+                <span className="font-bold text-blue-700 dark:text-blue-400 inline-flex items-center gap-1">
+                  {totalAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5" />
+                </span>
+              </div>
+
+              {expectedProgressAmount > 0 && (
+                <div className="flex justify-between items-center border-t border-amber-200/50 dark:border-amber-900/40 pt-2 font-bold text-xs sm:text-sm">
+                  <span className="text-slate-700 dark:text-slate-300">المبلغ المقابل لنسبة الإنجاز:</span>
+                  <span className="font-bold text-emerald-800 dark:text-emerald-300 inline-flex items-center gap-1">
+                    {expectedProgressAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 rounded-xl space-y-1 text-right">
+              <p className="font-bold text-amber-950 dark:text-amber-300 text-xs flex items-center gap-1.5">
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                <span>هل ترغب بالتأكيد والمتابعة؟</span>
+              </p>
+              <p className="text-[11px] text-amber-900 dark:text-amber-200/90 leading-relaxed font-normal">
+                سيتم رفع طلب الصرف بالمبلغ المحدد على الرغم من كونه أقل من نسبة الإنجاز الموثقة في تقرير المستخلص.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowUnderProgressDialog(false)}
+              className="w-full sm:w-auto text-xs font-semibold rounded-xl"
+            >
+              مراجعة وتعديل البيانات
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setShowUnderProgressDialog(false);
+                setIsUnderProgressConfirmed(true);
+                if (hasFunderPaymentDeficit && !disburseFromGeneralAccount) {
+                  setShowSupporterDeficitDialog(true);
+                  return;
+                }
+                executeDisbursementSubmit(disburseFromGeneralAccount);
+              }}
+              className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm"
+            >
+              نعم، تأكيد ومتابعة الصرف
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal التحقق والتنبيه الذكي عند عدم كفاية مدفوعات الداعم المقبوضة فعلياً */}
       <Dialog open={showSupporterDeficitDialog} onOpenChange={setShowSupporterDeficitDialog}>

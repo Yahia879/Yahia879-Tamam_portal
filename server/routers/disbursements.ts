@@ -1214,8 +1214,14 @@ export const disbursementsRouter = router({
         creatorSignatureDepartment,
       });
 
-      // مزامنة المستخلص في جدول مستخلصات العقد paymentScheduleJson إن وجد
-      const targetContractId = input.contractId || (project?.contracts && project.contracts[0]?.id);
+      // مزامنة المستخلص في جدول مستخلصات العقد paymentScheduleJson إن وجد (فقط عند إنشاء مستخلص تعاقدي جديد وليس عند رفع طلب صرف لتقرير إنجاز)
+      const isProgressReportDisbursement = 
+        input.title?.startsWith("طلب صرف") || 
+        input.description?.includes("تقرير إنجاز") || 
+        input.description?.includes("[معرف المستخلص:") || 
+        input.description?.includes("[معرف الدفعة:");
+
+      const targetContractId = !isProgressReportDisbursement ? (input.contractId || (project?.contracts && project.contracts[0]?.id)) : undefined;
       if (targetContractId) {
         try {
           const [c] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, targetContractId));

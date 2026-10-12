@@ -777,7 +777,14 @@ export default function ProjectDetailsPage() {
     // إضافة أي مستخلصات مرفوعة من سجل الدفعات لم تكن مضافة مسبقاً في جدول العقد
     if (isMilestonesContract && project?.payments && project.payments.length > 0) {
       project.payments.forEach((p: any) => {
-        if (p.source === "milestone" || String(p.id).startsWith("disb-")) {
+        const isProgressDisbursement = 
+          Boolean(p.description?.startsWith("طلب صرف") || 
+          p.name?.startsWith("طلب صرف") || 
+          p.workDescription?.includes("[معرف المستخلص:") || 
+          p.workDescription?.includes("تقرير إنجاز") ||
+          p.source === "disbursement");
+
+        if (!isProgressDisbursement && (p.source === "milestone" || String(p.id).startsWith("disb-"))) {
           const alreadyInList = list.some(m => m.id === p.id || m.id === `disb-${p.id}` || m.name === p.description);
           if (!alreadyInList) {
             list.push({
@@ -2221,15 +2228,17 @@ export default function ProjectDetailsPage() {
                                   <TableRow>
                                     <TableHead className="text-right font-bold py-3 px-3.5 w-12">م</TableHead>
                                     <TableHead className="text-right font-bold py-3 px-3.5">اسم المستخلص / المرحلة</TableHead>
-                                    <TableHead className="text-right font-bold py-3 px-3.5">نسبة الإنجاز المستهدفة</TableHead>
-                                    <TableHead className="text-right font-bold py-3 px-3.5">التاريخ المتوقع</TableHead>
-                                    <TableHead className="text-right font-bold py-3 px-3.5">وصف أعمال ومراحل المستخلص</TableHead>
-                                    <TableHead className="text-center font-bold py-3 px-3.5">الإجراءات</TableHead>
+                                    <TableHead className="text-right font-bold py-3 px-3.5 whitespace-nowrap">نسبة الإنجاز المستهدفة</TableHead>
+                                    <TableHead className="text-right font-bold py-3 px-3.5 whitespace-nowrap">التاريخ المتوقع</TableHead>
+                                    <TableHead className="text-right font-bold py-3 px-3.5 min-w-[180px]">وصف أعمال ومراحل المستخلص</TableHead>
+                                    <TableHead className="text-center font-bold py-3 px-3.5 w-36 whitespace-nowrap">الإجراءات</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                   {contractMilestones.map((m: any, idx: number) => {
                                     const comp = m.completionPercentage !== undefined && m.completionPercentage !== null && m.completionPercentage !== "" ? m.completionPercentage : "--";
+                                    const rawDesc = m.description || m.notes || "";
+                                    const cleanDesc = rawDesc ? rawDesc.replace(/\[(?:معرف المستخلص|معرف الدفعة):\s*[^\]]+\]/g, "").trim() : "----";
                                     return (
                                       <TableRow key={m.id || idx} className="hover:bg-muted/20">
                                         <TableCell className="font-mono text-right py-3 px-3.5 text-muted-foreground">{idx + 1}</TableCell>
@@ -2242,14 +2251,14 @@ export default function ProjectDetailsPage() {
                                         <TableCell className="text-right py-3 px-3.5 text-xs text-muted-foreground font-mono">
                                           {m.dueDate ? (String(m.dueDate).includes('T') ? String(m.dueDate).split('T')[0] : String(m.dueDate).split(' ')[0]) : "عند الإنجاز"}
                                         </TableCell>
-                                        <TableCell className="text-right py-3 px-3.5 text-xs leading-relaxed max-w-xs text-foreground">
-                                          {m.description || m.notes || "----"}
+                                        <TableCell className="text-right py-3 px-3.5 text-xs leading-relaxed max-w-sm break-words text-foreground">
+                                          {cleanDesc || "----"}
                                         </TableCell>
-                                        <TableCell className="text-center py-3 px-3.5">
+                                        <TableCell className="text-center py-3 px-3.5 w-36 whitespace-nowrap shrink-0">
                                           <Button
                                             size="sm"
                                             variant="outline"
-                                            className="h-8 text-xs rounded-lg hover:border-blue-500 hover:text-blue-700 font-semibold gap-1.5"
+                                            className="h-8 text-xs rounded-lg hover:border-blue-500 hover:text-blue-700 font-semibold gap-1.5 whitespace-nowrap shrink-0"
                                             onClick={() => {
                                               if (!isRequestClosed) {
                                                 navigate(`/milestones/edit/${m.id || `milestone-${m.contractId}-${idx}`}`);
@@ -2257,7 +2266,7 @@ export default function ProjectDetailsPage() {
                                             }}
                                             disabled={isRequestClosed}
                                           >
-                                            <Edit className="w-3.5 h-3.5 text-blue-600" />
+                                            <Edit className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                                             <span>تعديل المستخلص</span>
                                           </Button>
                                         </TableCell>
