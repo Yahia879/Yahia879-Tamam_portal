@@ -144,10 +144,6 @@ export default function EditMilestonePage() {
       toast.error("يرجى إدخال نسبة إنجاز صحيحة (من 0 إلى 100)");
       return;
     }
-    if (formData.amount === "" || isNaN(Number(formData.amount)) || Number(formData.amount) <= 0) {
-      toast.error("يرجى إدخال مبلغ صحيح للمستخلص");
-      return;
-    }
     if (!formData.description.trim()) {
       toast.error("يرجى إدخال وصف أعمال المستخلص");
       return;
@@ -157,7 +153,7 @@ export default function EditMilestonePage() {
       id: paymentId,
       title: formData.title,
       description: formData.description,
-      amount: Number(formData.amount),
+      amount: Number(formData.amount) || 0,
       dateMiladi: formData.dateMiladi,
       completionPercentage: Number(formData.completionPercentage),
       items: isSedanaProgram && sedanaItems.length > 0 ? sedanaItems : undefined,
@@ -235,7 +231,7 @@ export default function EditMilestonePage() {
               بيانات المستخلص
             </CardTitle>
             <CardDescription className="text-xs">
-              تعديل بيانات المستخلص ونسبة الإنجاز والمبلغ
+              تعديل بيانات المستخلص ونسبة الإنجاز
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6 space-y-5">
@@ -286,36 +282,6 @@ export default function EditMilestonePage() {
                   />
                   <span className="absolute left-3 top-2.5 text-xs text-muted-foreground font-bold">%</span>
                 </div>
-              </div>
-
-              {/* مبلغ المستخلص */}
-              <div className="space-y-2">
-                <Label className="font-semibold text-xs text-foreground">مبلغ المستخلص المطلوب (ريال) *</Label>
-                <div className="relative">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(e) => {
-                      const val = e.target.value === "" ? "" : parseFloat(e.target.value);
-                      setFormData({ ...formData, amount: val });
-                    }}
-                    placeholder="0.00"
-                    disabled={isPaid || isRequestClosed}
-                    className="rounded-xl h-10 pl-14 bg-background font-mono font-bold text-base text-foreground"
-                    required
-                  />
-                  <div className="absolute left-3 top-2.5 text-xs text-muted-foreground font-semibold flex items-center gap-1">
-                    <SaudiRiyal className="w-3.5 h-3.5" />
-                    <span>ر.س</span>
-                  </div>
-                </div>
-                {numAmount > 0 && (
-                  <p className="text-xs text-muted-foreground font-medium pr-1">
-                    {numberToArabicText(numAmount)}
-                  </p>
-                )}
               </div>
             </div>
 

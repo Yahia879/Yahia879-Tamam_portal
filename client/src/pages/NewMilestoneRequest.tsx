@@ -172,10 +172,6 @@ export default function NewMilestoneRequest() {
       toast.error("يرجى إدخال نسبة إنجاز صحيحة (من 0 إلى 100)");
       return;
     }
-    if (formData.amount === "" || isNaN(Number(formData.amount)) || Number(formData.amount) <= 0) {
-      toast.error("يرجى إدخال مبلغ صحيح للمستخلص");
-      return;
-    }
     if (!formData.description.trim()) {
       toast.error("يرجى إدخال وصف أعمال المستخلص");
       return;
@@ -187,7 +183,7 @@ export default function NewMilestoneRequest() {
       contractPaymentId: formData.contractPaymentId || undefined,
       title: formData.title,
       description: formData.description,
-      amount: Number(formData.amount),
+      amount: 0,
       paymentType: "progress",
       completionPercentage: Number(formData.completionPercentage),
       dateMiladi: formData.dateMiladi,
@@ -215,16 +211,6 @@ export default function NewMilestoneRequest() {
               </p>
             </div>
           </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <Button 
-              onClick={handleSubmit} 
-              disabled={createMutation.isPending} 
-              className="w-full sm:w-auto shadow-sm gradient-primary text-white font-bold"
-            >
-              {createMutation.isPending ? <Loader2 className="h-4 w-4 ml-2 animate-spin" /> : <Send className="h-4 w-4 ml-2" />}
-              إرسال المستخلص للاعتماد
-            </Button>
-          </div>
         </div>
 
         {/* اختيار المشروع */}
@@ -243,53 +229,6 @@ export default function NewMilestoneRequest() {
           </Card>
         )}
 
-        {/* مرحلة المستخلص من العقد (إذا توفرت مراحل معتمدة) */}
-        {contractMilestones.length > 0 && (
-          <Card className="border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/20 dark:bg-emerald-950/10 shadow-xs">
-            <CardHeader className="py-3.5 border-b border-emerald-100 dark:border-emerald-900/40">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                  <CardTitle className="text-sm font-bold text-emerald-900 dark:text-emerald-200">
-                    مراحل ومستخلصات العقد المعتمدة
-                  </CardTitle>
-                </div>
-                <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs font-bold">
-                  {contractMilestones.length} مراحل
-                </Badge>
-              </div>
-              <CardDescription className="text-xs">
-                يمكنك الضغط على أي مرحلة لتعبئة بيانات المستخلص ونسبة الإنجاز تلقائياً
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-3">
-              <div className="flex flex-wrap gap-2">
-                {contractMilestones.map((m: any, idx: number) => {
-                  const mName = m.name || m.phaseName || `مستخلص ${idx + 1}`;
-                  const isSelected = formData.title === mName;
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => handleSelectMilestone(mName)}
-                      className={`text-xs px-3 py-1.5 rounded-xl border transition-all text-right flex items-center gap-2 ${
-                        isSelected 
-                          ? "bg-emerald-600 text-white border-emerald-600 shadow-xs font-bold" 
-                          : "bg-background hover:bg-emerald-50 text-foreground border-border/60 hover:border-emerald-300 font-medium"
-                      }`}
-                    >
-                      <span>{mName}</span>
-                      <span className={`text-[11px] font-mono font-bold ${isSelected ? "text-emerald-100" : "text-emerald-600"}`}>
-                        {m.completionPercentage}%
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* نموذج بيانات المستخلص */}
         <Card className="border-border/60 shadow-xs">
           <CardHeader className="py-4 border-b border-border/40 bg-muted/20">
@@ -298,7 +237,7 @@ export default function NewMilestoneRequest() {
               بيانات طلب المستخلص
             </CardTitle>
             <CardDescription className="text-xs">
-              أدخل بيانات المستخلص المالي ونسبة الإنجاز والمبلغ المطلوب
+              أدخل بيانات المستخلص المالي ونسبة الإنجاز
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6 space-y-5">
@@ -346,35 +285,6 @@ export default function NewMilestoneRequest() {
                   />
                   <span className="absolute left-3 top-2.5 text-xs text-muted-foreground font-bold">%</span>
                 </div>
-              </div>
-
-              {/* مبلغ المستخلص */}
-              <div className="space-y-2">
-                <Label className="font-semibold text-xs text-foreground">مبلغ المستخلص المطلوب (ريال) *</Label>
-                <div className="relative">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(e) => {
-                      const val = e.target.value === "" ? "" : parseFloat(e.target.value);
-                      setFormData({ ...formData, amount: val });
-                    }}
-                    placeholder="0.00"
-                    className="rounded-xl h-10 pl-14 bg-background font-mono font-bold text-base text-foreground"
-                    required
-                  />
-                  <div className="absolute left-3 top-2.5 text-xs text-muted-foreground font-semibold flex items-center gap-1">
-                    <SaudiRiyal className="w-3.5 h-3.5" />
-                    <span>ر.س</span>
-                  </div>
-                </div>
-                {numAmount > 0 && (
-                  <p className="text-xs text-muted-foreground font-medium pr-1">
-                    {numberToArabicText(numAmount)}
-                  </p>
-                )}
               </div>
             </div>
 

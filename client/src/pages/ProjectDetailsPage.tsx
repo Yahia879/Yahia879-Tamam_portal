@@ -769,6 +769,7 @@ export default function ProjectDetailsPage() {
   }, 0) || 0;
 
   const has100Payment = Boolean(
+    (contractMilestones && contractMilestones.some((m: any) => Number(m.completionPercentage) >= 100)) ||
     project?.payments?.some((p: any) =>
       p.status !== "rejected" && p.status !== "cancelled" && Number(p.completionPercentage) >= 100
     )
@@ -2189,6 +2190,7 @@ export default function ProjectDetailsPage() {
                                     <TableHead className="text-right font-bold py-3 px-3.5">نسبة الإنجاز المستهدفة</TableHead>
                                     <TableHead className="text-right font-bold py-3 px-3.5">التاريخ المتوقع</TableHead>
                                     <TableHead className="text-right font-bold py-3 px-3.5">وصف أعمال ومراحل المستخلص</TableHead>
+                                    <TableHead className="text-center font-bold py-3 px-3.5">الإجراءات</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -2208,6 +2210,22 @@ export default function ProjectDetailsPage() {
                                         </TableCell>
                                         <TableCell className="text-right py-3 px-3.5 text-xs leading-relaxed max-w-xs text-foreground">
                                           {m.description || m.notes || "----"}
+                                        </TableCell>
+                                        <TableCell className="text-center py-3 px-3.5">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 text-xs rounded-lg hover:border-blue-500 hover:text-blue-700 font-semibold gap-1.5"
+                                            onClick={() => {
+                                              if (!isRequestClosed) {
+                                                navigate(`/milestones/edit/${m.id || `milestone-${m.contractId}-${idx}`}`);
+                                              }
+                                            }}
+                                            disabled={isRequestClosed}
+                                          >
+                                            <Edit className="w-3.5 h-3.5 text-blue-600" />
+                                            <span>تعديل المستخلص</span>
+                                          </Button>
                                         </TableCell>
                                       </TableRow>
                                     );

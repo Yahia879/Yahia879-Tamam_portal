@@ -2,7 +2,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { projects, projectMosques, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, disbursementOrders, requestEvaluations, projectFinancialDetails, receiptVouchers, userPermissions, requestNumberSequence, requestHistory, auditLogs, progressReports } from "../../drizzle/schema";
-import { eq, desc, asc, and, sql, inArray, notInArray, or, ne, like, isNull } from "drizzle-orm";
+import { eq, desc, asc, and, sql, inArray, notInArray, or, ne, like, isNull, isNotNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { checkPermission } from "../permissions";
 import { notifyProjectManagerAssigned, notifyQuotationCreation, notifyQuotationApproval } from "./notifications";
@@ -2523,6 +2523,41 @@ export const projectsRouter = router({
           completionPercentage: (cp.completionPercentage !== null && cp.completionPercentage !== undefined) ? cp.completionPercentage : null,
           items: cpItems,
         };
+      } else if (input.id.startsWith("payment-") || input.id.startsWith("milestone-")) {
+        const allContracts = await db.select().from(contractsEnhanced).where(isNotNull(contractsEnhanced.paymentScheduleJson));
+        let foundContract: any = null;
+        let foundMilestone: any = null;
+
+        for (const c of allContracts) {
+          if (!c.paymentScheduleJson) continue;
+          try {
+            let parsed = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+            if (typeof parsed === "string") parsed = JSON.parse(parsed);
+            const sched = Array.isArray(parsed) ? parsed : (parsed?.schedule || []);
+            const m = sched.find((item: any, idx: number) => item.id === input.id || `milestone-${c.id}-${idx}` === input.id || `milestone-${c.id}-${idx + 1}` === input.id);
+            if (m) {
+              foundContract = c;
+              foundMilestone = m;
+              break;
+            }
+          } catch (e) {}
+        }
+
+        if (!foundContract || !foundMilestone) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "المستخلص غير موجود" });
+        }
+
+        return {
+          id: input.id,
+          projectId: foundContract.projectId || 0,
+          contractId: foundContract.id,
+          title: foundMilestone.name || foundMilestone.phaseName || "مستخلص",
+          description: foundMilestone.description || foundMilestone.notes || "",
+          amount: parseFloat(String(foundMilestone.amount || 0).replace(/,/g, "")),
+          dateMiladi: toLocalDateString(foundMilestone.dueDate || foundContract.createdAt),
+          completionPercentage: (foundMilestone.completionPercentage !== undefined && foundMilestone.completionPercentage !== null) ? Number(foundMilestone.completionPercentage) : null,
+          items: foundMilestone.items || [],
+        };
       } else {
         throw new TRPCError({ code: "BAD_REQUEST", message: "معرف الدفعة غير صالح" });
       }
@@ -2531,7 +2566,7 @@ export const projectsRouter = router({
   updateUnifiedPayment: protectedProcedure
     .input(z.object({
       id: z.string(),
-      amount: z.number().positive(),
+      amount: z.number().min(0).default(0),
       title: z.string().optional(),
       description: z.string().optional(),
       dateMiladi: z.string().optional(),
@@ -2595,6 +2630,21 @@ export const projectsRouter = router({
         if (cp.contractId) {
           const [c] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, cp.contractId));
           if (c) targetProjectId = c.projectId || 0;
+        }
+      } else if (input.id.startsWith("payment-") || input.id.startsWith("milestone-")) {
+        const allContracts = await db.select().from(contractsEnhanced).where(isNotNull(contractsEnhanced.paymentScheduleJson));
+        for (const c of allContracts) {
+          if (!c.paymentScheduleJson) continue;
+          try {
+            let parsed = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+            if (typeof parsed === "string") parsed = JSON.parse(parsed);
+            const sched = Array.isArray(parsed) ? parsed : (parsed?.schedule || []);
+            const m = sched.find((item: any, idx: number) => item.id === input.id || `milestone-${c.id}-${idx}` === input.id || `milestone-${c.id}-${idx + 1}` === input.id);
+            if (m) {
+              targetProjectId = c.projectId || 0;
+              break;
+            }
+          } catch (e) {}
         }
       } else {
         throw new TRPCError({ code: "BAD_REQUEST", message: "معرف الدفعة غير صالح" });
@@ -2900,6 +2950,35 @@ export const projectsRouter = router({
           }
         } catch (e) {
           console.error("Error syncing paymentScheduleJson for cp payment:", e);
+        }
+      } else if (input.id.startsWith("payment-") || input.id.startsWith("milestone-")) {
+        const allContracts = await db.select().from(contractsEnhanced).where(isNotNull(contractsEnhanced.paymentScheduleJson));
+        for (const c of allContracts) {
+          if (!c.paymentScheduleJson) continue;
+          try {
+            let parsed = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+            if (typeof parsed === "string") parsed = JSON.parse(parsed);
+            const sched = Array.isArray(parsed) ? parsed : (parsed?.schedule || []);
+            const mIdx = sched.findIndex((item: any, idx: number) => item.id === input.id || `milestone-${c.id}-${idx}` === input.id || `milestone-${c.id}-${idx + 1}` === input.id);
+            if (mIdx !== -1) {
+              sched[mIdx] = {
+                ...sched[mIdx],
+                name: input.title !== undefined ? input.title : sched[mIdx].name,
+                phaseName: input.title !== undefined ? input.title : sched[mIdx].phaseName,
+                description: input.description !== undefined ? input.description : sched[mIdx].description,
+                completionPercentage: input.completionPercentage !== undefined ? input.completionPercentage : sched[mIdx].completionPercentage,
+                dueDate: input.dateMiladi !== undefined ? input.dateMiladi : sched[mIdx].dueDate,
+                amount: input.amount !== undefined ? input.amount : (sched[mIdx].amount || 0),
+              };
+              const isObj = !Array.isArray(parsed) && Boolean(parsed?.schedule);
+              const newJson = isObj ? { ...parsed, schedule: sched } : sched;
+              await db.update(contractsEnhanced).set({
+                paymentScheduleJson: JSON.stringify(newJson),
+                updatedAt: new Date(),
+              }).where(eq(contractsEnhanced.id, c.id));
+              break;
+            }
+          } catch (e) {}
         }
       }
 
