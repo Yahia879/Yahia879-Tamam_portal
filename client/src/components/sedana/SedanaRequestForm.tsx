@@ -351,201 +351,190 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
             </div>
           </div>
         ) : (
-          /* بطاقات بنود السلة بتصميم مريح ومرتب (Card-based Layout) */
-          <div className="space-y-3">
-            {basketItems.map((item, index) => {
-              const minLimit = getItemLimitForFrequency(item);
-              const isUnderMin =
-                minLimit !== undefined &&
-                minLimit > 0 &&
-                item.quantity < minLimit &&
-                !item.isCustom;
+          /* الحل الثاني: جدول منظم مع سطر فرعي موسّع للمواصفات بكامل عرض الجدول */
+          <div className="overflow-x-auto border border-border/70 rounded-lg">
+            <table className="w-full text-xs text-right">
+              <thead className="bg-muted/40 text-muted-foreground border-b border-border/70 font-bold">
+                <tr>
+                  <th className="p-3 w-44 sm:w-48 text-right">التصنيف</th>
+                  <th className="p-3 text-right">الصنف المطلوب</th>
+                  <th className="p-3 w-28 text-center">الكمية</th>
+                  <th className="p-3 w-24 text-center">وحدة القياس</th>
+                  <th className="p-3 w-32 text-center">دورية التوريد</th>
+                  <th className="p-3 w-12 text-center">إجراء</th>
+                </tr>
+              </thead>
+              {basketItems.map((item, index) => {
+                const minLimit = getItemLimitForFrequency(item);
+                const isUnderMin =
+                  minLimit !== undefined &&
+                  minLimit > 0 &&
+                  item.quantity < minLimit &&
+                  !item.isCustom;
 
-              const itemDbOption = dbOptions.find((opt: any) => opt.id === item.dbCategoryId);
-              const resolvedCategory = (item.category || (itemDbOption as any)?.metadata?.category || (itemDbOption as any)?.category || '') as string;
-              const itemsForCat = resolvedCategory
-                ? dbOptions.filter((opt: any) => (opt.metadata?.category || (opt as any).category || 'أدوات المسجد العامة') === resolvedCategory)
-                : [];
+                const itemDbOption = dbOptions.find((opt: any) => opt.id === item.dbCategoryId);
+                const resolvedCategory = (item.category || (itemDbOption as any)?.metadata?.category || (itemDbOption as any)?.category || '') as string;
+                const itemsForCat = resolvedCategory
+                  ? dbOptions.filter((opt: any) => (opt.metadata?.category || (opt as any).category || 'أدوات المسجد العامة') === resolvedCategory)
+                  : [];
 
-              return (
-                <div
-                  key={item.id}
-                  className="p-4 rounded-xl border border-border/80 bg-background/50 hover:bg-background/80 hover:border-sky-300 dark:hover:border-sky-800 transition-all shadow-xs space-y-3.5"
-                >
-                  {/* شريط رأس البطاقة: رقم البند وزر الحذف */}
-                  <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-border/60">
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-md bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300 text-xs font-bold flex items-center justify-center">
-                        {index + 1}
-                      </span>
-                      <span className="text-xs font-bold text-foreground">
-                        {item.isCustom ? 'بند مخصص' : (item.name || 'بند جديد')}
-                      </span>
-                      {item.isCustom && (
-                        <span className="text-[10px] text-sky-700 dark:text-sky-300 font-semibold bg-sky-50 dark:bg-sky-950/60 px-1.5 py-0.5 rounded border border-sky-300/40">
-                          مخصص
-                        </span>
-                      )}
-                    </div>
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveItem(item.id)}
-                      className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer rounded-lg gap-1 transition-colors"
-                      title="حذف هذا البند"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                      <span className="text-destructive font-medium">حذف البند</span>
-                    </Button>
-                  </div>
-
-                  {/* شبكة حقول البند: موزعة بمساحات مريحة وواضحة */}
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
-                    {/* 1. التصنيف */}
-                    <div className="sm:col-span-6 space-y-1.5">
-                      <Label className="text-xs font-bold text-foreground">
-                        التصنيف <span className="text-destructive">*</span>
-                      </Label>
-                      {item.isCustom ? (
-                        <div className="h-9 px-3 flex items-center text-xs font-semibold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 rounded-lg">
-                          {item.category || 'بند مخصص'}
-                        </div>
-                      ) : (
-                        <Select
-                          value={resolvedCategory || ''}
-                          onValueChange={(cat) => handleCategoryChange(item.id, cat)}
-                        >
-                          <SelectTrigger className="h-9 text-xs w-full bg-background border-input font-medium rounded-lg">
-                            <SelectValue placeholder="اختر تصنيف سدانة..." />
-                          </SelectTrigger>
-                          <SelectContent dir="rtl" className="max-h-60">
-                            {categoriesList.map((cat) => (
-                              <SelectItem key={cat} value={cat} className="text-xs">
-                                {cat}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-
-                    {/* 2. الصنف المطلوب */}
-                    <div className="sm:col-span-6 space-y-1.5">
-                      <Label className="text-xs font-bold text-foreground">
-                        الصنف المطلوب <span className="text-destructive">*</span>
-                      </Label>
-                      {item.isCustom || item.id === 'water_tankers' || dbOptions.length === 0 ? (
-                        <Input
-                          value={item.name}
-                          disabled
-                          className="h-9 text-xs bg-muted/40 font-semibold rounded-lg"
-                        />
-                      ) : (
-                        <Select
-                          value={item.dbCategoryId ? String(item.dbCategoryId) : ''}
-                          onValueChange={(val) => handleSelectDbCategory(item.id, Number(val))}
-                          disabled={!resolvedCategory}
-                        >
-                          <SelectTrigger
-                            className={`h-9 text-xs w-full bg-background border-input font-medium rounded-lg ${
-                              !resolvedCategory ? 'opacity-60 cursor-not-allowed bg-muted/30' : ''
-                            }`}
+                return (
+                  <tbody key={item.id} className="border-b border-border/70 divide-y-0 hover:bg-muted/15 transition-colors">
+                    {/* السطر الأساسي: الحقول الرئيسية مرتبة بدون تكديس */}
+                    <tr>
+                      {/* عمود 1: التصنيف */}
+                      <td className="p-3 align-middle w-44 sm:w-48">
+                        {item.isCustom ? (
+                          <span className="inline-block text-[11px] font-semibold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800 px-2 py-1 rounded-md">
+                            {item.category || 'بند مخصص'}
+                          </span>
+                        ) : (
+                          <Select
+                            value={resolvedCategory || ''}
+                            onValueChange={(cat) => handleCategoryChange(item.id, cat)}
                           >
-                            <SelectValue
-                              placeholder={resolvedCategory ? 'اختر الصنف المطلوب...' : 'يرجى تحديد التصنيف أولاً'}
-                            />
+                            <SelectTrigger className="h-9 text-xs w-full bg-background border-input font-medium rounded-lg">
+                              <SelectValue placeholder="اختر التصنيف..." />
+                            </SelectTrigger>
+                            <SelectContent dir="rtl" className="max-h-60">
+                              {categoriesList.map((cat) => (
+                                <SelectItem key={cat} value={cat} className="text-xs">
+                                  {cat}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </td>
+
+                      {/* عمود 2: الصنف المطلوب فقط (بدون حشر الوصف تحته) */}
+                      <td className="p-3 align-middle font-medium text-foreground">
+                        {item.isCustom || item.id === 'water_tankers' || dbOptions.length === 0 ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-xs text-foreground">{item.name}</span>
+                            {item.isCustom && (
+                              <span className="text-[10px] text-sky-700 dark:text-sky-300 font-normal bg-sky-100 dark:bg-sky-950/60 px-1.5 py-0.5 rounded border border-sky-300/40">
+                                (مخصص)
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <Select
+                            value={item.dbCategoryId ? String(item.dbCategoryId) : ''}
+                            onValueChange={(val) => handleSelectDbCategory(item.id, Number(val))}
+                            disabled={!resolvedCategory}
+                          >
+                            <SelectTrigger
+                              className={`h-9 text-xs w-full bg-background border-input font-medium rounded-lg ${
+                                !resolvedCategory ? 'opacity-60 cursor-not-allowed bg-muted/30' : ''
+                              }`}
+                            >
+                              <SelectValue
+                                placeholder={resolvedCategory ? 'اختر الصنف المطلوب...' : 'يرجى تحديد التصنيف أولاً'}
+                              />
+                            </SelectTrigger>
+                            <SelectContent dir="rtl" className="max-h-60">
+                              {itemsForCat.map((opt: any) => (
+                                <SelectItem key={opt.id} value={String(opt.id)} className="text-xs">
+                                  {opt.valueAr || opt.nameAr || opt.value || opt.name}{' '}
+                                  {opt.metadata?.unit ? `(${opt.metadata.unit})` : ''}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </td>
+
+                      {/* عمود 3: الكمية */}
+                      <td className="p-3 align-middle text-center">
+                        <div className="flex flex-col items-center justify-center">
+                          <Input
+                            type="number"
+                            min="0"
+                            value={item.quantity}
+                            onChange={(e) =>
+                              handleUpdateItem(item.id, { quantity: Number(e.target.value) || 0 })
+                            }
+                            className={`h-9 text-xs text-center w-20 mx-auto transition-all rounded-lg ${
+                              isUnderMin
+                                ? 'border-amber-500 focus-visible:ring-amber-500/30 bg-amber-500/10 font-bold text-amber-700 dark:text-amber-300'
+                                : ''
+                            }`}
+                          />
+                          {isUnderMin && (
+                            <div className="mt-1 text-[10px] text-amber-600 dark:text-amber-400 font-bold whitespace-nowrap bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/25">
+                              أقل من الحد ({minLimit})
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* عمود 4: وحدة القياس */}
+                      <td className="p-3 align-middle text-center text-muted-foreground font-medium">
+                        {item.unit || 'قطعة'}
+                      </td>
+
+                      {/* عمود 5: دورية التوريد */}
+                      <td className="p-3 align-middle text-center">
+                        <Select
+                          value={item.frequency}
+                          onValueChange={(val) =>
+                            handleUpdateItem(item.id, {
+                              frequency: val as SedanaDeliveryFrequency,
+                            })
+                          }
+                        >
+                          <SelectTrigger className="h-9 text-xs w-28 mx-auto bg-background border-input font-medium rounded-lg">
+                            <SelectValue />
                           </SelectTrigger>
-                          <SelectContent dir="rtl" className="max-h-60">
-                            {itemsForCat.map((opt: any) => (
-                              <SelectItem key={opt.id} value={String(opt.id)} className="text-xs">
-                                {opt.valueAr || opt.nameAr || opt.value || opt.name}{' '}
-                                {opt.metadata?.unit ? `(${opt.metadata.unit})` : ''}
+                          <SelectContent dir="rtl">
+                            {DELIVERY_FREQUENCIES.map((freq) => (
+                              <SelectItem key={freq} value={freq} className="text-xs">
+                                {freq}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                      )}
-                    </div>
+                      </td>
 
-                    {/* 3. الكمية */}
-                    <div className="sm:col-span-4 space-y-1.5">
-                      <Label className="text-xs font-bold text-foreground">
-                        الكمية <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={item.quantity}
-                        onChange={(e) =>
-                          handleUpdateItem(item.id, { quantity: Number(e.target.value) || 0 })
-                        }
-                        className={`h-9 text-xs rounded-lg ${
-                          isUnderMin
-                            ? 'border-amber-500 focus-visible:ring-amber-500/30 bg-amber-500/10 font-bold text-amber-700 dark:text-amber-300'
-                            : ''
-                        }`}
-                      />
-                      {isUnderMin && (
-                        <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
-                          الحد الأدنى الموصى به: {minLimit}
-                        </p>
-                      )}
-                    </div>
+                      {/* عمود 6: إجراء */}
+                      <td className="p-3 align-middle text-center">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveItem(item.id)}
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive cursor-pointer rounded-lg"
+                          title="حذف الصنف"
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </td>
+                    </tr>
 
-                    {/* 4. وحدة القياس */}
-                    <div className="sm:col-span-4 space-y-1.5">
-                      <Label className="text-xs font-bold text-foreground">وحدة القياس</Label>
-                      <div className="h-9 px-3 flex items-center text-xs text-foreground bg-muted/30 border border-input/60 rounded-lg font-medium">
-                        {item.unit || 'قطعة'}
-                      </div>
-                    </div>
-
-                    {/* 5. دورية التوريد */}
-                    <div className="sm:col-span-4 space-y-1.5">
-                      <Label className="text-xs font-bold text-foreground">دورية التوريد</Label>
-                      <Select
-                        value={item.frequency}
-                        onValueChange={(val) =>
-                          handleUpdateItem(item.id, {
-                            frequency: val as SedanaDeliveryFrequency,
-                          })
-                        }
-                      >
-                        <SelectTrigger className="h-9 text-xs w-full bg-background border-input font-medium rounded-lg">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent dir="rtl">
-                          {DELIVERY_FREQUENCIES.map((freq) => (
-                            <SelectItem key={freq} value={freq} className="text-xs">
-                              {freq}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* 6. المواصفات والملاحظات الإضافية - مساحة كاملة ومريحة */}
-                    <div className="sm:col-span-12 space-y-1.5 pt-0.5">
-                      <Label className="text-xs font-bold text-foreground flex items-center justify-between">
-                        <span>المواصفات أو ملاحظات إضافية للصنف</span>
-                        <span className="text-[11px] text-muted-foreground font-normal">(اختياري)</span>
-                      </Label>
-                      <Textarea
-                        value={item.description || ''}
-                        onChange={(e) =>
-                          handleUpdateItem(item.id, { description: e.target.value })
-                        }
-                        placeholder="اكتب أي مواصفات أو تفاصيل وملاحظات إضافية للصنف هنا..."
-                        rows={2}
-                        className="text-xs min-h-[52px] resize-y bg-background border-input/80 py-2 px-3 leading-relaxed rounded-lg transition-colors focus:border-sky-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                    {/* السطر الفرعي الموسع: خانة المواصفات والملاحظات تمتد بعرض الجدول بالكامل */}
+                    <tr>
+                      <td colSpan={6} className="px-3 pb-3 pt-0">
+                        <div className="flex items-center gap-2 bg-muted/20 dark:bg-muted/10 p-2 rounded-lg border border-border/60">
+                          <span className="text-[11px] font-bold text-muted-foreground whitespace-nowrap flex items-center gap-1.5 shrink-0">
+                            <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+                            <span>المواصفات أو ملاحظات إضافية للصنف:</span>
+                          </span>
+                          <Input
+                            value={item.description || ''}
+                            onChange={(e) =>
+                              handleUpdateItem(item.id, { description: e.target.value })
+                            }
+                            placeholder="اكتب مواصفات أو تفاصيل إضافية للصنف (اختياري)..."
+                            className="h-8 text-xs bg-background border-input/80 rounded-md focus:border-sky-500 flex-1"
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                );
+              })}
+            </table>
           </div>
         )}
 
