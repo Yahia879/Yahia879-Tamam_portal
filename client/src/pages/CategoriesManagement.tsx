@@ -25,6 +25,7 @@ interface Category {
 
 // تعريف أسماء التصنيفات بالعربية
 const categoryTypeNames: Record<string, string> = {
+  sedana_categories: "تصنيفات سدانة",
   sedana_items: "أصناف خدمات سدانة",
   boq_category: "تصنيفات جداول الكميات",
   bank: "البنوك",
@@ -134,7 +135,7 @@ export default function CategoriesManagement() {
   }, [allCategories]);
 
   // الحصول على أنواع التصنيفات الفريدة
-  const categoryTypes = ["sedana_items", "boq_category", "bank", "city", "boq_unit", "funding_support", "donation_purposes", "main_projects", "sadad_billers"];
+  const categoryTypes = ["sedana_categories", "sedana_items", "boq_category", "bank", "city", "boq_unit", "funding_support", "donation_purposes", "main_projects", "sadad_billers"];
 
   const parentCategory = useMemo(() => {
     if (!selectedType) return null;
@@ -288,10 +289,10 @@ export default function CategoriesManagement() {
     }
   };
 
-  // تصنيفات جداول الكميات المعرفة في النظام فقط (ديناميكياً من إدارة التصنيفات بدون أي ثوابت)
+  // تصنيفات سدانة المعرفة في النظام ديناميكياً
   const boqCategories = useMemo(() => {
     return (allCategories || [])
-      .filter((c: any) => c.type === "boq_category")
+      .filter((c: any) => c.type === "sedana_categories")
       .map((c: any) => (c.nameAr || c.name || "").trim())
       .filter(Boolean);
   }, [allCategories]);

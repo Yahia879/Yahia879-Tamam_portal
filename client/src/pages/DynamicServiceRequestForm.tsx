@@ -512,6 +512,23 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
         }
 
         const basket: SedanaBasketItem[] = formData.basketItems || [];
+        if (basket.length === 0) {
+          alert('يرجى إضافة بند واحد على الأقل في سلة الاحتياجات للمتابعة');
+          return;
+        }
+
+        const unselectedItem = basket.find((item) => !item.isCustom && (!item.name || !item.name.trim()));
+        if (unselectedItem) {
+          alert('يرجى تحديد الصنف لجميع البنود المضافة في سلة الاحتياجات');
+          return;
+        }
+
+        const zeroQtyItem = basket.find((item) => Number(item.quantity) <= 0);
+        if (zeroQtyItem) {
+          alert(`يرجى تحديد كمية أكبر من صفر للبند (${zeroQtyItem.name || 'المحدد'})`);
+          return;
+        }
+
         const invalidItem = basket.find((item) => {
           if (item.isCustom) return false;
           const minLimit = getItemLimitForFrequency(item);

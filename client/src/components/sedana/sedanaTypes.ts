@@ -4,7 +4,8 @@ export type SedanaCategory =
   | 'المعطرات'
   | 'سقيا الماء'
   | 'البلاستيكيات'
-  | 'أدوات المسجد العامة';
+  | 'أدوات المسجد العامة'
+  | (string & {});
 
 export type SedanaDeliveryFrequency = 'شهري' | 'ربع سنوي' | 'نصف سنوي' | 'مرة واحدة';
 
