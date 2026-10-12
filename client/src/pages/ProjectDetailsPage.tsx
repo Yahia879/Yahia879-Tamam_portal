@@ -735,31 +735,53 @@ export default function ProjectDetailsPage() {
   );
 
   const contractMilestones = (() => {
-    if (!project?.contracts || project.contracts.length === 0) return [];
     const list: any[] = [];
-    project.contracts.forEach((c: any) => {
-      if (c.paymentScheduleJson) {
-        try {
-          let parsed = c.paymentScheduleJson;
-          if (typeof parsed === "string") {
-            parsed = JSON.parse(parsed);
-            if (typeof parsed === "string") parsed = JSON.parse(parsed);
-          }
-          const isMilestones = parsed?.paymentSystem === "milestones" || (c as any).paymentSystem === "milestones";
-          const sched = Array.isArray(parsed) ? parsed : (parsed?.schedule || []);
-          if (isMilestones && Array.isArray(sched)) {
-            sched.forEach((m: any, idx: number) => {
-              list.push({
-                ...m,
-                contractId: c.id,
-                contractNumber: c.contractNumber,
-                orderIndex: idx + 1,
+    if (project?.contracts && project.contracts.length > 0) {
+      project.contracts.forEach((c: any) => {
+        if (c.paymentScheduleJson) {
+          try {
+            let parsed = c.paymentScheduleJson;
+            if (typeof parsed === "string") {
+              parsed = JSON.parse(parsed);
+              if (typeof parsed === "string") parsed = JSON.parse(parsed);
+            }
+            const isMilestones = parsed?.paymentSystem === "milestones" || (c as any).paymentSystem === "milestones";
+            const sched = Array.isArray(parsed) ? parsed : (parsed?.schedule || []);
+            if (isMilestones && Array.isArray(sched)) {
+              sched.forEach((m: any, idx: number) => {
+                list.push({
+                  ...m,
+                  contractId: c.id,
+                  contractNumber: c.contractNumber,
+                  orderIndex: idx + 1,
+                });
               });
+            }
+          } catch (e) {}
+        }
+      });
+    }
+
+    // إضافة أي مستخلصات مرفوعة من سجل الدفعات لم تكن مضافة مسبقاً في جدول العقد
+    if (isMilestonesContract && project?.payments && project.payments.length > 0) {
+      project.payments.forEach((p: any) => {
+        if (p.source === "milestone" || String(p.id).startsWith("disb-")) {
+          const alreadyInList = list.some(m => m.id === p.id || m.id === `disb-${p.id}` || m.name === p.description);
+          if (!alreadyInList) {
+            list.push({
+              id: p.id,
+              name: p.description,
+              completionPercentage: p.completionPercentage,
+              dueDate: p.date,
+              description: p.workDescription || p.description,
+              contractId: p.contractId,
+              orderIndex: list.length + 1,
             });
           }
-        } catch (e) {}
-      }
-    });
+        }
+      });
+    }
+
     return list;
   })();
 
@@ -2608,7 +2630,7 @@ export default function ProjectDetailsPage() {
                         {isMilestonesContract && !isPaymentsLocked && !isRequestClosed && (
                           <Button
                             className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9 mt-2"
-                            onClick={() => navigate(`/disbursements/new/${project.id}`)}
+                            onClick={() => navigate(`/milestones/new/${project.id}`)}
                           >
                             <Plus className="w-4 h-4 ml-1.5" />
                             رفع أول مستخلص للمقاول

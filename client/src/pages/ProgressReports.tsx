@@ -621,8 +621,30 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         } catch (e) {}
       }
     });
+
+    // إضافة المستخلصات المرفوعة من سجل الدفعات إن وجدت
+    if (isMilestonesProject && projectDetails?.payments && projectDetails.payments.length > 0) {
+      projectDetails.payments.forEach((p: any) => {
+        if (p.source === "milestone" || String(p.id).startsWith("disb-")) {
+          const alreadyInList = list.some(m => m.id === p.id || m.id === `disb-${p.id}` || m.name === p.description);
+          if (!alreadyInList) {
+            list.push({
+              ...p,
+              id: p.id,
+              name: p.description,
+              completionPercentage: p.completionPercentage,
+              dueDate: p.date,
+              description: p.workDescription || p.description,
+              contractId: p.contractId,
+              orderIndex: list.length + 1,
+            });
+          }
+        }
+      });
+    }
+
     return list;
-  }, [projectDetails]);
+  }, [projectDetails, isMilestonesProject]);
 
   // التحقق من وجود مستخلص واحد على الأقل بنسبة إنجاز 100%
   const has100Milestone = useMemo(() => {

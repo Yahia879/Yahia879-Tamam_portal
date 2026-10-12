@@ -1214,6 +1214,54 @@ export const disbursementsRouter = router({
         creatorSignatureDepartment,
       });
 
+      // مزامنة المستخلص في جدول مستخلصات العقد paymentScheduleJson إن وجد
+      const targetContractId = input.contractId || (project?.contracts && project.contracts[0]?.id);
+      if (targetContractId) {
+        try {
+          const [c] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, targetContractId));
+          if (c) {
+            const cAny = c as any;
+            let parsedSched: any = { paymentSystem: cAny.paymentSystem || "milestones", schedule: [] };
+            if (c.paymentScheduleJson) {
+              const raw = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+              if (Array.isArray(raw)) {
+                parsedSched = { paymentSystem: cAny.paymentSystem || "milestones", schedule: raw };
+              } else if (raw && typeof raw === "object") {
+                parsedSched = {
+                  paymentSystem: raw.paymentSystem || cAny.paymentSystem || "milestones",
+                  schedule: Array.isArray(raw.schedule) ? raw.schedule : [],
+                };
+              }
+            }
+            if (parsedSched.paymentSystem === "milestones") {
+              const schedList = parsedSched.schedule || [];
+              const existingIdx = schedList.findIndex((m: any) => m.name === input.title || m.id === `disb-${result.insertId}` || m.id === `milestone-${result.insertId}`);
+              const newMilestoneItem = {
+                id: `disb-${result.insertId}`,
+                name: input.title,
+                phaseName: input.title,
+                completionPercentage: input.completionPercentage ?? 0,
+                amount: input.amount ?? 0,
+                dueDate: input.dateMiladi || undefined,
+                description: input.description || "",
+                notes: input.description || "",
+                items: [],
+              };
+              if (existingIdx >= 0) {
+                schedList[existingIdx] = { ...schedList[existingIdx], ...newMilestoneItem };
+              } else {
+                schedList.push(newMilestoneItem);
+              }
+              await db.update(contractsEnhanced).set({
+                paymentScheduleJson: JSON.stringify(parsedSched),
+              }).where(eq(contractsEnhanced.id, targetContractId));
+            }
+          }
+        } catch (e) {
+          console.error("Error syncing milestone to contract paymentScheduleJson:", e);
+        }
+      }
+
       await notifyDisbursementRequestCreation(
         result.insertId,
         requestNumber,
@@ -1391,6 +1439,35 @@ export const disbursementsRouter = router({
           rejectionReason: request.status === "rejected" ? null : request.rejectionReason,
         })
         .where(eq(disbursementRequests.id, input.id));
+
+      if (request.contractId) {
+        try {
+          const [c] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, request.contractId));
+          if (c?.paymentScheduleJson) {
+            let parsedSched: any = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+            const schedList = Array.isArray(parsedSched) ? parsedSched : (parsedSched?.schedule || []);
+            const existingIdx = schedList.findIndex((m: any) => m.name === request.title || m.id === `disb-${input.id}` || m.id === `milestone-${input.id}`);
+            if (existingIdx >= 0) {
+              schedList[existingIdx] = {
+                ...schedList[existingIdx],
+                name: input.title,
+                phaseName: input.title,
+                completionPercentage: input.completionPercentage ?? schedList[existingIdx].completionPercentage,
+                amount: input.amount ?? schedList[existingIdx].amount,
+                dueDate: input.dateMiladi || schedList[existingIdx].dueDate,
+                description: input.description || schedList[existingIdx].description,
+                notes: input.description || schedList[existingIdx].notes,
+              };
+              const newJson = Array.isArray(parsedSched) ? schedList : { ...parsedSched, schedule: schedList };
+              await db.update(contractsEnhanced).set({
+                paymentScheduleJson: JSON.stringify(newJson),
+              }).where(eq(contractsEnhanced.id, request.contractId));
+            }
+          }
+        } catch (e) {
+          console.error("Error updating milestone in paymentScheduleJson:", e);
+        }
+      }
 
       return {
         success: true,

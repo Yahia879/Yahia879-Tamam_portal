@@ -1131,6 +1131,78 @@ export const projectsRouter = router({
         });
       });
 
+      // 3. إضافة طلبات الصرف والمستخلصات المرفوعة مباشرة (غير المرتبطة بـ contractPayment أو payment)
+      const unlinkedDisbs = projectDisbursements.filter(d => 
+        d.status !== "rejected" &&
+        !allContractPayments.some(cp => cp.id === d.contractPaymentId) &&
+        !manualPayments.some(mp => mp.id === d.paymentId)
+      );
+
+      unlinkedDisbs.forEach(d => {
+        const cleanId = String(d.id);
+        const agreedAmount = parseFloat(String(d.amount || "0"));
+        
+        const ordersForDisb = projectOrders.filter(o => o.disbursementRequestId === d.id);
+        const executedOrders = ordersForDisb.filter(o => o.status === "executed");
+
+        let paidAmount = 0;
+        if (executedOrders.length > 0) {
+          paidAmount = executedOrders.reduce((sum, o) => sum + parseFloat(String(o.amount || "0")), 0);
+        } else if (d.status === "paid") {
+          paidAmount = agreedAmount;
+        }
+
+        const isFullyPaid = d.status === "paid" || (paidAmount >= agreedAmount && agreedAmount > 0);
+        const isPartiallyPaid = !isFullyPaid && paidAmount > 0;
+
+        let paymentStatus = "pending";
+        let paidAtDate = null;
+
+        if (isFullyPaid) {
+          paymentStatus = "paid";
+          paidAtDate = executedOrders[0]?.executedAt || d.dateMiladi || d.createdAt;
+        } else if (isPartiallyPaid) {
+          paymentStatus = "partially_paid";
+          paidAtDate = executedOrders[0]?.executedAt || d.dateMiladi || d.createdAt;
+        } else if (ordersForDisb.some(o => o.status === "approved") || d.status === "approved" || d.status === "pending" || d.status === "pending_executive") {
+          paymentStatus = "due";
+        } else {
+          paymentStatus = d.status || "pending";
+        }
+
+        const rawDate = executedOrders[0]?.executedAt || d.dateMiladi || d.createdAt;
+
+        const hasReport = projectProgressReports.some(r => {
+          if (r.status === "rejected" || r.status === "revoked") return false;
+          const ws = r.workSummary || "";
+          if (ws.includes(`[معرف المستخلص: disb-${cleanId}]`) || ws.includes(`[معرف المستخلص: ${cleanId}]`) || ws.includes(`[معرف الدفعة: disb-${cleanId}]`) || ws.includes(`[معرف الدفعة: ${cleanId}]`)) {
+            return true;
+          }
+          const expectedTitle = `تقرير إنجاز - ${d.title || d.requestNumber}`;
+          return r.title === expectedTitle;
+        });
+
+        unifiedPayments.push({
+          id: `disb-${d.id}`,
+          paymentNumber: d.requestNumber,
+          paymentType: d.paymentType || "progress",
+          amount: agreedAmount,
+          agreedAmount: agreedAmount,
+          paidAmount: paidAmount,
+          status: paymentStatus,
+          description: d.title || d.description || `مستخلص ${d.requestNumber}`,
+          date: toLocalDateString(rawDate),
+          paidAt: paidAtDate ? toLocalDateString(paidAtDate) : null,
+          source: "milestone",
+          workDescription: (d as any).workDescription || d.description,
+          completionPercentage: (d.completionPercentage !== null && d.completionPercentage !== undefined) ? d.completionPercentage : null,
+          contractId: d.contractId || undefined,
+          hasDisbursementRequest: true,
+          hasProgressReport: hasReport,
+          items: [],
+        });
+      });
+
       // فرز كافة الدفعات زمنياً تصاعدياً حسب التاريخ
       unifiedPayments.sort((a, b) => {
         const dateA = a.paidAt || a.date || "";
