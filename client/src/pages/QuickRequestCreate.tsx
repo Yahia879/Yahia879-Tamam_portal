@@ -178,6 +178,9 @@ export default function QuickRequestCreate() {
         }
       }
       toast.success(t.successSave);
+      try {
+        sessionStorage.setItem('requests_table_page', '1');
+      } catch {}
       utils.requests.search.invalidate();
       navigate("/requests");
     },

@@ -295,6 +295,9 @@ export default function Requests({
     creatorType: creatorTypeFilter !== "all" ? creatorTypeFilter as any : undefined,
     page,
     limit,
+  }, {
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   const rawRequests = requestsData?.requests || [];

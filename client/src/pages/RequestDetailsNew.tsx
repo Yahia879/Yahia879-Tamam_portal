@@ -1340,7 +1340,8 @@ export default function RequestDetailsNew() {
         : "يرجى متابعة صرف المبلغ للمستفيد من خلال أوامر الصرف. لا يمكن إغلاق الطلب إلا بعد أن تصبح حالة أمر الصرف 'منفذ'.",
       actionButton: (isDonationDisbursementExecuted && isAdmin) ? {
         label: "إغلاق الطلب",
-        onClick: () => setShowCloseRequestModal(true),
+        onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
+        disabled: updateStageMutation.isPending,
       } as any : undefined,
       canPerformAction: isDonationDisbursementExecuted && isAdmin,
     };
@@ -1837,7 +1838,7 @@ export default function RequestDetailsNew() {
                   onClick={() => setShowCloseRequestModal(true)}
                 >
                   <XCircle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-                  <span>{isEn ? "Close Request" : "إغلاق الطلب"}</span>
+                  <span>{isEn ? "Administrative Closure" : "الإغلاق الإداري"}</span>
                 </Button>
               )}
             </div>
@@ -2437,15 +2438,7 @@ export default function RequestDetailsNew() {
                                   }
                                 : undefined
                               : request.technicalEvalDecision === 'convert_to_donation'
-                                ? (isAdmin ? {
-                                    label: "إغلاق الطلب",
-                                    onClick: () => setShowCloseRequestModal(true),
-                                    variant: 'default' as const,
-                                    disabled: isPendingClosure || !isDonationDisbursementExecuted,
-                                    title: !isDonationDisbursementExecuted
-                                      ? "لا يمكن إغلاق الطلب: يجب أن يكون أمر الصرف المرتبط بفرصة التبرع بحالة 'منفذ' أولاً"
-                                      : undefined,
-                                  } : undefined)
+                                ? undefined
                                 : {
                                     label: "الانتقال إلى مرحلة الاستلام",
                                     onClick: () => {

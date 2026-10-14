@@ -1045,7 +1045,7 @@ export const requestsRouter = router({
         query = query.where(and(...conditions)) as typeof query;
       }
 
-      const results = await query.orderBy(desc(mosqueRequests.createdAt)).limit(input.limit).offset(offset);
+      const results = await query.orderBy(desc(mosqueRequests.createdAt), desc(mosqueRequests.id)).limit(input.limit).offset(offset);
       console.log('[search] Results count:', results.length);
 
       // الحصول على العدد الإجمالي والإحصائيات
@@ -1275,7 +1275,7 @@ export const requestsRouter = router({
       }
 
       const results = await query
-        .orderBy(desc(mosqueRequests.createdAt))
+        .orderBy(desc(mosqueRequests.createdAt), desc(mosqueRequests.id))
         .limit(limit)
         .offset(offset);
 
@@ -1674,8 +1674,8 @@ export const requestsRouter = router({
           });
         }
 
-        // إذا كان المستخدم مدير نظام والطلب ليس في حالة انتظار التأكيد، يتم تحويله لآلية انتظار تأكيد المدير التنفيذي
-        if (isSuperAdmin && !isExecutive && request[0].closureStatus !== "pending_confirmation") {
+        // إذا كان المستخدم مدير نظام والطلب ليس في حالة انتظار التأكيد، يتم تحويله لآلية انتظار تأكيد المدير التنفيذي (إلا في حالة فرص التبرع المنفذة حيث يتم الانتقال لمرحلة الإغلاق مباشرة)
+        if (!isDonation && isSuperAdmin && !isExecutive && request[0].closureStatus !== "pending_confirmation") {
           await db.update(mosqueRequests).set({
             closureStatus: "pending_confirmation",
             closureRequestedBy: ctx.user.id,

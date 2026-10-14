@@ -109,6 +109,7 @@ const parseConditions = (conditions: any): string[] => {
 export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ showLayout = true }) => {
   const [location, navigate] = useLocation();
   const { user } = useAuth();
+  const utils = trpc.useUtils();
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
   // الحصول على طلبات المستخدم للتحقق من الإمام
@@ -730,6 +731,11 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
         await uploadPromise;
       }
 
+      try {
+        sessionStorage.setItem('requests_table_page', '1');
+      } catch {}
+      await utils.requests.search.invalidate();
+      await utils.requests.getMyRequests.invalidate();
       alert('تم إرسال الطلب بنجاح');
       navigate(user?.role === 'service_requester' ? '/my-requests' : '/requests');
     } catch (error: any) {
