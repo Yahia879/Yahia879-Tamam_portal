@@ -2426,48 +2426,17 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
   const listContent = (
     <div className="space-y-6">
-        {/* التبديل بين تقارير إنجاز الدفعات والمستخلصات */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b pb-4">
-          <div className="flex items-center gap-2 bg-muted/60 p-1 rounded-xl">
-            <button
-              type="button"
-              onClick={() => {
-                setMainViewTab("reports");
-                navigate("/progress-reports");
-                resetPage();
-              }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                mainViewTab === "reports"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <FileText className="w-4 h-4 text-primary" />
-              <span>تقارير إنجاز الدفعات</span>
-              <Badge variant="secondary" className="mr-1 text-xs">
-                {completionStatsData.total}
-              </Badge>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setMainViewTab("invoices");
-                navigate("/progress-invoices");
-                resetPage();
-              }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                mainViewTab === "invoices"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-              <span>المستخلصات (حسب نسب الإنجاز)</span>
-              <Badge variant="secondary" className="mr-1 text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-                {invoiceStatsData.total}
-              </Badge>
-            </button>
+        {/* العنوان والإجراءات */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">
+              {mainViewTab === "invoices" ? "المستخلصات المالية" : "تقارير الإنجاز"}
+            </h1>
+            <p className="text-muted-foreground">
+              {mainViewTab === "invoices"
+                ? "إدارة ومتابعة مستخلصات المشاريع المعتمدة على نسب الإنجاز الفعلي لإصدار أوامر الصرف"
+                : "متابعة وتوثيق تقدم المشاريع وجدولة الدفعات"}
+            </p>
           </div>
 
           {canCreateReport && (
@@ -2489,18 +2458,6 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               </Button>
             )
           )}
-        </div>
-
-        {/* عنوان الصفحة ووصفها */}
-        <div>
-          <h1 className="text-2xl font-bold">
-            {mainViewTab === "invoices" ? "المستخلصات المالية" : "تقارير الإنجاز"}
-          </h1>
-          <p className="text-muted-foreground">
-            {mainViewTab === "invoices"
-              ? "إدارة ومتابعة مستخلصات المشاريع المعتمدة على نسب الإنجاز الفعلي لإصدار أوامر الصرف"
-              : "متابعة وتوثيق تقدم المشاريع وجدولة الدفعات"}
-          </p>
         </div>
 
         {/* الإحصائيات - بطاقات عصرية خلفية بيضاء مطابقة لصفحة الطلبات */}
