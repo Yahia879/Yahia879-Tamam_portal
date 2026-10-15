@@ -47,14 +47,20 @@ export function getReportLabel(report: ProgressReportItem): string {
     const amountStr = report.budgetSpent ? ` (${parseFloat(String(report.budgetSpent)).toLocaleString()} ر.س)` : "";
     return `${report.title || "الدفعة الأولى"} - دفعة مقدمة${amountStr}`;
   }
+  const isInvoice = Boolean(
+    (report.workSummary && /\[نوع:\s*مستخلص/i.test(report.workSummary)) ||
+    (report.title && report.title.includes("مستخلص")) ||
+    report.isInvoice
+  );
   let progressPart = "";
   if (report.actualProgress !== undefined && report.actualProgress !== null) {
     progressPart = ` (${report.actualProgress}%)`;
   } else if (report.plannedProgress !== undefined && report.plannedProgress !== null) {
     progressPart = ` (مطلوب: ${report.plannedProgress}%)`;
   }
+  const invoicePrefix = isInvoice ? "[مستخلص] " : "";
   const prefix = report.reportNumber ? `${report.reportNumber} - ` : "";
-  return `${prefix}${report.title || ""}${progressPart}`;
+  return `${invoicePrefix}${prefix}${report.title || ""}${progressPart}`;
 }
 
 export function ProgressReportSearchSelect({
