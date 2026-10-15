@@ -24,12 +24,130 @@ import {
   receiptVouchers,
   quantitySchedules,
   custodyRequests,
+  progressReports,
 } from "../../drizzle/schema";
 import { eq, desc, asc, count, and, sql, isNull, isNotNull, or, like, inArray, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { createNotification, notifyDisbursementRequestCreation, notifyDisbursementOrderCreation, notifyDisbursementOrderApproval, notifyDisbursementOrderRejection, sendEmailNotification } from "./notifications";
 import { sendSms } from "../services/sms";
 import { triggerBeneficiarySatisfactionSurvey } from "./requests";
+
+// جلب وتدقيق تقرير الإنجاز المرتبط بطلب أو أمر الصرف
+async function resolveLinkedProgressReport(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  request: {
+    attachmentsJson?: string | null;
+    contractPaymentId?: number | null;
+    paymentId?: number | null;
+    description?: string | null;
+    title?: string | null;
+    projectId?: number | null;
+  } | null | undefined
+) {
+  if (!request) return null;
+  try {
+    let reportId: number | null = null;
+    let reportNumber: string | null = null;
+
+    if (request.attachmentsJson) {
+      try {
+        const atts = typeof request.attachmentsJson === "string" ? JSON.parse(request.attachmentsJson) : request.attachmentsJson;
+        if (Array.isArray(atts)) {
+          const linkedAtt = atts.find((a: any) => a.name === "linked_request_info");
+          if (linkedAtt && linkedAtt.url) {
+            const parsed = typeof linkedAtt.url === "string" ? JSON.parse(linkedAtt.url) : linkedAtt.url;
+            if (parsed.reportId) reportId = Number(parsed.reportId);
+            if (parsed.reportNumber) reportNumber = String(parsed.reportNumber);
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (reportId && !isNaN(reportId)) {
+      const [found] = await db
+        .select({
+          id: progressReports.id,
+          reportNumber: progressReports.reportNumber,
+          title: progressReports.title,
+          recommendations: progressReports.recommendations,
+          workSummary: progressReports.workSummary,
+          actualProgress: progressReports.actualProgress,
+          plannedProgress: progressReports.plannedProgress,
+          status: progressReports.status,
+          reportDate: progressReports.reportDate,
+        })
+        .from(progressReports)
+        .where(eq(progressReports.id, reportId));
+      if (found) return found;
+    }
+
+    if (reportNumber) {
+      const [found] = await db
+        .select({
+          id: progressReports.id,
+          reportNumber: progressReports.reportNumber,
+          title: progressReports.title,
+          recommendations: progressReports.recommendations,
+          workSummary: progressReports.workSummary,
+          actualProgress: progressReports.actualProgress,
+          plannedProgress: progressReports.plannedProgress,
+          status: progressReports.status,
+          reportDate: progressReports.reportDate,
+        })
+        .from(progressReports)
+        .where(eq(progressReports.reportNumber, reportNumber));
+      if (found) return found;
+    }
+
+    // مطابقة رقم التقرير إذا ورد في نص العنوان أو الوصف (مثل: RPT-2026-...)
+    const textToSearch = `${request.title || ""} ${request.description || ""}`;
+    const rptMatch = textToSearch.match(/RPT-\d{4}-\d+/i);
+    if (rptMatch) {
+      const [found] = await db
+        .select({
+          id: progressReports.id,
+          reportNumber: progressReports.reportNumber,
+          title: progressReports.title,
+          recommendations: progressReports.recommendations,
+          workSummary: progressReports.workSummary,
+          actualProgress: progressReports.actualProgress,
+          plannedProgress: progressReports.plannedProgress,
+          status: progressReports.status,
+          reportDate: progressReports.reportDate,
+        })
+        .from(progressReports)
+        .where(eq(progressReports.reportNumber, rptMatch[0]));
+      if (found) return found;
+    }
+
+    // محاولة المطابقة عبر المشروع ومعرف الدفعة المذكورة في ملخص التقرير
+    if (request.projectId && request.contractPaymentId) {
+      const reports = await db
+        .select({
+          id: progressReports.id,
+          reportNumber: progressReports.reportNumber,
+          title: progressReports.title,
+          recommendations: progressReports.recommendations,
+          workSummary: progressReports.workSummary,
+          actualProgress: progressReports.actualProgress,
+          plannedProgress: progressReports.plannedProgress,
+          status: progressReports.status,
+          reportDate: progressReports.reportDate,
+        })
+        .from(progressReports)
+        .where(eq(progressReports.projectId, request.projectId));
+      
+      const matched = reports.find(r => 
+        (r.workSummary && r.workSummary.includes(`[معرف الدفعة: ${request.contractPaymentId}]`)) ||
+        (r.workSummary && r.workSummary.includes(`[معرف المستخلص: ${request.contractPaymentId}]`))
+      );
+      if (matched) return matched;
+    }
+  } catch (err) {
+    console.error("Error resolving linked progress report:", err);
+  }
+  return null;
+}
 
 // توليد رقم طلب صرف
 async function generateDisbursementRequestNumber(
@@ -902,6 +1020,8 @@ export const disbursementsRouter = router({
         computedAdminFees = (contractOrProjectAmount * computedManagementPercentage) / 100;
       }
 
+      const linkedProgressReport = await resolveLinkedProgressReport(db, request);
+
       return {
         ...request,
         adminFees: computedAdminFees > 0 ? computedAdminFees.toFixed(2) : (request.adminFees || null),
@@ -933,6 +1053,7 @@ export const disbursementsRouter = router({
         financialDetail,
         opportunity: opportunity || null,
         disbursementOrder: order || null,
+        linkedProgressReport,
       };
     }),
 
@@ -2592,6 +2713,8 @@ export const disbursementsRouter = router({
         repliedByUser = replier || null;
       }
 
+      const linkedProgressReport = await resolveLinkedProgressReport(db, request);
+
       return {
         ...order,
         beneficiaryName: resolvedBeneficiaryName,
@@ -2599,7 +2722,8 @@ export const disbursementsRouter = router({
         beneficiaryBank: resolvedBeneficiaryBank,
         beneficiaryIban: resolvedBeneficiaryIban,
         contract,
-        disbursementRequest: request,
+        disbursementRequest: request ? { ...request, linkedProgressReport } : null,
+        linkedProgressReport,
         project,
         createdByUser: financialUser || null,
         approvedByUser: executiveDirectorUser || null,
