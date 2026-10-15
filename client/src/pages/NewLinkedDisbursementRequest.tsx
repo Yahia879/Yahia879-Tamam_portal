@@ -2557,6 +2557,21 @@ export default function NewLinkedDisbursementRequest() {
                                 {selectedReport.recommendations}
                               </p>
                             </div>
+                          {isMilestoneLinkedReport && expectedProgressAmount > 0 && (
+                            <div className="p-3.5 bg-emerald-100/70 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-lg text-right shadow-xs space-y-1">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                                <span className="text-xs font-bold text-emerald-950 dark:text-emerald-100 flex items-center gap-1.5">
+                                  <Badge className="bg-emerald-600 text-white font-bold text-[10px] py-0 px-1.5">مستخلص إنجاز</Badge>
+                                  <span>المبلغ المستحق تلقائياً ({selectedReport.actualProgress}% من قيمة العقد):</span>
+                                </span>
+                                <span className="text-sm font-black text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-1">
+                                  {expectedProgressAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5" />
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-emerald-800 dark:text-emerald-300">
+                                تم احتساب هذا المبلغ تلقائياً بناءً على نسبة الإنجاز المعتمدة ({selectedReport.actualProgress}%) مقارنة بالقيمة الإجمالية للعقد ({effContractAmount.toLocaleString()} ر.س).
+                              </p>
+                            </div>
                           )}
 
                           <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/40 rounded-lg flex items-start gap-2.5 shadow-sm">
