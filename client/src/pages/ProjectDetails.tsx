@@ -69,6 +69,7 @@ export default function ProjectDetails() {
     workSummary: "",
     challenges: "",
     nextSteps: "",
+    recommendations: "",
   });
 
   // استعلامات البيانات
@@ -105,6 +106,7 @@ export default function ProjectDetails() {
         workSummary: "",
         challenges: "",
         nextSteps: "",
+        recommendations: "",
       });
     },
     onError: (error) => {
@@ -535,6 +537,17 @@ export default function ProjectDetails() {
                 onChange={(e) => setReportData({ ...reportData, nextSteps: e.target.value })}
                 placeholder="الأعمال المخطط تنفيذها في الفترة القادمة..."
                 rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-primary font-semibold">توصية إدارة المشاريع</Label>
+              <Textarea
+                value={reportData.recommendations}
+                onChange={(e) => setReportData({ ...reportData, recommendations: e.target.value })}
+                placeholder="اكتب توصية إدارة المشاريع الخاصة بهذا التقرير وأمر الصرف المرتبط به..."
+                rows={3}
+                className="border-primary/40 focus:border-primary"
               />
             </div>
           </div>
