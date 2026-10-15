@@ -149,7 +149,7 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
       items.push({ icon: ClipboardList, label: "المشاريع", path: "/projects" });
       items.push({ icon: FileText, label: "تقارير المشاريع", path: "/project-reports" });
     }
-    if (["super_admin", "system_admin", "projects_office", "general_manager", "executive_director"].includes(role) || isExecDirector) {
+    if (["super_admin", "system_admin", "projects_office", "project_manager", "general_manager", "executive_director"].includes(role) || isExecDirector) {
       items.push({ icon: TrendingUp, label: "تقارير الإنجاز", path: "/progress-reports" });
       items.push({ icon: FileSpreadsheet, label: "المستخلصات", path: "/progress-invoices" });
       items.push({ icon: BarChart3, label: "التقارير الفنية", path: "/reports" });
