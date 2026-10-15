@@ -1132,7 +1132,8 @@ export default function NewLinkedDisbursementRequest() {
     const isInvoice = Boolean(
       (selectedReport?.workSummary && /\[نوع:\s*مستخلص/i.test(selectedReport.workSummary)) ||
       (selectedReport?.title && selectedReport.title.includes("مستخلص")) ||
-      (contractDetails?.contract?.paymentSystem === "milestones") ||
+      ((contractDetails as any)?.contract?.paymentSystem === "milestones") ||
+      ((contractDetails as any)?.paymentSystem === "milestones") ||
       (projectContracts?.contracts?.some((c: any) => c.paymentSystem === "milestones" || String(c.paymentScheduleJson || "").includes("milestones")))
     );
 
@@ -1296,7 +1297,8 @@ export default function NewLinkedDisbursementRequest() {
       (selectedReport?.workSummary && /\[نوع:\s*مستخلص/i.test(selectedReport.workSummary)) ||
       (selectedReport?.title && selectedReport.title.includes("مستخلص")) ||
       (paymentInfo && (paymentInfo.source === "milestone" || String(paymentInfo.id).startsWith("disb-"))) ||
-      (contractDetails?.contract?.paymentSystem === "milestones") ||
+      ((contractDetails as any)?.contract?.paymentSystem === "milestones") ||
+      ((contractDetails as any)?.paymentSystem === "milestones") ||
       (projectDetails?.contracts?.some((c: any) => c.paymentSystem === "milestones" || String(c.paymentScheduleJson || "").includes("milestones")))
     )
   );
@@ -2557,6 +2559,8 @@ export default function NewLinkedDisbursementRequest() {
                                 {selectedReport.recommendations}
                               </p>
                             </div>
+                          )}
+
                           {isMilestoneLinkedReport && expectedProgressAmount > 0 && (
                             <div className="p-3.5 bg-emerald-100/70 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-lg text-right shadow-xs space-y-1">
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
