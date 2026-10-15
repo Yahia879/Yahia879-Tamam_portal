@@ -630,9 +630,9 @@ export default function ProjectReportPrintPage() {
                           </div>
                         )}
                         {data.recommendations && (
-                          <div>
-                            <h4 className="font-bold text-foreground mb-1">■ التوصيات والمقترحات:</h4>
-                            <p className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-md border border-gray-200 dark:border-slate-800 text-foreground whitespace-pre-wrap">{data.recommendations}</p>
+                          <div className="p-3 bg-amber-50/60 dark:bg-amber-950/20 rounded-md border border-amber-200 dark:border-amber-800">
+                            <h4 className="font-bold text-amber-900 dark:text-amber-400 mb-1">■ توصية إدارة المشاريع:</h4>
+                            <p className="text-foreground whitespace-pre-wrap">{data.recommendations}</p>
                           </div>
                         )}
                       </div>
