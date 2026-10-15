@@ -943,6 +943,7 @@ export default function ContractForm() {
       // تحميل جدول الدفعات من العقد الحالي (الأولوية دائماً لجدول الدفعات الفعلي contractPayments من قاعدة البيانات)
       let parsedSchedule: PaymentScheduleItem[] = [];
       let jsonSchedule: any[] = [];
+      let detectedPaymentSystem: "installments" | "milestones" | undefined = undefined;
       if (c.paymentScheduleJson) {
         try {
           let schedule: any = c.paymentScheduleJson;
@@ -957,6 +958,7 @@ export default function ContractForm() {
             }
           }
           if (schedule && !Array.isArray(schedule) && schedule.paymentSystem) {
+            detectedPaymentSystem = schedule.paymentSystem;
             setPaymentSystem(schedule.paymentSystem);
             if (schedule.paymentSystem === "installments" && Array.isArray(schedule.schedule)) {
               jsonSchedule = schedule.schedule;
@@ -969,7 +971,7 @@ export default function ContractForm() {
         }
       }
 
-      if (existingContract.payments && existingContract.payments.length > 0 && schedule?.paymentSystem !== "milestones") {
+      if (existingContract.payments && existingContract.payments.length > 0 && detectedPaymentSystem !== "milestones") {
         parsedSchedule = existingContract.payments.map((p: any, idx: number) => {
           const comp = (p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "")
             ? Number(p.completionPercentage)
@@ -3661,117 +3663,68 @@ export default function ContractForm() {
                     );
                     })}
 
-                    {/* ملخص الدفعات أو المستخلصات */}
-                    {paymentSystem === "milestones" ? (
-                      (() => {
-                        const has100Milestone = paymentSchedule.some(p => Number(p.completionPercentage) >= 100);
-                        const lastPayment = paymentSchedule.length > 0 ? paymentSchedule[paymentSchedule.length - 1] : null;
-                        const lastPct = lastPayment ? (Number(lastPayment.completionPercentage) || 0) : 0;
-                        const isScheduleClosed = has100Milestone;
-                        const remainingPct = Math.max(0, 100 - lastPct);
+                    {/* ملخص الدفعات */}
+                    {(() => {
+                      const totalPaymentsAmount = paymentSchedule.reduce((sum, p) => sum + getPaymentEffectiveAmount(p), 0);
+                      const isExact = Math.abs(totalPaymentsAmount - contractData.totalValue) <= 0.05;
+                      const isOver = totalPaymentsAmount > contractData.totalValue + 0.05;
+                      const isUnder = totalPaymentsAmount < contractData.totalValue - 0.05;
+                      const diff = contractData.totalValue - totalPaymentsAmount;
 
-                        return (
-                          <Card className="bg-muted/50 p-4 rounded-xl border-dashed border-2">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground">عدد المستخلصات:</span>
-                                  <span className="font-bold text-foreground text-base">
-                                    {paymentSchedule.length} مستخلص
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground">نسبة إنجاز آخر مستخلص:</span>
-                                  <span className={`font-black text-base ${isScheduleClosed ? "text-green-600 dark:text-green-400" : "text-amber-600"}`}>
-                                    {lastPct}%
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground">سقف العقد الإجمالي:</span>
-                                  <span className="font-bold text-foreground inline-flex items-center gap-1">
-                                    {contractData.totalValue.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
-                                  </span>
-                                </div>
+                      return (
+                        <Card className="bg-muted/50 p-4 rounded-xl border-dashed border-2">
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">إجمالي المبالغ:</span>
+                                <span className={`font-black text-base ${
+                                  isExact 
+                                    ? "text-green-600 dark:text-green-400" 
+                                    : isOver 
+                                      ? "text-destructive" 
+                                      : "text-amber-600"
+                                }`}>
+                                    {totalPaymentsAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                </span>
                               </div>
-
-                              <div className="flex flex-col gap-2">
-                                {isScheduleClosed ? (
-                                  <div className="flex items-center gap-2 text-green-600 text-xs font-bold bg-green-500/10 p-2.5 rounded-lg border border-green-500/20">
-                                    <Check className="h-4 w-4 shrink-0" />
-                                    <span>تم إقفال الجدول بنجاح - نسبة إنجاز المستخلص الأخير بلغت 100%</span>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-2 text-amber-600 text-xs font-bold bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20">
-                                    <AlertTriangle className="h-4 w-4 shrink-0" />
-                                    <span>متبقي {remainingPct}% لإقفال الجدول (يجب أن يصل المستخلص الأخير إلى 100%)</span>
-                                  </div>
-                                )}
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">من قيمة العقد:</span>
+                                <span className="font-bold text-foreground inline-flex items-center gap-1">
+                                  {contractData.totalValue.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                </span>
                               </div>
                             </div>
-                          </Card>
-                        );
-                      })()
-                    ) : (
-                      (() => {
-                        const totalPaymentsAmount = paymentSchedule.reduce((sum, p) => sum + getPaymentEffectiveAmount(p), 0);
-                        const isExact = Math.abs(totalPaymentsAmount - contractData.totalValue) <= 0.05;
-                        const isOver = totalPaymentsAmount > contractData.totalValue + 0.05;
-                        const isUnder = totalPaymentsAmount < contractData.totalValue - 0.05;
-                        const diff = contractData.totalValue - totalPaymentsAmount;
 
-                        return (
-                          <Card className="bg-muted/50 p-4 rounded-xl border-dashed border-2">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground">إجمالي المبالغ:</span>
-                                  <span className={`font-black text-base ${
-                                    isExact 
-                                      ? "text-green-600 dark:text-green-400" 
-                                      : isOver 
-                                        ? "text-destructive" 
-                                        : "text-amber-600"
-                                  }`}>
-                                      {totalPaymentsAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
-                                  </span>
+                            <div className="flex flex-col gap-2">
+                              {isOver && (
+                                <div className="flex items-center gap-2 text-destructive text-xs font-bold bg-destructive/10 p-2 rounded-lg">
+                                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                                  <span>تنبيه: إجمالي الدفعات يتجاوز قيمة العقد</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground">من قيمة العقد:</span>
-                                  <span className="font-bold text-foreground inline-flex items-center gap-1">
-                                    {contractData.totalValue.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
-                                  </span>
+                              )}
+                              {isUnder && (
+                                <div className="flex items-center gap-2 text-amber-600 text-xs font-bold bg-amber-500/10 p-2 rounded-lg">
+                                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                                  <span className="inline-flex items-center gap-1">تنبيه: متبقي للصرف { diff.toLocaleString() } <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
                                 </div>
-                              </div>
-
-                              <div className="flex flex-col gap-2">
-                                {isOver && (
-                                  <div className="flex items-center gap-2 text-destructive text-xs font-bold bg-destructive/10 p-2 rounded-lg">
-                                    <AlertTriangle className="h-4 w-4 shrink-0" />
-                                    <span>تنبيه: إجمالي الدفعات يتجاوز قيمة العقد</span>
-                                  </div>
-                                )}
-                                {isUnder && (
-                                  <div className="flex items-center gap-2 text-amber-600 text-xs font-bold bg-amber-500/10 p-2 rounded-lg">
-                                    <AlertTriangle className="h-4 w-4 shrink-0" />
-                                    <span className="inline-flex items-center gap-1">تنبيه: متبقي للصرف { diff.toLocaleString() } <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
-                                  </div>
-                                )}
-                                {isExact && (
-                                  <div className="flex items-center gap-2 text-green-600 text-xs font-bold bg-green-500/10 p-2 rounded-lg">
-                                    <Check className="h-4 w-4 shrink-0" />
-                                    <span>تمت تغطية كامل قيمة العقد</span>
-                                  </div>
-                                )}
-                              </div>
+                              )}
+                              {isExact && (
+                                <div className="flex items-center gap-2 text-green-600 text-xs font-bold bg-green-500/10 p-2 rounded-lg">
+                                  <Check className="h-4 w-4 shrink-0" />
+                                  <span>تمت تغطية كامل قيمة العقد</span>
+                                </div>
+                              )}
                             </div>
-                          </Card>
-                        );
-                      })()
-                    )}
+                          </div>
+                        </Card>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
             )}
+          </div>
+        )}
 
             {/* الخطوة 5: بنود العقد */}
             {currentStep === 5 && (
@@ -3998,6 +3951,16 @@ export default function ContractForm() {
                       <span className="text-muted-foreground">القيمة المتفقة مع المورد:</span>
                       <p className="font-medium text-green-700 font-bold font-sans inline-flex items-center gap-1">{contractData.totalValue.toLocaleString("en-US")} <SaudiRiyal className="w-3.5 h-3.5 inline" /></p>
                     </div>
+                    <div>
+                      <span className="text-muted-foreground">آلية الاستحقاق والصرف:</span>
+                      <p className="font-medium text-foreground">
+                        {paymentSystem === "milestones" 
+                          ? "نظام المستخلصات بحسب الإنجاز" 
+                          : paymentSystem === "installments" 
+                            ? "نظام الدفعات المجدولة" 
+                            : "-"}
+                      </p>
+                    </div>
                     {(contractData.managementPercentage > 0 || (contractData.managementAmount && contractData.managementAmount > 0)) && (
                       <>
                         <div>
@@ -4022,7 +3985,7 @@ export default function ContractForm() {
                 </Card>
 
                 {/* ملخص الدفعات */}
-                {paymentSchedule.length > 0 && (
+                {paymentSystem === "installments" && paymentSchedule.length > 0 && (
                   <Card>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">جدول الدفعات ({paymentSchedule.length} دفعات)</CardTitle>
@@ -4055,6 +4018,21 @@ export default function ContractForm() {
                           );
                         })}
                       </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* بطاقة توضيحية لنظام المستخلصات في المراجعة */}
+                {paymentSystem === "milestones" && (
+                  <Card className="bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200/80 dark:border-emerald-900/40">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2 text-emerald-900 dark:text-emerald-200">
+                        <Check className="w-4 h-4 text-emerald-600" />
+                        آلية المستخلصات (حسب الإنجاز الفعلي)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-sm text-muted-foreground">
+                      لا توجد دفعات أو مستخلصات مجدولة مسبقاً لهذا العقد. يتم تقديم المستخلصات والصرف تدريجياً بحسب الإنجاز الفعلي والمراحل المنجزة في المشروع.
                     </CardContent>
                   </Card>
                 )}
