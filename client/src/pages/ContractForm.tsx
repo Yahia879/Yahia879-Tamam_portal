@@ -3049,9 +3049,7 @@ export default function ContractForm() {
                             >
                               <Plus className="w-3.5 h-3.5" />
                               <span>
-                                {paymentSystem === "milestones"
-                                  ? `إدراج مستخلص بين مستخلص ${index} ومستخلص ${index + 1}`
-                                  : `إدراج دفعة بين الدفعة ${index} والدفعة ${index + 1}`}
+                                إدراج دفعة بين الدفعة {index} والدفعة {index + 1}
                               </span>
                             </Button>
                             <div className="h-[1px] flex-1 bg-border/60 group-hover:bg-primary/40 transition-all" />
@@ -3103,7 +3101,7 @@ export default function ContractForm() {
                                 {!isPaid && <GripVertical className="h-5 w-5 hidden md:block" />}
                                 {isPaid && <Lock className="h-4 w-4 hidden md:block text-emerald-600 dark:text-emerald-400" />}
                                 <span className="font-bold text-primary md:text-foreground">
-                                  {paymentSystem === "milestones" ? `مستخلص ${index + 1}` : `الدفعة ${index + 1}`}
+                                  الدفعة {index + 1}
                                 </span>
                               </div>
                               {!isPaid && (
@@ -3119,14 +3117,11 @@ export default function ContractForm() {
                             </div>
                             
                             <div className="flex-1 space-y-4 w-full">
-                              {/* الصف الأول: معلومات الدفعة أو المستخلص */}
-                              <div className={cn(
-                                "grid gap-4 w-full",
-                                paymentSystem === "milestones" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-2 md:grid-cols-4"
-                              )}>
+                              {/* الصف الأول: معلومات الدفعة */}
+                              <div className="grid gap-4 w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
                                 <div className="space-y-1">
                                   <Label className="text-xs font-semibold">
-                                    {paymentSystem === "milestones" ? "التاريخ المتوقع للمستخلص" : "التاريخ الميلادي"}
+                                    التاريخ الميلادي
                                   </Label>
                                   <Input
                                     type="date"
@@ -3204,7 +3199,7 @@ export default function ContractForm() {
                                 </div>
                                 <div className="space-y-1">
                                   <Label className="text-xs font-semibold">
-                                    {paymentSystem === "milestones" ? "عنوان المستخلص" : "عنوان طلب الصرف"}
+                                    عنوان طلب الصرف
                                   </Label>
                                   <Input
                                     value={payment.name}
@@ -3218,82 +3213,78 @@ export default function ContractForm() {
                                       if (isPaid) return;
                                       updatePayment(payment.id, "name", e.target.value);
                                     }}
-                                    placeholder={paymentSystem === "milestones" ? `مستخلص ${index + 1}` : "عنوان الطلب"}
+                                    placeholder="عنوان الطلب"
                                   />
                                 </div>
 
-                                {paymentSystem !== "milestones" && (
-                                  <>
-                                    <div className="space-y-1">
-                                      <Label className="text-xs font-semibold text-foreground">النسبة (%) *</Label>
-                                      <Input
-                                        type="number"
-                                        value={payment.percentage || ""}
-                                        disabled={isPaid}
-                                        required
-                                        className={cn(
-                                          "w-full rounded-xl font-bold font-sans", 
-                                          isPaid 
-                                            ? "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner" 
-                                            : "text-primary"
-                                        )}
-                                        onChange={(e) => {
-                                          if (isPaid) return;
-                                          const pct = parseFloat(e.target.value) || 0;
-                                          const amount = contractData.totalValue ? (contractData.totalValue * pct) / 100 : 0;
-                                          setPaymentSchedule(prev => prev.map(p => 
-                                            p.id === payment.id ? { ...p, percentage: pct, amount: Number(amount.toFixed(2)) } : p
-                                          ));
-                                        }}
-                                        placeholder="0"
-                                        min="0"
-                                        max="100"
-                                      />
-                                    </div>
-                                    <div className="space-y-1">
-                                      <Label className="text-xs font-semibold">
-                                        {isPaid ? (isPartiallyPaid ? "المبلغ المتفق عليه (ر.س)" : "المبلغ المسدد (ر.س)") : "المبلغ"}
-                                      </Label>
-                                      <Input
-                                        type="number"
-                                        value={payment.amount || ""}
-                                        disabled={isPaid}
-                                        required
-                                        className={cn(
-                                          "w-full rounded-xl font-bold font-sans", 
-                                          isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
-                                        )}
-                                        onChange={(e) => {
-                                          if (isPaid) return;
-                                          const val = parseFloat(e.target.value) || 0;
-                                          const pct = contractData.totalValue ? (val / contractData.totalValue) * 100 : 0;
-                                          setPaymentSchedule(prev => prev.map(p => 
-                                            p.id === payment.id ? { ...p, amount: val, percentage: Number(pct.toFixed(2)) } : p
-                                          ));
-                                        }}
-                                        placeholder="0.00"
-                                      />
-                                      {isPartiallyPaid && paidAmt > 0 && (
-                                        <p className="text-[11px] text-amber-700 dark:text-amber-400 font-semibold pt-0.5">
-                                          المبلغ المسدد الفعلي: {paidAmt.toLocaleString()} ر.س
-                                        </p>
-                                      )}
-                                    </div>
-                                  </>
-                                )}
+                                <div className="space-y-1">
+                                  <Label className="text-xs font-semibold text-foreground">النسبة (%) *</Label>
+                                  <Input
+                                    type="number"
+                                    value={payment.percentage || ""}
+                                    disabled={isPaid}
+                                    required
+                                    className={cn(
+                                      "w-full rounded-xl font-bold font-sans", 
+                                      isPaid 
+                                        ? "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner" 
+                                        : "text-primary"
+                                    )}
+                                    onChange={(e) => {
+                                      if (isPaid) return;
+                                      const pct = parseFloat(e.target.value) || 0;
+                                      const amount = contractData.totalValue ? (contractData.totalValue * pct) / 100 : 0;
+                                      setPaymentSchedule(prev => prev.map(p => 
+                                        p.id === payment.id ? { ...p, percentage: pct, amount: Number(amount.toFixed(2)) } : p
+                                      ));
+                                    }}
+                                    placeholder="0"
+                                    min="0"
+                                    max="100"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs font-semibold">
+                                    {isPaid ? (isPartiallyPaid ? "المبلغ المتفق عليه (ر.س)" : "المبلغ المسدد (ر.س)") : "المبلغ"}
+                                  </Label>
+                                  <Input
+                                    type="number"
+                                    value={payment.amount || ""}
+                                    disabled={isPaid}
+                                    required
+                                    className={cn(
+                                      "w-full rounded-xl font-bold font-sans", 
+                                      isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
+                                    )}
+                                    onChange={(e) => {
+                                      if (isPaid) return;
+                                      const val = parseFloat(e.target.value) || 0;
+                                      const pct = contractData.totalValue ? (val / contractData.totalValue) * 100 : 0;
+                                      setPaymentSchedule(prev => prev.map(p => 
+                                        p.id === payment.id ? { ...p, amount: val, percentage: Number(pct.toFixed(2)) } : p
+                                      ));
+                                    }}
+                                    placeholder="0.00"
+                                  />
+                                  {isPartiallyPaid && paidAmt > 0 && (
+                                    <p className="text-[11px] text-amber-700 dark:text-amber-400 font-semibold pt-0.5">
+                                      المبلغ المسدد الفعلي: {paidAmt.toLocaleString()} ر.س
+                                    </p>
+                                  )}
+                                </div>
                               </div>
 
                               {/* الصف الثاني: تفاصيل الأعمال المطلوبة ونسبة الإنجاز لتفعيل الدفعة */}
                               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full">
                                 <div className="space-y-1 md:col-span-2 lg:col-span-2 text-right">
                                   <Label className="text-xs font-semibold">
-                                    {paymentSystem === "milestones" ? "وصف أعمال ومراحل المستخلص *" : "وصف الأعمال التي سوف تنفذ *"}
+                                    وصف الأعمال التي سوف تنفذ *
                                   </Label>
                                   <Textarea
                                     value={payment.description || ""}
                                     disabled={isPaid}
                                     required
-                                    placeholder={paymentSystem === "milestones" ? "وصف تفصيلي لأعمال ومراحل هذا المستخلص..." : "وصف تفصيلي للأعمال التي سوف تنفذ..."}
+                                    placeholder="وصف تفصيلي للأعمال التي سوف تنفذ..."
                                     rows={3}
                                     className={cn(
                                       "w-full rounded-xl text-right", 
@@ -3308,13 +3299,8 @@ export default function ContractForm() {
                                 <div className="space-y-1 md:col-span-2 lg:col-span-2 text-right">
                                   <div className="flex items-center justify-between">
                                     <Label className="text-xs font-semibold text-foreground">
-                                      {paymentSystem === "milestones" ? "نسبة الإنجاز المستهدفة للمستخلص (%) *" : "نسبة الإنجاز (%) *"}
+                                      نسبة الإنجاز (%) *
                                     </Label>
-                                    {paymentSystem === "milestones" && Number(payment.completionPercentage) === 100 && (
-                                      <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 text-[10px] font-bold">
-                                        المستخلص الختامي (100%)
-                                      </Badge>
-                                    )}
                                   </div>
                                   {(() => {
                                     const prevComp = (prevPayment?.completionPercentage !== undefined && prevPayment?.completionPercentage !== null && !isNaN(Number(prevPayment.completionPercentage)))
