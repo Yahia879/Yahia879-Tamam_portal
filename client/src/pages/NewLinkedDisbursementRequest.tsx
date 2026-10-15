@@ -59,6 +59,7 @@ import {
   Receipt,
   Layers,
   CreditCard,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -1544,6 +1545,9 @@ export default function NewLinkedDisbursementRequest() {
         fundingSupport: formData.fundingSupport,
         mainProjectName: formData.mainProjectName,
         isAdvancePayment: isAdvanceSelected,
+        reportId: isAdvanceSelected ? null : (selectedReport?.id || null),
+        reportNumber: isAdvanceSelected ? null : (selectedReport?.reportNumber || null),
+        recommendations: isAdvanceSelected ? "" : (selectedReport?.recommendations || ""),
       }),
       type: "metadata"
     }] : [];
@@ -2496,6 +2500,18 @@ export default function NewLinkedDisbursementRequest() {
                               </span>
                             </div>
                           </div>
+
+                          {selectedReport.recommendations && (
+                            <div className="p-3 bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/40 rounded-lg text-right shadow-xs">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1">
+                                <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                <span>توصية إدارة المشاريع المعتمدة:</span>
+                              </div>
+                              <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                                {selectedReport.recommendations}
+                              </p>
+                            </div>
+                          )}
 
                           <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/40 rounded-lg flex items-start gap-2.5 shadow-sm">
                             <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
