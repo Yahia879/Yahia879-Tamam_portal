@@ -89,6 +89,7 @@ const ROUTE_TITLE_MAP: { pattern: RegExp; title: string }[] = [
   { pattern: /^\/final-report\/new\/?$/, title: "تقرير ختامي جديد" },
   { pattern: /^\/final-report\/[^/]+\/?$/, title: "التقرير الختامي" },
   { pattern: /^\/progress-reports\/?$/, title: "تقارير الإنجاز" },
+  { pattern: /^\/progress-invoices\/?$/, title: "المستخلصات" },
   { pattern: /^\/progress-reports\/[^/]+\/print\/?$/, title: "طباعة تقرير الإنجاز" },
 
   // الموردين والعقود
