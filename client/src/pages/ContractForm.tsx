@@ -958,7 +958,7 @@ export default function ContractForm() {
           }
           if (schedule && !Array.isArray(schedule) && schedule.paymentSystem) {
             setPaymentSystem(schedule.paymentSystem);
-            if (Array.isArray(schedule.schedule)) {
+            if (schedule.paymentSystem === "installments" && Array.isArray(schedule.schedule)) {
               jsonSchedule = schedule.schedule;
             }
           } else if (Array.isArray(schedule) && schedule.length > 0) {
@@ -969,7 +969,7 @@ export default function ContractForm() {
         }
       }
 
-      if (existingContract.payments && existingContract.payments.length > 0) {
+      if (existingContract.payments && existingContract.payments.length > 0 && schedule?.paymentSystem !== "milestones") {
         parsedSchedule = existingContract.payments.map((p: any, idx: number) => {
           const comp = (p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "")
             ? Number(p.completionPercentage)
@@ -1401,33 +1401,29 @@ export default function ContractForm() {
     }
   }, [requestDetails]);
 
-  // إضافة دفعة أو مستخلص جديد في نهاية الجدول
+  // إضافة دفعة جديدة في نهاية الجدول
   const addPayment = () => {
     if (!paymentSystem) {
       toast.info("يرجى اختيار آلية استحقاق وصرف مستحقات العقد (دفعات أو مستخلصات) أولاً");
       return;
     }
-    const has100 = paymentSchedule.some(p => Number(p.completionPercentage) >= 100);
-    if (paymentSystem === "milestones" && has100) {
-      toast.info("لا يمكن إضافة مستخلص في حال وجود مستخلص نسبته 100%");
+    if (paymentSystem === "milestones") {
       return;
     }
     const lastPayment = paymentSchedule.length > 0 ? paymentSchedule[paymentSchedule.length - 1] : null;
     if (lastPayment && Number(lastPayment.completionPercentage) >= 100) {
-      toast.info(paymentSystem === "milestones"
-        ? "لا يمكن إضافة مستخلص في حال وجود مستخلص نسبته 100%"
-        : "الدفعة الأخيرة بلغت نسبة إنجازها 100%. لا يمكن إضافة دفعات بعد إنجاز كامل.");
+      toast.info("الدفعة الأخيرة بلغت نسبة إنجازها 100%. لا يمكن إضافة دفعات بعد إنجاز كامل.");
       return;
     }
     let suggestedCompletion: number | undefined = undefined;
     if (lastPayment && lastPayment.completionPercentage !== undefined && lastPayment.completionPercentage !== null && !isNaN(Number(lastPayment.completionPercentage))) {
-      suggestedCompletion = Math.min(100, Number(lastPayment.completionPercentage) + (paymentSystem === "milestones" ? 25 : 10));
+      suggestedCompletion = Math.min(100, Number(lastPayment.completionPercentage) + 10);
     } else if (paymentSchedule.length === 0) {
-      suggestedCompletion = paymentSystem === "milestones" ? 25 : 0;
+      suggestedCompletion = 0;
     }
     const newPayment: PaymentScheduleItem = {
       id: `payment-${Date.now()}`,
-      name: paymentSystem === "milestones" ? `مستخلص ${paymentSchedule.length + 1}` : `الدفعة ${paymentSchedule.length + 1}`,
+      name: `الدفعة ${paymentSchedule.length + 1}`,
       type: "progress",
       percentage: 0,
       amount: 0,
@@ -1482,10 +1478,9 @@ export default function ContractForm() {
       suggestedDueDate = prevPayment.dueDate;
     }
 
-    const isMilestones = paymentSystem === "milestones";
     const newPayment: PaymentScheduleItem = {
       id: `payment-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-      name: isMilestones ? `مستخلص ${targetIndex + 1}` : `الدفعة ${targetIndex + 1}`,
+      name: `الدفعة ${targetIndex + 1}`,
       type: "progress",
       percentage: 0,
       amount: 0,
@@ -1498,23 +1493,17 @@ export default function ContractForm() {
     newSchedule.splice(targetIndex, 0, newPayment);
     const sorted = sortPaymentsByDate(newSchedule);
 
-    // إعادة ترقيم أسماء الدفعات والمستخلصات التلقائية غير المعدلة يدوياً
+    // إعادة ترقيم أسماء الدفعات التلقائية غير المعدلة يدوياً
     const renamed = sorted.map((p, idx) => {
       if (p.isPaid) return p;
       if (/^الدفعة \d+$/.test(p.name)) {
         return { ...p, name: `الدفعة ${idx + 1}` };
       }
-      if (/^مستخلص \d+$/.test(p.name)) {
-        return { ...p, name: `مستخلص ${idx + 1}` };
-      }
       return p;
     });
 
     setPaymentSchedule(renamed);
-    toast.success(isMilestones
-      ? `تم إدراج مستخلص جديد بين المستخلصات (الموضع: مستخلص ${targetIndex + 1})`
-      : `تم إدراج دفعة جديدة بين الدفعات (الموضع: الدفعة ${targetIndex + 1})`
-    );
+    toast.success(`تم إدراج دفعة جديدة بين الدفعات (الموضع: الدفعة ${targetIndex + 1})`);
   };
 
   // إضافة صنف لدفعة محددة (خاص بسدانة)
@@ -1787,53 +1776,13 @@ export default function ContractForm() {
           return false;
         }
 
-        // في حال عدم إضافة دفعات أو مستخلصات، يمكن تخطي هذه الخطوة
-        if (paymentSchedule.length === 0) {
+        // في نظام المستخلصات: لا يتم تحديد أو جدولة مستخلصات مسبقة أثناء إنشاء العقد
+        if (paymentSystem === "milestones") {
           return true;
         }
 
-        // في نظام المستخلصات: التحقق من صحة المراحل ونسبة إنجاز المستخلص الأخير (100%)
-        if (paymentSystem === "milestones") {
-          for (let i = 0; i < paymentSchedule.length; i++) {
-            const p = paymentSchedule[i];
-            if (!p.name) {
-              toast.error(`يرجى إدخال عنوان للمستخلص ${i + 1}`);
-              return false;
-            }
-            if (!p.description || !p.description.trim()) {
-              toast.error(`يرجى إدخال وصف الأعمال للمستخلص ${i + 1}`);
-              return false;
-            }
-            if (p.completionPercentage === undefined || p.completionPercentage === null || isNaN(p.completionPercentage) || p.completionPercentage < 0 || p.completionPercentage > 100) {
-              toast.error(`يرجى تحديد نسبة إنجاز صحيحة (بين 0 و 100) للمستخلص ${i + 1}`);
-              return false;
-            }
-            if (i > 0) {
-              const prevComp = paymentSchedule[i - 1].completionPercentage;
-              if (prevComp !== undefined && prevComp !== null && !isNaN(prevComp)) {
-                if (p.completionPercentage <= prevComp) {
-                  toast.error(`نسبة إنجاز المستخلص ${i + 1} (${p.completionPercentage}%) يجب أن تكون أكبر من نسبة إنجاز المستخلص السابق (${paymentSchedule[i - 1].name || `مستخلص ${i}`}: ${prevComp}%)`);
-                  return false;
-                }
-              }
-            }
-            if (i < paymentSchedule.length - 1) {
-              const nextComp = paymentSchedule[i + 1].completionPercentage;
-              if (nextComp !== undefined && nextComp !== null && !isNaN(nextComp)) {
-                if (p.completionPercentage >= nextComp) {
-                  toast.error(`نسبة إنجاز المستخلص ${i + 1} (${p.completionPercentage}%) يجب أن تكون أقل من نسبة إنجاز المستخلص التالي (${paymentSchedule[i + 1].name || `مستخلص ${i + 2}`}: ${nextComp}%)`);
-                  return false;
-                }
-              }
-            }
-          }
-
-          const lastMilestone = paymentSchedule[paymentSchedule.length - 1];
-          if (Number(lastMilestone.completionPercentage) !== 100) {
-            toast.error(`يجب أن تصل نسبة إنجاز المستخلص الأخير (${lastMilestone.name || `مستخلص ${paymentSchedule.length}`}) إلى 100% لإقفال جدول المستخلصات (النسبة الحالية: ${lastMilestone.completionPercentage || 0}%)`);
-            return false;
-          }
-
+        // في نظام الدفعات: في حال عدم إضافة دفعات، يمكن تخطي هذه الخطوة
+        if (paymentSchedule.length === 0) {
           return true;
         }
 
@@ -1962,7 +1911,7 @@ export default function ContractForm() {
         startDate: contractData.startDate,
         customTerms: contractData.notes || undefined,
         // جدول الدفعات ونظام الصرف
-        paymentSchedule: JSON.stringify({ paymentSystem: paymentSystem || "installments", schedule: paymentSchedule }),
+        paymentSchedule: JSON.stringify({ paymentSystem: paymentSystem || "installments", schedule: paymentSystem === "milestones" ? [] : paymentSchedule }),
         paymentSystem: (paymentSystem || undefined) as any,
         // بنود العقد المخصصة
         clauseValues: JSON.stringify(clauseValues.filter(c => c.isIncluded)),
@@ -2020,7 +1969,7 @@ export default function ContractForm() {
       contractDateHijri: contractData.startDateHijri ? `${contractData.startDateHijri.replace(/[^0-9/]/g, '')} هـ` : (contractData.startDate ? `${toHijriDate(contractData.startDate)} هـ` : undefined),
       startDate: contractData.startDate,
       // جدول الدفعات ونظام الصرف
-      paymentSchedule: JSON.stringify({ paymentSystem: paymentSystem || "installments", schedule: paymentSchedule }),
+      paymentSchedule: JSON.stringify({ paymentSystem: paymentSystem || "installments", schedule: paymentSystem === "milestones" ? [] : paymentSchedule }),
       paymentSystem: (paymentSystem || undefined) as any,
       // بنود العقد
       clauseValues: clauseValues.length > 0 ? JSON.stringify(clauseValues.filter(c => c.isIncluded)) : undefined,
@@ -2090,7 +2039,7 @@ export default function ContractForm() {
       customTerms: contractData.notes || undefined,
       
       // جدول الدفعات والبنود ونظام الصرف
-      paymentSchedule: JSON.stringify({ paymentSystem: paymentSystem || "installments", schedule: paymentSchedule }),
+      paymentSchedule: JSON.stringify({ paymentSystem: paymentSystem || "installments", schedule: paymentSystem === "milestones" ? [] : paymentSchedule }),
       paymentSystem: (paymentSystem || undefined) as any,
       clauseValues: clauseValues.length > 0 ? JSON.stringify(clauseValues.filter(c => c.isIncluded)) : undefined,
       customClausesJson: JSON.stringify({
@@ -2949,37 +2898,54 @@ export default function ContractForm() {
                   </div>
                 </div>
 
-                {(() => {
-                  const has100Milestone = paymentSchedule.some(p => Number(p.completionPercentage) >= 100);
-                  const isScheduleClosed = paymentSystem === "milestones" && has100Milestone;
+                {/* في حال اختيار نظام المستخلصات: إخفاء جدول الدفعات وعرض بطاقة معلومات توضيحية */}
+                {paymentSystem === "milestones" && (
+                  <Card className="bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/50 p-5 rounded-2xl">
+                    <div className="flex items-start gap-3.5">
+                      <div className="p-2.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0 mt-0.5">
+                        <Check className="w-5 h-5" />
+                      </div>
+                      <div className="space-y-1.5 text-right">
+                        <h4 className="text-sm font-bold text-emerald-950 dark:text-emerald-200">
+                          نظام المستخلصات بحسب الإنجاز الفعلي
+                        </h4>
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                          في نظام المستخلصات، لا يتم تحديد أو جدولة مستخلصات مسبقة أثناء إنشاء العقد. يتم تقديم المستخلصات وصرفها لاحقاً وبشكل مرن بناءً على نسب الإنجاز الفعلية والمراحل المنجزة في المشروع.
+                        </p>
+                        <div className="pt-1 text-xs text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1.5">
+                          <span>✓ يمكنك المتابعة للخطوة التالية مباشرة دون الحاجة لجدولة أي مستخلصات.</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                )}
 
-                  return (
+                {/* في حال عدم اختيار آلية الاستحقاق بعد */}
+                {!paymentSystem && (
+                  <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-xl space-y-1">
+                    <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p className="font-semibold text-foreground">لم يتم اختيار آلية الاستحقاق بعد</p>
+                    <p className="text-sm text-amber-600 dark:text-amber-400">يرجى اختيار آلية الاستحقاق (دفعات أو مستخلصات) من الخيارات أعلاه للمتابعة</p>
+                  </div>
+                )}
+
+                {/* في حال اختيار نظام الدفعات: يظهر جدول الدفعات المجدولة */}
+                {paymentSystem === "installments" && (
+                  <div className="space-y-6">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <h3 className="font-medium flex items-center gap-2">
-                          <span>{paymentSystem === "milestones" ? "جدول المستخلصات والمراحل" : "جدول الدفعات"}</span>
+                          <span>جدول الدفعات</span>
                           {isSedanaProgram && (
                             <Badge variant="outline" className="bg-sky-50 text-sky-800 border-sky-300 font-bold text-xs">
                               برنامج سدانة - ربط البنود التوريدية
                             </Badge>
                           )}
-                          {paymentSystem === "milestones" && (
-                            <Badge variant="outline" className={cn(
-                              "font-bold text-xs",
-                              isScheduleClosed 
-                                ? "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300" 
-                                : "bg-sky-50 text-sky-800 border-sky-300"
-                            )}>
-                              {isScheduleClosed ? "مكتمل ومقفل (100% إنجاز)" : "نظام مستخلصات"}
-                            </Badge>
-                          )}
                         </h3>
                         <p className="text-sm text-muted-foreground">
-                          {paymentSystem === "milestones"
-                            ? "حدد المستخلصات ومراحل الإنجاز حتى الوصول إلى 100% (تُحدد وتصرف المبالغ مرناً لاحقاً بناءً على الإنجاز الفعلي)"
-                            : (isSedanaProgram
-                              ? "حدد الدفعات واربط كل دفعة بالأصناف أو البنود الموردة خلالها لتسهيل الربط بأمر الإدخال المستودعي لاحقاً"
-                              : "حدد الدفعات ومواعيدها وقيمها")}
+                          {isSedanaProgram
+                            ? "حدد الدفعات واربط كل دفعة بالأصناف أو البنود الموردة خلالها لتسهيل الربط بأمر الإدخال المستودعي لاحقاً"
+                            : "حدد الدفعات ومواعيدها وقيمها"}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -2998,30 +2964,15 @@ export default function ContractForm() {
                         </Button>
                         <Button 
                           onClick={addPayment} 
-                          disabled={isScheduleClosed}
-                          variant={isScheduleClosed ? "secondary" : "outline"}
+                          variant="outline"
                           size="sm" 
-                          className={cn(
-                            "rounded-xl",
-                            isScheduleClosed && "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 cursor-not-allowed opacity-90"
-                          )}
+                          className="rounded-xl"
                         >
-                          {isScheduleClosed ? (
-                            <>
-                              <Check className="h-4 w-4 ml-1.5 text-emerald-600" />
-                              تم إقفال الجدول (100%)
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="h-4 w-4 ml-1.5" />
-                              {paymentSystem === "milestones" ? "إضافة مستخلص" : "إضافة دفعة"}
-                            </>
-                          )}
+                          <Plus className="h-4 w-4 ml-1.5" />
+                          إضافة دفعة
                         </Button>
                       </div>
                     </div>
-                  );
-                })()}
 
                 {/* لوحة استعراض بنود العقد والكميات المتفق عليها - تظهر لبرامج سدانة */}
                 {isSedanaProgram && availableContractItems.length > 0 && (
@@ -3065,27 +3016,13 @@ export default function ContractForm() {
                   </Card>
                 )}
 
-                {paymentSchedule.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg space-y-1">
-                    <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    {paymentSystem === "milestones" ? (
-                      <>
-                        <p className="font-semibold text-foreground">لم يتم إضافة مستخلصات بعد</p>
-                        <p className="text-sm">يمكنك تخطي هذه الخطوة إذا لم تكن هناك مستخلصات محددة</p>
-                      </>
-                    ) : paymentSystem === "installments" ? (
-                      <>
+                    {paymentSchedule.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg space-y-1">
+                        <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
                         <p className="font-semibold text-foreground">لم يتم إضافة دفعات بعد</p>
                         <p className="text-sm">يمكنك تخطي هذه الخطوة إذا لم تكن هناك دفعات محددة</p>
-                      </>
+                      </div>
                     ) : (
-                      <>
-                        <p className="font-semibold text-foreground">لم يتم اختيار آلية الصرف بعد</p>
-                        <p className="text-sm text-amber-600 dark:text-amber-400">يرجى اختيار آلية الاستحقاق (دفعات أو مستخلصات) من الخيارات أعلاه للمتابعة</p>
-                      </>
-                    )}
-                  </div>
-                ) : (
                   <div className="space-y-4">
                     {paymentSchedule.map((payment, index) => {
                       const agreedAmt = Number(payment.agreedAmount || payment.amount || 0);
