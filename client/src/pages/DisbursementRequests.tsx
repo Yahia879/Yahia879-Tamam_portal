@@ -71,6 +71,7 @@ import {
   Loader2,
   ShieldAlert,
   Info,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { exportStyledExcel } from "@/lib/excelExportHelper";
@@ -1782,6 +1783,38 @@ export default function DisbursementRequests() {
                         </div>
                       )}
 
+                      {/* توصية إدارة المشاريع وتقرير الإنجاز المرتبط */}
+                      {(metadata?.recommendations || metadata?.reportId || metadata?.requestType === "project_linked") && (
+                        <div className="p-4 border border-emerald-200 dark:border-emerald-800 rounded-xl bg-emerald-50/40 dark:bg-emerald-950/20 space-y-3 text-right" dir="rtl">
+                          <div className="flex items-center justify-between border-b border-emerald-200 dark:border-emerald-800 pb-2">
+                            <h4 className="font-bold text-xs text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
+                              <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                              توصية إدارة المشاريع المعتمدة
+                            </h4>
+                            {metadata?.reportId && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => window.open(`/progress-reports/${metadata.reportId}/print`, "_blank")}
+                                className="h-7 text-[11px] gap-1 font-bold text-emerald-700 border-emerald-300 bg-white hover:bg-emerald-50 dark:bg-slate-900 dark:text-emerald-400 dark:border-emerald-700 shadow-xs"
+                              >
+                                <FileText className="h-3 w-3 ml-1" />
+                                معاينة تقرير الإنجاز (PDF)
+                              </Button>
+                            )}
+                          </div>
+                          {metadata?.recommendations ? (
+                            <p className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed bg-white/70 dark:bg-slate-900/50 p-2.5 rounded-lg border border-emerald-100 dark:border-emerald-900">
+                              {metadata.recommendations}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground italic">
+                              تم ربط الطلب بتقرير الإنجاز رقم {metadata?.reportNumber || `#${metadata?.reportId}`}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       {metadata && metadata.requestType && metadata.requestType !== "project_linked" && metadata.requestType !== "custom_standard" && (
                         <div className="p-4 border rounded-xl bg-slate-50 dark:bg-slate-900/50 space-y-3 text-right" dir="rtl">
                           <h4 className="font-bold text-xs text-primary border-b pb-2">تفاصيل الطلب والبيانات المالية</h4>
@@ -1899,6 +1932,51 @@ export default function DisbursementRequests() {
                   <p className="text-xs text-slate-500">المشروع: {selectedRequest.projectName}</p>
                 )}
               </div>
+
+              {/* توصية إدارة المشاريع لصاحب الاعتماد */}
+              {(() => {
+                let approveMetadata: any = null;
+                if (selectedRequest?.attachmentsJson) {
+                  try {
+                    const atts = JSON.parse(selectedRequest.attachmentsJson);
+                    if (Array.isArray(atts)) {
+                      const linkedAtt = atts.find((a: any) => a.name === "linked_request_info");
+                      if (linkedAtt && linkedAtt.url) {
+                        approveMetadata = JSON.parse(linkedAtt.url);
+                      }
+                    }
+                  } catch (e) {}
+                }
+                if (!approveMetadata?.recommendations && !approveMetadata?.reportId) return null;
+
+                return (
+                  <div className="rounded-lg bg-emerald-50/70 dark:bg-emerald-950/25 border border-emerald-200 dark:border-emerald-800 p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                        <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        توصية إدارة المشاريع
+                      </span>
+                      {approveMetadata.reportId && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(`/progress-reports/${approveMetadata.reportId}/print`, "_blank")}
+                          className="h-7 text-[10px] gap-1 font-bold text-emerald-700 border-emerald-300 bg-white hover:bg-emerald-50 dark:bg-slate-900 dark:text-emerald-400 dark:border-emerald-700"
+                        >
+                          <FileText className="h-3 w-3 ml-1" />
+                          معاينة تقرير الإنجاز (PDF)
+                        </Button>
+                      )}
+                    </div>
+                    {approveMetadata.recommendations && (
+                      <p className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed bg-white/80 dark:bg-slate-900/60 p-2.5 rounded border border-emerald-100 dark:border-emerald-900">
+                        {approveMetadata.recommendations}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
               <div className="space-y-2">
                 <Label>ملاحظات الاعتماد (اختياري)</Label>
                 <Textarea
