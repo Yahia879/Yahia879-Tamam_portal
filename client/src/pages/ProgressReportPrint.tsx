@@ -753,9 +753,11 @@ export default function ProgressReportPrint() {
                       </div>
                     )}
                     {report.recommendations && (
-                      <div>
-                        <h4 className="font-bold text-xs sm:text-sm text-gray-700 mb-1">■ التوصيات والمقترحات:</h4>
-                        <p className="text-xs sm:text-sm text-gray-600 bg-gray-50/50 p-2 rounded-md border border-gray-100 whitespace-pre-wrap break-words [word-break:break-word]">{report.recommendations}</p>
+                      <div className="p-3 bg-amber-50/60 border border-amber-200/80 rounded-md">
+                        <h4 className="font-bold text-xs sm:text-sm text-amber-900 mb-1 flex items-center gap-1.5">
+                          ■ توصية إدارة المشاريع:
+                        </h4>
+                        <p className="text-xs sm:text-sm text-gray-800 whitespace-pre-wrap break-words [word-break:break-word]">{report.recommendations}</p>
                       </div>
                     )}
                   </div>
