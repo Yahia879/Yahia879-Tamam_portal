@@ -61,6 +61,7 @@ import {
   ShoppingCart,
   ShoppingBag,
   Boxes,
+  FileSpreadsheet,
 } from "lucide-react";
 import { CSSProperties, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
@@ -150,6 +151,7 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
     }
     if (["super_admin", "system_admin", "projects_office", "general_manager", "executive_director"].includes(role) || isExecDirector) {
       items.push({ icon: TrendingUp, label: "تقارير الإنجاز", path: "/progress-reports" });
+      items.push({ icon: FileSpreadsheet, label: "المستخلصات", path: "/progress-invoices" });
       items.push({ icon: BarChart3, label: "التقارير الفنية", path: "/reports" });
     }
     if (role === "field_team") {
@@ -346,6 +348,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   }
   if (has("progress_reports") || has("progress_reports.view") || has("progress_reports.add") || has("progress_reports.edit") || has("progress_reports.revoke_approval") || has("progress_reports.exception_approve")) {
     engineeringItems.push({ icon: TrendingUp,  label: "تقارير الإنجاز", path: "/progress-reports" });
+    engineeringItems.push({ icon: FileSpreadsheet, label: "المستخلصات", path: "/progress-invoices" });
   }
   if (has("project_reports") || has("project_reports.view") || has("project_reports.create")) {
     engineeringItems.push({ icon: FileText, label: "تقارير المشاريع", path: "/project-reports" });
