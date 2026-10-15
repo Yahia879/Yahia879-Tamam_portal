@@ -73,6 +73,7 @@ import {
   Upload,
   X,
   Loader2,
+  ShieldCheck,
   ShieldAlert,
   XCircle,
   Info,
@@ -1226,6 +1227,18 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         contractPaymentId: isManual ? undefined : parsedPaymentId,
         paymentId: isManual ? parsedPaymentId : undefined,
         description: report.workSummary || "",
+        attachments: [
+          {
+            name: "linked_request_info",
+            url: JSON.stringify({
+              requestType: "project_linked",
+              reportId: report.id,
+              reportNumber: report.reportNumber,
+              recommendations: report.recommendations || "",
+            }),
+            type: "metadata"
+          }
+        ],
       });
     };
 
@@ -1790,6 +1803,34 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                           </div>
                         </div>
                       )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Card 5: توصية إدارة المشاريع */}
+                <Card className="border-border/60 shadow-sm border-emerald-500/30 bg-emerald-50/10 dark:bg-emerald-950/5">
+                  <CardHeader className="bg-emerald-50/40 dark:bg-emerald-950/20 border-b border-border/40 py-4">
+                    <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                      <ShieldCheck className="w-4.5 h-4.5 text-emerald-600" />
+                      توصية إدارة المشاريع
+                    </CardTitle>
+                    <CardDescription className="text-xs text-muted-foreground">
+                      توصية المهندس المشرف وإدارة المشاريع بشأن إنجاز هذه المرحلة وصرف الدفعة المالية للمستفيد
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6 space-y-3">
+                    <div className="space-y-2">
+                      <Label className="font-semibold text-foreground flex items-center justify-between">
+                        <span>نص توصية إدارة المشاريع</span>
+                        <span className="text-xs font-normal text-muted-foreground">(تُنقل تلقائياً لطلب الصرف لتظهر لصناع القرار أثناء الاعتماد)</span>
+                      </Label>
+                      <Textarea
+                        value={newReport.recommendations}
+                        onChange={(e) => setNewReport({ ...newReport, recommendations: e.target.value })}
+                        placeholder="اكتب هنا توصية إدارة المشاريع بالتفصيل (مثال: نوصي بصرف الدفعة المحددة نظراً لمطابقة الأعمال المنفذة على أرض الواقع للمواصفات الفنية المعتمدة...)"
+                        rows={4}
+                        className="w-full min-h-[110px] leading-relaxed text-foreground text-right"
+                      />
                     </div>
                   </CardContent>
                 </Card>
@@ -2380,8 +2421,13 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 
                 {selectedReport.recommendations && (
                   <div className="space-y-2">
-                    <h3 className="font-semibold">التوصيات</h3>
-                    <p className="text-muted-foreground whitespace-pre-wrap">{selectedReport.recommendations}</p>
+                    <h3 className="font-semibold text-primary flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4" />
+                      توصية إدارة المشاريع
+                    </h3>
+                    <div className="p-3 bg-muted/40 rounded-lg border text-foreground whitespace-pre-wrap leading-relaxed">
+                      {selectedReport.recommendations}
+                    </div>
                   </div>
                 )}
 
