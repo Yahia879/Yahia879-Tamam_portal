@@ -120,12 +120,13 @@ export default function NewLinkedDisbursementRequest() {
 
   // استرجاع معلمات الرابط عند التحويل المباشر من صفحة المشروع
   const initialUrlParams = useMemo(() => {
-    if (typeof window === "undefined") return { projectId: 0, isAdvance: false, paymentId: "" };
+    if (typeof window === "undefined") return { projectId: 0, isAdvance: false, paymentId: "", reportId: 0 };
     const sp = new URLSearchParams(window.location.search);
     return {
       projectId: parseInt(sp.get("projectId") || "0") || 0,
       isAdvance: sp.get("isAdvance") === "true" || sp.get("paymentNumber") === "1",
       paymentId: sp.get("paymentId") || "",
+      reportId: parseInt(sp.get("reportId") || "0") || 0,
     };
   }, []);
 
@@ -225,8 +226,9 @@ export default function NewLinkedDisbursementRequest() {
   const [showAttachmentFields, setShowAttachmentFields] = useState<boolean>(() => {
     return Boolean(savedState?.formData?.linkUrl || savedState?.showAttachmentFields);
   });
-  const [selectedReportId, setSelectedReportId] = useState<number | null>(() => savedState?.selectedReportId ?? null);
+  const [selectedReportId, setSelectedReportId] = useState<number | null>(() => (initialUrlParams.reportId > 0 ? initialUrlParams.reportId : savedState?.selectedReportId ?? null));
   const [isAdvanceSelected, setIsAdvanceSelected] = useState<boolean>(() => {
+    if (initialUrlParams.reportId > 0) return false;
     if (initialUrlParams.projectId > 0 && initialUrlParams.isAdvance) return true;
     return savedState?.isAdvanceSelected ?? false;
   });
@@ -238,6 +240,7 @@ export default function NewLinkedDisbursementRequest() {
     if (typeof window === "undefined") return;
     const sp = new URLSearchParams(window.location.search);
     const qProjectId = parseInt(sp.get("projectId") || "0") || 0;
+    const qReportId = parseInt(sp.get("reportId") || "0") || 0;
     const qIsAdvance = sp.get("isAdvance") === "true" || sp.get("paymentNumber") === "1";
     if (qProjectId > 0) {
       setIsCustom(false);
@@ -248,10 +251,16 @@ export default function NewLinkedDisbursementRequest() {
         ...prev,
         projectId: qProjectId,
       }));
-      if (qIsAdvance) {
+      if (qReportId > 0) {
+        setSelectedReportId(qReportId);
+        setIsAdvanceSelected(false);
+      } else if (qIsAdvance) {
         setIsAdvanceSelected(true);
         setSelectedReportId(null);
       }
+    } else if (qReportId > 0) {
+      setSelectedReportId(qReportId);
+      setIsAdvanceSelected(false);
     }
   }, []);
 
@@ -1120,6 +1129,13 @@ export default function NewLinkedDisbursementRequest() {
   
   // تحديث بيانات المورد من العقد وتقرير الإنجاز والبيانات المالية تلقائياً
   useEffect(() => {
+    const isInvoice = Boolean(
+      (selectedReport?.workSummary && /\[نوع:\s*مستخلص/i.test(selectedReport.workSummary)) ||
+      (selectedReport?.title && selectedReport.title.includes("مستخلص")) ||
+      (contractDetails?.contract?.paymentSystem === "milestones") ||
+      (projectContracts?.contracts?.some((c: any) => c.paymentSystem === "milestones" || String(c.paymentScheduleJson || "").includes("milestones")))
+    );
+
     const paymentAmt = paymentInfo ? parseFloat(String(paymentInfo.amount || "0")) : 0;
     const reportBudget = selectedReport ? parseFloat(String(selectedReport.budgetSpent || "0")) : 0;
     const quotationAmt = parseFloat(String(
@@ -1138,13 +1154,25 @@ export default function NewLinkedDisbursementRequest() {
     ));
     const projectBudgetAmt = parseFloat(String((projectDetails as any)?.budget || (projectDetails as any)?.actualCost || "0"));
 
+    const progressPct = Number(selectedReport?.actualProgress || 0);
+    let invoiceContractAmt = contractAmt;
+    if (invoiceContractAmt <= 0 && selectedReport?.workSummary) {
+      const match = selectedReport.workSummary.match(/\[قيمة العقد:\s*([\d\.]+)\]/);
+      if (match) invoiceContractAmt = parseFloat(match[1]) || 0;
+    }
+    const invoiceAutoCalculatedAmount = (isInvoice && (invoiceContractAmt > 0 || reportBudget > 0))
+      ? (invoiceContractAmt > 0 && progressPct > 0 ? (invoiceContractAmt * progressPct) / 100 : reportBudget)
+      : 0;
+
     const advanceAmt = (isAdvanceSelected && advancePayment) ? parseFloat(String(advancePayment.amount || "0")) : 0;
-    // الأولوية الأولى هي قيمة الدفعة المحددة في قسم الدفعات للمشروع أو الدفعة المقدمة
+    // الأولوية الأولى هي قيمة المستخلص المحسوبة تلقائياً في حال المستخلص، أو الدفعة المقدمة، أو الدفعة المجدولة
     const calculatedAmount = advanceAmt > 0
       ? advanceAmt
-      : (paymentAmt > 0
-        ? paymentAmt
-        : (reportBudget > 0 ? reportBudget : (contractAmt > 0 ? contractAmt : (quotationAmt > 0 ? quotationAmt : projectBudgetAmt))));
+      : (invoiceAutoCalculatedAmount > 0
+        ? invoiceAutoCalculatedAmount
+        : (paymentAmt > 0
+          ? paymentAmt
+          : (reportBudget > 0 ? reportBudget : (contractAmt > 0 ? contractAmt : (quotationAmt > 0 ? quotationAmt : projectBudgetAmt)))));
 
     const shouldAutoFill = isAdvanceSelected || selectedReportId !== lastAutoFilledReportId.current || (suppliers.length > 0 && (!suppliers[0].amount || suppliers[0].amount === 0));
 
@@ -1160,12 +1188,14 @@ export default function NewLinkedDisbursementRequest() {
           const secondPartyBank = contractDetails?.contract?.secondPartyBankName || (projectContracts?.contracts?.[0] as any)?.secondPartyBankName || "";
           const targetWork = isAdvanceSelected
             ? (advancePayment?.description ? `${advancePayment.description} (دفعة مقدمة)` : "دفعة مقدمة وفق شروط العقد")
-            : (selectedReport?.title || contractDetails?.contract?.contractTitle || "أعمال منفذة حسب تقرير الإنجاز");
+            : (isInvoice
+              ? (selectedReport?.title ? `مستخلص إنجاز (${progressPct}%) - ${selectedReport.title}` : `مستخلص إنجاز بنسبة ${progressPct}%`)
+              : (selectedReport?.title || contractDetails?.contract?.contractTitle || "أعمال منفذة حسب تقرير الإنجاز"));
           
           updated[0] = {
             ...updated[0],
             amount: calculatedAmount,
-            agreedAmount: contractAmt > 0 ? contractAmt : (updated[0].agreedAmount > 0 ? updated[0].agreedAmount : calculatedAmount),
+            agreedAmount: invoiceContractAmt > 0 ? invoiceContractAmt : (contractAmt > 0 ? contractAmt : (updated[0].agreedAmount > 0 ? updated[0].agreedAmount : calculatedAmount)),
             name: updated[0].name || secondPartyName,
             iban: updated[0].iban || secondPartyIban,
             bank: updated[0].bank || secondPartyBank,
@@ -1175,6 +1205,10 @@ export default function NewLinkedDisbursementRequest() {
         }
         return prev;
       });
+      setFormData(prev => ({
+        ...prev,
+        amount: calculatedAmount,
+      }));
     }
   }, [selectedReport, isAdvanceSelected, advancePayment, paymentInfo, contractDetails, projectContracts, projectFinancials, projectDetails, selectedReportId]);
 
@@ -1259,21 +1293,29 @@ export default function NewLinkedDisbursementRequest() {
   const isMilestoneLinkedReport = Boolean(
     !isAdvanceSelected && (
       (selectedReport?.workSummary && /\[معرف المستخلص:/i.test(selectedReport.workSummary)) ||
+      (selectedReport?.workSummary && /\[نوع:\s*مستخلص/i.test(selectedReport.workSummary)) ||
+      (selectedReport?.title && selectedReport.title.includes("مستخلص")) ||
       (paymentInfo && (paymentInfo.source === "milestone" || String(paymentInfo.id).startsWith("disb-"))) ||
+      (contractDetails?.contract?.paymentSystem === "milestones") ||
       (projectDetails?.contracts?.some((c: any) => c.paymentSystem === "milestones" || String(c.paymentScheduleJson || "").includes("milestones")))
     )
   );
 
   const reportProgress = Number(selectedReport?.actualProgress ?? formData.completionPercentage ?? 0);
-  const disbPct = contractAmount > 0 ? Number(((totalAmount / contractAmount) * 100).toFixed(2)) : 0;
-  const expectedProgressAmount = contractAmount > 0 
-    ? (contractAmount * reportProgress) / 100 
-    : (paymentInfo?.agreedAmount || paymentInfo?.amount ? Number(paymentInfo.agreedAmount || paymentInfo.amount) : 0);
+  let effContractAmount = contractAmount;
+  if (effContractAmount <= 0 && selectedReport?.workSummary) {
+    const match = selectedReport.workSummary.match(/\[قيمة العقد:\s*([\d\.]+)\]/);
+    if (match) effContractAmount = parseFloat(match[1]) || 0;
+  }
+  const disbPct = effContractAmount > 0 ? Number(((totalAmount / effContractAmount) * 100).toFixed(2)) : 0;
+  const expectedProgressAmount = effContractAmount > 0 
+    ? (effContractAmount * reportProgress) / 100 
+    : (selectedReport?.budgetSpent ? parseFloat(String(selectedReport.budgetSpent)) : (paymentInfo?.agreedAmount || paymentInfo?.amount ? Number(paymentInfo.agreedAmount || paymentInfo.amount) : 0));
 
   const isDisbursementUnderProgress = Boolean(
     isMilestoneLinkedReport && reportProgress > 0 && (
-      (contractAmount > 0 && disbPct < (reportProgress - 0.01)) ||
-      (expectedProgressAmount > 0 && totalAmount < (expectedProgressAmount - 1))
+      (effContractAmount > 0 && totalAmount < (expectedProgressAmount - 0.01)) ||
+      (expectedProgressAmount > 0 && totalAmount < (expectedProgressAmount - 0.01))
     )
   );
 
@@ -1382,6 +1424,10 @@ export default function NewLinkedDisbursementRequest() {
 
   // معالجة النقر على زر "التالي" بالخطوة الثانية
   const handleStep2Next = () => {
+    if (isDisbursementUnderProgress && !isUnderProgressConfirmed) {
+      setShowUnderProgressDialog(true);
+      return;
+    }
     if (hasFunderPaymentDeficit && !disburseFromGeneralAccount) {
       setShowSupporterDeficitDialog(true);
       return;
