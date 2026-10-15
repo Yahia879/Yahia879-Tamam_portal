@@ -241,13 +241,19 @@ export default function ProgressReportPrint() {
   // جلب إعدادات الجمعية
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
+  // التحقق مما إذا كان التقرير مستخلصاً
+  const isInvoiceReport = Boolean(
+    (report?.workSummary && /\[نوع:\s*مستخلص/i.test(report.workSummary)) ||
+    (report?.title && report.title.includes("مستخلص"))
+  );
+
   // تغيير عنوان التوثيق ليتطابق مع اسم التقرير عند الطباعة والتنزيل (يحدد اسم ملف الـ PDF)
-  useDocumentTitle(report ? `${report.reportNumber} - ${report.title}` : "طباعة تقرير الإنجاز");
+  useDocumentTitle(report ? `${report.reportNumber} - ${isInvoiceReport ? "مستخلص إنجاز" : "تقرير إنجاز"} - ${report.title}` : "طباعة تقرير الإنجاز");
 
   const handlePrint = () => {
     const prevTitle = document.title;
     if (report) {
-      document.title = `${report.reportNumber} - ${report.title}`;
+      document.title = `${report.reportNumber} - ${isInvoiceReport ? "مستخلص إنجاز" : "تقرير إنجاز"} - ${report.title}`;
     }
     window.print();
     setTimeout(() => {
@@ -625,7 +631,7 @@ export default function ProgressReportPrint() {
                 style={{ backgroundColor: '#1a5f4a', color: 'white' }}
               >
                 <h1 className="text-xl sm:text-2xl font-bold">
-                  تقرير إنجاز دفعة مالية
+                  {isInvoiceReport ? "مستخلص إنجاز مالي" : "تقرير إنجاز دفعة مالية"}
                 </h1>
                 <p className="text-xs sm:text-sm opacity-90 mt-1">
                   {report.title}
