@@ -379,11 +379,13 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     return milestoneContracts.find((c: any) => c.id === selectedContractId) || null;
   }, [selectedContractId, milestoneContracts]);
 
-  const selectedContractAmount = Number(selectedContract?.contractAmount || 0);
+  const selectedContractAmount = parseFloat(String(selectedContract?.contractAmount || "0").replace(/,/g, "")) || 0;
   const calculatedInvoicePayout = selectedContractAmount > 0 && invoicePercentage > 0
     ? (selectedContractAmount * invoicePercentage) / 100
     : 0;
   
+  const invoiceFileInputRef = useRef<HTMLInputElement>(null);
+
   // نوافذ الحوار والاعتمادات
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedReport, setSelectedReport] = useState<any>(null);
@@ -743,22 +745,27 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     );
   }, [projectMilestones, projectDetails?.payments]);
 
-  // في المشاريع المرتبطة بمستخلصات لا يشترط جدولة دفعات، بل يشترط وجود مستخلص واحد على الأقل بنسبة 100%
+  // في المشاريع المرتبطة بمستخلصات لا يشترط جدولة دفعات، بل تنشأ المستخلصات تباعاً حسب نسب الإنجاز
   const hasIncompleteSchedule = !isMilestonesProject && newReport.projectId > 0 && !isProjectDetailsLoading && (totalContractAmount === 0 || (totalContractAmount - totalScheduledPayments) > 0.05);
-  const hasMilestonesRequirementError = isMilestonesProject && newReport.projectId > 0 && !isProjectDetailsLoading && !has100Milestone;
+  const hasMilestonesRequirementError = false;
 
   // Mutations
   const createMutation = trpc.progressReports.create.useMutation({
     onSuccess: (data) => {
-      toast.success(`تم إنشاء التقرير بنجاح - رقم ${data.reportNumber}`);
+      toast.success(
+        mainViewTab === "invoices" || activeTab === "create-invoice"
+          ? `تم إنشاء المستخلص بنجاح - رقم ${data.reportNumber}`
+          : `تم إنشاء التقرير بنجاح - رقم ${data.reportNumber}`
+      );
       setActiveTab("list");
       resetNewReport();
+      resetInvoiceForm();
       refetchReports();
       refetchAllReports();
       utils.progressReports.getPendingActionCounts.invalidate();
     },
     onError: (error) => {
-      toast.error(formatErrorMessage(error.message) || "حدث خطأ أثناء إنشاء التقرير");
+      toast.error(formatErrorMessage(error.message) || "حدث خطأ أثناء حفظ التقرير");
     },
   });
 
@@ -1229,11 +1236,6 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
           photos: uploadedUrls,
         });
       } else {
-        if (hasMilestonesRequirementError) {
-          toast.error("لا يمكن إنشاء تقرير إنجاز حتى يكون هناك مستخلص واحد على الأقل بنسبة إنجاز 100% في العقد.");
-          setIsSubmitting(false);
-          return;
-        }
         if (hasIncompleteSchedule) {
           toast.error("لا يمكن صرف تقرير إنجاز حتى تجدول كل دفعات المشروع");
           setIsSubmitting(false);
@@ -1255,15 +1257,112 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     }
   };
 
+  // إنشاء مستخلص جديد للمشاريع بنظام المستخلصات
+  const handleCreateInvoice = async () => {
+    if (!selectedContract) {
+      toast.error("يرجى اختيار العقد المراد إنشاء مستخلص له");
+      return;
+    }
+    if (!invoiceTitle.trim()) {
+      toast.error("يرجى إدخال عنوان المستخلص");
+      return;
+    }
+    if (!invoicePercentage || invoicePercentage <= 0 || invoicePercentage > 100) {
+      toast.error("يرجى إدخال نسبة إنجاز صحيحة بين 1% و 100%");
+      return;
+    }
+    if (!invoiceWorkDone.trim()) {
+      toast.error("يرجى إدخال وصف الأعمال المنجزة");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const uploadedUrls: string[] = [];
+      for (const fileObj of uploadedFiles) {
+        if (fileObj.base64.startsWith("data:")) {
+          try {
+            const url = await uploadFile(fileObj);
+            uploadedUrls.push(url);
+          } catch (uploadErr: any) {
+            toast.error(uploadErr.message || `حدث خطأ أثناء رفع الملف ${fileObj.name}`);
+            setIsSubmitting(false);
+            return;
+          }
+        } else {
+          uploadedUrls.push(fileObj.base64);
+        }
+      }
+
+      const combinedWorkSummary = [
+        `[نوع: مستخلص إنجاز مالي]`,
+        `[معرف العقد: ${selectedContract.id}]`,
+        `[رقم العقد: ${selectedContract.contractNumber || selectedContract.id}]`,
+        `[قيمة العقد: ${selectedContractAmount}]`,
+        `[نسبة الإنجاز: ${invoicePercentage}%]`,
+        `[المبلغ المستحق: ${calculatedInvoicePayout}]`,
+        invoiceWorkDone.trim() ? `\nوصف الأعمال المنجزة:\n${invoiceWorkDone.trim()}` : ""
+      ].filter(Boolean).join("\n");
+
+      const matchedProj = (projectsData || []).find((p: any) => p.id === selectedContract.projectId);
+      const effectiveProjectId = selectedContract.projectId || matchedProj?.id || 0;
+
+      await createMutation.mutateAsync({
+        projectId: effectiveProjectId,
+        title: invoiceTitle.trim(),
+        reportDate: new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
+        overallProgress: invoicePercentage,
+        plannedProgress: invoicePercentage,
+        actualProgress: invoicePercentage,
+        workSummary: combinedWorkSummary,
+        recommendations: invoiceRecommendations.trim(),
+        budgetSpent: String(calculatedInvoicePayout),
+        budgetRemaining: String(Math.max(0, selectedContractAmount - calculatedInvoicePayout)),
+        photos: uploadedUrls,
+      });
+
+      toast.success("تم إنشاء المستخلص بنجاح وإرساله للاعتماد");
+      resetInvoiceForm();
+      setActiveTab("list");
+      setMainViewTab("invoices");
+    } catch (err: any) {
+      console.error("Error creating invoice:", err);
+      toast.error(err.message || "حدث خطأ أثناء حفظ المستخلص");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // عرض تفاصيل التقرير
   const handleViewDetails = (report: any) => {
     setSelectedReport(report);
     setShowDetailsDialog(true);
   };
 
-  // التحقق مما إذا كان تقرير الإنجاز قد تم تحويله بالفعل إلى طلب صرف
+  // التحقق مما إذا كان تقرير الإنجاز أو المستخلص قد تم تحويله بالفعل إلى طلب صرف
   const isReportConverted = (report: any) => {
     if (!report || !disbursementRequestsData?.requests) return false;
+    
+    // إذا كان التقرير مستخلصاً
+    if (isInvoiceReport(report)) {
+      return disbursementRequestsData.requests.some((req: any) => {
+        if (req.status === "rejected" || req.status === "cancelled") return false;
+        if (req.attachments) {
+          try {
+            const atts = typeof req.attachments === "string" ? JSON.parse(req.attachments) : req.attachments;
+            if (Array.isArray(atts)) {
+              const meta = atts.find((a: any) => a.name === "linked_request_info");
+              if (meta?.url) {
+                const parsed = JSON.parse(meta.url);
+                if (parsed.reportId === report.id) return true;
+              }
+            }
+          } catch (e) {}
+        }
+        return false;
+      });
+    }
+
     const paymentIdMatch = (report.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
     if (!paymentIdMatch) return false;
     const paymentIdRaw = paymentIdMatch[1];
@@ -1281,6 +1380,27 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   // التحقق مما إذا كان طلب الصرف المرتبط معتمداً أو مصروفاً
   const isDisbursementApproved = (report: any) => {
     if (!report || !disbursementRequestsData?.requests) return false;
+    
+    // إذا كان التقرير مستخلصاً
+    if (isInvoiceReport(report)) {
+      const associatedReq = disbursementRequestsData.requests.find((req: any) => {
+        if (req.attachments) {
+          try {
+            const atts = typeof req.attachments === "string" ? JSON.parse(req.attachments) : req.attachments;
+            if (Array.isArray(atts)) {
+              const meta = atts.find((a: any) => a.name === "linked_request_info");
+              if (meta?.url) {
+                const parsed = JSON.parse(meta.url);
+                if (parsed.reportId === report.id) return true;
+              }
+            }
+          } catch (e) {}
+        }
+        return false;
+      });
+      return associatedReq ? (associatedReq.status === "approved" || (associatedReq.status as any) === "paid" || (associatedReq.status as any) === "executed") : false;
+    }
+
     const paymentIdMatch = (report.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
     if (!paymentIdMatch) return false;
     const paymentIdRaw = paymentIdMatch[1];
@@ -1292,11 +1412,16 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         ? req.paymentId === paymentIdNumeric 
         : req.contractPaymentId === paymentIdNumeric;
     });
-    return associatedReq ? (associatedReq.status === "approved" || associatedReq.status === "paid") : false;
+    return associatedReq ? (associatedReq.status === "approved" || (associatedReq.status as any) === "paid" || (associatedReq.status as any) === "executed") : false;
   };
 
   // اعتماد التقرير والتحويل المباشر لطلب صرف
   const handleApproveAndConvert = (report: any) => {
+    if (isInvoiceReport(report)) {
+      navigate(`/disbursements/new?reportId=${report.id}`);
+      return;
+    }
+
     const paymentIdMatch = (report.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
     if (!paymentIdMatch) return;
     const paymentIdRaw = paymentIdMatch[1];
@@ -1372,8 +1497,12 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     return false;
   };
 
-  // تصفية وفرز التقارير (إظهار تقارير الإنجاز فقط ووضع التقارير التي بانتظار اعتماد المستخدم في البداية)
-  const filteredReports = (reportsData || []).filter((r: any) => !isExcludedProjectReport(r));
+  // تصفية وفرز التقارير (إظهار تقارير الإنجاز فقط أو المستخلصات فقط حسب التبويب النشط)
+  const filteredReports = (reportsData || []).filter((r: any) => {
+    if (isExcludedProjectReport(r)) return false;
+    const isInv = isInvoiceReport(r);
+    return mainViewTab === "invoices" ? isInv : !isInv;
+  });
   const sortedReports = [...filteredReports].sort((a: any, b: any) => {
     const aPending = checkPendingMyAction(a) ? 1 : 0;
     const bPending = checkPendingMyAction(b) ? 1 : 0;
@@ -1969,29 +2098,418 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     return embedded ? formContent : <DashboardLayout>{formContent}</DashboardLayout>;
   }
 
+  if (activeTab === "create-invoice") {
+    const invoiceFormContent = (
+      <div className="space-y-6 max-w-4xl mx-auto">
+        {/* Page Header */}
+        <div className="flex items-center justify-between border-b pb-4">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                setActiveTab("list");
+                resetInvoiceForm();
+              }}
+              className="rounded-full hover:bg-muted"
+            >
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <FileSpreadsheet className="w-6 h-6 text-emerald-600" />
+                إنشاء مستخلص إنجاز مالي جديد
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                رفع مستخلص مرتبط بعقد بنظام المستخلصات وفق نسبة الإنجاز الفعلي لإصدار أمر الصرف
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Form Body */}
+        <div className="grid grid-cols-1 gap-6">
+          {/* Card 1: العقد المرتبط */}
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader className="bg-muted/30 border-b border-border/40 py-4">
+              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                <Building2 className="w-4.5 h-4.5 text-primary" />
+                اختيار العقد (نظام المستخلصات)
+              </CardTitle>
+              <CardDescription>
+                حدد العقد الذي ترغب بإنشاء مستخلص له. تظهر هنا حصراً العقود المفعلة بنظام المستخلصات.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-4">
+              {milestoneContracts.length === 0 ? (
+                <div className="bg-amber-50/80 border border-amber-200/60 dark:bg-amber-950/20 dark:border-amber-900/40 rounded-xl p-4 flex items-start gap-3 text-right">
+                  <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
+                  <div className="space-y-1 text-sm">
+                    <p className="font-bold text-amber-900 dark:text-amber-400">لا توجد عقود بنظام المستخلصات حالياً</p>
+                    <p className="text-amber-800 dark:text-amber-300 text-xs">
+                      يمكنك إنشاء عقد جديد وتحديد طريقة الدفع كـ "مستخلصات" لتتمكن من رفع المستخلصات عليه.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label className="font-semibold text-foreground">العقد المالي <span className="text-red-500">*</span></Label>
+                  <Select
+                    value={selectedContractId ? String(selectedContractId) : ""}
+                    onValueChange={(val) => {
+                      const cid = parseInt(val) || null;
+                      setSelectedContractId(cid);
+                      const foundContract = milestoneContracts.find((c: any) => c.id === cid);
+                      if (foundContract && !invoiceTitle) {
+                        setInvoiceTitle(`مستخلص إنجاز - عقد ${foundContract.contractNumber || foundContract.id}`);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-full text-right">
+                      <SelectValue placeholder="اختر العقد المرتبط بنظام المستخلصات..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {milestoneContracts.map((c: any) => {
+                        const matchedProj = (projectsData || []).find((p: any) => p.id === c.projectId);
+                        const cAmount = parseFloat(String(c.contractAmount || "0").replace(/,/g, "")) || 0;
+                        return (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            [رقم العقد: {c.contractNumber || c.id}] - {matchedProj?.name || `مشروع #${c.projectId}`} - الطرف الثاني: {c.secondPartyName || (c as any).supplierName || "غير محدد"} ({cAmount.toLocaleString("en-US")} ر.س)
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {selectedContract && (
+                <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                  <div>
+                    <span className="text-muted-foreground block mb-0.5">رقم العقد:</span>
+                    <span className="font-bold text-foreground">{selectedContract.contractNumber || selectedContract.id}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block mb-0.5">المشروع المرتبط:</span>
+                    <span className="font-bold text-foreground">
+                      {(projectsData || []).find((p: any) => p.id === selectedContract.projectId)?.name || `مشروع #${selectedContract.projectId}`}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block mb-0.5">الطرف الثاني / المقاول:</span>
+                    <span className="font-bold text-foreground">{selectedContract.secondPartyName || (selectedContract as any).supplierName || "غير محدد"}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block mb-0.5">إجمالي قيمة العقد:</span>
+                    <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                      {selectedContractAmount.toLocaleString("en-US")} ر.س
+                    </span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Card 2: بيانات المستخلص ونسبة الإنجاز */}
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader className="bg-muted/30 border-b border-border/40 py-4">
+              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                <FileSpreadsheet className="w-4.5 h-4.5 text-emerald-600" />
+                بيانات المستخلص ونسبة الإنجاز
+              </CardTitle>
+              <CardDescription>
+                أدخل عنوان المستخلص ونسبة الإنجاز الفعلي لحساب مبلغ الصرف المستحق تلقائياً
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="font-semibold text-foreground">عنوان المستخلص <span className="text-red-500">*</span></Label>
+                  <Input
+                    placeholder="مثال: مستخلص الأعمال الترابية والهيكلية - الدفعة الأولى"
+                    value={invoiceTitle}
+                    onChange={(e) => setInvoiceTitle(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="font-semibold text-foreground">نسبة الإنجاز الفعلي (%) <span className="text-red-500">*</span></Label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={100}
+                      step={1}
+                      placeholder="مثال: 50"
+                      value={invoicePercentage || ""}
+                      onChange={(e) => {
+                        const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
+                        setInvoicePercentage(val);
+                      }}
+                      className="pl-8 text-left font-mono"
+                    />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-bold">%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* بطاقة الحساب التلقائي للمبلغ المستحق */}
+              {selectedContract && invoicePercentage > 0 && (
+                <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-emerald-950/30 border border-emerald-300 dark:border-emerald-800 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 shadow-xs">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center flex-shrink-0">
+                      <Coins className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-emerald-900 dark:text-emerald-300">
+                        مبلغ الصرف المستحق المحتسب تلقائياً
+                      </h4>
+                      <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                        معادلة الاحتساب: نسبة الإنجاز ({invoicePercentage}%) × إجمالي قيمة العقد ({selectedContractAmount.toLocaleString("en-US")} ر.س)
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-left bg-background/80 dark:bg-background/40 backdrop-blur px-4 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                    <span className="text-xs text-muted-foreground block">مبلغ الصرف المستحق:</span>
+                    <span className="text-xl font-black text-emerald-700 dark:text-emerald-300 font-mono">
+                      {calculatedInvoicePayout.toLocaleString("en-US")} ر.س
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* وصف الأعمال المنجزة */}
+              <div className="space-y-2">
+                <Label className="font-semibold text-foreground">وصف الأعمال المنجزة <span className="text-red-500">*</span></Label>
+                <Textarea
+                  rows={4}
+                  placeholder="اكتب وصفاً مفصلاً لكافة الأعمال والبنود والمواصفات التي تم إنجازها على أرض الواقع خلال هذه المرحلة..."
+                  value={invoiceWorkDone}
+                  onChange={(e) => setInvoiceWorkDone(e.target.value)}
+                  className="resize-none leading-relaxed"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 3: المرفقات والمستندات الثبوتية */}
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader className="bg-muted/30 border-b border-border/40 py-4">
+              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                <Upload className="w-4.5 h-4.5 text-primary" />
+                المرفقات والمستندات الثبوتية
+              </CardTitle>
+              <CardDescription>
+                ارفق صور التوثيق الميداني للأعمال المنجزة أو تقارير الفحص أو فواتير المقاول (حتى 10 ميجابايت)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-4">
+              <div
+                onClick={() => invoiceFileInputRef.current?.click()}
+                className="border-2 border-dashed border-border/80 hover:border-primary/60 rounded-xl p-6 text-center cursor-pointer transition-all hover:bg-muted/20"
+              >
+                <input
+                  type="file"
+                  ref={invoiceFileInputRef}
+                  onChange={handleFileChange}
+                  multiple
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                />
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                    <Upload className="w-6 h-6" />
+                  </div>
+                  <p className="font-bold text-sm text-foreground">اضغط هنا لرفع الملفات أو اسحبها وأفلتها</p>
+                  <p className="text-xs text-muted-foreground">يدعم الصور (PNG, JPG, WEBP) وملفات PDF بحد أقصى 10 ميجابايت إجمالي</p>
+                </div>
+              </div>
+
+              {uploadedFiles.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground font-semibold">الملفات المرفوعة ({uploadedFiles.length}):</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {uploadedFiles.map((file, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/30 text-xs">
+                        <div className="flex items-center gap-2 truncate">
+                          <FileText className="w-4 h-4 text-primary flex-shrink-0" />
+                          <span className="truncate font-medium">{file.name}</span>
+                          <span className="text-muted-foreground text-[10px]">({(file.size / 1024).toFixed(1)} ك.ب)</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="w-6 h-6 text-destructive hover:bg-destructive/10 rounded-full"
+                          onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== idx))}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Card 4: توصية إدارة المشاريع */}
+          <Card className="border-border/60 shadow-sm border-emerald-500/30 bg-emerald-50/10 dark:bg-emerald-950/5">
+            <CardHeader className="bg-emerald-50/40 dark:bg-emerald-950/20 border-b border-border/40 py-4">
+              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                <ShieldCheck className="w-4.5 h-4.5 text-emerald-600" />
+                توصية إدارة المشاريع
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                توصية المهندس المشرف وإدارة المشاريع بشأن إنجاز هذه المرحلة وصرف المستخلص المالي (تُنقل تلقائياً لطلب الصرف لتظهر لصناع القرار أثناء الاعتماد)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-3">
+              <div className="space-y-2">
+                <Label className="font-semibold text-foreground">نص توصية إدارة المشاريع</Label>
+                <Textarea
+                  value={invoiceRecommendations}
+                  onChange={(e) => setInvoiceRecommendations(e.target.value)}
+                  placeholder="اكتب هنا توصية إدارة المشاريع بالتفصيل (مثال: نوصي بصرف المستخلص المالي نظراً لمطابقة الأعمال المنفذة على أرض الواقع للمواصفات الفنية المعتمدة وبنسبة إنجاز مستحقة...)"
+                  rows={4}
+                  className="w-full min-h-[110px] leading-relaxed text-foreground text-right"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Actions bar */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                resetInvoiceForm();
+                setActiveTab("list");
+              }}
+            >
+              إلغاء
+            </Button>
+            <Button
+              type="button"
+              onClick={handleCreateInvoice}
+              disabled={
+                isSubmitting ||
+                createMutation.isPending ||
+                !selectedContractId ||
+                !invoiceTitle.trim() ||
+                !invoicePercentage ||
+                invoicePercentage <= 0 ||
+                invoicePercentage > 100 ||
+                !invoiceWorkDone.trim()
+              }
+              className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-8 shadow-sm"
+            >
+              {isSubmitting || createMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                  جاري حفظ وإنشاء المستخلص...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 ml-2" />
+                  حفظ وإنشاء المستخلص
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+    return embedded ? invoiceFormContent : <DashboardLayout>{invoiceFormContent}</DashboardLayout>;
+  }
+
   const listContent = (
     <div className="space-y-6">
-        {/* العنوان والإجراءات */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">تقارير الإنجاز</h1>
-            <p className="text-muted-foreground">متابعة وتوثيق تقدم المشاريع</p>
+        {/* التبديل بين تقارير إنجاز الدفعات والمستخلصات */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b pb-4">
+          <div className="flex items-center gap-2 bg-muted/60 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => {
+                setMainViewTab("reports");
+                navigate("/progress-reports");
+                resetPage();
+              }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                mainViewTab === "reports"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <FileText className="w-4 h-4 text-primary" />
+              <span>تقارير إنجاز الدفعات</span>
+              <Badge variant="secondary" className="mr-1 text-xs">
+                {completionStatsData.total}
+              </Badge>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setMainViewTab("invoices");
+                navigate("/progress-invoices");
+                resetPage();
+              }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                mainViewTab === "invoices"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <span>المستخلصات (حسب نسب الإنجاز)</span>
+              <Badge variant="secondary" className="mr-1 text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                {invoiceStatsData.total}
+              </Badge>
+            </button>
           </div>
+
           {canCreateReport && (
-            <Button onClick={() => setActiveTab("create")}>
-              <Plus className="w-4 h-4 ml-2" />
-              تقرير جديد
-            </Button>
+            mainViewTab === "invoices" ? (
+              <Button
+                onClick={() => {
+                  resetInvoiceForm();
+                  setActiveTab("create-invoice");
+                }}
+                className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold"
+              >
+                <Plus className="w-4 h-4 ml-2" />
+                إنشاء مستخلص جديد
+              </Button>
+            ) : (
+              <Button onClick={() => setActiveTab("create")}>
+                <Plus className="w-4 h-4 ml-2" />
+                تقرير جديد
+              </Button>
+            )
           )}
+        </div>
+
+        {/* عنوان الصفحة ووصفها */}
+        <div>
+          <h1 className="text-2xl font-bold">
+            {mainViewTab === "invoices" ? "المستخلصات المالية" : "تقارير الإنجاز"}
+          </h1>
+          <p className="text-muted-foreground">
+            {mainViewTab === "invoices"
+              ? "إدارة ومتابعة مستخلصات المشاريع المعتمدة على نسب الإنجاز الفعلي لإصدار أوامر الصرف"
+              : "متابعة وتوثيق تقدم المشاريع وجدولة الدفعات"}
+          </p>
         </div>
 
         {/* الإحصائيات - بطاقات عصرية خلفية بيضاء مطابقة لصفحة الطلبات */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {[
             {
-              label: "إجمالي التقارير",
+              label: mainViewTab === "invoices" ? "إجمالي المستخلصات" : "إجمالي التقارير",
               value: statsData.total,
-              icon: <FileText className="w-4 h-4 md:w-5 md:h-5" />,
+              icon: mainViewTab === "invoices" ? <FileSpreadsheet className="w-4 h-4 md:w-5 md:h-5" /> : <FileText className="w-4 h-4 md:w-5 md:h-5" />,
               iconBg: "bg-primary/10 text-primary",
             },
             {
@@ -2034,7 +2552,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
           <div className="relative flex-1">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="بحث برقم التقرير أو العنوان..."
+              placeholder={mainViewTab === "invoices" ? "بحث برقم المستخلص أو العنوان أو المشروع..." : "بحث برقم التقرير أو العنوان..."}
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -2062,7 +2580,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
           </Select>
         </div>
 
-        {/* قائمة التقارير - تصميم مطابق لصفحة الطلبات */}
+        {/* قائمة التقارير / المستخلصات - تصميم مطابق لصفحة الطلبات */}
         <Card className="border-0 shadow-sm overflow-hidden">
           <CardContent className="p-0">
             {filteredReports.length > 0 ? (
@@ -2070,9 +2588,9 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 {/* Table Header (Desktop Only) */}
                 <div className="hidden md:grid grid-cols-[auto_1.2fr_1fr_1fr_1fr_auto] gap-4 px-5 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right">
                   <div className="w-10"></div>
-                  <div>التقرير</div>
-                  <div>المشروع</div>
-                  <div>نسبة الإنجاز</div>
+                  <div>{mainViewTab === "invoices" ? "المستخلص" : "التقرير"}</div>
+                  <div>{mainViewTab === "invoices" ? "المشروع والعقد" : "المشروع"}</div>
+                  <div>{mainViewTab === "invoices" ? "نسبة الإنجاز والمبلغ المستحق" : "نسبة الإنجاز"}</div>
                   <div>الحالة</div>
                   <div className="w-20 text-center">الإجراءات</div>
                 </div>
@@ -2086,10 +2604,15 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                     const isProjectManager = Boolean(
                       report.projectManagerId && Number(report.projectManagerId) === Number(user?.id)
                     );
+                    const isInv = isInvoiceReport(report);
+                    const invoiceAmountMatch = (report.workSummary || "").match(/\[المبلغ المستحق:\s*([^\]]+)\]/);
+                    const invoiceAmount = invoiceAmountMatch ? parseFloat(invoiceAmountMatch[1]) : (parseFloat(report.budgetSpent || "0") || null);
+                    const contractNumMatch = (report.workSummary || "").match(/\[رقم العقد:\s*([^\]]+)\]/);
+                    const contractNumberText = contractNumMatch ? contractNumMatch[1] : null;
 
                     const renderDropdownContent = () => (
                       <DropdownMenuContent align="end" className="w-56 text-right font-medium bg-background border border-border shadow-md rounded-lg p-1 z-50">
-                        {/* عرض التقرير PDF */}
+                        {/* عرض التقرير أو المستخلص PDF */}
                         <DropdownMenuItem 
                           onClick={() => {
                             navigate(`/progress-reports/${report.id}/print`);
@@ -2097,10 +2620,23 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                           className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-slate-700"
                         >
                           <Printer className="w-3.5 h-3.5 text-[#1a5f4a]" />
-                          <span>عرض تقرير الإنجاز</span>
+                          <span>{isInv ? "عرض المستخلص PDF" : "عرض تقرير الإنجاز"}</span>
                         </DropdownMenuItem>
 
-                        {/* تعديل التقرير */}
+                        {/* إنشاء طلب صرف للمستخلص إذا كان معتمداً */}
+                        {isInv && report.status === "approved" && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              navigate(`/disbursements/new?reportId=${report.id}`);
+                            }}
+                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md transition-colors text-emerald-700 font-bold"
+                          >
+                            <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>إنشاء طلب صرف للمستخلص</span>
+                          </DropdownMenuItem>
+                        )}
+
+                        {/* تعديل التقرير أو المستخلص */}
                         {!isReportConverted(report) && report.status !== "pending_executive" && report.status !== "approved" && report.status !== "revoked" && report.status !== "rejected" && !isDisbursementApproved(report) && canEditReport && (
                           <DropdownMenuItem 
                             onClick={() => {
@@ -2109,7 +2645,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                             className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors"
                           >
                             <Edit className="w-3.5 h-3.5 text-blue-600" />
-                            <span>تعديل تقرير الإنجاز</span>
+                            <span>{isInv ? "تعديل المستخلص" : "تعديل تقرير الإنجاز"}</span>
                           </DropdownMenuItem>
                         )}
 
@@ -2184,7 +2720,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                               className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md transition-colors text-emerald-600 font-bold"
                             >
                               <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>اعتماد تقرير الإنجاز</span>
+                              <span>{isInv ? "اعتماد المستخلص" : "اعتماد تقرير الإنجاز"}</span>
                             </DropdownMenuItem>
 
                             <DropdownMenuItem
@@ -2196,7 +2732,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                               className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors text-rose-600"
                             >
                               <XCircle className="w-3.5 h-3.5 text-rose-500" />
-                              <span>إلغاء تقرير الإنجاز</span>
+                              <span>{isInv ? "إلغاء المستخلص" : "إلغاء تقرير الإنجاز"}</span>
                             </DropdownMenuItem>
                           </>
                         )}
@@ -2213,7 +2749,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                               className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md transition-colors text-emerald-600 font-bold"
                             >
                               <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>اعتماد تقرير الإنجاز</span>
+                              <span>{isInv ? "اعتماد المستخلص" : "اعتماد تقرير الإنجاز"}</span>
                             </DropdownMenuItem>
 
                             <DropdownMenuItem
@@ -2225,7 +2761,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                               className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors text-rose-600"
                             >
                               <XCircle className="w-3.5 h-3.5 text-rose-500" />
-                              <span>إلغاء تقرير الإنجاز</span>
+                              <span>{isInv ? "إلغاء المستخلص" : "إلغاء تقرير الإنجاز"}</span>
                             </DropdownMenuItem>
                           </>
                         )}
@@ -2263,6 +2799,10 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
+                          ) : isInv ? (
+                            <div className="w-10 h-10 rounded-lg flex items-center justify-center border bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+                              <FileSpreadsheet className="w-5 h-5" />
+                            </div>
                           ) : (
                             <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${status.iconBg}`}>
                               {status.icon}
@@ -2278,6 +2818,10 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                                 <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-tr from-[#1a5f4a] via-emerald-600 to-teal-500 text-white">
                                   <Clock className="w-4 h-4 text-amber-200 animate-spin" style={{ animationDuration: '4s' }} />
                                 </div>
+                              ) : isInv ? (
+                                <div className="w-8 h-8 rounded-lg flex items-center justify-center border bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+                                  <FileSpreadsheet className="w-4 h-4" />
+                                </div>
                               ) : (
                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${status.iconBg}`}>
                                   {status.icon}
@@ -2285,7 +2829,12 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                               )}
                             </div>
                             <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {isInv && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                                    مستخلص
+                                  </span>
+                                )}
                                 <p className="font-bold text-foreground text-sm">{report.reportNumber}</p>
                                 {report.isException && (
                                   <TooltipProvider>
@@ -2328,22 +2877,34 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                           </div>
                         </div>
 
-                        {/* Project Name (Desktop & Tablet) */}
-                        <div className="hidden md:flex items-center gap-2 min-w-0">
-                          <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
-                          <span className="text-sm text-foreground truncate font-medium">{report.projectName || "—"}</span>
+                        {/* Project Name & Contract (Desktop & Tablet) */}
+                        <div className="hidden md:flex flex-col min-w-0">
+                          <div className="flex items-center gap-1.5 truncate">
+                            <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <span className="text-sm text-foreground truncate font-medium">{report.projectName || "—"}</span>
+                          </div>
+                          {contractNumberText && (
+                            <span className="text-[11px] text-muted-foreground truncate mr-5">عقد رقم: {contractNumberText}</span>
+                          )}
                         </div>
 
-                        {/* Progress (Desktop) */}
+                        {/* Progress & Payout (Desktop) */}
                         <div className="hidden md:block min-w-0">
                           <div className="flex items-center gap-2">
-                            <Progress value={report.overallProgress} className="w-16 h-2 bg-muted shrink-0" />
-                            <span className="text-xs font-bold text-foreground">{report.overallProgress}%</span>
+                            <Progress value={report.actualProgress || report.overallProgress} className="w-16 h-2 bg-muted shrink-0" />
+                            <span className="text-xs font-bold text-foreground">{report.actualProgress || report.overallProgress}%</span>
                           </div>
-                          <div className={`flex items-center gap-1 text-[10px] font-semibold mt-1 ${getVarianceColor(variance)}`}>
-                            {getVarianceIcon(variance)}
-                            <span>الانحراف: {variance > 0 ? "+" : ""}{variance}%</span>
-                          </div>
+                          {isInv && invoiceAmount ? (
+                            <div className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 mt-1 flex items-center gap-1 font-mono">
+                              <Coins className="w-3.5 h-3.5" />
+                              <span>{invoiceAmount.toLocaleString("en-US")} ر.س</span>
+                            </div>
+                          ) : (
+                            <div className={`flex items-center gap-1 text-[10px] font-semibold mt-1 ${getVarianceColor(variance)}`}>
+                              {getVarianceIcon(variance)}
+                              <span>الانحراف: {variance > 0 ? "+" : ""}{variance}%</span>
+                            </div>
+                          )}
                         </div>
 
                         {/* Status (Desktop) */}
@@ -2356,14 +2917,21 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
                         {/* Mobile Card Row: Project + Progress + Status */}
                         <div className="md:hidden flex flex-col gap-3">
-                          <div className="flex items-center gap-1.5 text-xs text-foreground bg-muted/50 p-2 rounded-md">
-                            <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                            <span className="truncate">{report.projectName || "—"}</span>
+                          <div className="flex items-center justify-between gap-1.5 text-xs text-foreground bg-muted/50 p-2 rounded-md">
+                            <div className="flex items-center gap-1.5 truncate">
+                              <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                              <span className="truncate">{report.projectName || "—"}</span>
+                            </div>
+                            {isInv && invoiceAmount && (
+                              <span className="font-bold text-emerald-700 text-xs shrink-0 font-mono">
+                                {invoiceAmount.toLocaleString("en-US")} ر.س
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
-                              <Progress value={report.overallProgress} className="w-16 h-1.5 bg-muted shrink-0" />
-                              <span className="text-[10px] font-bold text-foreground">{report.overallProgress}%</span>
+                              <Progress value={report.actualProgress || report.overallProgress} className="w-16 h-1.5 bg-muted shrink-0" />
+                              <span className="text-[10px] font-bold text-foreground">{report.actualProgress || report.overallProgress}%</span>
                             </div>
                             <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
                               {status.badgeIcon}
@@ -2579,7 +3147,21 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   className="gap-1.5"
                 >
                   <Edit className="w-4 h-4" />
-                  تعديل التقرير
+                  {isInvoiceReport(selectedReport) ? "تعديل المستخلص" : "تعديل التقرير"}
+                </Button>
+              )}
+
+              {/* زر إنشاء طلب صرف للمستخلص أو التقرير المعتمد */}
+              {selectedReport && selectedReport.status === "approved" && (
+                <Button
+                  onClick={() => {
+                    setShowDetailsDialog(false);
+                    navigate(`/disbursements/new?reportId=${selectedReport.id}`);
+                  }}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold gap-1.5"
+                >
+                  <CreditCard className="w-4 h-4 ml-1" />
+                  {isInvoiceReport(selectedReport) ? "إنشاء طلب صرف للمستخلص" : "تحويل إلى طلب صرف"}
                 </Button>
               )}
               
@@ -2599,7 +3181,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   className="gradient-primary text-white font-bold"
                 >
                   <CheckCircle className="w-4 h-4 ml-2" />
-                  اعتماد التقرير
+                  {isInvoiceReport(selectedReport) ? "اعتماد المستخلص" : "اعتماد التقرير"}
                 </Button>
               )}
 
