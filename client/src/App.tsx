@@ -471,8 +471,9 @@ function Router() {
       <Route path="/custody-requests/:id/print">{() => <AdminRoute component={CustodyRequestPrint} />}</Route>
       <Route path="/custody-requests/:id">{() => <AdminRoute component={CustodyRequestPrint} />}</Route>
       
-      {/* تقارير الإنجاز - إدارية */}
+      {/* تقارير الإنجاز والمستخلصات - إدارية */}
       <Route path="/progress-reports">{() => <AdminRoute component={ProgressReports} />}</Route>
+      <Route path="/progress-invoices">{() => <AdminRoute component={ProgressReports} />}</Route>
       <Route path="/progress-reports/:id/print">{() => <AdminRoute component={ProgressReportPrint} />}</Route>
       
       {/* الاستلامات - إدارية */}
