@@ -303,7 +303,22 @@ const uploadFile = async (fileObj: { name: string; base64: string }): Promise<st
 
 export default function ProgressReports({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+
+  // التحقق من مسار المستخلصات
+  const isInvoicePath = typeof window !== "undefined" && window.location.pathname.startsWith("/progress-invoices");
+  const [mainViewTab, setMainViewTab] = useState<"reports" | "invoices">(() => isInvoicePath ? "invoices" : "reports");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (window.location.pathname.startsWith("/progress-invoices")) {
+        setMainViewTab("invoices");
+      } else if (window.location.pathname.startsWith("/progress-reports")) {
+        setMainViewTab("reports");
+      }
+    }
+  }, [location]);
+
   // استرجاع معلمات الرابط عند التحويل المباشر من تفاصيل المشروع
   const initialUrlParams = useMemo(() => {
     if (typeof window === "undefined") return { projectId: 0, paymentId: null, paymentNumber: null };
@@ -321,6 +336,53 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   const [page, setPage, resetPage] = usePersistedPage("progress_reports_page");
   const limit = 10;
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // حالة نموذج إنشاء مستخلص جديد
+  const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
+  const [invoiceTitle, setInvoiceTitle] = useState("");
+  const [invoicePercentage, setInvoicePercentage] = useState<number>(0);
+  const [invoiceWorkDone, setInvoiceWorkDone] = useState("");
+  const [invoiceRecommendations, setInvoiceRecommendations] = useState("");
+
+  const resetInvoiceForm = () => {
+    setSelectedContractId(null);
+    setInvoiceTitle("");
+    setInvoicePercentage(0);
+    setInvoiceWorkDone("");
+    setInvoiceRecommendations("");
+    setUploadedFiles([]);
+  };
+
+  // استعلام كافة العقود لاستخراج العقود بنظام المستخلصات
+  const { data: allContractsData } = trpc.contracts.list.useQuery({ limit: 1000 });
+
+  const milestoneContracts = useMemo(() => {
+    if (!allContractsData?.contracts) return [];
+    return allContractsData.contracts.filter((c: any) => {
+      if (c.status === "rejected" || c.status === "cancelled") return false;
+      if (c.isRequestClosed) return false;
+      if (c.paymentSystem === "milestones") return true;
+      if (c.paymentScheduleJson) {
+        try {
+          const parsed = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+          if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.paymentSystem === "milestones") {
+            return true;
+          }
+        } catch (e) {}
+      }
+      return false;
+    });
+  }, [allContractsData]);
+
+  const selectedContract = useMemo(() => {
+    if (!selectedContractId || !milestoneContracts) return null;
+    return milestoneContracts.find((c: any) => c.id === selectedContractId) || null;
+  }, [selectedContractId, milestoneContracts]);
+
+  const selectedContractAmount = Number(selectedContract?.contractAmount || 0);
+  const calculatedInvoicePayout = selectedContractAmount > 0 && invoicePercentage > 0
+    ? (selectedContractAmount * invoicePercentage) / 100
+    : 0;
   
   // نوافذ الحوار والاعتمادات
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -520,23 +582,49 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     );
   };
 
-  // إحصائيات تقارير الإنجاز (باستثناء تقارير المشاريع الدورية وتقارير الزيارات التي تتبع لمركز تقارير المشاريع)
-  const statsData = (() => {
-    const validReports = (allReportsData || []).filter((r: any) => !isExcludedProjectReport(r));
+  const isInvoiceReport = (r: any) => {
+    const ws = r.workSummary || "";
+    const title = (r.title || "").toLowerCase();
+    return (
+      ws.includes("[نوع: مستخلص") ||
+      ws.includes("[معرف المستخلص:") ||
+      title.includes("مستخلص")
+    );
+  };
+
+  // إحصائيات تقارير الإنجاز والمستخلصات
+  const invoiceStatsData = useMemo(() => {
+    const validReports = (allReportsData || []).filter((r: any) => !isExcludedProjectReport(r) && isInvoiceReport(r));
     if (validReports.length === 0) {
       return { total: 0, draft: 0, submitted: 0, reviewed: 0, approved: 0, avgProgress: 0 };
     }
     const total = validReports.length;
     const draft = validReports.filter((r: any) => r.status === "draft").length;
-    const submitted = validReports.filter((r: any) => r.status === "submitted").length;
+    const submitted = validReports.filter((r: any) => r.status === "submitted" || r.status === "pending" || r.status === "pending_executive").length;
     const reviewed = validReports.filter((r: any) => r.status === "reviewed").length;
     const approved = validReports.filter((r: any) => r.status === "approved").length;
-    
+    const sumProgress = validReports.reduce((sum: number, r: any) => sum + (r.actualProgress || r.overallProgress || 0), 0);
+    const avgProgress = Math.round(sumProgress / total);
+    return { total, draft, submitted, reviewed, approved, avgProgress };
+  }, [allReportsData]);
+
+  const completionStatsData = useMemo(() => {
+    const validReports = (allReportsData || []).filter((r: any) => !isExcludedProjectReport(r) && !isInvoiceReport(r));
+    if (validReports.length === 0) {
+      return { total: 0, draft: 0, submitted: 0, reviewed: 0, approved: 0, avgProgress: 0 };
+    }
+    const total = validReports.length;
+    const draft = validReports.filter((r: any) => r.status === "draft").length;
+    const submitted = validReports.filter((r: any) => r.status === "submitted" || r.status === "pending" || r.status === "pending_executive").length;
+    const reviewed = validReports.filter((r: any) => r.status === "reviewed").length;
+    const approved = validReports.filter((r: any) => r.status === "approved").length;
     const sumProgress = validReports.reduce((sum: number, r: any) => sum + (r.overallProgress || 0), 0);
     const avgProgress = Math.round(sumProgress / total);
-
     return { total, draft, submitted, reviewed, approved, avgProgress };
-  })();
+  }, [allReportsData]);
+
+  // الإحصائيات النشطة حسب التبويب المختار
+  const statsData = mainViewTab === "invoices" ? invoiceStatsData : completionStatsData;
 
   const { data: projectsData } = trpc.projects.getAll.useQuery({ excludeClosedRequests: true });
 
