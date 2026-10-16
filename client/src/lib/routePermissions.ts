@@ -616,8 +616,11 @@ export function getUserHomeRoute(user: any): string {
     if (canAccess("/quotations")) return "/quotations";
     if (canAccess("/sedana-quotations")) return "/sedana-quotations";
     if (canAccess("/custody-requests")) return "/custody-requests";
+    if (canAccess("/contracts")) return "/contracts";
     if (canAccess("/purchase-orders")) return "/purchase-orders";
     if (canAccess("/orders-and-letters")) return "/orders-and-letters";
+    if (canAccess("/csr-letters")) return "/csr-letters";
+    if (canAccess("/receipt-vouchers")) return "/receipt-vouchers";
   }
 
   // 3. لوحة التحكم العامة (الافتراضية لمعظم الموظفين والمدراء)
@@ -638,6 +641,8 @@ export function getUserHomeRoute(user: any): string {
     "/contracts",
     "/purchase-orders",
     "/orders-and-letters",
+    "/csr-letters",
+    "/receipt-vouchers",
     "/financial-approval",
     "/disbursements",
     "/reports",

@@ -177,11 +177,9 @@ export default function FinancialApproval() {
   const {
     data: approvalsData,
     isLoading: approvalsLoading,
-    refetch: refetchApprovals,
-    isRefetching: approvalsRefetching,
   } = trpc.approvals.getPendingApprovals.useQuery(
     {
-      category: categoryFilter !== "all" ? categoryFilter : undefined,
+      category: categoryFilter !== "all" && categoryFilter !== "other" ? categoryFilter : undefined,
       approver: approverFilter !== "all" ? approverFilter : undefined,
       search: debouncedSearch || undefined,
       onlyMine: onlyMine || undefined,
@@ -191,13 +189,29 @@ export default function FinancialApproval() {
     }
   );
 
-  // تقسيم صفحات جدول الاعتمادات
-  const items = approvalsData?.items || [];
+  // تقسيم صفحات وتصفية جدول الاعتمادات
+  const rawItems = approvalsData?.items || [];
+  const items = useMemo(() => {
+    if (categoryFilter === "other") {
+      return rawItems.filter(
+        (i) => !["disbursement_request", "disbursement_order", "receipt_voucher"].includes(i.categoryKey)
+      );
+    }
+    return rawItems;
+  }, [rawItems, categoryFilter]);
+
   const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
   const paginatedItems = useMemo(() => {
     const start = (page - 1) * pageSize;
     return items.slice(start, start + pageSize);
   }, [items, page, pageSize]);
+
+  // إحصائيات المعاملات حسب التصنيف
+  const totalCount = approvalsData?.counts?.total ?? 0;
+  const disbReqCount = approvalsData?.counts?.byCategory?.["disbursement_request"] ?? 0;
+  const disbOrderCount = approvalsData?.counts?.byCategory?.["disbursement_order"] ?? 0;
+  const receiptVoucherCount = approvalsData?.counts?.byCategory?.["receipt_voucher"] ?? 0;
+  const otherCount = Math.max(0, totalCount - disbReqCount - disbOrderCount - receiptVoucherCount);
 
   // حظر المستخدمين غير المصرح لهم
   if (!hasApprovalPerm && !isSuperOrSystem && !isExecDirector) {
@@ -235,36 +249,21 @@ export default function FinancialApproval() {
               مركز موحد لمتابعة واعتماد كافة المعاملات والطلبات المعلقة عبر مختلف أقسام البوابة
             </p>
           </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                refetchApprovals();
-                toast.success("تم تحديث قائمة الاعتمادات");
-              }}
-              disabled={approvalsRefetching}
-              className="gap-1.5 text-xs h-9 font-bold cursor-pointer"
-            >
-              <RotateCcw className={cn("h-3.5 w-3.5", approvalsRefetching && "animate-spin text-primary")} />
-              <span>تحديث</span>
-            </Button>
-          </div>
         </div>
 
-        {/* ==================== بطاقات المؤشرات الإحصائية ==================== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* ==================== بطاقات المؤشرات الإحصائية بحسب نوع المعاملة ==================== */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+          {/* 1. إجمالي المعاملات المعلقة */}
           <Card
             onClick={() => {
-              setApproverFilter("all");
               setCategoryFilter("all");
+              setApproverFilter("all");
               setOnlyMine(false);
               setPage(1);
             }}
             className={cn(
               "border-border/60 shadow-xs hover:border-primary/50 transition-all cursor-pointer",
-              approverFilter === "all" && !onlyMine && "ring-2 ring-primary/20 border-primary/60"
+              categoryFilter === "all" && !onlyMine && "ring-2 ring-primary/20 border-primary/60 bg-primary/[0.02]"
             )}
           >
             <CardContent className="p-4 flex items-center justify-between">
@@ -274,97 +273,129 @@ export default function FinancialApproval() {
                   {approvalsLoading ? (
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   ) : (
-                    approvalsData?.counts?.total ?? 0
+                    totalCount
                   )}
                 </p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">طلب ومعاملة بانتظار الاعتماد</p>
               </div>
-              <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+              <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
                 <Clock className="h-5.5 w-5.5" />
               </div>
             </CardContent>
           </Card>
 
+          {/* 2. طلبات الصرف */}
           <Card
             onClick={() => {
-              setApproverFilter(approverFilter === "executive_director" ? "all" : "executive_director");
+              setCategoryFilter(categoryFilter === "disbursement_request" ? "all" : "disbursement_request");
               setPage(1);
             }}
             className={cn(
-              "border-rose-200/60 dark:border-rose-900/40 shadow-xs hover:border-rose-400 transition-all cursor-pointer",
-              approverFilter === "executive_director" && "ring-2 ring-rose-500/20 border-rose-500"
+              "border-emerald-200/60 dark:border-emerald-900/40 shadow-xs hover:border-emerald-400 transition-all cursor-pointer",
+              categoryFilter === "disbursement_request" && "ring-2 ring-emerald-500/20 border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/20"
             )}
           >
             <CardContent className="p-4 flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-rose-700 dark:text-rose-400">بانتظار المدير التنفيذي</p>
-                <p className="text-2xl font-black mt-1 text-rose-700 dark:text-rose-300">
+                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">طلبات الصرف</p>
+                <p className="text-2xl font-black mt-1 text-emerald-700 dark:text-emerald-300">
                   {approvalsLoading ? (
-                    <Loader2 className="h-6 w-6 animate-spin text-rose-400" />
+                    <Loader2 className="h-6 w-6 animate-spin text-emerald-400" />
                   ) : (
-                    approvalsData?.counts?.pendingExecutive ?? 0
+                    disbReqCount
                   )}
                 </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">أوامر شراء، عهد، وتقارير</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">قيد المراجعة والاعتماد</p>
               </div>
-              <div className="h-11 w-11 rounded-xl bg-rose-50 dark:bg-rose-950/50 flex items-center justify-center text-rose-600 dark:text-rose-400">
-                <ShieldCheck className="h-5.5 w-5.5" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card
-            onClick={() => {
-              setApproverFilter(approverFilter === "financial" ? "all" : "financial");
-              setPage(1);
-            }}
-            className={cn(
-              "border-amber-200/60 dark:border-amber-900/40 shadow-xs hover:border-amber-400 transition-all cursor-pointer",
-              approverFilter === "financial" && "ring-2 ring-amber-500/20 border-amber-500"
-            )}
-          >
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-amber-700 dark:text-amber-400">بانتظار المسؤول المالي</p>
-                <p className="text-2xl font-black mt-1 text-amber-700 dark:text-amber-300">
-                  {approvalsLoading ? (
-                    <Loader2 className="h-6 w-6 animate-spin text-amber-400" />
-                  ) : (
-                    approvalsData?.counts?.pendingFinancial ?? 0
-                  )}
-                </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">أوامر صرف وسندات قبض</p>
-              </div>
-              <div className="h-11 w-11 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
+              <div className="h-11 w-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
                 <Banknote className="h-5.5 w-5.5" />
               </div>
             </CardContent>
           </Card>
 
+          {/* 3. أوامر الصرف */}
           <Card
             onClick={() => {
-              setApproverFilter(approverFilter === "project_manager" ? "all" : "project_manager");
+              setCategoryFilter(categoryFilter === "disbursement_order" ? "all" : "disbursement_order");
               setPage(1);
             }}
             className={cn(
               "border-blue-200/60 dark:border-blue-900/40 shadow-xs hover:border-blue-400 transition-all cursor-pointer",
-              approverFilter === "project_manager" && "ring-2 ring-blue-500/20 border-blue-500"
+              categoryFilter === "disbursement_order" && "ring-2 ring-blue-500/20 border-blue-500 bg-blue-50/20 dark:bg-blue-950/20"
             )}
           >
             <CardContent className="p-4 flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-blue-700 dark:text-blue-400">جهات اعتماد أخرى</p>
+                <p className="text-xs font-medium text-blue-700 dark:text-blue-400">أوامر الصرف</p>
                 <p className="text-2xl font-black mt-1 text-blue-700 dark:text-blue-300">
                   {approvalsLoading ? (
                     <Loader2 className="h-6 w-6 animate-spin text-blue-400" />
                   ) : (
-                    approvalsData?.counts?.pendingOther ?? 0
+                    disbOrderCount
                   )}
                 </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">مدراء المشاريع وأصحاب الصلاحية</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">بانتظار تدقيق واعتماد الصرف</p>
               </div>
-              <div className="h-11 w-11 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
+              <div className="h-11 w-11 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
                 <FileText className="h-5.5 w-5.5" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 4. سندات القبض */}
+          <Card
+            onClick={() => {
+              setCategoryFilter(categoryFilter === "receipt_voucher" ? "all" : "receipt_voucher");
+              setPage(1);
+            }}
+            className={cn(
+              "border-indigo-200/60 dark:border-indigo-900/40 shadow-xs hover:border-indigo-400 transition-all cursor-pointer",
+              categoryFilter === "receipt_voucher" && "ring-2 ring-indigo-500/20 border-indigo-500 bg-indigo-50/20 dark:bg-indigo-950/20"
+            )}
+          >
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-indigo-700 dark:text-indigo-400">سندات القبض</p>
+                <p className="text-2xl font-black mt-1 text-indigo-700 dark:text-indigo-300">
+                  {approvalsLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
+                  ) : (
+                    receiptVoucherCount
+                  )}
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">بانتظار الاعتماد المالي</p>
+              </div>
+              <div className="h-11 w-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                <Coins className="h-5.5 w-5.5" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 5. عهد وعقود ومعاملات أخرى */}
+          <Card
+            onClick={() => {
+              setCategoryFilter(categoryFilter === "other" ? "all" : "other");
+              setPage(1);
+            }}
+            className={cn(
+              "border-amber-200/60 dark:border-amber-900/40 shadow-xs hover:border-amber-400 transition-all cursor-pointer",
+              categoryFilter === "other" && "ring-2 ring-amber-500/20 border-amber-500 bg-amber-50/20 dark:bg-amber-950/20"
+            )}
+          >
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-amber-700 dark:text-amber-400">عهد وعقود وأخرى</p>
+                <p className="text-2xl font-black mt-1 text-amber-700 dark:text-amber-300">
+                  {approvalsLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-amber-400" />
+                  ) : (
+                    otherCount
+                  )}
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">عهد، عقود، تقارير، وأوامر شراء</p>
+              </div>
+              <div className="h-11 w-11 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                <Layers className="h-5.5 w-5.5" />
               </div>
             </CardContent>
           </Card>
@@ -474,11 +505,11 @@ export default function FinancialApproval() {
                   قائمة الطلبات بانتظار الاعتماد
                 </CardTitle>
                 <Badge variant="outline" className="text-xs font-semibold px-2">
-                  {approvalsData?.totalFiltered ?? 0} نتيجة
+                  {items.length} نتيجة
                 </Badge>
               </div>
               <CardDescription className="text-xs">
-                انقر على رقم الطلب أو زر "معاينة واعتماد" للانتقال المباشر للطلب وإتمام الإجراء
+                انقر على رقم المعاملة أو عنوانها للانتقال المباشر للطلب وإتمام الإجراء
               </CardDescription>
             </div>
           </CardHeader>
@@ -506,13 +537,12 @@ export default function FinancialApproval() {
                 <Table>
                   <TableHeader className="bg-muted/40">
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[240px]">الطلب / المعاملة</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[150px]">التصنيف داخل البوابة</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[180px]">مقدم الطلب</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[170px]">المسؤول عن الاعتماد</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[130px]">القيمة / المبلغ</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[160px]">الحالة الحالية</TableHead>
-                      <TableHead className="text-center text-xs font-bold text-foreground w-[130px]">الإجراء</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-foreground w-[280px]">الطلب / المعاملة</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-foreground w-[160px]">التصنيف داخل البوابة</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-foreground w-[190px]">مقدم الطلب</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-foreground w-[180px]">المسؤول عن الاعتماد</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-foreground w-[150px]">القيمة / المبلغ</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-foreground w-[180px]">الحالة الحالية</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -539,9 +569,13 @@ export default function FinancialApproval() {
                               >
                                 {item.itemNumber}
                               </button>
-                              <p className="text-xs font-medium text-foreground line-clamp-2" title={item.title}>
+                              <button
+                                onClick={() => navigate(item.link)}
+                                className="text-xs font-medium text-foreground hover:text-primary transition-colors text-right line-clamp-2 block cursor-pointer"
+                                title={item.title}
+                              >
                                 {item.title}
-                              </p>
+                              </button>
                               <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                                 <Clock className="h-3 w-3 text-muted-foreground/70" />
                                 <span>{item.createdAt ? new Date(item.createdAt).toLocaleDateString("ar-SA") : "—"}</span>
@@ -599,17 +633,6 @@ export default function FinancialApproval() {
                             >
                               {item.statusLabel}
                             </Badge>
-                          </TableCell>
-
-                          <TableCell className="align-top py-3 text-center">
-                            <Button
-                              size="sm"
-                              onClick={() => navigate(item.link)}
-                              className="h-8 text-xs font-bold gap-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs cursor-pointer"
-                            >
-                              <span>معاينة واعتماد</span>
-                              <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                            </Button>
                           </TableCell>
                         </TableRow>
                       );
