@@ -95,6 +95,17 @@ interface SupplierEntry {
   isNew?: boolean;
 }
 
+export function isInvoiceReport(r: any): boolean {
+  if (!r) return false;
+  const ws = r.workSummary || "";
+  const title = (r.title || "").toLowerCase();
+  return Boolean(
+    ws.includes("[نوع: مستخلص") ||
+    ws.includes("[معرف المستخلص:") ||
+    title.includes("مستخلص")
+  );
+}
+
 export default function NewLinkedDisbursementRequest() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
@@ -1672,7 +1683,7 @@ export default function NewLinkedDisbursementRequest() {
                   إنشاء طلب صرف مالي جديد
                 </h1>
                 <p className="text-[10px] sm:text-xs text-muted-foreground text-right font-medium mt-0.5 hidden sm:block">
-                  إنشاء طلب صرف مرتبط بتقرير إنجاز معتمد أو طلب صرف مخصص لمورد أو فاتورة أو مصروفات منوعة 
+                  إنشاء طلب صرف مرتبط بتقرير إنجاز أو مستخلص معتمد أو طلب صرف مخصص لمورد أو فاتورة أو مصروفات منوعة 
                 </p>
               </div>
             </div>
@@ -1717,7 +1728,7 @@ export default function NewLinkedDisbursementRequest() {
                   {step > 2 ? <Check className="w-4 h-4" /> : "٢"}
                 </div>
                 <span className={`text-xs font-semibold ${step >= 2 ? 'text-primary' : 'text-muted-foreground'}`}>
-                  المشروع والتقرير
+                  المشروع والتقرير أو المستخلص
                 </span>
               </div>
 
@@ -1780,14 +1791,14 @@ export default function NewLinkedDisbursementRequest() {
                         <div className="space-y-1 min-w-0 flex-1">
                           <div className="flex items-center justify-between">
                             <span className={`text-xs sm:text-sm font-bold block ${activeCategory === "approved_report" ? "text-teal-900 dark:text-teal-200" : "text-foreground"}`}>
-                              طلب صرف مرتبط بتقرير انجاز معتمد
+                              طلب صرف مرتبط بتقرير انجاز أو مستخلص معتمد
                             </span>
                             {activeCategory === "approved_report" && (
                               <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse shrink-0" />
                             )}
                           </div>
                           <p className={`text-[11px] leading-relaxed ${activeCategory === "approved_report" ? "text-teal-750 dark:text-teal-300" : "text-muted-foreground"}`}>
-                            ربط طلب الصرف بتقرير إنجاز مشروع معتمد ودفعات العقد
+                            ربط طلب الصرف بتقرير إنجاز مشروع أو مستخلص مالي معتمد ودفعات العقد
                           </p>
                         </div>
                       </button>
@@ -1907,15 +1918,15 @@ export default function NewLinkedDisbursementRequest() {
             </Card>
           </div>
         ) : step === 2 ? (
-          /* الخطوة الثانية: اختيار المشروع وتقرير الإنجاز */
+          /* الخطوة الثانية: اختيار المشروع وتقرير الإنجاز أو المستخلص */
           <div className="space-y-6">
             <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
               <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
                   <FileText className="h-4.5 w-4.5 text-primary" />
-                  الخطوة 2: اختيار المشروع والتقرير المرتبط
+                  الخطوة 2: اختيار المشروع والتقرير أو المستخلص المرتبط
                 </CardTitle>
-                <CardDescription className="text-right text-xs text-muted-foreground">تحديد المشروع الرئيسي والتمويل والمشروع المخصص أو تقارير الإنجاز المرتبطة</CardDescription>
+                <CardDescription className="text-right text-xs text-muted-foreground">تحديد المشروع الرئيسي والتمويل والمشروع المخصص أو تقارير الإنجاز والمستخلصات المعتمدة المرتبطة</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-6 text-right">
 
@@ -2048,7 +2059,7 @@ export default function NewLinkedDisbursementRequest() {
                         setSelectedReportId(null);
                         setIsAdvanceSelected(false);
                       }}
-                      placeholder="ابحث واختر المشروع لتحديد تقرير الإنجاز..."
+                      placeholder="ابحث واختر المشروع لتحديد تقرير الإنجاز أو المستخلص..."
                     />
                   </div>
                 )}
@@ -2449,10 +2460,10 @@ export default function NewLinkedDisbursementRequest() {
 
                 {formData.projectId > 0 && (
                   <div className="space-y-4 text-right animate-slide-up">
-                    {/* اختيار تقرير الإنجاز المعتمد أو الدفعة المقدمة */}
+                    {/* اختيار تقرير الإنجاز المعتمد أو المستخلص أو الدفعة المقدمة */}
                     <div className="space-y-2 text-right">
                       <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
-                        ابحث واختر تقرير الإنجاز المعتمد مباشرة:
+                        ابحث واختر تقرير الإنجاز أو المستخلص المعتمد مباشرة:
                       </Label>
                       <ProgressReportSearchSelect
                         reports={combinedReportsList}
@@ -2468,7 +2479,7 @@ export default function NewLinkedDisbursementRequest() {
                             setSelectedReportId(val);
                           }
                         }}
-                        placeholder="ابحث واختر تقرير إنجاز الدفعة لمراجعته..."
+                        placeholder="ابحث واختر تقرير الإنجاز أو المستخلص لمراجعته..."
                         isReportDisabled={(r: any) => {
                           if (r.isAdvance || r.id === "advance") {
                             return advancePayment ? isPaymentDisbursed(advancePayment) : false;
@@ -2490,9 +2501,9 @@ export default function NewLinkedDisbursementRequest() {
                       <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-red-900 dark:bg-red-950/20 dark:border-red-900 dark:text-red-200 text-right space-y-2 mt-4">
                         <div className="flex items-center gap-2 text-red-600 font-bold">
                           <AlertCircle className="w-5 h-5" />
-                          <span>تنبيه: تم تقديم طلب صرف لهذا التقرير مسبقاً</span>
+                          <span>تنبيه: تم تقديم طلب صرف لهذا التقرير أو المستخلص مسبقاً</span>
                         </div>
-                        <p className="text-xs">لقد تم إنشاء طلب صرف مرتبط بتقرير الإنجاز هذا بالفعل. يرجى اختيار تقرير إنجاز آخر لم يصرف له بعد.</p>
+                        <p className="text-xs">لقد تم إنشاء طلب صرف مرتبط بتقرير الإنجاز أو المستخلص هذا بالفعل. يرجى اختيار تقرير أو مستخلص آخر لم يصرف له بعد.</p>
                       </div>
                     )}
 
@@ -2506,7 +2517,9 @@ export default function NewLinkedDisbursementRequest() {
                                 <FileText className="w-4.5 h-4.5" />
                               </div>
                               <div className="text-right">
-                                <span className="text-[10px] text-muted-foreground block font-bold">تقرير الإنجاز المرتبط بالطلب</span>
+                                <span className="text-[10px] text-muted-foreground block font-bold">
+                                  {isInvoiceReport(selectedReport) ? "المستخلص المالي المرتبط بالطلب" : "تقرير الإنجاز المرتبط بالطلب"}
+                                </span>
                                 <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mt-0.5">
                                   {selectedReport.reportNumber} — {selectedReport.title}
                                 </h4>
@@ -2520,13 +2533,15 @@ export default function NewLinkedDisbursementRequest() {
                               onClick={handleNavigateToPrint}
                             >
                               <Eye className="ml-1.5 h-3.5 w-3.5" />
-                              مراجعة وتدقيق التقرير المعتمد
+                              مراجعة وتدقيق {isInvoiceReport(selectedReport) ? "المستخلص المعتمد" : "التقرير المعتمد"}
                             </Button>
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 text-right">
                             <div className="bg-background/80 p-3 rounded-lg border border-emerald-100/60 dark:border-emerald-900/10 shadow-sm">
-                              <span className="text-[10px] text-muted-foreground block font-semibold">تاريخ التقرير</span>
+                              <span className="text-[10px] text-muted-foreground block font-semibold">
+                                {isInvoiceReport(selectedReport) ? "تاريخ المستخلص" : "تاريخ التقرير"}
+                              </span>
                               <span className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1 block">
                                 {new Date(selectedReport.reportDate).toLocaleDateString("ar-SA")}
                               </span>
@@ -2682,7 +2697,7 @@ export default function NewLinkedDisbursementRequest() {
                       onClick={handleNavigateToPrint}
                     >
                       <Eye className="ml-1.5 h-3.5 w-3.5" />
-                      مراجعة وتدقيق التقرير المعتمد
+                      مراجعة وتدقيق {isInvoiceReport(selectedReport) ? "المستخلص المعتمد" : "التقرير المعتمد"}
                     </Button>
                   </div>
                 )}
@@ -2751,7 +2766,7 @@ export default function NewLinkedDisbursementRequest() {
                     readOnly
                     placeholder={(requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses")
                       ? "ملخص تفصيلي لمعلومات الدفعة..."
-                      : "وصف تفصيلي للأعمال والمنجزات الفعلية المصاحبة لتقرير الإنجاز المالي..."}
+                      : (isInvoiceReport(selectedReport) ? "وصف تفصيلي للأعمال والمنجزات الفعلية المصاحبة للمستخلص المالي..." : "وصف تفصيلي للأعمال والمنجزات الفعلية المصاحبة لتقرير الإنجاز المالي...")}
                     rows={4}
                     required
                     className="text-right border-border focus:ring-0 rounded-xl text-xs leading-relaxed font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
@@ -3000,7 +3015,7 @@ export default function NewLinkedDisbursementRequest() {
                   {!isCustom && (
                     <div className="space-y-1">
                       <span className="text-[10px] text-muted-foreground block font-bold">
-                        {isAdvanceSelected ? "نوع الدفعة التعاقدية" : "رقم تقرير الإنجاز"}
+                        {isAdvanceSelected ? "نوع الدفعة التعاقدية" : (isInvoiceReport(selectedReport) ? "رقم المستخلص المالي" : "رقم تقرير الإنجاز")}
                       </span>
                       <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                         {isAdvanceSelected 
@@ -3063,7 +3078,9 @@ export default function NewLinkedDisbursementRequest() {
       <Dialog open={showReportReviewDialog} onOpenChange={setShowReportReviewDialog}>
         <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto" dir="rtl">
           <DialogHeader className="text-right">
-            <DialogTitle className="text-right text-emerald-800 font-bold">مراجعة تقرير الإنجاز المعتمد</DialogTitle>
+            <DialogTitle className="text-right text-emerald-800 font-bold">
+              {isInvoiceReport(selectedReport) ? "مراجعة المستخلص المالي المعتمد" : "مراجعة تقرير الإنجاز المعتمد"}
+            </DialogTitle>
             <DialogDescription className="text-right text-xs">
               {selectedReport?.reportNumber} - {selectedReport?.title}
             </DialogDescription>
@@ -3073,11 +3090,11 @@ export default function NewLinkedDisbursementRequest() {
             <div className="space-y-6 py-4 text-right">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <p className="text-xs text-muted-foreground">تاريخ التقرير</p>
+                  <p className="text-xs text-muted-foreground">{isInvoiceReport(selectedReport) ? "تاريخ المستخلص" : "تاريخ التقرير"}</p>
                   <p className="text-sm font-semibold">{new Date(selectedReport.reportDate).toLocaleDateString("ar-SA")}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">معد التقرير</p>
+                  <p className="text-xs text-muted-foreground">{isInvoiceReport(selectedReport) ? "معد المستخلص" : "معد التقرير"}</p>
                   <p className="text-sm font-semibold">{selectedReport.createdByName}</p>
                 </div>
               </div>
@@ -3135,7 +3152,7 @@ export default function NewLinkedDisbursementRequest() {
                         <Separator />
                         <h3 className="font-bold text-sm flex items-center gap-2">
                           <FileText className="w-4 h-4 text-emerald-600" />
-                          مرفقات التقرير
+                          {isInvoiceReport(selectedReport) ? "مرفقات المستخلص" : "مرفقات التقرير"}
                         </h3>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                           {photosArr.map((photo: string, index: number) => {

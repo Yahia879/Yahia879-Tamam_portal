@@ -331,7 +331,12 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     };
   }, []);
 
-  const [activeTab, setActiveTab] = useState(() => initialUrlParams.projectId > 0 ? "create" : "list");
+  const [activeTab, setActiveTab] = useState(() => {
+    if (initialUrlParams.projectId > 0) {
+      return isInvoicePath ? "create-invoice" : "create";
+    }
+    return "list";
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage, resetPage] = usePersistedPage("progress_reports_page");
@@ -340,7 +345,9 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   const [editingReportId, setEditingReportId] = useState<number | null>(null);
 
   // حالة نموذج إنشاء مستخلص جديد
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(() => {
+    return (isInvoicePath && initialUrlParams.projectId > 0) ? initialUrlParams.projectId : null;
+  });
   const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
   const [invoiceTitle, setInvoiceTitle] = useState("");
   const [invoicePercentage, setInvoicePercentage] = useState<number>(0);
@@ -500,13 +507,19 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     const params = new URLSearchParams(window.location.search);
     const queryProjectId = parseInt(params.get("projectId") || "0") || 0;
     if (queryProjectId > 0) {
-      setActiveTab("create");
-      setNewReport(prev => ({
-        ...prev,
-        projectId: queryProjectId,
-      }));
+      if (isInvoicePath) {
+        setActiveTab("create-invoice");
+        setSelectedProjectId(queryProjectId);
+      } else {
+        setActiveTab("create");
+        setNewReport(prev => ({
+          ...prev,
+          projectId: queryProjectId,
+        }));
+      }
     }
-  }, []);
+  }, [isInvoicePath]);
+
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const filesList = e.target.files;
@@ -734,7 +747,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         if (c.projectId && !matchedIds.has(c.projectId)) {
           matched.push({
             id: c.projectId,
-            name: c.projectName || (c as any).project?.name || `مشروع #${c.projectId}`,
+            name: (c as any).projectName || (c as any).project?.name || `مشروع #${c.projectId}`,
             projectNumber: (c as any).projectNumber || `PRJ-${c.projectId}`,
           });
           matchedIds.add(c.projectId);
@@ -742,8 +755,8 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
       }
     }
 
-    // في حال التعديل وكان المشروع المحدد غير موجود بالقائمة، نضيفه لضمان ظهوره
-    if (editingReportId && selectedProjectId && !matchedIds.has(selectedProjectId)) {
+    // في حال التحديد من الرابط أو التعديل وكان المشروع المحدد غير موجود بالقائمة، نضيفه لضمان ظهوره
+    if (selectedProjectId && !matchedIds.has(selectedProjectId)) {
       const proj = (projectsData || []).find((p: any) => p.id === selectedProjectId);
       matched.push({
         id: selectedProjectId,
@@ -755,6 +768,21 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
     return matched;
   }, [milestoneContracts, projectsData, editingReportId, selectedProjectId]);
+
+  // التحديد التلقائي للعقد المالي وعنوان المستخلص عند تمرير أو تحديد المشروع
+  useEffect(() => {
+    if (isInvoicePath && selectedProjectId) {
+      const contracts = (milestoneContracts || []).filter((c: any) => c.projectId === selectedProjectId);
+      const chosenContract = contracts[0] || (allContractsData?.contracts || []).find((c: any) => c.projectId === selectedProjectId) || null;
+      if (chosenContract && !selectedContractId) {
+        setSelectedContractId(chosenContract.id);
+      }
+      const pObj = (milestoneProjects || []).find((p: any) => p.id === selectedProjectId) || (projectsData || []).find((p: any) => p.id === selectedProjectId);
+      if (!invoiceTitle && pObj) {
+        setInvoiceTitle(`مستخلص إنجاز - ${pObj.name}`);
+      }
+    }
+  }, [isInvoicePath, selectedProjectId, milestoneContracts, allContractsData, milestoneProjects, projectsData, selectedContractId, invoiceTitle]);
 
   // جلب تفاصيل المشروع المحدد للتحقق من جدولة الدفعات
   const { data: projectDetails, isLoading: isProjectDetailsLoading } = trpc.projects.getById.useQuery(

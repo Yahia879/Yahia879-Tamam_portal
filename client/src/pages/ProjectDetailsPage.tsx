@@ -42,6 +42,7 @@ import {
   Printer,
   ExternalLink,
   FileSpreadsheet,
+  Send,
 } from "lucide-react";
 import { PurchaseOrdersView } from "./PurchaseOrdersList";
 import { CsrLettersView } from "./CsrLettersList";
@@ -136,6 +137,50 @@ const BUDGET_VISIBLE_STAGES = [
   "closed",
 ];
 
+export function isInvoiceReport(r: any): boolean {
+  if (!r) return false;
+  const ws = r.workSummary || "";
+  const title = (r.title || "").toLowerCase();
+  return Boolean(
+    ws.includes("[نوع: مستخلص") ||
+    ws.includes("[معرف المستخلص:") ||
+    title.includes("مستخلص")
+  );
+}
+
+function getInvoicePayout(report: any): number {
+  if (!report) return 0;
+  const ws = report.workSummary || "";
+  const match = ws.match(/\[المبلغ المستحق:\s*([^\]]+)\]/);
+  if (match) {
+    const val = parseFloat(match[1].replace(/,/g, ""));
+    if (!isNaN(val)) return val;
+  }
+  if (report.budgetSpent) {
+    const val = parseFloat(String(report.budgetSpent).replace(/,/g, ""));
+    if (!isNaN(val)) return val;
+  }
+  return 0;
+}
+
+function getInvoiceStatusBadge(status: string) {
+  switch (status) {
+    case "approved":
+      return <Badge className="bg-emerald-600 text-white font-bold text-xs">معتمد</Badge>;
+    case "pending_executive":
+      return <Badge className="bg-amber-600 text-white font-bold text-xs">بانتظار اعتماد المدير التنفيذي</Badge>;
+    case "pending":
+    case "submitted":
+      return <Badge className="bg-blue-600 text-white font-bold text-xs">بانتظار اعتماد مدير المشروع</Badge>;
+    case "rejected":
+      return <Badge className="bg-rose-600 text-white font-bold text-xs">مرفوض</Badge>;
+    case "draft":
+      return <Badge variant="outline" className="text-slate-600 border-slate-300 font-bold text-xs">مسودة</Badge>;
+    default:
+      return <Badge variant="secondary" className="font-bold text-xs">{status}</Badge>;
+  }
+}
+
 export default function ProjectDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
@@ -177,6 +222,18 @@ export default function ProjectDetailsPage() {
   }, {
     retry: false,
   });
+
+  // جلب تقارير الإنجاز والمستخلصات الخاصة بالمشروع
+  const { data: projectProgressReports, refetch: refetchProgressReports } = trpc.progressReports.list.useQuery(
+    { projectId: parseInt(id || "0"), limit: 100 },
+    { enabled: !!id }
+  );
+
+  // تصفية المستخلصات المنشأة للمشروع
+  const projectInvoices = useMemo(() => {
+    if (!projectProgressReports || !Array.isArray(projectProgressReports)) return [];
+    return projectProgressReports.filter(isInvoiceReport);
+  }, [projectProgressReports]);
 
   // التحقق الحصري من برنامج سدانة
   const isSedanaProgram = project?.programType === "sedana" || project?.request?.programType === "sedana";
@@ -719,6 +776,7 @@ export default function ProjectDetailsPage() {
     }, 0) || 0;
 
   const isMilestonesContract = Boolean(
+    (projectInvoices && projectInvoices.length > 0) ||
     (project?.contracts && project.contracts.length > 0 &&
     project.contracts.some((c: any) => {
       if (c.paymentSystem === "milestones") return true;
@@ -830,7 +888,7 @@ export default function ProjectDetailsPage() {
 
   const arePaymentsComplete = Boolean(
     isMilestonesContract
-      ? (contractMilestones.length > 0 || (project?.payments && project.payments.length > 0))
+      ? (projectInvoices.length > 0 || contractMilestones.length > 0 || (project?.payments && project.payments.length > 0))
       : ((totalContractsSum > 0 ? (allPaymentsSum >= totalContractsSum - 0.5) : (project?.payments && project.payments.length > 0)) &&
         !hasIncompletePaymentsData)
   );
@@ -903,8 +961,8 @@ export default function ProjectDetailsPage() {
         id: "payments", 
         label: isMilestonesContract ? "المستخلصات" : "الدفعات", 
         icon: isMilestonesContract ? FileSpreadsheet : CreditCard, 
-        badge: (isMilestonesContract ? (contractMilestones.length || paymentsCount) : paymentsCount) > 0 
-          ? `${isMilestonesContract ? (contractMilestones.length || paymentsCount) : paymentsCount}` 
+        badge: (isMilestonesContract ? (projectInvoices.length || contractMilestones.length || paymentsCount) : paymentsCount) > 0 
+          ? `${isMilestonesContract ? (projectInvoices.length || contractMilestones.length || paymentsCount) : paymentsCount}` 
           : undefined,
         isLocked: isPaymentsLocked 
       },
@@ -2150,7 +2208,7 @@ export default function ProjectDetailsPage() {
                         className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9" 
                         onClick={() => {
                           if (!isRequestClosed) {
-                            navigate(isMilestonesContract ? `/milestones/new/${project.id}` : `/disbursements/new/${project.id}`);
+                            navigate(isMilestonesContract ? `/progress-invoices?projectId=${project.id}` : `/disbursements/new/${project.id}`);
                           }
                         }}
                         disabled={
@@ -2192,7 +2250,7 @@ export default function ProjectDetailsPage() {
                           </div>
                         </div>
                       </div>
-                    ) : ((project.payments && project.payments.length > 0) || (isMilestonesContract && contractMilestones.length > 0)) ? (
+                    ) : ((project.payments && project.payments.length > 0) || (isMilestonesContract && contractMilestones.length > 0) || (projectInvoices && projectInvoices.length > 0)) ? (
                       <>
                         {isRequestClosed && (
                           <Alert className="bg-amber-50/70 border-amber-200 text-amber-900 dark:bg-amber-950/20 dark:border-amber-900/50 mb-5 text-right rounded-2xl">
@@ -2202,6 +2260,102 @@ export default function ProjectDetailsPage() {
                               تم إغلاق الطلب المرتبط بهذا المشروع نهائياً، وتم إيقاف عمليات إنشاء طلبات الصرف وتقارير الإنجاز وتعديل أو إضافة الدفعات.
                             </AlertDescription>
                           </Alert>
+                        )}
+
+                        {/* جدول المستخلصات المالية المرفوعة للمشروع */}
+                        {projectInvoices && projectInvoices.length > 0 && (
+                          <div className="space-y-3 mb-6 p-4 sm:p-5 rounded-2xl bg-card border border-border/70 shadow-xs">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div>
+                                <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
+                                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                                  <span>المستخلصات المالية المرفوعة للمشروع</span>
+                                </h4>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  سجل المستخلصات المالية المنشأة بناءً على نسب الإنجاز والمراحل المنفذة
+                                </p>
+                              </div>
+                              <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold text-xs w-fit">
+                                {projectInvoices.length} مستخلص
+                              </Badge>
+                            </div>
+
+                            <div className="overflow-x-auto w-full scrollbar-hide rounded-xl border border-border/40">
+                              <Table>
+                                <TableHeader className="bg-muted/40">
+                                  <TableRow>
+                                    <TableHead className="text-right font-bold py-3 px-3.5 w-12">م</TableHead>
+                                    <TableHead className="text-right font-bold py-3 px-3.5 whitespace-nowrap">رقم المستخلص</TableHead>
+                                    <TableHead className="text-right font-bold py-3 px-3.5">عنوان المستخلص</TableHead>
+                                    <TableHead className="text-right font-bold py-3 px-3.5 whitespace-nowrap">نسبة الإنجاز</TableHead>
+                                    <TableHead className="text-right font-bold py-3 px-3.5 whitespace-nowrap">المبلغ المستحق</TableHead>
+                                    <TableHead className="text-right font-bold py-3 px-3.5 whitespace-nowrap">تاريخ المستخلص</TableHead>
+                                    <TableHead className="text-right font-bold py-3 px-3.5 whitespace-nowrap">الحالة</TableHead>
+                                    <TableHead className="text-center font-bold py-3 px-3.5 w-44 whitespace-nowrap">الإجراءات</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {projectInvoices.map((inv: any, idx: number) => {
+                                    const payout = getInvoicePayout(inv);
+                                    const isApproved = inv.status === "approved";
+                                    return (
+                                      <TableRow key={inv.id} className="hover:bg-muted/20">
+                                        <TableCell className="font-mono text-right py-3 px-3.5 text-muted-foreground">{idx + 1}</TableCell>
+                                        <TableCell className="font-mono font-bold text-right py-3 px-3.5 text-xs text-primary whitespace-nowrap">
+                                          {inv.reportNumber || `INV-${inv.id}`}
+                                        </TableCell>
+                                        <TableCell className="font-bold text-right py-3 px-3.5 text-xs sm:text-sm">
+                                          {inv.title || `مستخلص #${inv.id}`}
+                                        </TableCell>
+                                        <TableCell className="font-bold text-right py-3 px-3.5 text-[#1a5f4a] font-mono whitespace-nowrap">
+                                          {inv.overallProgress ?? 0}%
+                                        </TableCell>
+                                        <TableCell className="font-bold text-right py-3 px-3.5 text-xs whitespace-nowrap">
+                                          {payout > 0 ? (
+                                            <span className="flex items-center gap-1 font-mono">
+                                              <SaudiRiyal className="w-3.5 h-3.5 text-emerald-600 inline-block" />
+                                              {payout.toLocaleString("en-US")}
+                                            </span>
+                                          ) : "--"}
+                                        </TableCell>
+                                        <TableCell className="text-right py-3 px-3.5 text-xs text-muted-foreground font-mono whitespace-nowrap">
+                                          {inv.reportDate ? new Date(inv.reportDate).toLocaleDateString("ar-SA") : "--"}
+                                        </TableCell>
+                                        <TableCell className="text-right py-3 px-3.5 whitespace-nowrap">
+                                          {getInvoiceStatusBadge(inv.status)}
+                                        </TableCell>
+                                        <TableCell className="text-center py-3 px-3.5 whitespace-nowrap shrink-0">
+                                          <div className="flex items-center justify-center gap-1.5">
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="h-8 text-xs rounded-lg hover:border-emerald-500 hover:text-emerald-700 font-semibold gap-1 whitespace-nowrap"
+                                              onClick={() => navigate(`/progress-reports/${inv.id}/print`)}
+                                              title="معاينة وطباعة المستخلص"
+                                            >
+                                              <Eye className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                              <span>عرض</span>
+                                            </Button>
+                                            {isApproved && !isRequestClosed && (
+                                              <Button
+                                                size="sm"
+                                                className="h-8 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1 whitespace-nowrap"
+                                                onClick={() => navigate(`/disbursements/new-linked?projectId=${project.id}&reportId=${inv.id}`)}
+                                                title="إنشاء طلب صرف مرتبط بهذا المستخلص"
+                                              >
+                                                <Send className="w-3.5 h-3.5 shrink-0" />
+                                                <span>طلب صرف</span>
+                                              </Button>
+                                            )}
+                                          </div>
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </div>
                         )}
 
                         {/* جدول مراحل ومستخلصات العقد المعتمدة */}
@@ -2645,7 +2799,7 @@ export default function ProjectDetailsPage() {
                         {isMilestonesContract && !isPaymentsLocked && !isRequestClosed && (
                           <Button
                             className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9 mt-2"
-                            onClick={() => navigate(`/milestones/new/${project.id}`)}
+                            onClick={() => navigate(`/progress-invoices?projectId=${project.id}`)}
                           >
                             <Plus className="w-4 h-4 ml-1.5" />
                             رفع أول مستخلص للمقاول

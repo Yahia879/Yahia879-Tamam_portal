@@ -42,6 +42,15 @@ export default function NewMilestoneRequest() {
   const params = useParams<{ projectId?: string }>();
   const utils = trpc.useUtils();
 
+  // إعادة التوجيه لصفحة إنشاء المستخلص الموحدة
+  useEffect(() => {
+    if (params.projectId) {
+      navigate(`/progress-invoices?projectId=${params.projectId}`, { replace: true });
+    } else {
+      navigate(`/progress-invoices`, { replace: true });
+    }
+  }, [params.projectId, navigate]);
+
   const [formData, setFormData] = useState<{
     projectId: number;
     contractId: number;
