@@ -629,9 +629,10 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   };
 
   const isInvoiceReport = (r: any) => {
+    if (!r) return isInvoiceMode;
     const ws = r.workSummary || "";
     const title = (r.title || "").toLowerCase();
-    return (
+    return Boolean(
       ws.includes("[نوع: مستخلص") ||
       ws.includes("[معرف المستخلص:") ||
       title.includes("مستخلص")
@@ -639,7 +640,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   };
 
   const cleanDisplayWorkSummary = (summary?: string | null) => {
-    if (!summary) return "";
+    if (!summary || typeof summary !== "string") return "";
     return summary
       .replace(/\[نوع:\s*[^\]]+\]/g, "")
       .replace(/\[معرف العقد:\s*[^\]]+\]/g, "")
