@@ -237,6 +237,14 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   "financial_approval.view": ["financial.view"],
   "financial_approval.approve": ["financial.approve"],
+  "financial_approval.disbursement_requests": ["financial.view"],
+  "financial_approval.disbursement_orders": ["financial.view"],
+  "financial_approval.custody_requests": ["financial.view"],
+  "financial_approval.receipt_vouchers": ["financial.view"],
+  "financial_approval.contracts": ["financial.view"],
+  "financial_approval.purchase_orders": ["financial.view"],
+  "financial_approval.progress_reports": ["financial.view"],
+  "financial_approval.project_quotations": ["financial.view"],
 
   "quotations.view": ["quotations.view"],
   "quotations.add": ["quotations.create"],
@@ -977,6 +985,26 @@ async function ensureAllCustomPermissionsExist(db: any) {
       console.log("Inserted missing custom module: signing");
     }
 
+    // Ensure 'financial_approval' module exists in the modules table
+    const [existingApprovalModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "financial_approval")).limit(1);
+    if (!existingApprovalModule) {
+      await db.insert(modules).values({
+        id: "financial_approval",
+        nameAr: "قسم الاعتمادات",
+        nameEn: "Approvals Center",
+        icon: "CheckSquare",
+        displayOrder: 8,
+        isActive: true
+      }).catch(() => {});
+      console.log("Inserted missing custom module: financial_approval");
+    } else {
+      await db.update(modules).set({
+        nameAr: "قسم الاعتمادات",
+        nameEn: "Approvals Center",
+        icon: "CheckSquare",
+      }).where(eq(modules.id, "financial_approval")).catch(() => {});
+    }
+
     // تنظيف الصلاحيات الملغاة وتحديث وحدات الصلاحيات
     try {
       await db.delete(rolePermissions).where(eq(rolePermissions.permissionId, "analytics_hub.project_reports"));
@@ -1032,8 +1060,16 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "suppliers.view_details", moduleId: "suppliers", action: "view_details", nameAr: "عرض تفاصيل المورد", nameEn: "View Supplier Details" },
       { id: "suppliers.add", moduleId: "suppliers", action: "add", nameAr: "إضافة مورد", nameEn: "Add Supplier" },
       { id: "quotations.add", moduleId: "quotations", action: "add", nameAr: "إضافة عرض سعر", nameEn: "Add Quotation" },
-      { id: "financial_approval.view", moduleId: "financial", action: "view", nameAr: "مقارنة عروض الاسعار من دون اعتماد", nameEn: "Compare Quotations" },
-      { id: "financial_approval.approve", moduleId: "financial", action: "approve", nameAr: "الاعتماد المالي لعرض السعر", nameEn: "Approve Quotation Financially" },
+      { id: "financial_approval.view", moduleId: "financial_approval", action: "view", nameAr: "عرض قسم الاعتمادات", nameEn: "View Approvals Center" },
+      { id: "financial_approval.approve", moduleId: "financial_approval", action: "approve", nameAr: "صلاحية الاعتماد المالي", nameEn: "Approve Financial Items" },
+      { id: "financial_approval.disbursement_requests", moduleId: "financial_approval", action: "disbursement_requests", nameAr: "عرض طلبات الصرف بانتظار الاعتماد", nameEn: "View Pending Disbursement Requests" },
+      { id: "financial_approval.disbursement_orders", moduleId: "financial_approval", action: "disbursement_orders", nameAr: "عرض أوامر الصرف بانتظار الاعتماد", nameEn: "View Pending Disbursement Orders" },
+      { id: "financial_approval.custody_requests", moduleId: "financial_approval", action: "custody_requests", nameAr: "عرض العهد المالية بانتظار الاعتماد", nameEn: "View Pending Financial Custody" },
+      { id: "financial_approval.receipt_vouchers", moduleId: "financial_approval", action: "receipt_vouchers", nameAr: "عرض سندات القبض بانتظار الاعتماد", nameEn: "View Pending Receipt Vouchers" },
+      { id: "financial_approval.contracts", moduleId: "financial_approval", action: "contracts", nameAr: "عرض العقود بانتظار الاعتماد", nameEn: "View Pending Contracts" },
+      { id: "financial_approval.purchase_orders", moduleId: "financial_approval", action: "purchase_orders", nameAr: "عرض أوامر الشراء بانتظار الاعتماد", nameEn: "View Pending Purchase Orders" },
+      { id: "financial_approval.progress_reports", moduleId: "financial_approval", action: "progress_reports", nameAr: "عرض تقارير الإنجاز بانتظار الاعتماد", nameEn: "View Pending Progress Reports" },
+      { id: "financial_approval.project_quotations", moduleId: "financial_approval", action: "project_quotations", nameAr: "عرض اعتمادات المشاريع بانتظار الاعتماد", nameEn: "View Pending Project Quotations" },
       { id: "contracts.template_add", moduleId: "settings", action: "template_add", nameAr: "إضافة قالب للعقود", nameEn: "Add Contract Template" },
       { id: "contracts.template_edit", moduleId: "settings", action: "template_edit", nameAr: "تعديل قالب العقد", nameEn: "Edit Contract Template" },
       { id: "contracts.template_delete", moduleId: "settings", action: "template_delete", nameAr: "حذف قالب العقد", nameEn: "Delete Contract Template" },

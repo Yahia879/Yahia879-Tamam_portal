@@ -319,10 +319,10 @@ export default function UserPermissions() {
       }
     }
 
-    // منع تفعيل صلاحية الاعتماد المالي لعرض السعر إذا كانت مقارنة العروض معطلة
-    if (permId === "financial_approval.approve") {
+    // منع تفعيل أي صلاحية في قسم الاعتمادات إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("financial_approval.") && permId !== "financial_approval.view") {
       if (!isChecked("financial_approval.view")) {
-        toast.warning("يجب تفعيل صلاحية 'مقارنة عروض الاسعار من دون اعتماد' أولاً");
+        toast.warning("يجب تفعيل صلاحية 'عرض قسم الاعتمادات' أولاً");
         return;
       }
     }
@@ -502,14 +502,7 @@ export default function UserPermissions() {
         if (permId === "requesters.view") cascadeRevoke("requesters.");
         if (permId === "financial_reports.view") cascadeRevoke("financial_reports.");
         if (permId === "reports.view_stats") cascadeRevoke("reports.");
-        if (permId === "financial_approval.view") {
-          const defVal = rolePermissions?.includes("financial_approval.approve") || false;
-          if (defVal) {
-            updated["financial_approval.approve"] = false;
-          } else {
-            delete updated["financial_approval.approve"];
-          }
-        }
+        if (permId === "financial_approval.view") cascadeRevoke("financial_approval.");
         if (permId === "disbursements.view") {
           cascadeRevoke("disbursements.");
         }
@@ -795,8 +788,16 @@ export default function UserPermissions() {
         approve: "الاعتمادات (اعتماد عروض الأسعار)"
       },
       financial_approval: {
-        view: "مقارنة عروض الاسعار من دون اعتماد",
-        approve: "الاعتماد المالي لعرض السعر"
+        view: "عرض قسم الاعتمادات",
+        approve: "صلاحية الاعتماد المالي",
+        disbursement_requests: "عرض طلبات الصرف بانتظار الاعتماد",
+        disbursement_orders: "عرض أوامر الصرف بانتظار الاعتماد",
+        custody_requests: "عرض العهد المالية بانتظار الاعتماد",
+        receipt_vouchers: "عرض سندات القبض بانتظار الاعتماد",
+        contracts: "عرض العقود بانتظار الاعتماد",
+        purchase_orders: "عرض أوامر الشراء بانتظار الاعتماد",
+        progress_reports: "عرض تقارير الإنجاز بانتظار الاعتماد",
+        project_quotations: "عرض اعتمادات المشاريع بانتظار الاعتماد",
       },
       contracts: {
         view: "عرض العقود وقالب العقود",
@@ -1000,7 +1001,23 @@ export default function UserPermissions() {
         { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "edit", "approve"] },
         { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
-        { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
+        { 
+          id: "financial_approval", 
+          nameAr: "قسم الاعتمادات", 
+          icon: CheckSquare, 
+          perms: [
+            "view", 
+            "approve", 
+            "disbursement_requests", 
+            "disbursement_orders", 
+            "custody_requests", 
+            "receipt_vouchers", 
+            "contracts", 
+            "purchase_orders", 
+            "progress_reports", 
+            "project_quotations"
+          ] 
+        },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
@@ -1300,7 +1317,7 @@ export default function UserPermissions() {
                               (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !isChecked("requesters.view")) ||
                               (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !isChecked("reports.view_stats")) ||
                               (perm.id.startsWith("beneficiary_evaluations.") && perm.id !== "beneficiary_evaluations.view" && !isChecked("beneficiary_evaluations.view")) ||
-                              (perm.id === "financial_approval.approve" && !isChecked("financial_approval.view"));
+                              (perm.id.startsWith("financial_approval.") && perm.id !== "financial_approval.view" && !isChecked("financial_approval.view"));
 
                             // تحديد نمط البطاقة بناءً على نوع حالة الصلاحية (موروثة، ممنوحة، مسحوبة)
                             let cardClass = "border-slate-200 dark:border-slate-800 bg-background hover:bg-slate-50 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400 cursor-pointer";

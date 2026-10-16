@@ -77,13 +77,19 @@ export const approvalsRouter = router({
         (currentUser as any)?.customRole?.nameAr === "الإدارة المالية" ||
         (currentUser as any)?.customRole?.nameAr === "المدير المالي";
 
-      const hasPerm =
-        Array.isArray((currentUser as any)?.permissions) &&
-        ((currentUser as any).permissions.includes("financial_approval") ||
-          (currentUser as any).permissions.includes("financial_approval.view") ||
-          (currentUser as any).permissions.includes("*"));
+      const userPerms: string[] = Array.isArray((currentUser as any)?.permissions) ? (currentUser as any).permissions : [];
+      const hasWildcardOrGlobal =
+        isSuperOrSystemAdmin ||
+        isExecDirector ||
+        isFinancial ||
+        userPerms.includes("*") ||
+        userPerms.includes("financial_approval") ||
+        userPerms.includes("financial_approval.view") ||
+        userPerms.includes("financial_approval.approve");
 
-      if (!isSuperOrSystemAdmin && !isExecDirector && !isFinancial && !hasPerm) {
+      const hasCategoryPerm = userPerms.some((p) => p.startsWith("financial_approval."));
+
+      if (!hasWildcardOrGlobal && !hasCategoryPerm) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "غير مصرح لك بالوصول إلى مركز الاعتمادات",
@@ -510,16 +516,38 @@ export const approvalsRouter = router({
       // فرز النتائج زمنياً (الأحدث أولاً)
       items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+      // تطبيق صلاحيات الأصناف المحددة إن وجدت
+      const categoryPermMap: Record<string, string> = {
+        disbursement_request: "financial_approval.disbursement_requests",
+        disbursement_order: "financial_approval.disbursement_orders",
+        custody_request: "financial_approval.custody_requests",
+        receipt_voucher: "financial_approval.receipt_vouchers",
+        contract: "financial_approval.contracts",
+        purchase_order: "financial_approval.purchase_orders",
+        progress_report: "financial_approval.progress_reports",
+        project_quotation: "financial_approval.project_quotations",
+      };
+
+      const hasSpecificCategoryPerms = Object.values(categoryPermMap).some((perm) => userPerms.includes(perm));
+
+      let accessibleItems = items;
+      if (!isSuperOrSystemAdmin && !isExecDirector && !isFinancial && !userPerms.includes("*") && hasSpecificCategoryPerms) {
+        accessibleItems = items.filter((item) => {
+          const reqPerm = categoryPermMap[item.categoryKey];
+          return reqPerm && userPerms.includes(reqPerm);
+        });
+      }
+
       // إحصائيات عامة قبل التصفية
       const counts = {
-        total: items.length,
-        pendingExecutive: items.filter(
+        total: accessibleItems.length,
+        pendingExecutive: accessibleItems.filter(
           (i) => i.requiredApproverKey === "executive_director" || i.requiredApprover.includes("المدير التنفيذي")
         ).length,
-        pendingFinancial: items.filter(
+        pendingFinancial: accessibleItems.filter(
           (i) => i.requiredApproverKey === "financial" || i.requiredApprover.includes("المالي")
         ).length,
-        pendingOther: items.filter(
+        pendingOther: accessibleItems.filter(
           (i) =>
             i.requiredApproverKey !== "executive_director" &&
             i.requiredApproverKey !== "financial" &&
@@ -530,14 +558,14 @@ export const approvalsRouter = router({
         byApprover: {} as Record<string, number>,
       };
 
-      for (const item of items) {
+      for (const item of accessibleItems) {
         counts.byCategory[item.categoryKey] = (counts.byCategory[item.categoryKey] || 0) + 1;
         counts.byApprover[item.requiredApproverKey] =
           (counts.byApprover[item.requiredApproverKey] || 0) + 1;
       }
 
       // تطبيق التصفية
-      let filtered = [...items];
+      let filtered = [...accessibleItems];
 
       if (input?.onlyMine) {
         if (isExecDirector) {

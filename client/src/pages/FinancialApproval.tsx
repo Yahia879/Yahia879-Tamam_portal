@@ -144,10 +144,19 @@ export default function FinancialApproval() {
     (user as any)?.customRole?.nameAr === "الإدارة المالية" ||
     (user as any)?.customRole?.nameAr === "المدير المالي";
 
+  const userPerms: string[] = Array.isArray((user as any)?.permissions) ? (user as any).permissions : [];
   const hasSpecificPerm = useAnyPermission([
     "financial_approval.approve",
     "financial_approval.view",
     "financial_approval",
+    "financial_approval.disbursement_requests",
+    "financial_approval.disbursement_orders",
+    "financial_approval.custody_requests",
+    "financial_approval.receipt_vouchers",
+    "financial_approval.contracts",
+    "financial_approval.purchase_orders",
+    "financial_approval.progress_reports",
+    "financial_approval.project_quotations",
   ]);
 
   const hasApprovalPerm =
@@ -289,15 +298,42 @@ export default function FinancialApproval() {
     },
   ];
 
+  const categoryPermMap: Record<string, string> = {
+    disbursement_request: "financial_approval.disbursement_requests",
+    disbursement_order: "financial_approval.disbursement_orders",
+    custody_request: "financial_approval.custody_requests",
+    receipt_voucher: "financial_approval.receipt_vouchers",
+    contract: "financial_approval.contracts",
+    purchase_order: "financial_approval.purchase_orders",
+    progress_report: "financial_approval.progress_reports",
+    project_quotation: "financial_approval.project_quotations",
+  };
+
+  const hasSpecificCategoryPerms = Object.values(categoryPermMap).some((perm) => userPerms.includes(perm));
+  const hasWildcardOrGlobal =
+    isSuperOrSystem ||
+    isExecDirector ||
+    isFinancialRole ||
+    userPerms.includes("*") ||
+    userPerms.includes("financial_approval") ||
+    (userPerms.includes("financial_approval.view") && !hasSpecificCategoryPerms);
+
+  const visibleCards = APPROVAL_CARDS.filter((card) => {
+    if (card.key === "all") return true;
+    if (hasWildcardOrGlobal) return true;
+    const reqPerm = categoryPermMap[card.key];
+    return reqPerm && userPerms.includes(reqPerm);
+  });
+
   // حظر المستخدمين غير المصرح لهم
-  if (!hasApprovalPerm && !isSuperOrSystem && !isExecDirector) {
+  if (!hasApprovalPerm) {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center py-20 text-center space-y-4" dir="rtl">
           <AlertCircle className="h-14 w-14 text-rose-500" />
           <h2 className="text-xl font-bold">عذراً، الوصول غير مصرح به</h2>
           <p className="text-muted-foreground max-w-md">
-            شاشة الاعتمادات متاحة حصراً لمدير النظام، المدير التنفيذي، والإدارة المالية.
+            شاشة الاعتمادات متاحة حصراً لمن يملكون صلاحيات الاعتماد المالي أو إدارة النظام.
           </p>
           <Button onClick={() => navigate("/dashboard")} variant="outline" className="mt-2">
             العودة للرئيسية
@@ -329,7 +365,7 @@ export default function FinancialApproval() {
 
         {/* ==================== بطاقات المؤشرات الإحصائية بحسب نوع المعاملة ==================== */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {APPROVAL_CARDS.map((card) => {
+          {visibleCards.map((card) => {
             const Icon = card.icon;
             const count =
               card.key === "all"
@@ -413,15 +449,14 @@ export default function FinancialApproval() {
                     <SelectValue placeholder="كافة التصنيفات" />
                   </SelectTrigger>
                   <SelectContent dir="rtl">
-                    <SelectItem value="all">كافة التصنيفات داخل البوابة</SelectItem>
-                    <SelectItem value="disbursement_request">طلبات الصرف</SelectItem>
-                    <SelectItem value="disbursement_order">أوامر الصرف</SelectItem>
-                    <SelectItem value="progress_report">تقارير الإنجاز</SelectItem>
-                    <SelectItem value="purchase_order">أوامر الشراء</SelectItem>
-                    <SelectItem value="receipt_voucher">سندات القبض</SelectItem>
-                    <SelectItem value="custody_request">العهد المالية</SelectItem>
-                    <SelectItem value="contract">العقود</SelectItem>
-                    <SelectItem value="project_quotation">اعتمادات المشاريع</SelectItem>
+                    <SelectItem value="all">كافة التصنيفات المتاحة</SelectItem>
+                    {visibleCards
+                      .filter((c) => c.key !== "all")
+                      .map((c) => (
+                        <SelectItem key={c.key} value={c.key}>
+                          {c.label}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>

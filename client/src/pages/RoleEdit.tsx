@@ -85,8 +85,23 @@ const superAdminGroups = [
       { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "edit", "approve"] },
       { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
       { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
-      { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
-      { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
+      { 
+        id: "financial_approval", 
+        nameAr: "قسم الاعتمادات", 
+        icon: CheckSquare, 
+        perms: [
+          "view", 
+          "approve", 
+          "disbursement_requests", 
+          "disbursement_orders", 
+          "custody_requests", 
+          "receipt_vouchers", 
+          "contracts", 
+          "purchase_orders", 
+          "progress_reports", 
+          "project_quotations"
+        ] 
+      },
       { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
       { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
       { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind"] },
@@ -256,8 +271,16 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       approve: "الاعتمادات (اعتماد أو رفض طلب صرف)"
     },
     financial_approval: {
-      view: "مقارنة عروض الاسعار من دون اعتماد",
-      approve: "الاعتماد المالي لعرض السعر"
+      view: "عرض قسم الاعتمادات",
+      approve: "صلاحية الاعتماد المالي",
+      disbursement_requests: "عرض طلبات الصرف بانتظار الاعتماد",
+      disbursement_orders: "عرض أوامر الصرف بانتظار الاعتماد",
+      custody_requests: "عرض العهد المالية بانتظار الاعتماد",
+      receipt_vouchers: "عرض سندات القبض بانتظار الاعتماد",
+      contracts: "عرض العقود بانتظار الاعتماد",
+      purchase_orders: "عرض أوامر الشراء بانتظار الاعتماد",
+      progress_reports: "عرض تقارير الإنجاز بانتظار الاعتماد",
+      project_quotations: "عرض اعتمادات المشاريع بانتظار الاعتماد",
     },
     contracts: {
       view: "عرض العقود وقالب العقود",
@@ -665,10 +688,10 @@ export default function RoleEdit() {
       }
     }
 
-    // منع تفعيل صلاحية الاعتماد المالي لعرض السعر إذا كانت مقارنة العروض معطلة
-    if (permId === "financial_approval.approve") {
+    // منع تفعيل أي صلاحية في قسم الاعتمادات إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("financial_approval.") && permId !== "financial_approval.view") {
       if (!selectedPerms.includes("financial_approval.view")) {
-        toast.warning("يجب تفعيل صلاحية 'مقارنة عروض الاسعار من دون اعتماد' أولاً");
+        toast.warning("يجب تفعيل صلاحية 'عرض قسم الاعتمادات' أولاً");
         return;
       }
     }
@@ -761,7 +784,7 @@ export default function RoleEdit() {
           next = next.filter(id => !id.startsWith("reports."));
         }
         if (permId === "financial_approval.view") {
-          next = next.filter(id => id !== "financial_approval.approve");
+          next = next.filter(id => !id.startsWith("financial_approval."));
         }
         // عند إلغاء تفعيل صلاحية 'عرض طلبات الصرف'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات طلبات الصرف الأخرى
         if (permId === "disbursements.view") {
@@ -1098,7 +1121,7 @@ export default function RoleEdit() {
                               (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !selectedPerms.includes("requesters.view")) ||
                               (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !selectedPerms.includes("reports.view_stats")) ||
                               (perm.id.startsWith("beneficiary_evaluations.") && perm.id !== "beneficiary_evaluations.view" && !selectedPerms.includes("beneficiary_evaluations.view")) ||
-                              (perm.id === "financial_approval.approve" && !selectedPerms.includes("financial_approval.view"));
+                              (perm.id.startsWith("financial_approval.") && perm.id !== "financial_approval.view" && !selectedPerms.includes("financial_approval.view"));
                             return (
                               <div 
                                 key={perm.id} 
