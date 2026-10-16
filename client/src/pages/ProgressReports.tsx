@@ -428,32 +428,28 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   const hasInvoiceExceptionApprove = usePermission("progress_invoices.exception_approve");
   const hasInvoiceRevokeApprovalPermission = usePermission("progress_invoices.revoke_approval");
 
-  const canCreateReport = isSuperAdmin || (isInvoiceMode ? hasInvoiceAddPermission : hasReportAddPermission);
-  const canEditReport = isSuperAdmin || (isInvoiceMode ? hasInvoiceEditPermission : hasReportEditPermission);
-  const canReviewReport = isSuperAdmin || (isInvoiceMode ? hasInvoiceApprovePermission : hasReportApprovePermission);
-  const canExceptionApprove = isSuperAdmin || (isInvoiceMode ? hasInvoiceExceptionApprove : hasReportExceptionApprove);
-  const canRevokeApproval = isSuperAdmin || (isInvoiceMode ? hasInvoiceRevokeApprovalPermission : hasReportRevokeApprovalPermission);
+  const canCreateReport = isInvoiceMode ? hasInvoiceAddPermission : hasReportAddPermission;
+  const canEditReport = isInvoiceMode ? hasInvoiceEditPermission : hasReportEditPermission;
+  const canReviewReport = isInvoiceMode ? hasInvoiceApprovePermission : hasReportApprovePermission;
+  const canExceptionApprove = isInvoiceMode ? hasInvoiceExceptionApprove : hasReportExceptionApprove;
+  const canRevokeApproval = isInvoiceMode ? hasInvoiceRevokeApprovalPermission : hasReportRevokeApprovalPermission;
 
   const canEditItem = (item?: any) => {
-    if (isSuperAdmin) return true;
     const inv = item ? isInvoiceReport(item) : isInvoiceMode;
     return inv ? hasInvoiceEditPermission : hasReportEditPermission;
   };
 
   const canReviewReportItem = (item?: any) => {
-    if (isSuperAdmin) return true;
     const inv = item ? isInvoiceReport(item) : isInvoiceMode;
     return inv ? hasInvoiceApprovePermission : hasReportApprovePermission;
   };
 
   const canExceptionApproveItem = (item?: any) => {
-    if (isSuperAdmin) return true;
     const inv = item ? isInvoiceReport(item) : isInvoiceMode;
     return inv ? hasInvoiceExceptionApprove : hasReportExceptionApprove;
   };
 
   const canRevokeApprovalItem = (item?: any) => {
-    if (isSuperAdmin) return true;
     const inv = item ? isInvoiceReport(item) : isInvoiceMode;
     return inv ? hasInvoiceRevokeApprovalPermission : hasReportRevokeApprovalPermission;
   };
@@ -1292,7 +1288,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
   // إنشاء مستخلص جديد للمشاريع بنظام المستخلصات
   const handleCreateInvoice = async () => {
-    if (!isSuperAdmin && !hasInvoiceAddPermission) {
+    if (!hasInvoiceAddPermission) {
       toast.error("ليس لديك صلاحية لإضافة مستخلص جديد");
       return;
     }
@@ -1519,17 +1515,19 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   const checkPendingMyAction = (report: any) => {
     if (!user || !report) return false;
     
-    // المرحلة الأولى: بانتظار اعتماد مدير المشروع (فقط لمدير المشروع المعين للمشروع أو مدير النظام)
+    // المرحلة الأولى: بانتظار اعتماد مدير المشروع (فقط لمدير المشروع المعين للمشروع أو مدير النظام بشرط امتلاك صلاحية الاعتماد)
     if (report.status === "pending" || report.status === "submitted" || report.status === "draft") {
       return Boolean(
-        (report.projectManagerId && Number(report.projectManagerId) === Number(user.id)) ||
-        isSuperAdmin
+        canReviewReportItem(report) && (
+          (report.projectManagerId && Number(report.projectManagerId) === Number(user.id)) ||
+          isSuperAdmin
+        )
       );
     }
     
-    // المرحلة الثانية: بانتظار اعتماد المدير التنفيذي (للمدير التنفيذي أو مدير النظام)
+    // المرحلة الثانية: بانتظار اعتماد المدير التنفيذي (بشرط امتلاك صلاحية الاعتماد)
     if (report.status === "pending_executive") {
-      return Boolean(isExecutiveDirector || isSuperAdmin);
+      return Boolean(canReviewReportItem(report) && (isExecutiveDirector || isSuperAdmin));
     }
     return false;
   };
