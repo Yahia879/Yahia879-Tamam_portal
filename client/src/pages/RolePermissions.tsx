@@ -5,14 +5,14 @@ import { formatErrorMessage } from "../lib/utils";
 import { Button } from "../components/ui/button";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { 
-  Shield, 
-  ArrowRight, 
-  Loader2, 
-  CheckCircle2, 
-  LayoutDashboard, 
-  Handshake, 
-  Palette, 
+import {
+  Shield,
+  ArrowRight,
+  Loader2,
+  CheckCircle2,
+  LayoutDashboard,
+  Handshake,
+  Palette,
   FileText,
   AlertCircle,
   AlertTriangle,
@@ -81,7 +81,7 @@ export default function RolePermissions() {
 
   const hasChanges = useMemo(() => {
     if (!rolePermissions) return false;
-    const initialPerms = roleId === "project_manager" 
+    const initialPerms = roleId === "project_manager"
       ? rolePermissions.filter(p => !p.startsWith("financial_reports.") && !p.startsWith("settings_contracts."))
       : rolePermissions;
     if (selectedPerms.length !== initialPerms.length) return true;
@@ -315,7 +315,7 @@ export default function RolePermissions() {
 
     setSelectedPerms(prev => {
       const isAlreadySelected = prev.includes(permId);
-      
+
       if (isAlreadySelected) {
         let next = prev.filter(id => id !== permId);
         // عند إلغاء تفعيل صلاحية 'عرض المساجد'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات المساجد الأخرى
@@ -1060,19 +1060,19 @@ export default function RolePermissions() {
       modules: [
         { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
-        { 
-          id: "financial_approval", 
-          nameAr: "قسم الاعتمادات", 
-          icon: CheckSquare, 
+        {
+          id: "financial_approval",
+          nameAr: "قسم الاعتمادات",
+          icon: CheckSquare,
           perms: [
-            "disbursement_requests", 
-            "disbursement_orders", 
-            "custody_requests", 
-            "receipt_vouchers", 
-            "contracts", 
-            "purchase_orders", 
+            "disbursement_requests",
+            "disbursement_orders",
+            "custody_requests",
+            "receipt_vouchers",
+            "contracts",
+            "purchase_orders",
             "progress_reports"
-          ] 
+          ]
         },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
@@ -1102,11 +1102,11 @@ export default function RolePermissions() {
     {
       title: "الإعدادات",
       modules: [
-        { 
-          id: "settings_org", 
-          nameAr: "إعدادات الجمعية", 
-          icon: Building2, 
-          perms: ["view", "edit_basic", "edit_signers", "edit_banks", "edit_contracts"] 
+        {
+          id: "settings_org",
+          nameAr: "إعدادات الجمعية",
+          icon: Building2,
+          perms: ["view", "edit_basic", "edit_signers", "edit_banks", "edit_contracts"]
         },
         { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["view", "edit"] },
         { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "edit"] },
@@ -1148,19 +1148,19 @@ export default function RolePermissions() {
         { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve"] },
         { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
-        { 
-          id: "financial_approval", 
-          nameAr: "قسم الاعتمادات", 
-          icon: CheckSquare, 
+        {
+          id: "financial_approval",
+          nameAr: "قسم الاعتمادات",
+          icon: CheckSquare,
           perms: [
-            "disbursement_requests", 
-            "disbursement_orders", 
-            "custody_requests", 
-            "receipt_vouchers", 
-            "contracts", 
-            "purchase_orders", 
+            "disbursement_requests",
+            "disbursement_orders",
+            "custody_requests",
+            "receipt_vouchers",
+            "contracts",
+            "purchase_orders",
             "progress_reports"
-          ] 
+          ]
         },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
@@ -1209,11 +1209,11 @@ export default function RolePermissions() {
     {
       title: "الإعدادات",
       modules: [
-        { 
-          id: "settings_org", 
-          nameAr: "إعدادات الجمعية", 
-          icon: Building2, 
-          perms: ["view", "edit_basic", "edit_signers", "edit_banks", "edit_contracts"] 
+        {
+          id: "settings_org",
+          nameAr: "إعدادات الجمعية",
+          icon: Building2,
+          perms: ["view", "edit_basic", "edit_signers", "edit_banks", "edit_contracts"]
         },
         { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["edit"] },
         { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "add", "edit", "delete"] },
@@ -1648,10 +1648,10 @@ export default function RolePermissions() {
         {/* Header */}
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between mb-8 sm:mb-10">
           <div className="flex items-center gap-3 sm:gap-4 text-right min-w-0">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => setLocation("/staff")} 
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setLocation("/staff")}
               className="rounded-full hover:bg-slate-100 transition-colors shrink-0 h-9 w-9 sm:h-10 sm:w-10"
             >
               <ArrowRight className="h-5.5 w-5.5 sm:h-6 sm:w-6" />
@@ -1696,11 +1696,10 @@ export default function RolePermissions() {
               <Button
                 onClick={handleSaveChanges}
                 disabled={updateRoleMutation.isPending || !hasChanges}
-                className={`w-full sm:w-auto text-xs sm:text-sm px-5 sm:px-6 font-bold rounded-xl shadow-md h-10 sm:h-11 transition-all ${
-                  hasChanges 
-                    ? "gradient-primary text-white scale-102 hover:scale-105" 
+                className={`w-full sm:w-auto text-xs sm:text-sm px-5 sm:px-6 font-bold rounded-xl shadow-md h-10 sm:h-11 transition-all ${hasChanges
+                    ? "gradient-primary text-white scale-102 hover:scale-105"
                     : "bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 cursor-not-allowed"
-                }`}
+                  }`}
               >
                 {updateRoleMutation.isPending ? (
                   <>
@@ -1742,7 +1741,7 @@ export default function RolePermissions() {
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{group.title}</h2>
                   </div>
                 )}
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {group.modules.map((module) => {
                     const Icon = (module as any).icon || Shield;
@@ -1754,17 +1753,17 @@ export default function RolePermissions() {
                       }
                       return true;
                     });
-                    const activePerms = isSuperAdmin 
+                    const activePerms = isSuperAdmin
                       ? modulePerms.filter((p: any) => {
-                          const excludedAdminPerms = [
-                            'requests.manage_as_field_team',
-                            'requests.manage_as_quick_response',
-                            'requests.upload_final_report'
-                          ];
-                          return !excludedAdminPerms.includes(p.id);
-                        })
+                        const excludedAdminPerms = [
+                          'requests.manage_as_field_team',
+                          'requests.manage_as_quick_response',
+                          'requests.upload_final_report'
+                        ];
+                        return !excludedAdminPerms.includes(p.id);
+                      })
                       : modulePerms.filter((p: any) => selectedPerms.includes(p.id));
-                    const grantedCount = activePerms.length; 
+                    const grantedCount = activePerms.length;
 
                     return (
                       <Card key={module.id} className="overflow-hidden border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl transition-all hover:shadow-xl hover:shadow-slate-200/40">
@@ -1802,45 +1801,43 @@ export default function RolePermissions() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" dir="rtl">
                             {modulePerms.map((perm: any) => {
                               const isChecked = isPermissionGranted(perm.id);
-                               const isDisabled = 
-                                 (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !selectedPerms.includes("contracts.view")) ||
-                                 (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && !selectedPerms.includes("disbursement_orders.view")) ||
-                                 (perm.id === "board_leadership.remind" && !selectedPerms.includes("board_chairman")) ||
-                                 (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
-                                 (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||
-                                 (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !selectedPerms.includes("quotations.view")) ||
-                                 (perm.id.startsWith("staff_users.") && perm.id !== "staff_users.view" && !selectedPerms.includes("staff_users.view")) ||
-                                 (perm.id.startsWith("staff_roles.") && perm.id !== "staff_roles.view" && !selectedPerms.includes("staff_roles.view")) ||
-                                 (perm.id.startsWith("staff_custom_roles.") && perm.id !== "staff_custom_roles.view" && !selectedPerms.includes("staff_custom_roles.view")) ||
-                                 (perm.id.startsWith("services.") && perm.id !== "services.view" && !selectedPerms.includes("services.view")) ||
-                                 (perm.id.startsWith("requests.") && perm.id !== "requests.view" && perm.id !== "requests.sign_final_report" && !selectedPerms.includes("requests.view")) ||
-                                 (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !selectedPerms.includes("projects.view")) ||
-                                 ((perm.id === "projects.edit_support_and_fees" || perm.id === "projects.add_receipt_voucher") && !selectedPerms.includes("projects.financials")) ||
-                                 (perm.id.startsWith("progress_reports.") && perm.id !== "progress_reports.view" && !selectedPerms.includes("progress_reports.view")) ||
-                                 (perm.id.startsWith("progress_invoices.") && perm.id !== "progress_invoices.view" && !selectedPerms.includes("progress_invoices.view")) ||
-                                 (perm.id.startsWith("project_reports.") && perm.id !== "project_reports.view" && !selectedPerms.includes("project_reports.view")) ||
-                                 (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !selectedPerms.includes("requesters.view")) ||
-                                 (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !selectedPerms.includes("reports.view_stats")) ||
-                                 (perm.id.startsWith("beneficiary_evaluations.") && perm.id !== "beneficiary_evaluations.view" && !selectedPerms.includes("beneficiary_evaluations.view"));
+                              const isDisabled =
+                                (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !selectedPerms.includes("contracts.view")) ||
+                                (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && !selectedPerms.includes("disbursement_orders.view")) ||
+                                (perm.id === "board_leadership.remind" && !selectedPerms.includes("board_chairman")) ||
+                                (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
+                                (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||
+                                (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !selectedPerms.includes("quotations.view")) ||
+                                (perm.id.startsWith("staff_users.") && perm.id !== "staff_users.view" && !selectedPerms.includes("staff_users.view")) ||
+                                (perm.id.startsWith("staff_roles.") && perm.id !== "staff_roles.view" && !selectedPerms.includes("staff_roles.view")) ||
+                                (perm.id.startsWith("staff_custom_roles.") && perm.id !== "staff_custom_roles.view" && !selectedPerms.includes("staff_custom_roles.view")) ||
+                                (perm.id.startsWith("services.") && perm.id !== "services.view" && !selectedPerms.includes("services.view")) ||
+                                (perm.id.startsWith("requests.") && perm.id !== "requests.view" && perm.id !== "requests.sign_final_report" && !selectedPerms.includes("requests.view")) ||
+                                (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !selectedPerms.includes("projects.view")) ||
+                                ((perm.id === "projects.edit_support_and_fees" || perm.id === "projects.add_receipt_voucher") && !selectedPerms.includes("projects.financials")) ||
+                                (perm.id.startsWith("progress_reports.") && perm.id !== "progress_reports.view" && !selectedPerms.includes("progress_reports.view")) ||
+                                (perm.id.startsWith("progress_invoices.") && perm.id !== "progress_invoices.view" && !selectedPerms.includes("progress_invoices.view")) ||
+                                (perm.id.startsWith("project_reports.") && perm.id !== "project_reports.view" && !selectedPerms.includes("project_reports.view")) ||
+                                (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !selectedPerms.includes("requesters.view")) ||
+                                (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !selectedPerms.includes("reports.view_stats")) ||
+                                (perm.id.startsWith("beneficiary_evaluations.") && perm.id !== "beneficiary_evaluations.view" && !selectedPerms.includes("beneficiary_evaluations.view"));
                               return (
-                                <div 
-                                  key={perm.id} 
+                                <div
+                                  key={perm.id}
                                   onClick={() => !isDisabled && handleTogglePermission(perm.id)}
-                                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all select-none text-right ${
-                                    isDisabled
+                                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all select-none text-right ${isDisabled
                                       ? "border-slate-100 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-900/10 text-slate-300 dark:text-slate-600 cursor-not-allowed pointer-events-none opacity-50"
-                                      : isChecked 
-                                        ? "border-green-200 bg-green-50/40 dark:bg-green-900/10 dark:border-green-900/20 text-green-950 dark:text-green-400 hover:bg-green-50/60 cursor-pointer" 
+                                      : isChecked
+                                        ? "border-green-200 bg-green-50/40 dark:bg-green-900/10 dark:border-green-900/20 text-green-950 dark:text-green-400 hover:bg-green-50/60 cursor-pointer"
                                         : "border-slate-200 dark:border-slate-800 bg-background hover:bg-slate-50 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400 cursor-pointer"
-                                  }`}
+                                    }`}
                                 >
-                                  <div className={`w-4.5 h-4.5 rounded flex items-center justify-center border shrink-0 transition-all ${
-                                    isDisabled
+                                  <div className={`w-4.5 h-4.5 rounded flex items-center justify-center border shrink-0 transition-all ${isDisabled
                                       ? "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900"
                                       : isChecked
                                         ? "bg-green-600 border-green-600 text-white"
                                         : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
-                                  }`}>
+                                    }`}>
                                     {isChecked && <CheckCircle2 className="h-3 w-3 stroke-[3]" />}
                                   </div>
                                   <div className="flex flex-col min-w-0">

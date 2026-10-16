@@ -338,6 +338,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // حالة نموذج إنشاء مستخلص جديد
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
   const [invoiceTitle, setInvoiceTitle] = useState("");
   const [invoicePercentage, setInvoicePercentage] = useState<number>(0);
@@ -345,6 +346,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   const [invoiceRecommendations, setInvoiceRecommendations] = useState("");
 
   const resetInvoiceForm = () => {
+    setSelectedProjectId(null);
     setSelectedContractId(null);
     setInvoiceTitle("");
     setInvoicePercentage(0);
@@ -374,10 +376,21 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     });
   }, [allContractsData]);
 
+  const contractsForSelectedProject = useMemo(() => {
+    if (!selectedProjectId || !milestoneContracts) return [];
+    return milestoneContracts.filter((c: any) => c.projectId === selectedProjectId);
+  }, [selectedProjectId, milestoneContracts]);
+
   const selectedContract = useMemo(() => {
-    if (!selectedContractId || !milestoneContracts) return null;
-    return milestoneContracts.find((c: any) => c.id === selectedContractId) || null;
-  }, [selectedContractId, milestoneContracts]);
+    if (selectedContractId) {
+      const found = milestoneContracts.find((c: any) => c.id === selectedContractId);
+      if (found) return found;
+    }
+    if (selectedProjectId) {
+      return milestoneContracts.find((c: any) => c.projectId === selectedProjectId) || null;
+    }
+    return null;
+  }, [selectedContractId, selectedProjectId, milestoneContracts]);
 
   const selectedContractAmount = parseFloat(String(selectedContract?.contractAmount || "0").replace(/,/g, "")) || 0;
   const calculatedInvoicePayout = selectedContractAmount > 0 && invoicePercentage > 0
@@ -668,6 +681,37 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
       return !isClosed;
     });
   }, [projectsData]);
+
+  // المشاريع المحددة كمستخلصات (المشاريع التي لديها عقود مفعلة بنظام المستخلصات)
+  const milestoneProjects = useMemo(() => {
+    if (!milestoneContracts || milestoneContracts.length === 0) return [];
+    const milestoneProjectIds = new Set(
+      milestoneContracts.map((c: any) => c.projectId).filter(Boolean)
+    );
+    // تصفية المشاريع النشطة المطابقة لمعرفات عقود المستخلصات
+    const matched = (projectsData || []).filter((p: any) => {
+      const isClosed =
+        p.requestStage === 'closed' ||
+        p.requestStatus === 'completed' ||
+        p.requestClosureStatus === 'confirmed';
+      if (isClosed) return false;
+      return milestoneProjectIds.has(p.id);
+    });
+
+    // في حال وجود مشروع مرتبط بعقد مستخلص لم يظهر في projectsData
+    const matchedIds = new Set(matched.map((p: any) => p.id));
+    for (const c of milestoneContracts) {
+      if (c.projectId && !matchedIds.has(c.projectId)) {
+        matched.push({
+          id: c.projectId,
+          name: c.projectName || (c as any).project?.name || `مشروع #${c.projectId}`,
+          projectNumber: (c as any).projectNumber || `PRJ-${c.projectId}`,
+        });
+        matchedIds.add(c.projectId);
+      }
+    }
+    return matched;
+  }, [milestoneContracts, projectsData]);
 
   // جلب تفاصيل المشروع المحدد للتحقق من جدولة الدفعات
   const { data: projectDetails, isLoading: isProjectDetailsLoading } = trpc.projects.getById.useQuery(
@@ -1292,8 +1336,8 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
       toast.error("ليس لديك صلاحية لإضافة مستخلص جديد");
       return;
     }
-    if (!selectedContract) {
-      toast.error("يرجى اختيار العقد المراد إنشاء مستخلص له");
+    if (!selectedProjectId || !selectedContract) {
+      toast.error("يرجى اختيار المشروع المراد إنشاء مستخلص له");
       return;
     }
     if (!invoiceTitle.trim()) {
@@ -2164,57 +2208,75 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
         {/* Form Body */}
         <div className="grid grid-cols-1 gap-6">
-          {/* Card 1: العقد المرتبط */}
+          {/* Card 1: المشروع المرتبط */}
           <Card className="border-border/60 shadow-sm">
             <CardHeader className="bg-muted/30 border-b border-border/40 py-4">
               <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
                 <Building2 className="w-4.5 h-4.5 text-primary" />
-                اختيار العقد (نظام المستخلصات)
+                اختيار المشروع (نظام المستخلصات)
               </CardTitle>
               <CardDescription>
-                حدد العقد الذي ترغب بإنشاء مستخلص له. تظهر هنا حصراً العقود المفعلة بنظام المستخلصات.
+                حدد المشروع الذي ترغب بإنشاء مستخلص له. تظهر هنا حصراً المشاريع المفعلة بنظام المستخلصات مع إمكانية البحث الفوري.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
-              {milestoneContracts.length === 0 ? (
+              {milestoneProjects.length === 0 ? (
                 <div className="bg-amber-50/80 border border-amber-200/60 dark:bg-amber-950/20 dark:border-amber-900/40 rounded-xl p-4 flex items-start gap-3 text-right">
                   <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
                   <div className="space-y-1 text-sm">
-                    <p className="font-bold text-amber-900 dark:text-amber-400">لا توجد عقود بنظام المستخلصات حالياً</p>
+                    <p className="font-bold text-amber-900 dark:text-amber-400">لا توجد مشاريع بنظام المستخلصات حالياً</p>
                     <p className="text-amber-800 dark:text-amber-300 text-xs">
-                      يمكنك إنشاء عقد جديد وتحديد طريقة الدفع كـ "مستخلصات" لتتمكن من رفع المستخلصات عليه.
+                      يمكنك إنشاء عقد لمشروع وتحديد طريقة الدفع كـ "مستخلصات" لتتمكن من رفع المستخلصات عليه.
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <Label className="font-semibold text-foreground">العقد المالي <span className="text-red-500">*</span></Label>
-                  <Select
-                    value={selectedContractId ? String(selectedContractId) : ""}
-                    onValueChange={(val) => {
-                      const cid = parseInt(val) || null;
-                      setSelectedContractId(cid);
-                      const foundContract = milestoneContracts.find((c: any) => c.id === cid);
-                      if (foundContract && !invoiceTitle) {
-                        setInvoiceTitle(`مستخلص إنجاز - عقد ${foundContract.contractNumber || foundContract.id}`);
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="w-full text-right">
-                      <SelectValue placeholder="اختر العقد المرتبط بنظام المستخلصات..." />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-72">
-                      {milestoneContracts.map((c: any) => {
-                        const matchedProj = (projectsData || []).find((p: any) => p.id === c.projectId);
-                        const cAmount = parseFloat(String(c.contractAmount || "0").replace(/,/g, "")) || 0;
-                        return (
-                          <SelectItem key={c.id} value={String(c.id)}>
-                            [رقم العقد: {c.contractNumber || c.id}] - {matchedProj?.name || `مشروع #${c.projectId}`} - الطرف الثاني: {c.secondPartyName || (c as any).supplierName || "غير محدد"} ({cAmount.toLocaleString("en-US")} ر.س)
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label className="font-semibold text-foreground">المشروع <span className="text-red-500">*</span></Label>
+                    <ProjectSearchSelect
+                      projects={milestoneProjects}
+                      value={selectedProjectId ? selectedProjectId.toString() : ""}
+                      onValueChange={(val) => {
+                        const pId = parseInt(val) || null;
+                        setSelectedProjectId(pId);
+                        if (pId) {
+                          const contracts = milestoneContracts.filter((c: any) => c.projectId === pId);
+                          const chosenContract = contracts[0] || null;
+                          setSelectedContractId(chosenContract ? chosenContract.id : null);
+                          const pObj = milestoneProjects.find((p: any) => p.id === pId);
+                          if (!invoiceTitle && pObj) {
+                            setInvoiceTitle(`مستخلص إنجاز - ${pObj.name}`);
+                          }
+                        } else {
+                          setSelectedContractId(null);
+                        }
+                      }}
+                      placeholder="ابحث برقم أو اسم المشروع المحدد بنظام المستخلصات..."
+                    />
+                  </div>
+
+                  {/* في حال وجود أكثر من عقد بنظام المستخلصات لنفس المشروع */}
+                  {contractsForSelectedProject.length > 1 && (
+                    <div className="space-y-2 pt-2">
+                      <Label className="font-semibold text-foreground text-xs">العقد المالي المرتبط بالمشروع</Label>
+                      <Select
+                        value={selectedContractId ? String(selectedContractId) : ""}
+                        onValueChange={(val) => setSelectedContractId(parseInt(val) || null)}
+                      >
+                        <SelectTrigger className="w-full text-right text-xs">
+                          <SelectValue placeholder="اختر العقد المرتبط..." />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-56">
+                          {contractsForSelectedProject.map((c: any) => (
+                            <SelectItem key={c.id} value={String(c.id)}>
+                              رقم العقد: {c.contractNumber || c.id} - الطرف الثاني: {c.secondPartyName || "غير محدد"} ({(parseFloat(String(c.contractAmount || "0").replace(/,/g, "")) || 0).toLocaleString("en-US")} ر.س)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -2236,7 +2298,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   </div>
                   <div>
                     <span className="text-muted-foreground block mb-0.5">إجمالي قيمة العقد:</span>
-                    <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                    <span className="font-bold text-emerald-700 dark:text-emerald-400 font-mono">
                       {selectedContractAmount.toLocaleString("en-US")} ر.س
                     </span>
                   </div>
@@ -2253,7 +2315,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 بيانات المستخلص ونسبة الإنجاز
               </CardTitle>
               <CardDescription>
-                أدخل عنوان المستخلص ونسبة الإنجاز الفعلي لحساب مبلغ الصرف المستحق تلقائياً
+                أدخل عنوان المستخلص ونسبة الإنجاز الفعلي ووصف الأعمال المنجزة
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6 space-y-6">
@@ -2287,31 +2349,6 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   </div>
                 </div>
               </div>
-
-              {/* بطاقة الحساب التلقائي للمبلغ المستحق */}
-              {selectedContract && invoicePercentage > 0 && (
-                <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-emerald-950/30 border border-emerald-300 dark:border-emerald-800 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 shadow-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center flex-shrink-0">
-                      <Coins className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-sm text-emerald-900 dark:text-emerald-300">
-                        مبلغ الصرف المستحق المحتسب تلقائياً
-                      </h4>
-                      <p className="text-xs text-emerald-700 dark:text-emerald-400">
-                        معادلة الاحتساب: نسبة الإنجاز ({invoicePercentage}%) × إجمالي قيمة العقد ({selectedContractAmount.toLocaleString("en-US")} ر.س)
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-left bg-background/80 dark:bg-background/40 backdrop-blur px-4 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                    <span className="text-xs text-muted-foreground block">مبلغ الصرف المستحق:</span>
-                    <span className="text-xl font-black text-emerald-700 dark:text-emerald-300 font-mono">
-                      {calculatedInvoicePayout.toLocaleString("en-US")} ر.س
-                    </span>
-                  </div>
-                </div>
-              )}
 
               {/* وصف الأعمال المنجزة */}
               <div className="space-y-2">
@@ -2431,7 +2468,8 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               disabled={
                 isSubmitting ||
                 createMutation.isPending ||
-                !selectedContractId ||
+                !selectedProjectId ||
+                !selectedContract ||
                 !invoiceTitle.trim() ||
                 !invoicePercentage ||
                 invoicePercentage <= 0 ||
