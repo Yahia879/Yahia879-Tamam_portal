@@ -1029,7 +1029,9 @@ export default function ContractPreview() {
                     className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
                     style={{ backgroundColor: '#1a5f4a', color: 'white', minHeight: '40px' }}
                   >
-                    {isMilestonesContract ? "المدة وجدول المستخلصات والمراحل:" : "المدة وجدول الدفعات:"}
+                    {isMilestonesContract 
+                      ? (effectiveMilestones && effectiveMilestones.length > 0 ? "المدة وجدول المستخلصات والمراحل:" : "المدة ونظام صرف المستخلصات:") 
+                      : "المدة وجدول الدفعات:"}
                   </h3>
                   <div className="pr-2 sm:pr-4">
                     {/* مدة العقد وتواريخه */}
@@ -1054,51 +1056,60 @@ export default function ContractPreview() {
                     {/* جدول الدفعات أو المستخلصات */}
                     {isMilestonesContract ? (
                       <div className="text-xs sm:text-sm mb-6">
-                        <div className="mb-2">
-                          <p className="font-medium text-gray-800">جدول استحقاق ومراحل المستخلصات بحسب نسبة الإنجاز:</p>
-                        </div>
                         {effectiveMilestones && effectiveMilestones.length > 0 ? (
-                          <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                            <table className="w-full border-collapse text-right text-xs sm:text-sm">
-                              <thead>
-                                <tr className="bg-gray-100/80 border-b border-gray-200">
-                                  <th className="py-2.5 px-3 font-bold text-gray-700 w-12 border-l border-gray-200">م</th>
-                                  <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">اسم المستخلص / المرحلة</th>
-                                  <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">نسبة الإنجاز المستهدفة</th>
-                                  <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">التاريخ المتوقع</th>
-                                  <th className="py-2.5 px-3 font-bold text-gray-700">وصف أعمال ومراحل المستخلص</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {effectiveMilestones.map((m: any, idx: number) => {
-                                  const comp = m.completionPercentage !== undefined && m.completionPercentage !== null && m.completionPercentage !== ""
-                                    ? m.completionPercentage
-                                    : "--";
-                                  return (
-                                    <tr key={m.id || idx} className="border-b border-gray-200 last:border-b-0">
-                                      <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">{idx + 1}</td>
-                                      <td className="py-2.5 px-3 border-l border-gray-200 font-semibold text-gray-900">
-                                        <div>{m.name || m.phaseName || `مستخلص ${idx + 1}`}</div>
-                                      </td>
-                                      <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a]">
-                                        <span className="font-mono">
-                                          {comp}%
-                                        </span>
-                                      </td>
-                                      <td className="py-2.5 px-3 border-l border-gray-200 text-gray-600 font-mono">
-                                        {m.dueDate ? (String(m.dueDate).includes('T') ? String(m.dueDate).split('T')[0] : String(m.dueDate).split(' ')[0]) : "عند الإنجاز"}
-                                      </td>
-                                      <td className="py-2.5 px-3 text-gray-700 leading-relaxed">
-                                        {m.description || m.notes || "----"}
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          </div>
+                          <>
+                            <div className="mb-2">
+                              <p className="font-medium text-gray-800">جدول استحقاق ومراحل المستخلصات بحسب نسبة الإنجاز:</p>
+                            </div>
+                            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                              <table className="w-full border-collapse text-right text-xs sm:text-sm">
+                                <thead>
+                                  <tr className="bg-gray-100/80 border-b border-gray-200">
+                                    <th className="py-2.5 px-3 font-bold text-gray-700 w-12 border-l border-gray-200">م</th>
+                                    <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">اسم المستخلص / المرحلة</th>
+                                    <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">نسبة الإنجاز المستهدفة</th>
+                                    <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">التاريخ المتوقع</th>
+                                    <th className="py-2.5 px-3 font-bold text-gray-700">وصف أعمال ومراحل المستخلص</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {effectiveMilestones.map((m: any, idx: number) => {
+                                    const comp = m.completionPercentage !== undefined && m.completionPercentage !== null && m.completionPercentage !== ""
+                                      ? m.completionPercentage
+                                      : "--";
+                                    return (
+                                      <tr key={m.id || idx} className="border-b border-gray-200 last:border-b-0">
+                                        <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">{idx + 1}</td>
+                                        <td className="py-2.5 px-3 border-l border-gray-200 font-semibold text-gray-900">
+                                          <div>{m.name || m.phaseName || `مستخلص ${idx + 1}`}</div>
+                                        </td>
+                                        <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a]">
+                                          <span className="font-mono">
+                                            {comp}%
+                                          </span>
+                                        </td>
+                                        <td className="py-2.5 px-3 border-l border-gray-200 text-gray-600 font-mono">
+                                          {m.dueDate ? (String(m.dueDate).includes('T') ? String(m.dueDate).split('T')[0] : String(m.dueDate).split(' ')[0]) : "عند الإنجاز"}
+                                        </td>
+                                        <td className="py-2.5 px-3 text-gray-700 leading-relaxed">
+                                          {m.description || m.notes || "----"}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </>
                         ) : (
-                          <p className="text-xs sm:text-sm text-gray-500 italic pr-2">لا يوجد جدول مستخلصات محدد لهذا العقد.</p>
+                          <div className="bg-emerald-50/50 border border-emerald-200/80 rounded-lg p-3.5 sm:p-4 text-xs sm:text-sm text-gray-800 space-y-2 leading-relaxed">
+                            <div className="font-bold text-[#1a5f4a] flex items-center gap-1.5">
+                              <span>آلية استحقاق وصرف المستخلصات (بحسب الإنجاز الفعلي):</span>
+                            </div>
+                            <p className="text-gray-700 leading-relaxed text-justify">
+                              يخضع هذا العقد لنظام <strong>المستخلصات الجارية بحسب الإنجاز الفعلي</strong>، حيث تُصرف المستحقات المالية بناءً على تقدم ونسب الإنجاز الواقعي للأعمال والمراحل المنفذة على أرض الواقع، وبموجب تقارير المعاينة الفنية الميدانية وشهادات الإنجاز المعتمدة من المشرف والطرف الأول، دون التقيد بجدول زمني مسبق للمستخلصات.
+                            </p>
+                          </div>
                         )}
                       </div>
                     ) : (

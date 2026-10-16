@@ -221,8 +221,16 @@ const categoryPermMap: Record<string, string> = {
 
 export default function FinancialApproval() {
   const [, navigate] = useLocation();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   useDocumentTitle("الاعتمادات");
+
+  // جلب صلاحيات المستخدم بشكل مباشر لضمان عدم حدوث أي وميض أو تأخير في التحقق
+  const { data: directPerms, isLoading: permsLoading } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user, staleTime: 30000 }
+  );
+
+  const isAuthOrPermsLoading = authLoading || (!!user && permsLoading);
 
   // التحقق من الصلاحيات والوصول (مدير النظام، المدير التنفيذي، الإدارة المالية، أو صلاحية الاعتماد)
   const isSuperOrSystem = ["super_admin", "system_admin"].includes(user?.role || "");
@@ -238,7 +246,17 @@ export default function FinancialApproval() {
     (user as any)?.customRole?.nameAr === "الإدارة المالية" ||
     (user as any)?.customRole?.nameAr === "المدير المالي";
 
-  const userPerms: string[] = Array.isArray((user as any)?.permissions) ? (user as any).permissions : [];
+  const userPerms: string[] = useMemo(() => {
+    const set = new Set<string>();
+    if (Array.isArray((user as any)?.permissions)) {
+      (user as any).permissions.forEach((p: string) => set.add(p));
+    }
+    if (Array.isArray(directPerms)) {
+      directPerms.forEach((p: string) => set.add(p));
+    }
+    return Array.from(set);
+  }, [user, directPerms]);
+
   const APPROVAL_PERMISSION_KEYS = [
     "financial_approval.disbursement_requests",
     "financial_approval.disbursement_orders",
@@ -248,13 +266,10 @@ export default function FinancialApproval() {
     "financial_approval.purchase_orders",
     "financial_approval.progress_reports",
   ];
-  const hasSpecificPerm = useAnyPermission(APPROVAL_PERMISSION_KEYS);
-
-  const hasApprovalPerm =
-    hasSpecificPerm ||
-    userPerms.includes("*");
 
   const hasAdminWildcard = userPerms.includes("*");
+  const hasSpecificPerm = APPROVAL_PERMISSION_KEYS.some((key) => userPerms.includes(key));
+  const hasApprovalPerm = hasSpecificPerm || hasAdminWildcard;
 
   const allowedCategoryCards = useMemo(() => {
     return APPROVAL_CARDS.filter((card) => {
@@ -324,7 +339,19 @@ export default function FinancialApproval() {
   const totalFiltered = approvalsData?.totalFiltered ?? 0;
   const totalPages = approvalsData?.totalPages ?? 1;
 
-  // حظر المستخدمين غير المصرح لهم
+  // أثناء تحميل الجلسة أو الصلاحيات، عرض مؤشر تحميل أنيق لمنع وميض "عذراً، الوصول غير مصرح به"
+  if (isAuthOrPermsLoading || (!user && authLoading)) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center py-28 gap-3" dir="rtl">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground font-medium">جاري التحقق من الصلاحيات وتحديث البيانات...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // حظر المستخدمين غير المصرح لهم بعد اكتمال التحقق
   if (!hasApprovalPerm) {
     return (
       <DashboardLayout>
