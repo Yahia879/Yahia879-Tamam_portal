@@ -2308,16 +2308,12 @@ export default function ProjectDetailsPage() {
                                     <TableHead className="text-right font-bold py-3 px-3.5 whitespace-nowrap">رقم المستخلص</TableHead>
                                     <TableHead className="text-right font-bold py-3 px-3.5">عنوان المستخلص</TableHead>
                                     <TableHead className="text-right font-bold py-3 px-3.5 whitespace-nowrap">نسبة الإنجاز</TableHead>
-                                    <TableHead className="text-right font-bold py-3 px-3.5 whitespace-nowrap">المبلغ المستحق</TableHead>
                                     <TableHead className="text-right font-bold py-3 px-3.5 whitespace-nowrap">تاريخ المستخلص</TableHead>
                                     <TableHead className="text-right font-bold py-3 px-3.5 whitespace-nowrap">الحالة</TableHead>
-                                    <TableHead className="text-center font-bold py-3 px-3.5 w-44 whitespace-nowrap">الإجراءات</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                   {projectInvoices.map((inv: any, idx: number) => {
-                                    const payout = getInvoicePayout(inv);
-                                    const isApproved = inv.status === "approved";
                                     return (
                                       <TableRow key={inv.id} className="hover:bg-muted/20">
                                         <TableCell className="font-mono text-right py-3 px-3.5 text-muted-foreground">{idx + 1}</TableCell>
@@ -2330,44 +2326,15 @@ export default function ProjectDetailsPage() {
                                         <TableCell className="font-bold text-right py-3 px-3.5 text-[#1a5f4a] font-mono whitespace-nowrap">
                                           {inv.overallProgress ?? 0}%
                                         </TableCell>
-                                        <TableCell className="font-bold text-right py-3 px-3.5 text-xs whitespace-nowrap">
-                                          {payout > 0 ? (
-                                            <span className="flex items-center gap-1 font-mono">
-                                              <SaudiRiyal className="w-3.5 h-3.5 text-emerald-600 inline-block" />
-                                              {payout.toLocaleString("en-US")}
-                                            </span>
-                                          ) : "--"}
-                                        </TableCell>
                                         <TableCell className="text-right py-3 px-3.5 text-xs text-muted-foreground font-mono whitespace-nowrap">
-                                          {inv.reportDate ? new Date(inv.reportDate).toLocaleDateString("ar-SA") : "--"}
+                                          {inv.reportDate
+                                            ? (typeof inv.reportDate === "string" && inv.reportDate.includes("T")
+                                                ? inv.reportDate.split("T")[0]
+                                                : new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(inv.reportDate)))
+                                            : "--"}
                                         </TableCell>
                                         <TableCell className="text-right py-3 px-3.5 whitespace-nowrap">
                                           {getInvoiceStatusBadge(inv.status)}
-                                        </TableCell>
-                                        <TableCell className="text-center py-3 px-3.5 whitespace-nowrap shrink-0">
-                                          <div className="flex items-center justify-center gap-1.5">
-                                            <Button
-                                              size="sm"
-                                              variant="outline"
-                                              className="h-8 text-xs rounded-lg hover:border-emerald-500 hover:text-emerald-700 font-semibold gap-1 whitespace-nowrap"
-                                              onClick={() => navigate(`/progress-reports/${inv.id}/print`)}
-                                              title="معاينة وطباعة المستخلص"
-                                            >
-                                              <Eye className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                              <span>عرض</span>
-                                            </Button>
-                                            {isApproved && !isRequestClosed && (
-                                              <Button
-                                                size="sm"
-                                                className="h-8 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1 whitespace-nowrap"
-                                                onClick={() => navigate(`/disbursements/new-linked?projectId=${project.id}&reportId=${inv.id}`)}
-                                                title="إنشاء طلب صرف مرتبط بهذا المستخلص"
-                                              >
-                                                <Send className="w-3.5 h-3.5 shrink-0" />
-                                                <span>طلب صرف</span>
-                                              </Button>
-                                            )}
-                                          </div>
                                         </TableCell>
                                       </TableRow>
                                     );

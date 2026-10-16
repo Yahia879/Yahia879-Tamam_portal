@@ -444,26 +444,6 @@ export default function NewMilestoneRequest({ params: propParams }: { params?: {
                     </Select>
                   </div>
                 )}
-
-                {/* في حال وجود عقد واحد فقط */}
-                {contractsList.length === 1 && (
-                  <div className="p-3 bg-muted/30 rounded-xl border border-border/50 flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">العقد المالي المعتمد:</span>
-                    <span className="font-bold text-foreground">
-                      رقم العقد: {contractsList[0].contractNumber || contractsList[0].id} - الطرف الثاني: {contractsList[0].secondPartyName || "غير محدد"} ({(parseFloat(String(contractsList[0].contractAmount || "0").replace(/,/g, "")) || 0).toLocaleString("en-US")} ر.س)
-                    </span>
-                  </div>
-                )}
-
-                {/* في حال عدم وجود عقد مسجل بعد للمشروع (مثل المشروع 28) */}
-                {contractsList.length === 0 && (
-                  <div className="p-3.5 bg-muted/30 rounded-xl border border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                    <span className="text-muted-foreground">قيمة التعاقد / ميزانية المشروع المعتمدة للمستخلص:</span>
-                    <span className="font-bold font-mono text-emerald-700 dark:text-emerald-400 text-sm">
-                      {selectedContractAmount.toLocaleString("en-US")} ر.س
-                    </span>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
@@ -510,21 +490,6 @@ export default function NewMilestoneRequest({ params: propParams }: { params?: {
                   </div>
                 </div>
               </div>
-
-              {/* بطاقة معاينة المبلغ المالي المستحق */}
-              {selectedContractAmount > 0 && invoicePercentage > 0 && (
-                <div className="p-3.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">المبلغ المستحق حسب نسبة الإنجاز ({invoicePercentage}%):</span>
-                    <span className="font-bold text-emerald-700 dark:text-emerald-400 font-mono text-sm">
-                      {calculatedInvoicePayout.toLocaleString("en-US")} ر.س
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-muted-foreground font-medium">
-                    ({numberToArabicText(calculatedInvoicePayout)})
-                  </span>
-                </div>
-              )}
 
               {/* وصف الأعمال المنجزة */}
               <div className="space-y-2">
