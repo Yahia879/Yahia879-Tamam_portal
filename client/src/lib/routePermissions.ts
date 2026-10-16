@@ -24,14 +24,14 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
     "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
     "contracts", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
-    "progress_reports", "financial_report", "reports", "staff_management", "settings_center", "custody_requests",
+    "progress_reports", "progress_invoices", "financial_report", "reports", "staff_management", "settings_center", "custody_requests",
   ],
 
   executive_director: [
     "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
     "contracts", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
-    "progress_reports", "financial_report", "reports", "staff_management", "settings_center", "custody_requests",
+    "progress_reports", "progress_invoices", "financial_report", "reports", "staff_management", "settings_center", "custody_requests",
     "sedana_quotations",
   ],
 
@@ -40,7 +40,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
     "projects", "service_requester_accounts",
     "suppliers", "quotations", "financial_approval", "contracts",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers",
-    "progress_reports", "financial_report", "reports", "custody_requests",
+    "progress_reports", "progress_invoices", "financial_report", "reports", "custody_requests",
   ],
 
   field_team: [
@@ -64,7 +64,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 
   project_manager: [
-    "dashboard", "projects", "progress_reports", "requests", "contracts", "disbursement_requests", "receipt_vouchers", "custody_requests",
+    "dashboard", "projects", "progress_reports", "progress_invoices", "requests", "contracts", "disbursement_requests", "receipt_vouchers", "custody_requests",
   ],
 
   corporate_comm: [
@@ -75,7 +75,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
     "dashboard", "board_chairman", "mosques", "mosques_map", "requests", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
     "contracts", "receipt_vouchers",
-    "progress_reports", "financial_report", "reports", "custody_requests",
+    "progress_reports", "progress_invoices", "financial_report", "reports", "custody_requests",
   ],
 
   board_member: [
@@ -217,8 +217,9 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/custody-requests": ["custody_requests", "custody_requests.view"],
   "/custody-requests/new": ["custody_requests", "custody_requests.view"],
 
-  // ── تقارير الإنجاز والمشاريع ──
+  // ── تقارير الإنجاز والمشاريع والمستخلصات ──
   "/progress-reports": ["progress_reports", "progress_reports.view"],
+  "/progress-invoices": ["progress_invoices", "progress_invoices.view"],
   "/project-reports": ["project_reports", "project_reports.view", "project_reports.create", "progress_reports", "progress_reports.view", "reports.view"],
   "/project-reports/new": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],
   "/project-reports/semi-monthly": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],

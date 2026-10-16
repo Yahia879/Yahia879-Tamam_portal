@@ -341,6 +341,7 @@ export const projectsRouter = router({
         !userPermissions.includes("projects.view_details") &&
         !userPermissions.includes("projects.financials") &&
         !userPermissions.includes("progress_reports.view") &&
+        !userPermissions.includes("progress_invoices.view") &&
         !userPermissions.includes("disbursements.view") &&
         !userPermissions.includes("receipt_vouchers") &&
         !userPermissions.includes("financial_report") &&
@@ -474,6 +475,7 @@ export const projectsRouter = router({
         !userPermissions.includes("projects.view_details") &&
         !userPermissions.includes("projects.financials") &&
         !userPermissions.includes("progress_reports.view") &&
+        !userPermissions.includes("progress_invoices.view") &&
         !userPermissions.includes("disbursements.view")
       ) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض سجل المشاريع" });
@@ -647,6 +649,7 @@ export const projectsRouter = router({
         !userPermissions.includes("projects.view_details") &&
         !userPermissions.includes("projects.financials") &&
         !userPermissions.includes("progress_reports.view") &&
+        !userPermissions.includes("progress_invoices.view") &&
         !userPermissions.includes("disbursements.view")
       ) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض تفاصيل هذا المشروع" });

@@ -249,8 +249,8 @@ export const progressReportsRouter = router({
       }).optional()
     )
     .query(async ({ input, ctx }) => {
-      const hasView = await checkPermission(ctx.user.id, "progress_reports.view") || await checkPermission(ctx.user.id, "project_reports.view") || await checkPermission(ctx.user.id, "project_reports.create");
-      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
+      const hasView = await checkPermission(ctx.user.id, "progress_reports.view") || await checkPermission(ctx.user.id, "progress_invoices.view") || await checkPermission(ctx.user.id, "project_reports.view") || await checkPermission(ctx.user.id, "project_reports.create");
+      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve") || await checkPermission(ctx.user.id, "progress_invoices.approve");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
 
       if (!hasView && !hasApprove && !hasGeneric) {
@@ -358,8 +358,8 @@ export const progressReportsRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasView = await checkPermission(ctx.user.id, "progress_reports.view") || await checkPermission(ctx.user.id, "project_reports.view") || await checkPermission(ctx.user.id, "project_reports.create");
-      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
+      const hasView = await checkPermission(ctx.user.id, "progress_reports.view") || await checkPermission(ctx.user.id, "progress_invoices.view") || await checkPermission(ctx.user.id, "project_reports.view") || await checkPermission(ctx.user.id, "project_reports.create");
+      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve") || await checkPermission(ctx.user.id, "progress_invoices.approve");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
 
       if (!isAdmin && !hasView && !hasApprove && !hasGeneric) {
@@ -498,7 +498,7 @@ export const progressReportsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const hasAdd = await checkPermission(ctx.user.id, "progress_reports.add") || await checkPermission(ctx.user.id, "project_reports.create");
+      const hasAdd = await checkPermission(ctx.user.id, "progress_reports.add") || await checkPermission(ctx.user.id, "progress_invoices.add") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.create");
 
       if (!hasAdd && !hasGeneric) {
@@ -589,7 +589,7 @@ export const progressReportsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const hasEdit = await checkPermission(ctx.user.id, "progress_reports.edit") || await checkPermission(ctx.user.id, "project_reports.create");
+      const hasEdit = await checkPermission(ctx.user.id, "progress_reports.edit") || await checkPermission(ctx.user.id, "progress_invoices.edit") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.create");
 
       if (!hasEdit && !hasGeneric) {
@@ -661,8 +661,8 @@ export const progressReportsRouter = router({
   submit: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      const hasAdd = await checkPermission(ctx.user.id, "progress_reports.add") || await checkPermission(ctx.user.id, "project_reports.create");
-      const hasEdit = await checkPermission(ctx.user.id, "progress_reports.edit");
+      const hasAdd = await checkPermission(ctx.user.id, "progress_reports.add") || await checkPermission(ctx.user.id, "progress_invoices.add") || await checkPermission(ctx.user.id, "project_reports.create");
+      const hasEdit = await checkPermission(ctx.user.id, "progress_reports.edit") || await checkPermission(ctx.user.id, "progress_invoices.edit");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.create");
 
       if (!hasAdd && !hasEdit && !hasGeneric) {
@@ -717,7 +717,7 @@ export const progressReportsRouter = router({
         (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
         (ctx.user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
 
-      const hasApprovePerm = await checkPermission(ctx.user.id, "progress_reports.approve");
+      const hasApprovePerm = await checkPermission(ctx.user.id, "progress_reports.approve") || await checkPermission(ctx.user.id, "progress_invoices.approve");
 
       // المرحلة الأولى: اعتماد مدير المشروع (pending / submitted / draft -> pending_executive)
       if (report.status === "pending" || report.status === "submitted" || report.status === "draft") {
@@ -853,7 +853,7 @@ export const progressReportsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const hasExceptionPerm = await checkPermission(ctx.user.id, "progress_reports.exception_approve");
+      const hasExceptionPerm = await checkPermission(ctx.user.id, "progress_reports.exception_approve") || await checkPermission(ctx.user.id, "progress_invoices.exception_approve");
 
       if (!hasExceptionPerm) {
         throw new TRPCError({
@@ -1043,7 +1043,7 @@ export const progressReportsRouter = router({
         });
       }
 
-      const hasRevokeApproval = await checkPermission(ctx.user.id, "progress_reports.revoke_approval");
+      const hasRevokeApproval = await checkPermission(ctx.user.id, "progress_reports.revoke_approval") || await checkPermission(ctx.user.id, "progress_invoices.revoke_approval");
 
       if (!isSuperAdmin && !hasRevokeApproval) {
         throw new TRPCError({
@@ -1107,7 +1107,7 @@ export const progressReportsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve") || await checkPermission(ctx.user.id, "project_reports.create");
+      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve") || await checkPermission(ctx.user.id, "progress_invoices.approve") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
 
       if (!isAdmin && !hasApprove && !hasGeneric) {
@@ -1158,7 +1158,7 @@ export const progressReportsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve") || await checkPermission(ctx.user.id, "project_reports.create");
+      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve") || await checkPermission(ctx.user.id, "progress_invoices.approve") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
 
       if (!isAdmin && !hasApprove && !hasGeneric) {
@@ -1181,8 +1181,8 @@ export const progressReportsRouter = router({
     .input(z.object({ projectId: z.number().optional() }).optional())
     .query(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasView = await checkPermission(ctx.user.id, "progress_reports.view") || await checkPermission(ctx.user.id, "project_reports.view") || await checkPermission(ctx.user.id, "project_reports.create");
-      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
+      const hasView = await checkPermission(ctx.user.id, "progress_reports.view") || await checkPermission(ctx.user.id, "progress_invoices.view") || await checkPermission(ctx.user.id, "project_reports.view") || await checkPermission(ctx.user.id, "project_reports.create");
+      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve") || await checkPermission(ctx.user.id, "progress_invoices.approve");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
 
       if (!isAdmin && !hasView && !hasApprove && !hasGeneric) {

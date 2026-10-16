@@ -117,6 +117,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.exception_approve", "disbursement_orders.reject", "disbursement_orders.create_direct", "disbursement_orders.remind"],
   "disbursement_orders.remind": ["disbursement_orders.remind"],
   progress_reports: ["progress_reports.view", "progress_reports.add", "progress_reports.edit", "progress_reports.approve", "progress_reports.revoke_approval", "progress_reports.exception_approve"],
+  progress_invoices: ["progress_invoices.view", "progress_invoices.add", "progress_invoices.edit", "progress_invoices.approve", "progress_invoices.revoke_approval", "progress_invoices.exception_approve"],
   project_reports: ["project_reports.view", "project_reports.create"],
   financial_report: ["financial_reports.view"],
   reports: ["reports.view_stats", "reports.export_data"],
@@ -273,6 +274,13 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "progress_reports.approve": ["progress_reports.approve", "progress_reports.view"],
   "progress_reports.revoke_approval": ["progress_reports.revoke_approval", "progress_reports.view"],
   "progress_reports.exception_approve": ["progress_reports.exception_approve", "progress_reports.view"],
+
+  "progress_invoices.view": ["progress_invoices.view"],
+  "progress_invoices.add": ["progress_invoices.add", "progress_invoices.view"],
+  "progress_invoices.edit": ["progress_invoices.edit", "progress_invoices.view"],
+  "progress_invoices.approve": ["progress_invoices.approve", "progress_invoices.view"],
+  "progress_invoices.revoke_approval": ["progress_invoices.revoke_approval", "progress_invoices.view"],
+  "progress_invoices.exception_approve": ["progress_invoices.exception_approve", "progress_invoices.view"],
 
   "project_reports.view": ["project_reports.view"],
   "project_reports.create": ["project_reports.create", "project_reports.view"],
@@ -1087,6 +1095,12 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "progress_reports.approve", moduleId: "reports", action: "approve", nameAr: "اعتماد تقارير المتابعة", nameEn: "Approve Progress Reports" },
       { id: "progress_reports.revoke_approval", moduleId: "reports", action: "revoke_approval", nameAr: "إلغاء الاعتماد", nameEn: "Revoke Approval of Progress Reports" },
       { id: "progress_reports.exception_approve", moduleId: "reports", action: "exception_approve", nameAr: "استثناء اعتماد مدير المشروع", nameEn: "Exception Approve Progress Reports" },
+      { id: "progress_invoices.view", moduleId: "reports", action: "view", nameAr: "عرض المستخلصات", nameEn: "View Progress Invoices" },
+      { id: "progress_invoices.add", moduleId: "reports", action: "add", nameAr: "إضافة مستخلص", nameEn: "Add Progress Invoice" },
+      { id: "progress_invoices.edit", moduleId: "reports", action: "edit", nameAr: "تعديل المستخلص", nameEn: "Edit Progress Invoice" },
+      { id: "progress_invoices.approve", moduleId: "reports", action: "approve", nameAr: "اعتماد المستخلصات", nameEn: "Approve Progress Invoices" },
+      { id: "progress_invoices.revoke_approval", moduleId: "reports", action: "revoke_approval", nameAr: "إلغاء الاعتماد", nameEn: "Revoke Approval of Progress Invoices" },
+      { id: "progress_invoices.exception_approve", moduleId: "reports", action: "exception_approve", nameAr: "استثناء اعتماد مدير المشروع", nameEn: "Exception Approve Progress Invoices" },
       { id: "signing.progress_reports_sign", moduleId: "signing", action: "sign", nameAr: "توقيع تقارير الإنجاز", nameEn: "Sign Progress Reports" },
       { id: "project_reports.view", moduleId: "reports", action: "view", nameAr: "عرض تقارير المشاريع", nameEn: "View Project Reports" },
       { id: "project_reports.create", moduleId: "reports", action: "create", nameAr: "إنشاء تقارير مشاريع", nameEn: "Create Project Reports" },
@@ -1956,6 +1970,16 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.add("progress_reports");
   }
   if (
+    allPermissions.has("progress_invoices.view") ||
+    allPermissions.has("progress_invoices.add") ||
+    allPermissions.has("progress_invoices.edit") ||
+    allPermissions.has("progress_invoices.approve") ||
+    allPermissions.has("progress_invoices.revoke_approval") ||
+    allPermissions.has("progress_invoices.exception_approve")
+  ) {
+    allPermissions.add("progress_invoices");
+  }
+  if (
     allPermissions.has("project_reports.view") ||
     allPermissions.has("project_reports.create")
   ) {
@@ -2481,9 +2505,9 @@ export const permissionsRouter = router({
       const rolePermissionsMapping: Record<string, string[] | string> = {
         super_admin: "*",
         system_admin: "*",
-        general_manager: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports"],
-        executive_director: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports"],
-        projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports"],
+        general_manager: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports"],
+        executive_director: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports"],
+        projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "progress_reports", "progress_invoices"],
         field_team: ["mosques.view", "requests.view", "requests.edit", "requests.manage_as_field_team", "field_visits"],
         quick_response: ["requests.view", "requests.manage_as_quick_response", "field_visits.view", "reports.create"],
         financial: ["financial", "quotations", "disbursements", "suppliers.view", "financial_reports"],

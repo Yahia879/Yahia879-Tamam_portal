@@ -267,6 +267,14 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للمستخلصات إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("progress_invoices.") && permId !== "progress_invoices.view") {
+      if (!isChecked("progress_invoices.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض المستخلصات' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية لتقارير المشاريع إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("project_reports.") && permId !== "project_reports.view") {
       if (!isChecked("project_reports.view")) {
@@ -491,6 +499,7 @@ export default function UserPermissions() {
           });
         }
         if (permId === "progress_reports.view") cascadeRevoke("progress_reports.");
+        if (permId === "progress_invoices.view") cascadeRevoke("progress_invoices.");
         if (permId === "project_reports.view") cascadeRevoke("project_reports.");
         if (permId === "requesters.view") cascadeRevoke("requesters.");
         if (permId === "financial_reports.view") cascadeRevoke("financial_reports.");
@@ -859,6 +868,13 @@ export default function UserPermissions() {
         revoke_approval: "إلغاء الاعتماد",
         exception_approve: "استثناء اعتماد مدير المشروع",
       },
+      progress_invoices: {
+        view: "عرض المستخلصات",
+        add: "إضافة مستخلص",
+        edit: "تعديل المستخلص",
+        revoke_approval: "إلغاء الاعتماد",
+        exception_approve: "استثناء اعتماد مدير المشروع",
+      },
       project_reports: {
         view: "عرض تقارير المشاريع",
         create: "إنشاء تقارير مشاريع"
@@ -980,6 +996,7 @@ export default function UserPermissions() {
       modules: [
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials", "edit_support_and_fees", "add_receipt_voucher"] },
         { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "revoke_approval", "exception_approve"] },
+        { id: "progress_invoices", nameAr: "المستخلصات", icon: FileSpreadsheet, perms: ["view", "add", "edit", "revoke_approval", "exception_approve"] },
         { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
         { id: "reports", nameAr: "التقارير الفنية", icon: FileBarChart, perms: ["view_stats", "export_data"] },
       ]
@@ -1299,6 +1316,7 @@ export default function UserPermissions() {
                               (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !isChecked("projects.view")) ||
                               ((perm.id === "projects.edit_support_and_fees" || perm.id === "projects.add_receipt_voucher") && !isChecked("projects.financials")) ||
                               (perm.id.startsWith("progress_reports.") && perm.id !== "progress_reports.view" && !isChecked("progress_reports.view")) ||
+                              (perm.id.startsWith("progress_invoices.") && perm.id !== "progress_invoices.view" && !isChecked("progress_invoices.view")) ||
                               (perm.id.startsWith("project_reports.") && perm.id !== "project_reports.view" && !isChecked("project_reports.view")) ||
                               (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !isChecked("requesters.view")) ||
                               (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !isChecked("reports.view_stats")) ||

@@ -414,17 +414,49 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
   const utils = trpc.useUtils();
   // التحقق من الصلاحيات
-  const hasAddPermission = usePermission("progress_reports.add");
-  const hasEditPermission = usePermission("progress_reports.edit");
-  const hasApprovePermission = usePermission("progress_reports.approve");
-  const hasExceptionApprove = usePermission("progress_reports.exception_approve");
-  const hasRevokeApprovalPermission = usePermission("progress_reports.revoke_approval");
+  const isInvoiceMode = mainViewTab === "invoices" || isInvoicePath;
 
-  const canCreateReport = hasAddPermission;
-  const canEditReport = hasEditPermission;
-  const canReviewReport = hasApprovePermission;
-  const canExceptionApprove = hasExceptionApprove;
-  const canRevokeApproval = hasRevokeApprovalPermission || user?.role === "super_admin";
+  const hasReportAddPermission = usePermission("progress_reports.add");
+  const hasReportEditPermission = usePermission("progress_reports.edit");
+  const hasReportApprovePermission = usePermission("progress_reports.approve");
+  const hasReportExceptionApprove = usePermission("progress_reports.exception_approve");
+  const hasReportRevokeApprovalPermission = usePermission("progress_reports.revoke_approval");
+
+  const hasInvoiceAddPermission = usePermission("progress_invoices.add");
+  const hasInvoiceEditPermission = usePermission("progress_invoices.edit");
+  const hasInvoiceApprovePermission = usePermission("progress_invoices.approve");
+  const hasInvoiceExceptionApprove = usePermission("progress_invoices.exception_approve");
+  const hasInvoiceRevokeApprovalPermission = usePermission("progress_invoices.revoke_approval");
+
+  const canCreateReport = isSuperAdmin || (isInvoiceMode ? hasInvoiceAddPermission : hasReportAddPermission);
+  const canEditReport = isSuperAdmin || (isInvoiceMode ? hasInvoiceEditPermission : hasReportEditPermission);
+  const canReviewReport = isSuperAdmin || (isInvoiceMode ? hasInvoiceApprovePermission : hasReportApprovePermission);
+  const canExceptionApprove = isSuperAdmin || (isInvoiceMode ? hasInvoiceExceptionApprove : hasReportExceptionApprove);
+  const canRevokeApproval = isSuperAdmin || (isInvoiceMode ? hasInvoiceRevokeApprovalPermission : hasReportRevokeApprovalPermission);
+
+  const canEditItem = (item?: any) => {
+    if (isSuperAdmin) return true;
+    const inv = item ? isInvoiceReport(item) : isInvoiceMode;
+    return inv ? hasInvoiceEditPermission : hasReportEditPermission;
+  };
+
+  const canReviewReportItem = (item?: any) => {
+    if (isSuperAdmin) return true;
+    const inv = item ? isInvoiceReport(item) : isInvoiceMode;
+    return inv ? hasInvoiceApprovePermission : hasReportApprovePermission;
+  };
+
+  const canExceptionApproveItem = (item?: any) => {
+    if (isSuperAdmin) return true;
+    const inv = item ? isInvoiceReport(item) : isInvoiceMode;
+    return inv ? hasInvoiceExceptionApprove : hasReportExceptionApprove;
+  };
+
+  const canRevokeApprovalItem = (item?: any) => {
+    if (isSuperAdmin) return true;
+    const inv = item ? isInvoiceReport(item) : isInvoiceMode;
+    return inv ? hasInvoiceRevokeApprovalPermission : hasReportRevokeApprovalPermission;
+  };
   
   const [newReport, setNewReport] = useState({
     projectId: initialUrlParams.projectId || 0,
@@ -1111,8 +1143,9 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
   // فتح صفحة التعديل وملء البيانات
   const handleEditReportClick = (report: any) => {
-    if (!canEditReport) {
-      toast.error("ليس لديك صلاحية لتعديل تقارير الإنجاز");
+    const isInv = isInvoiceReport(report);
+    if (!canEditItem(report)) {
+      toast.error(isInv ? "ليس لديك صلاحية لتعديل المستخلص" : "ليس لديك صلاحية لتعديل تقارير الإنجاز");
       return;
     }
     if (isReportConverted(report)) {
@@ -1259,6 +1292,10 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
   // إنشاء مستخلص جديد للمشاريع بنظام المستخلصات
   const handleCreateInvoice = async () => {
+    if (!isSuperAdmin && !hasInvoiceAddPermission) {
+      toast.error("ليس لديك صلاحية لإضافة مستخلص جديد");
+      return;
+    }
     if (!selectedContract) {
       toast.error("يرجى اختيار العقد المراد إنشاء مستخلص له");
       return;
@@ -2594,7 +2631,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                         )}
 
                         {/* تعديل التقرير أو المستخلص */}
-                        {!isReportConverted(report) && report.status !== "pending_executive" && report.status !== "approved" && report.status !== "revoked" && report.status !== "rejected" && !isDisbursementApproved(report) && canEditReport && (
+                        {!isReportConverted(report) && report.status !== "pending_executive" && report.status !== "approved" && report.status !== "revoked" && report.status !== "rejected" && !isDisbursementApproved(report) && canEditItem(report) && (
                           <DropdownMenuItem 
                             onClick={() => {
                               handleEditReportClick(report);
@@ -2622,7 +2659,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                         )}
 
                         {/* إلغاء الاعتماد (للتقارير المعتمدة فقط) */}
-                        {report.status === "approved" && canRevokeApproval && (
+                        {report.status === "approved" && canRevokeApprovalItem(report) && (
                           <DropdownMenuItem
                             onClick={() => {
                               setSelectedReport(report);
@@ -2637,7 +2674,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                         )}
 
                         {/* استثناء اعتماد مدير المشروع (Super Admin) */}
-                        {canExceptionApprove && !isProjectManager && (report.status === "pending" || report.status === "submitted" || report.status === "draft") && (
+                        {canExceptionApproveItem(report) && !isProjectManager && (report.status === "pending" || report.status === "submitted" || report.status === "draft") && (
                           <DropdownMenuItem
                             onClick={() => {
                               setSelectedReport(report);
@@ -2666,7 +2703,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                         )}
 
                         {/* اعتماد وتراجع المرحلة الأولى: مدير المشروع */}
-                        {(report.status === "pending" || report.status === "submitted" || report.status === "draft") && isProjectManager && (
+                        {(report.status === "pending" || report.status === "submitted" || report.status === "draft") && isProjectManager && canReviewReportItem(report) && (
                           <>
                             <DropdownMenuItem
                               onClick={() => {
@@ -2695,7 +2732,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                         )}
 
                         {/* اعتماد وتراجع المرحلة الثانية: المدير التنفيذي */}
-                        {report.status === "pending_executive" && isExecutiveDirector && (
+                        {report.status === "pending_executive" && isExecutiveDirector && canReviewReportItem(report) && (
                           <>
                             <DropdownMenuItem
                               onClick={() => {
@@ -3094,7 +3131,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 إغلاق
               </Button>
 
-              {selectedReport && selectedReport.status !== "pending_executive" && selectedReport.status !== "approved" && selectedReport.status !== "revoked" && selectedReport.status !== "rejected" && !isReportConverted(selectedReport) && !isDisbursementApproved(selectedReport) && canEditReport && (
+              {selectedReport && selectedReport.status !== "pending_executive" && selectedReport.status !== "approved" && selectedReport.status !== "revoked" && selectedReport.status !== "rejected" && !isReportConverted(selectedReport) && !isDisbursementApproved(selectedReport) && canEditItem(selectedReport) && (
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -3123,7 +3160,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               )}
               
               {/* زر الاعتماد العادي للمرحلة الأولى أو الثانية */}
-              {selectedReport && (
+              {selectedReport && canReviewReportItem(selectedReport) && (
                 ((selectedReport.status === "pending" || selectedReport.status === "submitted" || selectedReport.status === "draft") && (
                   selectedReport.projectManagerId && Number(selectedReport.projectManagerId) === Number(user?.id)
                 )) ||
@@ -3143,7 +3180,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               )}
 
               {/* زر استثناء اعتماد مدير المشروع */}
-              {selectedReport && (selectedReport.status === "pending" || selectedReport.status === "submitted" || selectedReport.status === "draft") && canExceptionApprove && !(selectedReport.projectManagerId && Number(selectedReport.projectManagerId) === Number(user?.id)) && (
+              {selectedReport && (selectedReport.status === "pending" || selectedReport.status === "submitted" || selectedReport.status === "draft") && canExceptionApproveItem(selectedReport) && !(selectedReport.projectManagerId && Number(selectedReport.projectManagerId) === Number(user?.id)) && (
                 <Button
                   onClick={() => {
                     setShowDetailsDialog(false);
@@ -3158,7 +3195,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               )}
 
               {/* زر إلغاء الاعتماد */}
-              {selectedReport && selectedReport.status === "approved" && canRevokeApproval && (
+              {selectedReport && selectedReport.status === "approved" && canRevokeApprovalItem(selectedReport) && (
                 <Button
                   variant="destructive"
                   onClick={() => {
