@@ -959,10 +959,10 @@ export default function ProjectDetailsPage() {
       },
       { 
         id: "payments", 
-        label: isMilestonesContract ? "المستخلصات" : "الدفعات", 
+        label: isMilestonesContract ? "المستخلصات" : "المستخلصات والدفعات", 
         icon: isMilestonesContract ? FileSpreadsheet : CreditCard, 
-        badge: (isMilestonesContract ? (projectInvoices.length || contractMilestones.length || paymentsCount) : paymentsCount) > 0 
-          ? `${isMilestonesContract ? (projectInvoices.length || contractMilestones.length || paymentsCount) : paymentsCount}` 
+        badge: (isMilestonesContract ? (projectInvoices.length || contractMilestones.length || paymentsCount) : (projectInvoices.length + paymentsCount)) > 0 
+          ? `${isMilestonesContract ? (projectInvoices.length || contractMilestones.length || paymentsCount) : (projectInvoices.length + paymentsCount)}` 
           : undefined,
         isLocked: isPaymentsLocked 
       },
@@ -2195,40 +2195,60 @@ export default function ProjectDetailsPage() {
                         ) : (
                           <CreditCard className="w-4 h-4 text-primary" />
                         )}
-                        <span>{isMilestonesContract ? "مستخلصات المشروع" : "الدفعات المالية"}</span>
+                        <span>{isMilestonesContract ? "مستخلصات المشروع" : "المستخلصات والدفعات المالية"}</span>
                       </CardTitle>
                       <CardDescription className="text-xs mt-0.5">
                         {isMilestonesContract
                           ? "سجل المستخلصات المعتمدة والمصروفة بحسب نسب الإنجاز والمراحل"
-                          : "سجل الدفعات والمستخلصات المالية للمشروع"}
+                          : "سجل المستخلصات المنفذة والدفعات المالية المعتمدة للمشروع"}
                       </CardDescription>
                     </div>
                     {!isPaymentsLocked && (
-                      <Button 
-                        className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9" 
-                        onClick={() => {
-                          if (!isRequestClosed) {
-                            navigate(isMilestonesContract ? `/projects/${project.id}/invoices/new` : `/disbursements/new/${project.id}`);
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button 
+                          className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9" 
+                          onClick={() => {
+                            if (!isRequestClosed) {
+                              navigate(`/projects/${project.id}/invoices/new`);
+                            }
+                          }}
+                          disabled={
+                            isRequestClosed || (has100Payment)
                           }
-                        }}
-                        disabled={
-                          isRequestClosed ||
-                          (!isMilestonesContract && isContractFullyAllocated) ||
-                          (isMilestonesContract && has100Payment)
-                        }
-                        title={
-                          isRequestClosed
-                            ? "لا يمكن إضافة دفعات لأن الطلب المرتبط بالمشروع مغلق"
-                            : (isMilestonesContract && has100Payment)
-                            ? "لا يمكن إضافة مستخلص في حال وجود مستخلص نسبته 100%"
-                            : isContractFullyAllocated
-                            ? "تم الوصول للحد الأقصى لقيمة العقد"
-                            : ""
-                        }
-                      >
-                        <Plus className="w-4 h-4 ml-1.5" />
-                        {isMilestonesContract ? "رفع مستخلص جديد" : "إضافة دفعة"}
-                      </Button>
+                          title={
+                            isRequestClosed
+                              ? "لا يمكن رفع مستخلص لأن الطلب المرتبط بالمشروع مغلق"
+                              : has100Payment
+                              ? "لا يمكن إضافة مستخلص في حال وجود مستخلص نسبته 100%"
+                              : ""
+                          }
+                        >
+                          <Plus className="w-4 h-4 ml-1.5" />
+                          رفع مستخلص جديد
+                        </Button>
+                        {!isMilestonesContract && (
+                          <Button 
+                            variant="outline"
+                            className="rounded-xl shadow-xs text-xs font-bold h-9" 
+                            onClick={() => {
+                              if (!isRequestClosed) {
+                                navigate(`/disbursements/new/${project.id}`);
+                              }
+                            }}
+                            disabled={isRequestClosed || isContractFullyAllocated}
+                            title={
+                              isRequestClosed
+                                ? "لا يمكن إضافة دفعات لأن الطلب المرتبط بالمشروع مغلق"
+                                : isContractFullyAllocated
+                                ? "تم الوصول للحد الأقصى لقيمة العقد"
+                                : ""
+                            }
+                          >
+                            <Plus className="w-4 h-4 ml-1.5" />
+                            إضافة دفعة
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </CardHeader>
                   <CardContent className="p-5">
@@ -2789,21 +2809,33 @@ export default function ProjectDetailsPage() {
                           <CreditCard className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
                         )}
                         <h4 className="font-bold text-sm text-foreground">
-                          {isMilestonesContract ? "عقد مستخلصات مرنة - لا توجد مستخلصات مرفوعة بعد" : "لا توجد دفعات مسجلة"}
+                          {isMilestonesContract ? "عقد مستخلصات مرنة - لا توجد مستخلصات مرفوعة بعد" : "لا توجد مستخلصات أو دفعات مسجلة"}
                         </h4>
                         <p className="text-muted-foreground text-xs max-w-md mx-auto">
                           {isMilestonesContract
                             ? "يتم رفع مستخلصات المقاول دورياً بناءً على إنجاز الأعمال ومراحل المشروع المحددة في تبويب المراحل."
-                            : "لا توجد دفعات مجدولة مسجلة لهذا المشروع."}
+                            : "يمكنك رفع مستخلصات إنجاز للمقاول أو تسجيل دفعات مالية لهذا المشروع."}
                         </p>
-                        {isMilestonesContract && !isPaymentsLocked && !isRequestClosed && (
-                          <Button
-                            className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9 mt-2"
-                            onClick={() => navigate(`/projects/${project.id}/invoices/new`)}
-                          >
-                            <Plus className="w-4 h-4 ml-1.5" />
-                            رفع أول مستخلص للمقاول
-                          </Button>
+                        {!isPaymentsLocked && !isRequestClosed && (
+                          <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
+                            <Button
+                              className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9"
+                              onClick={() => navigate(`/projects/${project.id}/invoices/new`)}
+                            >
+                              <Plus className="w-4 h-4 ml-1.5" />
+                              رفع مستخلص جديد للمشروع
+                            </Button>
+                            {!isMilestonesContract && (
+                              <Button
+                                variant="outline"
+                                className="rounded-xl shadow-xs text-xs font-bold h-9"
+                                onClick={() => navigate(`/disbursements/new/${project.id}`)}
+                              >
+                                <Plus className="w-4 h-4 ml-1.5" />
+                                إضافة دفعة مالية
+                              </Button>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}
