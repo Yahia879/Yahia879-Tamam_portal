@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -119,10 +119,104 @@ const APPROVER_CONFIG: Record<string, { label: string; badgeClass: string }> = {
       "bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800 font-bold",
   },
   board_chairman: {
-    label: "صاحب الصلاحية / المجلس",
+    label: "صاحب الصلاحية",
     badgeClass:
       "bg-purple-50 text-purple-800 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800 font-bold",
   },
+};
+
+// تعريف البطاقات الإحصائية المنفصلة لكافة الأصناف المعروضة في مركز الاعتمادات
+const APPROVAL_CARDS = [
+  {
+    key: "all",
+    label: "إجمالي المعاملات",
+    subtitle: "كافة المعاملات المعلقة",
+    icon: Clock,
+    border: "border-border/60 hover:border-primary/50",
+    activeRing: "ring-2 ring-primary/20 border-primary/60 bg-primary/[0.03]",
+    textColor: "text-foreground",
+    iconBg: "bg-primary/10 text-primary",
+  },
+  {
+    key: "disbursement_request",
+    label: "طلبات الصرف",
+    subtitle: "قيد المراجعة والاعتماد",
+    icon: Banknote,
+    border: "border-emerald-200/60 dark:border-emerald-900/40 hover:border-emerald-400",
+    activeRing: "ring-2 ring-emerald-500/20 border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/20",
+    textColor: "text-emerald-700 dark:text-emerald-300",
+    iconBg: "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    key: "disbursement_order",
+    label: "أوامر الصرف",
+    subtitle: "بانتظار تدقيق الصرف",
+    icon: FileText,
+    border: "border-blue-200/60 dark:border-blue-900/40 hover:border-blue-400",
+    activeRing: "ring-2 ring-blue-500/20 border-blue-500 bg-blue-50/20 dark:bg-blue-950/20",
+    textColor: "text-blue-700 dark:text-blue-300",
+    iconBg: "bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400",
+  },
+  {
+    key: "receipt_voucher",
+    label: "سندات القبض",
+    subtitle: "بانتظار الاعتماد المالي",
+    icon: Coins,
+    border: "border-indigo-200/60 dark:border-indigo-900/40 hover:border-indigo-400",
+    activeRing: "ring-2 ring-indigo-500/20 border-indigo-500 bg-indigo-50/20 dark:bg-indigo-950/20",
+    textColor: "text-indigo-700 dark:text-indigo-300",
+    iconBg: "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400",
+  },
+  {
+    key: "custody_request",
+    label: "العهد المالية",
+    subtitle: "بانتظار تدقيق العهدة",
+    icon: Wallet,
+    border: "border-cyan-200/60 dark:border-cyan-900/40 hover:border-cyan-400",
+    activeRing: "ring-2 ring-cyan-500/20 border-cyan-500 bg-cyan-50/20 dark:bg-cyan-950/20",
+    textColor: "text-cyan-700 dark:text-cyan-300",
+    iconBg: "bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 dark:text-cyan-400",
+  },
+  {
+    key: "contract",
+    label: "العقود",
+    subtitle: "بانتظار الاعتماد النهائي",
+    icon: FileText,
+    border: "border-slate-300/70 dark:border-slate-800 hover:border-slate-500",
+    activeRing: "ring-2 ring-slate-500/20 border-slate-600 bg-slate-100/40 dark:bg-slate-900/40",
+    textColor: "text-slate-700 dark:text-slate-300",
+    iconBg: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
+  },
+  {
+    key: "purchase_order",
+    label: "أوامر الشراء",
+    subtitle: "بانتظار اعتماد التوريد",
+    icon: ShoppingCart,
+    border: "border-teal-200/60 dark:border-teal-900/40 hover:border-teal-400",
+    activeRing: "ring-2 ring-teal-500/20 border-teal-500 bg-teal-50/20 dark:bg-teal-950/20",
+    textColor: "text-teal-700 dark:text-teal-300",
+    iconBg: "bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400",
+  },
+  {
+    key: "progress_report",
+    label: "تقارير الإنجاز",
+    subtitle: "بانتظار التدقيق والاعتماد",
+    icon: Layers,
+    border: "border-amber-200/60 dark:border-amber-900/40 hover:border-amber-400",
+    activeRing: "ring-2 ring-amber-500/20 border-amber-500 bg-amber-50/20 dark:bg-amber-950/20",
+    textColor: "text-amber-700 dark:text-amber-300",
+    iconBg: "bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400",
+  },
+];
+
+const categoryPermMap: Record<string, string> = {
+  disbursement_request: "financial_approval.disbursement_requests",
+  disbursement_order: "financial_approval.disbursement_orders",
+  custody_request: "financial_approval.custody_requests",
+  receipt_voucher: "financial_approval.receipt_vouchers",
+  contract: "financial_approval.contracts",
+  purchase_order: "financial_approval.purchase_orders",
+  progress_report: "financial_approval.progress_reports",
 };
 
 export default function FinancialApproval() {
@@ -145,10 +239,7 @@ export default function FinancialApproval() {
     (user as any)?.customRole?.nameAr === "المدير المالي";
 
   const userPerms: string[] = Array.isArray((user as any)?.permissions) ? (user as any).permissions : [];
-  const hasSpecificPerm = useAnyPermission([
-    "financial_approval.approve",
-    "financial_approval.view",
-    "financial_approval",
+  const APPROVAL_PERMISSION_KEYS = [
     "financial_approval.disbursement_requests",
     "financial_approval.disbursement_orders",
     "financial_approval.custody_requests",
@@ -156,21 +247,53 @@ export default function FinancialApproval() {
     "financial_approval.contracts",
     "financial_approval.purchase_orders",
     "financial_approval.progress_reports",
-    "financial_approval.project_quotations",
-  ]);
+  ];
+  const hasSpecificPerm = useAnyPermission(APPROVAL_PERMISSION_KEYS);
 
   const hasApprovalPerm =
     hasSpecificPerm ||
-    isSuperOrSystem;
+    userPerms.includes("*");
+
+  const hasAdminWildcard = userPerms.includes("*");
+
+  const allowedCategoryCards = useMemo(() => {
+    return APPROVAL_CARDS.filter((card) => {
+      if (card.key === "all") return false;
+      if (hasAdminWildcard) return true;
+      const reqPerm = categoryPermMap[card.key];
+      return reqPerm && userPerms.includes(reqPerm);
+    });
+  }, [hasAdminWildcard, userPerms]);
+
+  const visibleCards = useMemo(() => {
+    if (allowedCategoryCards.length > 1 || hasAdminWildcard) {
+      return [APPROVAL_CARDS[0], ...allowedCategoryCards];
+    }
+    return allowedCategoryCards;
+  }, [allowedCategoryCards, hasAdminWildcard]);
 
   // حالة التصفية والبحث لمركز الاعتمادات
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [approverFilter, setApproverFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [onlyMine, setOnlyMine] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 12;
+
+  const effectiveCategory = useMemo(() => {
+    if (!hasAdminWildcard && allowedCategoryCards.length === 1) {
+      return allowedCategoryCards[0].key;
+    }
+    return categoryFilter !== "all" ? categoryFilter : undefined;
+  }, [hasAdminWildcard, allowedCategoryCards, categoryFilter]);
+
+  useEffect(() => {
+    if (!hasAdminWildcard && allowedCategoryCards.length === 1) {
+      if (categoryFilter !== allowedCategoryCards[0].key) {
+        setCategoryFilter(allowedCategoryCards[0].key);
+      }
+    }
+  }, [hasAdminWildcard, allowedCategoryCards, categoryFilter]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -186,8 +309,7 @@ export default function FinancialApproval() {
     isLoading: approvalsLoading,
   } = trpc.approvals.getPendingApprovals.useQuery(
     {
-      category: categoryFilter !== "all" ? categoryFilter : undefined,
-      approver: approverFilter !== "all" ? approverFilter : undefined,
+      category: effectiveCategory,
       search: debouncedSearch || undefined,
       onlyMine: onlyMine || undefined,
       page,
@@ -201,120 +323,6 @@ export default function FinancialApproval() {
   const items = approvalsData?.items || [];
   const totalFiltered = approvalsData?.totalFiltered ?? 0;
   const totalPages = approvalsData?.totalPages ?? 1;
-
-  // تعريف البطاقات الإحصائية المنفصلة لكافة الأصناف المعروضة في مركز الاعتمادات
-  const APPROVAL_CARDS = [
-    {
-      key: "all",
-      label: "إجمالي المعاملات",
-      subtitle: "كافة المعاملات المعلقة",
-      icon: Clock,
-      border: "border-border/60 hover:border-primary/50",
-      activeRing: "ring-2 ring-primary/20 border-primary/60 bg-primary/[0.03]",
-      textColor: "text-foreground",
-      iconBg: "bg-primary/10 text-primary",
-    },
-    {
-      key: "disbursement_request",
-      label: "طلبات الصرف",
-      subtitle: "قيد المراجعة والاعتماد",
-      icon: Banknote,
-      border: "border-emerald-200/60 dark:border-emerald-900/40 hover:border-emerald-400",
-      activeRing: "ring-2 ring-emerald-500/20 border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/20",
-      textColor: "text-emerald-700 dark:text-emerald-300",
-      iconBg: "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400",
-    },
-    {
-      key: "disbursement_order",
-      label: "أوامر الصرف",
-      subtitle: "بانتظار تدقيق الصرف",
-      icon: FileText,
-      border: "border-blue-200/60 dark:border-blue-900/40 hover:border-blue-400",
-      activeRing: "ring-2 ring-blue-500/20 border-blue-500 bg-blue-50/20 dark:bg-blue-950/20",
-      textColor: "text-blue-700 dark:text-blue-300",
-      iconBg: "bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400",
-    },
-    {
-      key: "receipt_voucher",
-      label: "سندات القبض",
-      subtitle: "بانتظار الاعتماد المالي",
-      icon: Coins,
-      border: "border-indigo-200/60 dark:border-indigo-900/40 hover:border-indigo-400",
-      activeRing: "ring-2 ring-indigo-500/20 border-indigo-500 bg-indigo-50/20 dark:bg-indigo-950/20",
-      textColor: "text-indigo-700 dark:text-indigo-300",
-      iconBg: "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400",
-    },
-    {
-      key: "custody_request",
-      label: "العهد المالية",
-      subtitle: "بانتظار تدقيق العهدة",
-      icon: Wallet,
-      border: "border-cyan-200/60 dark:border-cyan-900/40 hover:border-cyan-400",
-      activeRing: "ring-2 ring-cyan-500/20 border-cyan-500 bg-cyan-50/20 dark:bg-cyan-950/20",
-      textColor: "text-cyan-700 dark:text-cyan-300",
-      iconBg: "bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 dark:text-cyan-400",
-    },
-    {
-      key: "contract",
-      label: "العقود",
-      subtitle: "بانتظار الاعتماد النهائي",
-      icon: FileText,
-      border: "border-slate-300/70 dark:border-slate-800 hover:border-slate-500",
-      activeRing: "ring-2 ring-slate-500/20 border-slate-600 bg-slate-100/40 dark:bg-slate-900/40",
-      textColor: "text-slate-700 dark:text-slate-300",
-      iconBg: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
-    },
-    {
-      key: "purchase_order",
-      label: "أوامر الشراء",
-      subtitle: "بانتظار اعتماد التوريد",
-      icon: ShoppingCart,
-      border: "border-teal-200/60 dark:border-teal-900/40 hover:border-teal-400",
-      activeRing: "ring-2 ring-teal-500/20 border-teal-500 bg-teal-50/20 dark:bg-teal-950/20",
-      textColor: "text-teal-700 dark:text-teal-300",
-      iconBg: "bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400",
-    },
-    {
-      key: "progress_report",
-      label: "تقارير الإنجاز",
-      subtitle: "بانتظار التدقيق والاعتماد",
-      icon: Layers,
-      border: "border-amber-200/60 dark:border-amber-900/40 hover:border-amber-400",
-      activeRing: "ring-2 ring-amber-500/20 border-amber-500 bg-amber-50/20 dark:bg-amber-950/20",
-      textColor: "text-amber-700 dark:text-amber-300",
-      iconBg: "bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400",
-    },
-    {
-      key: "project_quotation",
-      label: "اعتمادات المشاريع",
-      subtitle: "بانتظار الاعتماد المالي",
-      icon: CheckSquare,
-      border: "border-purple-200/60 dark:border-purple-900/40 hover:border-purple-400",
-      activeRing: "ring-2 ring-purple-500/20 border-purple-500 bg-purple-50/20 dark:bg-purple-950/20",
-      textColor: "text-purple-700 dark:text-purple-300",
-      iconBg: "bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400",
-    },
-  ];
-
-  const categoryPermMap: Record<string, string> = {
-    disbursement_request: "financial_approval.disbursement_requests",
-    disbursement_order: "financial_approval.disbursement_orders",
-    custody_request: "financial_approval.custody_requests",
-    receipt_voucher: "financial_approval.receipt_vouchers",
-    contract: "financial_approval.contracts",
-    purchase_order: "financial_approval.purchase_orders",
-    progress_report: "financial_approval.progress_reports",
-    project_quotation: "financial_approval.project_quotations",
-  };
-
-  const hasAdminWildcard = isSuperOrSystem || userPerms.includes("*");
-
-  const visibleCards = APPROVAL_CARDS.filter((card) => {
-    if (card.key === "all") return true;
-    if (hasAdminWildcard) return true;
-    const reqPerm = categoryPermMap[card.key];
-    return reqPerm && userPerms.includes(reqPerm);
-  });
 
   // حظر المستخدمين غير المصرح لهم
   if (!hasApprovalPerm) {
@@ -343,8 +351,8 @@ export default function FinancialApproval() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-foreground">الاعتمادات</h1>
               {approvalsData?.counts?.total !== undefined && (
-                <Badge className="bg-primary/10 text-primary border-primary/20 text-sm px-2.5 py-0.5 font-bold">
-                  {approvalsData.counts.total} معلق
+                <Badge className="bg-primary/10 text-primary border-primary/20 text-sm px-2.5 py-0.5 font-bold font-mono">
+                  {Number(approvalsData.counts.total).toLocaleString("en-US")} معلق
                 </Badge>
               )}
             </div>
@@ -365,7 +373,7 @@ export default function FinancialApproval() {
 
             const isActive =
               card.key === "all"
-                ? categoryFilter === "all" && !onlyMine && approverFilter === "all"
+                ? categoryFilter === "all" && !onlyMine
                 : categoryFilter === card.key;
 
             return (
@@ -374,10 +382,13 @@ export default function FinancialApproval() {
                 onClick={() => {
                   if (card.key === "all") {
                     setCategoryFilter("all");
-                    setApproverFilter("all");
                     setOnlyMine(false);
                   } else {
-                    setCategoryFilter(categoryFilter === card.key ? "all" : card.key);
+                    if (allowedCategoryCards.length === 1) {
+                      setCategoryFilter(card.key);
+                    } else {
+                      setCategoryFilter(categoryFilter === card.key ? "all" : card.key);
+                    }
                   }
                   setPage(1);
                 }}
@@ -392,11 +403,11 @@ export default function FinancialApproval() {
                     <p className={cn("text-xs font-semibold truncate", card.textColor)}>
                       {card.label}
                     </p>
-                    <p className="text-2xl font-black mt-1 text-foreground leading-none">
+                    <p className="text-2xl font-black mt-1 text-foreground leading-none font-mono">
                       {approvalsLoading ? (
                         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                       ) : (
-                        count
+                        Number(count).toLocaleString("en-US")
                       )}
                     </p>
                     <p className="text-[10px] text-muted-foreground mt-1 truncate" title={card.subtitle}>
@@ -416,7 +427,7 @@ export default function FinancialApproval() {
         <Card className="border-border/60 shadow-xs">
           <CardContent className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-              <div className="md:col-span-4 relative">
+              <div className="md:col-span-6 relative">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="ابحث برقم المعاملة، العنوان، أو مقدم الطلب..."
@@ -434,35 +445,20 @@ export default function FinancialApproval() {
                 )}
               </div>
 
-              <div className="md:col-span-3">
+              <div className="md:col-span-4">
                 <Select value={categoryFilter} onValueChange={(val) => { setCategoryFilter(val); setPage(1); }}>
                   <SelectTrigger className="text-xs h-9 text-right">
                     <SelectValue placeholder="كافة التصنيفات" />
                   </SelectTrigger>
                   <SelectContent dir="rtl">
-                    <SelectItem value="all">كافة التصنيفات المتاحة</SelectItem>
-                    {visibleCards
-                      .filter((c) => c.key !== "all")
-                      .map((c) => (
-                        <SelectItem key={c.key} value={c.key}>
-                          {c.label}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="md:col-span-3">
-                <Select value={approverFilter} onValueChange={(val) => { setApproverFilter(val); setPage(1); }}>
-                  <SelectTrigger className="text-xs h-9 text-right">
-                    <SelectValue placeholder="كافة جهات الاعتماد" />
-                  </SelectTrigger>
-                  <SelectContent dir="rtl">
-                    <SelectItem value="all">كافة جهات الاعتماد</SelectItem>
-                    <SelectItem value="executive_director">المدير التنفيذي</SelectItem>
-                    <SelectItem value="financial">المسؤول المالي</SelectItem>
-                    <SelectItem value="project_manager">مدير المشروع</SelectItem>
-                    <SelectItem value="board_chairman">صاحب الصلاحية / المجلس</SelectItem>
+                    {(allowedCategoryCards.length > 1 || hasAdminWildcard) && (
+                      <SelectItem value="all">كافة التصنيفات المتاحة</SelectItem>
+                    )}
+                    {allowedCategoryCards.map((c) => (
+                      <SelectItem key={c.key} value={c.key}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -483,13 +479,12 @@ export default function FinancialApproval() {
                   </Button>
                 )}
 
-                {(categoryFilter !== "all" || approverFilter !== "all" || searchTerm || onlyMine) && (
+                {(categoryFilter !== "all" || searchTerm || onlyMine) && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => {
                       setCategoryFilter("all");
-                      setApproverFilter("all");
                       setSearchTerm("");
                       setOnlyMine(false);
                       setPage(1);
@@ -514,13 +509,10 @@ export default function FinancialApproval() {
                 <CardTitle className="text-base font-bold text-foreground">
                   قائمة الطلبات بانتظار الاعتماد
                 </CardTitle>
-                <Badge variant="outline" className="text-xs font-semibold px-2">
-                  {totalFiltered} نتيجة
+                <Badge variant="outline" className="text-xs font-semibold px-2 font-mono">
+                  {Number(totalFiltered).toLocaleString("en-US")} نتيجة
                 </Badge>
               </div>
-              <CardDescription className="text-xs">
-                انقر على رقم المعاملة أو عنوانها للانتقال المباشر للطلب وإتمام الإجراء
-              </CardDescription>
             </div>
           </CardHeader>
 
@@ -537,7 +529,7 @@ export default function FinancialApproval() {
                 </div>
                 <p className="font-bold text-sm text-foreground">لا توجد طلبات بانتظار الاعتماد</p>
                 <p className="text-xs max-w-sm">
-                  {searchTerm || categoryFilter !== "all" || approverFilter !== "all" || onlyMine
+                  {searchTerm || categoryFilter !== "all" || onlyMine
                     ? "لم يتم العثور على نتائج تطابق معايير البحث والفلترة المحددة"
                     : "تمت مراجعة واعتماد كافة المعاملات المعلقة بنجاح"}
                 </p>
@@ -547,12 +539,11 @@ export default function FinancialApproval() {
                 <Table>
                   <TableHeader className="bg-muted/40">
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[280px]">الطلب / المعاملة</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[160px]">التصنيف داخل البوابة</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[190px]">مقدم الطلب</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[180px]">المسؤول عن الاعتماد</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[150px]">القيمة / المبلغ</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[180px]">الحالة الحالية</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-foreground w-[320px]">الطلب / المعاملة</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-foreground w-[180px]">التصنيف داخل البوابة</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-foreground w-[220px]">مقدم الطلب</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-foreground w-[200px]">المسؤول عن الاعتماد</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-foreground w-[180px]">القيمة / المبلغ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -573,22 +564,22 @@ export default function FinancialApproval() {
                         <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
                           <TableCell className="align-top py-3 text-right">
                             <div className="space-y-1">
-                              <button
-                                onClick={() => navigate(item.link)}
-                                className="text-xs font-bold text-primary hover:underline block text-right font-mono cursor-pointer"
-                              >
+                              <span className="text-xs font-bold text-foreground block text-right font-mono select-text">
                                 {item.itemNumber}
-                              </button>
-                              <button
-                                onClick={() => navigate(item.link)}
-                                className="text-xs font-medium text-foreground hover:text-primary transition-colors text-right line-clamp-2 block cursor-pointer"
+                              </span>
+                              <p
+                                className="text-xs font-medium text-foreground text-right line-clamp-2 select-text"
                                 title={item.title}
                               >
                                 {item.title}
-                              </button>
-                              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              </p>
+                              <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-mono">
                                 <Clock className="h-3 w-3 text-muted-foreground/70" />
-                                <span>{item.createdAt ? new Date(item.createdAt).toLocaleDateString("ar-SA") : "—"}</span>
+                                <span>
+                                  {item.createdAt
+                                    ? new Date(item.createdAt).toLocaleDateString("en-CA").replace(/-/g, "/")
+                                    : "—"}
+                                </span>
                               </p>
                             </div>
                           </TableCell>
@@ -604,17 +595,10 @@ export default function FinancialApproval() {
                           </TableCell>
 
                           <TableCell className="align-top py-3 text-right">
-                            <div className="space-y-0.5">
-                              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                <span>{item.requesterName}</span>
-                              </p>
-                              {item.requesterRole && (
-                                <p className="text-[10px] text-muted-foreground pr-5">
-                                  {item.requesterRole}
-                                </p>
-                              )}
-                            </div>
+                            <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                              <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span>{item.requesterName}</span>
+                            </p>
                           </TableCell>
 
                           <TableCell className="align-top py-3 text-right">
@@ -629,20 +613,11 @@ export default function FinancialApproval() {
                           <TableCell className="align-top py-3 text-right">
                             {item.amount !== null && item.amount !== undefined ? (
                               <div className="font-semibold text-xs text-foreground font-mono">
-                                {Number(item.amount).toLocaleString()} <span className="text-[10px] text-muted-foreground font-sans">ر.س</span>
+                                {Number(item.amount).toLocaleString("en-US")} <span className="text-[10px] text-muted-foreground font-sans">ر.س</span>
                               </div>
                             ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
+                              <span className="text-xs text-muted-foreground font-mono">—</span>
                             )}
-                          </TableCell>
-
-                          <TableCell className="align-top py-3 text-right">
-                            <Badge
-                              variant="outline"
-                              className="border-amber-300 text-amber-800 bg-amber-50/70 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800 text-[11px] font-medium"
-                            >
-                              {item.statusLabel}
-                            </Badge>
                           </TableCell>
                         </TableRow>
                       );
@@ -654,8 +629,8 @@ export default function FinancialApproval() {
 
             {totalFiltered > pageSize && (
               <div className="flex items-center justify-between p-4 border-t border-border/40 text-xs text-muted-foreground">
-                <div>
-                  عرض {((page - 1) * pageSize) + 1} إلى {Math.min(page * pageSize, totalFiltered)} من أصل {totalFiltered} معاملة
+                <div className="font-mono">
+                  عرض {(((page - 1) * pageSize) + 1).toLocaleString("en-US")} إلى {Math.min(page * pageSize, totalFiltered).toLocaleString("en-US")} من أصل {Number(totalFiltered).toLocaleString("en-US")} معاملة
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Button
@@ -668,8 +643,8 @@ export default function FinancialApproval() {
                     <ChevronRight className="h-3.5 w-3.5 ml-1" />
                     <span>السابق</span>
                   </Button>
-                  <span className="px-2 font-bold text-foreground">
-                    {page} / {totalPages}
+                  <span className="px-2 font-bold text-foreground font-mono">
+                    {Number(page).toLocaleString("en-US")} / {Number(totalPages).toLocaleString("en-US")}
                   </span>
                   <Button
                     variant="outline"

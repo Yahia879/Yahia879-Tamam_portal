@@ -163,9 +163,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
 
   // ── الاعتمادات ──
   "/financial-approval": [
-    "financial_approval.view", 
-    "financial_approval.approve", 
-    "financial_approval",
     "financial_approval.disbursement_requests",
     "financial_approval.disbursement_orders",
     "financial_approval.custody_requests",
@@ -173,7 +170,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "financial_approval.contracts",
     "financial_approval.purchase_orders",
     "financial_approval.progress_reports",
-    "financial_approval.project_quotations"
   ],
   "/boq-preparations": ["quotations", "requests.view_details", "requests.view", "boq", "boq.add", "boq.edit", "boq.delete"],
 

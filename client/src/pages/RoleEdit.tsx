@@ -90,16 +90,13 @@ const superAdminGroups = [
         nameAr: "قسم الاعتمادات", 
         icon: CheckSquare, 
         perms: [
-          "view", 
-          "approve", 
           "disbursement_requests", 
           "disbursement_orders", 
           "custody_requests", 
           "receipt_vouchers", 
           "contracts", 
           "purchase_orders", 
-          "progress_reports", 
-          "project_quotations"
+          "progress_reports"
         ] 
       },
       { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
@@ -271,8 +268,6 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       approve: "الاعتمادات (اعتماد أو رفض طلب صرف)"
     },
     financial_approval: {
-      view: "عرض قسم الاعتمادات",
-      approve: "صلاحية الاعتماد المالي",
       disbursement_requests: "عرض طلبات الصرف بانتظار الاعتماد",
       disbursement_orders: "عرض أوامر الصرف بانتظار الاعتماد",
       custody_requests: "عرض العهد المالية بانتظار الاعتماد",
@@ -280,7 +275,6 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       contracts: "عرض العقود بانتظار الاعتماد",
       purchase_orders: "عرض أوامر الشراء بانتظار الاعتماد",
       progress_reports: "عرض تقارير الإنجاز بانتظار الاعتماد",
-      project_quotations: "عرض اعتمادات المشاريع بانتظار الاعتماد",
     },
     contracts: {
       view: "عرض العقود وقالب العقود",
@@ -688,13 +682,6 @@ export default function RoleEdit() {
       }
     }
 
-    // منع تفعيل أي صلاحية في قسم الاعتمادات إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("financial_approval.") && permId !== "financial_approval.view") {
-      if (!selectedPerms.includes("financial_approval.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض قسم الاعتمادات' أولاً");
-        return;
-      }
-    }
 
     // منع تفعيل صلاحية إضافة طلبات الصرف المخصصة إلا إذا كانت صلاحية العرض مفعلة
     if (permId === "disbursements.create_custom") {
@@ -782,9 +769,6 @@ export default function RoleEdit() {
         }
         if (permId === "reports.view_stats") {
           next = next.filter(id => !id.startsWith("reports."));
-        }
-        if (permId === "financial_approval.view") {
-          next = next.filter(id => !id.startsWith("financial_approval."));
         }
         // عند إلغاء تفعيل صلاحية 'عرض طلبات الصرف'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات طلبات الصرف الأخرى
         if (permId === "disbursements.view") {
@@ -1120,8 +1104,7 @@ export default function RoleEdit() {
                               (perm.id.startsWith("project_reports.") && perm.id !== "project_reports.view" && !selectedPerms.includes("project_reports.view")) ||
                               (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !selectedPerms.includes("requesters.view")) ||
                               (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !selectedPerms.includes("reports.view_stats")) ||
-                              (perm.id.startsWith("beneficiary_evaluations.") && perm.id !== "beneficiary_evaluations.view" && !selectedPerms.includes("beneficiary_evaluations.view")) ||
-                              (perm.id.startsWith("financial_approval.") && perm.id !== "financial_approval.view" && !selectedPerms.includes("financial_approval.view"));
+                              (perm.id.startsWith("beneficiary_evaluations.") && perm.id !== "beneficiary_evaluations.view" && !selectedPerms.includes("beneficiary_evaluations.view"));
                             return (
                               <div 
                                 key={perm.id} 

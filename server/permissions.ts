@@ -235,8 +235,6 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "forms_customization.services": ["settings.view"],
   "forms_customization.registration": ["settings.view"],
 
-  "financial_approval.view": ["financial.view"],
-  "financial_approval.approve": ["financial.approve"],
   "financial_approval.disbursement_requests": ["financial.view"],
   "financial_approval.disbursement_orders": ["financial.view"],
   "financial_approval.custody_requests": ["financial.view"],
@@ -244,7 +242,6 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "financial_approval.contracts": ["financial.view"],
   "financial_approval.purchase_orders": ["financial.view"],
   "financial_approval.progress_reports": ["financial.view"],
-  "financial_approval.project_quotations": ["financial.view"],
 
   "quotations.view": ["quotations.view"],
   "quotations.add": ["quotations.create"],
@@ -1060,8 +1057,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "suppliers.view_details", moduleId: "suppliers", action: "view_details", nameAr: "عرض تفاصيل المورد", nameEn: "View Supplier Details" },
       { id: "suppliers.add", moduleId: "suppliers", action: "add", nameAr: "إضافة مورد", nameEn: "Add Supplier" },
       { id: "quotations.add", moduleId: "quotations", action: "add", nameAr: "إضافة عرض سعر", nameEn: "Add Quotation" },
-      { id: "financial_approval.view", moduleId: "financial_approval", action: "view", nameAr: "عرض قسم الاعتمادات", nameEn: "View Approvals Center" },
-      { id: "financial_approval.approve", moduleId: "financial_approval", action: "approve", nameAr: "صلاحية الاعتماد المالي", nameEn: "Approve Financial Items" },
       { id: "financial_approval.disbursement_requests", moduleId: "financial_approval", action: "disbursement_requests", nameAr: "عرض طلبات الصرف بانتظار الاعتماد", nameEn: "View Pending Disbursement Requests" },
       { id: "financial_approval.disbursement_orders", moduleId: "financial_approval", action: "disbursement_orders", nameAr: "عرض أوامر الصرف بانتظار الاعتماد", nameEn: "View Pending Disbursement Orders" },
       { id: "financial_approval.custody_requests", moduleId: "financial_approval", action: "custody_requests", nameAr: "عرض العهد المالية بانتظار الاعتماد", nameEn: "View Pending Financial Custody" },
@@ -1069,7 +1064,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "financial_approval.contracts", moduleId: "financial_approval", action: "contracts", nameAr: "عرض العقود بانتظار الاعتماد", nameEn: "View Pending Contracts" },
       { id: "financial_approval.purchase_orders", moduleId: "financial_approval", action: "purchase_orders", nameAr: "عرض أوامر الشراء بانتظار الاعتماد", nameEn: "View Pending Purchase Orders" },
       { id: "financial_approval.progress_reports", moduleId: "financial_approval", action: "progress_reports", nameAr: "عرض تقارير الإنجاز بانتظار الاعتماد", nameEn: "View Pending Progress Reports" },
-      { id: "financial_approval.project_quotations", moduleId: "financial_approval", action: "project_quotations", nameAr: "عرض اعتمادات المشاريع بانتظار الاعتماد", nameEn: "View Pending Project Quotations" },
       { id: "contracts.template_add", moduleId: "settings", action: "template_add", nameAr: "إضافة قالب للعقود", nameEn: "Add Contract Template" },
       { id: "contracts.template_edit", moduleId: "settings", action: "template_edit", nameAr: "تعديل قالب العقد", nameEn: "Edit Contract Template" },
       { id: "contracts.template_delete", moduleId: "settings", action: "template_delete", nameAr: "حذف قالب العقد", nameEn: "Delete Contract Template" },
@@ -1817,9 +1811,6 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (allPermissions.has("quotations.view")) {
     allPermissions.add("quotations");
   }
-  if (allPermissions.has("financial.view")) {
-    allPermissions.add("financial_approval");
-  }
   if (
     allPermissions.has("contracts.view") ||
     allPermissions.has("contracts.create") ||
@@ -2490,8 +2481,8 @@ export const permissionsRouter = router({
       const rolePermissionsMapping: Record<string, string[] | string> = {
         super_admin: "*",
         system_admin: "*",
-        general_manager: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "financial_approval"],
-        executive_director: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "financial_approval"],
+        general_manager: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports"],
+        executive_director: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports"],
         projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports"],
         field_team: ["mosques.view", "requests.view", "requests.edit", "requests.manage_as_field_team", "field_visits"],
         quick_response: ["requests.view", "requests.manage_as_quick_response", "field_visits.view", "reports.create"],

@@ -77,17 +77,23 @@ export const approvalsRouter = router({
         (currentUser as any)?.customRole?.nameAr === "الإدارة المالية" ||
         (currentUser as any)?.customRole?.nameAr === "المدير المالي";
 
-      const userPerms: string[] = Array.isArray((currentUser as any)?.permissions) ? (currentUser as any).permissions : [];
-      const hasWildcardOrGlobal =
-        isSuperOrSystemAdmin ||
-        userPerms.includes("*") ||
-        userPerms.includes("financial_approval") ||
-        userPerms.includes("financial_approval.view") ||
-        userPerms.includes("financial_approval.approve");
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPerms = await calculateUserPermissions(currentUser.id);
 
-      const hasCategoryPerm = userPerms.some((p) => p.startsWith("financial_approval."));
+      const APPROVAL_PERMISSION_KEYS = [
+        "financial_approval.disbursement_requests",
+        "financial_approval.disbursement_orders",
+        "financial_approval.custody_requests",
+        "financial_approval.receipt_vouchers",
+        "financial_approval.contracts",
+        "financial_approval.purchase_orders",
+        "financial_approval.progress_reports",
+      ];
 
-      if (!hasWildcardOrGlobal && !hasCategoryPerm) {
+      const hasWildcard = userPerms.includes("*");
+      const hasAnyApprovalPerm = hasWildcard || userPerms.some((p) => APPROVAL_PERMISSION_KEYS.includes(p));
+
+      if (!hasAnyApprovalPerm) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "غير مصرح لك بالوصول إلى مركز الاعتمادات",
@@ -459,8 +465,8 @@ export const approvalsRouter = router({
             category: "عقد",
             categoryKey: "contract",
             requesterName: row.creatorName || "غير محدد",
-            requiredApprover: "المدير التنفيذي",
-            requiredApproverKey: "executive_director",
+            requiredApprover: "صاحب الصلاحية",
+            requiredApproverKey: "board_chairman",
             status: row.status || "pending_approval",
             statusLabel: "قيد الاعتماد النهائي",
             amount: row.contractAmount ? parseFloat(String(row.contractAmount)) : null,
@@ -470,45 +476,6 @@ export const approvalsRouter = router({
         }
       } catch (err) {
         console.error("Error fetching contracts for approvals:", err);
-      }
-
-      // 8. طلبات المشاريع في مرحلة التقييم المالي واعتماد العرض (financial_eval_and_approval)
-      try {
-        const finStageRequests = await db
-          .select({
-            id: mosqueRequests.id,
-            requestNumber: mosqueRequests.requestNumber,
-            descriptiveName: mosqueRequests.descriptiveName,
-            mosqueName: mosques.name,
-            createdAt: mosqueRequests.createdAt,
-            creatorName: users.name,
-          })
-          .from(mosqueRequests)
-          .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
-          .leftJoin(users, eq(mosqueRequests.userId, users.id))
-          .where(eq(mosqueRequests.currentStage, "financial_eval_and_approval"))
-          .orderBy(desc(mosqueRequests.createdAt));
-
-        for (const row of finStageRequests) {
-          items.push({
-            id: `proj_eval_${row.id}`,
-            rawId: row.id,
-            itemNumber: row.requestNumber || `REQ-${row.id}`,
-            title: row.mosqueName || row.descriptiveName || `طلب مشروع #${row.id}`,
-            category: "اعتماد مالي للطلب",
-            categoryKey: "project_quotation",
-            requesterName: row.creatorName || "غير محدد",
-            requiredApprover: "المسؤول المالي / المدير التنفيذي",
-            requiredApproverKey: "financial",
-            status: "financial_eval_and_approval",
-            statusLabel: "مرحلة التقييم واعتماد العرض",
-            amount: null,
-            createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString(),
-            link: `/requests/${row.id}`,
-          });
-        }
-      } catch (err) {
-        console.error("Error fetching project requests for financial approvals:", err);
       }
 
       // فرز النتائج زمنياً (الأحدث أولاً)
@@ -523,10 +490,9 @@ export const approvalsRouter = router({
         contract: "financial_approval.contracts",
         purchase_order: "financial_approval.purchase_orders",
         progress_report: "financial_approval.progress_reports",
-        project_quotation: "financial_approval.project_quotations",
       };
 
-      const hasAdminWildcard = isSuperOrSystemAdmin || userPerms.includes("*");
+      const hasAdminWildcard = userPerms.includes("*");
 
       let accessibleItems = items;
       if (!hasAdminWildcard) {

@@ -172,7 +172,6 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
       { icon: Truck, label: "الموردون", path: "/suppliers" },
       { icon: Calculator, label: "إعداد جداول الكميات", path: "/boq-preparations" },
       { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
-      { icon: CheckSquare, label: isEn ? "Approvals" : "الاعتمادات", path: "/financial-approval" },
       { icon: FileText, label: "العقود", path: "/contracts" },
       { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
       { icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" },
@@ -372,7 +371,18 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("quotations")) {
     finItems.push({ icon: Receipt, label: "عروض الأسعار", path: "/quotations" });
   }
-  if (has("financial_approval") || has("financial_approval.view") || has("financial_approval.approve") || permissions.some(p => p.startsWith("financial_approval.")))  finItems.push({ icon: CheckSquare, label: isEn ? "Approvals" : "الاعتمادات", path: "/financial-approval" });
+  const VALID_APPROVAL_PERMS = [
+    "financial_approval.disbursement_requests",
+    "financial_approval.disbursement_orders",
+    "financial_approval.custody_requests",
+    "financial_approval.receipt_vouchers",
+    "financial_approval.contracts",
+    "financial_approval.purchase_orders",
+    "financial_approval.progress_reports",
+  ];
+  if (has("*") || permissions.some(p => VALID_APPROVAL_PERMS.includes(p))) {
+    finItems.push({ icon: CheckSquare, label: isEn ? "Approvals" : "الاعتمادات", path: "/financial-approval" });
+  }
   if (has("contracts") || has("contracts.view")) {
     finItems.push({ icon: FileText, label: "العقود", path: "/contracts" });
   }
