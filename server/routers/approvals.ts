@@ -80,8 +80,6 @@ export const approvalsRouter = router({
       const userPerms: string[] = Array.isArray((currentUser as any)?.permissions) ? (currentUser as any).permissions : [];
       const hasWildcardOrGlobal =
         isSuperOrSystemAdmin ||
-        isExecDirector ||
-        isFinancial ||
         userPerms.includes("*") ||
         userPerms.includes("financial_approval") ||
         userPerms.includes("financial_approval.view") ||
@@ -528,10 +526,10 @@ export const approvalsRouter = router({
         project_quotation: "financial_approval.project_quotations",
       };
 
-      const hasSpecificCategoryPerms = Object.values(categoryPermMap).some((perm) => userPerms.includes(perm));
+      const hasAdminWildcard = isSuperOrSystemAdmin || userPerms.includes("*");
 
       let accessibleItems = items;
-      if (!isSuperOrSystemAdmin && !isExecDirector && !isFinancial && !userPerms.includes("*") && hasSpecificCategoryPerms) {
+      if (!hasAdminWildcard) {
         accessibleItems = items.filter((item) => {
           const reqPerm = categoryPermMap[item.categoryKey];
           return reqPerm && userPerms.includes(reqPerm);

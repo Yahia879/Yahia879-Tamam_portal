@@ -161,9 +161,7 @@ export default function FinancialApproval() {
 
   const hasApprovalPerm =
     hasSpecificPerm ||
-    isSuperOrSystem ||
-    isExecDirector ||
-    isFinancialRole;
+    isSuperOrSystem;
 
   // حالة التصفية والبحث لمركز الاعتمادات
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -309,18 +307,11 @@ export default function FinancialApproval() {
     project_quotation: "financial_approval.project_quotations",
   };
 
-  const hasSpecificCategoryPerms = Object.values(categoryPermMap).some((perm) => userPerms.includes(perm));
-  const hasWildcardOrGlobal =
-    isSuperOrSystem ||
-    isExecDirector ||
-    isFinancialRole ||
-    userPerms.includes("*") ||
-    userPerms.includes("financial_approval") ||
-    (userPerms.includes("financial_approval.view") && !hasSpecificCategoryPerms);
+  const hasAdminWildcard = isSuperOrSystem || userPerms.includes("*");
 
   const visibleCards = APPROVAL_CARDS.filter((card) => {
     if (card.key === "all") return true;
-    if (hasWildcardOrGlobal) return true;
+    if (hasAdminWildcard) return true;
     const reqPerm = categoryPermMap[card.key];
     return reqPerm && userPerms.includes(reqPerm);
   });
