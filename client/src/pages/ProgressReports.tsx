@@ -73,6 +73,7 @@ import {
   Upload,
   X,
   Loader2,
+  Lock,
   ShieldCheck,
   ShieldAlert,
   XCircle,
@@ -336,6 +337,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   const [page, setPage, resetPage] = usePersistedPage("progress_reports_page");
   const limit = 10;
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingReportId, setEditingReportId] = useState<number | null>(null);
 
   // حالة نموذج إنشاء مستخلص جديد
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
@@ -353,6 +355,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     setInvoiceWorkDone("");
     setInvoiceRecommendations("");
     setUploadedFiles([]);
+    setEditingReportId(null);
   };
 
   // استعلام كافة العقود لاستخراج العقود بنظام المستخلصات
@@ -377,20 +380,22 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   }, [allContractsData]);
 
   const contractsForSelectedProject = useMemo(() => {
-    if (!selectedProjectId || !milestoneContracts) return [];
-    return milestoneContracts.filter((c: any) => c.projectId === selectedProjectId);
-  }, [selectedProjectId, milestoneContracts]);
+    if (!selectedProjectId) return [];
+    const fromMilestone = (milestoneContracts || []).filter((c: any) => c.projectId === selectedProjectId);
+    if (fromMilestone.length > 0) return fromMilestone;
+    return (allContractsData?.contracts || []).filter((c: any) => c.projectId === selectedProjectId);
+  }, [selectedProjectId, milestoneContracts, allContractsData]);
 
   const selectedContract = useMemo(() => {
     if (selectedContractId) {
-      const found = milestoneContracts.find((c: any) => c.id === selectedContractId);
+      const found = (allContractsData?.contracts || []).find((c: any) => c.id === selectedContractId);
       if (found) return found;
     }
     if (selectedProjectId) {
-      return milestoneContracts.find((c: any) => c.projectId === selectedProjectId) || null;
+      return (allContractsData?.contracts || []).find((c: any) => c.projectId === selectedProjectId) || null;
     }
     return null;
-  }, [selectedContractId, selectedProjectId, milestoneContracts]);
+  }, [selectedContractId, selectedProjectId, allContractsData, milestoneContracts]);
 
   const selectedContractAmount = parseFloat(String(selectedContract?.contractAmount || "0").replace(/,/g, "")) || 0;
   const calculatedInvoicePayout = selectedContractAmount > 0 && invoicePercentage > 0
@@ -702,34 +707,54 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
   // المشاريع المحددة كمستخلصات (المشاريع التي لديها عقود مفعلة بنظام المستخلصات)
   const milestoneProjects = useMemo(() => {
-    if (!milestoneContracts || milestoneContracts.length === 0) return [];
-    const milestoneProjectIds = new Set(
-      milestoneContracts.map((c: any) => c.projectId).filter(Boolean)
-    );
-    // تصفية المشاريع النشطة المطابقة لمعرفات عقود المستخلصات
-    const matched = (projectsData || []).filter((p: any) => {
-      const isClosed =
-        p.requestStage === 'closed' ||
-        p.requestStatus === 'completed' ||
-        p.requestClosureStatus === 'confirmed';
-      if (isClosed) return false;
-      return milestoneProjectIds.has(p.id);
-    });
+    const matched: any[] = [];
+    const matchedIds = new Set<number>();
 
-    // في حال وجود مشروع مرتبط بعقد مستخلص لم يظهر في projectsData
-    const matchedIds = new Set(matched.map((p: any) => p.id));
-    for (const c of milestoneContracts) {
-      if (c.projectId && !matchedIds.has(c.projectId)) {
-        matched.push({
-          id: c.projectId,
-          name: c.projectName || (c as any).project?.name || `مشروع #${c.projectId}`,
-          projectNumber: (c as any).projectNumber || `PRJ-${c.projectId}`,
-        });
-        matchedIds.add(c.projectId);
+    if (milestoneContracts && milestoneContracts.length > 0) {
+      const milestoneProjectIds = new Set(
+        milestoneContracts.map((c: any) => c.projectId).filter(Boolean)
+      );
+      // تصفية المشاريع النشطة المطابقة لمعرفات عقود المستخلصات
+      const activeMatched = (projectsData || []).filter((p: any) => {
+        const isClosed =
+          p.requestStage === 'closed' ||
+          p.requestStatus === 'completed' ||
+          p.requestClosureStatus === 'confirmed';
+        if (isClosed) return false;
+        return milestoneProjectIds.has(p.id);
+      });
+
+      for (const p of activeMatched) {
+        matched.push(p);
+        matchedIds.add(p.id);
+      }
+
+      // في حال وجود مشروع مرتبط بعقد مستخلص لم يظهر في projectsData
+      for (const c of milestoneContracts) {
+        if (c.projectId && !matchedIds.has(c.projectId)) {
+          matched.push({
+            id: c.projectId,
+            name: c.projectName || (c as any).project?.name || `مشروع #${c.projectId}`,
+            projectNumber: (c as any).projectNumber || `PRJ-${c.projectId}`,
+          });
+          matchedIds.add(c.projectId);
+        }
       }
     }
+
+    // في حال التعديل وكان المشروع المحدد غير موجود بالقائمة، نضيفه لضمان ظهوره
+    if (editingReportId && selectedProjectId && !matchedIds.has(selectedProjectId)) {
+      const proj = (projectsData || []).find((p: any) => p.id === selectedProjectId);
+      matched.push({
+        id: selectedProjectId,
+        name: proj?.name || `مشروع #${selectedProjectId}`,
+        projectNumber: proj?.projectNumber || `PRJ-${selectedProjectId}`,
+      });
+      matchedIds.add(selectedProjectId);
+    }
+
     return matched;
-  }, [milestoneContracts, projectsData]);
+  }, [milestoneContracts, projectsData, editingReportId, selectedProjectId]);
 
   // جلب تفاصيل المشروع المحدد للتحقق من جدولة الدفعات
   const { data: projectDetails, isLoading: isProjectDetailsLoading } = trpc.projects.getById.useQuery(
@@ -945,18 +970,18 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     },
   });
 
-  const [editingReportId, setEditingReportId] = useState<number | null>(null);
-
   const updateMutation = trpc.progressReports.update.useMutation({
     onSuccess: () => {
-      toast.success("تم تحديث تقرير الإنجاز بنجاح");
+      toast.success(isInvoiceMode ? "تم تحديث المستخلص بنجاح" : "تم تحديث تقرير الإنجاز بنجاح");
       setActiveTab("list");
       resetNewReport();
+      resetInvoiceForm();
       refetchReports();
       refetchAllReports();
+      utils.progressReports.getPendingActionCounts.invalidate();
     },
     onError: (error) => {
-      toast.error(formatErrorMessage(error.message) || "حدث خطأ أثناء تحديث التقرير");
+      toast.error(formatErrorMessage(error.message) || (isInvoiceMode ? "حدث خطأ أثناء تحديث المستخلص" : "حدث خطأ أثناء تحديث التقرير"));
     },
   });
 
@@ -1207,17 +1232,78 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
       return;
     }
     if (isReportConverted(report)) {
-      toast.error("لا يمكن تعديل تقرير الإنجاز بعد تحويله إلى طلب صرف.");
+      toast.error(isInv ? "لا يمكن تعديل المستخلص بعد تحويله إلى أمر صرف." : "لا يمكن تعديل تقرير الإنجاز بعد تحويله إلى طلب صرف.");
       return;
     }
     if (report.status === "pending_executive" || report.status === "approved" || report.status === "revoked" || report.status === "rejected") {
-      toast.error("لا يمكن تعديل تقرير الإنجاز بعد اعتماده أو رفضه أو إلغائه.");
+      toast.error(isInv ? "لا يمكن تعديل المستخلص بعد اعتماده أو رفضه أو إلغائه." : "لا يمكن تعديل تقرير الإنجاز بعد اعتماده أو رفضه أو إلغائه.");
       return;
     }
     if (isDisbursementApproved(report)) {
-      toast.error("لا يمكن تعديل تقرير الإنجاز بعد اعتماد طلب الصرف المرتبط.");
+      toast.error(isInv ? "لا يمكن تعديل المستخلص بعد اعتماد أمر الصرف المرتبط." : "لا يمكن تعديل تقرير الإنجاز بعد اعتماد طلب الصرف المرتبط.");
       return;
     }
+
+    if (isInv) {
+      setEditingReportId(report.id);
+      setSelectedProjectId(report.projectId || null);
+
+      // استخراج معرف العقد من workSummary إذا وجد
+      const contractIdMatch = (report.workSummary || "").match(/\[معرف العقد:\s*(\d+)\]/);
+      const contractNumMatch = (report.workSummary || "").match(/\[رقم العقد:\s*([^\]]+)\]/);
+      if (contractIdMatch) {
+        setSelectedContractId(parseInt(contractIdMatch[1]));
+      } else if (contractNumMatch) {
+        const cNum = contractNumMatch[1].trim();
+        const foundC = (allContractsData?.contracts || []).find((c: any) => c.contractNumber === cNum || String(c.id) === cNum);
+        if (foundC) {
+          setSelectedContractId(foundC.id);
+        } else {
+          const contracts = (milestoneContracts || []).filter((c: any) => c.projectId === report.projectId);
+          setSelectedContractId(contracts[0]?.id || null);
+        }
+      } else {
+        const contracts = (milestoneContracts || []).filter((c: any) => c.projectId === report.projectId);
+        setSelectedContractId(contracts[0]?.id || null);
+      }
+
+      setInvoiceTitle(report.title || "");
+      setInvoicePercentage(report.overallProgress || report.actualProgress || 0);
+
+      // استخراج وصف الأعمال المنجزة
+      const workDoneMatch = (report.workSummary || "").match(/(?:^|\n)\s*وصف الأعمال المنجزة:\s*([\s\S]*)$/);
+      const extractedWorkDone = workDoneMatch ? workDoneMatch[1].trim() : cleanDisplayWorkSummary(report.workSummary);
+      setInvoiceWorkDone(extractedWorkDone);
+
+      setInvoiceRecommendations(report.recommendations || "");
+
+      try {
+        if (report.photos) {
+          let parsedPhotos = report.photos;
+          while (typeof parsedPhotos === "string") {
+            parsedPhotos = JSON.parse(parsedPhotos);
+          }
+          if (Array.isArray(parsedPhotos)) {
+            setUploadedFiles(parsedPhotos.map((photo: string, i: number) => ({
+              name: photo.startsWith("data:") ? `مرفق_${i + 1}` : photo.split("/").pop() || `مرفق_${i + 1}`,
+              size: 0,
+              base64: photo,
+              type: (photo.startsWith("data:image/") || /\.(png|jpe?g|webp)$/i.test(photo)) ? "image/png" : "application/pdf"
+            })));
+          } else {
+            setUploadedFiles([]);
+          }
+        } else {
+          setUploadedFiles([]);
+        }
+      } catch (e) {
+        setUploadedFiles([]);
+      }
+
+      setActiveTab("create-invoice");
+      return;
+    }
+
     const { scheduled, actual, paymentId } = parseWorkSummary(report.workSummary || "");
     setSelectedPaymentId(paymentId);
     setNewReport({
@@ -1348,11 +1434,18 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     }
   };
 
-  // إنشاء مستخلص جديد للمشاريع بنظام المستخلصات
+  // إنشاء أو تعديل مستخلص للمشاريع بنظام المستخلصات
   const handleCreateInvoice = async () => {
-    if (!hasInvoiceAddPermission) {
-      toast.error("ليس لديك صلاحية لإضافة مستخلص جديد");
-      return;
+    if (editingReportId) {
+      if (!hasInvoiceEditPermission) {
+        toast.error("ليس لديك صلاحية لتعديل المستخلص");
+        return;
+      }
+    } else {
+      if (!hasInvoiceAddPermission) {
+        toast.error("ليس لديك صلاحية لإضافة مستخلص جديد");
+        return;
+      }
     }
     if (!selectedProjectId || !selectedContract) {
       toast.error("يرجى اختيار المشروع المراد إنشاء مستخلص له");
@@ -1399,27 +1492,42 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         invoiceWorkDone.trim() ? `\nوصف الأعمال المنجزة:\n${invoiceWorkDone.trim()}` : ""
       ].filter(Boolean).join("\n");
 
-      const matchedProj = (projectsData || []).find((p: any) => p.id === selectedContract.projectId);
-      const effectiveProjectId = selectedContract.projectId || matchedProj?.id || 0;
+      if (editingReportId) {
+        await updateMutation.mutateAsync({
+          id: editingReportId,
+          title: invoiceTitle.trim(),
+          overallProgress: invoicePercentage,
+          plannedProgress: invoicePercentage,
+          actualProgress: invoicePercentage,
+          workSummary: combinedWorkSummary,
+          recommendations: invoiceRecommendations.trim(),
+          budgetSpent: String(calculatedInvoicePayout),
+          budgetRemaining: String(Math.max(0, selectedContractAmount - calculatedInvoicePayout)),
+          photos: uploadedUrls,
+        });
+      } else {
+        const matchedProj = (projectsData || []).find((p: any) => p.id === selectedContract.projectId);
+        const effectiveProjectId = selectedContract.projectId || matchedProj?.id || 0;
 
-      await createMutation.mutateAsync({
-        projectId: effectiveProjectId,
-        title: invoiceTitle.trim(),
-        reportDate: new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
-        overallProgress: invoicePercentage,
-        plannedProgress: invoicePercentage,
-        actualProgress: invoicePercentage,
-        workSummary: combinedWorkSummary,
-        recommendations: invoiceRecommendations.trim(),
-        budgetSpent: String(calculatedInvoicePayout),
-        budgetRemaining: String(Math.max(0, selectedContractAmount - calculatedInvoicePayout)),
-        photos: uploadedUrls,
-      });
+        await createMutation.mutateAsync({
+          projectId: effectiveProjectId,
+          title: invoiceTitle.trim(),
+          reportDate: new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
+          overallProgress: invoicePercentage,
+          plannedProgress: invoicePercentage,
+          actualProgress: invoicePercentage,
+          workSummary: combinedWorkSummary,
+          recommendations: invoiceRecommendations.trim(),
+          budgetSpent: String(calculatedInvoicePayout),
+          budgetRemaining: String(Math.max(0, selectedContractAmount - calculatedInvoicePayout)),
+          photos: uploadedUrls,
+        });
 
-      toast.success("تم إنشاء المستخلص بنجاح وإرساله للاعتماد");
-      resetInvoiceForm();
-      setActiveTab("list");
-      setMainViewTab("invoices");
+        toast.success("تم إنشاء المستخلص بنجاح وإرساله للاعتماد");
+        resetInvoiceForm();
+        setActiveTab("list");
+        setMainViewTab("invoices");
+      }
     } catch (err: any) {
       console.error("Error creating invoice:", err);
       toast.error(err.message || "حدث خطأ أثناء حفظ المستخلص");
@@ -2216,10 +2324,12 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
             <div>
               <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                 <FileSpreadsheet className="w-6 h-6 text-emerald-600" />
-                إنشاء مستخلص إنجاز مالي جديد
+                {editingReportId ? "تعديل مستخلص إنجاز مالي" : "إنشاء مستخلص إنجاز مالي جديد"}
               </h1>
               <p className="text-sm text-muted-foreground">
-                رفع مستخلص مرتبط بعقد بنظام المستخلصات وفق نسبة الإنجاز الفعلي لإصدار أمر الصرف
+                {editingReportId
+                  ? "تعديل بيانات المستخلص ونسبة الإنجاز والأعمال المنجزة مع تثبيت المشروع والعقد المالي"
+                  : "رفع مستخلص مرتبط بعقد بنظام المستخلصات وفق نسبة الإنجاز الفعلي لإصدار أمر الصرف"}
               </p>
             </div>
           </div>
@@ -2232,10 +2342,12 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
             <CardHeader className="bg-muted/30 border-b border-border/40 py-4">
               <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
                 <Building2 className="w-4.5 h-4.5 text-primary" />
-                اختيار المشروع (نظام المستخلصات)
+                {editingReportId ? "المشروع والعقد المرتبط بالمستخلص" : "اختيار المشروع (نظام المستخلصات)"}
               </CardTitle>
               <CardDescription>
-                حدد المشروع الذي ترغب بإنشاء مستخلص له. تظهر هنا حصراً المشاريع المفعلة بنظام المستخلصات مع إمكانية البحث الفوري.
+                {editingReportId
+                  ? "المشروع والعقد المرتبطين بالمستخلص مقيدان ولا يمكن تغييرهما أثناء تعديل المستخلص."
+                  : "حدد المشروع الذي ترغب بإنشاء مستخلص له. تظهر هنا حصراً المشاريع المفعلة بنظام المستخلصات مع إمكانية البحث الفوري."}
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
@@ -2252,10 +2364,19 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               ) : (
                 <div className="space-y-3">
                   <div className="space-y-2">
-                    <Label className="font-semibold text-foreground">المشروع <span className="text-red-500">*</span></Label>
+                    <Label className="font-semibold text-foreground flex items-center justify-between">
+                      <span>المشروع <span className="text-red-500">*</span></span>
+                      {editingReportId && (
+                        <span className="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1 font-normal">
+                          <Lock className="w-3 h-3" />
+                          غير قابل للتعديل
+                        </span>
+                      )}
+                    </Label>
                     <ProjectSearchSelect
                       projects={milestoneProjects}
                       value={selectedProjectId ? selectedProjectId.toString() : ""}
+                      disabled={Boolean(editingReportId)}
                       onValueChange={(val) => {
                         const pId = parseInt(val) || null;
                         setSelectedProjectId(pId);
@@ -2273,15 +2394,30 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                       }}
                       placeholder="ابحث برقم أو اسم المشروع المحدد بنظام المستخلصات..."
                     />
+                    {editingReportId && (
+                      <p className="text-xs text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1.5 mt-1.5">
+                        <Lock className="w-3.5 h-3.5 shrink-0" />
+                        المشروع والعقد المالي مقيدان ولا يمكن تغييرهما أثناء تعديل المستخلص.
+                      </p>
+                    )}
                   </div>
 
                   {/* في حال وجود أكثر من عقد بنظام المستخلصات لنفس المشروع */}
                   {contractsForSelectedProject.length > 1 && (
                     <div className="space-y-2 pt-2">
-                      <Label className="font-semibold text-foreground text-xs">العقد المالي المرتبط بالمشروع</Label>
+                      <Label className="font-semibold text-foreground text-xs flex items-center justify-between">
+                        <span>العقد المالي المرتبط بالمشروع</span>
+                        {editingReportId && (
+                          <span className="text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1 font-normal">
+                            <Lock className="w-3 h-3" />
+                            مقيد
+                          </span>
+                        )}
+                      </Label>
                       <Select
                         value={selectedContractId ? String(selectedContractId) : ""}
                         onValueChange={(val) => setSelectedContractId(parseInt(val) || null)}
+                        disabled={Boolean(editingReportId)}
                       >
                         <SelectTrigger className="w-full text-right text-xs">
                           <SelectValue placeholder="اختر العقد المرتبط..." />
@@ -2463,7 +2599,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               onClick={handleCreateInvoice}
               disabled={
                 isSubmitting ||
-                createMutation.isPending ||
+                (editingReportId ? updateMutation.isPending : createMutation.isPending) ||
                 !selectedProjectId ||
                 !selectedContract ||
                 !invoiceTitle.trim() ||
@@ -2474,15 +2610,15 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               }
               className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-8 shadow-sm"
             >
-              {isSubmitting || createMutation.isPending ? (
+              {isSubmitting || (editingReportId ? updateMutation.isPending : createMutation.isPending) ? (
                 <>
                   <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-                  جاري حفظ وإنشاء المستخلص...
+                  {editingReportId ? "جاري حفظ تعديلات المستخلص..." : "جاري حفظ وإنشاء المستخلص..."}
                 </>
               ) : (
                 <>
                   <Check className="w-4 h-4 ml-2" />
-                  حفظ وإنشاء المستخلص
+                  {editingReportId ? "حفظ تعديلات المستخلص" : "حفظ وإنشاء المستخلص"}
                 </>
               )}
             </Button>
