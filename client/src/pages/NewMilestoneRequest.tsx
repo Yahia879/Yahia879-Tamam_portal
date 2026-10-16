@@ -4,13 +4,11 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { numberToArabicText as baseNumberToArabicText } from "@shared/tafqeet";
 import DashboardLayout from "@/components/DashboardLayout";
-import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -20,16 +18,14 @@ import {
 } from "@/components/ui/select";
 import {
   ArrowRight,
-  Send,
   FileSpreadsheet,
   FileText,
-  AlertCircle,
   Upload,
   X,
   Building2,
   Lock,
   ShieldCheck,
-  CheckCircle2,
+  Check,
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -64,48 +60,41 @@ const compressImage = (
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext("2d");
-      ctx?.drawImage(img, 0, 0, width, height);
-
-      const compressedBase64 = canvas.toDataURL("image/webp", imageQuality);
-      const justBase64 = compressedBase64.split(",")[1];
-      const approxSize = Math.round((justBase64.length * 3) / 4);
-
-      resolve({
-        base64: compressedBase64,
-        size: approxSize,
-      });
+      if (ctx) {
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+      }
+      const compressed = canvas.toDataURL("image/jpeg", imageQuality);
+      const head = "data:image/jpeg;base64,";
+      const sizeInBytes = Math.round(((compressed.length - head.length) * 3) / 4);
+      resolve({ base64: compressed, size: sizeInBytes });
     };
     img.onerror = () => {
-      resolve({
-        base64,
-        size: Math.round((base64.split(",")[1]?.length * 3) / 4 || 0),
-      });
+      const head = base64.indexOf(",");
+      const sizeInBytes = head > -1 ? Math.round(((base64.length - head) * 3) / 4) : base64.length;
+      resolve({ base64, size: sizeInBytes });
     };
     img.src = base64;
   });
 };
 
-const uploadFile = async (fileObj: { name: string; base64: string }): Promise<string> => {
-  if (!fileObj.base64.startsWith("data:")) {
-    return fileObj.base64;
-  }
-
+const uploadFile = async (fileObj: { name: string; size: number; base64: string; type: string }): Promise<string> => {
   try {
-    const parts = fileObj.base64.split(",");
-    const mime = parts[0].match(/:(.*?);/)?.[1] || "application/octet-stream";
-    const bstr = atob(parts[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n);
+    const byteString = atob(fileObj.base64.split(",")[1]);
+    const mimeString = fileObj.base64.split(",")[0].split(":")[1].split(";")[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
     }
+    const blob = new Blob([ab], { type: mimeString });
+    const file = new File([blob], fileObj.name, { type: mimeString });
 
-    const file = new File([u8arr], fileObj.name, { type: mime });
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch("/api/upload?folder=progress-reports", {
+    const response = await fetch("/api/upload", {
       method: "POST",
       body: formData,
     });
@@ -131,20 +120,20 @@ export default function NewMilestoneRequest({ params: propParams }: { params?: {
   const effectiveProjectId = parseInt(propParams?.id || propParams?.projectId || routeParams.id || routeParams.projectId || "0") || 0;
 
   // جلب تفاصيل المشروع
-  const { data: projectDetails, isLoading: isProjectLoading } = trpc.projects.getById.useQuery(
+  const { data: projectDetails } = trpc.projects.getById.useQuery(
     { id: effectiveProjectId },
     { enabled: effectiveProjectId > 0 }
   );
 
   // جلب عقود المشروع
-  const { data: projectContractsData, isLoading: isContractsLoading } = trpc.contracts.list.useQuery(
+  const { data: projectContractsData } = trpc.contracts.list.useQuery(
     { projectId: effectiveProjectId },
     { enabled: effectiveProjectId > 0 }
   );
 
   const contractsList = projectContractsData?.contracts || [];
 
-  // حالة حقول نموذج المستخلص
+  // حالة حقول نموذج المستخلص (مطابقة لـ ProgressReports)
   const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
   const [invoiceTitle, setInvoiceTitle] = useState("");
   const [invoicePercentage, setInvoicePercentage] = useState<number>(0);
@@ -152,9 +141,9 @@ export default function NewMilestoneRequest({ params: propParams }: { params?: {
   const [invoiceRecommendations, setInvoiceRecommendations] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState<{ name: string; size: number; base64: string; type: string }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const invoiceFileInputRef = useRef<HTMLInputElement>(null);
 
-  // التحديد التلقائي للعقد المالي عند تحميل العقود
+  // التحديد التلقائي للعقد
   useEffect(() => {
     if (contractsList.length > 0 && !selectedContractId) {
       const milestoneContract = contractsList.find((c: any) => {
@@ -171,34 +160,18 @@ export default function NewMilestoneRequest({ params: propParams }: { params?: {
     }
   }, [contractsList, selectedContractId]);
 
-  // التحديد التلقائي لعنوان المستخلص بناءً على اسم المشروع
+  // التحديد التلقائي لعنوان المستخلص
   useEffect(() => {
-    if (projectDetails?.name && !invoiceTitle) {
+    if (!invoiceTitle && projectDetails?.name) {
       setInvoiceTitle(`مستخلص إنجاز - ${projectDetails.name}`);
     }
   }, [projectDetails, invoiceTitle]);
 
-  // إدارة قيمة العقد والميزانية المعتمدة
-  const projectBudget = parseFloat(String(projectDetails?.budget || projectDetails?.actualCost || (projectDetails as any)?.request?.approvedBudget || "0").replace(/,/g, "")) || 0;
-  const [customContractAmount, setCustomContractAmount] = useState<number>(0);
+  const projectBudget = useMemo(() => {
+    if (!projectDetails?.budget) return 0;
+    return parseFloat(String(projectDetails.budget).replace(/,/g, "")) || 0;
+  }, [projectDetails]);
 
-  useEffect(() => {
-    if (projectBudget > 0 && customContractAmount === 0) {
-      setCustomContractAmount(projectBudget);
-    }
-  }, [projectBudget, customContractAmount]);
-
-  const fallbackContract = useMemo(() => {
-    if (contractsList.length > 0) return null;
-    return {
-      id: 0,
-      contractNumber: `CNT-PRJ-${effectiveProjectId}`,
-      secondPartyName: "المقاول المنفذ للمشروع",
-      contractAmount: String(customContractAmount || projectBudget || 0),
-    };
-  }, [contractsList, effectiveProjectId, customContractAmount, projectBudget]);
-
-  // العقد المحدد وحساب الدفعة المالية
   const selectedContract = useMemo(() => {
     if (contractsList.length > 0) {
       if (selectedContractId) {
@@ -207,12 +180,17 @@ export default function NewMilestoneRequest({ params: propParams }: { params?: {
       }
       return contractsList[0];
     }
-    return fallbackContract;
-  }, [contractsList, selectedContractId, fallbackContract]);
+    return {
+      id: 0,
+      contractNumber: `CNT-PRJ-${effectiveProjectId}`,
+      secondPartyName: "المقاول المنفذ للمشروع",
+      contractAmount: String(projectBudget || 0),
+    };
+  }, [contractsList, selectedContractId, effectiveProjectId, projectBudget]);
 
   const selectedContractAmount = contractsList.length > 0
     ? (parseFloat(String(selectedContract?.contractAmount || (selectedContract as any)?.amount || "0").replace(/,/g, "")) || 0)
-    : (customContractAmount || projectBudget || 0);
+    : (projectBudget || 0);
 
   const calculatedInvoicePayout = selectedContractAmount > 0 && invoicePercentage > 0
     ? (selectedContractAmount * invoicePercentage) / 100
@@ -237,18 +215,26 @@ export default function NewMilestoneRequest({ params: propParams }: { params?: {
 
         const isHeic = ext === "heic" || ext === "heif" || file.type === "image/heic" || file.type === "image/heif";
         if (isHeic) {
-          toast.error(`عذراً، صيغة الملف HEIC/HEIF (الخاصة بأجهزة آيفون) غير مدعومة.`);
+          toast.error(`عذراً، صيغة الملف HEIC/HEIF غير مدعومة.`);
           continue;
         }
 
         const forbiddenExts = ['exe', 'bat', 'cmd', 'sh', 'msi', 'scr', 'pif', 'com', 'hta', 'vbs', 'js', 'jar', 'vbe', 'jse', 'wsf', 'wsh', 'ps1'];
         if (forbiddenExts.includes(ext || '')) {
-          toast.error(`عذراً، لا يُسمح برفع الملفات التنفيذية (${fileName}) لحماية خوادم النظام.`);
+          toast.error(`امتداد الملف .${ext} غير مسموح به لأسباب أمنية.`);
           continue;
         }
 
+        const isImage = file.type.startsWith("image/");
+        const isPdf = file.type === "application/pdf" || ext === "pdf";
+
+        if (!isImage && !isPdf) {
+          toast.error(`الملف ${fileName} غير مدعوم، يرجى رفع صور أو ملفات PDF فقط.`);
+          continue;
+        }
+
+        const reader = new FileReader();
         const base64Data = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
           reader.onerror = reject;
           reader.readAsDataURL(file);
@@ -256,45 +242,35 @@ export default function NewMilestoneRequest({ params: propParams }: { params?: {
 
         let finalBase64 = base64Data;
         let finalSize = file.size;
-        let finalType = file.type;
-        let finalName = file.name;
 
-        if (file.type.startsWith("image/") && file.type !== "image/gif") {
-          try {
-            const compressed = await compressImage(base64Data, 800, 0.5);
-            finalBase64 = compressed.base64;
-            finalSize = compressed.size;
-            finalType = "image/webp";
-            finalName = file.name.replace(/\.[^/.]+$/, "") + ".webp";
-          } catch (compressErr) {
-            console.error("خطأ أثناء ضغط الصورة:", compressErr);
-          }
+        if (isImage) {
+          const comp = await compressImage(base64Data, 1000, 0.6);
+          finalBase64 = comp.base64;
+          finalSize = comp.size;
         }
 
         if (runningTotalSize + finalSize > maxTotalSizeBytes) {
-          toast.error(`إجمالي حجم الملفات المرفقة يتجاوز الحد الأقصى المسموح به (10 ميجابايت).`);
+          toast.error(`تجاوز الحجم الإجمالي المسموح للمرفقات (10 ميجابايت).`);
           break;
         }
 
         runningTotalSize += finalSize;
-
-        setUploadedFiles(prev => {
-          if (prev.some(f => f.name === finalName)) return prev;
-          return [...prev, {
-            name: finalName,
+        setUploadedFiles(prev => [
+          ...prev,
+          {
+            name: fileName,
             size: finalSize,
             base64: finalBase64,
-            type: finalType
-          }];
-        });
+            type: file.type || (isPdf ? "application/pdf" : "image/jpeg"),
+          }
+        ]);
       }
-    } catch (err) {
-      console.error("خطأ أثناء قراءة الملفات:", err);
-      toast.error("حدث خطأ أثناء تحميل الملفات.");
+    } catch (err: any) {
+      toast.error(err.message || "حدث خطأ أثناء معالجة المرفقات");
     } finally {
       setIsSubmitting(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+      if (invoiceFileInputRef.current) {
+        invoiceFileInputRef.current.value = "";
       }
     }
   };
@@ -312,13 +288,9 @@ export default function NewMilestoneRequest({ params: propParams }: { params?: {
     },
   });
 
-  const handleSubmit = async () => {
+  const handleCreateInvoice = async () => {
     if (!effectiveProjectId) {
       toast.error("معرف المشروع غير محدد");
-      return;
-    }
-    if (!selectedContract && selectedContractAmount <= 0) {
-      toast.error("يرجى تحديد القيمة المالية للعقد أو ميزانية المشروع");
       return;
     }
     if (!invoiceTitle.trim()) {
@@ -389,285 +361,226 @@ export default function NewMilestoneRequest({ params: propParams }: { params?: {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-5xl mx-auto pb-16 text-right font-sans" dir="rtl">
-        {/* شريط المسار والرجوع */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/40">
-          <div className="flex items-center gap-2">
+      <div className="space-y-6 max-w-4xl mx-auto text-right font-sans" dir="rtl">
+        {/* Page Header - مطابق تماماً لـ ProgressReports */}
+        <div className="flex items-center justify-between border-b pb-4">
+          <div className="flex items-center gap-3">
             <Button
-              type="button"
               variant="outline"
-              size="sm"
+              size="icon"
               onClick={handleReturnToProject}
-              className="gap-1.5 rounded-xl border-border hover:bg-muted/60 text-xs font-bold"
+              className="rounded-full hover:bg-muted"
+              title="العودة لصفحة المشروع"
             >
-              <ArrowRight className="w-4 h-4 ml-1" />
-              <span>العودة لصفحة المشروع</span>
+              <ArrowRight className="w-4 h-4" />
             </Button>
-            <span className="text-muted-foreground text-xs">/</span>
-            <span className="text-xs font-bold text-foreground truncate max-w-xs sm:max-w-md">
-              {projectDetails?.name || `مشروع #${effectiveProjectId}`}
-            </span>
-            <span className="text-muted-foreground text-xs">/</span>
-            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-              رفع مستخلص مالي جديد
-            </span>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <FileSpreadsheet className="w-6 h-6 text-emerald-600" />
+                إنشاء مستخلص إنجاز مالي جديد
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                رفع مستخلص مرتبط بعقد بنظام المستخلصات وفق نسبة الإنجاز الفعلي لإصدار أمر الصرف
+              </p>
+            </div>
           </div>
-
-          <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold text-xs w-fit">
-            نظام المستخلصات المالية للمشروع
-          </Badge>
         </div>
 
-        {/* رأس الصفحة وبطاقة المشروع */}
-        <Card className="border-border/60 shadow-sm rounded-2xl overflow-hidden bg-card">
-          <div className="p-5 sm:p-6 bg-gradient-to-l from-emerald-500/10 via-primary/5 to-transparent border-b border-border/40">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-                    <FileSpreadsheet className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h1 className="text-lg sm:text-xl font-bold text-foreground">
-                      رفع مستخلص مالي جديد للمشروع
-                    </h1>
-                    <p className="text-xs text-muted-foreground">
-                      رفع وتوثيق مستخلص مالي معتمد بناءً على نسب الإنجاز ومراحل العقد
-                    </p>
-                  </div>
+        {/* Form Body - مطابق تماماً لبطاقات ProgressReports */}
+        <div className="grid grid-cols-1 gap-6">
+          {/* Card 1: المشروع المرتبط */}
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader className="bg-muted/30 border-b border-border/40 py-4">
+              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                <Building2 className="w-4.5 h-4.5 text-primary" />
+                المشروع والعقد المرتبط بالمستخلص
+              </CardTitle>
+              <CardDescription>
+                المشروع المحدد لإنشاء المستخلص المالي والعقد المرتبط به
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-4">
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="font-semibold text-foreground flex items-center justify-between">
+                    <span>المشروع <span className="text-red-500">*</span></span>
+                    <span className="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1 font-normal">
+                      <Lock className="w-3 h-3" />
+                      مرتبط بصفحة المشروع الحالي
+                    </span>
+                  </Label>
+                  <Input
+                    readOnly
+                    disabled
+                    value={
+                      projectDetails
+                        ? `${projectDetails.name} (${projectDetails.projectNumber || `PRJ-${projectDetails.id}`})`
+                        : `مشروع #${effectiveProjectId}`
+                    }
+                    className="bg-muted/40 font-bold text-foreground cursor-not-allowed"
+                  />
                 </div>
-              </div>
 
-              {projectDetails && (
-                <div className="flex items-center gap-2 bg-background/80 backdrop-blur-xs px-3.5 py-2 rounded-xl border border-border/60 shadow-xs">
-                  <Building2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <div className="text-right">
-                    <span className="text-[10px] text-muted-foreground block font-semibold">المشروع المحدد</span>
-                    <span className="text-xs font-bold text-foreground">{projectDetails.name}</span>
-                  </div>
-                  <Badge variant="secondary" className="font-mono text-[10px] mr-1">
-                    {projectDetails.projectNumber || `PRJ-${projectDetails.id}`}
-                  </Badge>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <CardContent className="p-5 sm:p-6 space-y-6">
-            {/* بطاقة العقد المالي */}
-            <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-border/50">
-              <div className="flex items-center justify-between">
-                <Label className="font-bold text-foreground text-xs flex items-center gap-2">
-                  <Lock className="w-3.5 h-3.5 text-primary" />
-                  <span>العقد المالي المرتبط بالمستخلص</span>
-                  <span className="text-red-500">*</span>
-                </Label>
+                {/* في حال وجود أكثر من عقد للمشروع */}
                 {contractsList.length > 1 && (
-                  <Badge variant="outline" className="text-[10px] font-semibold">
-                    {contractsList.length} عقود متاحة
-                  </Badge>
+                  <div className="space-y-2 pt-2">
+                    <Label className="font-semibold text-foreground text-xs flex items-center justify-between">
+                      <span>العقد المالي المرتبط بالمشروع</span>
+                    </Label>
+                    <Select
+                      value={selectedContractId ? String(selectedContractId) : ""}
+                      onValueChange={(val) => setSelectedContractId(parseInt(val) || null)}
+                    >
+                      <SelectTrigger className="w-full text-right text-xs">
+                        <SelectValue placeholder="اختر العقد المرتبط..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-56">
+                        {contractsList.map((c: any) => (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            رقم العقد: {c.contractNumber || c.id} - الطرف الثاني: {c.secondPartyName || "غير محدد"} ({(parseFloat(String(c.contractAmount || "0").replace(/,/g, "")) || 0).toLocaleString("en-US")} ر.س)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* في حال وجود عقد واحد فقط */}
+                {contractsList.length === 1 && (
+                  <div className="p-3 bg-muted/30 rounded-xl border border-border/50 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">العقد المالي المعتمد:</span>
+                    <span className="font-bold text-foreground">
+                      رقم العقد: {contractsList[0].contractNumber || contractsList[0].id} - الطرف الثاني: {contractsList[0].secondPartyName || "غير محدد"} ({(parseFloat(String(contractsList[0].contractAmount || "0").replace(/,/g, "")) || 0).toLocaleString("en-US")} ر.س)
+                    </span>
+                  </div>
+                )}
+
+                {/* في حال عدم وجود عقد مسجل بعد للمشروع (مثل المشروع 28) */}
+                {contractsList.length === 0 && (
+                  <div className="p-3.5 bg-muted/30 rounded-xl border border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                    <span className="text-muted-foreground">قيمة التعاقد / ميزانية المشروع المعتمدة للمستخلص:</span>
+                    <span className="font-bold font-mono text-emerald-700 dark:text-emerald-400 text-sm">
+                      {selectedContractAmount.toLocaleString("en-US")} ر.س
+                    </span>
+                  </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
 
-              {contractsList.length === 0 ? (
-                <div className="space-y-3">
-                  <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs font-medium flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
-                    <div>
-                      <p className="font-bold">لا يوجد عقد مالي مسجل في قسم العقود لهذا المشروع حالياً.</p>
-                      <p className="text-[11px] opacity-90 mt-0.5">
-                        يمكنك تحديد القيمة المالية المعتمدة للتعاقد/الميزانية مباشرة أدناه لاحتساب قيمة المستخلص بناءً على نسبة الإنجاز:
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:flex-row items-center gap-3">
-                    <div className="w-full sm:w-1/2 space-y-1">
-                      <Label className="text-[11px] font-semibold text-foreground">قيمة التعاقد / الميزانية المعتمدة (ر.س) *</Label>
-                      <div className="relative">
-                        <Input
-                          type="number"
-                          min={0}
-                          value={customContractAmount || ""}
-                          onChange={(e) => setCustomContractAmount(parseFloat(e.target.value) || 0)}
-                          placeholder="أدخل قيمة العقد بالريال..."
-                          className="h-10 text-xs pl-8 font-mono text-left"
-                        />
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">ر.س</span>
-                      </div>
-                    </div>
+          {/* Card 2: بيانات المستخلص ونسبة الإنجاز */}
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader className="bg-muted/30 border-b border-border/40 py-4">
+              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                <FileSpreadsheet className="w-4.5 h-4.5 text-emerald-600" />
+                بيانات المستخلص ونسبة الإنجاز
+              </CardTitle>
+              <CardDescription>
+                أدخل عنوان المستخلص ونسبة الإنجاز الفعلي ووصف الأعمال المنجزة
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="font-semibold text-foreground">عنوان المستخلص <span className="text-red-500">*</span></Label>
+                  <Input
+                    placeholder="مثال: مستخلص الأعمال الترابية والهيكلية - الدفعة الأولى"
+                    value={invoiceTitle}
+                    onChange={(e) => setInvoiceTitle(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="font-semibold text-foreground">نسبة الإنجاز الفعلي (%) <span className="text-red-500">*</span></Label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={100}
+                      step={1}
+                      placeholder="مثال: 50"
+                      value={invoicePercentage || ""}
+                      onChange={(e) => {
+                        const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
+                        setInvoicePercentage(val);
+                      }}
+                      className="pl-8 text-left font-mono"
+                    />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-bold">%</span>
                   </div>
                 </div>
-              ) : contractsList.length === 1 ? (
-                <div className="p-3.5 rounded-xl bg-background border border-border/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <span className="text-xs font-bold text-foreground block">
-                      رقم العقد: {selectedContract?.contractNumber || selectedContract?.id}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground block mt-0.5">
-                      الطرف الثاني: {(selectedContract as any)?.secondPartyName || "المقاول المنفذ"}
-                    </span>
-                  </div>
+              </div>
+
+              {/* بطاقة معاينة المبلغ المالي المستحق */}
+              {selectedContractAmount > 0 && invoicePercentage > 0 && (
+                <div className="p-3.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">قيمة العقد:</span>
-                    <span className="text-sm font-bold font-mono text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                      <SaudiRiyal className="w-3.5 h-3.5" />
-                      {selectedContractAmount.toLocaleString("en-US")}
+                    <span className="text-muted-foreground">المبلغ المستحق حسب نسبة الإنجاز ({invoicePercentage}%):</span>
+                    <span className="font-bold text-emerald-700 dark:text-emerald-400 font-mono text-sm">
+                      {calculatedInvoicePayout.toLocaleString("en-US")} ر.س
                     </span>
                   </div>
+                  <span className="text-[11px] text-muted-foreground font-medium">
+                    ({numberToArabicText(calculatedInvoicePayout)})
+                  </span>
                 </div>
-              ) : (
-                <Select
-                  value={selectedContractId ? String(selectedContractId) : ""}
-                  onValueChange={(val) => setSelectedContractId(parseInt(val) || null)}
-                >
-                  <SelectTrigger className="w-full text-right text-xs bg-background h-10">
-                    <SelectValue placeholder="اختر العقد المالي المرتبط..." />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-56">
-                    {contractsList.map((c: any) => {
-                      const cAmt = parseFloat(String(c.contractAmount || (c as any).amount || "0").replace(/,/g, "")) || 0;
-                      return (
-                        <SelectItem key={c.id} value={String(c.id)}>
-                          رقم العقد: {c.contractNumber || c.id} — {c.secondPartyName || "المقاول"} ({cAmt.toLocaleString("en-US")} ر.س)
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
               )}
-            </div>
 
-            {/* الحقول الأساسية: العنوان ونسبة الإنجاز */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* وصف الأعمال المنجزة */}
               <div className="space-y-2">
-                <Label className="font-semibold text-foreground text-xs">
-                  عنوان المستخلص <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  placeholder="مثال: مستخلص الأعمال الترابية والهيكلية - المرحلة الأولى"
-                  value={invoiceTitle}
-                  onChange={(e) => setInvoiceTitle(e.target.value)}
-                  className="h-10 text-xs"
+                <Label className="font-semibold text-foreground">وصف الأعمال المنجزة <span className="text-red-500">*</span></Label>
+                <Textarea
+                  rows={4}
+                  placeholder="اكتب وصفاً مفصلاً لكافة الأعمال والبنود والمواصفات التي تم إنجازها على أرض الواقع خلال هذه المرحلة..."
+                  value={invoiceWorkDone}
+                  onChange={(e) => setInvoiceWorkDone(e.target.value)}
+                  className="resize-none leading-relaxed"
                 />
               </div>
+            </CardContent>
+          </Card>
 
-              <div className="space-y-2">
-                <Label className="font-semibold text-foreground text-xs">
-                  نسبة الإنجاز الفعلي للمستخلص (%) <span className="text-red-500">*</span>
-                </Label>
-                <div className="relative">
-                  <Input
-                    type="number"
-                    min={1}
-                    max={100}
-                    step={1}
-                    placeholder="مثال: 50"
-                    value={invoicePercentage || ""}
-                    onChange={(e) => {
-                      const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
-                      setInvoicePercentage(val);
-                    }}
-                    className="pl-8 text-left font-mono h-10 text-xs"
-                  />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-bold">%</span>
-                </div>
-              </div>
-            </div>
-
-            {/* بطاقة الحسبة المالية المستحقة للمستخلص */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-emerald-950 dark:text-emerald-200 flex items-center gap-1.5">
-                  <SaudiRiyal className="w-4 h-4 text-emerald-600" />
-                  معاينة الاستحقاق المالي للمستخلص
-                </span>
-                <Badge variant="outline" className="bg-emerald-100/60 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 font-bold text-[10px]">
-                  حساب تلقائي
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                <div className="bg-background/80 p-3 rounded-xl border border-emerald-200/40 dark:border-emerald-900/30">
-                  <span className="text-[10px] text-muted-foreground block font-semibold">قيمة العقد الإجمالية</span>
-                  <span className="text-sm font-bold font-mono text-foreground flex items-center gap-1 mt-0.5">
-                    <SaudiRiyal className="w-3.5 h-3.5 text-muted-foreground" />
-                    {selectedContractAmount.toLocaleString("en-US")}
-                  </span>
-                </div>
-
-                <div className="bg-background/80 p-3 rounded-xl border border-emerald-200/40 dark:border-emerald-900/30">
-                  <span className="text-[10px] text-muted-foreground block font-semibold">نسبة الإنجاز المحتسبة</span>
-                  <span className="text-sm font-bold font-mono text-emerald-700 dark:text-emerald-400 mt-0.5 block">
-                    {invoicePercentage || 0}%
-                  </span>
-                </div>
-
-                <div className="bg-emerald-600 text-white p-3 rounded-xl shadow-xs">
-                  <span className="text-[10px] text-emerald-100 block font-semibold">المبلغ المستحق للصرف</span>
-                  <span className="text-base font-bold font-mono flex items-center gap-1 mt-0.5">
-                    <SaudiRiyal className="w-4 h-4" />
-                    {calculatedInvoicePayout.toLocaleString("en-US")}
-                  </span>
-                </div>
-              </div>
-
-              {calculatedInvoicePayout > 0 && (
-                <p className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium pt-1 text-right">
-                  المبلغ كتابةً: <strong>{numberToArabicText(calculatedInvoicePayout)}</strong>
-                </p>
-              )}
-            </div>
-
-            {/* وصف الأعمال المنجزة */}
-            <div className="space-y-2">
-              <Label className="font-semibold text-foreground text-xs">
-                وصف الأعمال والمنجزات الفعلية <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                rows={4}
-                placeholder="اكتب وصفاً مفصلاً لكافة الأعمال والبنود والمواصفات التي تم إنجازها على أرض الواقع خلال هذه المرحلة من العقد..."
-                value={invoiceWorkDone}
-                onChange={(e) => setInvoiceWorkDone(e.target.value)}
-                className="resize-none leading-relaxed text-xs"
-              />
-            </div>
-
-            {/* المرفقات والمستندات الثبوتية */}
-            <div className="space-y-3 pt-2">
-              <Label className="font-semibold text-foreground text-xs flex items-center gap-1.5">
-                <Upload className="w-3.5 h-3.5 text-primary" />
-                <span>المرفقات والمستندات الثبوتية (صور الإنجاز، الفواتير، تقارير الفحص)</span>
-              </Label>
-
+          {/* Card 3: المرفقات والمستندات الثبوتية */}
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader className="bg-muted/30 border-b border-border/40 py-4">
+              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                <Upload className="w-4.5 h-4.5 text-primary" />
+                المرفقات والمستندات الثبوتية
+              </CardTitle>
+              <CardDescription>
+                ارفق صور التوثيق الميداني للأعمال المنجزة أو تقارير الفحص أو فواتير المقاول (حتى 10 ميجابايت)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-4">
               <div
-                onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-border/80 hover:border-emerald-500/60 rounded-xl p-5 text-center cursor-pointer transition-all hover:bg-muted/20"
+                onClick={() => invoiceFileInputRef.current?.click()}
+                className="border-2 border-dashed border-border/80 hover:border-primary/60 rounded-xl p-6 text-center cursor-pointer transition-all hover:bg-muted/20"
               >
                 <input
                   type="file"
-                  ref={fileInputRef}
+                  ref={invoiceFileInputRef}
                   onChange={handleFileChange}
                   multiple
                   accept="image/*,application/pdf"
                   className="hidden"
                 />
-                <div className="flex flex-col items-center gap-1.5">
-                  <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-                    <Upload className="w-5 h-5" />
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                    <Upload className="w-6 h-6" />
                   </div>
-                  <p className="font-bold text-xs text-foreground">اضغط هنا لرفع الملفات أو اسحبها وأفلتها</p>
-                  <p className="text-[10px] text-muted-foreground">يدعم الصور (PNG, JPG, WEBP) وملفات PDF بحد أقصى 10 ميجابايت إجمالي</p>
+                  <p className="font-bold text-sm text-foreground">اضغط هنا لرفع الملفات أو اسحبها وأفلتها</p>
+                  <p className="text-xs text-muted-foreground">يدعم الصور (PNG, JPG, WEBP) وملفات PDF بحد أقصى 10 ميجابايت إجمالي</p>
                 </div>
               </div>
 
               {uploadedFiles.length > 0 && (
-                <div className="space-y-2 pt-1">
-                  <span className="text-[11px] text-muted-foreground font-semibold block">الملفات المرفوعة ({uploadedFiles.length}):</span>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground font-semibold">الملفات المرفوعة ({uploadedFiles.length}):</Label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {uploadedFiles.map((file, idx) => (
                       <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/30 text-xs">
                         <div className="flex items-center gap-2 truncate">
-                          <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                          <FileText className="w-4 h-4 text-primary flex-shrink-0" />
                           <span className="truncate font-medium">{file.name}</span>
                           <span className="text-muted-foreground text-[10px]">({(file.size / 1024).toFixed(1)} ك.ب)</span>
                         </div>
@@ -685,58 +598,72 @@ export default function NewMilestoneRequest({ params: propParams }: { params?: {
                   </div>
                 </div>
               )}
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* توصية إدارة المشاريع */}
-            <div className="space-y-2 p-4 rounded-xl border border-emerald-500/30 bg-emerald-50/15 dark:bg-emerald-950/10">
-              <Label className="font-semibold text-foreground text-xs flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>توصية إدارة المشاريع والمهندس المشرف</span>
-              </Label>
-              <Textarea
-                value={invoiceRecommendations}
-                onChange={(e) => setInvoiceRecommendations(e.target.value)}
-                placeholder="اكتب هنا توصية إدارة المشاريع بالتفصيل (مثال: نوصي بصرف المستخلص المالي نظراً لمطابقة الأعمال المنفذة على أرض الواقع للمواصفات الفنية المعتمدة وبنسبة إنجاز مستحقة...)"
-                rows={3}
-                className="w-full resize-none leading-relaxed text-xs bg-background"
-              />
-              <p className="text-[10px] text-muted-foreground">
-                ملاحظة: تُنقل هذه التوصية تلقائياً لطلب الصرف لتظهر لصناع القرار والمدير التنفيذي أثناء الاعتماد.
-              </p>
-            </div>
+          {/* Card 4: توصية إدارة المشاريع */}
+          <Card className="border-border/60 shadow-sm border-emerald-500/30 bg-emerald-50/10 dark:bg-emerald-950/5">
+            <CardHeader className="bg-emerald-50/40 dark:bg-emerald-950/20 border-b border-border/40 py-4">
+              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                <ShieldCheck className="w-4.5 h-4.5 text-emerald-600" />
+                توصية إدارة المشاريع
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                توصية المهندس المشرف وإدارة المشاريع بشأن إنجاز هذه المرحلة وصرف المستخلص المالي (تُنقل تلقائياً لطلب الصرف لتظهر لصناع القرار أثناء الاعتماد)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-3">
+              <div className="space-y-2">
+                <Label className="font-semibold text-foreground">نص توصية إدارة المشاريع</Label>
+                <Textarea
+                  value={invoiceRecommendations}
+                  onChange={(e) => setInvoiceRecommendations(e.target.value)}
+                  placeholder="اكتب هنا توصية إدارة المشاريع بالتفصيل (مثال: نوصي بصرف المستخلص المالي نظراً لمطابقة الأعمال المنفذة على أرض الواقع للمواصفات الفنية المعتمدة وبنسبة إنجاز مستحقة...)"
+                  rows={4}
+                  className="w-full min-h-[110px] leading-relaxed text-foreground text-right"
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* أزرار الإجراءات */}
-            <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 pt-4 border-t border-border/40">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleReturnToProject}
-                className="w-full sm:w-auto text-xs font-bold rounded-xl h-10 px-5"
-                disabled={isSubmitting || createMutation.isPending}
-              >
-                إلغاء والعودة للمشروع
-              </Button>
-              <Button
-                type="button"
-                onClick={handleSubmit}
-                className="w-full sm:w-auto gradient-primary text-white text-xs font-bold rounded-xl h-10 px-6 gap-2 shadow-xs"
-                disabled={isSubmitting || createMutation.isPending}
-              >
-                {(isSubmitting || createMutation.isPending) ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>جاري حفظ وإرسال المستخلص...</span>
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4 ml-1" />
-                    <span>إرسال المستخلص للاعتماد</span>
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Actions bar - مطابق تماماً لـ ProgressReports */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleReturnToProject}
+            >
+              إلغاء
+            </Button>
+            <Button
+              type="button"
+              onClick={handleCreateInvoice}
+              disabled={
+                isSubmitting ||
+                createMutation.isPending ||
+                !effectiveProjectId ||
+                !invoiceTitle.trim() ||
+                !invoicePercentage ||
+                invoicePercentage <= 0 ||
+                invoicePercentage > 100 ||
+                !invoiceWorkDone.trim()
+              }
+              className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-8 shadow-sm"
+            >
+              {isSubmitting || createMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                  جاري حفظ وإنشاء المستخلص...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 ml-2" />
+                  حفظ وإنشاء المستخلص
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );
