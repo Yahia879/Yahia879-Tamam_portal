@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -173,45 +173,121 @@ export default function FinancialApproval() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // استعلام مركز الاعتمادات الموحد
+  // استعلام مركز الاعتمادات الموحد - البحث والفلترة والـ pagination من الـ backend مباشرة
   const {
     data: approvalsData,
     isLoading: approvalsLoading,
   } = trpc.approvals.getPendingApprovals.useQuery(
     {
-      category: categoryFilter !== "all" && categoryFilter !== "other" ? categoryFilter : undefined,
+      category: categoryFilter !== "all" ? categoryFilter : undefined,
       approver: approverFilter !== "all" ? approverFilter : undefined,
       search: debouncedSearch || undefined,
       onlyMine: onlyMine || undefined,
+      page,
+      pageSize,
     },
     {
       refetchInterval: 15000,
     }
   );
 
-  // تقسيم صفحات وتصفية جدول الاعتمادات
-  const rawItems = approvalsData?.items || [];
-  const items = useMemo(() => {
-    if (categoryFilter === "other") {
-      return rawItems.filter(
-        (i) => !["disbursement_request", "disbursement_order", "receipt_voucher"].includes(i.categoryKey)
-      );
-    }
-    return rawItems;
-  }, [rawItems, categoryFilter]);
+  const items = approvalsData?.items || [];
+  const totalFiltered = approvalsData?.totalFiltered ?? 0;
+  const totalPages = approvalsData?.totalPages ?? 1;
 
-  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
-  const paginatedItems = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return items.slice(start, start + pageSize);
-  }, [items, page, pageSize]);
-
-  // إحصائيات المعاملات حسب التصنيف
-  const totalCount = approvalsData?.counts?.total ?? 0;
-  const disbReqCount = approvalsData?.counts?.byCategory?.["disbursement_request"] ?? 0;
-  const disbOrderCount = approvalsData?.counts?.byCategory?.["disbursement_order"] ?? 0;
-  const receiptVoucherCount = approvalsData?.counts?.byCategory?.["receipt_voucher"] ?? 0;
-  const otherCount = Math.max(0, totalCount - disbReqCount - disbOrderCount - receiptVoucherCount);
+  // تعريف البطاقات الإحصائية المنفصلة لكافة الأصناف المعروضة في مركز الاعتمادات
+  const APPROVAL_CARDS = [
+    {
+      key: "all",
+      label: "إجمالي المعاملات",
+      subtitle: "كافة المعاملات المعلقة",
+      icon: Clock,
+      border: "border-border/60 hover:border-primary/50",
+      activeRing: "ring-2 ring-primary/20 border-primary/60 bg-primary/[0.03]",
+      textColor: "text-foreground",
+      iconBg: "bg-primary/10 text-primary",
+    },
+    {
+      key: "disbursement_request",
+      label: "طلبات الصرف",
+      subtitle: "قيد المراجعة والاعتماد",
+      icon: Banknote,
+      border: "border-emerald-200/60 dark:border-emerald-900/40 hover:border-emerald-400",
+      activeRing: "ring-2 ring-emerald-500/20 border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/20",
+      textColor: "text-emerald-700 dark:text-emerald-300",
+      iconBg: "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400",
+    },
+    {
+      key: "disbursement_order",
+      label: "أوامر الصرف",
+      subtitle: "بانتظار تدقيق الصرف",
+      icon: FileText,
+      border: "border-blue-200/60 dark:border-blue-900/40 hover:border-blue-400",
+      activeRing: "ring-2 ring-blue-500/20 border-blue-500 bg-blue-50/20 dark:bg-blue-950/20",
+      textColor: "text-blue-700 dark:text-blue-300",
+      iconBg: "bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400",
+    },
+    {
+      key: "receipt_voucher",
+      label: "سندات القبض",
+      subtitle: "بانتظار الاعتماد المالي",
+      icon: Coins,
+      border: "border-indigo-200/60 dark:border-indigo-900/40 hover:border-indigo-400",
+      activeRing: "ring-2 ring-indigo-500/20 border-indigo-500 bg-indigo-50/20 dark:bg-indigo-950/20",
+      textColor: "text-indigo-700 dark:text-indigo-300",
+      iconBg: "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400",
+    },
+    {
+      key: "custody_request",
+      label: "العهد المالية",
+      subtitle: "بانتظار تدقيق العهدة",
+      icon: Wallet,
+      border: "border-cyan-200/60 dark:border-cyan-900/40 hover:border-cyan-400",
+      activeRing: "ring-2 ring-cyan-500/20 border-cyan-500 bg-cyan-50/20 dark:bg-cyan-950/20",
+      textColor: "text-cyan-700 dark:text-cyan-300",
+      iconBg: "bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 dark:text-cyan-400",
+    },
+    {
+      key: "contract",
+      label: "العقود",
+      subtitle: "بانتظار الاعتماد النهائي",
+      icon: FileText,
+      border: "border-slate-300/70 dark:border-slate-800 hover:border-slate-500",
+      activeRing: "ring-2 ring-slate-500/20 border-slate-600 bg-slate-100/40 dark:bg-slate-900/40",
+      textColor: "text-slate-700 dark:text-slate-300",
+      iconBg: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
+    },
+    {
+      key: "purchase_order",
+      label: "أوامر الشراء",
+      subtitle: "بانتظار اعتماد التوريد",
+      icon: ShoppingCart,
+      border: "border-teal-200/60 dark:border-teal-900/40 hover:border-teal-400",
+      activeRing: "ring-2 ring-teal-500/20 border-teal-500 bg-teal-50/20 dark:bg-teal-950/20",
+      textColor: "text-teal-700 dark:text-teal-300",
+      iconBg: "bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400",
+    },
+    {
+      key: "progress_report",
+      label: "تقارير الإنجاز",
+      subtitle: "بانتظار التدقيق والاعتماد",
+      icon: Layers,
+      border: "border-amber-200/60 dark:border-amber-900/40 hover:border-amber-400",
+      activeRing: "ring-2 ring-amber-500/20 border-amber-500 bg-amber-50/20 dark:bg-amber-950/20",
+      textColor: "text-amber-700 dark:text-amber-300",
+      iconBg: "bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400",
+    },
+    {
+      key: "project_quotation",
+      label: "اعتمادات المشاريع",
+      subtitle: "بانتظار الاعتماد المالي",
+      icon: CheckSquare,
+      border: "border-purple-200/60 dark:border-purple-900/40 hover:border-purple-400",
+      activeRing: "ring-2 ring-purple-500/20 border-purple-500 bg-purple-50/20 dark:bg-purple-950/20",
+      textColor: "text-purple-700 dark:text-purple-300",
+      iconBg: "bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400",
+    },
+  ];
 
   // حظر المستخدمين غير المصرح لهم
   if (!hasApprovalPerm && !isSuperOrSystem && !isExecDirector) {
@@ -252,153 +328,61 @@ export default function FinancialApproval() {
         </div>
 
         {/* ==================== بطاقات المؤشرات الإحصائية بحسب نوع المعاملة ==================== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
-          {/* 1. إجمالي المعاملات المعلقة */}
-          <Card
-            onClick={() => {
-              setCategoryFilter("all");
-              setApproverFilter("all");
-              setOnlyMine(false);
-              setPage(1);
-            }}
-            className={cn(
-              "border-border/60 shadow-xs hover:border-primary/50 transition-all cursor-pointer",
-              categoryFilter === "all" && !onlyMine && "ring-2 ring-primary/20 border-primary/60 bg-primary/[0.02]"
-            )}
-          >
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">إجمالي المعاملات المعلقة</p>
-                <p className="text-2xl font-black mt-1 text-foreground">
-                  {approvalsLoading ? (
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  ) : (
-                    totalCount
-                  )}
-                </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">طلب ومعاملة بانتظار الاعتماد</p>
-              </div>
-              <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                <Clock className="h-5.5 w-5.5" />
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          {APPROVAL_CARDS.map((card) => {
+            const Icon = card.icon;
+            const count =
+              card.key === "all"
+                ? approvalsData?.counts?.total ?? 0
+                : approvalsData?.counts?.byCategory?.[card.key] ?? 0;
 
-          {/* 2. طلبات الصرف */}
-          <Card
-            onClick={() => {
-              setCategoryFilter(categoryFilter === "disbursement_request" ? "all" : "disbursement_request");
-              setPage(1);
-            }}
-            className={cn(
-              "border-emerald-200/60 dark:border-emerald-900/40 shadow-xs hover:border-emerald-400 transition-all cursor-pointer",
-              categoryFilter === "disbursement_request" && "ring-2 ring-emerald-500/20 border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/20"
-            )}
-          >
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">طلبات الصرف</p>
-                <p className="text-2xl font-black mt-1 text-emerald-700 dark:text-emerald-300">
-                  {approvalsLoading ? (
-                    <Loader2 className="h-6 w-6 animate-spin text-emerald-400" />
-                  ) : (
-                    disbReqCount
-                  )}
-                </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">قيد المراجعة والاعتماد</p>
-              </div>
-              <div className="h-11 w-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                <Banknote className="h-5.5 w-5.5" />
-              </div>
-            </CardContent>
-          </Card>
+            const isActive =
+              card.key === "all"
+                ? categoryFilter === "all" && !onlyMine && approverFilter === "all"
+                : categoryFilter === card.key;
 
-          {/* 3. أوامر الصرف */}
-          <Card
-            onClick={() => {
-              setCategoryFilter(categoryFilter === "disbursement_order" ? "all" : "disbursement_order");
-              setPage(1);
-            }}
-            className={cn(
-              "border-blue-200/60 dark:border-blue-900/40 shadow-xs hover:border-blue-400 transition-all cursor-pointer",
-              categoryFilter === "disbursement_order" && "ring-2 ring-blue-500/20 border-blue-500 bg-blue-50/20 dark:bg-blue-950/20"
-            )}
-          >
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-blue-700 dark:text-blue-400">أوامر الصرف</p>
-                <p className="text-2xl font-black mt-1 text-blue-700 dark:text-blue-300">
-                  {approvalsLoading ? (
-                    <Loader2 className="h-6 w-6 animate-spin text-blue-400" />
-                  ) : (
-                    disbOrderCount
-                  )}
-                </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">بانتظار تدقيق واعتماد الصرف</p>
-              </div>
-              <div className="h-11 w-11 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-                <FileText className="h-5.5 w-5.5" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 4. سندات القبض */}
-          <Card
-            onClick={() => {
-              setCategoryFilter(categoryFilter === "receipt_voucher" ? "all" : "receipt_voucher");
-              setPage(1);
-            }}
-            className={cn(
-              "border-indigo-200/60 dark:border-indigo-900/40 shadow-xs hover:border-indigo-400 transition-all cursor-pointer",
-              categoryFilter === "receipt_voucher" && "ring-2 ring-indigo-500/20 border-indigo-500 bg-indigo-50/20 dark:bg-indigo-950/20"
-            )}
-          >
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-indigo-700 dark:text-indigo-400">سندات القبض</p>
-                <p className="text-2xl font-black mt-1 text-indigo-700 dark:text-indigo-300">
-                  {approvalsLoading ? (
-                    <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
-                  ) : (
-                    receiptVoucherCount
-                  )}
-                </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">بانتظار الاعتماد المالي</p>
-              </div>
-              <div className="h-11 w-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
-                <Coins className="h-5.5 w-5.5" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 5. عهد وعقود ومعاملات أخرى */}
-          <Card
-            onClick={() => {
-              setCategoryFilter(categoryFilter === "other" ? "all" : "other");
-              setPage(1);
-            }}
-            className={cn(
-              "border-amber-200/60 dark:border-amber-900/40 shadow-xs hover:border-amber-400 transition-all cursor-pointer",
-              categoryFilter === "other" && "ring-2 ring-amber-500/20 border-amber-500 bg-amber-50/20 dark:bg-amber-950/20"
-            )}
-          >
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-amber-700 dark:text-amber-400">عهد وعقود وأخرى</p>
-                <p className="text-2xl font-black mt-1 text-amber-700 dark:text-amber-300">
-                  {approvalsLoading ? (
-                    <Loader2 className="h-6 w-6 animate-spin text-amber-400" />
-                  ) : (
-                    otherCount
-                  )}
-                </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">عهد، عقود، تقارير، وأوامر شراء</p>
-              </div>
-              <div className="h-11 w-11 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                <Layers className="h-5.5 w-5.5" />
-              </div>
-            </CardContent>
-          </Card>
+            return (
+              <Card
+                key={card.key}
+                onClick={() => {
+                  if (card.key === "all") {
+                    setCategoryFilter("all");
+                    setApproverFilter("all");
+                    setOnlyMine(false);
+                  } else {
+                    setCategoryFilter(categoryFilter === card.key ? "all" : card.key);
+                  }
+                  setPage(1);
+                }}
+                className={cn(
+                  "shadow-xs transition-all cursor-pointer border",
+                  card.border,
+                  isActive && card.activeRing
+                )}
+              >
+                <CardContent className="p-3.5 flex items-center justify-between">
+                  <div className="min-w-0 pr-1">
+                    <p className={cn("text-xs font-semibold truncate", card.textColor)}>
+                      {card.label}
+                    </p>
+                    <p className="text-2xl font-black mt-1 text-foreground leading-none">
+                      {approvalsLoading ? (
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                      ) : (
+                        count
+                      )}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1 truncate" title={card.subtitle}>
+                      {card.subtitle}
+                    </p>
+                  </div>
+                  <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", card.iconBg)}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {/* ==================== أدوات البحث والفلترة ==================== */}
@@ -505,7 +489,7 @@ export default function FinancialApproval() {
                   قائمة الطلبات بانتظار الاعتماد
                 </CardTitle>
                 <Badge variant="outline" className="text-xs font-semibold px-2">
-                  {items.length} نتيجة
+                  {totalFiltered} نتيجة
                 </Badge>
               </div>
               <CardDescription className="text-xs">
@@ -520,7 +504,7 @@ export default function FinancialApproval() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <p className="text-xs">جاري تحميل قائمة الاعتمادات من كافة أقسام النظام...</p>
               </div>
-            ) : paginatedItems.length === 0 ? (
+            ) : items.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground gap-2">
                 <div className="h-12 w-12 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center mb-1">
                   <CheckCircle className="h-6 w-6" />
@@ -546,7 +530,7 @@ export default function FinancialApproval() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedItems.map((item) => {
+                    {items.map((item) => {
                       const catConf = CATEGORY_CONFIG[item.categoryKey] || {
                         label: item.category,
                         icon: FileText,
@@ -642,10 +626,10 @@ export default function FinancialApproval() {
               </div>
             )}
 
-            {items.length > pageSize && (
+            {totalFiltered > pageSize && (
               <div className="flex items-center justify-between p-4 border-t border-border/40 text-xs text-muted-foreground">
                 <div>
-                  عرض {((page - 1) * pageSize) + 1} إلى {Math.min(page * pageSize, items.length)} من أصل {items.length} معاملة
+                  عرض {((page - 1) * pageSize) + 1} إلى {Math.min(page * pageSize, totalFiltered)} من أصل {totalFiltered} معاملة
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Button

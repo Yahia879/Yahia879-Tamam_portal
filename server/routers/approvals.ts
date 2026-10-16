@@ -45,6 +45,8 @@ export const approvalsRouter = router({
           approver: z.string().optional(),
           search: z.string().optional(),
           onlyMine: z.boolean().optional(),
+          page: z.number().min(1).default(1).optional(),
+          pageSize: z.number().min(1).default(12).optional(),
         })
         .optional()
     )
@@ -569,10 +571,20 @@ export const approvalsRouter = router({
         );
       }
 
+      // تطبيق الـ Pagination في الباك إند
+      const page = Math.max(1, input?.page || 1);
+      const pageSize = Math.max(1, input?.pageSize || 12);
+      const totalFiltered = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+      const paginatedItems = filtered.slice((page - 1) * pageSize, page * pageSize);
+
       return {
-        items: filtered,
+        items: paginatedItems,
         counts,
-        totalFiltered: filtered.length,
+        totalFiltered,
+        totalPages,
+        page,
+        pageSize,
       };
     }),
 });
