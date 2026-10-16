@@ -340,6 +340,7 @@ export const EXCLUDED_ADMIN_PERMISSIONS: string[] = [
   'board_chairman',
   'receipt_vouchers.exception_approve',
   'progress_reports.exception_approve',
+  'progress_invoices.exception_approve',
   'disbursements.exception_approve',
   'disbursement_orders.exception_approve',
   'orders_and_letters',

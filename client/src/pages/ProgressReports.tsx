@@ -454,17 +454,20 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
   const canReviewReportItem = (item?: any) => {
     const inv = item ? isInvoiceReport(item) : isInvoiceMode;
-    return inv ? hasInvoiceApprovePermission : hasReportApprovePermission;
+    return inv
+      ? Boolean(hasInvoiceApprovePermission || hasReportApprovePermission)
+      : Boolean(hasReportApprovePermission || hasInvoiceApprovePermission);
   };
 
   const canExceptionApproveItem = (item?: any) => {
-    const inv = item ? isInvoiceReport(item) : isInvoiceMode;
-    return inv ? hasInvoiceExceptionApprove : hasReportExceptionApprove;
+    return Boolean(hasInvoiceExceptionApprove || hasReportExceptionApprove);
   };
 
   const canRevokeApprovalItem = (item?: any) => {
     const inv = item ? isInvoiceReport(item) : isInvoiceMode;
-    return inv ? hasInvoiceRevokeApprovalPermission : hasReportRevokeApprovalPermission;
+    return inv
+      ? Boolean(hasInvoiceRevokeApprovalPermission || hasReportRevokeApprovalPermission)
+      : Boolean(hasReportRevokeApprovalPermission || hasInvoiceRevokeApprovalPermission);
   };
   
   const [newReport, setNewReport] = useState({
@@ -1559,19 +1562,20 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   const checkPendingMyAction = (report: any) => {
     if (!user || !report) return false;
     
-    // المرحلة الأولى: بانتظار اعتماد مدير المشروع (فقط لمدير المشروع المعين للمشروع أو مدير النظام بشرط امتلاك صلاحية الاعتماد)
+    // بالنسبة للـ super admin: المستخلصات والتقارير التي بحاجة لاعتماد تتلون بالأخضر دائماً
+    if (isSuperAdmin && (report.status === "pending" || report.status === "submitted" || report.status === "draft" || report.status === "pending_executive")) {
+      return true;
+    }
+    
+    // المرحلة الأولى: بانتظار اعتماد مدير المشروع (فقط لمدير المشروع المعين للمشروع بشرط امتلاك صلاحية الاعتماد)
     if (report.status === "pending" || report.status === "submitted" || report.status === "draft") {
-      return Boolean(
-        canReviewReportItem(report) && (
-          (report.projectManagerId && Number(report.projectManagerId) === Number(user.id)) ||
-          isSuperAdmin
-        )
-      );
+      const isProjectManager = Boolean(report.projectManagerId && Number(report.projectManagerId) === Number(user.id));
+      return Boolean(canReviewReportItem(report) && isProjectManager);
     }
     
     // المرحلة الثانية: بانتظار اعتماد المدير التنفيذي (بشرط امتلاك صلاحية الاعتماد)
     if (report.status === "pending_executive") {
-      return Boolean(canReviewReportItem(report) && (isExecutiveDirector || isSuperAdmin));
+      return Boolean(canReviewReportItem(report) && isExecutiveDirector);
     }
     return false;
   };
@@ -2280,30 +2284,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 </div>
               )}
 
-              {selectedContract && (
-                <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-                  <div>
-                    <span className="text-muted-foreground block mb-0.5">رقم العقد:</span>
-                    <span className="font-bold text-foreground">{selectedContract.contractNumber || selectedContract.id}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block mb-0.5">المشروع المرتبط:</span>
-                    <span className="font-bold text-foreground">
-                      {(projectsData || []).find((p: any) => p.id === selectedContract.projectId)?.name || `مشروع #${selectedContract.projectId}`}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block mb-0.5">الطرف الثاني / المقاول:</span>
-                    <span className="font-bold text-foreground">{selectedContract.secondPartyName || (selectedContract as any).supplierName || "غير محدد"}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block mb-0.5">إجمالي قيمة العقد:</span>
-                    <span className="font-bold text-emerald-700 dark:text-emerald-400 font-mono">
-                      {selectedContractAmount.toLocaleString("en-US")} ر.س
-                    </span>
-                  </div>
-                </div>
-              )}
+
             </CardContent>
           </Card>
 
@@ -2620,7 +2601,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   <div className="w-10"></div>
                   <div>{mainViewTab === "invoices" ? "المستخلص" : "التقرير"}</div>
                   <div>{mainViewTab === "invoices" ? "المشروع والعقد" : "المشروع"}</div>
-                  <div>{mainViewTab === "invoices" ? "نسبة الإنجاز والمبلغ المستحق" : "نسبة الإنجاز"}</div>
+                  <div>نسبة الإنجاز</div>
                   <div>الحالة</div>
                   <div className="w-20 text-center">الإجراءات</div>
                 </div>
@@ -2860,7 +2841,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                             </div>
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                {isInv && (
+                                {isInv && mainViewTab !== "invoices" && !isInvoicePath && (
                                   <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
                                     مستخلص
                                   </span>
@@ -2924,12 +2905,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                             <Progress value={report.actualProgress || report.overallProgress} className="w-16 h-2 bg-muted shrink-0" />
                             <span className="text-xs font-bold text-foreground">{report.actualProgress || report.overallProgress}%</span>
                           </div>
-                          {isInv && invoiceAmount ? (
-                            <div className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 mt-1 flex items-center gap-1 font-mono">
-                              <Coins className="w-3.5 h-3.5" />
-                              <span>{invoiceAmount.toLocaleString("en-US")} ر.س</span>
-                            </div>
-                          ) : (
+                          {!isInv && (
                             <div className={`flex items-center gap-1 text-[10px] font-semibold mt-1 ${getVarianceColor(variance)}`}>
                               {getVarianceIcon(variance)}
                               <span>الانحراف: {variance > 0 ? "+" : ""}{variance}%</span>
@@ -2952,11 +2928,6 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                               <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                               <span className="truncate">{report.projectName || "—"}</span>
                             </div>
-                            {isInv && invoiceAmount && (
-                              <span className="font-bold text-emerald-700 text-xs shrink-0 font-mono">
-                                {invoiceAmount.toLocaleString("en-US")} ر.س
-                              </span>
-                            )}
                           </div>
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
