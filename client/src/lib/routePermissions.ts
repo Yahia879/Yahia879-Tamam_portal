@@ -220,6 +220,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   // ── تقارير الإنجاز والمشاريع والمستخلصات ──
   "/progress-reports": ["progress_reports", "progress_reports.view"],
   "/progress-invoices": ["progress_invoices", "progress_invoices.view"],
+  "/milestones/new": ["projects", "contracts", "progress_reports", "progress_invoices", "projects.view_details"],
   "/project-reports": ["project_reports", "project_reports.view", "project_reports.create", "progress_reports", "progress_reports.view", "reports.view"],
   "/project-reports/new": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],
   "/project-reports/semi-monthly": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],
@@ -335,6 +336,8 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
 
   // المشاريع
   { pattern: /^\/projects\/\d+$/, permission: ["projects.view_details", "projects.financials", "projects.edit_support_and_fees", "projects.add_receipt_voucher"] },
+  { pattern: /^\/projects\/\d+\/(invoices|milestones)\/new$/, permission: ["projects.view_details", "projects", "progress_reports", "progress_invoices", "contracts"] },
+  { pattern: /^\/milestones\/new\/\d+$/, permission: ["projects.view_details", "projects", "progress_reports", "progress_invoices", "contracts"] },
 
   // الموردون
   { pattern: /^\/suppliers\/\d+\/edit$/, permission: "suppliers.edit" },

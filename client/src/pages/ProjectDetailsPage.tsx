@@ -2208,7 +2208,7 @@ export default function ProjectDetailsPage() {
                         className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9" 
                         onClick={() => {
                           if (!isRequestClosed) {
-                            navigate(isMilestonesContract ? `/progress-invoices?projectId=${project.id}` : `/disbursements/new/${project.id}`);
+                            navigate(isMilestonesContract ? `/projects/${project.id}/invoices/new` : `/disbursements/new/${project.id}`);
                           }
                         }}
                         disabled={
@@ -2799,7 +2799,7 @@ export default function ProjectDetailsPage() {
                         {isMilestonesContract && !isPaymentsLocked && !isRequestClosed && (
                           <Button
                             className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9 mt-2"
-                            onClick={() => navigate(`/progress-invoices?projectId=${project.id}`)}
+                            onClick={() => navigate(`/projects/${project.id}/invoices/new`)}
                           >
                             <Plus className="w-4 h-4 ml-1.5" />
                             رفع أول مستخلص للمقاول

@@ -368,6 +368,8 @@ function Router() {
       {/* المشاريع - إدارية */}
       <Route path="/projects">{() => <AdminRoute component={Projects} />}</Route>
       <Route path="/projects/new">{() => <AdminRoute component={NewMultiMosqueProjectPage} />}</Route>
+      <Route path="/projects/:id/invoices/new">{params => <AdminRoute component={() => <NewMilestoneRequest params={params} />} />}</Route>
+      <Route path="/projects/:id/milestones/new">{params => <AdminRoute component={() => <NewMilestoneRequest params={params} />} />}</Route>
       <Route path="/projects/:id">{() => <AdminRoute component={ProjectDetailsPage} />}</Route>
       <Route path="/project-management">{() => <AdminRoute component={ProjectManagement} />}</Route>
       <Route path="/project-reports">{() => <AdminRoute component={ProjectReportsHubPage} />}</Route>
