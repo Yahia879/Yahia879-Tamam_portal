@@ -1046,6 +1046,7 @@ function DashboardLayoutContent({
                         const isCustodyPath = item.path === "/custody-requests";
                         const isBoardExecutivePath = item.path === "/board-executive";
                         const isProgressReportsPath = item.path === "/progress-reports";
+                        const isProgressInvoicesPath = item.path === "/progress-invoices";
                         const isRequesterApprovalsPath = item.path === "/requester-approvals";
                         const isPurchaseOrdersPath = item.path === "/purchase-orders";
                         const isCsrLettersPath = item.path === "/csr-letters";
@@ -1074,6 +1075,7 @@ function DashboardLayoutContent({
                           isCustodyPending ||
                           (isBoardExecutivePath && Boolean(pendingDisbursements?.hasPendingBoardExecutive)) ||
                           (isProgressReportsPath && Boolean(pendingProgressReports?.hasPendingReports)) ||
+                          (isProgressInvoicesPath && Boolean((pendingProgressReports as any)?.hasPendingInvoices)) ||
                           (isRequesterApprovalsPath && Boolean(pendingUsers && pendingUsers.length > 0)) ||
                           isProcurementPending;
 
@@ -1081,6 +1083,10 @@ function DashboardLayoutContent({
                           ? `${item.label} (بحاجة لاعتماد المدير التنفيذي)`
                           : isCustodyPending
                           ? `${item.label} (يوجد طلبات عهدة بانتظار اعتمادك)`
+                          : isProgressInvoicesPath && Boolean((pendingProgressReports as any)?.hasPendingInvoices)
+                          ? `${item.label} (يوجد مستخلصات بانتظار اعتمادك)`
+                          : isProgressReportsPath && Boolean(pendingProgressReports?.hasPendingReports)
+                          ? `${item.label} (يوجد تقارير إنجاز بانتظار اعتمادك)`
                           : item.label;
 
                         return (
@@ -1231,6 +1237,7 @@ function DashboardLayoutContent({
             Boolean(pendingCustody?.hasPendingCustody) ||
             Boolean(pendingDisbursements?.hasPendingBoardExecutive) ||
             Boolean(pendingProgressReports?.hasPendingReports) ||
+            Boolean((pendingProgressReports as any)?.hasPendingInvoices) ||
             Boolean(pendingUsers && pendingUsers.length > 0);
 
           return (

@@ -638,6 +638,20 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     );
   };
 
+  const cleanDisplayWorkSummary = (summary?: string | null) => {
+    if (!summary) return "";
+    return summary
+      .replace(/\[نوع:\s*[^\]]+\]/g, "")
+      .replace(/\[معرف العقد:\s*[^\]]+\]/g, "")
+      .replace(/\[رقم العقد:\s*[^\]]+\]/g, "")
+      .replace(/\[قيمة العقد:\s*[^\]]+\]/g, "")
+      .replace(/\[نسبة الإنجاز:\s*[^\]]+\]/g, "")
+      .replace(/\[المبلغ المستحق:\s*[^\]]+\]/g, "")
+      .replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "")
+      .replace(/(?:^|\n)\s*وصف الأعمال المنجزة:\s*/g, "\n")
+      .trim();
+  };
+
   // إحصائيات تقارير الإنجاز والمستخلصات
   const invoiceStatsData = useMemo(() => {
     const validReports = (allReportsData || []).filter((r: any) => !isExcludedProjectReport(r) && isInvoiceReport(r));
@@ -2984,10 +2998,12 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
         {/* نافذة تفاصيل التقرير */}
         <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>تفاصيل تقرير الإنجاز</DialogTitle>
-              <DialogDescription>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" dir="rtl">
+            <DialogHeader className="text-right sm:text-right">
+              <DialogTitle className="text-right sm:text-right">
+                {isInvoiceReport(selectedReport) ? "تفاصيل المستخلص" : "تفاصيل تقرير الإنجاز"}
+              </DialogTitle>
+              <DialogDescription className="text-right sm:text-right">
                 {selectedReport?.reportNumber} - {selectedReport?.title}
               </DialogDescription>
             </DialogHeader>
@@ -3058,7 +3074,9 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 {selectedReport.workSummary && (
                   <div className="space-y-2">
                     <h3 className="font-semibold">الأعمال المنجزة</h3>
-                    <p className="text-muted-foreground whitespace-pre-wrap">{selectedReport.workSummary}</p>
+                    <p className="text-muted-foreground whitespace-pre-wrap">
+                      {cleanDisplayWorkSummary(selectedReport.workSummary)}
+                    </p>
                   </div>
                 )}
                 
@@ -3223,16 +3241,24 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         {/* نافذة اعتماد تقرير الإنجاز */}
         <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
           <DialogContent dir="rtl">
-            <DialogHeader>
-              <DialogTitle>
-                {selectedReport?.status === "pending" || selectedReport?.status === "submitted" || selectedReport?.status === "draft"
-                  ? "اعتماد تقرير الإنجاز (اعتماد مدير المشروع - المرحلة الأولى)"
-                  : "اعتماد تقرير الإنجاز (اعتماد المدير التنفيذي - المرحلة الثانية)"}
+            <DialogHeader className="text-right sm:text-right">
+              <DialogTitle className="text-right sm:text-right">
+                {isInvoiceReport(selectedReport)
+                  ? selectedReport?.status === "pending" || selectedReport?.status === "submitted" || selectedReport?.status === "draft"
+                    ? "اعتماد المستخلص (اعتماد مدير المشروع - المرحلة الأولى)"
+                    : "اعتماد المستخلص (اعتماد المدير التنفيذي - المرحلة الثانية)"
+                  : selectedReport?.status === "pending" || selectedReport?.status === "submitted" || selectedReport?.status === "draft"
+                    ? "اعتماد تقرير الإنجاز (اعتماد مدير المشروع - المرحلة الأولى)"
+                    : "اعتماد تقرير الإنجاز (اعتماد المدير التنفيذي - المرحلة الثانية)"}
               </DialogTitle>
-              <DialogDescription>
-                {selectedReport?.status === "pending" || selectedReport?.status === "submitted" || selectedReport?.status === "draft"
-                  ? `هل تريد اعتماد تقرير الإنجاز رقم ${selectedReport?.reportNumber} وتحويله إلى (بانتظار اعتماد المدير التنفيذي)؟`
-                  : `هل تريد الاعتماد النهائي لتقرير الإنجاز رقم ${selectedReport?.reportNumber} من قِبَل المدير التنفيذي؟`}
+              <DialogDescription className="text-right sm:text-right">
+                {isInvoiceReport(selectedReport)
+                  ? selectedReport?.status === "pending" || selectedReport?.status === "submitted" || selectedReport?.status === "draft"
+                    ? `هل تريد اعتماد المستخلص رقم ${selectedReport?.reportNumber} وتحويله إلى (بانتظار اعتماد المدير التنفيذي)؟`
+                    : `هل تريد الاعتماد النهائي للمستخلص رقم ${selectedReport?.reportNumber} من قِبَل المدير التنفيذي؟`
+                  : selectedReport?.status === "pending" || selectedReport?.status === "submitted" || selectedReport?.status === "draft"
+                    ? `هل تريد اعتماد تقرير الإنجاز رقم ${selectedReport?.reportNumber} وتحويله إلى (بانتظار اعتماد المدير التنفيذي)؟`
+                    : `هل تريد الاعتماد النهائي لتقرير الإنجاز رقم ${selectedReport?.reportNumber} من قِبَل المدير التنفيذي؟`}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -3275,10 +3301,14 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         {/* نافذة إلغاء / رفض تقرير الإنجاز */}
         <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
           <DialogContent dir="rtl">
-            <DialogHeader>
-              <DialogTitle>إلغاء / رفض تقرير الإنجاز</DialogTitle>
-              <DialogDescription>
-                هل تريد إلغاء تقرير الإنجاز رقم {selectedReport?.reportNumber}؟
+            <DialogHeader className="text-right sm:text-right">
+              <DialogTitle className="text-right sm:text-right">
+                {isInvoiceReport(selectedReport) ? "إلغاء / رفض المستخلص" : "إلغاء / رفض تقرير الإنجاز"}
+              </DialogTitle>
+              <DialogDescription className="text-right sm:text-right">
+                {isInvoiceReport(selectedReport)
+                  ? `هل تريد إلغاء المستخلص رقم ${selectedReport?.reportNumber}؟`
+                  : `هل تريد إلغاء تقرير الإنجاز رقم ${selectedReport?.reportNumber}؟`}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -3314,13 +3344,17 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         {/* نافذة إلغاء الاعتماد */}
         <Dialog open={showRevokeDialog} onOpenChange={setShowRevokeDialog}>
           <DialogContent dir="rtl">
-            <DialogHeader>
-              <DialogTitle className="text-amber-700 dark:text-amber-400 flex items-center gap-2">
+            <DialogHeader className="text-right sm:text-right">
+              <DialogTitle className="text-amber-700 dark:text-amber-400 flex items-center gap-2 text-right sm:text-right">
                 <ShieldAlert className="w-5 h-5 text-amber-600" />
-                <span>إلغاء اعتماد تقرير الإنجاز</span>
+                <span>
+                  {isInvoiceReport(selectedReport) ? "إلغاء اعتماد المستخلص" : "إلغاء اعتماد تقرير الإنجاز"}
+                </span>
               </DialogTitle>
-              <DialogDescription>
-                هل أنت تأكد من رغبتك في إلغاء اعتماد تقرير الإنجاز؟
+              <DialogDescription className="text-right sm:text-right">
+                {isInvoiceReport(selectedReport)
+                  ? "هل أنت متأكد من رغبتك في إلغاء اعتماد المستخلص؟"
+                  : "هل أنت متأكد من رغبتك في إلغاء اعتماد تقرير الإنجاز؟"}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -3360,12 +3394,14 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         {/* نافذة استثناء اعتماد مدير المشروع */}
         <Dialog open={showExceptionDialog} onOpenChange={setShowExceptionDialog}>
           <DialogContent dir="rtl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-500">
+            <DialogHeader className="text-right sm:text-right">
+              <DialogTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-500 text-right sm:text-right">
                 <ShieldAlert className="w-5 h-5 text-amber-600" />
-                <span>استثناء اعتماد مدير المشروع</span>
+                <span>
+                  {isInvoiceReport(selectedReport) ? "استثناء اعتماد مدير المشروع للمستخلص" : "استثناء اعتماد مدير المشروع"}
+                </span>
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-right sm:text-right">
                 يتيح هذا الخيار للمدير الفائق اعتماد المرحلة الأولى نيابة عن مدير المشروع وتوثيق التوقيع والمبرر.
               </DialogDescription>
             </DialogHeader>
@@ -3405,8 +3441,8 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         {/* نافذة عرض مبررات استثناء الاعتماد */}
         <Dialog open={showViewExceptionDialog} onOpenChange={setShowViewExceptionDialog}>
           <DialogContent dir="rtl" className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-400">
+            <DialogHeader className="text-right sm:text-right">
+              <DialogTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-400 text-right sm:text-right">
                 <Info className="w-5 h-5 text-amber-600" />
                 <span>مبررات استثناء اعتماد مدير المشروع</span>
               </DialogTitle>
@@ -3444,10 +3480,12 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         {/* نافذة عرض سبب إلغاء التقرير */}
         <Dialog open={showViewRejectionDialog} onOpenChange={setShowViewRejectionDialog}>
           <DialogContent dir="rtl" className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-rose-700 dark:text-rose-400">
+            <DialogHeader className="text-right sm:text-right">
+              <DialogTitle className="flex items-center gap-2 text-rose-700 dark:text-rose-400 text-right sm:text-right">
                 <AlertCircle className="w-5 h-5 text-rose-600" />
-                <span>سبب إلغاء تقرير الإنجاز</span>
+                <span>
+                  {isInvoiceReport(selectedReport) ? "سبب إلغاء المستخلص" : "سبب إلغاء تقرير الإنجاز"}
+                </span>
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-3">

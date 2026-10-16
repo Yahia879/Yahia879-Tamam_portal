@@ -307,26 +307,38 @@ export default function ProgressReportPrint() {
   const getActualWorkDone = (combined: string) => {
     if (!combined) return "";
     
+    // إزالة وسوم وبيانات المستخلص الثابتة ووسم الدفعة
+    let text = combined
+      .replace(/\[نوع:\s*[^\]]+\]/g, "")
+      .replace(/\[معرف العقد:\s*[^\]]+\]/g, "")
+      .replace(/\[رقم العقد:\s*[^\]]+\]/g, "")
+      .replace(/\[قيمة العقد:\s*[^\]]+\]/g, "")
+      .replace(/\[نسبة الإنجاز:\s*[^\]]+\]/g, "")
+      .replace(/\[المبلغ المستحق:\s*[^\]]+\]/g, "")
+      .replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "")
+      .replace(/(?:^|\n)\s*وصف الأعمال المنجزة:\s*/g, "\n")
+      .trim();
+
     // البحث عن قسم الأعمال المنفذة فعلياً باستخدام تعبير نمطي يدعم كافة نهايات الأسطر
     const regex = /(?:الأعمال المنفذة فعلياً|المنفذة فعلياً):\r?\n([\s\S]*?)(?:\r?\n\r?\[معرف الدفعة:|$)/;
-    const match = combined.match(regex);
+    const match = text.match(regex);
     if (match && match[1].trim()) {
       return match[1].trim();
     }
     
     // حالة احتياطية إذا كان العنوان موجوداً بدون سطر جديد مباشر
     const regexNoNewline = /(?:الأعمال المنفذة فعلياً|المنفذة فعلياً):\s*([\s\S]*?)(?:\r?\n\r?\[معرف الدفعة:|$)/;
-    const matchNoNewline = combined.match(regexNoNewline);
+    const matchNoNewline = text.match(regexNoNewline);
     if (matchNoNewline && matchNoNewline[1].trim()) {
       return matchNoNewline[1].trim();
     }
 
     // إذا كان النص يحتوي على ترويسة الأعمال المجدولة فقط، فلا نعرضها لأن المستخدم يطلب الأعمال المنجزة فعلياً فقط
-    if (combined.includes("الأعمال المجدولة للدفعة:")) {
+    if (text.includes("الأعمال المجدولة للدفعة:")) {
       return "لا يوجد تفاصيل أعمال منفذة فعلياً.";
     }
 
-    return combined.replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "").trim();
+    return text.trim();
   };
 
   const cleanWorkSummary = getActualWorkDone(workSummaryText);
