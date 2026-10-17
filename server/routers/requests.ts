@@ -1415,9 +1415,18 @@ export const requestsRouter = router({
             .select({
               id: contractsEnhanced.id,
               amount: contractsEnhanced.contractAmount,
+              paymentScheduleJson: contractsEnhanced.paymentScheduleJson,
             })
             .from(contractsEnhanced)
             .where(eq(contractsEnhanced.projectId, projId));
+
+          const isMilestonesProject = projectContracts.some((c: any) => {
+            let sched: any = null;
+            try {
+              sched = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+            } catch (e) {}
+            return (c as any)?.paymentSystem === "milestones" || sched?.paymentSystem === "milestones";
+          });
 
           // 2. جلب الدفعات المجدولة
           const contractIds = projectContracts.map(c => c.id);
@@ -1431,47 +1440,104 @@ export const requestsRouter = router({
             .from(payments)
             .where(eq(payments.projectId, projId));
 
-          // 4. توحيد الدفعات وحساب الإجماليات
-          const unifiedPayments: { amount: string; status: string }[] = [];
+          // 4. جلب طلبات وأوامر الصرف المنفذة (للمستخلصات والمشاريع)
+          const projectDisbursements = await db
+            .select()
+            .from(disbursementRequests)
+            .where(
+              contractIds.length > 0
+                ? or(
+                    eq(disbursementRequests.projectId, projId),
+                    inArray(disbursementRequests.contractId, contractIds)
+                  )
+                : eq(disbursementRequests.projectId, projId)
+            );
+
+          const disbIds = projectDisbursements.map(d => d.id);
+          const projectOrders = disbIds.length > 0
+            ? await db.select().from(disbursementOrders).where(inArray(disbursementOrders.disbursementRequestId, disbIds))
+            : [];
+
+          // 5. توحيد الدفعات وحساب الإجماليات
+          const unifiedPayments: { amount: string; status: string; paidAt: Date | null }[] = [];
           allContractPayments.forEach(cp => {
             unifiedPayments.push({
               amount: cp.amount,
-              status: cp.status === "paid" ? "paid" : "pending"
+              status: cp.status === "paid" ? "paid" : "pending",
+              paidAt: cp.paidAt,
             });
           });
           manualPayments.forEach(p => {
             unifiedPayments.push({
               amount: p.amount,
-              status: p.status || "pending"
+              status: p.status || "pending",
+              paidAt: p.paidAt,
+            });
+          });
+
+          // إضافة طلبات الصرف المستقلة/المستخلصات
+          const unlinkedDisbs = projectDisbursements.filter(d => 
+            d.status !== "rejected" &&
+            !allContractPayments.some(cp => cp.id === d.contractPaymentId) &&
+            !manualPayments.some(mp => mp.id === d.paymentId)
+          );
+
+          unlinkedDisbs.forEach(d => {
+            const ordersForDisb = projectOrders.filter(o => o.disbursementRequestId === d.id);
+            const executedOrders = ordersForDisb.filter(o => o.status === "executed");
+            const isPaid = d.status === "paid" || executedOrders.length > 0;
+            const paidAt = executedOrders[0]?.executedAt || d.dateMiladi || d.createdAt;
+            unifiedPayments.push({
+              amount: d.amount,
+              status: isPaid ? "paid" : (d.status || "pending"),
+              paidAt: isPaid ? paidAt : null,
             });
           });
 
           const totalPaymentsSum = unifiedPayments.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0);
-          const totalContractsSum = projectContracts.reduce((sum, c) => sum + parseFloat(c.amount || "0"), 0);
+          const totalPaidSum = unifiedPayments
+            .filter(p => p.status === "paid" || !!p.paidAt)
+            .reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0);
 
-          // التحقق من وجود دفعات أولاً
-          if (unifiedPayments.length === 0) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع.",
-            });
+          let totalContractsSum = projectContracts.reduce((sum, c) => sum + parseFloat(c.amount || "0"), 0);
+          if (totalContractsSum === 0) {
+            const [proj] = await db.select({ budget: projects.budget }).from(projects).where(eq(projects.id, projId)).limit(1);
+            totalContractsSum = parseFloat(String(proj?.budget || "0").replace(/,/g, "")) || 0;
           }
 
-          // التحقق من أن جميع الدفعات مسددة
-          const allPaid = unifiedPayments.every(p => p.status === "paid");
-          if (!allPaid) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "لا يمكن الانتقال لمرحلة الاستلام: يجب أن تكون جميع الدفعات حالتها 'مسدد'.",
-            });
-          }
+          if (isMilestonesProject) {
+            // للمشاريع المرتبطة بمستخلصات: التحقق من أن المسدد يساوي قيمة العقد أو أكثر
+            if (totalPaidSum < (totalContractsSum - 0.05)) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `لا يمكن الانتقال لمرحلة الاستلام: إجمالي المبالغ المسددة (${totalPaidSum.toLocaleString()} ر.س) أقل من قيمة العقد (${totalContractsSum.toLocaleString()} ر.س).`,
+              });
+            }
+          } else {
+            // التحقق من وجود دفعات أولاً
+            if (unifiedPayments.length === 0) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع.",
+              });
+            }
 
-          // التحقق من تساوي إجمالي قيم المدفوعات مع إجمالي قيمة العقد
-          if (Math.abs(totalPaymentsSum - totalContractsSum) >= 0.01) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: `لا يمكن الانتقال لمرحلة الاستلام: إجمالي قيم المدفوعات (${totalPaymentsSum}) لا يساوي إجمالي قيمة العقد (${totalContractsSum}).`,
-            });
+            // التحقق من أن جميع الدفعات مسددة
+            const allPaid = unifiedPayments.every(p => p.status === "paid");
+            if (!allPaid && totalPaidSum < (totalContractsSum - 0.05)) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "لا يمكن الانتقال لمرحلة الاستلام: يجب أن تكون جميع الدفعات حالتها 'مسدد'.",
+              });
+            }
+
+            // التحقق من تساوي إجمالي قيم المدفوعات مع إجمالي قيمة العقد أو تجاوزه
+            if (Math.abs(totalPaymentsSum - totalContractsSum) >= 0.01 && totalPaidSum < (totalContractsSum - 0.05)) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `لا يمكن الانتقال لمرحلة الاستلام: إجمالي قيم المدفوعات (${totalPaymentsSum}) لا يساوي إجمالي قيمة العقد (${totalContractsSum}).`,
+              });
+            }
           }
         }
       }

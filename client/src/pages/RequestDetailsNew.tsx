@@ -1643,10 +1643,29 @@ export default function RequestDetailsNew() {
   const totalPaymentsSum = projectPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || "0"), 0);
   const totalContractsSum = projectContracts.reduce((sum: number, c: any) => sum + parseFloat(c.amount || "0"), 0);
 
+  const totalPaidPaymentsSum = projectPayments
+    .filter((p: any) => p.status === 'paid' || !!p.paidAt)
+    .reduce((sum: number, p: any) => sum + parseFloat(p.amount || "0"), 0);
+
+  const effectiveContractsSum = totalContractsSum > 0 ? totalContractsSum : (parseFloat((linkedProject as any)?.budget || "0") || 0);
+
+  const isMilestonesProject = projectContracts.some((c: any) => {
+    let sched: any = null;
+    try {
+      sched = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+    } catch (e) {}
+    return (c as any)?.paymentSystem === "milestones" || sched?.paymentSystem === "milestones";
+  }) || (linkedProject as any)?.paymentsSystem === "milestones";
+
+  const isMilestonePaidFullOrMore = isMilestonesProject && effectiveContractsSum > 0 && totalPaidPaymentsSum >= (effectiveContractsSum - 0.05);
+
   const hasPayments = projectPayments.length > 0;
   const allPaymentsPaid = hasPayments && projectPayments.every((p: any) => p.status === 'paid');
-  const paymentsMatchContracts = hasPayments && Math.abs(totalPaymentsSum - totalContractsSum) < 0.01;
-  const cannotTransitionToHandover = !allPaymentsPaid || !paymentsMatchContracts;
+  const paymentsMatchContracts = hasPayments && (Math.abs(totalPaymentsSum - totalContractsSum) < 0.01 || totalPaidPaymentsSum >= (effectiveContractsSum - 0.05));
+
+  const cannotTransitionToHandover = isMilestonesProject
+    ? !isMilestonePaidFullOrMore
+    : (!allPaymentsPaid || !paymentsMatchContracts);
 
   const completedSteps = getCompletedSteps(request.currentStage, workflow);
   const progress = getProgressPercentage(request.currentStage, workflow);
@@ -2450,11 +2469,13 @@ export default function RequestDetailsNew() {
                                     title: request.programType === 'sedana'
                                       ? "الانتقال إلى مرحلة الاستلام غير متاح حالياً لطلبات سدانة"
                                       : (cannotTransitionToHandover
-                                        ? (!hasPayments
-                                          ? "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع"
-                                          : !allPaymentsPaid
-                                            ? "لا يمكن الانتقال لمرحلة الاستلام: يجب سداد جميع الدفعات أولاً"
-                                            : "لا يمكن الانتقال لمرحلة الاستلام: إجمالي قيم المدفوعات لا يساوي إجمالي قيمة العقد")
+                                        ? (isMilestonesProject
+                                          ? `لا يمكن الانتقال لمرحلة الاستلام: إجمالي المبالغ المسددة (${totalPaidPaymentsSum.toLocaleString()} ر.س) أقل من قيمة العقد (${effectiveContractsSum.toLocaleString()} ر.س)`
+                                          : (!hasPayments
+                                            ? "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع"
+                                            : !allPaymentsPaid
+                                              ? "لا يمكن الانتقال لمرحلة الاستلام: يجب سداد جميع الدفعات أولاً"
+                                              : "لا يمكن الانتقال لمرحلة الاستلام: إجمالي قيم المدفوعات لا يساوي إجمالي قيمة العقد"))
                                         : undefined),
                                   }
                           : request.currentStage === 'handover' &&

@@ -419,7 +419,31 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
 
   // تقارير الإنجاز والمشاريع
   { pattern: /^\/receipt-vouchers\/\d+(\/print)?$/, permission: ["receipt_vouchers", "receipt_vouchers.view", "receipt_vouchers.edit", "receipt_vouchers.exception_approve"] },
-  { pattern: /^\/progress-reports\/\d+\/print$/, permission: "progress_reports" },
+  { 
+    pattern: /^\/progress-reports\/\d+\/print$/, 
+    permission: [
+      "progress_reports", 
+      "progress_reports.view", 
+      "progress_invoices", 
+      "progress_invoices.view", 
+      "project_reports", 
+      "project_reports.view", 
+      "reports", 
+      "reports.view",
+      "disbursement_orders",
+      "disbursement_orders.view",
+      "disbursements",
+      "disbursements.view",
+      "financial_approval",
+      "board_chairman",
+      "board_chairman_view",
+      "board_leadership.board_chairman_view",
+      "board.board_chairman_view",
+      "board_member",
+      "projects",
+      "projects.view"
+    ] 
+  },
   { pattern: /^\/project-reports\/.*$/, permission: ["project_reports", "project_reports.view", "project_reports.create", "progress_reports", "progress_reports.view", "reports.view"] },
 ];
 
@@ -541,6 +565,11 @@ export function hasRouteAccess(
 
   // السماح بالوصول لصفحة التقرير الختامي لأي مستخدم مسجل
   if (/^\/final-report\/\d+$/.test(pathname)) return true;
+
+  // السماح بالوصول لصفحة طباعة/معاينة تقرير الإنجاز لأي مستخدم داخلي غير طالب الخدمة
+  if (/^\/progress-reports\/\d+\/print$/.test(pathname)) {
+    return userRole !== "service_requester";
+  }
 
   // السماح بالوصول لصفحة استبيان التقييم العامة أو الخاصة بالطلبات للجميع
   if (pathname === "/evaluation" || pathname.startsWith("/evaluation?") || /^\/requests\/\d+\/evaluation$/.test(pathname) || /^\/requester\/requests\/\d+\/evaluation$/.test(pathname)) {

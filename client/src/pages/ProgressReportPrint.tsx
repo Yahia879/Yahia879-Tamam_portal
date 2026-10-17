@@ -159,11 +159,64 @@ const openAttachment = (url: string) => {
 export default function ProgressReportPrint() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
+  const { user: currentUser } = useAuth();
+  const hasApprovePermission = usePermission("progress_reports.approve");
+  const hasExceptionApprove = usePermission("progress_reports.exception_approve");
+  const hasViewPermission = usePermission("progress_reports.view") || usePermission("progress_reports");
+
   const handleBack = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const fromParam = searchParams.get("from");
+
+    // 1. If 'from' query parameter is present and valid, go directly to it
+    if (fromParam && fromParam.startsWith("/") && !fromParam.startsWith("/403")) {
+      if (window.opener && !window.opener.closed) {
+        try {
+          window.close();
+        } catch (e) {
+          // ignore
+        }
+      }
+      navigate(fromParam);
+      return;
+    }
+
+    // 2. If opened in a new tab via window.open, attempt to close the tab so the user returns to the referring page
+    if (window.opener && !window.opener.closed) {
+      try {
+        window.close();
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // 3. If document.referrer is from our app and not 403 or current page, go back to it
+    if (document.referrer && document.referrer.startsWith(window.location.origin)) {
+      const refPath = document.referrer.slice(window.location.origin.length);
+      if (
+        refPath &&
+        !refPath.startsWith("/403") &&
+        refPath !== window.location.pathname &&
+        (hasViewPermission || !refPath.startsWith("/progress-reports"))
+      ) {
+        navigate(refPath);
+        return;
+      }
+    }
+
+    // 4. If window history has history entries in this tab
     if (window.history.length > 1) {
       window.history.back();
-    } else {
+      return;
+    }
+
+    // 5. Safe role-based fallback (never send unauthorized users to /progress-reports)
+    if (currentUser?.role === "board_chairman" || currentUser?.role === "board_member") {
+      navigate("/board-dashboard");
+    } else if (hasViewPermission) {
       navigate("/progress-reports");
+    } else {
+      navigate("/dashboard");
     }
   };
   const reportId = params.id ? parseInt(params.id) : undefined;
@@ -174,10 +227,6 @@ export default function ProgressReportPrint() {
     { id: reportId || 0 },
     { enabled: !!reportId }
   );
-
-  const { user: currentUser } = useAuth();
-  const hasApprovePermission = usePermission("progress_reports.approve");
-  const hasExceptionApprove = usePermission("progress_reports.exception_approve");
   const isExecutiveDirectorRole = 
     currentUser?.role === "general_manager" ||
     currentUser?.role === "executive_director" ||

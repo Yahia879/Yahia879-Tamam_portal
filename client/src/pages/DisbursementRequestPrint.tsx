@@ -3,19 +3,13 @@ import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, Printer, PenTool, ShieldAlert, Check, Loader2, Link2, X, ExternalLink, Copy, FileText, ShieldCheck } from "lucide-react";
+import { ArrowRight, Printer, PenTool, ShieldAlert, Check, Loader2, Link2, X, ExternalLink, Copy } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { numberToArabicText } from "@shared/tafqeet";
 import { toast } from "sonner";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 function toHijriDate(date: Date): string {
   let formatted = "";
@@ -281,12 +275,6 @@ export default function DisbursementRequestPrint() {
       console.error("Error parsing supplier/linked print metadata:", e);
     }
   }
-
-  const [showReportPreviewModal, setShowReportPreviewModal] = useState(false);
-  const effectiveReport = (request as any)?.linkedProgressReport || associatedReport || null;
-  const linkedReportId = effectiveReport?.id || linkedRequestInfo?.reportId || null;
-  const linkedReportNumber = effectiveReport?.reportNumber || linkedRequestInfo?.reportNumber || null;
-  const recommendations = effectiveReport?.recommendations || linkedRequestInfo?.recommendations || null;
 
   // تجميع كافة الروابط والمرفقات الخارجية لعرضها في زر الروابط المرفقة
   const documentationLinks: { name: string; url: string; type?: string }[] = [];
@@ -577,19 +565,6 @@ export default function DisbursementRequestPrint() {
             </Button>
           )}
 
-          {/* زر معاينة تقرير الإنجاز المرفق لأصحاب القرار والاعتماد */}
-          {linkedReportId && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setShowReportPreviewModal(true)}
-              className="h-8 sm:h-9 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-bold text-xs sm:text-sm gap-1.5 shadow-xs"
-            >
-              <FileText className="h-3.5 w-3.5 ml-1" />
-              <span>معاينة تقرير الإنجاز المرفق (PDF)</span>
-            </Button>
-          )}
-
           {/* خيارات التوقيع */}
           {(() => {
             const isCreator = currentUser?.id === request?.requestedBy;
@@ -750,26 +725,6 @@ export default function DisbursementRequestPrint() {
                   {descriptionText}
                 </div>
               </div>
-
-              {/* توصية إدارة المشاريع إن وجدت */}
-              {recommendations && (
-                <div className="mb-3 sm:mb-4 border border-emerald-400/80 rounded-lg overflow-hidden bg-white">
-                  <div className="bg-emerald-50/80 p-1.5 sm:p-2 font-bold text-xs sm:text-sm border-b border-emerald-200 text-emerald-950 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                      توصية إدارة المشاريع
-                    </span>
-                    {linkedReportNumber && (
-                      <span className="text-[10px] sm:text-xs font-normal text-muted-foreground">
-                        مرتبط بتقرير الإنجاز: {linkedReportNumber}
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-2 sm:p-3 bg-white text-gray-800 leading-relaxed whitespace-pre-wrap break-words text-[11px] sm:text-xs font-medium">
-                    {recommendations}
-                  </div>
-                </div>
-              )}
 
               {/* 5. جدول التكلفة والرسوم الإدارية */}
               <div className="mb-3 sm:mb-4 border border-gray-300 rounded-lg overflow-hidden bg-white">
@@ -1054,45 +1009,6 @@ export default function DisbursementRequestPrint() {
           }
         }
       `}</style>
-      {/* نافذة معاينة تقرير الإنجاز المرفق */}
-      <Dialog open={showReportPreviewModal} onOpenChange={setShowReportPreviewModal}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-4" dir="rtl">
-          <DialogHeader className="flex flex-row items-center justify-between pb-2 border-b">
-            <div>
-              <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
-                <FileText className="h-5 w-5 text-emerald-600" />
-                معاينة تقرير الإنجاز المرفق {linkedReportNumber ? `(${linkedReportNumber})` : ""}
-              </DialogTitle>
-            </div>
-            <div className="flex items-center gap-2">
-              {linkedReportId && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => window.open(`/progress-reports/${linkedReportId}/print`, "_blank")}
-                  className="gap-1 text-xs font-bold"
-                >
-                  <ExternalLink className="h-3.5 w-3.5 ml-1" />
-                  فتح في صفحة جديدة
-                </Button>
-              )}
-            </div>
-          </DialogHeader>
-          <div className="flex-1 w-full h-full overflow-hidden rounded-lg border bg-muted/20 mt-2">
-            {linkedReportId ? (
-              <iframe
-                src={`/progress-reports/${linkedReportId}/print`}
-                className="w-full h-full border-0"
-                title="معاينة تقرير الإنجاز"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                تعذر تحميل تقرير الإنجاز
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -874,9 +874,15 @@ export default function ProjectDetailsPage() {
     )
   );
 
-  const unscheduledContractSum = Math.max(0, totalContractsSum - allPaymentsSum);
-  const remainingContractSum = Math.max(0, totalContractsSum - paidPaymentsSum);
-  const isContractFullyAllocated = totalContractsSum > 0 && allPaymentsSum >= (totalContractsSum - 0.05);
+  const effectiveContractAmount = totalContractsSum > 0 
+    ? totalContractsSum 
+    : (parseFloat(String(project?.budget || "0").replace(/,/g, "")) || 0);
+
+  const isContractFullyPaid = effectiveContractAmount > 0 && paidPaymentsSum >= (effectiveContractAmount - 0.05);
+
+  const unscheduledContractSum = Math.max(0, (totalContractsSum || effectiveContractAmount) - allPaymentsSum);
+  const remainingContractSum = Math.max(0, (totalContractsSum || effectiveContractAmount) - paidPaymentsSum);
+  const isContractFullyAllocated = (totalContractsSum > 0 || effectiveContractAmount > 0) && allPaymentsSum >= ((totalContractsSum || effectiveContractAmount) - 0.05);
 
   // التحقق من اكتمال جدولة وبيانات كافة الدفعات
   const hasIncompletePaymentsData = Boolean(!isMilestonesContract && project?.payments?.some(payment => payment.source !== "manual" && (
@@ -2208,16 +2214,18 @@ export default function ProjectDetailsPage() {
                         <Button 
                           className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9" 
                           onClick={() => {
-                            if (!isRequestClosed) {
+                            if (!isRequestClosed && !has100Payment && !isContractFullyPaid) {
                               navigate(`/projects/${project.id}/invoices/new`);
                             }
                           }}
                           disabled={
-                            isRequestClosed || (has100Payment)
+                            isRequestClosed || has100Payment || isContractFullyPaid
                           }
                           title={
                             isRequestClosed
                               ? "لا يمكن رفع مستخلص لأن الطلب المرتبط بالمشروع مغلق"
+                              : isContractFullyPaid
+                              ? "تم سداد كامل قيمة العقد لهذا المشروع"
                               : has100Payment
                               ? "لا يمكن إضافة مستخلص في حال وجود مستخلص نسبته 100%"
                               : ""
@@ -2729,9 +2737,9 @@ export default function ProjectDetailsPage() {
                           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                             <div className="flex items-center gap-2">
                               <span className="text-muted-foreground font-semibold text-xs sm:text-sm">
-                                {isMilestonesContract ? "إجمالي سقف العقد:" : "قيمة العقد:"}
+                                قيمة العقد:
                               </span>
-                              <span className="font-bold text-sm sm:text-base text-foreground font-sans">{formatCurrency(totalContractsSum.toString())}</span>
+                              <span className="font-bold text-sm sm:text-base text-foreground font-sans">{formatCurrency((effectiveContractAmount > 0 ? effectiveContractAmount : totalContractsSum).toString())}</span>
                             </div>
 
                             {!isMilestonesContract && (
@@ -2787,7 +2795,21 @@ export default function ProjectDetailsPage() {
                           <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
                             <Button
                               className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9"
-                              onClick={() => navigate(`/projects/${project.id}/invoices/new`)}
+                              disabled={isRequestClosed || has100Payment || isContractFullyPaid}
+                              title={
+                                isRequestClosed
+                                  ? "لا يمكن رفع مستخلص لأن الطلب المرتبط بالمشروع مغلق"
+                                  : isContractFullyPaid
+                                  ? "تم سداد كامل قيمة العقد لهذا المشروع"
+                                  : has100Payment
+                                  ? "لا يمكن إضافة مستخلص في حال وجود مستخلص نسبته 100%"
+                                  : ""
+                              }
+                              onClick={() => {
+                                if (!isContractFullyPaid && !isRequestClosed && !has100Payment) {
+                                  navigate(`/projects/${project.id}/invoices/new`);
+                                }
+                              }}
                             >
                               <Plus className="w-4 h-4 ml-1.5" />
                               رفع مستخلص جديد للمشروع

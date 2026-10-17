@@ -1933,50 +1933,7 @@ export default function DisbursementRequests() {
                 )}
               </div>
 
-              {/* توصية إدارة المشاريع لصاحب الاعتماد */}
-              {(() => {
-                let approveMetadata: any = null;
-                if (selectedRequest?.attachmentsJson) {
-                  try {
-                    const atts = JSON.parse(selectedRequest.attachmentsJson);
-                    if (Array.isArray(atts)) {
-                      const linkedAtt = atts.find((a: any) => a.name === "linked_request_info");
-                      if (linkedAtt && linkedAtt.url) {
-                        approveMetadata = JSON.parse(linkedAtt.url);
-                      }
-                    }
-                  } catch (e) {}
-                }
-                if (!approveMetadata?.recommendations && !approveMetadata?.reportId) return null;
 
-                return (
-                  <div className="rounded-lg bg-emerald-50/70 dark:bg-emerald-950/25 border border-emerald-200 dark:border-emerald-800 p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
-                        <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        توصية إدارة المشاريع
-                      </span>
-                      {approveMetadata.reportId && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => window.open(`/progress-reports/${approveMetadata.reportId}/print`, "_blank")}
-                          className="h-7 text-[10px] gap-1 font-bold text-emerald-700 border-emerald-300 bg-white hover:bg-emerald-50 dark:bg-slate-900 dark:text-emerald-400 dark:border-emerald-700"
-                        >
-                          <FileText className="h-3 w-3 ml-1" />
-                          معاينة تقرير الإنجاز (PDF)
-                        </Button>
-                      )}
-                    </div>
-                    {approveMetadata.recommendations && (
-                      <p className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed bg-white/80 dark:bg-slate-900/60 p-2.5 rounded border border-emerald-100 dark:border-emerald-900">
-                        {approveMetadata.recommendations}
-                      </p>
-                    )}
-                  </div>
-                );
-              })()}
               <div className="space-y-2">
                 <Label>ملاحظات الاعتماد (اختياري)</Label>
                 <Textarea

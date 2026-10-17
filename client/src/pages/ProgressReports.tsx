@@ -786,8 +786,27 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
   // جلب تفاصيل المشروع المحدد للتحقق من جدولة الدفعات
   const { data: projectDetails, isLoading: isProjectDetailsLoading } = trpc.projects.getById.useQuery(
-    { id: newReport.projectId },
-    { enabled: newReport.projectId > 0 }
+    { id: isInvoiceMode ? (selectedProjectId || 0) : newReport.projectId },
+    { enabled: (isInvoiceMode ? (selectedProjectId || 0) : newReport.projectId) > 0 }
+  );
+
+  // إجمالي المسدد للمشروع المختار
+  const selectedProjectPaidSum = useMemo(() => {
+    return (projectDetails?.payments || []).reduce((sum: number, p: any) => {
+      const amt = parseFloat(String(p.paidAmount !== undefined && p.paidAmount !== null ? p.paidAmount : ((p.status === "paid" || p.status === "executed" || !!p.paidAt) ? p.amount : 0)).replace(/,/g, ""));
+      return sum + (isNaN(amt) ? 0 : amt);
+    }, 0);
+  }, [projectDetails?.payments]);
+
+  const effectiveSelectedContractAmount = selectedContractAmount > 0 
+    ? selectedContractAmount 
+    : (parseFloat(String(projectDetails?.budget || "0").replace(/,/g, "")) || 0);
+
+  const isSelectedProjectFullyPaid = Boolean(
+    isInvoiceMode && 
+    selectedProjectId && 
+    effectiveSelectedContractAmount > 0 && 
+    selectedProjectPaidSum >= (effectiveSelectedContractAmount - 0.05)
   );
 
   // احتساب المبلغ الفعلي للدفعة: المبلغ المسدد في حال كانت مسددة أو مسددة جزئياً، أو المبلغ المتفق عليه للدفعات غير المسددة
@@ -1475,6 +1494,10 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         return;
       }
     }
+    if (!editingReportId && isSelectedProjectFullyPaid) {
+      toast.error("لا يمكن إنشاء مستخلص جديد: تم سداد كامل قيمة العقد لهذا المشروع");
+      return;
+    }
     if (!selectedProjectId || !selectedContract) {
       toast.error("يرجى اختيار المشروع المراد إنشاء مستخلص له");
       return;
@@ -1822,103 +1845,30 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 {/* Payments / Milestones Section */}
                 {newReport.projectId > 0 && (
                   isMilestonesProject ? (
-                    <div className="space-y-3 pt-4 border-t border-dashed border-border/80">
-                      <Label className="text-sm font-bold text-foreground flex items-center gap-2">
-                        <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                        مستخلصات ومراحل الإنجاز المرتبطة للمشروع
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        اختر المستخلص الذي ترغب بإنشاء تقرير إنجاز له لملء البيانات ونسب الإنجاز تلقائياً:
-                      </p>
-                      {isProjectDetailsLoading ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="h-28 rounded-xl border border-dashed border-muted-foreground/20 animate-pulse bg-muted/40" />
-                          <div className="h-28 rounded-xl border border-dashed border-muted-foreground/20 animate-pulse bg-muted/40" />
+                    <div className="pt-4 border-t border-dashed border-border/80 animate-in fade-in">
+                      <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl p-5 flex items-start gap-3.5 text-amber-900 dark:text-amber-200">
+                        <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                        <div className="space-y-2 flex-1 text-right">
+                          <h4 className="font-bold text-sm text-amber-900 dark:text-amber-300">
+                            لا يمكن إنشاء تقرير إنجاز لهذا المشروع
+                          </h4>
+                          <p className="text-xs text-amber-800 dark:text-amber-200/90 leading-relaxed">
+                            هذا المشروع مرتبط بنظام المستخلصات الجارية بحسب الإنجاز الفعلي، ولا يمكن إنشاء تقارير إنجاز عادية له. يتم إنشاء ورفع المستخلصات من خلال قسم المستخلصات.
+                          </p>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="bg-amber-600 hover:bg-amber-700 text-white font-bold h-8 text-xs rounded-lg mt-1 gap-1.5"
+                            onClick={() => {
+                              setSelectedProjectId(newReport.projectId);
+                              setActiveTab("create-invoice");
+                            }}
+                          >
+                            <FileSpreadsheet className="w-3.5 h-3.5" />
+                            الانتقال لإنشاء مستخلص لهذا المشروع
+                          </Button>
                         </div>
-                      ) : projectMilestones && projectMilestones.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-1.5 bg-muted/30 rounded-xl border border-border/60">
-                          {projectMilestones.map((milestone: any, index: number) => {
-                            const milestoneId = String(milestone.id || `milestone-${milestone.orderIndex || index + 1}`);
-                            const isSelected = selectedPaymentId === milestoneId;
-                            const milestoneKey = milestone.name || `مستخلص ${index + 1}`;
-                            const isAlreadyReported = (allReportsData || []).some((report: any) => {
-                              if (Number(report.projectId) !== Number(newReport.projectId)) return false;
-                              if (report.status === "rejected" || report.status === "revoked") return false;
-                              const ws = report.workSummary || "";
-                              if (ws.includes("[معرف المستخلص:") || ws.includes("[معرف الدفعة:")) {
-                                return ws.includes(`[معرف المستخلص: ${milestoneId}]`) || ws.includes(`[معرف الدفعة: ${milestoneId}]`);
-                              }
-                              return !!(milestoneKey && milestoneKey.trim() !== "" && report.title === `تقرير إنجاز - ${milestoneKey}`);
-                            });
-
-                            const is100 = Number(milestone.completionPercentage) >= 100;
-
-                            return (
-                              <div
-                                key={milestoneId}
-                                onClick={() => {
-                                  if (editingReportId) return;
-                                  handleSelectMilestone(milestone);
-                                }}
-                                className={`relative p-4 rounded-xl border-2 text-right transition-all duration-300 flex flex-col justify-between gap-3 ${
-                                  isSelected
-                                    ? "border-emerald-600 bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/20 cursor-pointer"
-                                    : isAlreadyReported
-                                    ? "border-green-200 bg-green-50/10 opacity-90 cursor-not-allowed font-bold"
-                                    : editingReportId
-                                    ? "border-transparent bg-background opacity-60 cursor-not-allowed"
-                                    : "border-transparent bg-background hover:border-emerald-500/40 hover:bg-emerald-500/5 hover:shadow-sm cursor-pointer"
-                                }`}
-                              >
-                                {isSelected && (
-                                  <div className="absolute top-2 left-2 bg-emerald-600 text-white rounded-full p-1 shadow-sm animate-in zoom-in duration-200">
-                                    <Check className="w-3 h-3" />
-                                  </div>
-                                )}
-
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="flex items-center gap-2">
-                                    <div className={`p-1.5 rounded-lg ${isSelected ? "bg-emerald-600/20 text-emerald-600" : "bg-muted text-muted-foreground"}`}>
-                                      <FileSpreadsheet className="w-4 h-4" />
-                                    </div>
-                                    <span className="font-bold text-sm leading-none block text-foreground">
-                                      {milestone.name || `مستخلص ${index + 1}`}
-                                    </span>
-                                  </div>
-                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
-                                    isAlreadyReported
-                                      ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400"
-                                      : is100
-                                      ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold"
-                                      : "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 font-medium"
-                                  }`}>
-                                    {isAlreadyReported ? "تم تقديم تقرير" : is100 ? "مستخلص منجز 100%" : "قيد الإنجاز"}
-                                  </span>
-                                </div>
-
-                                {milestone.description && (
-                                  <p className="text-xs text-muted-foreground line-clamp-2">
-                                    {milestone.description}
-                                  </p>
-                                )}
-
-                                <div className="space-y-1 mt-1">
-                                  <div className="flex items-center justify-between text-[11px]">
-                                    <span className="text-muted-foreground">نسبة الإنجاز:</span>
-                                    <span className="font-bold text-emerald-600">{milestone.completionPercentage || 0}%</span>
-                                  </div>
-                                  <Progress value={Number(milestone.completionPercentage) || 0} className="h-1.5 bg-muted/60" />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="p-6 rounded-xl border border-dashed border-muted-foreground/30 text-center bg-muted/10">
-                          <AlertCircle className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                          <p className="text-sm font-medium text-muted-foreground">لا توجد مستخلصات مجدولة مسجلة في عقد هذا المشروع.</p>
-                        </div>
-                      )}
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-3 pt-4 border-t border-dashed border-border/80">
@@ -2055,7 +2005,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
             </Card>
 
             {/* Card 2: Report Info & Progress */}
-            {newReport.projectId > 0 && (
+            {newReport.projectId > 0 && !isMilestonesProject && (
               <>
                 {hasMilestonesRequirementError && (
                   <div className="bg-amber-50/80 border border-amber-200/60 dark:bg-amber-950/20 dark:border-amber-900/40 rounded-xl p-4 flex items-start gap-3 text-right backdrop-blur-sm animate-in fade-in">
@@ -2273,12 +2223,11 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                     <div className="space-y-2">
                       <Label className="font-semibold text-foreground flex items-center justify-between">
                         <span>نص توصية إدارة المشاريع</span>
-                        <span className="text-xs font-normal text-muted-foreground">(تُنقل تلقائياً لطلب الصرف لتظهر لصناع القرار أثناء الاعتماد)</span>
                       </Label>
                       <Textarea
                         value={newReport.recommendations}
                         onChange={(e) => setNewReport({ ...newReport, recommendations: e.target.value })}
-                        placeholder="اكتب هنا توصية إدارة المشاريع بالتفصيل (مثال: نوصي بصرف الدفعة المحددة نظراً لمطابقة الأعمال المنفذة على أرض الواقع للمواصفات الفنية المعتمدة...)"
+                        placeholder="اكتب هنا توصية إدارة المشاريع ....."
                         rows={4}
                         className="w-full min-h-[110px] leading-relaxed text-foreground text-right"
                       />
@@ -2429,6 +2378,18 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                       </p>
                     )}
                   </div>
+
+                  {isSelectedProjectFullyPaid && (
+                    <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl p-4 flex items-start gap-3.5 text-amber-900 dark:text-amber-200">
+                      <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <h4 className="font-bold text-xs sm:text-sm">تم سداد كامل قيمة العقد للمشروع</h4>
+                        <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                          تم سداد كامل مستحقات العقد المالي لهذا المشروع بقيمة إجمالية مسددة بلغت ({selectedProjectPaidSum.toLocaleString()} ر.س) من أصل ({effectiveSelectedContractAmount.toLocaleString()} ر.س). لا يمكن إنشاء مستخلصات جديدة لهذا المشروع.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* في حال وجود أكثر من عقد بنظام المستخلصات لنفس المشروع */}
                   {contractsForSelectedProject.length > 1 && (
@@ -2585,30 +2546,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
             </CardContent>
           </Card>
 
-          {/* Card 4: توصية إدارة المشاريع */}
-          <Card className="border-border/60 shadow-sm border-emerald-500/30 bg-emerald-50/10 dark:bg-emerald-950/5">
-            <CardHeader className="bg-emerald-50/40 dark:bg-emerald-950/20 border-b border-border/40 py-4">
-              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-                <ShieldCheck className="w-4.5 h-4.5 text-emerald-600" />
-                توصية إدارة المشاريع
-              </CardTitle>
-              <CardDescription className="text-xs text-muted-foreground">
-                توصية المهندس المشرف وإدارة المشاريع بشأن إنجاز هذه المرحلة وصرف المستخلص المالي (تُنقل تلقائياً لطلب الصرف لتظهر لصناع القرار أثناء الاعتماد)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-3">
-              <div className="space-y-2">
-                <Label className="font-semibold text-foreground">نص توصية إدارة المشاريع</Label>
-                <Textarea
-                  value={invoiceRecommendations}
-                  onChange={(e) => setInvoiceRecommendations(e.target.value)}
-                  placeholder="اكتب هنا توصية إدارة المشاريع بالتفصيل (مثال: نوصي بصرف المستخلص المالي نظراً لمطابقة الأعمال المنفذة على أرض الواقع للمواصفات الفنية المعتمدة وبنسبة إنجاز مستحقة...)"
-                  rows={4}
-                  className="w-full min-h-[110px] leading-relaxed text-foreground text-right"
-                />
-              </div>
-            </CardContent>
-          </Card>
+
 
           {/* Actions bar */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
@@ -2628,6 +2566,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               disabled={
                 isSubmitting ||
                 (editingReportId ? updateMutation.isPending : createMutation.isPending) ||
+                (!editingReportId && isSelectedProjectFullyPaid) ||
                 !selectedProjectId ||
                 !selectedContract ||
                 !invoiceTitle.trim() ||

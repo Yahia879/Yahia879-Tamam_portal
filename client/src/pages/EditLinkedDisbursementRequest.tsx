@@ -243,15 +243,30 @@ export default function EditLinkedDisbursementRequest() {
       return paymentIdNumeric === request.contractPaymentId;
     })?.id) {
       const workSummaryText = selectedReport.workSummary || "";
-      const actualMatch = workSummaryText.match(/الأعمال المنفذة فعلياً:\r?\n([\s\S]*?)(?:\r?\n\r?\[معرف الدفعة:|$)/);
-      const actual = actualMatch ? actualMatch[1].trim() : workSummaryText.replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "").trim();
+      const isInvoice = (selectedReport.title && selectedReport.title.includes("مستخلص")) || workSummaryText.includes("[نوع: مستخلص");
+      let actual = "";
+      if (isInvoice) {
+        let textWithoutTags = workSummaryText
+          .replace(/\[نوع:\s*[^\]]+\]/g, "")
+          .replace(/\[معرف العقد:\s*[^\]]+\]/g, "")
+          .replace(/\[رقم العقد:\s*[^\]]+\]/g, "")
+          .replace(/\[قيمة العقد:\s*[^\]]+\]/g, "")
+          .replace(/\[نسبة الإنجاز:\s*[^\]]+\]/g, "")
+          .replace(/\[المبلغ المستحق:\s*[^\]]+\]/g, "")
+          .replace(/\[(?:معرف المستخلص|معرف الدفعة):\s*[^\]]+\]/g, "");
+        const milestoneMatch = textWithoutTags.match(/وصف الأعمال المنجزة:\s*([\s\S]*?)$/);
+        actual = milestoneMatch ? milestoneMatch[1].trim() : textWithoutTags.replace(/وصف الأعمال المنجزة:\s*/g, "").trim();
+      } else {
+        const actualMatch = workSummaryText.match(/الأعمال المنفذة فعلياً:\r?\n([\s\S]*?)(?:\r?\n\r?\[معرف الدفعة:|$)/);
+        actual = actualMatch ? actualMatch[1].trim() : workSummaryText.replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "").trim();
+      }
 
       const targetPaymentId = paymentInfo ? paymentIdNumeric : 0;
 
       setFormData(prev => ({
         ...prev,
         title: `تعديل طلب صرف لـ ${selectedReport.title}`,
-        description: `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
+        description: isInvoice ? actual : `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
         completionPercentage: (selectedReport.plannedProgress !== null && selectedReport.plannedProgress !== undefined) ? selectedReport.plannedProgress : "",
         contractPaymentId: targetPaymentId,
       }));

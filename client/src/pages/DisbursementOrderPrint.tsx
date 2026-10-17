@@ -5,17 +5,11 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, Printer, PenTool, ExternalLink, Link2, Copy, X, Check, Loader2, FileText, ShieldCheck } from "lucide-react";
+import { ArrowRight, Printer, PenTool, ExternalLink, Link2, Copy, X, Check, Loader2, FileText } from "lucide-react";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { numberToArabicText } from "@shared/tafqeet";
 import { toast } from "sonner";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 
 // دالة تحويل التاريخ الميلادي إلى هجري
@@ -145,6 +139,13 @@ export default function DisbursementOrderPrint() {
     { enabled: !!params.id }
   );
 
+  const effectiveProjectId = (order as any)?.projectId || order?.disbursementRequest?.projectId || (order as any)?.project?.id;
+
+  const { data: progressReports } = trpc.progressReports.list.useQuery(
+    { projectId: effectiveProjectId || undefined },
+    { enabled: !!effectiveProjectId }
+  );
+
   const { data: sadadBillersData } = trpc.categories.getCategoryByType.useQuery({ type: "sadad_billers" });
 
   // تحديث عنوان الصفحة بسلاسة عبر سياق عناوين المستندات
@@ -236,12 +237,6 @@ export default function DisbursementOrderPrint() {
     }
   }
 
-  const [showReportPreviewModal, setShowReportPreviewModal] = useState(false);
-  const linkedReport = (order as any)?.linkedProgressReport || (request as any)?.linkedProgressReport || null;
-  const linkedReportId = linkedReport?.id || linkedRequestInfo?.reportId || null;
-  const linkedReportNumber = linkedReport?.reportNumber || linkedRequestInfo?.reportNumber || null;
-  const recommendations = linkedReport?.recommendations || linkedRequestInfo?.recommendations || null;
-
   if ((order as any)?.attachmentsJson) {
     try {
       const orderAtts = typeof (order as any).attachmentsJson === "string" ? JSON.parse((order as any).attachmentsJson) : (order as any).attachmentsJson;
@@ -250,6 +245,39 @@ export default function DisbursementOrderPrint() {
       }
     } catch (e) {
       console.error("Error parsing order attachments for print:", e);
+    }
+  }
+
+  // البحث عن تقرير الإنجاز أو المستخلص المرتبط بالمشروع
+  let linkedReportId: number | null = null;
+  let linkedReportNumber: string | null = null;
+
+  if (linkedRequestInfo?.reportId) {
+    linkedReportId = Number(linkedRequestInfo.reportId);
+    linkedReportNumber = linkedRequestInfo.reportNumber || null;
+  }
+
+  if (!linkedReportId && (order as any)?.disbursementRequest?.linkedProgressReportId) {
+    linkedReportId = Number((order as any).disbursementRequest.linkedProgressReportId);
+  }
+
+  if (!linkedReportId && progressReports && progressReports.length > 0) {
+    const associatedReport = progressReports.find((r: any) => {
+      if (!r.workSummary || !request) return false;
+      const match = r.workSummary.match(/\[(?:معرف الدفعة|معرف المستخلص):\s*([^\]]+)\]/);
+      if (match) {
+        const pId = match[1].trim();
+        return pId === request.contractPaymentId?.toString() || 
+               pId === `cp-${request.contractPaymentId}` ||
+               pId === request.paymentId?.toString() ||
+               pId === `manual-${request.paymentId}`;
+      }
+      return false;
+    }) || progressReports[0];
+
+    if (associatedReport) {
+      linkedReportId = associatedReport.id;
+      linkedReportNumber = associatedReport.reportNumber || null;
     }
   }
 
@@ -509,6 +537,7 @@ export default function DisbursementOrderPrint() {
             <span>تنزيل PDF / طباعة</span>
           </Button>
 
+
           {/* زر اعتماد أمر الصرف لصاحبي الاعتماد */}
           {canApproveOrder && (
             <Button
@@ -523,19 +552,6 @@ export default function DisbursementOrderPrint() {
                 <Check className="h-3.5 w-3.5 ml-1" />
               )}
               اعتماد أمر الصرف
-            </Button>
-          )}
-
-          {/* زر معاينة تقرير الإنجاز المرفق لأصحاب القرار والاعتماد */}
-          {linkedReportId && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setShowReportPreviewModal(true)}
-              className="h-8 sm:h-9 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-bold text-xs sm:text-sm gap-1.5 shadow-xs"
-            >
-              <FileText className="h-3.5 w-3.5 ml-1" />
-              <span>معاينة تقرير الإنجاز المرفق (PDF)</span>
             </Button>
           )}
 
@@ -697,26 +713,6 @@ export default function DisbursementOrderPrint() {
                   </tbody>
                 </table>
               </div>
-
-              {/* توصية إدارة المشاريع إن وجدت */}
-              {recommendations && (
-                <div className="mb-3 sm:mb-4 border border-emerald-400/80 rounded-lg overflow-hidden bg-white">
-                  <div className="bg-emerald-50/80 p-1.5 sm:p-2 font-bold text-xs sm:text-sm border-b border-emerald-200 text-emerald-950 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                      توصية إدارة المشاريع
-                    </span>
-                    {linkedReportNumber && (
-                      <span className="text-[10px] sm:text-xs font-normal text-muted-foreground">
-                        مرتبط بتقرير الإنجاز: {linkedReportNumber}
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-2 sm:p-3 bg-white text-gray-800 leading-relaxed whitespace-pre-wrap break-words text-[11px] sm:text-xs font-medium">
-                    {recommendations}
-                  </div>
-                </div>
-              )}
 
               {/* قسم خاص بالمشاريع */}
               {(project || customSupplier || linkedRequestInfo) && (
@@ -931,8 +927,8 @@ export default function DisbursementOrderPrint() {
       </div>
 
       {/* كرت المرفقات والروابط الجانبية خارج إطار التقرير */}
-      {documentationLinks.length > 0 && (
-        <div className="fixed bottom-4 sm:bottom-auto sm:top-24 left-4 sm:left-auto sm:right-6 z-30 print:hidden text-right" dir="rtl">
+      {(documentationLinks.length > 0 || !!linkedReportId) && (
+        <div className="fixed bottom-4 sm:bottom-auto sm:top-24 left-4 sm:left-auto sm:right-6 z-30 print:hidden text-right flex flex-col sm:items-end gap-2" dir="rtl">
           {showLinksCard ? (
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/90 dark:border-slate-700 shadow-2xl p-4 space-y-3 w-64 max-w-[260px] animate-in fade-in-50 slide-in-from-top-2 duration-200">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/80 pb-2.5">
@@ -942,11 +938,11 @@ export default function DisbursementOrderPrint() {
                   </div>
                   <div className="min-w-0">
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate block">
-                      الروابط المرفقة
+                      الروابط والمرفقات
                     </span>
                   </div>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 shrink-0">
-                    {documentationLinks.length}
+                    {documentationLinks.length + (linkedReportId ? 1 : 0)}
                   </span>
                 </div>
                 <Button
@@ -961,6 +957,36 @@ export default function DisbursementOrderPrint() {
               </div>
 
               <div className="space-y-2.5 max-h-64 overflow-y-auto pl-0.5">
+                {/* زر تقرير الإنجاز داخل قائمة المرفقات */}
+                {linkedReportId && (
+                  <div className="p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/30 space-y-1.5 text-right text-xs">
+                    <div className="font-bold text-emerald-900 dark:text-emerald-200 text-[11px] flex items-center justify-between">
+                      <span className="flex items-center gap-1">
+                        <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                        تقرير الإنجاز المرتبط
+                      </span>
+                      {linkedReportNumber && (
+                        <span className="text-[10px] text-emerald-700 font-mono font-normal">
+                          {linkedReportNumber}
+                        </span>
+                      )}
+                    </div>
+                    <div className="pt-0.5">
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+                          window.open(`/progress-reports/${linkedReportId}/print?from=${returnUrl}`, "_blank");
+                        }}
+                        className="w-full h-7 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold gap-1 shadow-xs"
+                      >
+                        <FileText className="w-3 h-3 ml-1" />
+                        <span>عرض تقرير الإنجاز</span>
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 {documentationLinks.map((item, idx) => (
                   <div 
                     key={idx}
@@ -1002,15 +1028,32 @@ export default function DisbursementOrderPrint() {
               </div>
             </div>
           ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowLinksCard(true)}
-              className="bg-white dark:bg-slate-800 shadow-lg border border-slate-200/90 dark:border-slate-700 rounded-full px-3.5 py-1.5 flex items-center gap-2 text-xs font-bold text-primary hover:bg-primary/5 transition-all animate-in fade-in-50"
-            >
-              <Link2 className="w-3.5 h-3.5" />
-              <span>الروابط المرفقة ({documentationLinks.length})</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              {linkedReportId && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+                    window.open(`/progress-reports/${linkedReportId}/print?from=${returnUrl}`, "_blank");
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg rounded-full px-3.5 py-1.5 flex items-center gap-1.5 text-xs font-bold transition-all animate-in fade-in-50"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>عرض تقرير الإنجاز</span>
+                </Button>
+              )}
+              {documentationLinks.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowLinksCard(true)}
+                  className="bg-white dark:bg-slate-800 shadow-lg border border-slate-200/90 dark:border-slate-700 rounded-full px-3.5 py-1.5 flex items-center gap-2 text-xs font-bold text-primary hover:bg-primary/5 transition-all animate-in fade-in-50"
+                >
+                  <Link2 className="w-3.5 h-3.5" />
+                  <span>الروابط المرفقة ({documentationLinks.length})</span>
+                </Button>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -1072,45 +1115,6 @@ export default function DisbursementOrderPrint() {
           }
         }
       `}</style>
-      {/* نافذة معاينة تقرير الإنجاز المرفق */}
-      <Dialog open={showReportPreviewModal} onOpenChange={setShowReportPreviewModal}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-4" dir="rtl">
-          <DialogHeader className="flex flex-row items-center justify-between pb-2 border-b">
-            <div>
-              <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
-                <FileText className="h-5 w-5 text-emerald-600" />
-                معاينة تقرير الإنجاز المرفق {linkedReportNumber ? `(${linkedReportNumber})` : ""}
-              </DialogTitle>
-            </div>
-            <div className="flex items-center gap-2">
-              {linkedReportId && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => window.open(`/progress-reports/${linkedReportId}/print`, "_blank")}
-                  className="gap-1 text-xs font-bold"
-                >
-                  <ExternalLink className="h-3.5 w-3.5 ml-1" />
-                  فتح في صفحة جديدة
-                </Button>
-              )}
-            </div>
-          </DialogHeader>
-          <div className="flex-1 w-full h-full overflow-hidden rounded-lg border bg-muted/20 mt-2">
-            {linkedReportId ? (
-              <iframe
-                src={`/progress-reports/${linkedReportId}/print`}
-                className="w-full h-full border-0"
-                title="معاينة تقرير الإنجاز"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                تعذر تحميل تقرير الإنجاز
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -27,6 +27,7 @@ import {
   ShieldCheck,
   Check,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -191,6 +192,15 @@ export default function NewMilestoneRequest({ params: propParams }: { params?: {
   const selectedContractAmount = contractsList.length > 0
     ? (parseFloat(String(selectedContract?.contractAmount || (selectedContract as any)?.amount || "0").replace(/,/g, "")) || 0)
     : (projectBudget || 0);
+
+  const paidPaymentsSum = useMemo(() => {
+    return (projectDetails?.payments || []).reduce((sum: number, p: any) => {
+      const amt = parseFloat(String(p.paidAmount !== undefined && p.paidAmount !== null ? p.paidAmount : ((p.status === "paid" || p.status === "executed" || !!p.paidAt) ? p.amount : 0)).replace(/,/g, ""));
+      return sum + (isNaN(amt) ? 0 : amt);
+    }, 0);
+  }, [projectDetails?.payments]);
+
+  const isProjectFullyPaid = selectedContractAmount > 0 && paidPaymentsSum >= (selectedContractAmount - 0.05);
 
   const calculatedInvoicePayout = selectedContractAmount > 0 && invoicePercentage > 0
     ? (selectedContractAmount * invoicePercentage) / 100
@@ -386,6 +396,18 @@ export default function NewMilestoneRequest({ params: propParams }: { params?: {
           </div>
         </div>
 
+        {isProjectFullyPaid && (
+          <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl p-5 flex items-start gap-3.5 text-amber-900 dark:text-amber-200">
+            <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h4 className="font-bold text-sm">تم سداد كامل قيمة العقد للمشروع</h4>
+              <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                تم سداد كامل مستحقات العقد المالي لهذا المشروع بقيمة إجمالية مسددة بلغت ({paidPaymentsSum.toLocaleString()} ر.س) من أصل ({selectedContractAmount.toLocaleString()} ر.س). لذلك لا يمكن رفع مستخلصات جديدة.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Form Body - مطابق تماماً لبطاقات ProgressReports */}
         <div className="grid grid-cols-1 gap-6">
           {/* Card 1: المشروع المرتبط */}
@@ -566,30 +588,6 @@ export default function NewMilestoneRequest({ params: propParams }: { params?: {
             </CardContent>
           </Card>
 
-          {/* Card 4: توصية إدارة المشاريع */}
-          <Card className="border-border/60 shadow-sm border-emerald-500/30 bg-emerald-50/10 dark:bg-emerald-950/5">
-            <CardHeader className="bg-emerald-50/40 dark:bg-emerald-950/20 border-b border-border/40 py-4">
-              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-                <ShieldCheck className="w-4.5 h-4.5 text-emerald-600" />
-                توصية إدارة المشاريع
-              </CardTitle>
-              <CardDescription className="text-xs text-muted-foreground">
-                توصية المهندس المشرف وإدارة المشاريع بشأن إنجاز هذه المرحلة وصرف المستخلص المالي (تُنقل تلقائياً لطلب الصرف لتظهر لصناع القرار أثناء الاعتماد)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-3">
-              <div className="space-y-2">
-                <Label className="font-semibold text-foreground">نص توصية إدارة المشاريع</Label>
-                <Textarea
-                  value={invoiceRecommendations}
-                  onChange={(e) => setInvoiceRecommendations(e.target.value)}
-                  placeholder="اكتب هنا توصية إدارة المشاريع بالتفصيل (مثال: نوصي بصرف المستخلص المالي نظراً لمطابقة الأعمال المنفذة على أرض الواقع للمواصفات الفنية المعتمدة وبنسبة إنجاز مستحقة...)"
-                  rows={4}
-                  className="w-full min-h-[110px] leading-relaxed text-foreground text-right"
-                />
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Actions bar - مطابق تماماً لـ ProgressReports */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
@@ -606,6 +604,7 @@ export default function NewMilestoneRequest({ params: propParams }: { params?: {
               disabled={
                 isSubmitting ||
                 createMutation.isPending ||
+                isProjectFullyPaid ||
                 !effectiveProjectId ||
                 !invoiceTitle.trim() ||
                 !invoicePercentage ||

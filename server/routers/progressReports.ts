@@ -5,7 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
 import { checkPermission } from "../permissions";
 import { getDb } from "../db";
-import { progressReports, projects, users, disbursementRequests, disbursementOrders, contractPayments, payments } from "../../drizzle/schema";
+import { progressReports, projects, users, disbursementRequests, disbursementOrders, contractPayments, payments, contracts, contractsEnhanced } from "../../drizzle/schema";
 import { notifyProgressReportCreation, notifyProgressReportApproval, createNotification } from "./notifications";
 
 const pmUsers = alias(users, "pmUsers");
@@ -230,7 +230,7 @@ export const progressReportsRouter = router({
           .innerJoin(projects, eq(progressReports.projectId, projects.id))
           .where(
             and(
-              inArray(progressReports.status, ["pending", "submitted", "draft"]),
+              inArray(progressReports.status, ["pending", "submitted"]),
               eq(projects.managerId, user.id),
               isReportCondition
             )
@@ -261,15 +261,15 @@ export const progressReportsRouter = router({
           .innerJoin(projects, eq(progressReports.projectId, projects.id))
           .where(
             and(
-              inArray(progressReports.status, ["pending", "submitted", "draft"]),
+              inArray(progressReports.status, ["pending", "submitted"]),
               eq(projects.managerId, user.id),
               isInvoiceCondition
             )
           );
         pendingInvoicesCount += Number(pmPendingInvoices?.value || 0);
 
-        // المرحلة الثانية: مستخلصات بانتظار اعتماد المدير التنفيذي (فقط للمدير التنفيذي)
-        if (isExecDirector) {
+        // المرحلة الثانية: مستخلصات بانتظار اعتماد المدير التنفيذي (فقط للمدير التنفيذي، ولا تظهر لـ super_admin إذا لم يكن مدير المشروع)
+        if (isExecDirector && userRole !== "super_admin") {
           const [execPendingInvoices] = await db
             .select({ value: sql<number>`count(*)` })
             .from(progressReports)
@@ -306,8 +306,17 @@ export const progressReportsRouter = router({
       const hasView = await checkPermission(ctx.user.id, "progress_reports.view") || await checkPermission(ctx.user.id, "progress_invoices.view") || await checkPermission(ctx.user.id, "project_reports.view") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve") || await checkPermission(ctx.user.id, "progress_invoices.approve");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
+      const hasDisbursementAccess = input?.projectId ? (
+        await checkPermission(ctx.user.id, "disbursement_orders.view") ||
+        await checkPermission(ctx.user.id, "disbursement_orders.approve") ||
+        await checkPermission(ctx.user.id, "disbursements.view") ||
+        await checkPermission(ctx.user.id, "disbursements.approve") ||
+        await checkPermission(ctx.user.id, "board_chairman") ||
+        await checkPermission(ctx.user.id, "board_chairman_view") ||
+        ["board_chairman", "general_manager", "executive_director", "financial_manager"].includes(ctx.user.role)
+      ) : false;
 
-      if (!hasView && !hasApprove && !hasGeneric) {
+      if (!hasView && !hasApprove && !hasGeneric && !hasDisbursementAccess) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض قائمة تقارير المشاريع" });
       }
 
@@ -412,12 +421,35 @@ export const progressReportsRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const isExternalUser = ctx.user.role === "service_requester" || Boolean((ctx.user as any)?.isExternalSupplier);
+      if (isExternalUser) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض هذا التقرير" });
+      }
+
       const hasView = await checkPermission(ctx.user.id, "progress_reports.view") || await checkPermission(ctx.user.id, "progress_invoices.view") || await checkPermission(ctx.user.id, "project_reports.view") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve") || await checkPermission(ctx.user.id, "progress_invoices.approve");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
+      const hasDisbursementAccess = 
+        await checkPermission(ctx.user.id, "disbursement_orders.view") ||
+        await checkPermission(ctx.user.id, "disbursement_orders.approve") ||
+        await checkPermission(ctx.user.id, "disbursement_orders.sign") ||
+        await checkPermission(ctx.user.id, "disbursements.view") ||
+        await checkPermission(ctx.user.id, "disbursements.approve") ||
+        await checkPermission(ctx.user.id, "disbursements.sign") ||
+        await checkPermission(ctx.user.id, "board_chairman") ||
+        await checkPermission(ctx.user.id, "board_chairman_view") ||
+        await checkPermission(ctx.user.id, "board_leadership.board_chairman_view") ||
+        await checkPermission(ctx.user.id, "board.board_chairman_view") ||
+        await checkPermission(ctx.user.id, "projects.view") ||
+        await checkPermission(ctx.user.id, "projects.view_details") ||
+        ["board_chairman", "general_manager", "executive_director", "financial_manager"].includes(ctx.user.role);
 
-      if (!isAdmin && !hasView && !hasApprove && !hasGeneric) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض تفاصيل تقرير المشاريع" });
+      // السماح بالعرض للمستخدمين المصرح لهم أو المرتبطين بأوامر وطلبات الصرف
+      if (!isAdmin && !hasView && !hasApprove && !hasGeneric && !hasDisbursementAccess) {
+        const isInternalStaff = Boolean(ctx.user.id && ctx.user.role && !isExternalUser);
+        if (!isInternalStaff) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض تفاصيل تقرير المشاريع" });
+        }
       }
 
       const db = await getDb();
@@ -563,6 +595,76 @@ export const progressReportsRouter = router({
       if (!db) throw new Error("Database not available");
 
       try {
+        const isInvoice = (input.workSummary && input.workSummary.includes("[نوع: مستخلص")) || (input.title && input.title.includes("مستخلص"));
+        if (isInvoice) {
+          try {
+            // التحقق مما إذا كانت القيمة المسددة تساوي أو تتجاوز قيمة العقد
+            const [projectRow] = await db
+              .select({
+                id: projects.id,
+                budget: projects.budget,
+              })
+              .from(projects)
+              .where(eq(projects.id, input.projectId))
+              .limit(1);
+
+            const projectContracts = await db
+              .select({
+                id: contractsEnhanced.id,
+                contractAmount: contractsEnhanced.contractAmount,
+              })
+              .from(contractsEnhanced)
+              .where(eq(contractsEnhanced.projectId, input.projectId));
+
+            let contractsSum = projectContracts.reduce((sum, c) => {
+              const amt = parseFloat(String(c.contractAmount || "0").replace(/,/g, ""));
+              return sum + (isNaN(amt) ? 0 : amt);
+            }, 0);
+
+            if (contractsSum === 0) {
+              const legacyContracts = await db
+                .select({
+                  id: contracts.id,
+                  amount: contracts.amount,
+                })
+                .from(contracts)
+                .where(eq(contracts.projectId, input.projectId));
+              contractsSum = legacyContracts.reduce((sum, c) => {
+                const amt = parseFloat(String(c.amount || "0").replace(/,/g, ""));
+                return sum + (isNaN(amt) ? 0 : amt);
+              }, 0);
+            }
+
+            const projectBudgetVal = parseFloat(String(projectRow?.budget || "0").replace(/,/g, "")) || 0;
+            const effectiveContractVal = contractsSum > 0 ? contractsSum : projectBudgetVal;
+
+            const projectPayments = await db
+              .select({
+                amount: payments.amount,
+                status: payments.status,
+                paidAt: payments.paidAt,
+              })
+              .from(payments)
+              .where(eq(payments.projectId, input.projectId));
+
+            const totalPaidSum = projectPayments.reduce((sum, p) => {
+              const isPaid = p.status === "paid" || !!p.paidAt;
+              const amt = parseFloat(String(isPaid ? (p.amount || 0) : 0).replace(/,/g, ""));
+              return sum + (isNaN(amt) ? 0 : amt);
+            }, 0);
+
+            if (effectiveContractVal > 0 && totalPaidSum >= (effectiveContractVal - 0.05)) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "لا يمكن إنشاء مستخلص جديد: تم سداد كامل قيمة العقد لهذا المشروع بالكامل.",
+              });
+            }
+          } catch (valErr: any) {
+            if (valErr instanceof TRPCError) throw valErr;
+            console.error("Error validating invoice contract value:", valErr);
+          }
+        }
+
         const year = new Date().getFullYear();
         const prefix = `RPT-${year}-`;
         const [lastReport] = await db
@@ -607,10 +709,17 @@ export const progressReportsRouter = router({
           createdBy: ctx.user.id,
         });
 
-        await notifyProgressReportCreation(result.insertId, reportNumber, input.title || "", input.projectId);
+        try {
+          await notifyProgressReportCreation(result.insertId, reportNumber, input.title || "", input.projectId);
+        } catch (notifErr) {
+          console.error("Failed to notify progress report creation:", notifErr);
+        }
 
         return { id: result.insertId, reportNumber };
       } catch (error: any) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
         console.error("Error creating progress report:", error);
         if (error.message?.includes("packet for query is too large") || error.code === 'ER_NET_PACKET_TOO_LARGE') {
           throw new Error("حجم المرفقات كبير جداً. تجاوز الحد المسموح لقاعدة البيانات.");

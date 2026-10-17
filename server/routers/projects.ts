@@ -650,7 +650,17 @@ export const projectsRouter = router({
         !userPermissions.includes("projects.financials") &&
         !userPermissions.includes("progress_reports.view") &&
         !userPermissions.includes("progress_invoices.view") &&
-        !userPermissions.includes("disbursements.view")
+        !userPermissions.includes("disbursements.view") &&
+        !userPermissions.includes("disbursements.approve") &&
+        !userPermissions.includes("disbursements.sign") &&
+        !userPermissions.includes("disbursement_orders.view") &&
+        !userPermissions.includes("disbursement_orders.approve") &&
+        !userPermissions.includes("disbursement_orders.sign") &&
+        !userPermissions.includes("board_chairman") &&
+        !userPermissions.includes("board_chairman_view") &&
+        !userPermissions.includes("board_leadership.board_chairman_view") &&
+        !userPermissions.includes("board.board_chairman_view") &&
+        !["board_chairman", "general_manager", "executive_director", "financial_manager"].includes(ctx.user.role)
       ) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض تفاصيل هذا المشروع" });
       }
@@ -3945,6 +3955,21 @@ export const projectsRouter = router({
           )
         );
 
+      projectContracts.forEach((c: any) => {
+        let val = c.paymentScheduleJson;
+        while (typeof val === "string") {
+          try {
+            val = JSON.parse(val);
+          } catch {
+            break;
+          }
+        }
+        c.paymentScheduleJson = val;
+        if (val && typeof val === "object" && !Array.isArray(val) && val.paymentSystem) {
+          c.paymentSystem = val.paymentSystem;
+        }
+      });
+
       const contractIds = projectContracts.map(c => c.id);
 
       // جلب دفعات العقود
@@ -4111,6 +4136,99 @@ export const projectsRouter = router({
           completionPercentage: (p.completionPercentage !== null && p.completionPercentage !== undefined) ? p.completionPercentage : null,
           hasDisbursementRequest: hasDisb,
           hasProgressReport: hasReport,
+        });
+      });
+
+      // 3. إضافة طلبات الصرف والمستخلصات المرفوعة مباشرة (غير المرتبطة بـ contractPayment أو payment)
+      const unlinkedDisbs = projectDisbursements.filter(d => 
+        d.status !== "rejected" &&
+        !allContractPayments.some(cp => cp.id === d.contractPaymentId) &&
+        !manualPayments.some(mp => mp.id === d.paymentId)
+      );
+
+      unlinkedDisbs.forEach(d => {
+        const cleanId = String(d.id);
+        const agreedAmount = parseFloat(String(d.amount || "0"));
+        
+        const ordersForDisb = projectOrders.filter(o => o.disbursementRequestId === d.id);
+        const executedOrders = ordersForDisb.filter(o => o.status === "executed");
+
+        let paidAmount = 0;
+        if (executedOrders.length > 0) {
+          paidAmount = executedOrders.reduce((sum, o) => sum + parseFloat(String(o.amount || "0")), 0);
+        } else if (d.status === "paid") {
+          paidAmount = agreedAmount;
+        }
+
+        const isFullyPaid = d.status === "paid" || (paidAmount >= agreedAmount && agreedAmount > 0);
+        const isPartiallyPaid = !isFullyPaid && paidAmount > 0;
+
+        let paymentStatus = "pending";
+        let paidAtDate = null;
+
+        if (isFullyPaid) {
+          paymentStatus = "paid";
+          paidAtDate = executedOrders[0]?.executedAt || d.dateMiladi || d.createdAt;
+        } else if (isPartiallyPaid) {
+          paymentStatus = "partially_paid";
+          paidAtDate = executedOrders[0]?.executedAt || d.dateMiladi || d.createdAt;
+        } else if (ordersForDisb.some(o => o.status === "approved") || d.status === "approved" || d.status === "pending" || d.status === "pending_executive") {
+          paymentStatus = "due";
+        } else {
+          paymentStatus = d.status || "pending";
+        }
+
+        const rawDate = executedOrders[0]?.executedAt || d.dateMiladi || d.createdAt;
+
+        const hasReport = projectProgressReports.some(r => {
+          if (r.status === "rejected" || r.status === "revoked") return false;
+          const ws = r.workSummary || "";
+          if (ws.includes(`[معرف المستخلص: disb-${cleanId}]`) || ws.includes(`[معرف المستخلص: ${cleanId}]`) || ws.includes(`[معرف الدفعة: disb-${cleanId}]`) || ws.includes(`[معرف الدفعة: ${cleanId}]`)) {
+            return true;
+          }
+          const expectedTitle = `تقرير إنجاز - ${d.title || d.requestNumber}`;
+          return r.title === expectedTitle;
+        });
+
+        const isProgressDisb = 
+          Boolean(d.title?.startsWith("طلب صرف") || 
+          d.description?.includes("تقرير إنجاز") || 
+          d.description?.includes("[معرف المستخلص:") || 
+          d.description?.includes("[معرف الدفعة:"));
+
+        const linkedDisbReqs = projectDisbursements.filter(other => 
+          other.id !== d.id && (
+            other.description?.includes(`[معرف المستخلص: disb-${cleanId}]`) ||
+            other.description?.includes(`[معرف المستخلص: ${cleanId}]`) ||
+            other.description?.includes(`[معرف الدفعة: disb-${cleanId}]`) ||
+            other.description?.includes(`[معرف الدفعة: ${cleanId}]`)
+          )
+        );
+        const hasLinkedDisbursement = linkedDisbReqs.length > 0;
+
+        let effectiveAgreedAmount = agreedAmount;
+        if (effectiveAgreedAmount === 0 && hasLinkedDisbursement) {
+          effectiveAgreedAmount = parseFloat(String(linkedDisbReqs[0].amount || "0"));
+        }
+
+        unifiedPayments.push({
+          id: `disb-${d.id}`,
+          paymentNumber: d.requestNumber,
+          paymentType: d.paymentType || "progress",
+          amount: effectiveAgreedAmount,
+          agreedAmount: effectiveAgreedAmount,
+          paidAmount: paidAmount,
+          status: paymentStatus,
+          description: d.title || d.description || `مستخلص ${d.requestNumber}`,
+          date: rawDate,
+          paidAt: paidAtDate,
+          source: isProgressDisb ? "disbursement" : "milestone",
+          workDescription: (d as any).workDescription || d.description,
+          completionPercentage: (d.completionPercentage !== null && d.completionPercentage !== undefined) ? d.completionPercentage : null,
+          contractId: d.contractId || undefined,
+          hasDisbursementRequest: isProgressDisb || hasLinkedDisbursement,
+          hasProgressReport: hasReport,
+          items: [],
         });
       });
 

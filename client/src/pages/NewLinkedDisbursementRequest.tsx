@@ -283,6 +283,10 @@ export default function NewLinkedDisbursementRequest() {
   const [showUnderProgressDialog, setShowUnderProgressDialog] = useState(false);
   const [isUnderProgressConfirmed, setIsUnderProgressConfirmed] = useState(false);
 
+  // حالة تنبيه وتأكيد كون طلب الصرف أعلى من نسبة الإنجاز المعتمدة لتقرير المستخلص
+  const [showOverProgressDialog, setShowOverProgressDialog] = useState(false);
+  const [isOverProgressConfirmed, setIsOverProgressConfirmed] = useState(false);
+
   // إعادة ضبط التغطيّة التلقائية عند دخول الخطوة الثانية أو تغيير المشروع أو تقرير الإنجاز لضمان إظهار النافذة المنبثقة
   useEffect(() => {
     if (step === 2) {
@@ -292,6 +296,7 @@ export default function NewLinkedDisbursementRequest() {
 
   useEffect(() => {
     setIsUnderProgressConfirmed(false);
+    setIsOverProgressConfirmed(false);
   }, [selectedReportId]);
 
   // قائمة الموردين
@@ -880,11 +885,19 @@ export default function NewLinkedDisbursementRequest() {
 
 
 
-  // تنظيف ملخص الأعمال وإزالة وسوم المعرفات البرمجية الداخلية
+  // تنظيف ملخص الأعمال وإزالة وسوم المعرفات البرمجية والبيانات الوصفية
   const cleanWorkSummary = (text?: string | null): string => {
     if (!text) return "";
     return text
+      .replace(/\[نوع:\s*[^\]]+\]/g, "")
+      .replace(/\[معرف العقد:\s*[^\]]+\]/g, "")
+      .replace(/\[رقم العقد:\s*[^\]]+\]/g, "")
+      .replace(/\[قيمة العقد:\s*[^\]]+\]/g, "")
+      .replace(/\[نسبة الإنجاز:\s*[^\]]+\]/g, "")
+      .replace(/\[المبلغ المستحق:\s*[^\]]+\]/g, "")
       .replace(/\[(?:معرف المستخلص|معرف الدفعة):\s*[^\]]+\]/g, "")
+      .replace(/^وصف الأعمال المنجزة:\s*/gm, "")
+      .replace(/^الأعمال المنفذة فعلياً:\s*/gm, "")
       .replace(/\n\s*\n\s*\n/g, "\n\n")
       .trim();
   };
@@ -1055,9 +1068,35 @@ export default function NewLinkedDisbursementRequest() {
   useEffect(() => {
     if (selectedReport) {
       const workSummaryText = selectedReport.workSummary || "";
-      const cleaned = cleanWorkSummary(workSummaryText);
-      const actualMatch = cleaned.match(/الأعمال المنفذة فعلياً:\r?\n([\s\S]*?)$/);
-      const actual = actualMatch ? actualMatch[1].trim() : cleaned;
+      
+      // استخراج الأعمال المنفذة فعلياً فقط من تقرير الإنجاز أو المستخلص
+      let actual = "";
+      const milestoneMatch = workSummaryText.match(/وصف الأعمال المنجزة:\s*([\s\S]*?)$/);
+      const actualMatch = workSummaryText.match(/الأعمال المنفذة فعلياً:\s*([\s\S]*?)(?:\r?\n\s*\[(?:معرف الدفعة|معرف المستخلص):|$)/);
+      
+      if (milestoneMatch && milestoneMatch[1].trim()) {
+        actual = milestoneMatch[1]
+          .replace(/\[(?:نوع|معرف العقد|رقم العقد|قيمة العقد|نسبة الإنجاز|المبلغ المستحق|معرف المستخلص|معرف الدفعة):\s*[^\]]+\]/g, "")
+          .trim();
+      } else if (actualMatch && actualMatch[1].trim()) {
+        actual = actualMatch[1]
+          .replace(/\[(?:معرف المستخلص|معرف الدفعة):\s*[^\]]+\]/g, "")
+          .trim();
+      } else {
+        const parts = workSummaryText.split(/الأعمال المنفذة فعلياً:\s*/);
+        if (parts.length > 1 && parts[1].trim()) {
+          actual = parts[1]
+            .replace(/\[(?:معرف المستخلص|معرف الدفعة):\s*[^\]]+\]/g, "")
+            .trim();
+        } else {
+          actual = workSummaryText
+            .replace(/الأعمال المجدولة (?:للدفعة|للمستخلص):\s*[\s\S]*?(?=الأعمال المنفذة فعلياً:|$)/g, "")
+            .replace(/\[(?:نوع|معرف العقد|رقم العقد|قيمة العقد|نسبة الإنجاز|المبلغ المستحق|معرف المستخلص|معرف الدفعة):\s*[^\]]+\]/g, "")
+            .replace(/^وصف الأعمال المنجزة:\s*/gm, "")
+            .replace(/^الأعمال المنفذة فعلياً:\s*/gm, "")
+            .trim();
+        }
+      }
 
       const targetPaymentId = paymentInfo ? (parseInt(String(paymentInfo.id).replace(/^(cp-|disb-|manual-)/i, "")) || 0) : 0;
       const targetContractId = (paymentInfo as any)?.contractId || (projectContracts?.contracts?.[0]?.id || 0);
@@ -1066,11 +1105,14 @@ export default function NewLinkedDisbursementRequest() {
         ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(selectedReport.reportDate))
         : new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
+      const finalDescription = actual || selectedReport.title || "";
+
       setFormData(prev => {
         if (
           prev.contractPaymentId === targetPaymentId && 
           prev.completionPercentage === selectedReport.actualProgress &&
           prev.dateMiladi === reportDateFormatted &&
+          prev.description === finalDescription &&
           (targetContractId === 0 || prev.contractId === targetContractId)
         ) {
           return prev;
@@ -1078,7 +1120,7 @@ export default function NewLinkedDisbursementRequest() {
         return {
           ...prev,
           title: `طلب صرف لـ ${selectedReport.title}`,
-          description: `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
+          description: finalDescription,
           completionPercentage: selectedReport.actualProgress || 0,
           dateMiladi: reportDateFormatted,
           contractPaymentId: targetPaymentId,
@@ -1332,6 +1374,12 @@ export default function NewLinkedDisbursementRequest() {
     )
   );
 
+  const isDisbursementOverProgress = Boolean(
+    isMilestoneLinkedReport && reportProgress > 0 && expectedProgressAmount > 0 && (
+      totalAmount > (expectedProgressAmount + 0.01)
+    )
+  );
+
   // تحديث الحساب البنكي والآيبان تلقائياً عند تغيير اسم البنك لمورد جديد
   const handleBankChange = (id: string, bankName: string) => {
     setSuppliers(suppliers.map(s => s.id === id ? { ...s, bank: bankName } : s));
@@ -1439,6 +1487,10 @@ export default function NewLinkedDisbursementRequest() {
   const handleStep2Next = () => {
     if (isDisbursementUnderProgress && !isUnderProgressConfirmed) {
       setShowUnderProgressDialog(true);
+      return;
+    }
+    if (isDisbursementOverProgress && !isOverProgressConfirmed) {
+      setShowOverProgressDialog(true);
       return;
     }
     if (hasFunderPaymentDeficit && !disburseFromGeneralAccount) {
@@ -1549,6 +1601,12 @@ export default function NewLinkedDisbursementRequest() {
     // 1. التحقق عند كون طلب الصرف المرتبط بتقرير مستخلص أقل من نسبة الإنجاز المعتمدة
     if (isDisbursementUnderProgress && !isUnderProgressConfirmed) {
       setShowUnderProgressDialog(true);
+      return;
+    }
+
+    // 1.1 التحقق عند كون طلب الصرف المرتبط بتقرير مستخلص أعلى من نسبة الإنجاز المعتمدة
+    if (isDisbursementOverProgress && !isOverProgressConfirmed) {
+      setShowOverProgressDialog(true);
       return;
     }
 
@@ -3282,6 +3340,124 @@ export default function NewLinkedDisbursementRequest() {
               className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm"
             >
               نعم، تأكيد ومتابعة الصرف
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal التحقق والتنبيه عند كون طلب الصرف أعلى من نسبة الإنجاز المعتمدة لتقرير المستخلص */}
+      <Dialog open={showOverProgressDialog} onOpenChange={setShowOverProgressDialog}>
+        <DialogContent className="dir-rtl text-right max-w-lg rounded-2xl p-6 overflow-hidden border border-amber-300 dark:border-amber-700 shadow-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" dir="rtl">
+          {/* Header Title */}
+          <div className="flex items-start gap-3.5 pb-4 border-b border-slate-100 dark:border-slate-800 pr-1 pl-8">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 flex items-center justify-center shrink-0 mt-0.5">
+              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="space-y-1 text-right">
+              <DialogTitle className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 leading-snug">
+                تنبيه: المبلغ المراد صرفه أعلى من نسبة إنجاز المستخلص
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                مبلغ الصرف المطلوب إدخاله يتجاوز المبلغ المقابل لنسبة الإنجاز الفعلي المعتمدة في تقرير إنجاز المستخلص.
+              </DialogDescription>
+            </div>
+          </div>
+
+          <div className="space-y-4 py-4 text-xs text-right">
+            {/* Comparison Card */}
+            <div className="p-4 bg-amber-50/60 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-900/40 space-y-2.5">
+              <div className="flex justify-between items-center text-xs sm:text-sm font-semibold border-b border-amber-200/50 dark:border-amber-900/40 pb-2">
+                <span className="text-slate-700 dark:text-slate-300">نسبة الإنجاز المعتمدة للمستخلص:</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-400 text-sm sm:text-base">
+                  {reportProgress}%
+                </span>
+              </div>
+
+              {contractAmount > 0 && (
+                <div className="flex justify-between items-center text-xs sm:text-sm">
+                  <span className="text-slate-600 dark:text-slate-400">نسبة طلب الصرف الحالي من العقد:</span>
+                  <span className="font-bold text-amber-700 dark:text-amber-400">
+                    {disbPct}%
+                  </span>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center text-xs sm:text-sm">
+                <span className="text-slate-600 dark:text-slate-400">مبلغ طلب الصرف المطلوب:</span>
+                <span className="font-bold text-rose-700 dark:text-rose-400 text-sm sm:text-base inline-flex items-center gap-1">
+                  {totalAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5" />
+                </span>
+              </div>
+
+              {expectedProgressAmount > 0 && (
+                <div className="flex justify-between items-center border-t border-amber-200/50 dark:border-amber-900/40 pt-2 font-bold text-xs sm:text-sm">
+                  <span className="text-slate-700 dark:text-slate-300">المبلغ المقابل لنسبة الإنجاز المعتمدة:</span>
+                  <span className="font-bold text-emerald-800 dark:text-emerald-300 inline-flex items-center gap-1">
+                    {expectedProgressAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+              )}
+
+              {expectedProgressAmount > 0 && totalAmount > expectedProgressAmount && (
+                <div className="flex justify-between items-center border-t border-dashed border-amber-200/50 dark:border-amber-900/40 pt-2 font-bold text-xs">
+                  <span className="text-amber-950 dark:text-amber-300">مبلغ الزيادة عن نسبة الإنجاز:</span>
+                  <span className="font-bold text-amber-800 dark:text-amber-300 inline-flex items-center gap-1">
+                    {(totalAmount - expectedProgressAmount).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3 h-3" />
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 rounded-xl space-y-1 text-right">
+              <p className="font-bold text-amber-950 dark:text-amber-300 text-xs flex items-center gap-1.5">
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                <span>هل ترغب بالتأكيد والمتابعة؟</span>
+              </p>
+              <p className="text-[11px] text-amber-900 dark:text-amber-200/90 leading-relaxed font-normal">
+                المبلغ المراد صرفه أكبر من المبلغ المستحق بحسب نسبة الإنجاز المعتمدة. يمكنك التأكيد والمتابعة أو التراجع لتعديل المبلغ.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowOverProgressDialog(false)}
+              className="w-full sm:w-auto text-xs font-semibold rounded-xl"
+            >
+              تراجع وتعديل المبلغ
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setShowOverProgressDialog(false);
+                setIsOverProgressConfirmed(true);
+                if (step === 2) {
+                  if (hasFunderPaymentDeficit && !disburseFromGeneralAccount) {
+                    setShowSupporterDeficitDialog(true);
+                    return;
+                  }
+                  if (!isCustom) {
+                    setSuppliers(prev => prev.map(s => {
+                      if (s.agreedAmount > 0 && (!s.amount || s.amount === 0)) {
+                        return { ...s, amount: s.agreedAmount };
+                      }
+                      return s;
+                    }));
+                  }
+                  setStep(3);
+                } else {
+                  if (hasFunderPaymentDeficit && !disburseFromGeneralAccount) {
+                    setShowSupporterDeficitDialog(true);
+                    return;
+                  }
+                  executeDisbursementSubmit(disburseFromGeneralAccount);
+                }
+              }}
+              className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm"
+            >
+              تأكيد ومتابعة الصرف
             </Button>
           </DialogFooter>
         </DialogContent>
