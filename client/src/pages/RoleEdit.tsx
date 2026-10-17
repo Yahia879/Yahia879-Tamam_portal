@@ -101,7 +101,7 @@ const superAdminGroups = [
         ] 
       },
       { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
-      { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
+      { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "exception_approve"] },
       { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind"] },
       { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
       { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view"] },
@@ -336,6 +336,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     },
     receipt_vouchers: {
       view: "عرض سندات القبض",
+      add: "تسجيل سند قبض جديد",
       edit: "تعديل سند القبض",
       exception_approve: "استثناء اعتماد السند",
     },
@@ -738,6 +739,14 @@ export default function RoleEdit() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية لسندات القبض إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("receipt_vouchers.") && permId !== "receipt_vouchers.view") {
+      if (!selectedPerms.includes("receipt_vouchers.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض سندات القبض' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل صلاحية إرسال التذكير لمركز الاعتماد المالي إذا كان عرض مركز الاعتماد معطلاً
     if (permId === "board_leadership.remind") {
       if (!selectedPerms.includes("board_chairman")) {
@@ -814,6 +823,11 @@ export default function RoleEdit() {
         // عند إلغاء تفعيل صلاحية 'عرض أوامر الصرف'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات أوامر الصرف الأخرى
         if (permId === "disbursement_orders.view") {
           next = next.filter(id => !id.startsWith("disbursement_orders."));
+        }
+
+        // عند إلغاء تفعيل صلاحية 'عرض سندات القبض'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات سندات القبض الأخرى
+        if (permId === "receipt_vouchers.view") {
+          next = next.filter(id => !id.startsWith("receipt_vouchers."));
         }
 
 
@@ -1123,6 +1137,7 @@ export default function RoleEdit() {
                           {modulePerms.map((perm: any) => {
                             const isChecked = isPermissionGranted(perm.id);
                             const isDisabled = 
+                              (perm.id.startsWith("receipt_vouchers.") && perm.id !== "receipt_vouchers.view" && !selectedPerms.includes("receipt_vouchers.view")) ||
                               (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !selectedPerms.includes("contracts.view")) ||
                               (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && !selectedPerms.includes("disbursement_orders.view")) ||
                               (perm.id === "board_leadership.remind" && !selectedPerms.includes("board_chairman")) ||
