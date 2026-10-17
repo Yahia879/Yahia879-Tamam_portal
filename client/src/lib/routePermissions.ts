@@ -171,7 +171,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "financial_approval.purchase_orders",
     "financial_approval.progress_reports",
   ],
-  "/boq-preparations": ["quotations", "requests.view_details", "requests.view", "boq", "boq.add", "boq.edit", "boq.delete"],
+  "/boq": ["boq.view", "boq", "boq.add", "boq.edit", "boq.delete", "boq.import", "boq.export", "quotations", "requests.view_details", "requests.view"],
+  "/boq-preparations": ["boq.view", "boq", "boq.add", "boq.edit", "boq.delete", "boq.import", "boq.export", "quotations", "requests.view_details", "requests.view"],
 
   // ── مالية سدانة (أوامر الشراء والخطاب المجتمعي وأوامر الصرف) ──
   "/orders-and-letters": [
@@ -367,7 +368,36 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/contract-templates\/\d+\/print$/, permission: ["settings_center", "settings_contracts.view", "contracts"] },
 
   // BOQ
-  { pattern: /^\/boq\/\d+$/, permission: ["quotations", "requests.view_details", "boq", "boq.add", "boq.edit", "boq.delete"] },
+  {
+    pattern: /^\/boq-preparations\/[^/]+$/,
+    permission: [
+      "boq.view",
+      "boq",
+      "boq.add",
+      "boq.edit",
+      "boq.delete",
+      "boq.import",
+      "boq.export",
+      "quotations",
+      "requests.view_details",
+      "requests.view",
+    ],
+  },
+  {
+    pattern: /^\/boq\/[^/]+$/,
+    permission: [
+      "boq.view",
+      "boq",
+      "boq.add",
+      "boq.edit",
+      "boq.delete",
+      "boq.import",
+      "boq.export",
+      "quotations",
+      "requests.view_details",
+      "requests.view",
+    ],
+  },
   { pattern: /^\/sedana-quotations\/[^/]+$/, permission: [
     "sedana_quotations",
     "sedana_quotations.view",
