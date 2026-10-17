@@ -504,6 +504,7 @@ export const requestsRouter = router({
       const isFinalReportAssignee = request.finalReportAssignedTo === ctx.user.id;
       const isInternal = ["super_admin", "system_admin", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager", "corporate_comm"].includes(ctx.user.role);
       const hasDetailsPerm = await checkPermission(ctx.user.id, "requests.view_details") || 
+                             await checkPermission(ctx.user.id, "requests.view") ||
                              await checkPermission(ctx.user.id, "requests.manage_as_field_team") ||
                              await checkPermission(ctx.user.id, "requests.manage_as_quick_response") ||
                              await checkPermission(ctx.user.id, "pending_reports.view") ||
@@ -511,6 +512,14 @@ export const requestsRouter = router({
                              await checkPermission(ctx.user.id, "orders_and_letters") ||
                              await checkPermission(ctx.user.id, "purchase_orders.view") ||
                              await checkPermission(ctx.user.id, "csr_letters.view") ||
+                             await checkPermission(ctx.user.id, "boq.view") ||
+                             await checkPermission(ctx.user.id, "boq") ||
+                             await checkPermission(ctx.user.id, "boq.add") ||
+                             await checkPermission(ctx.user.id, "boq.edit") ||
+                             await checkPermission(ctx.user.id, "boq.delete") ||
+                             await checkPermission(ctx.user.id, "boq.import") ||
+                             await checkPermission(ctx.user.id, "boq.export") ||
+                             await checkPermission(ctx.user.id, "quotations") ||
                              ["financial", "financial_manager"].includes(ctx.user.role) ||
                              (ctx.user.role === 'corporate_comm' && isFinalReportAssignee);
 
@@ -797,7 +806,7 @@ export const requestsRouter = router({
         }
 
         // الفريق الميداني يرى الطلبات المسندة إليه فقط (سواء كمسؤول عام أو مسؤول زيارة ميدانية)
-        if (isFieldTeam) {
+        if (isFieldTeam && !input.boqPreparationsView) {
           conditions.push(
             or(
               eq(mosqueRequests.assignedTo, ctx.user.id),
@@ -807,14 +816,14 @@ export const requestsRouter = router({
         }
 
         // فريق الاستجابة السريعة
-        if (ctx.user.role === "quick_response") {
+        if (ctx.user.role === "quick_response" && !input.boqPreparationsView) {
           conditions.push(
             sql`(${mosqueRequests.assignedTo} = ${ctx.user.id} OR ${mosqueRequests.priority} = 'urgent')`
           );
         }
 
         // موظف الاتصال المؤسسي يرى فقط الطلبات المسندة إليه للتقرير الختامي
-        if (ctx.user.role === "corporate_comm") {
+        if (ctx.user.role === "corporate_comm" && !input.boqPreparationsView) {
           conditions.push(eq(mosqueRequests.finalReportAssignedTo, ctx.user.id));
         }
       }
