@@ -367,7 +367,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   // 3. المشتريات والمالية
   const finItems: MenuItem[] = [];
   if (has("suppliers"))           finItems.push({ icon: Truck,       label: "الموردون",        path: "/suppliers" });
-  if (has("boq") || has("boq.add") || has("boq.edit") || has("boq.delete")) {
+  if (has("boq") || has("boq.view") || has("boq.add") || has("boq.edit") || has("boq.delete") || has("boq.import") || has("boq.export")) {
     finItems.push({ icon: Calculator,    label: "إعداد جداول الكميات",   path: "/boq-preparations" });
   }
   if (has("quotations")) {
