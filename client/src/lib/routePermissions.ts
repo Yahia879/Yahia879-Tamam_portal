@@ -215,8 +215,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/disbursement-orders/new-direct": "disbursement_orders",
   "/receipt-vouchers": ["receipt_vouchers", "receipt_vouchers.view", "receipt_vouchers.add", "receipt_vouchers.edit", "receipt_vouchers.exception_approve"],
   "/receipt-vouchers/new": ["receipt_vouchers", "receipt_vouchers.add", "receipt_vouchers.edit"],
-  "/custody-requests": ["custody_requests", "custody_requests.view"],
-  "/custody-requests/new": ["custody_requests", "custody_requests.view"],
+  "/custody-requests": ["custody_requests", "custody_requests.view", "custody_requests.create", "custody_requests.settle"],
+  "/custody-requests/new": ["custody_requests", "custody_requests.create"],
 
   // ── تقارير الإنجاز والمشاريع والمستخلصات ──
   "/progress-reports": ["progress_reports", "progress_reports.view"],
