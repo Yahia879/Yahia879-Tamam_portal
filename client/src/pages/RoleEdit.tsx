@@ -83,7 +83,7 @@ const superAdminGroups = [
   {
     title: "المشتريات والمالية",
     modules: [
-      { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "edit", "approve"] },
+      { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "edit", "approve", "suspend"] },
       { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
       { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
       { 
@@ -260,7 +260,8 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       add: "إضافة مورد",
       approve: "الاعتمادات (اعتماد أو رفض مورد)",
       edit: "تعديل بيانات الموردين",
-      delete: "حذف مورد"
+      delete: "حذف مورد",
+      suspend: "إيقاف المورد وإعادة تفعيله"
     },
     quotations: {
       view: "عرض قائمة عروض الأسعار",
