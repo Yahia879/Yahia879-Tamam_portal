@@ -49,10 +49,12 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
   ({ requestId, projectId, isLocked: externalIsLocked, hideAddButton }, ref) => {
     const { user } = useAuth();
     const userPermissions = (user as any)?.permissions ?? [];
-    const hasViewDetails = userPermissions.includes("requests.view_details") || ["super_admin", "system_admin", "projects_office"].includes(user?.role || "");
-    const canAdd = userPermissions.includes("boq.add") || userPermissions.includes("quotations") || hasViewDetails;
-    const canEdit = userPermissions.includes("boq.edit") || userPermissions.includes("quotations") || hasViewDetails;
-    const canDelete = userPermissions.includes("boq.delete") || userPermissions.includes("quotations") || hasViewDetails;
+    const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "") || userPermissions.includes("*");
+    const canAdd = isAdmin || userPermissions.includes("boq.add") || userPermissions.includes("boq");
+    const canEdit = isAdmin || userPermissions.includes("boq.edit") || userPermissions.includes("boq");
+    const canDelete = isAdmin || userPermissions.includes("boq.delete") || userPermissions.includes("boq");
+    const canImport = isAdmin || userPermissions.includes("boq.import") || userPermissions.includes("boq");
+    const canExport = isAdmin || userPermissions.includes("boq.export") || userPermissions.includes("boq");
 
     const [showAddDialog, setShowAddDialog] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
@@ -182,9 +184,21 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
           views: [{ showGridLines: true, rightToLeft: true }]
         });
 
-        // إضافة العناوين والمثال
+        // إضافة العناوين والمحتوى
         worksheet.addRow(["التصنيف", "اسم البند", "الوحدة", "الكمية", "سعر الوحدة"]);
-        worksheet.addRow(["أعمال إنشائية", "مثال: أعمال صيانة وسباكة", "متر مكعب", 10, 50]);
+        if (boqData && boqData.length > 0) {
+          boqData.forEach((item: any) => {
+            worksheet.addRow([
+              categoriesMap[item.category] || item.category || "أخرى",
+              item.itemName,
+              item.unit,
+              parseFloat(item.quantity) || 0,
+              item.unitPrice ? parseFloat(item.unitPrice) : 0
+            ]);
+          });
+        } else {
+          worksheet.addRow(["أعمال إنشائية", "مثال: أعمال صيانة وسباكة", "متر مكعب", 10, 50]);
+        }
 
         // قائمة التصنيفات المعتمدة ديناميكياً من الموقع
         const cleanCategories = allCategories
@@ -240,12 +254,12 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
         const mosqueSuffix = currentTargetMosqueId 
           ? `_${mosquesList.find(m => m.id === currentTargetMosqueId)?.name || currentTargetMosqueId}` 
           : "";
-        a.download = `قالب_جدول_الكميات${mosqueSuffix}.xlsx`;
+        a.download = boqData && boqData.length > 0 ? `جدول_الكميات${mosqueSuffix}.xlsx` : `قالب_جدول_الكميات${mosqueSuffix}.xlsx`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        toast.success("تم تنزيل قالب جدول الكميات بنجاح");
+        toast.success(boqData && boqData.length > 0 ? "تم تصدير وتحميل جدول الكميات بنجاح" : "تم تنزيل قالب جدول الكميات بنجاح");
       } catch (error) {
         console.error("Failed to generate Excel template:", error);
         toast.error("حدث خطأ أثناء تنزيل القالب");
@@ -516,7 +530,7 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
         )}
 
         {/* شريط الإجراءات والتحكم */}
-        {!hideAddButton && !isLocked && canAdd && (
+        {!hideAddButton && (canAdd || canImport || canExport) && (
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-muted/40 p-4 shadow-xs">
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400">
@@ -542,37 +556,43 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                 accept=".xlsx,.xls,.csv"
                 onChange={handleExcelUpload}
               />
-              <Button
-                onClick={downloadTemplate}
-                variant="outline"
-                className="border-teal-600/40 text-teal-700 dark:text-teal-300 hover:bg-teal-50 text-xs sm:text-sm font-semibold rounded-lg"
-                size="sm"
-              >
-                <Download className="h-4 w-4 ml-1.5" />
-                تحميل القالب
-              </Button>
-              <Button
-                onClick={() => document.getElementById("boq-excel-upload")?.click()}
-                variant="outline"
-                className="border-teal-600/40 text-teal-700 dark:text-teal-300 hover:bg-teal-50 text-xs sm:text-sm font-semibold rounded-lg"
-                size="sm"
-                disabled={bulkMutation.isPending}
-              >
-                {bulkMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin ml-1.5" />
-                ) : (
-                  <Upload className="h-4 w-4 ml-1.5" />
-                )}
-                استيراد بنود (Excel)
-              </Button>
-              <Button
-                onClick={() => setShowAddDialog(true)}
-                className="bg-teal-600 text-white text-xs hover:bg-teal-700 sm:text-sm font-bold rounded-lg shadow-sm"
-                size="sm"
-              >
-                <Plus className="h-4 w-4 ml-1.5" />
-                إضافة بند جديد
-              </Button>
+              {canExport && (
+                <Button
+                  onClick={downloadTemplate}
+                  variant="outline"
+                  className="border-teal-600/40 text-teal-700 dark:text-teal-300 hover:bg-teal-50 text-xs sm:text-sm font-semibold rounded-lg"
+                  size="sm"
+                >
+                  <Download className="h-4 w-4 ml-1.5" />
+                  تصدير وتحميل جدول الكميات
+                </Button>
+              )}
+              {!isLocked && canImport && (
+                <Button
+                  onClick={() => document.getElementById("boq-excel-upload")?.click()}
+                  variant="outline"
+                  className="border-teal-600/40 text-teal-700 dark:text-teal-300 hover:bg-teal-50 text-xs sm:text-sm font-semibold rounded-lg"
+                  size="sm"
+                  disabled={bulkMutation.isPending}
+                >
+                  {bulkMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin ml-1.5" />
+                  ) : (
+                    <Upload className="h-4 w-4 ml-1.5" />
+                  )}
+                  استيراد جدول الكميات من Excel
+                </Button>
+              )}
+              {!isLocked && canAdd && (
+                <Button
+                  onClick={() => setShowAddDialog(true)}
+                  className="bg-teal-600 text-white text-xs hover:bg-teal-700 sm:text-sm font-bold rounded-lg shadow-sm"
+                  size="sm"
+                >
+                  <Plus className="h-4 w-4 ml-1.5" />
+                  إضافة بند جديد
+                </Button>
+              )}
             </div>
           </div>
         )}
