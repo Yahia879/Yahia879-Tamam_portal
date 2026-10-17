@@ -617,7 +617,7 @@ export const custodyRouter = router({
 
       const { calculateUserPermissions } = await import("../permissions");
       const userPermissions = await calculateUserPermissions(ctx.user.id);
-      const canCreate = isSuperAdmin || isExecutiveDirector || userPermissions.includes("custody_requests.create") || userPermissions.includes("custody_requests");
+      const canCreate = isSuperAdmin || isExecutiveDirector || userPermissions.includes("custody_requests.create");
       if (!canCreate) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -1553,13 +1553,10 @@ export const custodyRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const { isFinancialOfficer, isSuperAdmin } = checkCustodyRoles(ctx.user);
-      const { calculateUserPermissions } = await import("../permissions");
-      const userPermissions = await calculateUserPermissions(ctx.user.id);
-      const canSettle = isFinancialOfficer || isSuperAdmin || userPermissions.includes("custody_requests.settle") || userPermissions.includes("custody_requests");
-      if (!canSettle) {
+      if (!isFinancialOfficer && !isSuperAdmin) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "ليس لديك صلاحية لتسوية وإغلاق العهدة المالية",
+          message: "فقط المسؤول المالي أو مدير النظام يمكنهما تصفية وإغلاق العهدة المالية",
         });
       }
 
