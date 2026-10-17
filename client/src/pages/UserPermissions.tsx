@@ -780,7 +780,8 @@ export default function UserPermissions() {
         view_details: "عرض تفاصيل المورد",
         add: "إضافة مورد",
         edit: "تعديل بيانات الموردين",
-        approve: "الاعتمادات (اعتماد أو رفض مورد)"
+        approve: "الاعتمادات (اعتماد أو رفض مورد)",
+        suspend: "إيقاف المورد وإعادة تفعيله"
       },
       quotations: {
         view: "عرض قائمة عروض الأسعار",
@@ -1006,7 +1007,7 @@ export default function UserPermissions() {
     {
       title: "المشتريات والمالية",
       modules: [
-        { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "edit", "approve"] },
+        { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "edit", "approve", "suspend"] },
         { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
         { 
