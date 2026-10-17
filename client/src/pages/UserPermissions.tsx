@@ -195,6 +195,14 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية لجداول الكميات إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("boq.") && permId !== "boq.view") {
+      if (!isChecked("boq.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض جداول الكميات' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية لعروض الأسعار إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("quotations.") && permId !== "quotations.view") {
       if (!isChecked("quotations.view")) {
@@ -478,6 +486,7 @@ export default function UserPermissions() {
 
         if (permId === "mosques.view") cascadeRevoke("mosques.");
         if (permId === "suppliers.view") cascadeRevoke("suppliers.");
+        if (permId === "boq.view") cascadeRevoke("boq.");
         if (permId === "quotations.view") cascadeRevoke("quotations.");
         if (permId === "staff_users.view") cascadeRevoke("staff_users.");
         if (permId === "staff_roles.view") cascadeRevoke("staff_roles.");
@@ -951,9 +960,12 @@ export default function UserPermissions() {
         view_own: "عرض زياراتي الميدانية الخاصة بي فقط"
       },
       boq: {
+        view: "عرض جداول الكميات",
         add: "إضافة بند جديد",
         edit: "تعديل بنود",
-        delete: "حذف بنود"
+        delete: "حذف بنود",
+        import: "استيراد جدول الكميات من Excel",
+        export: "تصدير وتحميل جدول الكميات"
       },
       technical_support: {
         view: "عرض التذاكر",
@@ -1008,7 +1020,7 @@ export default function UserPermissions() {
       title: "المشتريات والمالية",
       modules: [
         { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "edit", "approve", "suspend"] },
-        { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
+        { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["view", "add", "edit", "delete", "import", "export"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
         { 
           id: "financial_approval", 
@@ -1310,6 +1322,7 @@ export default function UserPermissions() {
                               (perm.id === "board_leadership.remind" && !isChecked("board_chairman")) ||
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !isChecked("mosques.view")) ||
                               (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !isChecked("suppliers.view")) ||
+                              (perm.id.startsWith("boq.") && perm.id !== "boq.view" && !isChecked("boq.view")) ||
                               (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !isChecked("quotations.view")) ||
                               (perm.id.startsWith("staff_users.") && perm.id !== "staff_users.view" && !isChecked("staff_users.view")) ||
                               (perm.id.startsWith("staff_roles.") && perm.id !== "staff_roles.view" && !isChecked("staff_roles.view")) ||
