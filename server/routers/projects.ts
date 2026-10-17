@@ -344,6 +344,8 @@ export const projectsRouter = router({
         !userPermissions.includes("progress_invoices.view") &&
         !userPermissions.includes("disbursements.view") &&
         !userPermissions.includes("receipt_vouchers") &&
+        !userPermissions.includes("receipt_vouchers.view") &&
+        !userPermissions.includes("receipt_vouchers.add") &&
         !userPermissions.includes("financial_report") &&
         !userPermissions.includes("financial_approval") &&
         !userPermissions.includes("disbursement_requests") &&
@@ -4710,6 +4712,7 @@ export const projectsRouter = router({
       if (
         !isAdmin &&
         !userPermissions.includes("projects.add_receipt_voucher") &&
+        !userPermissions.includes("receipt_vouchers.add") &&
         !userPermissions.includes("receipt_vouchers.edit") &&
         !userPermissions.includes("receipt_vouchers")
       ) {
