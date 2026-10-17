@@ -499,7 +499,7 @@ export default function SupplierDetails() {
             )}
 
             {supplier.approvalStatus === "approved" && (
-              <PermissionGuard permission="suppliers.edit">
+              <PermissionGuard permission="suppliers.suspend">
                 <Button
                   variant="outline"
                   onClick={() => setShowSuspendDialog(true)}
@@ -512,7 +512,7 @@ export default function SupplierDetails() {
             )}
 
             {supplier.approvalStatus === "suspended" && (
-              <PermissionGuard permission="suppliers.approve">
+              <PermissionGuard permission="suppliers.suspend">
                 <Button
                   onClick={handleApprove}
                   disabled={approveMutation.isPending}
