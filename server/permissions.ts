@@ -286,10 +286,13 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "project_reports.view": ["project_reports.view"],
   "project_reports.create": ["project_reports.create", "project_reports.view"],
 
-  boq: ["boq.add", "boq.edit", "boq.delete"],
-  "boq.add": ["boq.add"],
-  "boq.edit": ["boq.edit"],
-  "boq.delete": ["boq.delete"],
+  boq: ["boq.view", "boq.add", "boq.edit", "boq.delete", "boq.import", "boq.export"],
+  "boq.view": ["boq.view"],
+  "boq.add": ["boq.add", "boq.view"],
+  "boq.edit": ["boq.edit", "boq.view"],
+  "boq.delete": ["boq.delete", "boq.view"],
+  "boq.import": ["boq.import", "boq.view"],
+  "boq.export": ["boq.export", "boq.view"],
   pending_reports: ["pending_reports.view", "pending_reports.intervene"],
   "pending_reports.view": ["pending_reports.view"],
   "pending_reports.intervene": ["pending_reports.intervene"],
@@ -1144,9 +1147,12 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "forms_customization.registration", moduleId: "settings", action: "registration", nameAr: "تخصيص نماذج التسجيل والتبرع", nameEn: "Customize Registration & Donation Forms" },
       { id: "settings_escalation.view", moduleId: "settings", action: "view", nameAr: "تعيين وقت التأخير ومدد المراحل", nameEn: "Set Delay Times & Stage Durations" },
       { id: "requests.upload_final_report", moduleId: "requests", action: "upload_final_report", nameAr: "رفع التقرير الختامي", nameEn: "Upload Final Report" },
+      { id: "boq.view", moduleId: "boq", action: "view", nameAr: "عرض جداول الكميات", nameEn: "View BOQ" },
       { id: "boq.add", moduleId: "boq", action: "add", nameAr: "إضافة بند جديد", nameEn: "Add BOQ Item" },
       { id: "boq.edit", moduleId: "boq", action: "edit", nameAr: "تعديل البنود", nameEn: "Edit BOQ Items" },
       { id: "boq.delete", moduleId: "boq", action: "delete", nameAr: "حذف البنود", nameEn: "Delete BOQ Items" },
+      { id: "boq.import", moduleId: "boq", action: "import", nameAr: "استيراد جدول الكميات من Excel", nameEn: "Import BOQ from Excel" },
+      { id: "boq.export", moduleId: "boq", action: "export", nameAr: "تصدير وتحميل جدول الكميات", nameEn: "Export and Download BOQ" },
       { id: "pending_reports.view", moduleId: "pending_reports", action: "view", nameAr: "عرض التقارير", nameEn: "View Reports" },
       { id: "pending_reports.intervene", moduleId: "pending_reports", action: "intervene", nameAr: "تدخل لرفع التقرير", nameEn: "Intervene to Upload Report" },
       { id: "requests.sign_final_report", moduleId: "requests", action: "sign_final_report", nameAr: "توقيع التقرير الختامي", nameEn: "Sign Final Report" },
@@ -1824,6 +1830,16 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   }
   if (allPermissions.has("suppliers.view") || allPermissions.has("suppliers.view_details") || allPermissions.has("suppliers.add") || allPermissions.has("suppliers.edit") || allPermissions.has("suppliers.approve") || allPermissions.has("suppliers.suspend")) {
     allPermissions.add("suppliers");
+  }
+  if (
+    allPermissions.has("boq.view") &&
+    allPermissions.has("boq.add") &&
+    allPermissions.has("boq.edit") &&
+    allPermissions.has("boq.delete") &&
+    allPermissions.has("boq.import") &&
+    allPermissions.has("boq.export")
+  ) {
+    allPermissions.add("boq");
   }
   if (allPermissions.has("quotations.view")) {
     allPermissions.add("quotations");
@@ -2508,9 +2524,9 @@ export const permissionsRouter = router({
       const rolePermissionsMapping: Record<string, string[] | string> = {
         super_admin: "*",
         system_admin: "*",
-        general_manager: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports"],
-        executive_director: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports"],
-        projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "progress_reports", "progress_invoices"],
+        general_manager: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports"],
+        executive_director: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports"],
+        projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "progress_reports", "progress_invoices"],
         field_team: ["mosques.view", "requests.view", "requests.edit", "requests.manage_as_field_team", "field_visits"],
         quick_response: ["requests.view", "requests.manage_as_quick_response", "field_visits.view", "reports.create"],
         financial: ["financial", "quotations", "disbursements", "suppliers.view", "financial_reports"],
