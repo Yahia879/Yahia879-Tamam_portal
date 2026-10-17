@@ -105,8 +105,9 @@ export default function SuppliersManagement() {
   const { user } = useAuth();
   const hasApprovePermission = usePermission("suppliers.approve");
   const hasEditPermission = usePermission("suppliers.edit");
+  const hasSuspendPermission = usePermission("suppliers.suspend");
   const hasViewDetailsPermission = usePermission("suppliers.view_details");
-  const canSuspend = hasApprovePermission || hasEditPermission || ["super_admin", "system_admin"].includes(user?.role ?? "");
+  const canSuspend = hasSuspendPermission || ["super_admin", "system_admin"].includes(user?.role ?? "");
   const canViewDetails = hasViewDetailsPermission || ["super_admin", "system_admin"].includes(user?.role ?? "");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
@@ -437,7 +438,7 @@ export default function SuppliersManagement() {
                                   إيقاف
                                 </DropdownMenuItem>
                               )}
-                              {supplier.approvalStatus === "suspended" && hasApprovePermission && (
+                              {supplier.approvalStatus === "suspended" && canSuspend && (
                                 <DropdownMenuItem
                                   onClick={() => handleApprove(supplier.id)}
                                   className="text-green-600 font-bold"
