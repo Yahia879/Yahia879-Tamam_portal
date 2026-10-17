@@ -213,8 +213,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/disbursement-requests": "disbursement_requests",
   "/disbursement-orders": "disbursement_orders",
   "/disbursement-orders/new-direct": "disbursement_orders",
-  "/receipt-vouchers": ["receipt_vouchers", "receipt_vouchers.view", "receipt_vouchers.edit", "receipt_vouchers.exception_approve"],
-  "/receipt-vouchers/new": ["receipt_vouchers", "receipt_vouchers.edit"],
+  "/receipt-vouchers": ["receipt_vouchers", "receipt_vouchers.view", "receipt_vouchers.add", "receipt_vouchers.edit", "receipt_vouchers.exception_approve"],
+  "/receipt-vouchers/new": ["receipt_vouchers", "receipt_vouchers.add", "receipt_vouchers.edit"],
   "/custody-requests": ["custody_requests", "custody_requests.view"],
   "/custody-requests/new": ["custody_requests", "custody_requests.view"],
 
