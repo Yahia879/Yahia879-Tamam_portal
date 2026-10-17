@@ -856,7 +856,6 @@ export default function UserPermissions() {
       custody_requests: {
         view: "عرض قسم العهدة المالية",
         create: "طلب عهدة مالية جديدة",
-        settle: "تسوية العهدة المالية وإغلاقها",
       },
       sedana_quotations: {
         view: "عرض عروض أسعار سدانة",
@@ -1066,7 +1065,7 @@ export default function UserPermissions() {
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
-        { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create", "settle"] },
+        { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create"] },
       ]
     },
     {
