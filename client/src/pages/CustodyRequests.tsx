@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
 import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { Button } from "@/components/ui/button";
@@ -151,6 +152,34 @@ export default function CustodyRequests() {
   // فقط المدير التنفيذي هو من يعتمد طلبات العهدة
   const canApprove = isExecutiveDirector;
 
+  const hasCreatePerm = usePermission("custody_requests.create");
+  const hasSettlePerm = usePermission("custody_requests.settle");
+  const hasCustodyAll = usePermission("custody_requests");
+  const userPermissions: string[] = (user as any)?.permissions ?? [];
+
+  const canCreate = isSuperAdmin || isExecutiveDirector || hasCreatePerm || hasCustodyAll || userPermissions.includes("custody_requests.create") || userPermissions.includes("custody_requests");
+  const canSettle = isSuperAdmin || isFinancialOfficer || hasSettlePerm || hasCustodyAll || userPermissions.includes("custody_requests.settle") || userPermissions.includes("custody_requests");
+
+  // إدارة حوار التسوية
+  const [settleDialogOpen, setSettleDialogOpen] = useState(false);
+  const [selectedForSettle, setSelectedForSettle] = useState<any>(null);
+  const [settleNotes, setSettleNotes] = useState("");
+
+  const settleMutation = trpc.custody.settle.useMutation({
+    onSuccess: () => {
+      toast.success("تمت تسوية العهدة المالية وإغلاقها بنجاح");
+      setSettleDialogOpen(false);
+      setSelectedForSettle(null);
+      setSettleNotes("");
+      utils.custody.getAll.invalidate();
+      utils.custody.getStats.invalidate();
+      utils.custody.checkActiveCustody.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء تسوية العهدة المالية");
+    },
+  });
+
   // نطاق طلبات الاستثناء للـ super_admin: طلبات الموظفين أو طلباتي
   const [exceptionScope, setExceptionScope] = useState<"staff" | "my">("staff");
 
@@ -260,7 +289,15 @@ export default function CustodyRequests() {
     });
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, isSettled?: boolean) => {
+    if (isSettled) {
+      return (
+        <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700 gap-1 font-semibold text-xs py-1">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+          تمت التسوية والإغلاق
+        </Badge>
+      );
+    }
     switch (status) {
       case "pending_executive":
         return (
@@ -316,15 +353,17 @@ export default function CustodyRequests() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <Button
-              onClick={() => setLocation("/custody-requests/new")}
-              className="gradient-primary text-white font-bold rounded-xl shadow-md gap-2 h-11 px-5 cursor-pointer"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>طلب صرف عهدة مالية جديدة</span>
-            </Button>
-          </div>
+          {canCreate && (
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <Button
+                onClick={() => setLocation("/custody-requests/new")}
+                className="gradient-primary text-white font-bold rounded-xl shadow-md gap-2 h-11 px-5 cursor-pointer"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>طلب صرف عهدة مالية جديدة</span>
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Tabs: طلبات الموظفين وطلباتي وطلبات الاستثناء */}
@@ -914,7 +953,7 @@ export default function CustodyRequests() {
                   >
                     إعادة ضبط الفلاتر
                   </Button>
-                ) : (
+                ) : canCreate ? (
                   <Button
                     onClick={() => setLocation("/custody-requests/new")}
                     className="gradient-primary text-white text-xs font-bold rounded-xl h-9 px-4 gap-1.5"
@@ -922,7 +961,7 @@ export default function CustodyRequests() {
                     <PlusCircle className="w-3.5 h-3.5" />
                     <span>تقديم أول طلب عهدة</span>
                   </Button>
-                )}
+                ) : null}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -1009,7 +1048,7 @@ export default function CustodyRequests() {
 
                         <TableCell>
                           <div className="flex flex-col gap-1 items-start">
-                            {getStatusBadge(req.status)}
+                            {getStatusBadge(req.status, req.isSettled)}
                           </div>
                         </TableCell>
 
@@ -1060,6 +1099,23 @@ export default function CustodyRequests() {
                                   <span>رفض</span>
                                 </Button>
                               </>
+                            )}
+
+                            {canSettle && !req.isSettled && (req.status === "converted_to_order" || req.status === "approved") && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedForSettle(req);
+                                  setSettleNotes("");
+                                  setSettleDialogOpen(true);
+                                }}
+                                className="h-8 px-2.5 rounded-lg text-xs gap-1 font-bold text-amber-700 hover:text-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/20 border-amber-300"
+                                title="تسوية العهدة المالية وإغلاقها"
+                              >
+                                <Landmark className="w-3.5 h-3.5" />
+                                <span>تسوية العهدة</span>
+                              </Button>
                             )}
                           </div>
                         </TableCell>
@@ -1339,6 +1395,61 @@ export default function CustodyRequests() {
                 className="rounded-xl text-xs h-9 px-4"
               >
                 إغلاق
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* حوار تسوية العهدة المالية وإغلاقها */}
+        <Dialog open={settleDialogOpen} onOpenChange={setSettleDialogOpen}>
+          <DialogContent dir="rtl" className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-right">تسوية العهدة المالية وإغلاقها</DialogTitle>
+              <DialogDescription className="text-right">
+                تأكيد تسوية العهدة المالية رقم ({selectedForSettle?.requestNumber}) وإغلاقها رسمياً.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2 text-right">
+              <div>
+                <Label htmlFor="settleNotes">ملاحظات التسوية والإغلاق (اختياري)</Label>
+                <Textarea
+                  id="settleNotes"
+                  value={settleNotes}
+                  onChange={(e) => setSettleNotes(e.target.value)}
+                  placeholder="أدخل أي ملاحظات بخصوص تسوية العهدة المالية..."
+                  className="mt-1.5"
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                variant="ghost"
+                onClick={() => setSettleDialogOpen(false)}
+                disabled={settleMutation.isPending}
+              >
+                إلغاء
+              </Button>
+              <Button
+                onClick={() => {
+                  if (selectedForSettle) {
+                    settleMutation.mutate({
+                      id: selectedForSettle.id,
+                      notes: settleNotes.trim() || undefined,
+                    });
+                  }
+                }}
+                disabled={settleMutation.isPending}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+              >
+                {settleMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                    جاري التسوية...
+                  </>
+                ) : (
+                  "تأكيد التسوية والإغلاق"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
