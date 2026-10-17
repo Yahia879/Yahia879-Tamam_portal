@@ -800,7 +800,6 @@ export default function RolePermissions() {
           permissions: [
             { id: "custody_requests.view", nameAr: "عرض قسم العهدة المالية" },
             { id: "custody_requests.create", nameAr: "طلب عهدة مالية جديدة" },
-            { id: "custody_requests.settle", nameAr: "تسوية العهدة المالية وإغلاقها" },
           ]
         }
       ]
@@ -1133,7 +1132,7 @@ export default function RolePermissions() {
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind"] },
-        { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create", "settle"] },
+        { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create"] },
       ]
     },
     {
@@ -1223,7 +1222,7 @@ export default function RolePermissions() {
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
-        { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create", "settle"] },
+        { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create"] },
       ]
     },
     {
@@ -1500,7 +1499,6 @@ export default function RolePermissions() {
       custody_requests: {
         view: "عرض قسم العهدة المالية",
         create: "طلب عهدة مالية جديدة",
-        settle: "تسوية العهدة المالية وإغلاقها",
       },
       sedana_quotations: {
         export_pdf: "تصدير ملف pdf للبنود",
