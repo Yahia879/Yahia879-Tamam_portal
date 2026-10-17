@@ -615,6 +615,16 @@ export const custodyRouter = router({
 
       const { isExecutiveDirector, isSuperAdmin } = checkCustodyRoles(ctx.user);
 
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const canCreate = isSuperAdmin || isExecutiveDirector || userPermissions.includes("custody_requests.create") || userPermissions.includes("custody_requests");
+      if (!canCreate) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ليس لديك صلاحية لتقديم طلب عهدة مالية جديدة",
+        });
+      }
+
       let approvedExceptionId: number | null = null;
 
       // المدير التنفيذي فقط مستثنى من شرط المنع ولا يحتاج إلى طلب استثناء
@@ -1543,10 +1553,13 @@ export const custodyRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const { isFinancialOfficer, isSuperAdmin } = checkCustodyRoles(ctx.user);
-      if (!isFinancialOfficer && !isSuperAdmin) {
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const canSettle = isFinancialOfficer || isSuperAdmin || userPermissions.includes("custody_requests.settle") || userPermissions.includes("custody_requests");
+      if (!canSettle) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "صلاحية تصفية وإغلاق العهد المالية محصورة بالمسؤول المالي أو المشرف العام",
+          message: "ليس لديك صلاحية لتسوية وإغلاق العهدة المالية",
         });
       }
 
