@@ -52,7 +52,7 @@ export default function NewReceiptVoucherPage() {
   const { user } = useAuth();
   const userPermissions: string[] = (user as any)?.permissions ?? [];
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "") || userPermissions.includes("*");
-  const canCreate = isAdmin || userPermissions.includes("receipt_vouchers.edit") || userPermissions.includes("receipt_vouchers");
+  const canCreate = isAdmin || userPermissions.includes("receipt_vouchers.add") || userPermissions.includes("receipt_vouchers.edit") || userPermissions.includes("receipt_vouchers");
 
   // Step state
   const [step, setStep] = useState<1 | 2 | 3>(1);
