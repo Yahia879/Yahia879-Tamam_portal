@@ -70,7 +70,7 @@ const statusConfig: Record<string, { color: string; bg: string; icon: React.Reac
 };
 
 export default function BOQ() {
-  const [, navigate] = useLocation();
+  const [locationPath, navigate] = useLocation();
   const params = useParams();
   const { user } = useAuth();
   const utils = trpc.useUtils();
@@ -82,13 +82,35 @@ export default function BOQ() {
   const [selectedRequestId, setSelectedRequestId] = useState<string>(params.requestId || queryRequestId || "");
   const [page, setPage, resetPage] = usePersistedPage("boq_page");
   const limit = 20;
+
+  const userPermissions = (user as any)?.permissions ?? [];
+  const canViewBOQ =
+    userPermissions.includes("*") ||
+    userPermissions.includes("boq.view") ||
+    userPermissions.includes("boq") ||
+    userPermissions.includes("boq.add") ||
+    userPermissions.includes("boq.edit") ||
+    userPermissions.includes("boq.delete") ||
+    userPermissions.includes("boq.import") ||
+    userPermissions.includes("boq.export") ||
+    userPermissions.includes("quotations") ||
+    userPermissions.includes("requests.view_details") ||
+    userPermissions.includes("requests.view") ||
+    ["super_admin", "system_admin", "projects_office", "financial", "general_manager", "executive_director"].includes(user?.role || "");
+
+  const canEditBOQ =
+    userPermissions.includes("*") ||
+    userPermissions.includes("boq.edit") ||
+    userPermissions.includes("boq.add") ||
+    userPermissions.includes("boq") ||
+    ["super_admin", "system_admin", "projects_office"].includes(user?.role || "");
   
   // تعيين requestId من URL أو معلمات البحث عند تغيير المسار
   useEffect(() => {
     const currentParam = params.requestId;
     const currentQuery = new URLSearchParams(window.location.search).get("requestId");
     setSelectedRequestId(currentParam || currentQuery || "");
-  }, [params.requestId, location]);
+  }, [params.requestId, locationPath]);
 
   // جلب كافة جداول الكميات الخاصة بالطلبات مع الفلترة والبحث السيرفر
   const { data: requestsData, isLoading: isLoadingRequests } = trpc.requests.search.useQuery({
@@ -105,7 +127,7 @@ export default function BOQ() {
   const totalPages = Math.ceil(total / limit);
 
   // جلب الطلب المحدد بالتفصيل
-  const { data: requestDetails } = trpc.requests.getById.useQuery(
+  const { data: requestDetails, isLoading: isLoadingRequestDetails, error: requestDetailsError } = trpc.requests.getById.useQuery(
     { id: parseInt(selectedRequestId) || 0 },
     { enabled: !!selectedRequestId }
   );
@@ -153,6 +175,25 @@ export default function BOQ() {
     },
   });
 
+  if (!canViewBOQ) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
+          <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-950/30 text-red-600 flex items-center justify-center mb-4">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold mb-2">ليس لديك صلاحية لعرض جداول الكميات</h2>
+          <p className="text-muted-foreground max-w-md mb-6">
+            يرجى التواصل مع مدير النظام لمنحك صلاحية "عرض جداول الكميات" (boq.view) للوصول إلى هذا القسم.
+          </p>
+          <Button onClick={() => navigate("/")} variant="outline">
+            العودة للرئيسية
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -175,80 +216,98 @@ export default function BOQ() {
         </div>
 
         {/* عرض تفاصيل الطلب وجدول الكميات الخاص به */}
-        {selectedRequestId && requestDetails ? (
-          <div className="space-y-6">
-            {/* عرض المكون BoqTab */}
-            <BoqTab requestId={parseInt(selectedRequestId)} />
-            
-            {/* زر إنهاء إعداد جدول الكميات والاعتماد */}
-            {boqData && boqData.length > 0 && (
-              <Card className="border-0 shadow-sm bg-white dark:bg-gray-900">
-                <CardContent className="p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      عدد البنود المضافة: {boqData.length}
-                    </p>
-                    <p className="text-xl font-bold text-primary mt-1 inline-flex items-center gap-1">
-                      <span>إجمالي التكلفة التقديرية: {totalAmount.toLocaleString("ar-SA")}</span>
-                      <SaudiRiyal className="w-4 h-4 inline" />
-                    </p>
-                  </div>
-                  {requestDetails?.hasAcceptedQuotation ? (
-                    <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+        {selectedRequestId ? (
+          isLoadingRequestDetails ? (
+            <div className="p-12 text-center bg-white dark:bg-gray-900 rounded-lg shadow-sm">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="text-muted-foreground mt-4 text-sm">جاري تحميل جدول الكميات...</p>
+            </div>
+          ) : requestDetails ? (
+            <div className="space-y-6">
+              {/* عرض المكون BoqTab */}
+              <BoqTab requestId={parseInt(selectedRequestId)} />
+              
+              {/* زر إنهاء إعداد جدول الكميات والاعتماد */}
+              {boqData && boqData.length > 0 && (
+                <Card className="border-0 shadow-sm bg-white dark:bg-gray-900">
+                  <CardContent className="p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        عدد البنود المضافة: {boqData.length}
+                      </p>
+                      <p className="text-xl font-bold text-primary mt-1 inline-flex items-center gap-1">
+                        <span>إجمالي التكلفة التقديرية: {totalAmount.toLocaleString("ar-SA")}</span>
+                        <SaudiRiyal className="w-4 h-4 inline" />
+                      </p>
+                    </div>
+                    {requestDetails?.hasAcceptedQuotation ? (
+                      <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-xs px-3 py-1.5 flex items-center gap-1.5">
+                          <CheckCircle className="w-4 h-4 text-emerald-600" />
+                          تم اعتماد عرض السعر (الجدول مقفل ومعتمد)
+                        </Badge>
+                        {!isContractingOrLater && (
+                          <Button
+                            size="lg"
+                            onClick={() => navigate(`/quotations?requestId=${selectedRequestId}`)}
+                            className="w-full sm:w-auto gap-2 bg-teal-600 hover:bg-teal-700 text-white"
+                          >
+                            <Receipt className="h-5 w-5" />
+                            عرض عروض الأسعار
+                          </Button>
+                        )}
+                      </div>
+                    ) : requestDetails?.currentStage === "boq_preparation" && canEditBOQ ? (
+                      <Button
+                        size="lg"
+                        onClick={() => {
+                          completeBOQMutation.mutate({
+                            requestId: parseInt(selectedRequestId),
+                            newStage: "financial_eval_and_approval",
+                            notes: "تم إنهاء إعداد جدول الكميات واعتماده للمرحلة المالية",
+                          });
+                        }}
+                        disabled={completeBOQMutation.isPending}
+                        className="w-full sm:w-auto gap-2"
+                      >
+                        {completeBOQMutation.isPending ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <FileText className="h-5 w-5" />
+                        )}
+                        اعتماد وإنهاء جدول الكميات
+                      </Button>
+                    ) : !isContractingOrLater ? (
+                      <Button
+                        size="lg"
+                        onClick={() => navigate(`/quotations?requestId=${selectedRequestId}`)}
+                        className="w-full sm:w-auto gap-2 bg-teal-600 hover:bg-teal-700 text-white"
+                      >
+                        <Receipt className="h-5 w-5" />
+                        إدارة عروض الأسعار
+                      </Button>
+                    ) : (
                       <Badge className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-xs px-3 py-1.5 flex items-center gap-1.5">
                         <CheckCircle className="w-4 h-4 text-emerald-600" />
                         تم اعتماد عرض السعر (الجدول مقفل ومعتمد)
                       </Badge>
-                      {!isContractingOrLater && (
-                        <Button
-                          size="lg"
-                          onClick={() => navigate(`/quotations?requestId=${selectedRequestId}`)}
-                          className="w-full sm:w-auto gap-2 bg-teal-600 hover:bg-teal-700 text-white"
-                        >
-                          <Receipt className="h-5 w-5" />
-                          عرض عروض الأسعار
-                        </Button>
-                      )}
-                    </div>
-                  ) : requestDetails?.currentStage === "boq_preparation" ? (
-                    <Button
-                      size="lg"
-                      onClick={() => {
-                        completeBOQMutation.mutate({
-                          requestId: parseInt(selectedRequestId),
-                          newStage: "financial_eval_and_approval",
-                          notes: "تم إنهاء إعداد جدول الكميات واعتماده للمرحلة المالية",
-                        });
-                      }}
-                      disabled={completeBOQMutation.isPending}
-                      className="w-full sm:w-auto gap-2"
-                    >
-                      {completeBOQMutation.isPending ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <FileText className="h-5 w-5" />
-                      )}
-                      اعتماد وإنهاء جدول الكميات
-                    </Button>
-                  ) : !isContractingOrLater ? (
-                    <Button
-                      size="lg"
-                      onClick={() => navigate(`/quotations?requestId=${selectedRequestId}`)}
-                      className="w-full sm:w-auto gap-2 bg-teal-600 hover:bg-teal-700 text-white"
-                    >
-                      <Receipt className="h-5 w-5" />
-                      إدارة عروض الأسعار
-                    </Button>
-                  ) : (
-                    <Badge className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-xs px-3 py-1.5 flex items-center gap-1.5">
-                      <CheckCircle className="w-4 h-4 text-emerald-600" />
-                      تم اعتماد عرض السعر (الجدول مقفل ومعتمد)
-                    </Badge>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          ) : (
+            <div className="p-8 text-center bg-white dark:bg-gray-900 rounded-lg shadow-sm space-y-4">
+              <AlertCircle className="w-12 h-12 text-destructive mx-auto" />
+              <p className="font-semibold text-lg">تعذر تحميل بيانات جدول الكميات</p>
+              <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                {requestDetailsError?.message || "قد يكون الطلب غير موجود أو ليس لديك الصلاحية الكافية لعرضه."}
+              </p>
+              <Button onClick={() => navigate("/boq-preparations")} variant="outline">
+                العودة لقائمة جداول الكميات
+              </Button>
+            </div>
+          )
         ) : (
           <div className="space-y-6">
             {/* الفلاتر والبحث */}
