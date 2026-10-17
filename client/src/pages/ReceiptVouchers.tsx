@@ -80,7 +80,8 @@ export default function ReceiptVouchers() {
   const utils = trpc.useUtils();
   const userPermissions: string[] = (user as any)?.permissions ?? [];
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "") || userPermissions.includes("*");
-  const canView = isAdmin || userPermissions.includes("receipt_vouchers.view") || userPermissions.includes("receipt_vouchers.edit") || userPermissions.some(p => p.startsWith("receipt_vouchers"));
+  const canView = isAdmin || userPermissions.includes("receipt_vouchers.view") || userPermissions.includes("receipt_vouchers.add") || userPermissions.includes("receipt_vouchers.edit") || userPermissions.some(p => p.startsWith("receipt_vouchers"));
+  const canAdd = isAdmin || userPermissions.includes("receipt_vouchers.add") || userPermissions.includes("receipt_vouchers.edit") || userPermissions.includes("receipt_vouchers");
   const canEdit = userPermissions.includes("receipt_vouchers.edit");
   const hasExceptionApprove = usePermission("receipt_vouchers.exception_approve");
 
@@ -602,7 +603,7 @@ export default function ReceiptVouchers() {
             <h1 className="text-2xl font-bold">سندات القبض</h1>
             <p className="text-muted-foreground">إدارة وتوثيق سندات القبض والدفعات المقبوضة فعلياً من الجهات الداعمة للمشاريع</p>
           </div>
-          {canEdit && (
+          {canAdd && (
             <div className="w-full sm:w-auto flex justify-end">
               <Button 
                 onClick={() => navigate("/receipt-vouchers/new")}
