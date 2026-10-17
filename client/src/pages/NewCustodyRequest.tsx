@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,12 +83,18 @@ export default function NewCustodyRequest() {
     user?.name === "المدير التنفيذي" ||
     user?.email === "ceo@manarah.org.sa";
 
+  const isSuperAdmin = user?.role === "super_admin" || user?.role === "system_admin";
+  const hasCreatePerm = usePermission("custody_requests.create");
+  const hasCustodyAll = usePermission("custody_requests");
+  const userPermissions: string[] = (user as any)?.permissions ?? [];
+  const canCreate = isSuperAdmin || isExecutiveDirector || hasCreatePerm || hasCustodyAll || userPermissions.includes("custody_requests.create") || userPermissions.includes("custody_requests");
+
   const hasActiveCustody = isExecutiveDirector ? false : !!custodyCheck?.hasActiveCustody;
   const activeCustody = isExecutiveDirector ? null : custodyCheck?.activeCustody;
   const hasApprovedException = isExecutiveDirector ? false : !!custodyCheck?.hasApprovedException;
   const hasPendingException = isExecutiveDirector ? false : !!custodyCheck?.hasPendingException;
   const hasRejectedException = isExecutiveDirector ? false : !!(custodyCheck as any)?.hasRejectedException;
-  const canSubmit = !isCheckingCustody && (isExecutiveDirector || (!hasActiveCustody || hasApprovedException));
+  const canSubmit = !isCheckingCustody && canCreate && (isExecutiveDirector || (!hasActiveCustody || hasApprovedException));
 
   // نموذج الطلب
   const [title, setTitle] = useState("");
@@ -226,6 +233,26 @@ export default function NewCustodyRequest() {
   };
 
   const hasDefaultBankInfo = !!((user as any)?.bankName && (user as any)?.bankIban);
+
+  if (user && !canCreate) {
+    return (
+      <DashboardLayout>
+        <div className="container py-24 flex flex-col items-center justify-center text-center max-w-lg mx-auto" dir="rtl">
+          <div className="w-16 h-16 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center mb-4">
+            <ShieldAlert className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">ليس لديك صلاحية لطلب عهدة مالية جديدة</h2>
+          <p className="text-muted-foreground mb-6 text-sm">
+            تم تقييد الوصول لهذه الصفحة. يرجى التواصل مع مسؤول النظام لمنحك صلاحية "طلب عهدة مالية جديدة".
+          </p>
+          <Button onClick={() => setLocation("/custody-requests")} className="gap-2">
+            <ArrowRight className="w-4 h-4" />
+            <span>العودة لقسم العهد المالية</span>
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
