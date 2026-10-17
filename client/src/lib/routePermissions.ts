@@ -214,9 +214,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/disbursement-orders": "disbursement_orders",
   "/disbursement-orders/new-direct": "disbursement_orders",
   "/receipt-vouchers": ["receipt_vouchers", "receipt_vouchers.view", "receipt_vouchers.add", "receipt_vouchers.edit", "receipt_vouchers.exception_approve"],
-  "/receipt-vouchers/new": ["receipt_vouchers", "receipt_vouchers.add", "receipt_vouchers.edit"],
-  "/custody-requests": ["custody_requests", "custody_requests.view", "custody_requests.create", "custody_requests.settle"],
-  "/custody-requests/new": ["custody_requests", "custody_requests.create"],
+  "/custody-requests": ["custody_requests", "custody_requests.view", "custody_requests.create"],
+  "/custody-requests/new": ["custody_requests.create"],
 
   // ── تقارير الإنجاز والمشاريع والمستخلصات ──
   "/progress-reports": ["progress_reports", "progress_reports.view"],
@@ -611,16 +610,31 @@ export function hasRouteAccess(
     return userRole !== "service_requester";
   }
 
-  // مسارات العهدة المالية: متاحة لمن تم تفعيل قسم "العهدة المالية" له (باستثناء طالب الخدمة)
+  // مسار إنشاء عهدة جديدة: يتطلب صراحة صلاحية إنشاء عهدة أو صلاحيات الإدارة العليا
+  if (pathname === "/custody-requests/new") {
+    if (userRole === "service_requester") return false;
+    return (
+      userRole === "super_admin" ||
+      userRole === "system_admin" ||
+      userRole === "executive_director" ||
+      userPermissions.includes("*") ||
+      userPermissions.includes("custody_requests.create")
+    );
+  }
+
+  // مسارات العهدة المالية الأخرى: متاحة لمن تم تفعيل قسم العهدة له
   const isCustodyRoute =
     pathname === "/custody-requests" ||
     pathname.startsWith("/custody-requests/");
   if (isCustodyRoute) {
     if (userRole === "service_requester") return false;
     return (
+      userRole === "super_admin" ||
+      userRole === "system_admin" ||
       userPermissions.includes("*") ||
       userPermissions.includes("custody_requests") ||
-      userPermissions.includes("custody_requests.view")
+      userPermissions.includes("custody_requests.view") ||
+      userPermissions.includes("custody_requests.create")
     );
   }
 
