@@ -161,6 +161,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "suppliers.add": ["suppliers.create"],
   "suppliers.edit": ["suppliers.edit"],
   "suppliers.approve": ["suppliers.approve", "suppliers.reject"],
+  "suppliers.suspend": ["suppliers.suspend"],
 
   mosque_map: ["mosque_map.view"],
   "mosque_map.view": ["mosque_map.view"],
@@ -1065,6 +1066,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "requesters.approve", moduleId: "requesters", action: "approve", nameAr: "اعتماد ورفض المستفيدين", nameEn: "Approve Requesters" },
       { id: "suppliers.view_details", moduleId: "suppliers", action: "view_details", nameAr: "عرض تفاصيل المورد", nameEn: "View Supplier Details" },
       { id: "suppliers.add", moduleId: "suppliers", action: "add", nameAr: "إضافة مورد", nameEn: "Add Supplier" },
+      { id: "suppliers.suspend", moduleId: "suppliers", action: "suspend", nameAr: "إيقاف المورد وإعادة تفعيله", nameEn: "Suspend and Reactivate Supplier" },
       { id: "quotations.add", moduleId: "quotations", action: "add", nameAr: "إضافة عرض سعر", nameEn: "Add Quotation" },
       { id: "financial_approval.disbursement_requests", moduleId: "financial_approval", action: "disbursement_requests", nameAr: "عرض طلبات الصرف بانتظار الاعتماد", nameEn: "View Pending Disbursement Requests" },
       { id: "financial_approval.disbursement_orders", moduleId: "financial_approval", action: "disbursement_orders", nameAr: "عرض أوامر الصرف بانتظار الاعتماد", nameEn: "View Pending Disbursement Orders" },
@@ -1820,7 +1822,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.add("staff");
     allPermissions.add("staff_management");
   }
-  if (allPermissions.has("suppliers.view") || allPermissions.has("suppliers.view_details") || allPermissions.has("suppliers.add") || allPermissions.has("suppliers.edit") || allPermissions.has("suppliers.approve")) {
+  if (allPermissions.has("suppliers.view") || allPermissions.has("suppliers.view_details") || allPermissions.has("suppliers.add") || allPermissions.has("suppliers.edit") || allPermissions.has("suppliers.approve") || allPermissions.has("suppliers.suspend")) {
     allPermissions.add("suppliers");
   }
   if (allPermissions.has("quotations.view")) {
