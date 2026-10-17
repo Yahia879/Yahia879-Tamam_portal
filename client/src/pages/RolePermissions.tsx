@@ -319,6 +319,14 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للعهدة المالية إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("custody_requests.") && permId !== "custody_requests.view") {
+      if (!selectedPerms.includes("custody_requests.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض قسم العهدة المالية' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل صلاحية إرسال التذكير لمركز الاعتماد المالي إذا كان عرض مركز الاعتماد معطلاً
     if (permId === "board_leadership.remind") {
       if (!selectedPerms.includes("board_chairman")) {
@@ -410,6 +418,11 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض سندات القبض'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات سندات القبض الأخرى
         if (permId === "receipt_vouchers.view") {
           next = next.filter(id => !id.startsWith("receipt_vouchers."));
+        }
+
+        // عند إلغاء تفعيل صلاحية 'عرض قسم العهدة المالية'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات العهدة المالية الأخرى
+        if (permId === "custody_requests.view") {
+          next = next.filter(id => !id.startsWith("custody_requests."));
         }
 
 
@@ -779,6 +792,16 @@ export default function RolePermissions() {
             { id: "disbursement_orders.exception_approve", nameAr: "استثناء اعتماد مُعد الأمر" },
             { id: "disbursement_orders.remind", nameAr: "إرسال تذكير بالاعتماد" },
           ]
+        },
+        {
+          id: "custody_requests",
+          nameAr: "العهدة المالية",
+          icon: Wallet,
+          permissions: [
+            { id: "custody_requests.view", nameAr: "عرض قسم العهدة المالية" },
+            { id: "custody_requests.create", nameAr: "طلب عهدة مالية جديدة" },
+            { id: "custody_requests.settle", nameAr: "تسوية العهدة المالية وإغلاقها" },
+          ]
         }
       ]
     },
@@ -1110,6 +1133,7 @@ export default function RolePermissions() {
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind"] },
+        { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create", "settle"] },
       ]
     },
     {
@@ -1199,7 +1223,7 @@ export default function RolePermissions() {
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
-        { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view"] },
+        { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create", "settle"] },
       ]
     },
     {
@@ -1475,6 +1499,8 @@ export default function RolePermissions() {
       },
       custody_requests: {
         view: "عرض قسم العهدة المالية",
+        create: "طلب عهدة مالية جديدة",
+        settle: "تسوية العهدة المالية وإغلاقها",
       },
       sedana_quotations: {
         export_pdf: "تصدير ملف pdf للبنود",
@@ -1839,6 +1865,7 @@ export default function RolePermissions() {
                             {modulePerms.map((perm: any) => {
                               const isChecked = isPermissionGranted(perm.id);
                               const isDisabled =
+                                (perm.id.startsWith("custody_requests.") && perm.id !== "custody_requests.view" && !selectedPerms.includes("custody_requests.view")) ||
                                 (perm.id.startsWith("receipt_vouchers.") && perm.id !== "receipt_vouchers.view" && !selectedPerms.includes("receipt_vouchers.view")) ||
                                 (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !selectedPerms.includes("contracts.view")) ||
                                 (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && !selectedPerms.includes("disbursement_orders.view")) ||
