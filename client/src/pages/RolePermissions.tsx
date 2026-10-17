@@ -664,6 +664,7 @@ export default function RolePermissions() {
             { id: "suppliers.add", nameAr: "إضافة مورد جديد" },
             { id: "suppliers.edit", nameAr: "تعديل بيانات الموردين" },
             { id: "suppliers.approve", nameAr: "اعتماد الموردين" },
+            { id: "suppliers.suspend", nameAr: "إيقاف المورد وإعادة تفعيله" },
           ]
         },
         {
@@ -889,6 +890,7 @@ export default function RolePermissions() {
             { id: "suppliers.add", nameAr: "إضافة مورد جديد" },
             { id: "suppliers.edit", nameAr: "تعديل بيانات الموردين" },
             { id: "suppliers.approve", nameAr: "اعتماد الموردين" },
+            { id: "suppliers.suspend", nameAr: "إيقاف المورد وإعادة تفعيله" },
           ]
         },
         {
@@ -1058,7 +1060,7 @@ export default function RolePermissions() {
     {
       title: "المالية والعقود",
       modules: [
-        { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve"] },
+        { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve", "suspend"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
         {
           id: "financial_approval",
@@ -1145,7 +1147,7 @@ export default function RolePermissions() {
     {
       title: "المشتريات والمالية",
       modules: [
-        { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve"] },
+        { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve", "suspend"] },
         { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
         {
@@ -1340,7 +1342,8 @@ export default function RolePermissions() {
         add: "إضافة مورد",
         approve: "الاعتمادات (اعتماد أو رفض مورد)",
         edit: "تعديل بيانات الموردين",
-        delete: "حذف مورد"
+        delete: "حذف مورد",
+        suspend: "إيقاف المورد وإعادة تفعيله"
       },
       quotations: {
         view: "عرض قائمة عروض الأسعار",
