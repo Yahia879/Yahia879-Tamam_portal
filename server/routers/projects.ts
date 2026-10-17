@@ -648,6 +648,8 @@ export const projectsRouter = router({
         !userPermissions.includes("projects.view") &&
         !userPermissions.includes("projects.view_details") &&
         !userPermissions.includes("projects.financials") &&
+        !userPermissions.includes("boq.view") &&
+        !userPermissions.includes("boq") &&
         !userPermissions.includes("progress_reports.view") &&
         !userPermissions.includes("progress_invoices.view") &&
         !userPermissions.includes("disbursements.view") &&
@@ -1635,6 +1637,13 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      const isAuthorizedRole = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasPermission = await checkPermission(ctx.user.id, "boq.import") ||
+                            await checkPermission(ctx.user.id, "boq");
+      if (!isAuthorizedRole && !hasPermission) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لاستيراد بنود جدول الكميات" });
+      }
+
       // البحث عن مشروع مرتبط بالطلب (إن وُجد)
       let projectId: number | null = input.projectId || null;
       if (!projectId && input.requestId) {
@@ -1739,9 +1748,16 @@ export const projectsRouter = router({
       unitPrice: z.number().optional(),
       category: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const isAuthorizedRole = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasPermission = await checkPermission(ctx.user.id, "boq.add") ||
+                            await checkPermission(ctx.user.id, "boq");
+      if (!isAuthorizedRole && !hasPermission) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة بنود إلى جدول الكميات" });
+      }
 
       // البحث عن مشروع مرتبط بالطلب (إن وُجد)
       let projectId = input.projectId || null;
@@ -1828,9 +1844,16 @@ export const projectsRouter = router({
       unitPrice: z.number().optional(),
       category: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const isAuthorizedRole = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasPermission = await checkPermission(ctx.user.id, "boq.edit") ||
+                            await checkPermission(ctx.user.id, "boq");
+      if (!isAuthorizedRole && !hasPermission) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل بنود جدول الكميات" });
+      }
 
       const { id, ...updateData } = input;
 
@@ -1910,9 +1933,16 @@ export const projectsRouter = router({
   // حذف بند من جدول الكميات
   deleteBOQItem: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const isAuthorizedRole = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasPermission = await checkPermission(ctx.user.id, "boq.delete") ||
+                            await checkPermission(ctx.user.id, "boq");
+      if (!isAuthorizedRole && !hasPermission) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لحذف بنود من جدول الكميات" });
+      }
 
       const [currentItem] = await db
         .select()
