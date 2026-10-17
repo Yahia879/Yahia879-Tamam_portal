@@ -995,7 +995,7 @@ export default function RequestDetails() {
                           <div className="text-center py-8 bg-muted/30 rounded-lg border-2 border-dashed">
                             <ClipboardList className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                             <p className="text-muted-foreground mb-4">لم يتم إعداد جدول الكميات بعد</p>
-                            <Link href="/boq">
+                            <Link href={`/boq-preparations/${request.id}`}>
                               <Button variant="outline">
                                 <FileText className="w-4 h-4 ml-2" />
                                 إعداد جدول الكميات
