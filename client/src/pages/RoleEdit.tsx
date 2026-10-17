@@ -84,7 +84,7 @@ const superAdminGroups = [
     title: "المشتريات والمالية",
     modules: [
       { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "edit", "approve", "suspend"] },
-      { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
+      { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["view", "add", "edit", "delete", "import", "export"] },
       { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
       { 
         id: "financial_approval", 
@@ -243,9 +243,12 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       add_receipt_voucher: "إضافة سند صرف",
     },
     boq: {
+      view: "عرض جداول الكميات",
       add: "إضافة بند جديد",
       edit: "تعديل بنود",
-      delete: "حذف بنود"
+      delete: "حذف بنود",
+      import: "استيراد جدول الكميات من Excel",
+      export: "تصدير وتحميل جدول الكميات"
     },
     requesters: {
       view: "عرض قسم إدارة المستفيدين",
@@ -568,6 +571,14 @@ export default function RoleEdit() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية لجداول الكميات إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("boq.") && permId !== "boq.view") {
+      if (!selectedPerms.includes("boq.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض جداول الكميات' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية لعروض الأسعار إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("quotations.") && permId !== "quotations.view") {
       if (!selectedPerms.includes("quotations.view")) {
@@ -747,6 +758,9 @@ export default function RoleEdit() {
         }
         if (permId === "suppliers.view") {
           next = next.filter(id => !id.startsWith("suppliers."));
+        }
+        if (permId === "boq.view") {
+          next = next.filter(id => !id.startsWith("boq."));
         }
         if (permId === "quotations.view") {
           next = next.filter(id => !id.startsWith("quotations."));
@@ -1114,6 +1128,7 @@ export default function RoleEdit() {
                               (perm.id === "board_leadership.remind" && !selectedPerms.includes("board_chairman")) ||
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
                               (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||
+                              (perm.id.startsWith("boq.") && perm.id !== "boq.view" && !selectedPerms.includes("boq.view")) ||
                               (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !selectedPerms.includes("quotations.view")) ||
                               (perm.id.startsWith("staff_users.") && perm.id !== "staff_users.view" && !selectedPerms.includes("staff_users.view")) ||
                               (perm.id.startsWith("staff_roles.") && perm.id !== "staff_roles.view" && !selectedPerms.includes("staff_roles.view")) ||
