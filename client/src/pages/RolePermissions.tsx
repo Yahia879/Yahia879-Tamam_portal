@@ -145,6 +145,14 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية لجداول الكميات إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("boq.") && permId !== "boq.view") {
+      if (!selectedPerms.includes("boq.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض جداول الكميات' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية لعروض الأسعار إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("quotations.") && permId !== "quotations.view") {
       if (!selectedPerms.includes("quotations.view")) {
@@ -325,6 +333,10 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض قائمة الموردين'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات الموردين الأخرى
         if (permId === "suppliers.view") {
           next = next.filter(id => !id.startsWith("suppliers."));
+        }
+        // عند إلغاء تفعيل صلاحية 'عرض جداول الكميات'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات جداول الكميات الأخرى
+        if (permId === "boq.view") {
+          next = next.filter(id => !id.startsWith("boq."));
         }
         // عند إلغاء تفعيل صلاحية 'عرض قائمة عروض الأسعار'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات عروض الأسعار الأخرى
         if (permId === "quotations.view") {
@@ -672,9 +684,12 @@ export default function RolePermissions() {
           nameAr: "إعداد جداول الكميات",
           icon: FileSpreadsheet,
           permissions: [
+            { id: "boq.view", nameAr: "عرض جداول الكميات" },
             { id: "boq.add", nameAr: "إضافة بند جديد" },
             { id: "boq.edit", nameAr: "تعديل بنود" },
             { id: "boq.delete", nameAr: "حذف بنود" },
+            { id: "boq.import", nameAr: "استيراد جدول الكميات من Excel" },
+            { id: "boq.export", nameAr: "تصدير وتحميل جدول الكميات" },
           ]
         },
         {
@@ -1061,6 +1076,7 @@ export default function RolePermissions() {
       title: "المالية والعقود",
       modules: [
         { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve", "suspend"] },
+        { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["view", "add", "edit", "delete", "import", "export"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
         {
           id: "financial_approval",
@@ -1148,7 +1164,7 @@ export default function RolePermissions() {
       title: "المشتريات والمالية",
       modules: [
         { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve", "suspend"] },
-        { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
+        { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["view", "add", "edit", "delete", "import", "export"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
         {
           id: "financial_approval",
@@ -1325,9 +1341,12 @@ export default function RolePermissions() {
         add_receipt_voucher: "إضافة سند صرف",
       },
       boq: {
+        view: "عرض جداول الكميات",
         add: "إضافة بند جديد",
         edit: "تعديل بنود",
-        delete: "حذف بنود"
+        delete: "حذف بنود",
+        import: "استيراد جدول الكميات من Excel",
+        export: "تصدير وتحميل جدول الكميات"
       },
       requesters: {
         view: "عرض قسم إدارة المستفيدين",
@@ -1810,6 +1829,7 @@ export default function RolePermissions() {
                                 (perm.id === "board_leadership.remind" && !selectedPerms.includes("board_chairman")) ||
                                 (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
                                 (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||
+                                (perm.id.startsWith("boq.") && perm.id !== "boq.view" && !selectedPerms.includes("boq.view")) ||
                                 (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !selectedPerms.includes("quotations.view")) ||
                                 (perm.id.startsWith("staff_users.") && perm.id !== "staff_users.view" && !selectedPerms.includes("staff_users.view")) ||
                                 (perm.id.startsWith("staff_roles.") && perm.id !== "staff_roles.view" && !selectedPerms.includes("staff_roles.view")) ||
