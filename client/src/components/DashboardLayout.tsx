@@ -390,7 +390,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   }
   if (has("disbursement_requests")) finItems.push({ icon: Banknote,  label: "طلبات الصرف",    path: "/disbursements" });
   if (has("disbursement_orders")) finItems.push({ icon: FileText,    label: "أوامر الصرف",    path: "/disbursement-orders" });
-  if (has("receipt_vouchers") || has("receipt_vouchers.view") || has("receipt_vouchers.edit") || has("receipt_vouchers.exception_approve")) finItems.push({ icon: Coins, label: "سندات القبض", path: "/receipt-vouchers" });
+  if (has("receipt_vouchers") || has("receipt_vouchers.view") || has("receipt_vouchers.add") || has("receipt_vouchers.edit") || has("receipt_vouchers.exception_approve")) finItems.push({ icon: Coins, label: "سندات القبض", path: "/receipt-vouchers" });
   if (role !== "service_requester" && (has("*") || has("custody_requests") || has("custody_requests.view"))) {
     finItems.push({ icon: Wallet, label: isEn ? "Financial Custody" : "العهد المالية", path: "/custody-requests" });
   }
