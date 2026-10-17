@@ -427,6 +427,7 @@ function Router() {
       <Route path="/csr-letters">{() => <AdminRoute component={CsrLettersList} />}</Route>
       
       {/* التقييم المالي - إدارية */}
+      <Route path="/boq">{() => <AdminRoute component={BOQ} />}</Route>
       <Route path="/boq-preparations">{() => <AdminRoute component={BOQ} />}</Route>
       <Route path="/boq-preparations/:requestId">{() => <AdminRoute component={BOQ} />}</Route>
       <Route path="/boq/:requestId">{() => <AdminRoute component={BOQ} />}</Route>
