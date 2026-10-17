@@ -20,12 +20,16 @@ export function usePermission(permission: string): boolean {
   );
 
   // إذا كان المستخدم غير مسجل دخول، لا يملك أي صلاحيات
-  if (!user || isLoading) {
+  if (!user) {
     return false;
   }
 
-  // التحقق من الصلاحية
-  return permissions?.includes(permission) ?? false;
+  if (permissions !== undefined) {
+    return permissions.includes(permission) || permissions.includes("*");
+  }
+
+  const userPerms: string[] = (user as any)?.permissions ?? [];
+  return userPerms.includes(permission) || userPerms.includes("*");
 }
 
 /**
@@ -46,12 +50,16 @@ export function usePermissions(requiredPermissions: string[]): boolean {
     }
   );
 
-  if (!user || isLoading) {
+  if (!user) {
     return false;
   }
 
-  // التحقق من جميع الصلاحيات
-  return requiredPermissions.every(p => permissions?.includes(p));
+  if (permissions !== undefined) {
+    return permissions.includes("*") || requiredPermissions.every(p => permissions.includes(p));
+  }
+
+  const userPerms: string[] = (user as any)?.permissions ?? [];
+  return userPerms.includes("*") || requiredPermissions.every(p => userPerms.includes(p));
 }
 
 /**
@@ -72,12 +80,16 @@ export function useAnyPermission(permissionsList: string[]): boolean {
     }
   );
 
-  if (!user || isLoading) {
+  if (!user) {
     return false;
   }
 
-  // التحقق من وجود صلاحية واحدة على الأقل
-  return permissionsList.some(p => permissions?.includes(p));
+  if (permissions !== undefined) {
+    return permissions.includes("*") || permissionsList.some(p => permissions.includes(p));
+  }
+
+  const userPerms: string[] = (user as any)?.permissions ?? [];
+  return userPerms.includes("*") || permissionsList.some(p => userPerms.includes(p));
 }
 
 /**
