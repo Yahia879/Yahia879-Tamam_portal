@@ -369,6 +369,14 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للعهدة المالية إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("custody_requests.") && permId !== "custody_requests.view") {
+      if (!isChecked("custody_requests.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض قسم العهدة المالية' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل صلاحية إرسال التذكير لمركز الاعتماد المالي إذا كان عرض مركز الاعتماد معطلاً
     if (permId === "board_leadership.remind") {
       if (!isChecked("board_chairman")) {
@@ -529,6 +537,9 @@ export default function UserPermissions() {
         }
         if (permId === "receipt_vouchers.view") {
           cascadeRevoke("receipt_vouchers.");
+        }
+        if (permId === "custody_requests.view") {
+          cascadeRevoke("custody_requests.");
         }
         if (permId === "purchase_orders.view") {
           cascadeRevoke("purchase_orders.");
@@ -844,6 +855,8 @@ export default function UserPermissions() {
       },
       custody_requests: {
         view: "عرض قسم العهدة المالية",
+        create: "طلب عهدة مالية جديدة",
+        settle: "تسوية العهدة المالية وإغلاقها",
       },
       sedana_quotations: {
         view: "عرض عروض أسعار سدانة",
@@ -1053,7 +1066,7 @@ export default function UserPermissions() {
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
-        { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view"] },
+        { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create", "settle"] },
       ]
     },
     {
@@ -1329,6 +1342,7 @@ export default function UserPermissions() {
                             const overrideState = getOverrideState(perm.id);
 
                             const isDisabled = 
+                              (perm.id.startsWith("custody_requests.") && perm.id !== "custody_requests.view" && !isChecked("custody_requests.view")) ||
                               (perm.id.startsWith("receipt_vouchers.") && perm.id !== "receipt_vouchers.view" && !isChecked("receipt_vouchers.view")) ||
                               (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !isChecked("contracts.view")) ||
                               (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && !isChecked("disbursement_orders.view")) ||
