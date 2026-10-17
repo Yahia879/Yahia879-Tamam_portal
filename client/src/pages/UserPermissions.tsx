@@ -361,6 +361,14 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية لسندات القبض إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("receipt_vouchers.") && permId !== "receipt_vouchers.view") {
+      if (!isChecked("receipt_vouchers.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض سندات القبض' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل صلاحية إرسال التذكير لمركز الاعتماد المالي إذا كان عرض مركز الاعتماد معطلاً
     if (permId === "board_leadership.remind") {
       if (!isChecked("board_chairman")) {
@@ -518,6 +526,9 @@ export default function UserPermissions() {
         }
         if (permId === "disbursement_orders.view") {
           cascadeRevoke("disbursement_orders.");
+        }
+        if (permId === "receipt_vouchers.view") {
+          cascadeRevoke("receipt_vouchers.");
         }
         if (permId === "purchase_orders.view") {
           cascadeRevoke("purchase_orders.");
@@ -862,6 +873,7 @@ export default function UserPermissions() {
       },
       receipt_vouchers: {
         view: "عرض سندات القبض",
+        add: "تسجيل سند قبض جديد",
         edit: "تعديل سند القبض",
         exception_approve: "استثناء اعتماد السند",
       },
@@ -1038,7 +1050,7 @@ export default function UserPermissions() {
         },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
-        { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
+        { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
         { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view"] },
@@ -1317,6 +1329,7 @@ export default function UserPermissions() {
                             const overrideState = getOverrideState(perm.id);
 
                             const isDisabled = 
+                              (perm.id.startsWith("receipt_vouchers.") && perm.id !== "receipt_vouchers.view" && !isChecked("receipt_vouchers.view")) ||
                               (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !isChecked("contracts.view")) ||
                               (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && !isChecked("disbursement_orders.view")) ||
                               (perm.id === "board_leadership.remind" && !isChecked("board_chairman")) ||
