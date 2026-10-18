@@ -19,7 +19,7 @@ import {
   TrendingUp,
   Filter,
   ChevronLeft,
-  Zap,
+  Timer,
   MapPin,
   ClipboardList,
   Languages,
@@ -355,7 +355,7 @@ export default function Requests({
                     <Button 
                       className="bg-amber-600 hover:bg-amber-700 text-white gap-2 w-full sm:w-auto h-10 shadow-sm transition-all font-semibold"
                     >
-                      <Zap className="w-4 h-4" />
+                      <Timer className="w-4 h-4" />
                       {lang === "en" ? "Quick Request" : "طلب سريع"}
                     </Button>
                   </Link>
@@ -638,7 +638,7 @@ export default function Requests({
                               </div>
                             ) : isQuick ? (
                               <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-950/70 text-orange-700 dark:text-orange-300 flex items-center justify-center border border-orange-300 dark:border-orange-700 shadow-xs" title={isEn ? "Quick Request" : "طلب سريع"}>
-                                <Zap className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                <Timer className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                               </div>
                             ) : isDonation ? (
                               <div className="w-8 h-8 rounded-lg bg-pink-100 dark:bg-pink-950/70 text-pink-700 dark:text-pink-300 flex items-center justify-center border border-pink-300 dark:border-pink-700 shadow-xs" title={isEn ? "Donation Opportunity" : "فرصة تبرع"}>
@@ -663,7 +663,7 @@ export default function Requests({
                                   </div>
                                 ) : isQuick ? (
                                   <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-950/70 text-orange-700 dark:text-orange-300 flex items-center justify-center border border-orange-300 dark:border-orange-700 shadow-xs" title={isEn ? "Quick Request" : "طلب سريع"}>
-                                    <Zap className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                    <Timer className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                                   </div>
                                 ) : isDonation ? (
                                   <div className="w-8 h-8 rounded-lg bg-pink-100 dark:bg-pink-950/70 text-pink-700 dark:text-pink-300 flex items-center justify-center border border-pink-300 dark:border-pink-700 shadow-xs" title={isEn ? "Donation Opportunity" : "فرصة تبرع"}>
@@ -700,7 +700,7 @@ export default function Requests({
                                   )}
                                   {isQuick && (
                                     <Badge variant="outline" className="bg-orange-100 dark:bg-orange-950/70 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-700 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0">
-                                      <Zap className="w-2.5 h-2.5 text-orange-600 dark:text-orange-400" />
+                                      <Timer className="w-2.5 h-2.5 text-orange-600 dark:text-orange-400" />
                                       <span>{isEn ? "Quick Request" : "طلب سريع"}</span>
                                     </Badge>
                                   )}
