@@ -20,8 +20,6 @@ import {
   AlertCircle,
   CheckCircle2,
   Users,
-  CheckSquare,
-  Square,
   Loader2
 } from "lucide-react";
 import { toast } from "sonner";
@@ -443,26 +441,6 @@ export default function DirectNotificationTab({
           {/* شريط أدوات التحديد السريع */}
           <div className="flex flex-wrap items-center justify-between gap-2 pt-3 mt-3 border-t border-border/40 text-xs">
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleToggleSelectPage}
-                className="h-7 text-xs rounded-lg gap-1.5 font-bold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                {isPageAllSelected ? (
-                  <>
-                    <Square className="w-3.5 h-3.5 text-teal-600" />
-                    <span>إلغاء تحديد هذه الصفحة ({paginatedRecipients.length})</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckSquare className="w-3.5 h-3.5 text-teal-600" />
-                    <span>تحديد الصفحة الحالية ({paginatedRecipients.length})</span>
-                  </>
-                )}
-              </Button>
-
               <Button
                 type="button"
                 variant="outline"
