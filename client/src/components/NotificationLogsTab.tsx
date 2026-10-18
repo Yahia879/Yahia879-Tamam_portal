@@ -87,7 +87,7 @@ export default function NotificationLogsTab({
     if (!dateVal) return "—";
     try {
       const d = new Date(dateVal);
-      return d.toLocaleDateString("ar-SA", {
+      return d.toLocaleDateString("ar-SA-u-nu-latn", {
         year: "numeric",
         month: "short",
         day: "numeric",
@@ -156,7 +156,7 @@ export default function NotificationLogsTab({
               <span>إجمالي السجلات</span>
               <Layers className="w-3.5 h-3.5 text-primary" />
             </div>
-            <p className="text-xl font-black text-foreground font-mono">{stats.total.toLocaleString("ar-SA")}</p>
+            <p className="text-xl font-black text-foreground font-mono">{stats.total.toLocaleString("en-US")}</p>
             <span className="text-[10px] text-muted-foreground">كافة القنوات السابقة والجديدة</span>
           </CardContent>
         </Card>
@@ -168,7 +168,7 @@ export default function NotificationLogsTab({
               <span>إشعارات الموقع</span>
               <Bell className="w-3.5 h-3.5" />
             </div>
-            <p className="text-xl font-black text-sky-800 dark:text-sky-200 font-mono">{stats.inApp.toLocaleString("ar-SA")}</p>
+            <p className="text-xl font-black text-sky-800 dark:text-sky-200 font-mono">{stats.inApp.toLocaleString("en-US")}</p>
             <span className="text-[10px] text-muted-foreground">إشعارات المنصة والجرس</span>
           </CardContent>
         </Card>
@@ -180,7 +180,7 @@ export default function NotificationLogsTab({
               <span>رسائل SMS</span>
               <Smartphone className="w-3.5 h-3.5" />
             </div>
-            <p className="text-xl font-black text-amber-800 dark:text-amber-200 font-mono">{stats.sms.toLocaleString("ar-SA")}</p>
+            <p className="text-xl font-black text-amber-800 dark:text-amber-200 font-mono">{stats.sms.toLocaleString("en-US")}</p>
             <span className="text-[10px] text-muted-foreground">بوابة الرسائل النصية</span>
           </CardContent>
         </Card>
@@ -192,7 +192,7 @@ export default function NotificationLogsTab({
               <span>البريد الإلكتروني</span>
               <Mail className="w-3.5 h-3.5" />
             </div>
-            <p className="text-xl font-black text-indigo-800 dark:text-indigo-200 font-mono">{stats.email.toLocaleString("ar-SA")}</p>
+            <p className="text-xl font-black text-indigo-800 dark:text-indigo-200 font-mono">{stats.email.toLocaleString("en-US")}</p>
             <span className="text-[10px] text-muted-foreground">خادم البريد SMTP</span>
           </CardContent>
         </Card>
@@ -204,7 +204,7 @@ export default function NotificationLogsTab({
               <span>رسائل واتساب</span>
               <MessageSquare className="w-3.5 h-3.5" />
             </div>
-            <p className="text-xl font-black text-emerald-800 dark:text-emerald-200 font-mono">{stats.whatsapp.toLocaleString("ar-SA")}</p>
+            <p className="text-xl font-black text-emerald-800 dark:text-emerald-200 font-mono">{stats.whatsapp.toLocaleString("en-US")}</p>
             <span className="text-[10px] text-muted-foreground">بوابة الواتساب</span>
           </CardContent>
         </Card>
@@ -216,7 +216,7 @@ export default function NotificationLogsTab({
               <span>إرسال يدوي مباشر</span>
               <Send className="w-3.5 h-3.5" />
             </div>
-            <p className="text-xl font-black text-teal-800 dark:text-teal-200 font-mono">{stats.direct.toLocaleString("ar-SA")}</p>
+            <p className="text-xl font-black text-teal-800 dark:text-teal-200 font-mono">{stats.direct.toLocaleString("en-US")}</p>
             <span className="text-[10px] text-muted-foreground">مرسلة بواسطة المشرفين</span>
           </CardContent>
         </Card>
