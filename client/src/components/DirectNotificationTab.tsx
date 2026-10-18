@@ -100,11 +100,7 @@ export default function DirectNotificationTab({
       if (res.sentChannels.sms) sentChannelsList.push("SMS");
 
       toast.success(
-        `تم بدء إرسال الإشعار إلى ${res.totalRecipients} شخص في الخلفية بنجاح عبر: ${sentChannelsList.join("، ")}`,
-        {
-          description: "العملية تعمل في الخلفية على السيرفر بأمان؛ لن تنقطع حتى لو أغلقت الصفحة الآن.",
-          duration: 7000,
-        }
+        `تم بدء إرسال الإشعار إلى ${res.totalRecipients} شخص بنجاح عبر: ${sentChannelsList.join("، ")}`
       );
 
       setMessage("");
@@ -319,9 +315,6 @@ export default function DirectNotificationTab({
               </div>
 
               <div className="flex items-center gap-2 text-xs">
-                <span className="text-muted-foreground hidden md:inline">
-                  تعمل في خلفية السيرفر (Background Worker)
-                </span>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -351,11 +344,8 @@ export default function DirectNotificationTab({
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-muted-foreground gap-1.5">
-              <span className="font-medium">
-                💡 <strong className="text-foreground">آمنة تماماً:</strong> العملية تعمل في خلفية الخادم بشكل مستقل، حتى إذا أغلقت هذه الصفحة أو المتصفح الآن ستستمر عمليات الإرسال دون أن تفشل.
-              </span>
-              <span className="font-mono font-bold text-teal-700 dark:text-teal-400 shrink-0">
+            <div className="flex items-center justify-end text-xs text-muted-foreground">
+              <span className="font-mono font-bold text-teal-700 dark:text-teal-400">
                 {Math.round((jobStatus.processedCount / Math.max(1, jobStatus.totalRecipients)) * 100)}%
               </span>
             </div>
