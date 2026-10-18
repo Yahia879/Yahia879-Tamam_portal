@@ -76,8 +76,10 @@ import {
   Smartphone,
   PenLine,
   RotateCcw,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { exportStyledExcel } from "@/lib/excelExportHelper";
 import { DisbursementOrderNotesDialog } from "@/components/DisbursementOrderNotesDialog";
 
@@ -199,6 +201,10 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
   const [showExceptionDialog, setShowExceptionDialog] = useState(false);
   const [showViewExceptionDialog, setShowViewExceptionDialog] = useState(false);
   const [showNotesDialog, setShowNotesDialog] = useState(false);
+  const [showCancelExecutedDialog, setShowCancelExecutedDialog] = useState(false);
+  const [showConfirmCancelDialog, setShowConfirmCancelDialog] = useState(false);
+  const [cancelType, setCancelType] = useState<"order_only" | "both">("both");
+  const [cancelReason, setCancelReason] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [approvalNotes, setApprovalNotes] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
@@ -286,6 +292,43 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
     },
   });
 
+  const requestCancelExecutedMutation = trpc.disbursements.requestCancelExecutedOrder.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message || "تم إرسال طلب إلغاء الاعتماد بنجاح، بانتظار تأكيد المدير التنفيذي");
+      setShowCancelExecutedDialog(false);
+      setSelectedOrder(null);
+      setCancelReason("");
+      refetchOrders();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء إرسال طلب إلغاء الاعتماد");
+    },
+  });
+
+  const confirmCancelExecutedMutation = trpc.disbursements.confirmCancelExecutedOrder.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message || "تم إلغاء اعتماد أمر الصرف بنجاح");
+      setShowConfirmCancelDialog(false);
+      setSelectedOrder(null);
+      refetchOrders();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء تأكيد إلغاء الاعتماد");
+    },
+  });
+
+  const rejectCancelExecutedMutation = trpc.disbursements.rejectCancelExecutedOrder.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message || "تم رفض طلب إلغاء الاعتماد والإبقاء على أمر الصرف منفذاً");
+      setShowConfirmCancelDialog(false);
+      setSelectedOrder(null);
+      refetchOrders();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء رفض طلب إلغاء الاعتماد");
+    },
+  });
+
   const handleOpenNotesDialog = (order: any) => {
     setSelectedOrder(order);
     setReplyText(order.executiveNotesReply || "");
@@ -302,6 +345,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
   const permOrdersCreateDirect = usePermission("disbursement_orders.create_direct");
   const permOrdersExceptionApprove = usePermission("disbursement_orders.exception_approve");
   const permOrdersRemind = usePermission("disbursement_orders.remind");
+  const permOrdersCancelExecuted = usePermission("disbursement_orders.cancel_executed");
 
   const canApproveOrder = permOrdersApprove || permOrdersSign || permDisbursementsApprove || permDisbursementsSign;
   const canRejectOrder = permOrdersReject;
@@ -309,6 +353,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
   const canCreateDirectOrder = permOrdersCreateDirect;
   const canExceptionApproveOrder = user?.role === "super_admin" || permOrdersExceptionApprove;
   const canRemind = user?.role === "super_admin" || user?.role === "system_admin" || permOrdersRemind;
+  const canCancelExecuted = user?.role === "super_admin" || user?.role === "system_admin" || permOrdersCancelExecuted;
 
   // نافذة إرسال تذكير بالاعتماد
   const [reminderModal, setReminderModal] = useState<{
@@ -392,6 +437,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
           return true;
         }
         if (!isEmbedded && o.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin)) {
+          return true;
+        }
+        if (!isEmbedded && o.status === "executed" && o.cancellationRequested && (isExecutiveDirector || isSuperAdmin)) {
           return true;
         }
         return false;
@@ -742,9 +790,17 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                             </TableCell>
                             <TableCell className="py-2.5 px-3 text-right text-xs">{PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}</TableCell>
                             <TableCell className="py-2.5 px-3 text-right">
-                              <Badge variant={STATUS_MAP[order.status || "draft"]?.variant} className={`whitespace-nowrap ${STATUS_MAP[order.status || "draft"]?.className}`}>
-                                {STATUS_MAP[order.status || "draft"]?.label}
-                              </Badge>
+                              <div className="flex flex-col gap-1 items-start">
+                                <Badge variant={STATUS_MAP[order.status || "draft"]?.variant} className={`whitespace-nowrap ${STATUS_MAP[order.status || "draft"]?.className}`}>
+                                  {STATUS_MAP[order.status || "draft"]?.label}
+                                </Badge>
+                                {order.cancellationRequested && (
+                                  <Badge variant="outline" className="border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/30 text-[10px] whitespace-nowrap flex items-center gap-1 font-semibold">
+                                    <Clock className="w-2.5 h-2.5 text-amber-600 animate-pulse" />
+                                    <span>بانتظار تأكيد الإلغاء</span>
+                                  </Badge>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="py-2.5 px-3 whitespace-nowrap text-right text-xs text-muted-foreground">
                               {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-SA") : "-"}
@@ -873,6 +929,49 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                          </DropdownMenuItem>
                                        )}
 
+                                        {/* خيار إلغاء الاعتماد لأوامر الصرف المنفذة */}
+                                        {!isEmbedded && order.status === "executed" && (
+                                          <>
+                                            {order.cancellationRequested ? (
+                                              (isExecutiveDirector || isSuperAdmin) ? (
+                                                <DropdownMenuItem
+                                                  onClick={() => {
+                                                    setSelectedOrder(order);
+                                                    setShowConfirmCancelDialog(true);
+                                                  }}
+                                                  className="flex items-center gap-2 cursor-pointer text-amber-700 dark:text-amber-400 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-bold"
+                                                >
+                                                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                                  <span>تأكيد / رفض إلغاء الاعتماد</span>
+                                                </DropdownMenuItem>
+                                              ) : (
+                                                <DropdownMenuItem
+                                                  disabled
+                                                  className="flex items-center gap-2 text-muted-foreground opacity-75 font-medium cursor-not-allowed"
+                                                >
+                                                  <Clock className="h-4 w-4 text-amber-500" />
+                                                  <span>بانتظار تأكيد المدير التنفيذي</span>
+                                                </DropdownMenuItem>
+                                              )
+                                            ) : (
+                                              canCancelExecuted && (
+                                                <DropdownMenuItem
+                                                  onClick={() => {
+                                                    setSelectedOrder(order);
+                                                    setCancelType("both");
+                                                    setCancelReason("");
+                                                    setShowCancelExecutedDialog(true);
+                                                  }}
+                                                  className="flex items-center gap-2 cursor-pointer text-rose-600 hover:text-rose-700 focus:text-rose-700 focus:bg-rose-50 dark:focus:bg-rose-950/30 font-bold"
+                                                >
+                                                  <RotateCcw className="h-4 w-4 text-rose-600" />
+                                                  <span>إلغاء الاعتماد</span>
+                                                </DropdownMenuItem>
+                                              )
+                                            )}
+                                          </>
+                                        )}
+
                                         <DropdownMenuItem
                                           onClick={() => {
                                             navigate(`/disbursement-orders/${order.id}/print`);
@@ -968,9 +1067,17 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                               </TooltipProvider>
                             )}
                           </div>
-                          <Badge variant={STATUS_MAP[order.status || "draft"]?.variant} className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold ${STATUS_MAP[order.status || "draft"]?.className}`}>
-                            {STATUS_MAP[order.status || "draft"]?.label}
-                          </Badge>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Badge variant={STATUS_MAP[order.status || "draft"]?.variant} className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold ${STATUS_MAP[order.status || "draft"]?.className}`}>
+                              {STATUS_MAP[order.status || "draft"]?.label}
+                            </Badge>
+                            {order.cancellationRequested && (
+                              <Badge variant="outline" className="border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/30 text-[10px] px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                                <Clock className="w-2.5 h-2.5 text-amber-600 animate-pulse" />
+                                <span>بانتظار تأكيد الإلغاء</span>
+                              </Badge>
+                            )}
+                          </div>
                         </div>
 
                         {/* Card Body */}
@@ -1151,6 +1258,49 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                           <Bell className="h-4 w-4 text-amber-600" />
                                           <span>إرسال تذكير بالاعتماد</span>
                                         </DropdownMenuItem>
+                                      )}
+
+                                      {/* خيار إلغاء الاعتماد لأوامر الصرف المنفذة */}
+                                      {!isEmbedded && order.status === "executed" && (
+                                        <>
+                                          {order.cancellationRequested ? (
+                                            (isExecutiveDirector || isSuperAdmin) ? (
+                                              <DropdownMenuItem
+                                                onClick={() => {
+                                                  setSelectedOrder(order);
+                                                  setShowConfirmCancelDialog(true);
+                                                }}
+                                                className="flex items-center gap-2 cursor-pointer text-amber-700 dark:text-amber-400 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-bold"
+                                              >
+                                                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                                <span>تأكيد / رفض إلغاء الاعتماد</span>
+                                              </DropdownMenuItem>
+                                            ) : (
+                                              <DropdownMenuItem
+                                                disabled
+                                                className="flex items-center gap-2 text-muted-foreground opacity-75 font-medium cursor-not-allowed"
+                                              >
+                                                <Clock className="h-4 w-4 text-amber-500" />
+                                                <span>بانتظار تأكيد المدير التنفيذي</span>
+                                              </DropdownMenuItem>
+                                            )
+                                          ) : (
+                                            canCancelExecuted && (
+                                              <DropdownMenuItem
+                                                onClick={() => {
+                                                  setSelectedOrder(order);
+                                                  setCancelType("both");
+                                                  setCancelReason("");
+                                                  setShowCancelExecutedDialog(true);
+                                                }}
+                                                className="flex items-center gap-2 cursor-pointer text-rose-600 hover:text-rose-700 focus:text-rose-700 focus:bg-rose-50 dark:focus:bg-rose-950/30 font-bold"
+                                              >
+                                                <RotateCcw className="h-4 w-4 text-rose-600" />
+                                                <span>إلغاء الاعتماد</span>
+                                              </DropdownMenuItem>
+                                            )
+                                          )}
+                                        </>
                                       )}
 
                                       <DropdownMenuItem
@@ -1844,6 +1994,256 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                 className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 cursor-pointer"
               >
                 إلغاء
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة طلب إلغاء اعتماد أمر الصرف المنفذ */}
+        <Dialog open={showCancelExecutedDialog} onOpenChange={setShowCancelExecutedDialog}>
+          <DialogContent dir="rtl" className="sm:max-w-[500px] text-right">
+            <DialogHeader className="text-right">
+              <DialogTitle className="text-rose-700 dark:text-rose-400 flex items-center gap-2 text-lg font-bold">
+                <RotateCcw className="w-5 h-5 text-rose-600 shrink-0" />
+                <span>إلغاء اعتماد أمر الصرف المنفذ</span>
+              </DialogTitle>
+              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs mt-1">
+                طلب إلغاء اعتماد أمر الصرف رقم ({selectedOrder?.orderNumber}) بمبلغ {Number(selectedOrder?.amount || 0).toLocaleString()} ريال
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              {/* خيارات نوع الإلغاء إذا كان الأمر مرتبطاً بطلب صرف */}
+              {!selectedOrder?.isDirect && (!!selectedOrder?.requestNumber || !!selectedOrder?.disbursementRequestId) ? (
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                    هل تريد إلغاء أمر الصرف فقط، أم طلب الصرف وأمر الصرف معاً؟
+                  </Label>
+                  <RadioGroup
+                    value={cancelType}
+                    onValueChange={(val: "order_only" | "both") => setCancelType(val)}
+                    className="gap-2.5 pt-1"
+                  >
+                    <div
+                      onClick={() => setCancelType("order_only")}
+                      className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                        cancelType === "order_only"
+                          ? "border-rose-500 bg-rose-50/50 dark:bg-rose-950/20 shadow-xs"
+                          : "border-border hover:bg-muted/40"
+                      }`}
+                    >
+                      <RadioGroupItem value="order_only" id="cancel_order_only" className="mt-1" />
+                      <div className="space-y-0.5">
+                        <label htmlFor="cancel_order_only" className="text-xs font-bold cursor-pointer text-slate-800 dark:text-slate-100">
+                          إلغاء أمر الصرف فقط
+                        </label>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          إلغاء أمر الصرف الحالي وإعادة طلب الصرف المرتبط إلى حالة "معتمد" ليتسنى إعادة إصدار أمر صرف جديد له لاحقاً.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div
+                      onClick={() => setCancelType("both")}
+                      className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                        cancelType === "both"
+                          ? "border-rose-500 bg-rose-50/50 dark:bg-rose-950/20 shadow-xs"
+                          : "border-border hover:bg-muted/40"
+                      }`}
+                    >
+                      <RadioGroupItem value="both" id="cancel_both" className="mt-1" />
+                      <div className="space-y-0.5">
+                        <label htmlFor="cancel_both" className="text-xs font-bold cursor-pointer text-slate-800 dark:text-slate-100">
+                          إلغاء طلب الصرف وأمر الصرف معاً
+                        </label>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          إلغاء كل من أمر الصرف وطلب الصرف المرتبط نهائياً وإعادة حالة الدفعات المرتبطة بالعقد إلى معلقة.
+                        </p>
+                      </div>
+                    </div>
+                  </RadioGroup>
+                </div>
+              ) : (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl text-amber-800 dark:text-amber-300 text-xs leading-relaxed">
+                  هذا أمر صرف مباشر/مخصص، سيتم إرسال طلب إلغاء اعتماده إلى المدير التنفيذي.
+                </div>
+              )}
+
+              {/* سبب الإلغاء */}
+              <div className="space-y-1.5">
+                <Label htmlFor="cancel_reason" className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  سبب الإلغاء <span className="text-rose-500">*</span>
+                </Label>
+                <Textarea
+                  id="cancel_reason"
+                  rows={3}
+                  placeholder="اكتب سبب طلب إلغاء الاعتماد بالتفصيل..."
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  className="text-xs resize-none rounded-xl"
+                />
+              </div>
+
+              {/* تنبيه إجراء المدير التنفيذي */}
+              <div className="flex items-center gap-2 p-2.5 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-xl text-[11px] text-muted-foreground font-medium">
+                <Info className="w-4 h-4 text-blue-500 shrink-0" />
+                <span>بعد إرسال الطلب، يتطلب إقرار الإلغاء تأكيد وموافقة المدير التنفيذي من صفحة أوامر الصرف.</span>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t">
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (!selectedOrder) return;
+                  if (!cancelReason.trim()) {
+                    toast.error("يرجى إدخال سبب الإلغاء");
+                    return;
+                  }
+                  const isLinked = !selectedOrder.isDirect && (!!selectedOrder.requestNumber || !!selectedOrder.disbursementRequestId);
+                  requestCancelExecutedMutation.mutate({
+                    id: selectedOrder.id,
+                    cancellationType: isLinked ? cancelType : "both",
+                    reason: cancelReason.trim(),
+                  });
+                }}
+                disabled={requestCancelExecutedMutation.isPending || !cancelReason.trim()}
+                className="font-bold text-xs rounded-xl"
+              >
+                {requestCancelExecutedMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin ml-1.5" />
+                    جاري الإرسال...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5 ml-1.5" />
+                    إرسال طلب الإلغاء
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCancelExecutedDialog(false);
+                  setCancelReason("");
+                }}
+                className="font-semibold text-xs rounded-xl"
+              >
+                تراجع
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة تأكيد / رفض إلغاء الاعتماد بواسطة المدير التنفيذي */}
+        <Dialog open={showConfirmCancelDialog} onOpenChange={setShowConfirmCancelDialog}>
+          <DialogContent dir="rtl" className="sm:max-w-[520px] text-right">
+            <DialogHeader className="text-right border-b pb-3">
+              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg font-bold">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                <span>مراجعة طلب إلغاء اعتماد أمر الصرف</span>
+              </DialogTitle>
+              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs mt-1">
+                طلب وارد لإلغاء اعتماد أمر الصرف رقم ({selectedOrder?.orderNumber})
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 py-3 text-xs">
+              <div className="grid grid-cols-2 gap-2.5 p-3 bg-muted/30 rounded-xl border">
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">المستفيد:</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100">{selectedOrder?.beneficiaryName || "-"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">المبلغ:</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100">
+                    {Number(selectedOrder?.amount || 0).toLocaleString()} ريال
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">نوع الإلغاء المطلوب:</span>
+                  <Badge variant="outline" className="font-semibold text-[10px] mt-0.5 border-amber-500 text-amber-700 bg-amber-50/50">
+                    {selectedOrder?.cancellationType === "order_only" ? "إلغاء أمر الصرف فقط" : "إلغاء طلب وأمر الصرف معاً"}
+                  </Badge>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">طالب الإلغاء:</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200">
+                    {selectedOrder?.cancellationRequestedByName || "أحد المسؤولين"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-1 p-3 bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 rounded-xl">
+                <span className="font-bold text-rose-800 dark:text-rose-300 block text-xs">سبب الإلغاء الموضح:</span>
+                <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-xs">
+                  {selectedOrder?.cancellationReason || "لم يتم توضيح سبب"}
+                </p>
+              </div>
+
+              <div className="p-2.5 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-xl text-[11px] text-muted-foreground leading-relaxed">
+                {selectedOrder?.cancellationType === "order_only" ? (
+                  <>عند التأكيد، سيتم إلغاء أمر الصرف وإرجاع حالة طلب الصرف إلى <strong>"معتمد"</strong> لإتاحة إصدار أمر صرف جديد، وتعديل التكاليف الفعلية.</>
+                ) : (
+                  <>عند التأكيد، سيتم إلغاء كل من أمر الصرف وطلب الصرف نهائياً، وإرجاع دفعات العقود إلى حالة <strong>"معلقة"</strong>.</>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter className="flex flex-row justify-between items-center gap-2 pt-3 border-t">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (!selectedOrder) return;
+                    confirmCancelExecutedMutation.mutate({ id: selectedOrder.id });
+                  }}
+                  disabled={confirmCancelExecutedMutation.isPending || rejectCancelExecutedMutation.isPending}
+                  className="font-bold text-xs rounded-xl"
+                >
+                  {confirmCancelExecutedMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin ml-1.5" />
+                      جاري التأكيد...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 ml-1.5" />
+                      تأكيد إلغاء الاعتماد
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (!selectedOrder) return;
+                    rejectCancelExecutedMutation.mutate({ id: selectedOrder.id });
+                  }}
+                  disabled={confirmCancelExecutedMutation.isPending || rejectCancelExecutedMutation.isPending}
+                  className="font-bold text-xs rounded-xl text-rose-700 hover:text-rose-800 hover:bg-rose-50 border-rose-200"
+                >
+                  {rejectCancelExecutedMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin ml-1.5" />
+                      جاري الرفض...
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-3.5 h-3.5 ml-1.5" />
+                      رفض طلب الإلغاء
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <Button
+                variant="ghost"
+                onClick={() => setShowConfirmCancelDialog(false)}
+                className="font-semibold text-xs rounded-xl"
+              >
+                إغلاق
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -2243,6 +2243,14 @@ export const disbursementsRouter = router({
           rejectionReason: disbursementOrders.rejectionReason,
           rejectedAt: disbursementOrders.rejectedAt,
           rejectedBy: disbursementOrders.rejectedBy,
+          disbursementRequestId: disbursementOrders.disbursementRequestId,
+          cancellationRequested: disbursementOrders.cancellationRequested,
+          cancellationType: disbursementOrders.cancellationType,
+          cancellationReason: disbursementOrders.cancellationReason,
+          cancellationRequestedBy: disbursementOrders.cancellationRequestedBy,
+          cancellationRequestedAt: disbursementOrders.cancellationRequestedAt,
+          cancellationConfirmedBy: disbursementOrders.cancellationConfirmedBy,
+          cancellationConfirmedAt: disbursementOrders.cancellationConfirmedAt,
           requestNumber: disbursementRequests.requestNumber,
           isDirect: disbursementRequests.isDirect,
           requestTitle: sql<string>`COALESCE(NULLIF(${disbursementRequests.title}, ''), ${disbursementRequests.description}, '')`,
@@ -2326,6 +2334,15 @@ export const disbursementsRouter = router({
             repliedByName = replier?.name;
           }
 
+          let cancellationRequestedByName = null;
+          if ((order as any).cancellationRequestedBy) {
+            const [canceller] = await db
+              .select({ name: users.name })
+              .from(users)
+              .where(eq(users.id, (order as any).cancellationRequestedBy));
+            cancellationRequestedByName = canceller?.name;
+          }
+
           return {
             ...order,
             contractAmount,
@@ -2334,6 +2351,7 @@ export const disbursementsRouter = router({
             createdByName: creator?.name,
             approvedByName: approverName,
             executiveNotesRepliedByName: repliedByName,
+            cancellationRequestedByName,
           };
         })
       );
@@ -4268,6 +4286,223 @@ export const disbursementsRouter = router({
       }
 
       return { success: true, message: "تم رفض أمر الصرف" };
+    }),
+
+  // طلب إلغاء اعتماد أمر صرف منفذ
+  requestCancelExecutedOrder: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        cancellationType: z.enum(["order_only", "both"]),
+        reason: z.string().min(1, "سبب الإلغاء مطلوب"),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasPerm = await checkPermission(ctx.user.id, "disbursement_orders.cancel_executed");
+      if (!isAdmin && !hasPerm) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إلغاء اعتماد أوامر الصرف المنفذة" });
+      }
+
+      const [order] = await db
+        .select()
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.id, input.id));
+
+      if (!order) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
+      }
+
+      if (order.status !== "executed") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "يمكن فقط طلب إلغاء الاعتماد لأوامر الصرف المنفذة" });
+      }
+
+      if (order.cancellationRequested) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "تم إرسال طلب إلغاء اعتماد هذا الأمر مسبقاً وهو بانتظار التأكيد" });
+      }
+
+      await db
+        .update(disbursementOrders)
+        .set({
+          cancellationRequested: true,
+          cancellationType: input.cancellationType,
+          cancellationReason: input.reason,
+          cancellationRequestedBy: ctx.user.id,
+          cancellationRequestedAt: new Date(),
+        })
+        .where(eq(disbursementOrders.id, input.id));
+
+      return { success: true, message: "تم إرسال طلب إلغاء الاعتماد بنجاح، بانتظار تأكيد المدير التنفيذي" };
+    }),
+
+  // تأكيد إلغاء اعتماد أمر الصرف المنفذ بواسطة المدير التنفيذي
+  confirmCancelExecutedOrder: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const isExecutiveDirector =
+        ["general_manager", "executive_director", "super_admin", "system_admin"].includes(ctx.user.role) ||
+        ctx.user.email === "ceo@manarah.org.sa" ||
+        (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+        (ctx.user as any)?.customRole?.nameAr === "المدير العام";
+
+      if (!isExecutiveDirector) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "فقط المدير التنفيذي يمتلك صلاحية تأكيد إلغاء اعتماد أوامر الصرف المنفذة",
+        });
+      }
+
+      const [order] = await db
+        .select()
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.id, input.id));
+
+      if (!order) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
+      }
+
+      if (order.status !== "executed") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "أمر الصرف ليس بحالة منفذ" });
+      }
+
+      if (!order.cancellationRequested) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "لا يوجد طلب إلغاء اعتماد معلق لهذا الأمر" });
+      }
+
+      // 1. تحديث أمر الصرف إلى مرفوض
+      await db
+        .update(disbursementOrders)
+        .set({
+          status: "rejected",
+          rejectedBy: ctx.user.id,
+          rejectedAt: new Date(),
+          rejectionReason: order.cancellationReason,
+          rejectedRole: "executive_director",
+          cancellationRequested: false,
+          cancellationConfirmedBy: ctx.user.id,
+          cancellationConfirmedAt: new Date(),
+        })
+        .where(eq(disbursementOrders.id, input.id));
+
+      // 2. معالجة طلب الصرف المرتبط ودفعات العقود وتكلفة المشروع
+      if (order.disbursementRequestId) {
+        const [request] = await db
+          .select()
+          .from(disbursementRequests)
+          .where(eq(disbursementRequests.id, order.disbursementRequestId));
+
+        if (request) {
+          const reqStatus = order.cancellationType === "both" ? "rejected" : "approved";
+          await db
+            .update(disbursementRequests)
+            .set({
+              status: reqStatus,
+              rejectedBy: order.cancellationType === "both" ? ctx.user.id : null,
+              rejectedAt: order.cancellationType === "both" ? new Date() : null,
+              rejectionReason: order.cancellationType === "both" ? order.cancellationReason : null,
+            })
+            .where(eq(disbursementRequests.id, order.disbursementRequestId));
+
+          // إعادة حالة دفعة العقد إن وجدت
+          if (request.contractPaymentId) {
+            await db
+              .update(contractPayments)
+              .set({
+                status: "pending",
+                paidAt: null,
+                paidBy: null,
+                updatedAt: new Date(),
+              })
+              .where(eq(contractPayments.id, request.contractPaymentId));
+          }
+
+          // إعادة حالة الدفعة العادية إن وجدت
+          if (request.paymentId) {
+            await db
+              .update(payments)
+              .set({
+                status: "pending",
+                paidAt: null,
+                updatedAt: new Date(),
+              })
+              .where(eq(payments.id, request.paymentId));
+          }
+
+          // إعادة خصم تكلفة المشروع
+          if (request.projectId) {
+            await db
+              .update(projects)
+              .set({
+                actualCost: sql`GREATEST(0, CAST(COALESCE(${projects.actualCost}, 0) - ${request.amount} AS DECIMAL(15,2)))`,
+                updatedAt: new Date(),
+              })
+              .where(eq(projects.id, request.projectId));
+          }
+        }
+      }
+
+      return { success: true, message: "تم إلغاء اعتماد أمر الصرف بنجاح" };
+    }),
+
+  // رفض طلب إلغاء اعتماد أمر الصرف بواسطة المدير التنفيذي
+  rejectCancelExecutedOrder: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const isExecutiveDirector =
+        ["general_manager", "executive_director", "super_admin", "system_admin"].includes(ctx.user.role) ||
+        ctx.user.email === "ceo@manarah.org.sa" ||
+        (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+        (ctx.user as any)?.customRole?.nameAr === "المدير العام";
+
+      if (!isExecutiveDirector) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "فقط المدير التنفيذي يمتلك صلاحية رفض طلب إلغاء اعتماد أوامر الصرف",
+        });
+      }
+
+      const [order] = await db
+        .select()
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.id, input.id));
+
+      if (!order) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
+      }
+
+      if (!order.cancellationRequested) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "لا يوجد طلب إلغاء اعتماد معلق لهذا الأمر" });
+      }
+
+      await db
+        .update(disbursementOrders)
+        .set({
+          cancellationRequested: false,
+          cancellationType: null,
+          cancellationReason: null,
+          cancellationRequestedBy: null,
+          cancellationRequestedAt: null,
+        })
+        .where(eq(disbursementOrders.id, input.id));
+
+      return { success: true, message: "تم رفض طلب إلغاء الاعتماد والإبقاء على أمر الصرف منفذاً" };
     }),
 
   // جلب طلبات الصرف للمشروع

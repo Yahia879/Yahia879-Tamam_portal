@@ -1246,6 +1246,15 @@ export const disbursementOrders = mysqlTable("disbursement_orders", {
   showCreatorSignature: boolean("showCreatorSignature").default(true).notNull(),
   showExecutiveDirectorSignature: boolean("showExecutiveDirectorSignature").default(true).notNull(),
 
+  // طلب وتأكيد إلغاء الاعتماد لأوامر الصرف المنفذة
+  cancellationRequested: boolean("cancellationRequested").default(false).notNull(),
+  cancellationType: varchar("cancellationType", { length: 50 }), // 'order_only' | 'both'
+  cancellationReason: text("cancellationReason"),
+  cancellationRequestedBy: int("cancellationRequestedBy").references(() => users.id, { onDelete: "set null" }),
+  cancellationRequestedAt: datetime("cancellationRequestedAt"),
+  cancellationConfirmedBy: int("cancellationConfirmedBy").references(() => users.id, { onDelete: "set null" }),
+  cancellationConfirmedAt: datetime("cancellationConfirmedAt"),
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({

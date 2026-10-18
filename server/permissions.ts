@@ -115,7 +115,8 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "sedana_quotations.recommend": ["sedana_quotations.recommend", "sedana_quotations.view"],
   "sedana_quotations.approve": ["sedana_quotations.approve", "sedana_quotations.view"],
   disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve", "disbursements.exception_approve"],
-  disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.exception_approve", "disbursement_orders.reject", "disbursement_orders.create_direct", "disbursement_orders.remind"],
+  disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.exception_approve", "disbursement_orders.reject", "disbursement_orders.create_direct", "disbursement_orders.remind", "disbursement_orders.cancel_executed"],
+  "disbursement_orders.cancel_executed": ["disbursement_orders.cancel_executed", "disbursement_orders.view"],
   "disbursement_orders.remind": ["disbursement_orders.remind"],
   progress_reports: ["progress_reports.view", "progress_reports.add", "progress_reports.edit", "progress_reports.approve", "progress_reports.revoke_approval", "progress_reports.exception_approve"],
   progress_invoices: ["progress_invoices.view", "progress_invoices.add", "progress_invoices.edit", "progress_invoices.approve", "progress_invoices.revoke_approval", "progress_invoices.exception_approve"],
@@ -1100,6 +1101,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "disbursement_orders.view", moduleId: "disbursements", action: "view", nameAr: "عرض أوامر الصرف", nameEn: "View Disbursement Orders" },
       { id: "disbursement_orders.approve", moduleId: "disbursements", action: "approve", nameAr: "اعتماد أوامر الصرف", nameEn: "Approve Disbursement Orders" },
       { id: "disbursement_orders.reject", moduleId: "disbursements", action: "reject", nameAr: "رفض أوامر الصرف", nameEn: "Reject Disbursement Orders" },
+      { id: "disbursement_orders.cancel_executed", moduleId: "disbursements", action: "cancel_executed", nameAr: "الغاء اعتماد أوامر الصرف المنفذة", nameEn: "Cancel Executed Disbursement Orders" },
       { id: "progress_reports.view", moduleId: "reports", action: "view", nameAr: "عرض تقارير الإنجاز", nameEn: "View Progress Reports" },
       { id: "progress_reports.add", moduleId: "reports", action: "add", nameAr: "إضافة تقرير إنجاز", nameEn: "Add Progress Report" },
       { id: "progress_reports.edit", moduleId: "reports", action: "edit", nameAr: "تعديل التقرير", nameEn: "Edit Progress Report" },
@@ -1899,7 +1901,8 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.has("disbursement_orders.reject") ||
     allPermissions.has("disbursement_orders.view_details") ||
     allPermissions.has("disbursement_orders.create_direct") ||
-    allPermissions.has("disbursement_orders.remind")
+    allPermissions.has("disbursement_orders.remind") ||
+    allPermissions.has("disbursement_orders.cancel_executed")
   ) {
     allPermissions.add("disbursement_orders");
   } else {

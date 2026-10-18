@@ -894,6 +894,7 @@ export default function UserPermissions() {
         create_direct: "انشاء امر صرف مخصص",
         exception_approve: "استثناء اعتماد مُعد الأمر",
         remind: "إرسال تذكير بالاعتماد",
+        cancel_executed: "الغاء اعتماد أوامر الصرف المنفذة",
       },
       progress_reports: {
         view: "عرض تقارير الإنجاز",
@@ -1063,7 +1064,7 @@ export default function UserPermissions() {
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "exception_approve"] },
-        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind"] },
+        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind", "cancel_executed"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
         { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create"] },
       ]
