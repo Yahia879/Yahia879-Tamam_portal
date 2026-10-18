@@ -57,8 +57,8 @@ const STATUS_BADGES: Record<string, { label: string; className: string }> = {
   // معتمد
   executed: { label: "معتمد", className: "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 font-extrabold" },
 
-  // مرفوض (باللون الأحمر المعتمد)
-  rejected: { label: "مرفوض", className: "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800 font-extrabold" },
+  // ملغي / مرفوض (باللون الأحمر المعتمد)
+  rejected: { label: "ملغي", className: "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800 font-extrabold" },
 };
 
 const PAYMENT_METHOD_MAP: Record<string, string> = {
@@ -603,7 +603,7 @@ export default function BoardDashboard({
                           )}
                         </SelectItem>
                         <SelectItem value="rejected">
-                          مرفوض
+                          ملغي
                           {data?.chairmanData?.statusCounts?.rejected !== undefined && (
                             <span className="mr-2 text-[11px] text-rose-700 dark:text-rose-300 font-sans font-bold bg-rose-100 dark:bg-rose-950/60 px-1.5 py-0.5 rounded">
                               ({data.chairmanData.statusCounts.rejected})
@@ -823,20 +823,20 @@ export default function BoardDashboard({
                                           </DropdownMenuItem>
                                         )}
 
-                                        {/* خيار 'عرض مبررات الرفض' عند وجود سبب رفض */}
-                                        {(order.rejectionReason || (order as any).orderStatus === "rejected" || (order as any).status === "rejected") && (
+                                        {/* خيار 'عرض مبررات الإلغاء/الرفض' عند وجود سبب */}
+                                        {(order.rejectionReason || (order as any).cancellationReason || (order as any).orderStatus === "rejected" || (order as any).status === "rejected") && (
                                           <DropdownMenuItem
                                             onClick={() => setViewJustificationModal({
                                               open: true,
-                                              title: "مبررات عدم اعتماد التحويل وسبب الرفض",
-                                              subtitle: `تفاصيل سبب الرفض المدون لأمر الصرف رقم (${order.orderNumber})`,
+                                              title: (order as any).cancellationConfirmedAt ? "سبب إلغاء اعتماد أمر الصرف" : "مبررات عدم اعتماد التحويل وسبب الرفض",
+                                              subtitle: `تفاصيل سبب ${(order as any).cancellationConfirmedAt ? "الإلغاء" : "الرفض"} المدون لأمر الصرف رقم (${order.orderNumber})`,
                                               orderNumber: order.orderNumber,
-                                              reason: order.rejectionReason || "لا يوجد سبب رفض مدون",
+                                              reason: (order as any).cancellationReason || order.rejectionReason || "لا يوجد سبب مدون",
                                             })}
                                             className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 focus:bg-rose-50 dark:focus:bg-rose-950/30 transition-colors"
                                           >
                                             <Info className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
-                                            <span>عرض مبررات الرفض</span>
+                                            <span>{(order as any).cancellationConfirmedAt ? "عرض سبب الإلغاء" : "عرض مبررات الرفض"}</span>
                                           </DropdownMenuItem>
                                         )}
 

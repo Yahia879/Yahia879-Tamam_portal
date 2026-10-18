@@ -655,9 +655,11 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                     </TableHeader>
                     <TableBody>
                       {filteredOrders?.map((order) => {
+                        const isCancellationPendingMyAction = !isEmbedded && order.status === "executed" && order.cancellationRequested && (isExecutiveDirector || isSuperAdmin);
                         const isPendingMyAction = 
                           ((order.status === "pending" || order.status === "edited" || order.status === "draft") && (isSolayani || (!isEmbedded && isSuperAdmin))) ||
-                          (!isEmbedded && order.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin));
+                          (!isEmbedded && order.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin)) ||
+                          isCancellationPendingMyAction;
 
                         return (
                           <TableRow 
@@ -680,9 +682,11 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                       <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
                                         <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
                                         <span>
-                                          {order.status === "pending_executive" 
-                                            ? (isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي") 
-                                            : (isSolayani ? "بانتظار اعتمادك (الإدارة المالية)" : "بانتظار الاعتماد المالي")}
+                                          {isCancellationPendingMyAction
+                                            ? (isExecutiveDirector ? "بانتظار تأكيدك لإلغاء الاعتماد (المدير التنفيذي)" : "بانتظار تأكيد المدير التنفيذي لإلغاء الاعتماد")
+                                            : order.status === "pending_executive" 
+                                              ? (isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي") 
+                                              : (isSolayani ? "بانتظار اعتمادك (الإدارة المالية)" : "بانتظار الاعتماد المالي")}
                                         </span>
                                       </TooltipContent>
                                     </Tooltip>
@@ -1010,9 +1014,11 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                 {/* Modernized Mobile View Cards Grid */}
                 <div className="md:hidden grid gap-4 p-4 bg-muted/5" dir="rtl">
                   {filteredOrders?.map((order) => {
+                    const isCancellationPendingMyAction = !isEmbedded && order.status === "executed" && order.cancellationRequested && (isExecutiveDirector || isSuperAdmin);
                     const isPendingMyAction = 
                       ((order.status === "pending" || order.status === "edited" || order.status === "draft") && (isSolayani || (!isEmbedded && isSuperAdmin))) ||
-                      (!isEmbedded && order.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin));
+                      (!isEmbedded && order.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin)) ||
+                      isCancellationPendingMyAction;
 
                     return (
                       <Card 
@@ -1041,9 +1047,11 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                     <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
                                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
                                       <span>
-                                        {order.status === "pending_executive" 
-                                          ? (isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي") 
-                                          : (isSolayani ? "بانتظار اعتمادك (الإدارة المالية)" : "بانتظار الاعتماد المالي")}
+                                        {isCancellationPendingMyAction
+                                          ? (isExecutiveDirector ? "بانتظار تأكيدك لإلغاء الاعتماد (المدير التنفيذي)" : "بانتظار تأكيد المدير التنفيذي لإلغاء الاعتماد")
+                                          : order.status === "pending_executive" 
+                                            ? (isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي") 
+                                            : (isSolayani ? "بانتظار اعتمادك (الإدارة المالية)" : "بانتظار الاعتماد المالي")}
                                       </span>
                                     </TooltipContent>
                                   </Tooltip>

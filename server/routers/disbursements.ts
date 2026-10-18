@@ -452,7 +452,7 @@ export const disbursementsRouter = router({
 
       // التحقق من الأدوار والمسؤوليات
       const isExecDirector =
-        ["general_manager", "executive_director"].includes(userRole) ||
+        ["general_manager", "executive_director", "super_admin", "system_admin"].includes(userRole) ||
         userEmail === "ceo@manarah.org.sa" ||
         userEmail === "test10@gmail.com" ||
         (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
@@ -494,6 +494,7 @@ export const disbursementsRouter = router({
       // 2. أوامر الصرف المعلقة:
       // - تظهر النقطة الحمراء للمسؤول المالي في المرحلة الأولى (pending / draft / edited)
       // - تظهر للمدير التنفيذي بعد اعتماد المسؤول المالي في المرحلة الثانية (pending_executive)
+      // - تظهر للمدير التنفيذي أيضاً عند طلب إلغاء اعتماد أمر صرف منفذ بانتظار تأكيده
       let pendingOrdersCount = 0;
 
       // أ) أوامر بانتظار اعتماد المسؤول المالي
@@ -505,12 +506,20 @@ export const disbursementsRouter = router({
         pendingOrdersCount += Number(finPendingOrders?.value || 0);
       }
 
-      // ب) أوامر بانتظار اعتماد المدير التنفيذي
+      // ب) أوامر بانتظار اعتماد أو تأكيد إلغاء المدير التنفيذي
       if (isExecDirector) {
         const [execPendingOrders] = await db
           .select({ value: sql<number>`count(*)` })
           .from(disbursementOrders)
-          .where(eq(disbursementOrders.status, "pending_executive"));
+          .where(
+            or(
+              eq(disbursementOrders.status, "pending_executive"),
+              and(
+                eq(disbursementOrders.status, "executed"),
+                eq(disbursementOrders.cancellationRequested, true)
+              )
+            )
+          );
         pendingOrdersCount += Number(execPendingOrders?.value || 0);
       }
 

@@ -100,10 +100,20 @@ export const boardRouter = router({
         eq(disbursementOrders.rejectedRole, "board_chairman" as any)
       );
 
+      const executedCancelledCondition = and(
+        eq(disbursementOrders.status, "rejected" as any),
+        isNotNull(disbursementOrders.cancellationConfirmedAt)
+      );
+
+      const allBoardRejectedCondition = or(
+        chairmanRejectedCondition,
+        executedCancelledCondition
+      );
+
       const baseApprovedOrdersWhere = or(
         eq(disbursementOrders.status, "approved" as any),
         eq(disbursementOrders.status, "executed" as any),
-        chairmanRejectedCondition
+        allBoardRejectedCondition
       );
 
       let statusCondition;
@@ -112,7 +122,7 @@ export const boardRouter = router({
       } else if (statusFilter === "executed" || statusFilter === "approved_done") {
         statusCondition = eq(disbursementOrders.status, "executed" as any);
       } else if (statusFilter === "rejected") {
-        statusCondition = chairmanRejectedCondition;
+        statusCondition = allBoardRejectedCondition;
       } else {
         statusCondition = baseApprovedOrdersWhere;
       }
@@ -171,6 +181,9 @@ export const boardRouter = router({
           orderCreatedAt: disbursementOrders.createdAt,
           rejectionReason: disbursementOrders.rejectionReason,
           rejectedRole: disbursementOrders.rejectedRole,
+          cancellationConfirmedAt: disbursementOrders.cancellationConfirmedAt,
+          cancellationReason: disbursementOrders.cancellationReason,
+          cancellationType: disbursementOrders.cancellationType,
           approvalNotes: disbursementOrders.approvalNotes,
           executiveNotes: disbursementOrders.executiveNotes,
           executiveNotesReply: disbursementOrders.executiveNotesReply,
@@ -211,6 +224,9 @@ export const boardRouter = router({
           orderCreatedAt: o.orderCreatedAt ? new Date(o.orderCreatedAt).toISOString() : new Date().toISOString(),
           rejectionReason: o.rejectionReason || null,
           rejectedRole: o.rejectedRole || null,
+          cancellationConfirmedAt: o.cancellationConfirmedAt ? new Date(o.cancellationConfirmedAt).toISOString() : null,
+          cancellationReason: o.cancellationReason || null,
+          cancellationType: o.cancellationType || null,
           approvalNotes: o.approvalNotes || null,
           executiveNotes: o.executiveNotes || null,
           executiveNotesReply: o.executiveNotesReply || null,
@@ -278,7 +294,7 @@ export const boardRouter = router({
       const [rejectedCountRes] = await db
         .select({ count: count() })
         .from(disbursementOrders)
-        .where(chairmanRejectedCondition);
+        .where(allBoardRejectedCondition);
 
     // ==================== 2️⃣ إحصائيات المساجد ====================
     const [totalMosquesRes] = await db

@@ -1081,6 +1081,8 @@ function DashboardLayoutContent({
 
                         const tooltipLabel = isProcurementPending
                           ? `${item.label} (بحاجة لاعتماد المدير التنفيذي)`
+                          : isOrdersPath && Boolean(pendingDisbursements?.hasPendingOrders)
+                          ? `${item.label} (يوجد أوامر صرف بانتظار الاعتماد/التأكيد)`
                           : isCustodyPending
                           ? `${item.label} (يوجد طلبات عهدة بانتظار اعتمادك)`
                           : isProgressInvoicesPath && Boolean((pendingProgressReports as any)?.hasPendingInvoices)
