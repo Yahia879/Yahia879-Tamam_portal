@@ -427,6 +427,19 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
 
   const isSuperAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
 
+  // التحقق الحصري للمدير التنفيذي فقط دون المدير العام (super_admin) أو أي دور آخر
+  const isExecutiveDirectorStrict = 
+    !isEmbedded &&
+    !["super_admin", "system_admin"].includes(user?.role || "") &&
+    (
+      user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa" ||
+      user?.role === "executive_director" ||
+      user?.role === "general_manager" ||
+      (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+      (user as any)?.customRole?.nameAr === "الرئيس التنفيذي" ||
+      (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director"
+    );
+
   // ترتيب الأوامر بحيث تظهر الأوامر التي بانتظار اعتماد المستخدم أولاً
   const sortedOrders = useMemo(() => {
     if (!ordersData?.orders) return [];
@@ -439,7 +452,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
         if (!isEmbedded && o.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin)) {
           return true;
         }
-        if (!isEmbedded && o.status === "executed" && o.cancellationRequested && (isExecutiveDirector || isSuperAdmin)) {
+        if (!isEmbedded && o.status === "executed" && o.cancellationRequested && isExecutiveDirectorStrict) {
           return true;
         }
         return false;
@@ -453,7 +466,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
 
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-  }, [ordersData?.orders, isSolayani, isExecutiveDirector, isSuperAdmin, isEmbedded]);
+  }, [ordersData?.orders, isSolayani, isExecutiveDirector, isExecutiveDirectorStrict, isSuperAdmin, isEmbedded]);
 
   const filteredOrders = sortedOrders;
 
@@ -656,7 +669,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                     <TableBody>
                       {filteredOrders?.map((order) => {
                         const isCancellationPending = order.status === "executed" && !!order.cancellationRequested;
-                        const isCancellationPendingMyAction = !isEmbedded && isCancellationPending && (isExecutiveDirector || isSuperAdmin);
+                        const isCancellationPendingMyAction = isCancellationPending && isExecutiveDirectorStrict;
                         const isPendingMyAction = 
                           ((order.status === "pending" || order.status === "edited" || order.status === "draft") && (isSolayani || (!isEmbedded && isSuperAdmin))) ||
                           (!isEmbedded && order.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin));
@@ -960,7 +973,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                         {!isEmbedded && order.status === "executed" && (
                                           <>
                                             {order.cancellationRequested ? (
-                                              (isExecutiveDirector || isSuperAdmin) ? (
+                                              isExecutiveDirectorStrict ? (
                                                 <DropdownMenuItem
                                                   onClick={() => {
                                                     setSelectedOrder(order);
@@ -1038,7 +1051,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                 <div className="md:hidden grid gap-4 p-4 bg-muted/5" dir="rtl">
                   {filteredOrders?.map((order) => {
                     const isCancellationPending = order.status === "executed" && !!order.cancellationRequested;
-                    const isCancellationPendingMyAction = !isEmbedded && isCancellationPending && (isExecutiveDirector || isSuperAdmin);
+                    const isCancellationPendingMyAction = isCancellationPending && isExecutiveDirectorStrict;
                     const isPendingMyAction = 
                       ((order.status === "pending" || order.status === "edited" || order.status === "draft") && (isSolayani || (!isEmbedded && isSuperAdmin))) ||
                       (!isEmbedded && order.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin));
@@ -1314,7 +1327,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                       {!isEmbedded && order.status === "executed" && (
                                         <>
                                           {order.cancellationRequested ? (
-                                            (isExecutiveDirector || isSuperAdmin) ? (
+                                            isExecutiveDirectorStrict ? (
                                               <DropdownMenuItem
                                                 onClick={() => {
                                                   setSelectedOrder(order);

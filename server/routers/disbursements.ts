@@ -506,21 +506,37 @@ export const disbursementsRouter = router({
         pendingOrdersCount += Number(finPendingOrders?.value || 0);
       }
 
-      // ب) أوامر بانتظار اعتماد أو تأكيد إلغاء المدير التنفيذي
+      // ب) أوامر بانتظار اعتماد المدير التنفيذي (المرحلة الثانية)
       if (isExecDirector) {
         const [execPendingOrders] = await db
           .select({ value: sql<number>`count(*)` })
           .from(disbursementOrders)
+          .where(eq(disbursementOrders.status, "pending_executive"));
+        pendingOrdersCount += Number(execPendingOrders?.value || 0);
+      }
+
+      // ج) أوامر بانتظار تأكيد إلغاء الاعتماد (حصراً للمدير التنفيذي دون المدير العام super_admin أو أي دور آخر)
+      const isStrictExecDirector =
+        !["super_admin", "system_admin"].includes(userRole) &&
+        (
+          userEmail.toLowerCase().trim() === "ceo@manarah.org.sa" ||
+          userRole === "executive_director" ||
+          userRole === "general_manager" ||
+          (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+          (user as any)?.customRole?.nameAr === "الرئيس التنفيذي"
+        );
+
+      if (isStrictExecDirector) {
+        const [cancelPendingOrders] = await db
+          .select({ value: sql<number>`count(*)` })
+          .from(disbursementOrders)
           .where(
-            or(
-              eq(disbursementOrders.status, "pending_executive"),
-              and(
-                eq(disbursementOrders.status, "executed"),
-                eq(disbursementOrders.cancellationRequested, true)
-              )
+            and(
+              eq(disbursementOrders.status, "executed"),
+              eq(disbursementOrders.cancellationRequested, true)
             )
           );
-        pendingOrdersCount += Number(execPendingOrders?.value || 0);
+        pendingOrdersCount += Number(cancelPendingOrders?.value || 0);
       }
 
       // 3. مركز الاعتماد المالي (صاحب الصلاحية / رئيس مجلس الإدارة):
@@ -4359,10 +4375,14 @@ export const disbursementsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const isExecutiveDirector =
-        ["general_manager", "executive_director", "super_admin", "system_admin"].includes(ctx.user.role) ||
-        ctx.user.email === "ceo@manarah.org.sa" ||
-        (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
-        (ctx.user as any)?.customRole?.nameAr === "المدير العام";
+        !["super_admin", "system_admin"].includes(ctx.user.role) &&
+        (
+          ctx.user.email?.toLowerCase().trim() === "ceo@manarah.org.sa" ||
+          ctx.user.role === "executive_director" ||
+          ctx.user.role === "general_manager" ||
+          (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+          (ctx.user as any)?.customRole?.nameAr === "الرئيس التنفيذي"
+        );
 
       if (!isExecutiveDirector) {
         throw new TRPCError({
@@ -4475,10 +4495,14 @@ export const disbursementsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const isExecutiveDirector =
-        ["general_manager", "executive_director", "super_admin", "system_admin"].includes(ctx.user.role) ||
-        ctx.user.email === "ceo@manarah.org.sa" ||
-        (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
-        (ctx.user as any)?.customRole?.nameAr === "المدير العام";
+        !["super_admin", "system_admin"].includes(ctx.user.role) &&
+        (
+          ctx.user.email?.toLowerCase().trim() === "ceo@manarah.org.sa" ||
+          ctx.user.role === "executive_director" ||
+          ctx.user.role === "general_manager" ||
+          (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+          (ctx.user as any)?.customRole?.nameAr === "الرئيس التنفيذي"
+        );
 
       if (!isExecutiveDirector) {
         throw new TRPCError({
