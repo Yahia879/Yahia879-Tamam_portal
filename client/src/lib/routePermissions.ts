@@ -143,8 +143,15 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/roles": "staff_management",
   "/job-positions": "staff_management",
   "/requester-approvals": ["staff_management", "service_requester_accounts", "requesters", "requesters.view", "requesters.approve"],
-  "/permissions-audit": "staff_management",
-  "/notifications/customization": "staff_notifications.edit",
+  "/notifications/customization": [
+    "staff_notifications.edit",
+    "staff_notifications.by_role",
+    "staff_notifications.edit_message_formats",
+    "staff_notifications.by_person",
+    "staff_notifications.beneficiary",
+    "staff_notifications.direct_send",
+    "staff_notifications.send_logs"
+  ],
 
   // ── الموردون ──
   "/suppliers": "suppliers",

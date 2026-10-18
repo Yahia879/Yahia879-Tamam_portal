@@ -197,8 +197,30 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "staff_custom_roles.view": ["permissions.view"],
   "staff_custom_roles.add": ["permissions.create"],
   "staff_custom_roles.edit": ["permissions.edit"],
-  "staff_custom_roles.delete": ["permissions.delete"],
-  "staff_notifications.edit": ["settings.view", "settings.edit"],
+  "staff_notifications.edit": [
+    "settings.view",
+    "settings.edit",
+    "staff_notifications.by_role",
+    "staff_notifications.edit_message_formats",
+    "staff_notifications.by_person",
+    "staff_notifications.beneficiary",
+    "staff_notifications.direct_send",
+    "staff_notifications.send_logs"
+  ],
+  staff_notifications: [
+    "staff_notifications.by_role",
+    "staff_notifications.edit_message_formats",
+    "staff_notifications.by_person",
+    "staff_notifications.beneficiary",
+    "staff_notifications.direct_send",
+    "staff_notifications.send_logs"
+  ],
+  "staff_notifications.by_role": ["settings.view"],
+  "staff_notifications.edit_message_formats": ["settings.view"],
+  "staff_notifications.by_person": ["settings.view"],
+  "staff_notifications.beneficiary": ["settings.view"],
+  "staff_notifications.direct_send": ["settings.view"],
+  "staff_notifications.send_logs": ["settings.view"],
 
   settings: ["settings.view", "settings.edit"],
   "settings.view": ["settings.view"],
@@ -1135,6 +1157,12 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "staff_custom_roles.edit", moduleId: "permissions", action: "edit", nameAr: "تعديل الدور المخصص", nameEn: "Edit Custom Role" },
       { id: "staff_custom_roles.delete", moduleId: "permissions", action: "delete", nameAr: "حذف الدور المخصص", nameEn: "Delete Custom Role" },
       { id: "staff_notifications.edit", moduleId: "permissions", action: "edit", nameAr: "تعديل تخصيص الإشعارات", nameEn: "Edit Notification Customization" },
+      { id: "staff_notifications.by_role", moduleId: "permissions", action: "by_role", nameAr: "تخصيص الإشعارات حسب الدور", nameEn: "Customize Notifications by Role" },
+      { id: "staff_notifications.edit_message_formats", moduleId: "permissions", action: "edit_message_formats", nameAr: "تعديل صيغ الرسائل", nameEn: "Edit Message Formats" },
+      { id: "staff_notifications.by_person", moduleId: "permissions", action: "by_person", nameAr: "تخصيص حسب الأشخاص", nameEn: "Customize Notifications by Person" },
+      { id: "staff_notifications.beneficiary", moduleId: "permissions", action: "beneficiary", nameAr: "إشعارات المستفيد", nameEn: "Beneficiary Notifications" },
+      { id: "staff_notifications.direct_send", moduleId: "permissions", action: "direct_send", nameAr: "إرسال إشعار مباشر", nameEn: "Send Direct Notification" },
+      { id: "staff_notifications.send_logs", moduleId: "permissions", action: "send_logs", nameAr: "سجل إرسال الإشعارات", nameEn: "Notification Send Log" },
       { id: "settings_org.view", moduleId: "settings", action: "view", nameAr: "عرض إعدادات الجمعية", nameEn: "View Org Settings" },
       { id: "settings_org.edit_basic", moduleId: "settings", action: "edit_basic", nameAr: "تعديل معلومات الجمعية الأساسية", nameEn: "Edit Org Basic Info" },
       { id: "settings_org.edit_signers", moduleId: "settings", action: "edit_signers", nameAr: "تعديل المفوضين بالتوقيع", nameEn: "Edit Org Signers" },
@@ -1709,7 +1737,12 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   revokedPermissions.forEach(revokedPerm => {
     const parentKeys = reverseExpansionMap[revokedPerm] || [];
     for (const parentKey of parentKeys) {
-      if (parentKey === "disbursements.add" || parentKey === "disbursements.create_custom" || parentKey === "disbursements.create_donation") {
+      if (
+        parentKey === "disbursements.add" || 
+        parentKey === "disbursements.create_custom" || 
+        parentKey === "disbursements.create_donation" ||
+        parentKey === "staff_notifications.edit"
+      ) {
         continue;
       }
       // نحذف المفتاح الأب فقط إذا كانت كل صلاحياته الفرعية محجوبة أو غير موجودة
@@ -1832,7 +1865,13 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.has("staff_users.view") ||
     allPermissions.has("staff_roles.view") ||
     allPermissions.has("staff_custom_roles.view") ||
-    allPermissions.has("staff_notifications.edit")
+    allPermissions.has("staff_notifications.edit") ||
+    allPermissions.has("staff_notifications.by_role") ||
+    allPermissions.has("staff_notifications.edit_message_formats") ||
+    allPermissions.has("staff_notifications.by_person") ||
+    allPermissions.has("staff_notifications.beneficiary") ||
+    allPermissions.has("staff_notifications.direct_send") ||
+    allPermissions.has("staff_notifications.send_logs")
   ) {
     allPermissions.add("staff");
     allPermissions.add("staff_management");
@@ -2055,6 +2094,24 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.add("board_leadership");
   }
 
+  // التحقق من صلاحيات تخصيص الإشعارات: إذا لم يملك المستخدم كافة الصلاحيات الفرعية أو تم سحب أي منها، نحذف staff_notifications و staff_notifications.edit
+  const notifSubPerms = [
+    "staff_notifications.by_role",
+    "staff_notifications.edit_message_formats",
+    "staff_notifications.by_person",
+    "staff_notifications.beneficiary",
+    "staff_notifications.direct_send",
+    "staff_notifications.send_logs"
+  ];
+  const hasAllNotifSub = notifSubPerms.every(p => allPermissions.has(p) && !revokedPermissions.has(p));
+  if (!hasAllNotifSub || revokedPermissions.has("staff_notifications.edit") || revokedPermissions.has("staff_notifications")) {
+    allPermissions.delete("staff_notifications.edit");
+    allPermissions.delete("staff_notifications");
+    if (revokedPermissions.has("staff_notifications.edit") || revokedPermissions.has("staff_notifications")) {
+      notifSubPerms.forEach(p => allPermissions.delete(p));
+    }
+  }
+
   // ضمان إزالة أي صلاحيات تم سحبها صراحة للتأكيد التام
   revokedPermissions.forEach(p => {
     allPermissions.delete(p);
@@ -2082,13 +2139,20 @@ export async function checkPermissions(userId: number, requiredPermissions: stri
 /**
  * Middleware للتحقق من الصلاحية
  */
-export const permissionProcedure = (permission: string) =>
+export const permissionProcedure = (permission: string | string[]) =>
   protectedProcedure.use(async ({ ctx, next }) => {
-    const hasPermission = await checkPermission(ctx.user.id, permission);
+    const perms = Array.isArray(permission) ? permission : [permission];
+    let hasPermission = false;
+    for (const p of perms) {
+      if (await checkPermission(ctx.user.id, p)) {
+        hasPermission = true;
+        break;
+      }
+    }
     if (!hasPermission) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: `ليس لديك صلاحية: ${permission}`
+        message: `ليس لديك صلاحية: ${perms.join(" أو ")}`
       });
     }
     return next({ ctx });
@@ -2193,7 +2257,7 @@ export const permissionsRouter = router({
   }),
 
   // تحديث حالة استقبال إشعارات المستفيدين لدور وظيفي
-  updateRoleReceiveBeneficiaryNotifications: permissionProcedure("staff_notifications.edit")
+  updateRoleReceiveBeneficiaryNotifications: permissionProcedure(["staff_notifications.edit", "staff_notifications.beneficiary", "staff_notifications.by_role"])
     .input(z.object({
       roleId: z.string(),
       enabled: z.boolean(),
@@ -2211,7 +2275,7 @@ export const permissionsRouter = router({
     }),
 
   // تحديث حالة استقبال إشعارات الطلبات لدور وظيفي
-  updateRoleReceiveRequestNotifications: permissionProcedure("staff_notifications.edit")
+  updateRoleReceiveRequestNotifications: permissionProcedure(["staff_notifications.edit", "staff_notifications.by_role"])
     .input(z.object({
       roleId: z.string(),
       enabled: z.boolean(),
@@ -2229,7 +2293,7 @@ export const permissionsRouter = router({
     }),
 
   // تحديث حالة استقبال إشعارات المالية والعقود لدور وظيفي
-  updateRoleReceiveFinancialAndContractNotifications: permissionProcedure("staff_notifications.edit")
+  updateRoleReceiveFinancialAndContractNotifications: permissionProcedure(["staff_notifications.edit", "staff_notifications.by_role"])
     .input(z.object({
       roleId: z.string(),
       enabled: z.boolean(),
@@ -2246,7 +2310,7 @@ export const permissionsRouter = router({
       return { success: true };
     }),
 
-  updateRoleChannelSetting: permissionProcedure("staff_notifications.edit")
+  updateRoleChannelSetting: permissionProcedure(["staff_notifications.edit", "staff_notifications.by_role", "staff_notifications.beneficiary"])
     .input(z.object({
       roleId: z.string(),
       category: z.enum(['beneficiary', 'request', 'financial']),

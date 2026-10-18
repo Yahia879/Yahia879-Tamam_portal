@@ -122,6 +122,9 @@ export default function Settings() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const userPermissions = useUserPermissions();
+  const effectivePermissions = (userPermissions && userPermissions.length > 0)
+    ? userPermissions
+    : (user as any)?.permissions || [];
 
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
 
@@ -129,15 +132,26 @@ export default function Settings() {
     if (!perm) return true;
     if (perm === "forms_customization") {
       return (
-        userPermissions.includes("forms_customization.evaluation") ||
-        userPermissions.includes("forms_customization.services") ||
-        userPermissions.includes("forms_customization.registration")
+        effectivePermissions.includes("forms_customization.evaluation") ||
+        effectivePermissions.includes("forms_customization.services") ||
+        effectivePermissions.includes("forms_customization.registration")
       );
     }
     if (perm === "settings_escalation.view") {
       return (
-        userPermissions.includes("settings_escalation.view") ||
-        userPermissions.includes("settings_escalation")
+        effectivePermissions.includes("settings_escalation.view") ||
+        effectivePermissions.includes("settings_escalation")
+      );
+    }
+    if (perm === "staff_notifications.edit") {
+      return (
+        effectivePermissions.includes("staff_notifications.edit") ||
+        effectivePermissions.includes("staff_notifications.by_role") ||
+        effectivePermissions.includes("staff_notifications.edit_message_formats") ||
+        effectivePermissions.includes("staff_notifications.by_person") ||
+        effectivePermissions.includes("staff_notifications.beneficiary") ||
+        effectivePermissions.includes("staff_notifications.direct_send") ||
+        effectivePermissions.includes("staff_notifications.send_logs")
       );
     }
     if (isAdmin) return true;

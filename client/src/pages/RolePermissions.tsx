@@ -1153,7 +1153,7 @@ export default function RolePermissions() {
         { id: "staff_users", nameAr: "المستخدمين", icon: Users, perms: ["view", "add", "edit", "suspend", "delete"] },
         { id: "staff_roles", nameAr: "الأدوار والصلاحيات", icon: Shield, perms: ["view", "customize", "suspend"] },
         { id: "staff_custom_roles", nameAr: "الأدوار المخصصة", icon: Briefcase, perms: ["view", "add", "edit", "delete"] },
-        { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["edit"] }
+        { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["by_role", "edit_message_formats", "by_person", "beneficiary", "direct_send", "send_logs"] }
       ]
     },
     {
@@ -1277,7 +1277,7 @@ export default function RolePermissions() {
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
         { id: "forms_customization", nameAr: "تخصيص النماذج", icon: SlidersHorizontal, perms: ["evaluation", "services", "registration", "analytics"] },
         { id: "settings_escalation", nameAr: "تعيين وقت التأخير ومدد المراحل", icon: ShieldAlert, perms: ["view"] },
-        { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["edit"] },
+        { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["by_role", "edit_message_formats", "by_person", "beneficiary", "direct_send", "send_logs"] },
       ]
     },
     {
@@ -1533,6 +1533,12 @@ export default function RolePermissions() {
         delete: "حذف الدور"
       },
       staff_notifications: {
+        by_role: "تخصيص الإشعارات حسب الدور",
+        edit_message_formats: "تعديل صيغ الرسائل",
+        by_person: "تخصيص حسب الأشخاص",
+        beneficiary: "إشعارات المستفيد",
+        direct_send: "إرسال إشعار مباشر",
+        send_logs: "سجل إرسال الإشعارات",
         edit: "تعديل تخصيص الإشعارات"
       },
       roles: {

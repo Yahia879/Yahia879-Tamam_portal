@@ -15,6 +15,8 @@ import { trpc } from "@/lib/trpc";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import DirectNotificationTab from "@/components/DirectNotificationTab";
 import NotificationLogsTab from "@/components/NotificationLogsTab";
+import { useUserPermissions } from "@/hooks/usePermission";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 const RequestNotificationsTooltip = () => (
   <div className="space-y-3 text-right max-w-sm sm:max-w-md text-foreground" dir="rtl">
@@ -112,24 +114,27 @@ const ChannelToggles = ({
   sms,
   email,
   onToggle,
-  inherited = { inApp: false, whatsapp: false, sms: false, email: false }
+  inherited = { inApp: false, whatsapp: false, sms: false, email: false },
+  disabled = false
 }: {
   inApp: boolean;
   whatsapp: boolean;
   sms: boolean;
   email: boolean;
   onToggle: (channel: "in_app" | "whatsapp" | "sms" | "email", val: boolean) => void;
-  inherited?: { inApp: boolean; whatsapp: boolean; sms: boolean; email: boolean }
+  inherited?: { inApp: boolean; whatsapp: boolean; sms: boolean; email: boolean };
+  disabled?: boolean;
 }) => {
   return (
-    <div className="flex items-center justify-center gap-1 sm:gap-1.5 bg-muted/30 p-1 sm:p-1.5 rounded-lg border border-border/30 w-fit mx-auto">
+    <div className={`flex items-center justify-center gap-1 sm:gap-1.5 bg-muted/30 p-1 sm:p-1.5 rounded-lg border border-border/30 w-fit mx-auto ${disabled ? "opacity-60" : ""}`}>
       <TooltipProvider delayDuration={200}>
         {/* إشعارات الموقع */}
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              onClick={() => onToggle("in_app", !inApp)}
-              className={`p-1 sm:p-1.5 rounded-md transition-all active:scale-95 ${
+              disabled={disabled}
+              onClick={() => !disabled && onToggle("in_app", !inApp)}
+              className={`p-1 sm:p-1.5 rounded-md transition-all ${disabled ? "cursor-not-allowed" : "active:scale-95"} ${
                 inApp
                   ? "bg-teal-500/10 text-teal-600 dark:text-teal-400 font-semibold"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -139,7 +144,7 @@ const ChannelToggles = ({
             </button>
           </TooltipTrigger>
           <TooltipContent side="top" className="text-[10px] sm:text-xs">
-            <span>إشعارات الموقع (In-App){inherited.inApp ? " (مورث من الدور)" : ""}</span>
+            <span>إشعارات الموقع (In-App){inherited.inApp ? " (مورث من الدور)" : ""}{disabled ? " (غير مصرح بالتعديل)" : ""}</span>
           </TooltipContent>
         </Tooltip>
 
@@ -147,8 +152,9 @@ const ChannelToggles = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              onClick={() => onToggle("whatsapp", !whatsapp)}
-              className={`p-1 sm:p-1.5 rounded-md transition-all active:scale-95 ${
+              disabled={disabled}
+              onClick={() => !disabled && onToggle("whatsapp", !whatsapp)}
+              className={`p-1 sm:p-1.5 rounded-md transition-all ${disabled ? "cursor-not-allowed" : "active:scale-95"} ${
                 whatsapp
                   ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -158,7 +164,7 @@ const ChannelToggles = ({
             </button>
           </TooltipTrigger>
           <TooltipContent side="top" className="text-[10px] sm:text-xs">
-            <span>رسائل الواتساب (WhatsApp){inherited.whatsapp ? " (مورث من الدور)" : ""}</span>
+            <span>رسائل الواتساب (WhatsApp){inherited.whatsapp ? " (مورث من الدور)" : ""}{disabled ? " (غير مصرح بالتعديل)" : ""}</span>
           </TooltipContent>
         </Tooltip>
 
@@ -166,8 +172,9 @@ const ChannelToggles = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              onClick={() => onToggle("email", !email)}
-              className={`p-1 sm:p-1.5 rounded-md transition-all active:scale-95 ${
+              disabled={disabled}
+              onClick={() => !disabled && onToggle("email", !email)}
+              className={`p-1 sm:p-1.5 rounded-md transition-all ${disabled ? "cursor-not-allowed" : "active:scale-95"} ${
                 email
                   ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -177,7 +184,7 @@ const ChannelToggles = ({
             </button>
           </TooltipTrigger>
           <TooltipContent side="top" className="text-[10px] sm:text-xs">
-            <span>البريد الإلكتروني (Email){inherited.email ? " (مورث من الدور)" : ""}</span>
+            <span>البريد الإلكتروني (Email){inherited.email ? " (مورث من الدور)" : ""}{disabled ? " (غير مصرح بالتعديل)" : ""}</span>
           </TooltipContent>
         </Tooltip>
 
@@ -185,8 +192,9 @@ const ChannelToggles = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              onClick={() => onToggle("sms", !sms)}
-              className={`p-1 sm:p-1.5 rounded-md transition-all active:scale-95 ${
+              disabled={disabled}
+              onClick={() => !disabled && onToggle("sms", !sms)}
+              className={`p-1 sm:p-1.5 rounded-md transition-all ${disabled ? "cursor-not-allowed" : "active:scale-95"} ${
                 sms
                   ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -196,7 +204,7 @@ const ChannelToggles = ({
             </button>
           </TooltipTrigger>
           <TooltipContent side="top" className="text-[10px] sm:text-xs">
-            <span>الرسائل النصية (SMS){inherited.sms ? " (مورث من الدور)" : ""}</span>
+            <span>الرسائل النصية (SMS){inherited.sms ? " (مورث من الدور)" : ""}{disabled ? " (غير مصرح بالتعديل)" : ""}</span>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -228,6 +236,44 @@ const Pagination = ({
 };
 
 export default function NotificationCustomization() {
+  const { user } = useAuth();
+  const userPermissions = useUserPermissions();
+  const effectivePermissions = (userPermissions && userPermissions.length > 0)
+    ? userPermissions
+    : (user as any)?.permissions || [];
+
+  const hasPerm = (perm: string) => {
+    return effectivePermissions.includes(perm) || effectivePermissions.includes("*");
+  };
+
+  const canByRole = hasPerm("staff_notifications.by_role");
+  const canEditMessageFormats = hasPerm("staff_notifications.edit_message_formats");
+  const canByPerson = hasPerm("staff_notifications.by_person");
+  const canBeneficiary = hasPerm("staff_notifications.beneficiary");
+  const canDirectSend = hasPerm("staff_notifications.direct_send");
+  const canSendLogs = hasPerm("staff_notifications.send_logs");
+
+  const canShowRolesTab = canByRole || canEditMessageFormats;
+  const canShowUsersTab = canByPerson;
+  const canShowBeneficiaryTab = canBeneficiary || canEditMessageFormats;
+  const canShowDirectSendTab = canDirectSend;
+  const canShowLogsTab = canSendLogs;
+
+  const availableTabs = [
+    ...(canShowRolesTab ? [{ value: "roles", label: "تخصيص حسب الأدوار", icon: Shield }] : []),
+    ...(canShowUsersTab ? [{ value: "users", label: "تخصيص حسب الأشخاص", icon: Users }] : []),
+    ...(canShowBeneficiaryTab ? [{ value: "beneficiary", label: "إشعارات المستفيد", icon: HeartHandshake }] : []),
+    ...(canShowDirectSendTab ? [{ value: "direct_send", label: "إرسال إشعار مباشر", icon: Send }] : []),
+    ...(canShowLogsTab ? [{ value: "logs", label: "سجل إرسال الإشعارات", icon: History }] : []),
+  ];
+
+  const [activeTab, setActiveTab] = useState<string>("roles");
+
+  useEffect(() => {
+    if (availableTabs.length > 0 && !availableTabs.some(t => t.value === activeTab)) {
+      setActiveTab(availableTabs[0].value);
+    }
+  }, [availableTabs, activeTab]);
 
   // جلب قائمة الموظفين وتخصيص إشعاراتهم
   const { data: staffUsers, isLoading: isLoadingStaff, refetch: refetchStaff } = trpc.users.getStaffUsers.useQuery();
@@ -405,6 +451,10 @@ export default function NotificationCustomization() {
     channel: 'in_app' | 'whatsapp' | 'sms' | 'email',
     val: boolean
   ) => {
+    if (!canByRole) {
+      toast.error("ليس لديك صلاحية تعديل قنوات الإشعارات للأدوار");
+      return;
+    }
     const fieldMap = {
       beneficiary: {
         in_app: "receiveBeneficiaryNotifications",
@@ -447,6 +497,10 @@ export default function NotificationCustomization() {
     channel: 'in_app' | 'whatsapp' | 'sms' | 'email',
     val: boolean
   ) => {
+    if (!canByPerson) {
+      toast.error("ليس لديك صلاحية تعديل قنوات الإشعارات للأشخاص");
+      return;
+    }
     const fieldMap = {
       beneficiary: {
         in_app: "receiveBeneficiaryNotifications",
@@ -1649,6 +1703,10 @@ export default function NotificationCustomization() {
     channel: 'in_app' | 'email' | 'whatsapp' | 'sms',
     val: boolean
   ) => {
+    if (!canByRole) {
+      toast.error("ليس لديك صلاحية تعديل قنوات الإشعار للأدوار");
+      return;
+    }
     // تحديث تفاؤلي فوري في الـ Cache لتبديل المفتاح فوراً بدون بطء
     utils.notifications.getTriggerSettings.setData(undefined, (old: any) => {
       const list = Array.isArray(old) ? [...old] : [];
@@ -1682,6 +1740,10 @@ export default function NotificationCustomization() {
     channel: 'in_app' | 'email' | 'whatsapp' | 'sms',
     val: boolean
   ) => {
+    if (!canBeneficiary) {
+      toast.error("ليس لديك صلاحية تعديل قنوات إشعارات المستفيد");
+      return;
+    }
     // تحديث تفاؤلي فوري في الـ Cache لتبديل المفتاح فوراً بدون بطء
     utils.notifications.getTriggerSettings.setData(undefined, (old: any) => {
       const list = Array.isArray(old) ? [...old] : [];
@@ -1800,6 +1862,10 @@ export default function NotificationCustomization() {
   };
 
   const handleOpenEditTemplateModal = (trigger: any) => {
+    if (!canEditMessageFormats) {
+      toast.error("ليس لديك صلاحية تعديل صيغ الرسائل");
+      return;
+    }
     lastInitializedTriggerId.current = null;
     setSelectedTriggerForEdit(trigger);
     setEditingTemplateMessage(getTemplateMessage(trigger.id));
@@ -2109,127 +2175,117 @@ export default function NotificationCustomization() {
         </div>
 
         {/* علامات تبويب التخصيص */}
-        <Tabs defaultValue="roles" className="w-full space-y-6" dir="rtl">
-          <div className="flex justify-center w-full mb-8">
-            <TabsList className="bg-slate-100/80 dark:bg-slate-900/60 p-2 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 flex flex-wrap sm:flex-nowrap gap-2 sm:gap-2.5 w-full max-w-5xl shadow-inner backdrop-blur-md">
-              <TabsTrigger 
-                value="roles" 
-                className="flex-1 rounded-xl py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
-              >
-                <Shield className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
-                <span>تخصيص حسب الأدوار</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="users" 
-                className="flex-1 rounded-xl py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
-              >
-                <Users className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
-                <span>تخصيص حسب الأشخاص</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="beneficiary" 
-                className="flex-1 rounded-xl py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
-              >
-                <HeartHandshake className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
-                <span>إشعارات المستفيد</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="direct_send" 
-                className="flex-1 rounded-xl py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
-              >
-                <Send className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
-                <span>إرسال إشعار مباشر</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="logs" 
-                className="flex-1 rounded-xl py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
-              >
-                <History className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
-                <span>سجل إرسال الإشعارات</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
+        {availableTabs.length === 0 ? (
+          <Card className="border border-border/50 shadow-sm p-12 text-center rounded-xl">
+            <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground">
+              <Shield className="w-12 h-12 text-muted-foreground/40" />
+              <h3 className="text-lg font-bold text-foreground">لا تملك صلاحية الوصول</h3>
+              <p className="text-sm">ليس لديك صلاحية لعرض أي من أقسام تخصيص الإشعارات.</p>
+            </div>
+          </Card>
+        ) : (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6" dir="rtl">
+            <div className="flex justify-center w-full mb-8">
+              <TabsList className="bg-slate-100/80 dark:bg-slate-900/60 p-2 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 flex flex-wrap sm:flex-nowrap gap-2 sm:gap-2.5 w-full max-w-5xl shadow-inner backdrop-blur-md">
+                {availableTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <TabsTrigger 
+                      key={tab.value}
+                      value={tab.value} 
+                      className="flex-1 rounded-xl py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
+                    >
+                      <Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
+                      <span>{tab.label}</span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </div>
 
           {/* تبويب: التخصيص حسب الأدوار */}
-          <TabsContent value="roles" className="space-y-6 focus-visible:outline-none">
-            <Card className="border border-border/50 shadow-sm overflow-hidden rounded-xl">
-              <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-4 sm:p-6">
-                <CardTitle className="text-sm sm:text-base md:text-lg font-bold text-foreground">تخصيص استقبال إشعارات الطلبات والمالية للأدوار</CardTitle>
-                <CardDescription className="text-[11px] sm:text-xs md:text-sm mt-1 leading-relaxed">
-                  حدد الأدوار الأساسية والمخصصة في النظام التي تتلقى إشعارات تلقائية عند إنشاء وتغيير حالة وتحديث طلبات المستفيدين والمساجد (بما في ذلك إسناد الزيارات الميدانية وتقارير الاستجابة السريعة)، أو عند تحديثات الشؤون المالية والعقود والمشاريع.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                {isLoadingRoles ? (
-                  <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center gap-3">
-                    <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-                    <span>جاري تحميل قائمة الأدوار...</span>
-                  </div>
-                ) : paginatedRoles && paginatedRoles.length > 0 ? (
-                  <>
-                    <div className="w-full overflow-x-auto scrollbar-thin">
-                      <Table className="min-w-[700px]">
-                        <TableHeader>
-                          <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
-                            <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pr-4 sm:pr-6">الدور الوظيفي</TableHead>
-                            <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">نوع الدور</TableHead>
-                            <TableHead className="text-center py-3 sm:py-4 text-xs sm:text-sm">
-                              <div className="flex items-center justify-center gap-1">
-                                <span className="font-bold text-foreground">وصول إشعارات الطلبات والمساجد</span>
-                              </div>
-                            </TableHead>
-                            <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pl-4 sm:pl-6">وصول إشعارات المالية والعقود</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody className="divide-y divide-border/40">
-                          {paginatedRoles.map(role => {
-                            const roleStyle = roles.find(r => r.id === role.id) || { color: "bg-purple-500/10 text-purple-600 border-purple-500/20" };
-                            
-                            return (
-                              <TableRow key={role.id} className="hover:bg-muted/20 transition-colors">
-                                <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 font-semibold text-xs sm:text-sm text-foreground">
-                                  {role.nameAr}
-                                </TableCell>
-                                <TableCell className="py-3 sm:py-4 text-xs sm:text-sm">
-                                  <Badge variant="secondary" className={`text-[10px] py-0.5 px-2 rounded font-bold ${role.isSystem ? "bg-blue-500/10 text-blue-600 border border-blue-500/20" : "bg-purple-500/10 text-purple-600 border border-purple-500/20"}`}>
-                                    {role.isSystem ? "أساسي" : "مخصص"}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-center py-3 sm:py-4">
-                                  <ChannelToggles
-                                    inApp={role.receiveRequestNotifications || false}
-                                    whatsapp={getRoleChannelState(role.id, 'request').whatsapp}
-                                    sms={getRoleChannelState(role.id, 'request').sms}
-                                    email={getRoleChannelState(role.id, 'request').email}
-                                    onToggle={(channel, val) => handleToggleRoleChannel(role.id, 'request', channel, val)}
-                                  />
-                                </TableCell>
-                                <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
-                                  <ChannelToggles
-                                    inApp={role.receiveFinancialAndContractNotifications || false}
-                                    whatsapp={getRoleChannelState(role.id, 'financial').whatsapp}
-                                    sms={getRoleChannelState(role.id, 'financial').sms}
-                                    email={getRoleChannelState(role.id, 'financial').email}
-                                    onToggle={(channel, val) => handleToggleRoleChannel(role.id, 'financial', channel, val)}
-                                  />
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
+          {canShowRolesTab && (
+            <TabsContent value="roles" className="space-y-6 focus-visible:outline-none">
+            {canByRole && (
+              <Card className="border border-border/50 shadow-sm overflow-hidden rounded-xl">
+                <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-4 sm:p-6">
+                  <CardTitle className="text-sm sm:text-base md:text-lg font-bold text-foreground">تخصيص استقبال إشعارات الطلبات والمالية للأدوار</CardTitle>
+                  <CardDescription className="text-[11px] sm:text-xs md:text-sm mt-1 leading-relaxed">
+                    حدد الأدوار الأساسية والمخصصة في النظام التي تتلقى إشعارات تلقائية عند إنشاء وتغيير حالة وتحديث طلبات المستفيدين والمساجد (بما في ذلك إسناد الزيارات الميدانية وتقارير الاستجابة السريعة)، أو عند تحديثات الشؤون المالية والعقود والمشاريع.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {isLoadingRoles ? (
+                    <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center gap-3">
+                      <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                      <span>جاري تحميل قائمة الأدوار...</span>
                     </div>
-                    <Pagination
-                      currentPage={rolesPage}
-                      totalPages={rolesTotalPages}
-                      onPageChange={setRolesPage}
-                    />
-                  </>
-                ) : (
-                  <div className="p-8 text-center text-muted-foreground">لا توجد أدوار متاحة حالياً.</div>
-                )}
-              </CardContent>
-            </Card>
+                  ) : paginatedRoles && paginatedRoles.length > 0 ? (
+                    <>
+                      <div className="w-full overflow-x-auto scrollbar-thin">
+                        <Table className="min-w-[700px]">
+                          <TableHeader>
+                            <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
+                              <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pr-4 sm:pr-6">الدور الوظيفي</TableHead>
+                              <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">نوع الدور</TableHead>
+                              <TableHead className="text-center py-3 sm:py-4 text-xs sm:text-sm">
+                                <div className="flex items-center justify-center gap-1">
+                                  <span className="font-bold text-foreground">وصول إشعارات الطلبات والمساجد</span>
+                                </div>
+                              </TableHead>
+                              <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pl-4 sm:pl-6">وصول إشعارات المالية والعقود</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody className="divide-y divide-border/40">
+                            {paginatedRoles.map(role => {
+                              return (
+                                <TableRow key={role.id} className="hover:bg-muted/20 transition-colors">
+                                  <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 font-semibold text-xs sm:text-sm text-foreground">
+                                    {role.nameAr}
+                                  </TableCell>
+                                  <TableCell className="py-3 sm:py-4 text-xs sm:text-sm">
+                                    <Badge variant="secondary" className={`text-[10px] py-0.5 px-2 rounded font-bold ${role.isSystem ? "bg-blue-500/10 text-blue-600 border border-blue-500/20" : "bg-purple-500/10 text-purple-600 border border-purple-500/20"}`}>
+                                      {role.isSystem ? "أساسي" : "مخصص"}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-center py-3 sm:py-4">
+                                    <ChannelToggles
+                                      inApp={role.receiveRequestNotifications || false}
+                                      whatsapp={getRoleChannelState(role.id, 'request').whatsapp}
+                                      sms={getRoleChannelState(role.id, 'request').sms}
+                                      email={getRoleChannelState(role.id, 'request').email}
+                                      disabled={!canByRole}
+                                      onToggle={(channel, val) => handleToggleRoleChannel(role.id, 'request', channel, val)}
+                                    />
+                                  </TableCell>
+                                  <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
+                                    <ChannelToggles
+                                      inApp={role.receiveFinancialAndContractNotifications || false}
+                                      whatsapp={getRoleChannelState(role.id, 'financial').whatsapp}
+                                      sms={getRoleChannelState(role.id, 'financial').sms}
+                                      email={getRoleChannelState(role.id, 'financial').email}
+                                      disabled={!canByRole}
+                                      onToggle={(channel, val) => handleToggleRoleChannel(role.id, 'financial', channel, val)}
+                                    />
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      <Pagination
+                        currentPage={rolesPage}
+                        totalPages={rolesTotalPages}
+                        onPageChange={setRolesPage}
+                      />
+                    </>
+                  ) : (
+                    <div className="p-8 text-center text-muted-foreground">لا توجد أدوار متاحة حالياً.</div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             <Card className="border border-border/50 shadow-sm overflow-hidden rounded-xl mt-6">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-4 sm:p-6">
@@ -2261,14 +2317,16 @@ export default function NotificationCustomization() {
                     <TableHeader>
                       <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
                         <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pr-4 sm:pr-6">الحدث / المشغل</TableHead>
-                        <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">تعديل الصياغة</TableHead>
+                        {canEditMessageFormats && (
+                          <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">تعديل الصياغة</TableHead>
+                        )}
                         <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pl-4 sm:pl-6">قنوات الإرسال المحددة للحدث</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody className="divide-y divide-border/40">
                       {/* === قسم الطلبات والمساجد === */}
                       <TableRow className="bg-slate-50/50 dark:bg-slate-900/30 hover:bg-transparent">
-                        <TableCell colSpan={3} className="py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40">
+                        <TableCell colSpan={canEditMessageFormats ? 3 : 2} className="py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40">
                           قسم الطلبات والمساجد
                         </TableCell>
                       </TableRow>
@@ -2284,32 +2342,35 @@ export default function NotificationCustomization() {
                               <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
                               {renderTruncatedPreview(trig.id)}
                             </TableCell>
-                            <TableCell className="text-center py-3 sm:py-4">
-                              <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      className="h-7 w-7 text-teal-650 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/90 hover:text-teal-700 dark:bg-teal-950/20 dark:hover:bg-teal-950/40 border border-teal-100/30 dark:border-teal-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
-                                      onClick={() => handleOpenEditTemplateModal(trig)}
-                                      type="button"
-                                    >
-                                      <Pencil className="w-3.5 h-3.5" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">
-                                    <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </TableCell>
+                            {canEditMessageFormats && (
+                              <TableCell className="text-center py-3 sm:py-4">
+                                <TooltipProvider delayDuration={200}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-7 w-7 text-teal-650 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/90 hover:text-teal-700 dark:bg-teal-950/20 dark:hover:bg-teal-950/40 border border-teal-100/30 dark:border-teal-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
+                                        onClick={() => handleOpenEditTemplateModal(trig)}
+                                        type="button"
+                                      >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                      <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </TableCell>
+                            )}
                             <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
                               <ChannelToggles
                                 inApp={inAppState.enabled}
                                 whatsapp={whatsappState.enabled}
                                 sms={smsState.enabled}
                                 email={emailState.enabled}
+                                disabled={!canByRole}
                                 onToggle={(channel, val) => handleToggleTriggerSetting(trig.id, channel, val)}
                                 inherited={{
                                   inApp: inAppState.isInherited,
@@ -2325,7 +2386,7 @@ export default function NotificationCustomization() {
 
                       {/* === قسم المالية والعقود === */}
                       <TableRow className="bg-slate-50/50 dark:bg-slate-900/30 hover:bg-transparent">
-                        <TableCell colSpan={3} className="py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40 border-t">
+                        <TableCell colSpan={canEditMessageFormats ? 3 : 2} className="py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40 border-t">
                           قسم المالية والعقود
                         </TableCell>
                       </TableRow>
@@ -2341,32 +2402,35 @@ export default function NotificationCustomization() {
                               <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
                               {renderTruncatedPreview(trig.id)}
                             </TableCell>
-                            <TableCell className="text-center py-3 sm:py-4">
-                              <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      className="h-7 w-7 text-teal-650 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/90 hover:text-teal-700 dark:bg-teal-950/20 dark:hover:bg-teal-950/40 border border-teal-100/30 dark:border-teal-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
-                                      onClick={() => handleOpenEditTemplateModal(trig)}
-                                      type="button"
-                                    >
-                                      <Pencil className="w-3.5 h-3.5" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">
-                                    <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </TableCell>
+                            {canEditMessageFormats && (
+                              <TableCell className="text-center py-3 sm:py-4">
+                                <TooltipProvider delayDuration={200}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-7 w-7 text-teal-650 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/90 hover:text-teal-700 dark:bg-teal-950/20 dark:hover:bg-teal-950/40 border border-teal-100/30 dark:border-teal-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
+                                        onClick={() => handleOpenEditTemplateModal(trig)}
+                                        type="button"
+                                      >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                      <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </TableCell>
+                            )}
                             <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
                               <ChannelToggles
                                 inApp={inAppState.enabled}
                                 whatsapp={whatsappState.enabled}
                                 sms={smsState.enabled}
                                 email={emailState.enabled}
+                                disabled={!canByRole}
                                 onToggle={(channel, val) => handleToggleTriggerSetting(trig.id, channel, val)}
                                 inherited={{
                                   inApp: inAppState.isInherited,
@@ -2382,7 +2446,7 @@ export default function NotificationCustomization() {
 
                       {/* === قسم العهد المالية والاستثناءات === */}
                       <TableRow className="bg-slate-50/50 dark:bg-slate-900/30 hover:bg-transparent">
-                        <TableCell colSpan={3} className="py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40 border-t">
+                        <TableCell colSpan={canEditMessageFormats ? 3 : 2} className="py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40 border-t">
                           العهد المالية والاستثناءات
                         </TableCell>
                       </TableRow>
@@ -2398,32 +2462,35 @@ export default function NotificationCustomization() {
                               <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
                               {renderTruncatedPreview(trig.id)}
                             </TableCell>
-                            <TableCell className="text-center py-3 sm:py-4">
-                              <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      className="h-7 w-7 text-teal-650 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/90 hover:text-teal-700 dark:bg-teal-950/20 dark:hover:bg-teal-950/40 border border-teal-100/30 dark:border-teal-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
-                                      onClick={() => handleOpenEditTemplateModal(trig)}
-                                      type="button"
-                                    >
-                                      <Pencil className="w-3.5 h-3.5" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">
-                                    <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </TableCell>
+                            {canEditMessageFormats && (
+                              <TableCell className="text-center py-3 sm:py-4">
+                                <TooltipProvider delayDuration={200}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-7 w-7 text-teal-650 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/90 hover:text-teal-700 dark:bg-teal-950/20 dark:hover:bg-teal-950/40 border border-teal-100/30 dark:border-teal-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
+                                        onClick={() => handleOpenEditTemplateModal(trig)}
+                                        type="button"
+                                      >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                      <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </TableCell>
+                            )}
                             <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
                               <ChannelToggles
                                 inApp={inAppState.enabled}
                                 whatsapp={whatsappState.enabled}
                                 sms={smsState.enabled}
                                 email={emailState.enabled}
+                                disabled={!canByRole}
                                 onToggle={(channel, val) => handleToggleTriggerSetting(trig.id, channel, val)}
                                 inherited={{
                                   inApp: inAppState.isInherited,
@@ -2442,9 +2509,11 @@ export default function NotificationCustomization() {
               </CardContent>
             </Card>
           </TabsContent>
+        )}
 
           {/* تبويب: التخصيص حسب الأشخاص */}
-          <TabsContent value="users" className="space-y-6 focus-visible:outline-none">
+          {canShowUsersTab && (
+            <TabsContent value="users" className="space-y-6 focus-visible:outline-none">
             <Card className="border border-border/50 shadow-sm overflow-hidden rounded-xl">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-4 sm:p-6">
                 <CardTitle className="text-sm sm:text-base md:text-lg font-bold text-foreground">تخصيص استقبال إشعارات الطلبات والمالية للأشخاص</CardTitle>
@@ -2495,6 +2564,7 @@ export default function NotificationCustomization() {
                                     whatsapp={getUserChannelState(user.id, 'request').whatsapp}
                                     sms={getUserChannelState(user.id, 'request').sms}
                                     email={getUserChannelState(user.id, 'request').email}
+                                    disabled={!canByPerson}
                                     onToggle={(channel, val) => handleToggleUserChannel(user.id, 'request', channel, val)}
                                     inherited={{
                                       inApp: getUserChannelState(user.id, 'request').isInherited.inApp,
@@ -2510,6 +2580,7 @@ export default function NotificationCustomization() {
                                     whatsapp={getUserChannelState(user.id, 'financial').whatsapp}
                                     sms={getUserChannelState(user.id, 'financial').sms}
                                     email={getUserChannelState(user.id, 'financial').email}
+                                    disabled={!canByPerson}
                                     onToggle={(channel, val) => handleToggleUserChannel(user.id, 'financial', channel, val)}
                                     inherited={{
                                       inApp: getUserChannelState(user.id, 'financial').isInherited.inApp,
@@ -2537,136 +2608,149 @@ export default function NotificationCustomization() {
               </CardContent>
             </Card>
           </TabsContent>
+        )}
 
           {/* تبويب: إشعارات المستفيد (طالب الخدمة) */}
-          <TabsContent value="beneficiary" className="space-y-6 focus-visible:outline-none">
-            {(() => {
-              const BENEFICIARY_SECTIONS = [
-                {
-                  title: "قسم الحساب والتسجيل",
-                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "account")
-                },
-                {
-                  title: "قسم المساجد",
-                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "mosque")
-                },
-                {
-                  title: "قسم الطلبات والمراحل",
-                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "request")
-                },
-                {
-                  title: "قسم طلبات الاستثناء",
-                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "exceptions")
-                },
-                {
-                  title: "قسم استبيانات الرضا والتقييم",
-                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "surveys")
-                }
-              ].filter(s => s.triggers.length > 0);
+          {canShowBeneficiaryTab && (
+            <TabsContent value="beneficiary" className="space-y-6 focus-visible:outline-none">
+              {(() => {
+                const BENEFICIARY_SECTIONS = [
+                  {
+                    title: "قسم الحساب والتسجيل",
+                    triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "account")
+                  },
+                  {
+                    title: "قسم المساجد",
+                    triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "mosque")
+                  },
+                  {
+                    title: "قسم الطلبات والمراحل",
+                    triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "request")
+                  },
+                  {
+                    title: "قسم طلبات الاستثناء",
+                    triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "exceptions")
+                  },
+                  {
+                    title: "قسم استبيانات الرضا والتقييم",
+                    triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "surveys")
+                  }
+                ].filter(s => s.triggers.length > 0);
 
-              return (
-                <Card className="border border-border/50 shadow-sm overflow-hidden rounded-xl">
-                  <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-4 sm:p-6">
-                    <CardTitle className="text-sm sm:text-base md:text-lg font-bold text-foreground">
-                      تخصيص إشعارات المستفيد (طالب الخدمة)
-                    </CardTitle>
-                    <CardDescription className="text-[11px] sm:text-xs md:text-sm mt-1 leading-relaxed">
-                      حدد إشعارات المستفيد وقنوات الإرسال المحددة لكل حدث، مع إمكانية تعديل صياغة الرسائل.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="w-full overflow-x-auto scrollbar-thin">
-                      <Table className="min-w-[600px]">
-                        <TableHeader>
-                          <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
-                            <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pr-4 sm:pr-6">
-                              الحدث / المشغل
-                            </TableHead>
-                            <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">
-                              تعديل الصياغة
-                            </TableHead>
-                            <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pl-4 sm:pl-6">
-                              قنوات الإرسال المحددة للحدث
-                            </TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody className="divide-y divide-border/40">
-                          {BENEFICIARY_SECTIONS.map((section, sIdx) => (
-                            <React.Fragment key={section.title}>
-                              <TableRow className="bg-slate-50/50 dark:bg-slate-900/30 hover:bg-transparent">
-                                <TableCell 
-                                  colSpan={3} 
-                                  className={`py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40 ${sIdx > 0 ? "border-t" : ""}`}
-                                >
-                                  {section.title}
-                                </TableCell>
-                              </TableRow>
-                              {section.triggers.map((trig) => {
-                                const inAppState = getBeneficiaryChannelState(trig.id, 'in_app');
-                                const emailState = getBeneficiaryChannelState(trig.id, 'email');
-                                const whatsappState = getBeneficiaryChannelState(trig.id, 'whatsapp');
-                                const smsState = getBeneficiaryChannelState(trig.id, 'sms');
+                return (
+                  <Card className="border border-border/50 shadow-sm overflow-hidden rounded-xl">
+                    <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-4 sm:p-6">
+                      <CardTitle className="text-sm sm:text-base md:text-lg font-bold text-foreground">
+                        تخصيص إشعارات المستفيد (طالب الخدمة)
+                      </CardTitle>
+                      <CardDescription className="text-[11px] sm:text-xs md:text-sm mt-1 leading-relaxed">
+                        حدد إشعارات المستفيد وقنوات الإرسال المحددة لكل حدث، مع إمكانية تعديل صياغة الرسائل.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="w-full overflow-x-auto scrollbar-thin">
+                        <Table className="min-w-[600px]">
+                          <TableHeader>
+                            <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
+                              <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pr-4 sm:pr-6">
+                                الحدث / المشغل
+                              </TableHead>
+                              {canEditMessageFormats && (
+                                <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">
+                                  تعديل الصياغة
+                                </TableHead>
+                              )}
+                              <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pl-4 sm:pl-6">
+                                قنوات الإرسال المحددة للحدث
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody className="divide-y divide-border/40">
+                            {BENEFICIARY_SECTIONS.map((section, sIdx) => (
+                              <React.Fragment key={section.title}>
+                                <TableRow className="bg-slate-50/50 dark:bg-slate-900/30 hover:bg-transparent">
+                                  <TableCell 
+                                    colSpan={canEditMessageFormats ? 3 : 2} 
+                                    className={`py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40 ${sIdx > 0 ? "border-t" : ""}`}
+                                  >
+                                    {section.title}
+                                  </TableCell>
+                                </TableRow>
+                                {section.triggers.map((trig) => {
+                                  const inAppState = getBeneficiaryChannelState(trig.id, 'in_app');
+                                  const emailState = getBeneficiaryChannelState(trig.id, 'email');
+                                  const whatsappState = getBeneficiaryChannelState(trig.id, 'whatsapp');
+                                  const smsState = getBeneficiaryChannelState(trig.id, 'sms');
 
-                                return (
-                                  <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
-                                    <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
-                                      <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
-                                      {renderTruncatedPreview(trig.id)}
-                                    </TableCell>
-                                    <TableCell className="text-center py-3 sm:py-4">
-                                      <TooltipProvider delayDuration={200}>
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <Button
-                                              variant="outline"
-                                              size="icon"
-                                              className="h-7 w-7 text-teal-650 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/90 hover:text-teal-700 dark:bg-teal-950/20 dark:hover:bg-teal-950/40 border border-teal-100/30 dark:border-teal-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
-                                              onClick={() => handleOpenEditTemplateModal(trig)}
-                                              type="button"
-                                            >
-                                              <Pencil className="w-3.5 h-3.5" />
-                                            </Button>
-                                          </TooltipTrigger>
-                                          <TooltipContent side="top">
-                                            <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
-                                    </TableCell>
-                                    <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
-                                      <ChannelToggles
-                                        inApp={inAppState}
-                                        whatsapp={whatsappState}
-                                        sms={smsState}
-                                        email={emailState}
-                                        onToggle={(channel, val) => handleToggleBeneficiaryChannel(trig.id, channel, val)}
-                                      />
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                            </React.Fragment>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })()}
-          </TabsContent>
+                                  return (
+                                    <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
+                                      <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
+                                        <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
+                                        {renderTruncatedPreview(trig.id)}
+                                      </TableCell>
+                                      {canEditMessageFormats && (
+                                        <TableCell className="text-center py-3 sm:py-4">
+                                          <TooltipProvider delayDuration={200}>
+                                            <Tooltip>
+                                              <TooltipTrigger asChild>
+                                                <Button
+                                                  variant="outline"
+                                                  size="icon"
+                                                  className="h-7 w-7 text-teal-650 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/90 hover:text-teal-700 dark:bg-teal-950/20 dark:hover:bg-teal-950/40 border border-teal-100/30 dark:border-teal-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
+                                                  onClick={() => handleOpenEditTemplateModal(trig)}
+                                                  type="button"
+                                                >
+                                                  <Pencil className="w-3.5 h-3.5" />
+                                                </Button>
+                                              </TooltipTrigger>
+                                              <TooltipContent side="top">
+                                                <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
+                                              </TooltipContent>
+                                            </Tooltip>
+                                          </TooltipProvider>
+                                        </TableCell>
+                                      )}
+                                      <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
+                                        <ChannelToggles
+                                          inApp={inAppState}
+                                          whatsapp={whatsappState}
+                                          sms={smsState}
+                                          email={emailState}
+                                          disabled={!canBeneficiary}
+                                          onToggle={(channel, val) => handleToggleBeneficiaryChannel(trig.id, channel, val)}
+                                        />
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </React.Fragment>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+            </TabsContent>
+          )}
 
           {/* تبويب: إرسال إشعار مباشر ومخصص */}
-          <TabsContent value="direct_send" className="space-y-6 focus-visible:outline-none">
-            <DirectNotificationTab dbRoles={dbRoles} />
-          </TabsContent>
+          {canShowDirectSendTab && (
+            <TabsContent value="direct_send" className="space-y-6 focus-visible:outline-none">
+              <DirectNotificationTab dbRoles={dbRoles} />
+            </TabsContent>
+          )}
 
           {/* تبويب: سجل إرسال الإشعارات */}
-          <TabsContent value="logs" className="space-y-6 focus-visible:outline-none">
-            <NotificationLogsTab dbRoles={dbRoles} />
-          </TabsContent>
+          {canShowLogsTab && (
+            <TabsContent value="logs" className="space-y-6 focus-visible:outline-none">
+              <NotificationLogsTab dbRoles={dbRoles} />
+            </TabsContent>
+          )}
 
         </Tabs>
+      )}
 
         {/* مودال تخصيص رسالة الإشعار */}
         <Dialog open={isEditTemplateOpen} onOpenChange={setIsEditTemplateOpen}>

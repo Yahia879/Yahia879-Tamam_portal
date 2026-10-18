@@ -2450,7 +2450,7 @@ export const notificationsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const userPerms = await calculateUserPermissions(ctx.user.id);
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role as any);
-      if (!isAdmin && !userPerms.includes("staff_notifications.edit")) {
+      if (!isAdmin && !userPerms.includes("staff_notifications.edit") && !userPerms.includes("staff_notifications.direct_send")) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إرسال الإشعارات المباشرة" });
       }
 
@@ -2580,7 +2580,7 @@ export const notificationsRouter = router({
     .query(async ({ ctx, input }) => {
       const userPerms = await calculateUserPermissions(ctx.user.id);
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role as any);
-      if (!isAdmin && !userPerms.includes("staff_notifications.edit")) {
+      if (!isAdmin && !userPerms.includes("staff_notifications.edit") && !userPerms.includes("staff_notifications.send_logs")) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض سجلات الإشعارات" });
       }
 
@@ -2716,7 +2716,7 @@ export const notificationsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const userPerms = await calculateUserPermissions(ctx.user.id);
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role as any);
-      if (!isAdmin && !userPerms.includes("staff_notifications.edit")) {
+      if (!isAdmin && !userPerms.includes("staff_notifications.edit") && !userPerms.includes("staff_notifications.send_logs") && !userPerms.includes("staff_notifications.direct_send")) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إعادة إرسال الإشعارات" });
       }
 
@@ -2849,7 +2849,15 @@ export const notificationsRouter = router({
         enabled: z.boolean(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role as any);
+      const hasAccess = isAdmin || userPerms.includes("staff_notifications.edit") ||
+        (input.roleId === "service_requester" ? userPerms.includes("staff_notifications.beneficiary") : userPerms.includes("staff_notifications.by_role"));
+      if (!hasAccess) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل قنوات الإشعار" });
+      }
+
       const db = await getDb();
       if (!db) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
@@ -2882,7 +2890,13 @@ export const notificationsRouter = router({
         enabled: z.boolean(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role as any);
+      if (!isAdmin && !userPerms.includes("staff_notifications.edit") && !userPerms.includes("staff_notifications.beneficiary")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل إشعارات المستفيد" });
+      }
+
       const db = await getDb();
       if (!db) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
@@ -2929,7 +2943,13 @@ export const notificationsRouter = router({
         templateMessage: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role as any);
+      if (!isAdmin && !userPerms.includes("staff_notifications.edit") && !userPerms.includes("staff_notifications.edit_message_formats")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل صيغ الرسائل" });
+      }
+
       const db = await getDb();
       if (!db) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });

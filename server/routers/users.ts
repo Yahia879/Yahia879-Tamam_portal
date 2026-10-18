@@ -813,7 +813,7 @@ export const usersRouter = router({
   }),
 
   // تحديث حالة استقبال إشعارات المستفيدين لمستخدم
-  updateReceiveBeneficiaryNotifications: permissionProcedure("staff_notifications.edit")
+  updateReceiveBeneficiaryNotifications: permissionProcedure(["staff_notifications.edit", "staff_notifications.by_person"])
     .input(z.object({
       userId: z.number(),
       enabled: z.boolean(),
@@ -831,7 +831,7 @@ export const usersRouter = router({
     }),
 
   // تحديث حالة استقبال إشعارات الطلبات لمستخدم
-  updateReceiveRequestNotifications: permissionProcedure("staff_notifications.edit")
+  updateReceiveRequestNotifications: permissionProcedure(["staff_notifications.edit", "staff_notifications.by_person"])
     .input(z.object({
       userId: z.number(),
       enabled: z.boolean(),
@@ -849,7 +849,7 @@ export const usersRouter = router({
     }),
 
   // تحديث حالة استقبال إشعارات المالية والعقود لمستخدم
-  updateReceiveFinancialAndContractNotifications: permissionProcedure("staff_notifications.edit")
+  updateReceiveFinancialAndContractNotifications: permissionProcedure(["staff_notifications.edit", "staff_notifications.by_person"])
     .input(z.object({
       userId: z.number(),
       enabled: z.boolean(),
@@ -866,7 +866,7 @@ export const usersRouter = router({
       return { success: true };
     }),
 
-  updateUserChannelSetting: permissionProcedure("staff_notifications.edit")
+  updateUserChannelSetting: permissionProcedure(["staff_notifications.edit", "staff_notifications.by_person"])
     .input(z.object({
       userId: z.number(),
       category: z.enum(['beneficiary', 'request', 'financial']),

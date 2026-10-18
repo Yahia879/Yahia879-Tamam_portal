@@ -500,7 +500,13 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     has("services.add") || 
     has("services.edit") || 
     has("services.delete") ||
-    has("staff_notifications.edit");
+    has("staff_notifications.edit") ||
+    has("staff_notifications.by_role") ||
+    has("staff_notifications.edit_message_formats") ||
+    has("staff_notifications.by_person") ||
+    has("staff_notifications.beneficiary") ||
+    has("staff_notifications.direct_send") ||
+    has("staff_notifications.send_logs");
 
   if (canViewSettingsCenter) {
     settingsItems.push({ icon: Settings, label: "مركز الإعدادات", path: "/settings" });
