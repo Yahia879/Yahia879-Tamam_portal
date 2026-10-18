@@ -25,7 +25,8 @@ import {
   Send,
   Layers,
   Copy,
-  AlertCircle
+  AlertCircle,
+  XCircle
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,6 +42,7 @@ export default function NotificationLogsTab({
   const [channelFilter, setChannelFilter] = useState<"all" | "in_app" | "email" | "sms" | "whatsapp">("all");
   const [sourceFilter, setSourceFilter] = useState<"all" | "direct" | "system">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "read" | "unread">("all");
+  const [deliveryStatusFilter, setDeliveryStatusFilter] = useState<"all" | "sent" | "failed" | "pending">("all");
   const [searchTerm, setSearchTerm] = useState("");
 
   // مودال عرض تفاصيل الإشعار
@@ -54,6 +56,7 @@ export default function NotificationLogsTab({
     channel: channelFilter,
     sourceType: sourceFilter,
     status: statusFilter,
+    deliveryStatus: deliveryStatusFilter,
     search: searchTerm || undefined,
   });
 
@@ -87,6 +90,7 @@ export default function NotificationLogsTab({
     setChannelFilter("all");
     setSourceFilter("all");
     setStatusFilter("all");
+    setDeliveryStatusFilter("all");
     setSearchTerm("");
     setPage(1);
   };
@@ -153,6 +157,42 @@ export default function NotificationLogsTab({
           >
             <Bell className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
             <span>إشعار الموقع</span>
+          </Badge>
+        );
+    }
+  };
+
+  const renderDeliveryStatusBadge = (status: string) => {
+    switch (status) {
+      case "sent":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 text-[11px] gap-1 py-0.5 px-2 font-bold shrink-0"
+          >
+            <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+            <span>تم الإرسال</span>
+          </Badge>
+        );
+      case "failed":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 text-[11px] gap-1 py-0.5 px-2 font-bold shrink-0"
+          >
+            <XCircle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+            <span>فشل الإرسال</span>
+          </Badge>
+        );
+      case "pending":
+      default:
+        return (
+          <Badge
+            variant="outline"
+            className="bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 text-[11px] gap-1 py-0.5 px-2 font-bold shrink-0"
+          >
+            <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+            <span>قيد الإرسال</span>
           </Badge>
         );
     }
@@ -242,10 +282,10 @@ export default function NotificationLogsTab({
             <div>
               <CardTitle className="text-sm sm:text-base md:text-lg font-bold text-foreground flex items-center gap-2">
                 <History className="w-4 h-4 sm:w-5 sm:h-5 text-teal-600 dark:text-teal-400" />
-                <span>سجل الإرسال والإشعارات السابق والجديد</span>
+                <span>سجل إرسال الإشعارات</span>
               </CardTitle>
               <CardDescription className="text-[11px] sm:text-xs md:text-sm mt-1 leading-relaxed">
-                استعرض تفاصيل وقنوات جميع الإشعارات المرسلة مع إمكانية الفلترة الدقيقة حسب القناة والمستقبل.
+                استعرض تفاصيل وحالة وقنوات كافة الإشعارات المرسلة مع إمكانية الفلترة الدقيقة وإعادة إرسال المتعثر منها.
               </CardDescription>
             </div>
 
@@ -264,7 +304,7 @@ export default function NotificationLogsTab({
           </div>
 
           {/* شريط الفلاتر والبحث */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5 pt-2">
             {/* شريط البحث */}
             <div className="relative sm:col-span-2">
               <Search className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -297,6 +337,27 @@ export default function NotificationLogsTab({
                   <SelectItem value="sms">رسائل SMS</SelectItem>
                   <SelectItem value="email">البريد الإلكتروني (Email)</SelectItem>
                   <SelectItem value="whatsapp">واتساب (WhatsApp)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* فلتر حالة الإرسال */}
+            <div>
+              <Select
+                value={deliveryStatusFilter}
+                onValueChange={(val: any) => {
+                  setDeliveryStatusFilter(val);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="text-xs h-9 rounded-xl border-border/70">
+                  <SelectValue placeholder="حالة الإرسال" />
+                </SelectTrigger>
+                <SelectContent dir="rtl" className="text-xs">
+                  <SelectItem value="all">جميع الحالات</SelectItem>
+                  <SelectItem value="sent">تم الإرسال بنجاح</SelectItem>
+                  <SelectItem value="failed">فشل الإرسال</SelectItem>
+                  <SelectItem value="pending">قيد الإرسال</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -349,13 +410,14 @@ export default function NotificationLogsTab({
           ) : (
             <>
               <div className="w-full overflow-x-auto scrollbar-thin">
-                <Table className="min-w-[750px]">
+                <Table className="min-w-[850px]">
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-slate-50/40 dark:bg-slate-950/20 border-b border-border/40 text-foreground font-bold">
                       <TableHead className="w-14 text-center py-3 px-3 text-xs">#</TableHead>
                       <TableHead className="text-right py-3 px-3 text-xs w-36">قناة الإرسال</TableHead>
                       <TableHead className="text-right py-3 px-3 text-xs min-w-[170px]">المستقبل</TableHead>
                       <TableHead className="text-right py-3 px-3 text-xs min-w-[280px]">نص الرسالة</TableHead>
+                      <TableHead className="text-center py-3 px-3 text-xs w-32">حالة الإرسال</TableHead>
                       <TableHead className="text-right py-3 px-3 text-xs w-36">تاريخ الإرسال</TableHead>
                       <TableHead className="text-center py-3 px-3 text-xs w-20">الإجراءات</TableHead>
                     </TableRow>
@@ -392,6 +454,11 @@ export default function NotificationLogsTab({
                             <p className="text-foreground/90 font-medium line-clamp-2 leading-relaxed" title={item.message}>
                               {item.message}
                             </p>
+                          </TableCell>
+
+                          {/* حالة الإرسال */}
+                          <TableCell className="py-3 px-3 text-center">
+                            {renderDeliveryStatusBadge(item.deliveryStatus)}
                           </TableCell>
 
                           {/* تاريخ الإرسال */}

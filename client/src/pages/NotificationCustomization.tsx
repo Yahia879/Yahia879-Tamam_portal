@@ -2145,7 +2145,7 @@ export default function NotificationCustomization() {
                 className="flex-1 rounded-xl py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
               >
                 <History className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
-                <span>سجل الإرسال والإشعارات</span>
+                <span>سجل إرسال الإشعارات</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -2661,7 +2661,7 @@ export default function NotificationCustomization() {
             <DirectNotificationTab dbRoles={dbRoles} />
           </TabsContent>
 
-          {/* تبويب: سجل الإرسال والإشعارات */}
+          {/* تبويب: سجل إرسال الإشعارات */}
           <TabsContent value="logs" className="space-y-6 focus-visible:outline-none">
             <NotificationLogsTab dbRoles={dbRoles} />
           </TabsContent>

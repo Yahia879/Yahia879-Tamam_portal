@@ -160,13 +160,13 @@ export async function sendEmailNotification(
   }
 }
 
-async function sendWhatsApp(phone: string, title: string, message: string) {
+async function sendWhatsApp(phone: string, title: string, message: string): Promise<boolean> {
   const token = process.env.MOTTASL_API_TOKEN;
   const baseUrl = process.env.MOTTASL_API_URL || "https://api.mottasl.ai/v1";
 
   if (!token) {
     console.warn("WhatsApp notification skipped: MOTTASL_API_TOKEN is not configured in .env");
-    return;
+    return false;
   }
 
   // Format phone number: strip '+', '00', spaces, and make sure it has the country code.
@@ -201,11 +201,14 @@ async function sendWhatsApp(phone: string, title: string, message: string) {
     const resText = await response.text();
     if (!response.ok) {
       console.error(`Failed to send WhatsApp message. Status: ${response.status}, Response: ${resText}`);
+      return false;
     } else {
       console.log(`WhatsApp message sent successfully to ${formattedPhone}. Response: ${resText}`);
+      return true;
     }
   } catch (error) {
     console.error("Error sending WhatsApp message:", error);
+    return false;
   }
 }
 
@@ -886,8 +889,39 @@ export async function createNotification(data: {
     }
 
     // 4. إرسال الإشعارات الخارجية (واتساب، بريد إلكتروني، ورسائل نصية قصيرة SMS) وتوثيقها
-    if (isWhatsappEnabled && user.phone) {
-      sendWhatsApp(user.phone, data.title, customizedMessage).then(async () => {
+    if (isWhatsappEnabled) {
+      if (user.phone) {
+        sendWhatsApp(user.phone, data.title, customizedMessage).then(async (waSuccess) => {
+          await db.insert(notifications).values({
+            userId: data.userId,
+            type: data.type as any,
+            title: data.title,
+            message: customizedMessage,
+            relatedType: data.relatedType,
+            relatedId: data.relatedId,
+            channel: "whatsapp",
+            deliveryStatus: waSuccess ? "sent" : "failed",
+            recipientPhone: user.phone,
+            recipientEmail: user.email || null,
+            isRead: false,
+          }).catch((e) => console.error("Auto whatsapp log error:", e));
+        }).catch(async (err) => {
+          console.error("Async WhatsApp error:", err);
+          await db.insert(notifications).values({
+            userId: data.userId,
+            type: data.type as any,
+            title: data.title,
+            message: customizedMessage,
+            relatedType: data.relatedType,
+            relatedId: data.relatedId,
+            channel: "whatsapp",
+            deliveryStatus: "failed",
+            recipientPhone: user.phone,
+            recipientEmail: user.email || null,
+            isRead: false,
+          }).catch(() => {});
+        });
+      } else {
         await db.insert(notifications).values({
           userId: data.userId,
           type: data.type as any,
@@ -896,18 +930,16 @@ export async function createNotification(data: {
           relatedType: data.relatedType,
           relatedId: data.relatedId,
           channel: "whatsapp",
-          deliveryStatus: "sent",
-          recipientPhone: user.phone,
+          deliveryStatus: "failed",
+          recipientPhone: null,
           recipientEmail: user.email || null,
           isRead: false,
-        }).catch((e) => console.error("Auto whatsapp log error:", e));
-      }).catch((err) => {
-        console.error("Async WhatsApp error:", err);
-      });
+        }).catch(() => {});
+      }
     }
 
-    if (isEmailEnabled && user.email) {
-      if (!data.title.includes("طلب الاستثناء")) {
+    if (isEmailEnabled) {
+      if (user.email && !data.title.includes("طلب الاستثناء")) {
         sendEmailNotification(user.email, data.title, customizedMessage).then(async (emailRes) => {
           await db.insert(notifications).values({
             userId: data.userId,
@@ -922,15 +954,73 @@ export async function createNotification(data: {
             recipientEmail: user.email,
             isRead: false,
           }).catch((e) => console.error("Auto email log error:", e));
-        }).catch((err) => {
+        }).catch(async (err) => {
           console.error("Async Email error:", err);
+          await db.insert(notifications).values({
+            userId: data.userId,
+            type: data.type as any,
+            title: data.title,
+            message: customizedMessage,
+            relatedType: data.relatedType,
+            relatedId: data.relatedId,
+            channel: "email",
+            deliveryStatus: "failed",
+            recipientPhone: user.phone || null,
+            recipientEmail: user.email,
+            isRead: false,
+          }).catch(() => {});
         });
+      } else if (!user.email) {
+        await db.insert(notifications).values({
+          userId: data.userId,
+          type: data.type as any,
+          title: data.title,
+          message: customizedMessage,
+          relatedType: data.relatedType,
+          relatedId: data.relatedId,
+          channel: "email",
+          deliveryStatus: "failed",
+          recipientPhone: user.phone || null,
+          recipientEmail: null,
+          isRead: false,
+        }).catch(() => {});
       }
     }
 
-    if (isSmsEnabled && user.phone) {
-      const smsMessage = `${data.title}\n\n${customizedMessage}`;
-      sendSms(user.phone, smsMessage).then(async (smsRes) => {
+    if (isSmsEnabled) {
+      if (user.phone) {
+        const smsMessage = `${data.title}\n\n${customizedMessage}`;
+        sendSms(user.phone, smsMessage).then(async (smsRes) => {
+          await db.insert(notifications).values({
+            userId: data.userId,
+            type: data.type as any,
+            title: data.title,
+            message: customizedMessage,
+            relatedType: data.relatedType,
+            relatedId: data.relatedId,
+            channel: "sms",
+            deliveryStatus: smsRes?.success === true ? "sent" : "failed",
+            recipientPhone: user.phone,
+            recipientEmail: user.email || null,
+            isRead: false,
+          }).catch((e) => console.error("Auto sms log error:", e));
+        }).catch(async (err) => {
+          console.error("Async 4jawaly SMS error:", err);
+          await db.insert(notifications).values({
+            userId: data.userId,
+            type: data.type as any,
+            title: data.title,
+            message: customizedMessage,
+            relatedType: data.relatedType,
+            relatedId: data.relatedId,
+            channel: "sms",
+            deliveryStatus: "failed",
+            recipientPhone: user.phone,
+            recipientEmail: user.email || null,
+            isRead: false,
+          }).catch(() => {});
+        });
+      } else {
         await db.insert(notifications).values({
           userId: data.userId,
           type: data.type as any,
@@ -939,14 +1029,12 @@ export async function createNotification(data: {
           relatedType: data.relatedType,
           relatedId: data.relatedId,
           channel: "sms",
-          deliveryStatus: smsRes?.success !== false ? "sent" : "failed",
-          recipientPhone: user.phone,
+          deliveryStatus: "failed",
+          recipientPhone: null,
           recipientEmail: user.email || null,
           isRead: false,
-        }).catch((e) => console.error("Auto sms log error:", e));
-      }).catch((err) => {
-        console.error("Async 4jawaly SMS error:", err);
-      });
+        }).catch(() => {});
+      }
     }
 
     return result;
@@ -1886,11 +1974,13 @@ async function runNotificationJobInBackground(
             if (whatsapp) {
               let waSuccess = false;
               if (user.phone) {
-                await sendWhatsApp(user.phone, title, message).catch((e) => {
+                const res = await sendWhatsApp(user.phone, title, message).catch((e) => {
                   console.error(`[NotificationJob ${jobId}] WhatsApp error for user ${user.id}:`, e);
+                  return false;
                 });
-                waSuccess = true;
-                hasChannelSuccess = true;
+                waSuccess = Boolean(res);
+                if (waSuccess) hasChannelSuccess = true;
+                else job.warnings.push(`تعذر تسليم واتساب لـ "${user.name}"`);
               } else {
                 job.warnings.push(`تعذر إرسال واتساب لـ "${user.name}" لعدم توفر رقم جوال`);
               }
@@ -1945,7 +2035,7 @@ async function runNotificationJobInBackground(
                   console.error(`[NotificationJob ${jobId}] SMS error for user ${user.id}:`, e);
                   return { success: false, error: String(e) };
                 });
-                smsSuccess = res?.success !== false;
+                smsSuccess = res?.success === true;
                 hasChannelSuccess = smsSuccess;
               } else {
                 job.warnings.push(`تعذر إرسال SMS لـ "${user.name}" لعدم توفر رقم جوال`);
@@ -2460,6 +2550,7 @@ export const notificationsRouter = router({
         sourceType: z.enum(["all", "direct", "system"]).default("all"),
         search: z.string().optional(),
         status: z.enum(["all", "read", "unread"]).default("all"),
+        deliveryStatus: z.enum(["all", "sent", "failed", "pending"]).default("all"),
       })
     )
     .query(async ({ ctx, input }) => {
@@ -2499,6 +2590,15 @@ export const notificationsRouter = router({
         conditions.push(eq(notifications.isRead, true));
       } else if (input.status === "unread") {
         conditions.push(eq(notifications.isRead, false));
+      }
+
+      // 4. فلتر حالة الإرسال والتسليم
+      if (input.deliveryStatus && input.deliveryStatus !== "all") {
+        if (input.deliveryStatus === "sent") {
+          conditions.push(or(eq(notifications.deliveryStatus, "sent"), isNull(notifications.deliveryStatus)));
+        } else {
+          conditions.push(eq(notifications.deliveryStatus, input.deliveryStatus));
+        }
       }
 
       // 4. فلتر البحث
@@ -2634,7 +2734,7 @@ export const notificationsRouter = router({
           console.error("[Resend SMS Error]:", err);
           return { success: false, error: err?.message };
         });
-        resendSuccess = smsRes?.success !== false;
+        resendSuccess = smsRes?.success === true;
       } else if (record.channel === "email") {
         channelLabel = "البريد الإلكتروني";
         const email = record.recipientEmail;
@@ -2651,10 +2751,11 @@ export const notificationsRouter = router({
         if (!phone) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "لا يتوفر رقم جوال لإعادة إرسال رسالة الواتساب" });
         }
-        await sendWhatsApp(phone, record.title, record.message).catch((err) => {
+        const waRes = await sendWhatsApp(phone, record.title, record.message).catch((err) => {
           console.error("[Resend WhatsApp Error]:", err);
+          return false;
         });
-        resendSuccess = true;
+        resendSuccess = waRes === true;
       } else {
         // in_app
         channelLabel = "إشعار الموقع";
