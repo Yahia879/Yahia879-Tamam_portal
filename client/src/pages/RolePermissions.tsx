@@ -699,6 +699,7 @@ export default function RolePermissions() {
           icon: Users,
           permissions: [
             { id: "suppliers.view", nameAr: "عرض الموردين" },
+            { id: "suppliers.view_details", nameAr: "عرض تفاصيل المورد" },
             { id: "suppliers.add", nameAr: "إضافة مورد جديد" },
             { id: "suppliers.edit", nameAr: "تعديل بيانات الموردين" },
             { id: "suppliers.approve", nameAr: "اعتماد الموردين" },
@@ -939,6 +940,7 @@ export default function RolePermissions() {
           icon: Users,
           permissions: [
             { id: "suppliers.view", nameAr: "عرض قائمة الموردين" },
+            { id: "suppliers.view_details", nameAr: "عرض تفاصيل المورد" },
             { id: "suppliers.add", nameAr: "إضافة مورد جديد" },
             { id: "suppliers.edit", nameAr: "تعديل بيانات الموردين" },
             { id: "suppliers.approve", nameAr: "اعتماد الموردين" },
@@ -1113,7 +1115,7 @@ export default function RolePermissions() {
     {
       title: "المالية والعقود",
       modules: [
-        { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve", "suspend"] },
+        { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "edit", "approve", "suspend"] },
         { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["view", "add", "edit", "delete", "import", "export"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
         {
@@ -1202,7 +1204,7 @@ export default function RolePermissions() {
     {
       title: "المشتريات والمالية",
       modules: [
-        { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve", "suspend"] },
+        { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "edit", "approve", "suspend"] },
         { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["view", "add", "edit", "delete", "import", "export"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
         {

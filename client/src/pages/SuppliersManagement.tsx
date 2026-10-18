@@ -107,8 +107,8 @@ export default function SuppliersManagement() {
   const hasEditPermission = usePermission("suppliers.edit");
   const hasSuspendPermission = usePermission("suppliers.suspend");
   const hasViewDetailsPermission = usePermission("suppliers.view_details");
-  const canSuspend = hasSuspendPermission || ["super_admin", "system_admin"].includes(user?.role ?? "");
-  const canViewDetails = hasViewDetailsPermission || ["super_admin", "system_admin"].includes(user?.role ?? "");
+  const canSuspend = hasSuspendPermission;
+  const canViewDetails = hasViewDetailsPermission;
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   // دالة مساعدة لتحويل مجالات العمل إلى مصفوفة بشكل آمن
@@ -389,66 +389,79 @@ export default function SuppliersManagement() {
                           {new Date(supplier.createdAt).toLocaleDateString("ar-SA")}
                         </TableCell>
                         <TableCell className="text-left">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {canViewDetails && (
-                                <DropdownMenuItem onClick={() => openSupplierDetails(supplier)}>
-                                  <Eye className="h-4 w-4 ml-2" />
-                                  عرض التفاصيل
-                                </DropdownMenuItem>
-                              )}
-                              {hasEditPermission && (
-                                <DropdownMenuItem onClick={() => navigate(`/suppliers/${supplier.id}/edit`)}>
-                                  <Pencil className="h-4 w-4 ml-2" />
-                                  تعديل البيانات
-                                </DropdownMenuItem>
-                              )}
-                              {supplier.approvalStatus === "pending" && hasApprovePermission && (
-                                <>
-                                  <DropdownMenuItem
-                                    onClick={() => handleApprove(supplier.id)}
-                                    className="text-green-600 font-bold"
-                                  >
-                                    <CheckCircle2 className="h-4.5 w-4.5 ml-2 text-green-600" />
-                                    اعتماد المورد
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedSupplier(supplier);
-                                      setShowRejectDialog(true);
-                                    }}
-                                    className="text-red-600 font-bold"
-                                  >
-                                    <XCircle className="h-4.5 w-4.5 ml-2 text-red-600" />
-                                    رفض المورد
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                              {supplier.approvalStatus === "approved" && canSuspend && (
-                                <DropdownMenuItem
-                                  onClick={() => handleSuspend(supplier.id)}
-                                  className="text-orange-600"
-                                >
-                                  <Ban className="h-4 w-4 ml-2" />
-                                  إيقاف
-                                </DropdownMenuItem>
-                              )}
-                              {supplier.approvalStatus === "suspended" && canSuspend && (
-                                <DropdownMenuItem
-                                  onClick={() => handleApprove(supplier.id)}
-                                  className="text-green-600 font-bold"
-                                >
-                                  <Play className="h-4.5 w-4.5 ml-2 text-green-600" />
-                                  إعادة تنشيط
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {(() => {
+                            const canApproveReject = supplier.approvalStatus === "pending" && hasApprovePermission;
+                            const canSuspendSupplier = supplier.approvalStatus === "approved" && canSuspend;
+                            const canReactivateSupplier = supplier.approvalStatus === "suspended" && canSuspend;
+                            const hasAnyMenuAction = canViewDetails || hasEditPermission || canApproveReject || canSuspendSupplier || canReactivateSupplier;
+
+                            if (!hasAnyMenuAction) {
+                              return <span className="text-muted-foreground text-xs">—</span>;
+                            }
+
+                            return (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {canViewDetails && (
+                                    <DropdownMenuItem onClick={() => openSupplierDetails(supplier)}>
+                                      <Eye className="h-4 w-4 ml-2" />
+                                      عرض التفاصيل
+                                    </DropdownMenuItem>
+                                  )}
+                                  {hasEditPermission && (
+                                    <DropdownMenuItem onClick={() => navigate(`/suppliers/${supplier.id}/edit`)}>
+                                      <Pencil className="h-4 w-4 ml-2" />
+                                      تعديل البيانات
+                                    </DropdownMenuItem>
+                                  )}
+                                  {canApproveReject && (
+                                    <>
+                                      <DropdownMenuItem
+                                        onClick={() => handleApprove(supplier.id)}
+                                        className="text-green-600 font-bold"
+                                      >
+                                        <CheckCircle2 className="h-4.5 w-4.5 ml-2 text-green-600" />
+                                        اعتماد المورد
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedSupplier(supplier);
+                                          setShowRejectDialog(true);
+                                        }}
+                                        className="text-red-600 font-bold"
+                                      >
+                                        <XCircle className="h-4.5 w-4.5 ml-2 text-red-600" />
+                                        رفض المورد
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                  {canSuspendSupplier && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleSuspend(supplier.id)}
+                                      className="text-orange-600"
+                                    >
+                                      <Ban className="h-4 w-4 ml-2" />
+                                      إيقاف
+                                    </DropdownMenuItem>
+                                  )}
+                                  {canReactivateSupplier && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleApprove(supplier.id)}
+                                      className="text-green-600 font-bold"
+                                    >
+                                      <Play className="h-4.5 w-4.5 ml-2 text-green-600" />
+                                      إعادة تنشيط
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            );
+                          })()}
                         </TableCell>
                       </TableRow>
                     );

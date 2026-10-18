@@ -70,7 +70,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   escalation: ["escalation.view"],
   "escalation.view": ["escalation.view"],
   suppliers: [
-    "suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete", 
+    "suppliers.view", "suppliers.view_details", "suppliers.add", "suppliers.create", "suppliers.edit", "suppliers.delete", 
     "suppliers.approve", "suppliers.reject", "suppliers.suspend"
   ],
   quotations: ["quotations.view", "quotations.create", "quotations.edit", "quotations.approve"],
@@ -159,8 +159,8 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "requesters.suspend": ["users.edit"],
 
   "suppliers.view": ["suppliers.view"],
-  "suppliers.view_details": ["suppliers.view"],
-  "suppliers.add": ["suppliers.create"],
+  "suppliers.view_details": ["suppliers.view_details", "suppliers.view"],
+  "suppliers.add": ["suppliers.add", "suppliers.create"],
   "suppliers.edit": ["suppliers.edit"],
   "suppliers.approve": ["suppliers.approve", "suppliers.reject"],
   "suppliers.suspend": ["suppliers.suspend"],
@@ -1741,7 +1741,8 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
         parentKey === "disbursements.add" || 
         parentKey === "disbursements.create_custom" || 
         parentKey === "disbursements.create_donation" ||
-        parentKey === "staff_notifications.edit"
+        parentKey === "staff_notifications.edit" ||
+        parentKey === "suppliers"
       ) {
         continue;
       }
@@ -1876,7 +1877,33 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.add("staff");
     allPermissions.add("staff_management");
   }
-  if (allPermissions.has("suppliers.view") || allPermissions.has("suppliers.view_details") || allPermissions.has("suppliers.add") || allPermissions.has("suppliers.edit") || allPermissions.has("suppliers.approve") || allPermissions.has("suppliers.suspend")) {
+  const supplierSubPerms = [
+    "suppliers.view",
+    "suppliers.view_details",
+    "suppliers.add",
+    "suppliers.create",
+    "suppliers.edit",
+    "suppliers.delete",
+    "suppliers.approve",
+    "suppliers.reject",
+    "suppliers.suspend"
+  ];
+  const hasAnySupplierPerm = [
+    "suppliers.view",
+    "suppliers.view_details",
+    "suppliers.add",
+    "suppliers.create",
+    "suppliers.edit",
+    "suppliers.approve",
+    "suppliers.suspend"
+  ].some(p => allPermissions.has(p) && !revokedPermissions.has(p));
+
+  if (!hasAnySupplierPerm || revokedPermissions.has("suppliers") || revokedPermissions.has("suppliers.view")) {
+    allPermissions.delete("suppliers");
+    if (revokedPermissions.has("suppliers") || revokedPermissions.has("suppliers.view") || !hasAnySupplierPerm) {
+      supplierSubPerms.forEach(p => allPermissions.delete(p));
+    }
+  } else {
     allPermissions.add("suppliers");
   }
   if (
