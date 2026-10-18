@@ -2586,6 +2586,102 @@ export const notificationsRouter = router({
       };
     }),
 
+  // إعادة إرسال إشعار فاشل عبر القناة المسجلة
+  resendNotification: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role as any);
+      if (!isAdmin && !userPerms.includes("staff_notifications.edit")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إعادة إرسال الإشعارات" });
+      }
+
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      }
+
+      const [record] = await db
+        .select({
+          id: notifications.id,
+          userId: notifications.userId,
+          title: notifications.title,
+          message: notifications.message,
+          channel: sql<string>`COALESCE(${notifications.channel}, 'in_app')`,
+          recipientPhone: sql<string | null>`COALESCE(${notifications.recipientPhone}, ${users.phone})`,
+          recipientEmail: sql<string | null>`COALESCE(${notifications.recipientEmail}, ${users.email})`,
+          userName: users.name,
+        })
+        .from(notifications)
+        .leftJoin(users, eq(notifications.userId, users.id))
+        .where(eq(notifications.id, input.id))
+        .limit(1);
+
+      if (!record) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "سجل الإشعار غير موجود" });
+      }
+
+      let resendSuccess = false;
+      let channelLabel = "الإشعار";
+
+      if (record.channel === "sms") {
+        channelLabel = "رسالة SMS";
+        const phone = record.recipientPhone;
+        if (!phone) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "لا يتوفر رقم جوال لإعادة إرسال الرسالة النصية" });
+        }
+        const smsRes = await sendSms(phone, `${record.title}\n\n${record.message}`).catch((err) => {
+          console.error("[Resend SMS Error]:", err);
+          return { success: false, error: err?.message };
+        });
+        resendSuccess = smsRes?.success !== false;
+      } else if (record.channel === "email") {
+        channelLabel = "البريد الإلكتروني";
+        const email = record.recipientEmail;
+        if (!email) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "لا يتوفر عنوان بريد إلكتروني لإعادة الإرسال" });
+        }
+        resendSuccess = await sendEmailNotification(email, record.title, record.message).catch((err) => {
+          console.error("[Resend Email Error]:", err);
+          return false;
+        });
+      } else if (record.channel === "whatsapp") {
+        channelLabel = "رسالة الواتساب";
+        const phone = record.recipientPhone;
+        if (!phone) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "لا يتوفر رقم جوال لإعادة إرسال رسالة الواتساب" });
+        }
+        await sendWhatsApp(phone, record.title, record.message).catch((err) => {
+          console.error("[Resend WhatsApp Error]:", err);
+        });
+        resendSuccess = true;
+      } else {
+        // in_app
+        channelLabel = "إشعار الموقع";
+        resendSuccess = true;
+      }
+
+      // تحديث حالة السجل في قاعدة البيانات
+      await db
+        .update(notifications)
+        .set({
+          deliveryStatus: resendSuccess ? "sent" : "failed",
+          isRead: false,
+          readAt: null,
+          createdAt: new Date(),
+        })
+        .where(eq(notifications.id, input.id));
+
+      if (!resendSuccess) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `تعذرت إعادة إرسال ${channelLabel}، يرجى التحقق من اتصال مزود الخدمة` });
+      }
+
+      return {
+        success: true,
+        message: `تمت إعادة إرسال ${channelLabel} بنجاح`,
+      };
+    }),
+
   // حذف إشعار
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))

@@ -24,7 +24,8 @@ import {
   RotateCcw,
   Send,
   Layers,
-  Copy
+  Copy,
+  AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,6 +45,7 @@ export default function NotificationLogsTab({
 
   // مودال عرض تفاصيل الإشعار
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
+  const [resendingId, setResendingId] = useState<number | null>(null);
 
   // استعلام جلب السجلات
   const { data, isLoading, refetch, isRefetching } = trpc.notifications.getNotificationDispatchLogs.useQuery({
@@ -54,6 +56,27 @@ export default function NotificationLogsTab({
     status: statusFilter,
     search: searchTerm || undefined,
   });
+
+  // طفرة إعادة إرسال الإشعار الفاشل
+  const resendMutation = trpc.notifications.resendNotification.useMutation({
+    onSuccess: (res) => {
+      toast.success(res.message || "تمت إعادة الإرسال بنجاح");
+      refetch();
+      if (selectedLog) {
+        setSelectedLog((prev: any) => prev ? { ...prev, deliveryStatus: "sent" } : null);
+      }
+      setResendingId(null);
+    },
+    onError: (err) => {
+      toast.error(err.message || "تعذرت إعادة الإرسال");
+      setResendingId(null);
+    },
+  });
+
+  const handleResend = (id: number) => {
+    setResendingId(id);
+    resendMutation.mutate({ id });
+  };
 
   const logs = data?.items || [];
   const total = data?.total || 0;
@@ -71,16 +94,6 @@ export default function NotificationLogsTab({
   const copyText = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("تم نسخ النص إلى الحافظة");
-  };
-
-  const getRoleTitle = (roleId?: string | null) => {
-    if (!roleId) return "مستخدم";
-    const match = dbRoles?.find((r) => r.id === roleId);
-    if (match) return match.nameAr;
-    if (roleId === "service_requester") return "طالب خدمة / مستفيد";
-    if (roleId === "super_admin") return "مدير عام النظام";
-    if (roleId === "system_admin") return "مدير النظام";
-    return roleId;
   };
 
   const formatDate = (dateVal: any) => {
@@ -344,7 +357,7 @@ export default function NotificationLogsTab({
                       <TableHead className="text-right py-3 px-3 text-xs min-w-[170px]">المستقبل</TableHead>
                       <TableHead className="text-right py-3 px-3 text-xs min-w-[280px]">نص الرسالة</TableHead>
                       <TableHead className="text-right py-3 px-3 text-xs w-36">تاريخ الإرسال</TableHead>
-                      <TableHead className="text-center py-3 px-3 text-xs w-16">معاينة</TableHead>
+                      <TableHead className="text-center py-3 px-3 text-xs w-20">الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-border/40">
@@ -386,17 +399,31 @@ export default function NotificationLogsTab({
                             {formatDate(item.createdAt)}
                           </TableCell>
 
-                          {/* زر المعاينة */}
+                          {/* الإجراءات: زر المعاينة وإعادة الإرسال عند الفشل */}
                           <TableCell className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setSelectedLog(item)}
-                              className="w-7 h-7 text-muted-foreground hover:text-teal-600 cursor-pointer"
-                              title="عرض تفاصيل الإشعار"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                            </Button>
+                            <div className="flex items-center justify-center gap-1">
+                              {item.deliveryStatus === "failed" && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleResend(item.id)}
+                                  disabled={resendingId === item.id}
+                                  className="w-7 h-7 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                                  title="إعادة إرسال الإشعار الفاشل"
+                                >
+                                  <RotateCcw className={`w-3.5 h-3.5 ${resendingId === item.id ? "animate-spin" : ""}`} />
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setSelectedLog(item)}
+                                className="w-7 h-7 text-muted-foreground hover:text-teal-600 cursor-pointer"
+                                title="عرض تفاصيل الإشعار"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -429,50 +456,20 @@ export default function NotificationLogsTab({
             <span className="sr-only">إغلاق</span>
           </DialogClose>
 
-          <DialogHeader className="text-right">
-            <div className="flex items-center gap-2 mb-1">
+          <DialogHeader className="text-right pb-1">
+            <div className="flex items-center gap-2">
               {selectedLog && renderChannelBadge(selectedLog.channel)}
-              <Badge variant="outline" className="text-[10px] py-0 px-2">
+              <Badge variant="outline" className="text-[10px] py-0 px-2 font-mono">
                 سجل #{selectedLog?.id}
               </Badge>
             </div>
-            <DialogTitle className="text-base sm:text-lg font-bold text-foreground">
-              {selectedLog?.title}
+            <DialogTitle className="sr-only">
+              معاينة الإشعار
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              تاريخ الإرسال: {formatDate(selectedLog?.createdAt)}
-            </DialogDescription>
           </DialogHeader>
 
           {selectedLog && (
             <div className="space-y-4 my-2 text-right">
-              {/* بيانات المستقبل */}
-              <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-border/50 space-y-1.5 text-xs">
-                <span className="font-bold text-foreground block">بيانات المستقبل:</span>
-                <div className="grid grid-cols-2 gap-2 text-muted-foreground">
-                  <div>
-                    <span className="font-medium text-foreground ml-1">الاسم:</span>
-                    <span>{selectedLog.recipientName || "—"}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-foreground ml-1">الدور:</span>
-                    <span>{getRoleTitle(selectedLog.recipientRole)}</span>
-                  </div>
-                  {selectedLog.recipientPhone && (
-                    <div>
-                      <span className="font-medium text-foreground ml-1">الجوال:</span>
-                      <span dir="ltr" className="font-mono">{selectedLog.recipientPhone}</span>
-                    </div>
-                  )}
-                  {selectedLog.recipientEmail && (
-                    <div>
-                      <span className="font-medium text-foreground ml-1">البريد:</span>
-                      <span dir="ltr" className="font-mono">{selectedLog.recipientEmail}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
               {/* نص الرسالة */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
@@ -495,19 +492,25 @@ export default function NotificationLogsTab({
                 </div>
               </div>
 
-              {/* معلومات القراءة والتسليم */}
-              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-muted/30 rounded-xl text-xs text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold">حالة التفاعل:</span>
-                  <span>
-                    {selectedLog.channel === "in_app"
-                      ? selectedLog.isRead
-                        ? `مقروء من قِبل المستخدم (${formatDate(selectedLog.readAt)})`
-                        : "لم يُقرأ بعد"
-                      : "تم الإرسال بنجاح عبر البوابة"}
-                  </span>
+              {/* زر إعادة الإرسال في حال فشل التسليم */}
+              {selectedLog.deliveryStatus === "failed" && (
+                <div className="flex items-center justify-between p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 text-xs">
+                  <div className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-semibold">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>فشل تسليم هذا الإشعار للمستلم سابقاً</span>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => handleResend(selectedLog.id)}
+                    disabled={resendingId === selectedLog.id}
+                    className="h-8 px-3 gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg cursor-pointer text-xs"
+                  >
+                    <RotateCcw className={`w-3.5 h-3.5 ${resendingId === selectedLog.id ? "animate-spin" : ""}`} />
+                    <span>إعادة الإرسال (Resend)</span>
+                  </Button>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </DialogContent>
