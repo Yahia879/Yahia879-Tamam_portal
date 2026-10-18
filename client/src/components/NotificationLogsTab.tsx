@@ -410,16 +410,16 @@ export default function NotificationLogsTab({
           ) : (
             <>
               <div className="w-full overflow-x-auto scrollbar-thin">
-                <Table className="min-w-[850px]">
+                <Table className="min-w-[850px] table-fixed">
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-slate-50/40 dark:bg-slate-950/20 border-b border-border/40 text-foreground font-bold">
-                      <TableHead className="w-14 text-center py-3 px-3 text-xs">#</TableHead>
-                      <TableHead className="text-right py-3 px-3 text-xs w-36">قناة الإرسال</TableHead>
-                      <TableHead className="text-right py-3 px-3 text-xs min-w-[170px]">المستقبل</TableHead>
-                      <TableHead className="text-right py-3 px-3 text-xs min-w-[280px]">نص الرسالة</TableHead>
-                      <TableHead className="text-center py-3 px-3 text-xs w-32">حالة الإرسال</TableHead>
-                      <TableHead className="text-right py-3 px-3 text-xs w-36">تاريخ الإرسال</TableHead>
-                      <TableHead className="text-center py-3 px-3 text-xs w-20">الإجراءات</TableHead>
+                      <TableHead className="w-[5%] text-center py-3 px-3 text-xs">#</TableHead>
+                      <TableHead className="w-[15%] text-right py-3 px-3 text-xs">قناة الإرسال</TableHead>
+                      <TableHead className="w-[19%] text-right py-3 px-3 text-xs">المستقبل</TableHead>
+                      <TableHead className="w-[20%] text-right py-3 px-3 text-xs">نص الرسالة</TableHead>
+                      <TableHead className="w-[15%] text-right py-3 px-3 text-xs">حالة الإرسال</TableHead>
+                      <TableHead className="w-[18%] text-right py-3 px-3 text-xs">تاريخ الإرسال</TableHead>
+                      <TableHead className="w-[8%] text-center py-3 px-3 text-xs">الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-border/40">
@@ -444,7 +444,7 @@ export default function NotificationLogsTab({
 
                           {/* المستقبل */}
                           <TableCell className="py-3 px-3">
-                            <div className="font-bold text-foreground truncate max-w-[200px]" title={item.recipientName || "—"}>
+                            <div className="font-bold text-foreground truncate" title={item.recipientName || "—"}>
                               {item.recipientName || "مستخدم غير محدد"}
                             </div>
                           </TableCell>
@@ -457,8 +457,10 @@ export default function NotificationLogsTab({
                           </TableCell>
 
                           {/* حالة الإرسال */}
-                          <TableCell className="py-3 px-3 text-center">
-                            {renderDeliveryStatusBadge(item.deliveryStatus)}
+                          <TableCell className="py-3 px-3 text-right">
+                            <div className="flex items-center justify-start">
+                              {renderDeliveryStatusBadge(item.deliveryStatus)}
+                            </div>
                           </TableCell>
 
                           {/* تاريخ الإرسال */}
