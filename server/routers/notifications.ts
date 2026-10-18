@@ -877,20 +877,52 @@ export async function createNotification(data: {
         message: customizedMessage,
         relatedType: data.relatedType,
         relatedId: data.relatedId,
+        channel: "in_app",
+        deliveryStatus: "sent",
+        recipientPhone: user.phone || null,
+        recipientEmail: user.email || null,
         isRead: false,
       });
     }
 
-    // 4. إرسال الإشعارات الخارجية (واتساب، بريد إلكتروني، ورسائل نصية قصيرة SMS)
+    // 4. إرسال الإشعارات الخارجية (واتساب، بريد إلكتروني، ورسائل نصية قصيرة SMS) وتوثيقها
     if (isWhatsappEnabled && user.phone) {
-      sendWhatsApp(user.phone, data.title, customizedMessage).catch((err) => {
+      sendWhatsApp(user.phone, data.title, customizedMessage).then(async () => {
+        await db.insert(notifications).values({
+          userId: data.userId,
+          type: data.type as any,
+          title: data.title,
+          message: customizedMessage,
+          relatedType: data.relatedType,
+          relatedId: data.relatedId,
+          channel: "whatsapp",
+          deliveryStatus: "sent",
+          recipientPhone: user.phone,
+          recipientEmail: user.email || null,
+          isRead: false,
+        }).catch((e) => console.error("Auto whatsapp log error:", e));
+      }).catch((err) => {
         console.error("Async WhatsApp error:", err);
       });
     }
 
     if (isEmailEnabled && user.email) {
       if (!data.title.includes("طلب الاستثناء")) {
-        sendEmailNotification(user.email, data.title, customizedMessage).catch((err) => {
+        sendEmailNotification(user.email, data.title, customizedMessage).then(async (emailRes) => {
+          await db.insert(notifications).values({
+            userId: data.userId,
+            type: data.type as any,
+            title: data.title,
+            message: customizedMessage,
+            relatedType: data.relatedType,
+            relatedId: data.relatedId,
+            channel: "email",
+            deliveryStatus: emailRes ? "sent" : "failed",
+            recipientPhone: user.phone || null,
+            recipientEmail: user.email,
+            isRead: false,
+          }).catch((e) => console.error("Auto email log error:", e));
+        }).catch((err) => {
           console.error("Async Email error:", err);
         });
       }
@@ -898,7 +930,21 @@ export async function createNotification(data: {
 
     if (isSmsEnabled && user.phone) {
       const smsMessage = `${data.title}\n\n${customizedMessage}`;
-      sendSms(user.phone, smsMessage).catch((err) => {
+      sendSms(user.phone, smsMessage).then(async (smsRes) => {
+        await db.insert(notifications).values({
+          userId: data.userId,
+          type: data.type as any,
+          title: data.title,
+          message: customizedMessage,
+          relatedType: data.relatedType,
+          relatedId: data.relatedId,
+          channel: "sms",
+          deliveryStatus: smsRes?.success !== false ? "sent" : "failed",
+          recipientPhone: user.phone,
+          recipientEmail: user.email || null,
+          isRead: false,
+        }).catch((e) => console.error("Auto sms log error:", e));
+      }).catch((err) => {
         console.error("Async 4jawaly SMS error:", err);
       });
     }
@@ -1784,7 +1830,8 @@ async function runNotificationJobInBackground(
   targetUsers: Array<{ id: number; name: string; email: string | null; phone: string | null }>,
   title: string,
   message: string,
-  channels: { in_app: boolean; whatsapp: boolean; email: boolean; sms: boolean }
+  channels: { in_app: boolean; whatsapp: boolean; email: boolean; sms: boolean },
+  senderId?: number
 ) {
   const job = activeNotificationJobs.get(jobId);
   if (!job) return;
@@ -1808,6 +1855,11 @@ async function runNotificationJobInBackground(
           title,
           message,
           relatedType: "custom_direct",
+          channel: "in_app",
+          senderId,
+          deliveryStatus: "sent",
+          recipientPhone: user.phone || null,
+          recipientEmail: user.email || null,
           isRead: false,
         }));
 
@@ -1821,7 +1873,7 @@ async function runNotificationJobInBackground(
       }
     }
 
-    // 2. القنوات الخارجية (SMS, Email, WhatsApp) على دفعات متحكم بها لتفادي الضغط
+    // 2. القنوات الخارجية (SMS, Email, WhatsApp) على دفعات متحكم بها لتفادي الضغط وتوثيق كل قناة
     const CHUNK_SIZE = 5;
     for (let i = 0; i < targetUsers.length; i += CHUNK_SIZE) {
       const chunk = targetUsers.slice(i, i + CHUNK_SIZE);
@@ -1832,38 +1884,85 @@ async function runNotificationJobInBackground(
           try {
             // WhatsApp
             if (whatsapp) {
+              let waSuccess = false;
               if (user.phone) {
                 await sendWhatsApp(user.phone, title, message).catch((e) => {
                   console.error(`[NotificationJob ${jobId}] WhatsApp error for user ${user.id}:`, e);
                 });
+                waSuccess = true;
                 hasChannelSuccess = true;
               } else {
                 job.warnings.push(`تعذر إرسال واتساب لـ "${user.name}" لعدم توفر رقم جوال`);
               }
+              await db.insert(notifications).values({
+                userId: user.id,
+                type: "info",
+                title,
+                message,
+                relatedType: "custom_direct",
+                channel: "whatsapp",
+                senderId,
+                deliveryStatus: waSuccess ? "sent" : "failed",
+                recipientPhone: user.phone || null,
+                recipientEmail: user.email || null,
+                isRead: false,
+              }).catch((e) => console.error("Job whatsapp log error:", e));
             }
 
             // Email
             if (email) {
+              let emailSuccess = false;
               if (user.email) {
-                await sendEmailNotification(user.email, title, message).catch((e) => {
+                const res = await sendEmailNotification(user.email, title, message).catch((e) => {
                   console.error(`[NotificationJob ${jobId}] Email error for user ${user.id}:`, e);
+                  return false;
                 });
-                hasChannelSuccess = true;
+                emailSuccess = Boolean(res);
+                hasChannelSuccess = emailSuccess;
               } else {
                 job.warnings.push(`تعذر إرسال البريد لـ "${user.name}" لعدم توفر بريد إلكتروني`);
               }
+              await db.insert(notifications).values({
+                userId: user.id,
+                type: "info",
+                title,
+                message,
+                relatedType: "custom_direct",
+                channel: "email",
+                senderId,
+                deliveryStatus: emailSuccess ? "sent" : "failed",
+                recipientPhone: user.phone || null,
+                recipientEmail: user.email || null,
+                isRead: false,
+              }).catch((e) => console.error("Job email log error:", e));
             }
 
             // SMS
             if (sms) {
+              let smsSuccess = false;
               if (user.phone) {
-                await sendSms(user.phone, message).catch((e) => {
+                const res = await sendSms(user.phone, message).catch((e) => {
                   console.error(`[NotificationJob ${jobId}] SMS error for user ${user.id}:`, e);
+                  return { success: false, error: String(e) };
                 });
-                hasChannelSuccess = true;
+                smsSuccess = res?.success !== false;
+                hasChannelSuccess = smsSuccess;
               } else {
                 job.warnings.push(`تعذر إرسال SMS لـ "${user.name}" لعدم توفر رقم جوال`);
               }
+              await db.insert(notifications).values({
+                userId: user.id,
+                type: "info",
+                title,
+                message,
+                relatedType: "custom_direct",
+                channel: "sms",
+                senderId,
+                deliveryStatus: smsSuccess ? "sent" : "failed",
+                recipientPhone: user.phone || null,
+                recipientEmail: user.email || null,
+                isRead: false,
+              }).catch((e) => console.error("Job sms log error:", e));
             }
 
             if (in_app) {
@@ -2309,7 +2408,8 @@ export const notificationsRouter = router({
           targetUsers,
           effectiveTitle,
           input.message,
-          input.channels
+          input.channels,
+          ctx.user.id
         ).catch((err) => {
           console.error(`[NotificationJob ${jobId}] Unhandled background execution error:`, err);
         });
@@ -2347,6 +2447,142 @@ export const notificationsRouter = router({
         warnings: job.warnings.slice(0, 5),
         createdAt: job.createdAt,
         completedAt: job.completedAt,
+      };
+    }),
+
+  // جلب سجلات الإرسال السابقة والجديدة مع الإحصائيات والفلاتر الشاملة
+  getNotificationDispatchLogs: protectedProcedure
+    .input(
+      z.object({
+        page: z.number().default(1),
+        limit: z.number().default(15),
+        channel: z.enum(["all", "in_app", "email", "sms", "whatsapp"]).default("all"),
+        sourceType: z.enum(["all", "direct", "system"]).default("all"),
+        search: z.string().optional(),
+        status: z.enum(["all", "read", "unread"]).default("all"),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role as any);
+      if (!isAdmin && !userPerms.includes("staff_notifications.edit")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض سجلات الإشعارات" });
+      }
+
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      }
+
+      const offset = (input.page - 1) * input.limit;
+
+      const conditions: any[] = [];
+
+      // 1. فلتر القناة
+      if (input.channel !== "all") {
+        if (input.channel === "in_app") {
+          conditions.push(or(eq(notifications.channel, "in_app"), isNull(notifications.channel)));
+        } else {
+          conditions.push(eq(notifications.channel, input.channel));
+        }
+      }
+
+      // 2. فلتر المصدر (إرسال مباشر أو آلي من النظام)
+      if (input.sourceType === "direct") {
+        conditions.push(eq(notifications.relatedType, "custom_direct"));
+      } else if (input.sourceType === "system") {
+        conditions.push(or(ne(notifications.relatedType, "custom_direct"), isNull(notifications.relatedType)));
+      }
+
+      // 3. فلتر حالة القراءة
+      if (input.status === "read") {
+        conditions.push(eq(notifications.isRead, true));
+      } else if (input.status === "unread") {
+        conditions.push(eq(notifications.isRead, false));
+      }
+
+      // 4. فلتر البحث
+      if (input.search && input.search.trim()) {
+        const searchTerm = `%${input.search.trim()}%`;
+        conditions.push(
+          or(
+            like(notifications.title, searchTerm),
+            like(notifications.message, searchTerm),
+            like(users.name, searchTerm),
+            like(users.phone, searchTerm),
+            like(users.email, searchTerm),
+            like(notifications.recipientPhone, searchTerm),
+            like(notifications.recipientEmail, searchTerm)
+          )
+        );
+      }
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+      // جلب السجلات مع الربط
+      const items = await db
+        .select({
+          id: notifications.id,
+          title: notifications.title,
+          message: notifications.message,
+          type: notifications.type,
+          relatedType: notifications.relatedType,
+          relatedId: notifications.relatedId,
+          channel: sql<string>`COALESCE(${notifications.channel}, 'in_app')`,
+          deliveryStatus: sql<string>`COALESCE(${notifications.deliveryStatus}, 'sent')`,
+          isRead: notifications.isRead,
+          readAt: notifications.readAt,
+          createdAt: notifications.createdAt,
+          recipientId: users.id,
+          recipientName: users.name,
+          recipientRole: users.role,
+          recipientPhone: sql<string | null>`COALESCE(${notifications.recipientPhone}, ${users.phone})`,
+          recipientEmail: sql<string | null>`COALESCE(${notifications.recipientEmail}, ${users.email})`,
+          senderId: notifications.senderId,
+        })
+        .from(notifications)
+        .leftJoin(users, eq(notifications.userId, users.id))
+        .where(whereClause)
+        .orderBy(desc(notifications.createdAt))
+        .limit(input.limit)
+        .offset(offset);
+
+      // جلب إجمالي النتائج المطابقة
+      const [countResult] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(notifications)
+        .leftJoin(users, eq(notifications.userId, users.id))
+        .where(whereClause);
+
+      const total = Number(countResult?.count || 0);
+
+      // إحصائيات سريعة للبطاقات العلوية
+      const [statsResult]: any = await db.execute(`
+        SELECT 
+          COUNT(*) as total,
+          SUM(CASE WHEN channel = 'in_app' OR channel IS NULL THEN 1 ELSE 0 END) as inAppCount,
+          SUM(CASE WHEN channel = 'email' THEN 1 ELSE 0 END) as emailCount,
+          SUM(CASE WHEN channel = 'sms' THEN 1 ELSE 0 END) as smsCount,
+          SUM(CASE WHEN channel = 'whatsapp' THEN 1 ELSE 0 END) as whatsappCount,
+          SUM(CASE WHEN relatedType = 'custom_direct' THEN 1 ELSE 0 END) as directCount
+        FROM notifications
+      `);
+
+      const stats = {
+        total: Number(statsResult?.[0]?.total || 0),
+        inApp: Number(statsResult?.[0]?.inAppCount || 0),
+        email: Number(statsResult?.[0]?.emailCount || 0),
+        sms: Number(statsResult?.[0]?.smsCount || 0),
+        whatsapp: Number(statsResult?.[0]?.whatsappCount || 0),
+        direct: Number(statsResult?.[0]?.directCount || 0),
+      };
+
+      return {
+        items,
+        total,
+        page: input.page,
+        totalPages: Math.ceil(total / input.limit),
+        stats,
       };
     }),
 

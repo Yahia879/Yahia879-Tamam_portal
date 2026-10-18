@@ -198,6 +198,25 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
     if (!userColNames.includes("bankAccountName")) {
       await promisePool.query("ALTER TABLE users ADD COLUMN bankAccountName VARCHAR(255) DEFAULT NULL");
     }
+
+    // أعمدة توثيق قناة الإرسال والمصدر في جدول notifications
+    const [notifCols] = await promisePool.query("SHOW COLUMNS FROM notifications") as any[];
+    const notifColNames = Array.isArray(notifCols) ? notifCols.map((c: any) => c.Field) : [];
+    if (!notifColNames.includes("channel")) {
+      await promisePool.query("ALTER TABLE notifications ADD COLUMN channel VARCHAR(50) DEFAULT 'in_app'");
+    }
+    if (!notifColNames.includes("senderId")) {
+      await promisePool.query("ALTER TABLE notifications ADD COLUMN senderId INT DEFAULT NULL");
+    }
+    if (!notifColNames.includes("deliveryStatus")) {
+      await promisePool.query("ALTER TABLE notifications ADD COLUMN deliveryStatus VARCHAR(50) DEFAULT 'sent'");
+    }
+    if (!notifColNames.includes("recipientPhone")) {
+      await promisePool.query("ALTER TABLE notifications ADD COLUMN recipientPhone VARCHAR(50) DEFAULT NULL");
+    }
+    if (!notifColNames.includes("recipientEmail")) {
+      await promisePool.query("ALTER TABLE notifications ADD COLUMN recipientEmail VARCHAR(255) DEFAULT NULL");
+    }
     if (!userColNames.includes("bankIban")) {
       await promisePool.query("ALTER TABLE users ADD COLUMN bankIban VARCHAR(50) DEFAULT NULL");
     }

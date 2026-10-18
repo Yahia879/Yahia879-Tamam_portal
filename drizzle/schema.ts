@@ -795,10 +795,16 @@ export const notifications = mysqlTable("notifications", {
   userId: int("userId").references(() => users.id, { onDelete: "set null" }),
   title: varchar("title", { length: 255 }).notNull(),
   message: text("message").notNull(),
-  type: mysqlEnum("type", ["info", "success", "warning", "error", "request_update", "system", "mosque", "request"]).default("info"),  relatedType: varchar("relatedType", { length: 50 }), // request, project, user
+  type: mysqlEnum("type", ["info", "success", "warning", "error", "request_update", "system", "mosque", "request"]).default("info"),
+  relatedType: varchar("relatedType", { length: 50 }), // request, project, user
   relatedId: int("relatedId"),
   isRead: boolean("isRead").default(false),
   readAt: datetime("readAt"),
+  channel: varchar("channel", { length: 50 }).default("in_app"), // in_app, email, sms, whatsapp
+  senderId: int("senderId").references(() => users.id, { onDelete: "set null" }),
+  deliveryStatus: varchar("deliveryStatus", { length: 50 }).default("sent"), // sent, delivered, failed
+  recipientPhone: varchar("recipientPhone", { length: 50 }),
+  recipientEmail: varchar("recipientEmail", { length: 255 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
