@@ -1759,6 +1759,147 @@ async function withDeadlockRetry<T>(fn: () => Promise<T>, maxRetries = 3, baseDe
   throw lastError;
 }
 
+// هيكل بيانات مهمة الإرسال في الخلفية
+interface NotificationBackgroundJob {
+  id: string;
+  createdAt: Date;
+  createdBy: { id: number; name: string };
+  totalRecipients: number;
+  processedCount: number;
+  successCount: number;
+  failureCount: number;
+  status: "pending" | "processing" | "completed" | "failed";
+  channels: { in_app: boolean; whatsapp: boolean; email: boolean; sms: boolean };
+  title: string;
+  message: string;
+  warnings: string[];
+  completedAt?: Date;
+}
+
+// سجل مهام الإرسال النشطة في الذاكرة لتتبع حالتها اللحظية
+const activeNotificationJobs = new Map<string, NotificationBackgroundJob>();
+
+async function runNotificationJobInBackground(
+  jobId: string,
+  targetUsers: Array<{ id: number; name: string; email: string | null; phone: string | null }>,
+  title: string,
+  message: string,
+  channels: { in_app: boolean; whatsapp: boolean; email: boolean; sms: boolean }
+) {
+  const job = activeNotificationJobs.get(jobId);
+  if (!job) return;
+
+  try {
+    const db = await getDb();
+    if (!db) {
+      job.status = "failed";
+      job.warnings.push("فشل الاتصال بقاعدة البيانات أثناء تشغيل المهمة");
+      return;
+    }
+
+    const { in_app, whatsapp, email, sms } = channels;
+
+    // 1. إشعارات داخل الموقع (حفظ في قاعدة البيانات على دفعات لتفادي حدود الاستعلام)
+    if (in_app) {
+      try {
+        const inAppRecords = targetUsers.map((user) => ({
+          userId: user.id,
+          type: "info" as const,
+          title,
+          message,
+          relatedType: "custom_direct",
+          isRead: false,
+        }));
+
+        for (let i = 0; i < inAppRecords.length; i += 50) {
+          const chunk = inAppRecords.slice(i, i + 50);
+          await db.insert(notifications).values(chunk);
+        }
+      } catch (err: any) {
+        console.error(`[NotificationJob ${jobId}] Error inserting in-app notifications:`, err);
+        job.warnings.push("حدث خطأ أثناء حفظ بعض الإشعارات في قاعدة البيانات");
+      }
+    }
+
+    // 2. القنوات الخارجية (SMS, Email, WhatsApp) على دفعات متحكم بها لتفادي الضغط
+    const CHUNK_SIZE = 5;
+    for (let i = 0; i < targetUsers.length; i += CHUNK_SIZE) {
+      const chunk = targetUsers.slice(i, i + CHUNK_SIZE);
+
+      await Promise.allSettled(
+        chunk.map(async (user) => {
+          let hasChannelSuccess = false;
+          try {
+            // WhatsApp
+            if (whatsapp) {
+              if (user.phone) {
+                await sendWhatsApp(user.phone, title, message).catch((e) => {
+                  console.error(`[NotificationJob ${jobId}] WhatsApp error for user ${user.id}:`, e);
+                });
+                hasChannelSuccess = true;
+              } else {
+                job.warnings.push(`تعذر إرسال واتساب لـ "${user.name}" لعدم توفر رقم جوال`);
+              }
+            }
+
+            // Email
+            if (email) {
+              if (user.email) {
+                await sendEmailNotification(user.email, title, message).catch((e) => {
+                  console.error(`[NotificationJob ${jobId}] Email error for user ${user.id}:`, e);
+                });
+                hasChannelSuccess = true;
+              } else {
+                job.warnings.push(`تعذر إرسال البريد لـ "${user.name}" لعدم توفر بريد إلكتروني`);
+              }
+            }
+
+            // SMS
+            if (sms) {
+              if (user.phone) {
+                await sendSms(user.phone, message).catch((e) => {
+                  console.error(`[NotificationJob ${jobId}] SMS error for user ${user.id}:`, e);
+                });
+                hasChannelSuccess = true;
+              } else {
+                job.warnings.push(`تعذر إرسال SMS لـ "${user.name}" لعدم توفر رقم جوال`);
+              }
+            }
+
+            if (in_app) {
+              hasChannelSuccess = true;
+            }
+
+            if (hasChannelSuccess) {
+              job.successCount++;
+            } else {
+              job.failureCount++;
+            }
+          } catch (err) {
+            job.failureCount++;
+            console.error(`[NotificationJob ${jobId}] Error processing recipient ${user.id}:`, err);
+          } finally {
+            job.processedCount++;
+          }
+        })
+      );
+
+      // تأخير بسيط بين كل دفعة لحماية بوابات الرسائل
+      if (i + CHUNK_SIZE < targetUsers.length) {
+        await new Promise((r) => setTimeout(r, 200));
+      }
+    }
+
+    job.status = job.failureCount === targetUsers.length && targetUsers.length > 0 ? "failed" : "completed";
+    job.completedAt = new Date();
+    console.log(`[NotificationJob ${jobId}] Finished: ${job.successCount}/${job.totalRecipients} succeeded`);
+  } catch (err: any) {
+    console.error(`[NotificationJob ${jobId}] Fatal background job error:`, err);
+    job.status = "failed";
+    job.warnings.push(`خطأ غير متوقع: ${err?.message || err}`);
+  }
+}
+
 export const notificationsRouter = router({
   // جلب إشعارات المستخدم الحالي
   getMyNotifications: protectedProcedure
@@ -2077,11 +2218,12 @@ export const notificationsRouter = router({
     return beneficiaries;
   }),
 
-  // إرسال إشعار مخصص لشخص محدد عبر قنوات محددة
-  sendCustomNotification: adminProcedure
+  // إرسال إشعار مخصص لشخص أو عدة أشخاص عبر قنوات محددة في الخلفية
+  sendCustomNotification: protectedProcedure
     .input(
       z.object({
-        recipientId: z.number(),
+        recipientId: z.number().optional(),
+        recipientIds: z.array(z.number()).optional(),
         title: z.string().optional().default("إشعار من إدارة البوابة"),
         message: z.string().min(1, "نص الرسالة مطلوب"),
         channels: z.object({
@@ -2092,20 +2234,27 @@ export const notificationsRouter = router({
         }),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role as any);
+      if (!isAdmin && !userPerms.includes("staff_notifications.edit")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إرسال الإشعارات المباشرة" });
+      }
+
       const db = await getDb();
       if (!db) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "تعذر الاتصال بقاعدة البيانات" });
       }
 
-      const [recipient] = await db
-        .select()
-        .from(users)
-        .where(and(eq(users.id, input.recipientId), isNull(users.deletedAt)))
-        .limit(1);
+      const targetIds = Array.from(
+        new Set([
+          ...(input.recipientId ? [input.recipientId] : []),
+          ...(input.recipientIds || []),
+        ])
+      ).filter(Boolean);
 
-      if (!recipient) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "المستخدم المحدد غير موجود" });
+      if (targetIds.length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "يرجى تحديد شخص واحد على الأقل للإرسال إليه" });
       }
 
       const { in_app, whatsapp, email, sms } = input.channels;
@@ -2113,65 +2262,91 @@ export const notificationsRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "يرجى تحديد قناة إرسال واحدة على الأقل" });
       }
 
-      const warnings: string[] = [];
+      const targetUsers = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          phone: users.phone,
+        })
+        .from(users)
+        .where(and(inArray(users.id, targetIds), isNull(users.deletedAt)));
+
+      if (targetUsers.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "المستخدمون المحددون غير موجودين أو تم حذفهم" });
+      }
+
       const effectiveTitle = input.title?.trim() || "إشعار من إدارة البوابة";
+      const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
-      // 1. إشعار داخل الموقع
-      if (in_app) {
-        await db.insert(notifications).values({
-          userId: recipient.id,
-          type: "info",
-          title: effectiveTitle,
-          message: input.message,
-          relatedType: "custom_direct",
-          isRead: false,
+      const job: NotificationBackgroundJob = {
+        id: jobId,
+        createdAt: new Date(),
+        createdBy: { id: ctx.user.id, name: ctx.user.name || "مستخدم" },
+        totalRecipients: targetUsers.length,
+        processedCount: 0,
+        successCount: 0,
+        failureCount: 0,
+        status: "processing",
+        channels: input.channels,
+        title: effectiveTitle,
+        message: input.message,
+        warnings: [],
+      };
+
+      activeNotificationJobs.set(jobId, job);
+
+      // تنظيف السجل القديم عند الحاجة
+      if (activeNotificationJobs.size > 50) {
+        const oldestKey = activeNotificationJobs.keys().next().value;
+        if (oldestKey) activeNotificationJobs.delete(oldestKey);
+      }
+
+      // تشغيل المهمة في خلفية الخادم بشكل منفصل تماماً
+      setImmediate(() => {
+        runNotificationJobInBackground(
+          jobId,
+          targetUsers,
+          effectiveTitle,
+          input.message,
+          input.channels
+        ).catch((err) => {
+          console.error(`[NotificationJob ${jobId}] Unhandled background execution error:`, err);
         });
-      }
-
-      // 2. واتساب
-      if (whatsapp) {
-        if (recipient.phone) {
-          sendWhatsApp(recipient.phone, effectiveTitle, input.message).catch((err) => {
-            console.error("Custom WhatsApp send error:", err);
-          });
-        } else {
-          warnings.push("لم يتم الإرسال عبر واتساب لعدم توفر رقم جوال للمستقبل");
-        }
-      }
-
-      // 3. البريد الإلكتروني
-      if (email) {
-        if (recipient.email) {
-          sendEmailNotification(recipient.email, effectiveTitle, input.message).catch((err) => {
-            console.error("Custom Email send error:", err);
-          });
-        } else {
-          warnings.push("لم يتم الإرسال عبر البريد الإلكتروني لعدم توفر عنوان بريد للمستقبل");
-        }
-      }
-
-      // 4. الرسائل النصية القصيرة SMS (إرسال نص الرسالة فقط بدون العنوان)
-      if (sms) {
-        if (recipient.phone) {
-          const smsMessage = input.message;
-          sendSms(recipient.phone, smsMessage).catch((err) => {
-            console.error("Custom SMS send error:", err);
-          });
-        } else {
-          warnings.push("لم يتم الإرسال عبر الرسائل النصية لعدم توفر رقم جوال للمستقبل");
-        }
-      }
+      });
 
       return {
         success: true,
-        recipientName: recipient.name,
+        jobId,
+        totalRecipients: targetUsers.length,
+        recipientName: targetUsers.length === 1 ? targetUsers[0].name : `${targetUsers.length} أشخاص`,
         sentChannels: {
           in_app: Boolean(in_app),
-          whatsapp: Boolean(whatsapp && recipient.phone),
-          email: Boolean(email && recipient.email),
-          sms: Boolean(sms && recipient.phone),
+          whatsapp: Boolean(whatsapp),
+          email: Boolean(email),
+          sms: Boolean(sms),
         },
-        warnings,
+        warnings: [],
+        message: `تم بدء إرسال الإشعار إلى ${targetUsers.length} شخص في الخلفية بنجاح`,
+      };
+    }),
+
+  // تتبع حالة مهمة الإرسال في الخلفية
+  getNotificationJobStatus: protectedProcedure
+    .input(z.object({ jobId: z.string() }))
+    .query(async ({ input }) => {
+      const job = activeNotificationJobs.get(input.jobId);
+      if (!job) return null;
+      return {
+        id: job.id,
+        status: job.status,
+        totalRecipients: job.totalRecipients,
+        processedCount: job.processedCount,
+        successCount: job.successCount,
+        failureCount: job.failureCount,
+        warnings: job.warnings.slice(0, 5),
+        createdAt: job.createdAt,
+        completedAt: job.completedAt,
       };
     }),
 

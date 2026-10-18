@@ -13,15 +13,18 @@ import {
   HeartHandshake,
   Search,
   Bell,
-  MessageSquare,
   Mail,
   Smartphone,
   Check,
   X,
-  AlertCircle
+  AlertCircle,
+  CheckCircle2,
+  Users,
+  CheckSquare,
+  Square,
+  Loader2
 } from "lucide-react";
 import { toast } from "sonner";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface RecipientItem {
   id: number;
@@ -43,8 +46,26 @@ export default function DirectNotificationTab({
   // فئة المستقبل (المستفيدين أو المسؤولين)
   const [activeCategory, setActiveCategory] = useState<"beneficiary" | "staff">("beneficiary");
 
-  // المستقبل المحدد (شخص واحد فقط)
-  const [selectedRecipient, setSelectedRecipient] = useState<RecipientItem | null>(null);
+  // المستقبلون المحددون (خريطة id -> RecipientItem) لتحديد شخص أو أكثر
+  const [selectedRecipients, setSelectedRecipients] = useState<Map<number, RecipientItem>>(new Map());
+
+  // معرّف مهمة الإرسال الجارية في الخلفية لمتابعتها لحظياً
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+
+  // استعلام تتبع حالة مهمة الخلفية لحظياً
+  const { data: jobStatus } = trpc.notifications.getNotificationJobStatus.useQuery(
+    { jobId: activeJobId || "" },
+    {
+      enabled: !!activeJobId,
+      refetchInterval: (query) => {
+        const s = query.state.data?.status;
+        if (s === "completed" || s === "failed") {
+          return false;
+        }
+        return 1200; // تحديث سريع لمتابعة التقدم
+      },
+    }
+  );
 
   // البحث والصفحات
   const [searchTerm, setSearchTerm] = useState("");
@@ -73,18 +94,20 @@ export default function DirectNotificationTab({
   // إجراء إرسال الإشعار
   const sendMutation = trpc.notifications.sendCustomNotification.useMutation({
     onSuccess: (res) => {
+      setActiveJobId(res.jobId);
+
       const sentChannelsList: string[] = [];
       if (res.sentChannels.in_app) sentChannelsList.push("الموقع");
       if (res.sentChannels.email) sentChannelsList.push("البريد");
       if (res.sentChannels.sms) sentChannelsList.push("SMS");
 
       toast.success(
-        `تم إرسال الإشعار بنجاح إلى "${res.recipientName}" عبر: ${sentChannelsList.join("، ")}`
+        `تم بدء إرسال الإشعار إلى ${res.totalRecipients} شخص في الخلفية بنجاح عبر: ${sentChannelsList.join("، ")}`,
+        {
+          description: "العملية تعمل في الخلفية على السيرفر بأمان؛ لن تنقطع حتى لو أغلقت الصفحة الآن.",
+          duration: 7000,
+        }
       );
-
-      if (res.warnings && res.warnings.length > 0) {
-        res.warnings.forEach((warn) => toast.warning(warn, { duration: 5000 }));
-      }
 
       setMessage("");
     },
@@ -168,25 +191,71 @@ export default function DirectNotificationTab({
     setPage(1);
   };
 
-  const handleSelectRecipient = (recipient: RecipientItem) => {
-    if (selectedRecipient?.id === recipient.id) {
-      setSelectedRecipient(null);
-    } else {
-      setSelectedRecipient(recipient);
-    }
+  // اختيار أو إلغاء اختيار شخص واحد
+  const handleToggleRecipient = (recipient: RecipientItem) => {
+    setSelectedRecipients((prev) => {
+      const next = new Map(prev);
+      if (next.has(recipient.id)) {
+        next.delete(recipient.id);
+      } else {
+        next.set(recipient.id, recipient);
+      }
+      return next;
+    });
   };
 
-  // إخفاء حقل العنوان عند اختيار الإرسال عبر SMS، وإظهاره فقط عند اختيار الموقع أو البريد الإلكتروني
+  // هل جميع عناصر الصفحة الحالية محددة؟
+  const isPageAllSelected =
+    paginatedRecipients.length > 0 &&
+    paginatedRecipients.every((r) => selectedRecipients.has(r.id));
+
+  // تحديد / إلغاء تحديد الكل في الصفحة الحالية
+  const handleToggleSelectPage = () => {
+    setSelectedRecipients((prev) => {
+      const next = new Map(prev);
+      if (isPageAllSelected) {
+        paginatedRecipients.forEach((r) => next.delete(r.id));
+      } else {
+        paginatedRecipients.forEach((r) => next.set(r.id, r));
+      }
+      return next;
+    });
+  };
+
+  // هل جميع نتائج البحث محددة؟
+  const isFilteredAllSelected =
+    filteredRecipients.length > 0 &&
+    filteredRecipients.every((r) => selectedRecipients.has(r.id));
+
+  // تحديد / إلغاء تحديد كل نتائج البحث
+  const handleToggleSelectAllFiltered = () => {
+    setSelectedRecipients((prev) => {
+      const next = new Map(prev);
+      if (isFilteredAllSelected) {
+        filteredRecipients.forEach((r) => next.delete(r.id));
+      } else {
+        filteredRecipients.forEach((r) => next.set(r.id, r));
+      }
+      return next;
+    });
+  };
+
+  // إلغاء تحديد الكل بالكامل
+  const handleClearSelection = () => {
+    setSelectedRecipients(new Map());
+  };
+
+  // إخفاء حقل العنوان عند اختيار الإرسال عبر SMS
   const requiresTitle = selectedChannel !== "sms";
 
   const isFormValid =
-    selectedRecipient !== null &&
+    selectedRecipients.size > 0 &&
     message.trim().length > 0 &&
     (!requiresTitle || title.trim().length > 0);
 
   const handleSend = () => {
-    if (!selectedRecipient) {
-      toast.error("يرجى تحديد المستقبل أولاً من الجدول أعلاه");
+    if (selectedRecipients.size === 0) {
+      toast.error("يرجى تحديد شخص واحد على الأقل من الجدول أعلاه");
       return;
     }
     if (requiresTitle && !title.trim()) {
@@ -199,7 +268,7 @@ export default function DirectNotificationTab({
     }
 
     sendMutation.mutate({
-      recipientId: selectedRecipient.id,
+      recipientIds: Array.from(selectedRecipients.keys()),
       title: requiresTitle ? title.trim() : "إشعار من إدارة البوابة",
       message: message.trim(),
       channels: {
@@ -215,26 +284,123 @@ export default function DirectNotificationTab({
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* 1. جدول عرض وتحديد المستقبلين */}
+      {/* بطاقة متابعة مهمة الإرسال في الخلفية عند انطلاقها */}
+      {activeJobId && jobStatus && (
+        <Card className="border border-teal-500/40 bg-teal-50/70 dark:bg-teal-950/30 shadow-sm rounded-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+          <CardContent className="p-4 sm:p-5 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                {jobStatus.status === "processing" || jobStatus.status === "pending" ? (
+                  <Loader2 className="w-5 h-5 text-teal-600 dark:text-teal-400 animate-spin shrink-0" />
+                ) : jobStatus.status === "completed" ? (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                )}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm text-foreground">
+                      {jobStatus.status === "processing" || jobStatus.status === "pending"
+                        ? "جاري إرسال الإشعارات في الخلفية..."
+                        : jobStatus.status === "completed"
+                        ? "اكتمل إرسال الإشعارات بنجاح!"
+                        : "اكتملت المهمة مع وجود تنبيهات"}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className={`text-[11px] font-bold ${
+                        jobStatus.status === "completed"
+                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                          : "bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/30"
+                      }`}
+                    >
+                      {jobStatus.processedCount} من {jobStatus.totalRecipients} شخص
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground hidden md:inline">
+                  تعمل في خلفية السيرفر (Background Worker)
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setActiveJobId(null)}
+                  className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5 ml-1" />
+                  إغلاق التنبيه
+                </Button>
+              </div>
+            </div>
+
+            {/* شريط التقدم */}
+            <div className="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-300 rounded-full ${
+                  jobStatus.status === "completed"
+                    ? "bg-emerald-500"
+                    : "bg-teal-600 animate-pulse"
+                }`}
+                style={{
+                  width: `${Math.min(
+                    100,
+                    Math.round((jobStatus.processedCount / Math.max(1, jobStatus.totalRecipients)) * 100)
+                  )}%`,
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-muted-foreground gap-1.5">
+              <span className="font-medium">
+                💡 <strong className="text-foreground">آمنة تماماً:</strong> العملية تعمل في خلفية الخادم بشكل مستقل، حتى إذا أغلقت هذه الصفحة أو المتصفح الآن ستستمر عمليات الإرسال دون أن تفشل.
+              </span>
+              <span className="font-mono font-bold text-teal-700 dark:text-teal-400 shrink-0">
+                {Math.round((jobStatus.processedCount / Math.max(1, jobStatus.totalRecipients)) * 100)}%
+              </span>
+            </div>
+
+            {jobStatus.warnings && jobStatus.warnings.length > 0 && (
+              <div className="bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-lg text-xs text-amber-800 dark:text-amber-300 space-y-1">
+                <span className="font-bold block">ملاحظات الإرسال:</span>
+                {jobStatus.warnings.map((w, i) => (
+                  <p key={i}>• {w}</p>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 1. جدول عرض وتحديد المستقبلين (دعم التحديد الفردي والمتعدد) */}
       <Card className="border border-border/50 shadow-sm overflow-hidden rounded-xl">
         <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-4 sm:p-6">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-sm sm:text-base md:text-lg font-bold text-foreground">
-                تحديد المستقبل (المستفيدين والمسؤولين)
-              </CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-sm sm:text-base md:text-lg font-bold text-foreground">
+                  تحديد المستقبلين (المستفيدين والمسؤولين)
+                </CardTitle>
+                {selectedRecipients.size > 0 && (
+                  <Badge variant="outline" className="bg-teal-500/15 text-teal-800 dark:text-teal-300 border-teal-500/30 text-xs font-bold px-2 py-0.5">
+                    تم تحديد {selectedRecipients.size} شخص
+                  </Badge>
+                )}
+              </div>
               <CardDescription className="text-[11px] sm:text-xs md:text-sm mt-1 leading-relaxed">
-                اختر الفئة، ثم حدد شخصاً واحداً من الجدول أدناه لإرسال الإشعار المخصص له.
+                اختر الفئة، ثم حدد شخصاً واحداً أو أكثر من الجدول لإرسال الإشعار المخصص لهم دفعة واحدة.
               </CardDescription>
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-              {/* تبديل الفئتين بطريقة النظام */}
+              {/* تبديل الفئتين */}
               <div className="flex p-1 bg-muted/80 dark:bg-slate-800/80 rounded-xl border border-border/60">
                 <button
                   type="button"
                   onClick={() => handleCategorySwitch("beneficiary")}
-                  className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     activeCategory === "beneficiary"
                       ? "bg-white dark:bg-slate-950 text-teal-600 dark:text-teal-400 shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
@@ -247,7 +413,7 @@ export default function DirectNotificationTab({
                 <button
                   type="button"
                   onClick={() => handleCategorySwitch("staff")}
-                  className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     activeCategory === "staff"
                       ? "bg-white dark:bg-slate-950 text-teal-600 dark:text-teal-400 shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
@@ -273,6 +439,99 @@ export default function DirectNotificationTab({
               </div>
             </div>
           </div>
+
+          {/* شريط أدوات التحديد السريع */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-3 mt-3 border-t border-border/40 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleToggleSelectPage}
+                className="h-7 text-xs rounded-lg gap-1.5 font-bold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                {isPageAllSelected ? (
+                  <>
+                    <Square className="w-3.5 h-3.5 text-teal-600" />
+                    <span>إلغاء تحديد هذه الصفحة ({paginatedRecipients.length})</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare className="w-3.5 h-3.5 text-teal-600" />
+                    <span>تحديد الصفحة الحالية ({paginatedRecipients.length})</span>
+                  </>
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleToggleSelectAllFiltered}
+                className="h-7 text-xs rounded-lg gap-1.5 font-bold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                {isFilteredAllSelected ? (
+                  <span>إلغاء تحديد كل النتائج</span>
+                ) : (
+                  <span>تحديد كل نتائج البحث ({filteredRecipients.length})</span>
+                )}
+              </Button>
+
+              {selectedRecipients.size > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearSelection}
+                  className="h-7 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg gap-1 cursor-pointer font-bold"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>إلغاء التحديد ({selectedRecipients.size})</span>
+                </Button>
+              )}
+            </div>
+
+            <span className="text-[11px] text-muted-foreground">
+              يمكنك النقر على أي صف لاختياره أو إلغاء اختياره
+            </span>
+          </div>
+
+          {/* قائمة الأشخاص المحددين حالياً لمعاينتهم بسهولة */}
+          {selectedRecipients.size > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 p-2.5 bg-teal-500/10 dark:bg-teal-950/20 rounded-xl border border-teal-500/20 text-xs mt-2">
+              <span className="font-bold text-teal-800 dark:text-teal-300 ml-1 flex items-center gap-1">
+                <Users className="w-3.5 h-3.5" />
+                المحددون ({selectedRecipients.size}):
+              </span>
+              {Array.from(selectedRecipients.values())
+                .slice(0, 10)
+                .map((r) => (
+                  <Badge
+                    key={r.id}
+                    variant="secondary"
+                    className="gap-1 bg-white dark:bg-slate-900 border border-teal-300 dark:border-teal-700 text-foreground py-0.5 px-2 font-medium"
+                  >
+                    <span>{r.name}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleRecipient(r);
+                      }}
+                      className="text-muted-foreground hover:text-red-500 p-0.5 rounded cursor-pointer transition-colors"
+                      title="إزالة"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </Badge>
+                ))}
+              {selectedRecipients.size > 10 && (
+                <span className="text-muted-foreground text-[11px] font-semibold">
+                  +{selectedRecipients.size - 10} آخرين
+                </span>
+              )}
+            </div>
+          )}
         </CardHeader>
 
         <CardContent className="p-0">
@@ -291,8 +550,16 @@ export default function DirectNotificationTab({
                 <Table className="min-w-[700px]">
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
-                      <TableHead className="w-14 text-center py-3 px-3 text-xs sm:text-sm font-bold text-foreground">
-                        تحديد
+                      <TableHead className="w-14 text-center py-3 px-3">
+                        <div className="flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            checked={isPageAllSelected}
+                            onChange={handleToggleSelectPage}
+                            className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 cursor-pointer accent-teal-600"
+                            title="تحديد أو إلغاء تحديد الصفحة كاملة"
+                          />
+                        </div>
                       </TableHead>
                       <TableHead className="text-right font-bold py-3 px-4 text-xs sm:text-sm text-foreground">
                         الاسم
@@ -313,28 +580,27 @@ export default function DirectNotificationTab({
                   </TableHeader>
                   <TableBody className="divide-y divide-border/40">
                     {paginatedRecipients.map((recipient) => {
-                      const isSelected = selectedRecipient?.id === recipient.id;
+                      const isSelected = selectedRecipients.has(recipient.id);
 
                       return (
                         <TableRow
                           key={recipient.id}
-                          onClick={() => handleSelectRecipient(recipient)}
+                          onClick={() => handleToggleRecipient(recipient)}
                           className={`cursor-pointer transition-colors ${
                             isSelected
                               ? "bg-teal-50/90 dark:bg-teal-950/30 font-medium border-r-4 border-r-teal-600"
                               : "hover:bg-muted/20"
                           }`}
                         >
-                          {/* مؤشر الراديو للاختيار الفردي */}
-                          <TableCell className="text-center py-3 px-3">
-                            <div
-                              className={`w-4 h-4 mx-auto rounded-full border-2 flex items-center justify-center transition-all ${
-                                isSelected
-                                  ? "border-teal-600 bg-teal-600 text-white"
-                                  : "border-muted-foreground/40 bg-background"
-                              }`}
-                            >
-                              {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                          {/* خانة التحديد المربع (Checkbox) */}
+                          <TableCell className="text-center py-3 px-3" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-center">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleToggleRecipient(recipient)}
+                                className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 cursor-pointer accent-teal-600"
+                              />
                             </div>
                           </TableCell>
 
@@ -412,31 +678,31 @@ export default function DirectNotificationTab({
                 كتابة الرسالة وتحديد منصة الإرسال
               </CardTitle>
               <CardDescription className="text-[11px] sm:text-xs md:text-sm mt-1 leading-relaxed">
-                اختر منصة الإرسال (منصة واحدة فقط)، ثم اكتب نص الرسالة للإرسال.
+                اختر منصة الإرسال، ثم اكتب نص الرسالة لإرسالها لجميع الأشخاص المحددين في الخلفية.
               </CardDescription>
             </div>
 
-            {/* شارة الشخص المحدد */}
-            {selectedRecipient ? (
-              <div className="inline-flex items-center gap-2 bg-teal-500/10 border border-teal-500/30 px-3 py-1.5 rounded-xl text-xs">
-                <span className="text-muted-foreground">المستقبل المحدد:</span>
-                <span className="font-bold text-teal-700 dark:text-teal-400">{selectedRecipient.name}</span>
-                <Badge variant="outline" className="text-[10px] py-0 px-1.5">
-                  {selectedRecipient.roleTitle}
-                </Badge>
+            {/* شارة عدد المستقبلين المحددين */}
+            {selectedRecipients.size > 0 ? (
+              <div className="inline-flex items-center gap-2 bg-teal-500/10 border border-teal-500/30 px-3 py-1.5 rounded-xl text-xs font-bold">
+                <Users className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                <span className="text-muted-foreground">المستقبلون:</span>
+                <span className="text-teal-700 dark:text-teal-300">
+                  {selectedRecipients.size} شخص محدد
+                </span>
                 <button
                   type="button"
-                  onClick={() => setSelectedRecipient(null)}
-                  className="text-muted-foreground hover:text-red-500 mr-1 p-0.5 rounded transition-colors"
-                  title="إلغاء التحديد"
+                  onClick={handleClearSelection}
+                  className="text-muted-foreground hover:text-red-500 mr-1 p-0.5 rounded transition-colors cursor-pointer"
+                  title="إلغاء التحديد بالكامل"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : (
-              <Badge variant="outline" className="text-amber-600 bg-amber-500/10 border-amber-500/30 text-xs py-1 px-3 self-start sm:self-auto">
+              <Badge variant="outline" className="text-amber-600 bg-amber-500/10 border-amber-500/30 text-xs py-1 px-3 self-start sm:self-auto font-bold">
                 <AlertCircle className="w-3.5 h-3.5 ml-1 inline text-amber-600" />
-                لم تحدد أي شخص بعد (انقر على أي سطر في الجدول أعلاه)
+                لم تحدد أي شخص بعد (حدد شخصاً أو أكثر من الجدول أعلاه)
               </Badge>
             )}
           </div>
@@ -454,7 +720,7 @@ export default function DirectNotificationTab({
               <button
                 type="button"
                 onClick={() => setSelectedChannel("in_app")}
-                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all active:scale-[0.98] ${
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all active:scale-[0.98] cursor-pointer ${
                   selectedChannel === "in_app"
                     ? "bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/50 ring-2 ring-teal-500/20 shadow-xs"
                     : "bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/70 hover:text-foreground"
@@ -475,7 +741,7 @@ export default function DirectNotificationTab({
               <button
                 type="button"
                 onClick={() => setSelectedChannel("email")}
-                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all active:scale-[0.98] ${
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all active:scale-[0.98] cursor-pointer ${
                   selectedChannel === "email"
                     ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/50 ring-2 ring-blue-500/20 shadow-xs"
                     : "bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/70 hover:text-foreground"
@@ -496,7 +762,7 @@ export default function DirectNotificationTab({
               <button
                 type="button"
                 onClick={() => setSelectedChannel("sms")}
-                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all active:scale-[0.98] ${
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all active:scale-[0.98] cursor-pointer ${
                   selectedChannel === "sms"
                     ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/50 ring-2 ring-amber-500/20 shadow-xs"
                     : "bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/70 hover:text-foreground"
@@ -550,20 +816,31 @@ export default function DirectNotificationTab({
           </div>
 
           {/* زر الإرسال */}
-          <div className="flex items-center justify-between pt-2 border-t border-border/40">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-border/40">
             <span className="text-xs text-muted-foreground">
-              {selectedRecipient
-                ? `سيتم الإرسال إلى: ${selectedRecipient.name}`
-                : "يرجى اختيار شخص من الجدول لتفعيل الإرسال"}
+              {selectedRecipients.size > 0
+                ? `سيتم إرسال نفس الإشعار في الخلفية إلى (${selectedRecipients.size}) شخص.`
+                : "يرجى تحديد شخص واحد أو أكثر من الجدول لتفعيل الإرسال."}
             </span>
 
             <Button
               onClick={handleSend}
               disabled={!isFormValid || sendMutation.isPending}
-              className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs sm:text-sm gap-2 shadow-xs transition-all active:scale-95"
+              className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs sm:text-sm gap-2 shadow-xs transition-all active:scale-95 cursor-pointer disabled:opacity-50"
             >
-              <Send className="w-4 h-4" />
-              <span>{sendMutation.isPending ? "جاري الإرسال..." : "إرسال الإشعار"}</span>
+              {sendMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>جاري إطلاق المهمة في الخلفية...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  <span>
+                    إرسال الإشعار {selectedRecipients.size > 0 ? `إلى (${selectedRecipients.size}) شخص` : ""}
+                  </span>
+                </>
+              )}
             </Button>
           </div>
         </CardContent>
