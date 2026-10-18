@@ -896,8 +896,15 @@ export default function ContractForm() {
       const fd = (c as any).financialDetail || projectFinancials?.financialDetail;
       const approvedQ = allApprovedQuotations.find((q: any) => c.supplierId ? q.supplierId === c.supplierId : true)
         || (allApprovedQuotations.length === 1 ? allApprovedQuotations[0] : null);
-      const approvedAmt = approvedQ?.totalAmount ? parseFloat(String(approvedQ.totalAmount)) : 0;
-      const cAmt = approvedAmt > 0 ? approvedAmt : (c.contractAmount ? parseFloat(c.contractAmount) : 0);
+      const approvedAmt = approvedQ?.approvedAmount 
+        ? parseFloat(String(approvedQ.approvedAmount)) 
+        : (approvedQ?.negotiatedAmount
+          ? parseFloat(String(approvedQ.negotiatedAmount))
+          : (approvedQ?.finalAmount 
+            ? parseFloat(String(approvedQ.finalAmount)) 
+            : (approvedQ?.totalAmount ? parseFloat(String(approvedQ.totalAmount)) : 0)));
+      const savedContractAmt = c.contractAmount ? parseFloat(String(c.contractAmount)) : 0;
+      const cAmt = savedContractAmt > 0 ? savedContractAmt : (approvedAmt > 0 ? approvedAmt : 0);
       let initMgmtPct = c.managementPercentage ? parseFloat(c.managementPercentage) : 0;
       let initMgmtAmt = (c as any).managementAmount !== undefined ? (c as any).managementAmount : ((cAmt > 0 && initMgmtPct > 0) ? (cAmt * initMgmtPct) / 100 : 0);
       let initFeeType: "percentage" | "fixed" = (fd?.adminFeeType as "percentage" | "fixed") || "percentage";
@@ -1281,6 +1288,7 @@ export default function ContractForm() {
     prevSupplierQueryRef.current = supplierIdFromQuery;
 
     if (!isEditMode && (editModeChanged || supplierChanged)) {
+      hasInitializedAmountRef.current = false;
       setCurrentStep(1);
       setEditDataLoaded(false);
       setPaymentSchedule([]);
@@ -1318,8 +1326,11 @@ export default function ContractForm() {
     }
   }, [allApprovedQuotations, isEditMode, createdDraftId, supplierIdFromQuery, contractData.supplierId, requestContractsList]);
 
-  // تثبيت ومزامنة قيمة العقد دائماً مع عرض السعر المعتمد للمورد إن وجد
+  // مزامنة مبدئية فقط لقيمة العقد عند إنشاء عقد جديد من عرض السعر المعتمد للمورد إن لم تكن محددة
+  const hasInitializedAmountRef = useRef<boolean>(false);
   useEffect(() => {
+    if (isEditMode) return;
+    if (hasInitializedAmountRef.current) return;
     if (approvedSupplierQuotation) {
       const qAmt = parseFloat(
         String(
@@ -1330,7 +1341,8 @@ export default function ContractForm() {
           0
         )
       );
-      if (qAmt > 0 && Math.abs(contractData.totalValue - qAmt) > 0.01) {
+      if (qAmt > 0 && (!contractData.totalValue || contractData.totalValue === 0)) {
+        hasInitializedAmountRef.current = true;
         setContractData(prev => {
           const mgmtAmt = prev.managementFeeType === "fixed"
             ? prev.managementAmount
@@ -1346,11 +1358,11 @@ export default function ContractForm() {
       }
     }
   }, [
-    approvedSupplierQuotation?.approvedAmount,
-    approvedSupplierQuotation?.negotiatedAmount,
+    isEditMode,
     approvedSupplierQuotation?.finalAmount,
     approvedSupplierQuotation?.totalAmount,
-    contractData.totalValue,
+    approvedSupplierQuotation?.negotiatedAmount,
+    approvedSupplierQuotation?.approvedAmount,
   ]);
 
   // تحديث المشروع والحقول الأخرى من بيانات الطلب

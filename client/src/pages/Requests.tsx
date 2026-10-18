@@ -32,6 +32,7 @@ import {
   CheckCircle2,
   XCircle,
   ShieldAlert,
+  HeartHandshake,
 } from "lucide-react";
 import { Link, useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -533,6 +534,29 @@ export default function Requests({
           </CardContent>
         </Card>
 
+        {/* Color Legend (دلالات ألوان الطلبات) */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs font-medium px-1 py-1 text-muted-foreground">
+          <span className="text-[11px] font-bold text-foreground">
+            {isEn ? "Request Types:" : "تصنيف الطلبات:"}
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-100/90 text-cyan-900 dark:bg-cyan-950/70 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700 text-[11px] font-semibold">
+            <span className="w-2 h-2 rounded-full bg-cyan-700 dark:bg-cyan-400" />
+            {isEn ? "Sedana" : "طلبات سدانة"}
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-100/90 text-orange-900 dark:bg-orange-950/70 dark:text-orange-300 border border-orange-300 dark:border-orange-700 text-[11px] font-semibold">
+            <span className="w-2 h-2 rounded-full bg-orange-500 dark:bg-orange-400" />
+            {isEn ? "Quick Requests" : "الطلبات السريعة"}
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-pink-100/90 text-pink-900 dark:bg-pink-950/70 dark:text-pink-300 border border-pink-300 dark:border-pink-700 text-[11px] font-semibold">
+            <span className="w-2 h-2 rounded-full bg-pink-500 dark:border-pink-400" />
+            {isEn ? "Donation Opportunities" : "فرص التبرع"}
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100/90 text-emerald-900 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 text-[11px] font-semibold">
+            <span className="w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-400" />
+            {isEn ? "General Requests" : "طلبات عامة (غير سدانة)"}
+          </span>
+        </div>
+
         {/* Requests List */}
         <Card className="border-0 shadow-sm overflow-hidden">
           {isLoading ? (
@@ -566,25 +590,38 @@ export default function Requests({
                     {requests.map((request: any) => {
                       const status = statusConfig[request.status] || statusConfig.pending;
                       const isSedana = request.programType?.toLowerCase() === "sedana";
+                      const isQuick = request.requestTrack === "quick_response" || request.technicalEvalDecision === "quick_response";
+                      const isDonation = request.technicalEvalDecision === "convert_to_donation";
+                      const isPendingClosure = request.closureStatus === "pending_confirmation" && isExecutiveDirector;
                       return (
                         <div
                           key={request.id}
                           className={cn(
                             "grid grid-cols-1 md:grid-cols-[36px_minmax(180px,1.4fr)_minmax(120px,0.9fr)_minmax(130px,1fr)_minmax(115px,0.85fr)_minmax(130px,1fr)_minmax(140px,1.1fr)_minmax(110px,0.8fr)_44px] gap-3 md:gap-3.5 px-4 py-3.5 transition-colors items-center",
                             canViewDetails ? "cursor-pointer" : "cursor-default",
-                            request.closureStatus === "pending_confirmation" && isExecutiveDirector
+                            isPendingClosure
                               ? cn(
-                                  "bg-amber-50/80 hover:bg-amber-100/80 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 shadow-xs",
+                                  "bg-amber-50/90 hover:bg-amber-100/90 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 shadow-xs",
                                   isEn ? "border-l-4 border-l-amber-500" : "border-r-4 border-r-amber-500"
                                 )
                               : isSedana 
                               ? cn(
-                                  "bg-cyan-50/60 hover:bg-cyan-100/60 dark:bg-cyan-950/25 dark:hover:bg-cyan-950/45",
-                                  isEn ? "border-l-4 border-l-cyan-600 dark:border-l-cyan-400" : "border-r-4 border-r-cyan-600 dark:border-r-cyan-400"
+                                  "bg-cyan-100/80 hover:bg-cyan-200/70 dark:bg-cyan-950/50 dark:hover:bg-cyan-900/50",
+                                  isEn ? "border-l-4 border-l-cyan-700 dark:border-l-cyan-400" : "border-r-4 border-r-cyan-700 dark:border-r-cyan-400"
+                                )
+                              : isQuick
+                              ? cn(
+                                  "bg-orange-50/80 hover:bg-orange-100/80 dark:bg-orange-950/30 dark:hover:bg-orange-900/40",
+                                  isEn ? "border-l-4 border-l-orange-500 dark:border-l-orange-400" : "border-r-4 border-r-orange-500 dark:border-r-orange-400"
+                                )
+                              : isDonation
+                              ? cn(
+                                  "bg-pink-50/80 hover:bg-pink-100/80 dark:bg-pink-950/30 dark:hover:bg-pink-900/40",
+                                  isEn ? "border-l-4 border-l-pink-500 dark:border-l-pink-400" : "border-r-4 border-r-pink-500 dark:border-r-pink-400"
                                 )
                               : cn(
-                                  "hover:bg-muted/30",
-                                  isEn ? "border-l-4 border-l-transparent" : "border-r-4 border-r-transparent"
+                                  "bg-emerald-50/50 hover:bg-emerald-100/60 dark:bg-emerald-950/20 dark:hover:bg-emerald-900/30",
+                                  isEn ? "border-l-4 border-l-emerald-600 dark:border-l-emerald-400" : "border-r-4 border-r-emerald-600 dark:border-r-emerald-400"
                                 )
                           )}
                           onClick={() => canViewDetails && navigate(`/requests/${request.id}`)}
@@ -596,8 +633,16 @@ export default function Requests({
                                 <MultiMosquesIcon className="w-4.5 h-4.5" />
                               </div>
                             ) : isSedana ? (
-                              <div className="w-8 h-8 rounded-lg bg-cyan-100 dark:bg-cyan-950/70 text-cyan-600 dark:text-cyan-400 flex items-center justify-center border border-cyan-300 dark:border-cyan-700 shadow-xs" title={isEn ? "Sedana Program" : "برنامج سدانة"}>
-                                <Sparkles className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                              <div className="w-8 h-8 rounded-lg bg-cyan-200/90 dark:bg-cyan-900/70 text-cyan-800 dark:text-cyan-300 flex items-center justify-center border border-cyan-400 dark:border-cyan-600 shadow-xs" title={isEn ? "Sedana Program" : "برنامج سدانة"}>
+                                <Sparkles className="w-4 h-4 text-cyan-700 dark:text-cyan-300" />
+                              </div>
+                            ) : isQuick ? (
+                              <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-950/70 text-orange-700 dark:text-orange-300 flex items-center justify-center border border-orange-300 dark:border-orange-700 shadow-xs" title={isEn ? "Quick Request" : "طلب سريع"}>
+                                <Zap className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                              </div>
+                            ) : isDonation ? (
+                              <div className="w-8 h-8 rounded-lg bg-pink-100 dark:bg-pink-950/70 text-pink-700 dark:text-pink-300 flex items-center justify-center border border-pink-300 dark:border-pink-700 shadow-xs" title={isEn ? "Donation Opportunity" : "فرصة تبرع"}>
+                                <HeartHandshake className="w-4 h-4 text-pink-600 dark:text-pink-400" />
                               </div>
                             ) : (
                               <ProgramIcon program={request.programType} size="md" />
@@ -613,8 +658,16 @@ export default function Requests({
                                     <MultiMosquesIcon className="w-4.5 h-4.5" />
                                   </div>
                                 ) : isSedana ? (
-                                  <div className="w-8 h-8 rounded-lg bg-cyan-100 dark:bg-cyan-950/70 text-cyan-600 dark:text-cyan-400 flex items-center justify-center border border-cyan-300 dark:border-cyan-700 shadow-xs" title={isEn ? "Sedana Program" : "برنامج سدانة"}>
-                                    <Sparkles className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                                  <div className="w-8 h-8 rounded-lg bg-cyan-200/90 dark:bg-cyan-900/70 text-cyan-800 dark:text-cyan-300 flex items-center justify-center border border-cyan-400 dark:border-cyan-600 shadow-xs" title={isEn ? "Sedana Program" : "برنامج سدانة"}>
+                                    <Sparkles className="w-4 h-4 text-cyan-700 dark:text-cyan-300" />
+                                  </div>
+                                ) : isQuick ? (
+                                  <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-950/70 text-orange-700 dark:text-orange-300 flex items-center justify-center border border-orange-300 dark:border-orange-700 shadow-xs" title={isEn ? "Quick Request" : "طلب سريع"}>
+                                    <Zap className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                  </div>
+                                ) : isDonation ? (
+                                  <div className="w-8 h-8 rounded-lg bg-pink-100 dark:bg-pink-950/70 text-pink-700 dark:text-pink-300 flex items-center justify-center border border-pink-300 dark:border-pink-700 shadow-xs" title={isEn ? "Donation Opportunity" : "فرصة تبرع"}>
+                                    <HeartHandshake className="w-4 h-4 text-pink-600 dark:text-pink-400" />
                                   </div>
                                 ) : (
                                   <ProgramIcon program={request.programType} size="md" />
@@ -640,9 +693,21 @@ export default function Requests({
                                             : (request.mosqueName?.trim().startsWith("مسجد") ? `طلب ${request.mosqueName}` : `طلب مسجد ${request.mosqueName || ""}`))}
                                   </p>
                                   {isSedana && (
-                                    <Badge variant="outline" className="bg-cyan-100 dark:bg-cyan-950/70 text-cyan-700 dark:text-cyan-300 border-cyan-300 dark:border-cyan-700 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0">
-                                      <Sparkles className="w-2.5 h-2.5 text-cyan-600 dark:text-cyan-400" />
+                                    <Badge variant="outline" className="bg-cyan-200/90 dark:bg-cyan-900/70 text-cyan-800 dark:text-cyan-200 border-cyan-400 dark:border-cyan-600 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0">
+                                      <Sparkles className="w-2.5 h-2.5 text-cyan-700 dark:text-cyan-300" />
                                       <span>{isEn ? "Sedana" : "سدانة"}</span>
+                                    </Badge>
+                                  )}
+                                  {isQuick && (
+                                    <Badge variant="outline" className="bg-orange-100 dark:bg-orange-950/70 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-700 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0">
+                                      <Zap className="w-2.5 h-2.5 text-orange-600 dark:text-orange-400" />
+                                      <span>{isEn ? "Quick Request" : "طلب سريع"}</span>
+                                    </Badge>
+                                  )}
+                                  {isDonation && (
+                                    <Badge variant="outline" className="bg-pink-100 dark:bg-pink-950/70 text-pink-800 dark:text-pink-200 border-pink-300 dark:border-pink-700 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0">
+                                      <HeartHandshake className="w-2.5 h-2.5 text-pink-600 dark:text-pink-400" />
+                                      <span>{isEn ? "Donation Opportunity" : "فرصة تبرع"}</span>
                                     </Badge>
                                   )}
                                   {request.closureStatus === "pending_confirmation" && isExecutiveDirector && (

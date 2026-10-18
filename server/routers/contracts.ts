@@ -320,13 +320,16 @@ export const contractsRouter = router({
           ));
         const qMap = new Map(approvedQs.map(q => [q.supplierId, q]));
         for (const c of contractsList) {
-          if (c.supplierId && qMap.has(c.supplierId)) {
+          const cAmt = c.contractAmount ? parseFloat(c.contractAmount) : 0;
+          if (cAmt <= 0 && c.supplierId && qMap.has(c.supplierId)) {
             const q = qMap.get(c.supplierId)!;
-            const qAmt = parseFloat(String(q.totalAmount || "0"));
+            const qAmt = parseFloat(String(q.approvedAmount || q.negotiatedAmount || q.finalAmount || q.totalAmount || "0"));
             if (qAmt > 0) {
               c.contractAmount = String(qAmt);
               c.contractAmountText = numberToArabicText(qAmt);
             }
+          } else if (cAmt > 0 && !c.contractAmountText) {
+            c.contractAmountText = numberToArabicText(cAmt);
           }
         }
       }
@@ -361,8 +364,9 @@ export const contractsRouter = router({
       
       const { contract, signatory, projectName } = contractData;
 
-      // تثبيت قيمة العقد دائماً على قيمة عرض السعر المعتمد للمورد
-      if (contract.requestId && contract.supplierId) {
+      // إذا لم تكن قيمة العقد محددة مسبقاً، نأخذها كقيمة افتراضية من عرض السعر المعتمد
+      const currentContractAmt = contract.contractAmount ? parseFloat(contract.contractAmount) : 0;
+      if (currentContractAmt <= 0 && contract.requestId && contract.supplierId) {
         const [appQ] = await db
           .select()
           .from(quotations)
@@ -372,7 +376,7 @@ export const contractsRouter = router({
             inArray(quotations.status, ["accepted", "approved"])
           ))
           .limit(1);
-        const approvedVal = appQ?.finalAmount || appQ?.approvedAmount || appQ?.totalAmount;
+        const approvedVal = appQ?.approvedAmount || appQ?.negotiatedAmount || appQ?.finalAmount || appQ?.totalAmount;
         if (approvedVal) {
           const qVal = parseFloat(String(approvedVal));
           if (qVal > 0) {
@@ -380,6 +384,8 @@ export const contractsRouter = router({
             contract.contractAmountText = numberToArabicText(qVal);
           }
         }
+      } else if (currentContractAmt > 0 && !contract.contractAmountText) {
+        contract.contractAmountText = numberToArabicText(currentContractAmt);
       }
 
       // البحث عن المستخدم المرتبط بالمفوض أو المدير التنفيذي للتحقق من حالة إظهار التوقيع في المستندات
@@ -790,23 +796,25 @@ export const contractsRouter = router({
       // توليد رقم العقد
       const { number: contractNumber, year, sequence } = await generateContractNumber(db);
       
-      // التحقق من وجود عرض سعر معتمد للمورد وتثبيت قيمة العقد عليه
+      // تحديد قيمة العقد: نعتمد القيمة المدخلة من المستخدم، وإن لم تكن محددة نأخذها من عرض السعر المعتمد
       let effectiveContractAmount = input.contractAmount;
-      if (input.requestId && input.supplierId) {
-        const [appQ] = await db
-          .select()
-          .from(quotations)
-          .where(and(
-            eq(quotations.requestId, input.requestId),
-            eq(quotations.supplierId, input.supplierId),
-            inArray(quotations.status, ["accepted", "approved"])
-          ))
-          .limit(1);
-        const approvedVal = appQ?.finalAmount || appQ?.approvedAmount || appQ?.totalAmount;
-        if (approvedVal) {
-          const qVal = parseFloat(String(approvedVal));
-          if (qVal > 0) {
-            effectiveContractAmount = qVal;
+      if (effectiveContractAmount === undefined || effectiveContractAmount === null || effectiveContractAmount <= 0) {
+        if (input.requestId && input.supplierId) {
+          const [appQ] = await db
+            .select()
+            .from(quotations)
+            .where(and(
+              eq(quotations.requestId, input.requestId),
+              eq(quotations.supplierId, input.supplierId),
+              inArray(quotations.status, ["accepted", "approved"])
+            ))
+            .limit(1);
+          const approvedVal = appQ?.approvedAmount || appQ?.negotiatedAmount || appQ?.finalAmount || appQ?.totalAmount;
+          if (approvedVal) {
+            const qVal = parseFloat(String(approvedVal));
+            if (qVal > 0) {
+              effectiveContractAmount = qVal;
+            }
           }
         }
       }
@@ -1198,35 +1206,41 @@ export const contractsRouter = router({
           updates.status = input.status;
         }
       }
-      // تثبيت قيمة العقد دائماً على قيمة عرض السعر المعتمد للمورد
-      const reqId = (updates.requestId as number | undefined) || contract.requestId;
-      const suppId = (updates.supplierId as number | undefined) || contract.supplierId;
-      let approvedQuotationAmt: number | null = null;
-      if (reqId && suppId) {
-        const [appQ] = await db
-          .select()
-          .from(quotations)
-          .where(and(
-            eq(quotations.requestId, reqId),
-            eq(quotations.supplierId, suppId),
-            inArray(quotations.status, ["accepted", "approved"])
-          ))
-          .limit(1);
-        const approvedVal = appQ?.finalAmount || appQ?.approvedAmount || appQ?.totalAmount;
-        if (approvedVal) {
-          const qVal = parseFloat(String(approvedVal));
-          if (qVal > 0) {
-            approvedQuotationAmt = qVal;
+      // تحديد قيمة العقد: إذا قام المستخدم بإدخال أو تعديل القيمة، نعتمدها هي أولاً
+      if (updateData.contractAmount !== undefined && updateData.contractAmount !== null && Number(updateData.contractAmount) > 0) {
+        const val = Number(updateData.contractAmount);
+        updates.contractAmount = String(val);
+        updates.contractAmountText = numberToArabicText(val);
+      } else {
+        const reqId = (updates.requestId as number | undefined) || contract.requestId;
+        const suppId = (updates.supplierId as number | undefined) || contract.supplierId;
+        let approvedQuotationAmt: number | null = null;
+        if (reqId && suppId && (!contract.contractAmount || parseFloat(contract.contractAmount) <= 0)) {
+          const [appQ] = await db
+            .select()
+            .from(quotations)
+            .where(and(
+              eq(quotations.requestId, reqId),
+              eq(quotations.supplierId, suppId),
+              inArray(quotations.status, ["accepted", "approved"])
+            ))
+            .limit(1);
+          const approvedVal = appQ?.approvedAmount || appQ?.negotiatedAmount || appQ?.finalAmount || appQ?.totalAmount;
+          if (approvedVal) {
+            const qVal = parseFloat(String(approvedVal));
+            if (qVal > 0) {
+              approvedQuotationAmt = qVal;
+            }
           }
         }
-      }
 
-      if (approvedQuotationAmt !== null) {
-        updates.contractAmount = String(approvedQuotationAmt);
-        updates.contractAmountText = numberToArabicText(approvedQuotationAmt);
-      } else if (updateData.contractAmount) {
-        updates.contractAmount = String(updateData.contractAmount);
-        updates.contractAmountText = numberToArabicText(updateData.contractAmount);
+        if (approvedQuotationAmt !== null) {
+          updates.contractAmount = String(approvedQuotationAmt);
+          updates.contractAmountText = numberToArabicText(approvedQuotationAmt);
+        } else if (contract.contractAmount) {
+          updates.contractAmount = String(contract.contractAmount);
+          updates.contractAmountText = contract.contractAmountText || numberToArabicText(parseFloat(contract.contractAmount));
+        }
       }
       const contractAmt = parseFloat((updates.contractAmount as string) || contract.contractAmount || "0");
       if (managementFeeType === "fixed" && managementAmount !== undefined) {
