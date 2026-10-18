@@ -2108,7 +2108,10 @@ export const notificationsRouter = router({
 
       const offset = (input.page - 1) * input.limit;
 
-      const conditions: any[] = [eq(notifications.userId, ctx.user.id)];
+      const conditions: any[] = [
+        eq(notifications.userId, ctx.user.id),
+        or(eq(notifications.channel, "in_app"), isNull(notifications.channel)),
+      ];
       if (input.unreadOnly || input.category === "unread") {
         conditions.push(eq(notifications.isRead, false));
       }
@@ -2164,6 +2167,7 @@ export const notificationsRouter = router({
           .where(
             and(
               eq(notifications.userId, ctx.user.id),
+              or(eq(notifications.channel, "in_app"), isNull(notifications.channel)),
               or(
                 like(notifications.relatedType, "%sedana%"),
                 like(notifications.title, "%سدانة%"),
@@ -2174,7 +2178,13 @@ export const notificationsRouter = router({
         db
           .select({ count: sql<number>`count(*)` })
           .from(notifications)
-          .where(and(eq(notifications.userId, ctx.user.id), eq(notifications.isRead, false))),
+          .where(
+            and(
+              eq(notifications.userId, ctx.user.id),
+              eq(notifications.isRead, false),
+              or(eq(notifications.channel, "in_app"), isNull(notifications.channel))
+            )
+          ),
       ]);
 
       return {
@@ -2286,7 +2296,11 @@ export const notificationsRouter = router({
     const db = await getDb();
     if (!db) return 0;
 
-    const conditions = [eq(notifications.userId, ctx.user.id), eq(notifications.isRead, false)];
+    const conditions = [
+      eq(notifications.userId, ctx.user.id),
+      eq(notifications.isRead, false),
+      or(eq(notifications.channel, "in_app"), isNull(notifications.channel)),
+    ];
     
     // Removed restrictive title/message filtering for request officers to ensure accurate unread count.
 
@@ -2310,7 +2324,13 @@ export const notificationsRouter = router({
       await db
         .update(notifications)
         .set({ isRead: true, readAt: new Date() })
-        .where(and(eq(notifications.id, input.id), eq(notifications.userId, ctx.user.id)));
+        .where(
+          and(
+            eq(notifications.id, input.id),
+            eq(notifications.userId, ctx.user.id),
+            or(eq(notifications.channel, "in_app"), isNull(notifications.channel))
+          )
+        );
 
       return { success: true };
     }),
@@ -2322,7 +2342,11 @@ export const notificationsRouter = router({
       throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
     }
 
-    const conditions = [eq(notifications.userId, ctx.user.id), eq(notifications.isRead, false)];
+    const conditions = [
+      eq(notifications.userId, ctx.user.id),
+      eq(notifications.isRead, false),
+      or(eq(notifications.channel, "in_app"), isNull(notifications.channel)),
+    ];
 
     // Removed restrictive title/message filtering for request officers.
 
@@ -2794,7 +2818,13 @@ export const notificationsRouter = router({
 
       await db
         .delete(notifications)
-        .where(and(eq(notifications.id, input.id), eq(notifications.userId, ctx.user.id)));
+        .where(
+          and(
+            eq(notifications.id, input.id),
+            eq(notifications.userId, ctx.user.id),
+            or(eq(notifications.channel, "in_app"), isNull(notifications.channel))
+          )
+        );
 
       return { success: true };
     }),
