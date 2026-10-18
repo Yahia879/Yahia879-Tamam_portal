@@ -256,7 +256,7 @@ export default function NotificationLogsTab({
             <div className="relative sm:col-span-2">
               <Search className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="بحث بالاسم، الجوال، البريد أو عنوان الإشعار..."
+                placeholder="بحث بالاسم، الجوال، البريد أو نص الرسالة..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -336,16 +336,13 @@ export default function NotificationLogsTab({
           ) : (
             <>
               <div className="w-full overflow-x-auto scrollbar-thin">
-                <Table className="min-w-[950px]">
+                <Table className="min-w-[750px]">
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-slate-50/40 dark:bg-slate-950/20 border-b border-border/40 text-foreground font-bold">
                       <TableHead className="w-14 text-center py-3 px-3 text-xs">#</TableHead>
                       <TableHead className="text-right py-3 px-3 text-xs w-36">قناة الإرسال</TableHead>
-                      <TableHead className="text-right py-3 px-3 text-xs min-w-[160px]">المستقبل</TableHead>
-                      <TableHead className="text-right py-3 px-3 text-xs min-w-[200px]">عنوان الإشعار</TableHead>
-                      <TableHead className="text-right py-3 px-3 text-xs min-w-[220px]">نص الرسالة</TableHead>
-                      <TableHead className="text-right py-3 px-3 text-xs w-32">المصدر</TableHead>
-                      <TableHead className="text-center py-3 px-3 text-xs w-28">حالة القراءة</TableHead>
+                      <TableHead className="text-right py-3 px-3 text-xs min-w-[170px]">المستقبل</TableHead>
+                      <TableHead className="text-right py-3 px-3 text-xs min-w-[280px]">نص الرسالة</TableHead>
                       <TableHead className="text-right py-3 px-3 text-xs w-36">تاريخ الإرسال</TableHead>
                       <TableHead className="text-center py-3 px-3 text-xs w-16">معاينة</TableHead>
                     </TableRow>
@@ -353,7 +350,6 @@ export default function NotificationLogsTab({
                   <TableBody className="divide-y divide-border/40">
                     {logs.map((item: any, idx: number) => {
                       const rowNum = (page - 1) * itemsPerPage + idx + 1;
-                      const isDirect = item.relatedType === "custom_direct";
 
                       return (
                         <TableRow
@@ -373,71 +369,16 @@ export default function NotificationLogsTab({
 
                           {/* المستقبل */}
                           <TableCell className="py-3 px-3">
-                            <div className="font-bold text-foreground truncate max-w-[170px]" title={item.recipientName || "—"}>
+                            <div className="font-bold text-foreground truncate max-w-[200px]" title={item.recipientName || "—"}>
                               {item.recipientName || "مستخدم غير محدد"}
                             </div>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-[10px] text-muted-foreground font-medium">
-                                {getRoleTitle(item.recipientRole)}
-                              </span>
-                              {(item.recipientPhone || item.recipientEmail) && (
-                                <span dir="ltr" className="text-[10px] text-muted-foreground font-mono truncate max-w-[110px]">
-                                  • {item.recipientPhone || item.recipientEmail}
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-
-                          {/* عنوان الإشعار */}
-                          <TableCell className="py-3 px-3">
-                            <div className="font-semibold text-foreground truncate max-w-[210px]" title={item.title}>
-                              {item.title}
-                            </div>
-                            {item.relatedType && (
-                              <span className="text-[10px] text-muted-foreground font-mono inline-block mt-0.5">
-                                {item.relatedType}
-                              </span>
-                            )}
                           </TableCell>
 
                           {/* نص الرسالة */}
                           <TableCell className="py-3 px-3">
-                            <p className="text-muted-foreground line-clamp-2 leading-relaxed max-w-[260px]" title={item.message}>
+                            <p className="text-foreground/90 font-medium line-clamp-2 leading-relaxed" title={item.message}>
                               {item.message}
                             </p>
-                          </TableCell>
-
-                          {/* المصدر (مرسل مباشر أو آلي) */}
-                          <TableCell className="py-3 px-3">
-                            {isDirect ? (
-                              <Badge variant="outline" className="text-[10px] py-0 px-2 bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300 border-teal-300 font-bold">
-                                إرسال مباشر
-                              </Badge>
-                            ) : (
-                              <span className="text-[11px] text-muted-foreground font-medium">
-                                تنبيه آلي
-                              </span>
-                            )}
-                          </TableCell>
-
-                          {/* حالة القراءة والتسليم */}
-                          <TableCell className="py-3 px-3 text-center">
-                            {item.channel === "in_app" ? (
-                              item.isRead ? (
-                                <Badge variant="secondary" className="text-[10px] py-0 px-2 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-300/40 font-bold">
-                                  <Check className="w-2.5 h-2.5 ml-1" />
-                                  مقروء
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="text-[10px] py-0 px-2 text-slate-500 bg-slate-100 dark:bg-slate-900 font-medium">
-                                  غير مقروء
-                                </Badge>
-                              )
-                            ) : (
-                              <Badge variant="secondary" className="text-[10px] py-0 px-2 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-300/40 font-bold">
-                                تم الإرسال
-                              </Badge>
-                            )}
                           </TableCell>
 
                           {/* تاريخ الإرسال */}
@@ -463,6 +404,7 @@ export default function NotificationLogsTab({
                   </TableBody>
                 </Table>
               </div>
+
 
               {totalPages > 1 && (
                 <EnhancedPagination
