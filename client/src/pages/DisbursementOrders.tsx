@@ -655,20 +655,45 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                     </TableHeader>
                     <TableBody>
                       {filteredOrders?.map((order) => {
-                        const isCancellationPendingMyAction = !isEmbedded && order.status === "executed" && order.cancellationRequested && (isExecutiveDirector || isSuperAdmin);
+                        const isCancellationPending = order.status === "executed" && !!order.cancellationRequested;
+                        const isCancellationPendingMyAction = !isEmbedded && isCancellationPending && (isExecutiveDirector || isSuperAdmin);
                         const isPendingMyAction = 
                           ((order.status === "pending" || order.status === "edited" || order.status === "draft") && (isSolayani || (!isEmbedded && isSuperAdmin))) ||
-                          (!isEmbedded && order.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin)) ||
-                          isCancellationPendingMyAction;
+                          (!isEmbedded && order.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin));
 
                         return (
                           <TableRow 
                             key={order.id} 
-                            className={isPendingMyAction ? "bg-emerald-100/75 dark:bg-emerald-950/60 hover:bg-emerald-200/70 dark:hover:bg-emerald-900/70 border-r-4 border-r-emerald-700 dark:border-r-emerald-400 transition-all shadow-xs" : ""}
+                            className={
+                              isCancellationPending
+                                ? "bg-rose-100/75 dark:bg-rose-950/60 hover:bg-rose-200/70 dark:hover:bg-rose-900/70 border-r-4 border-r-rose-600 dark:border-r-rose-500 transition-all shadow-xs"
+                                : isPendingMyAction 
+                                  ? "bg-emerald-100/75 dark:bg-emerald-950/60 hover:bg-emerald-200/70 dark:hover:bg-emerald-900/70 border-r-4 border-r-emerald-700 dark:border-r-emerald-400 transition-all shadow-xs" 
+                                  : ""
+                            }
                           >
                             <TableCell className="py-2.5 px-3 font-sans text-xs text-right font-bold whitespace-nowrap">
                               <div className="flex items-center gap-2 justify-start">
-                                {isPendingMyAction && (
+                                {isCancellationPendingMyAction ? (
+                                  <TooltipProvider>
+                                    <Tooltip delayDuration={50}>
+                                      <TooltipTrigger asChild>
+                                        <div className="relative inline-flex items-center justify-center shrink-0 cursor-pointer">
+                                          <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-tr from-rose-700 via-rose-600 to-red-500 text-white shadow-sm border border-rose-400/40 transition-transform duration-200 hover:scale-110">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-60"></span>
+                                            <RotateCcw className="w-3.5 h-3.5 text-rose-100 animate-spin relative z-10" style={{ animationDuration: '4s' }} />
+                                          </div>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse"></span>
+                                        <span>
+                                          {isExecutiveDirector ? "بانتظار تأكيدك لإلغاء الاعتماد (المدير التنفيذي)" : "بانتظار تأكيد المدير التنفيذي لإلغاء الاعتماد"}
+                                        </span>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                ) : isPendingMyAction ? (
                                   <TooltipProvider>
                                     <Tooltip delayDuration={50}>
                                       <TooltipTrigger asChild>
@@ -682,16 +707,14 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                       <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
                                         <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
                                         <span>
-                                          {isCancellationPendingMyAction
-                                            ? (isExecutiveDirector ? "بانتظار تأكيدك لإلغاء الاعتماد (المدير التنفيذي)" : "بانتظار تأكيد المدير التنفيذي لإلغاء الاعتماد")
-                                            : order.status === "pending_executive" 
-                                              ? (isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي") 
-                                              : (isSolayani ? "بانتظار اعتمادك (الإدارة المالية)" : "بانتظار الاعتماد المالي")}
+                                          {order.status === "pending_executive" 
+                                            ? (isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي") 
+                                            : (isSolayani ? "بانتظار اعتمادك (الإدارة المالية)" : "بانتظار الاعتماد المالي")}
                                         </span>
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
-                                )}
+                                ) : null}
                                 <span>{order.orderNumber}</span>
                                 {(order.executiveNotes || (order.notesCount ?? 0) > 0) && (
                                   <span
@@ -799,8 +822,8 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                   {STATUS_MAP[order.status || "draft"]?.label}
                                 </Badge>
                                 {order.cancellationRequested && (
-                                  <Badge variant="outline" className="border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/30 text-[10px] whitespace-nowrap flex items-center gap-1 font-semibold">
-                                    <Clock className="w-2.5 h-2.5 text-amber-600 animate-pulse" />
+                                  <Badge variant="outline" className="border-rose-500 text-rose-700 bg-rose-50 dark:bg-rose-950/30 dark:text-rose-400 text-[10px] whitespace-nowrap flex items-center gap-1 font-semibold">
+                                    <RotateCcw className="w-2.5 h-2.5 text-rose-600 dark:text-rose-400 animate-pulse" />
                                     <span>بانتظار تأكيد الإلغاء</span>
                                   </Badge>
                                 )}
@@ -951,9 +974,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                               ) : (
                                                 <DropdownMenuItem
                                                   disabled
-                                                  className="flex items-center gap-2 text-muted-foreground opacity-75 font-medium cursor-not-allowed"
+                                                  className="flex items-center gap-2 text-rose-600/80 dark:text-rose-400/80 font-medium cursor-not-allowed"
                                                 >
-                                                  <Clock className="h-4 w-4 text-amber-500" />
+                                                  <RotateCcw className="h-4 w-4 text-rose-500 animate-spin" style={{ animationDuration: '6s' }} />
                                                   <span>بانتظار تأكيد المدير التنفيذي</span>
                                                 </DropdownMenuItem>
                                               )
@@ -1014,26 +1037,47 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                 {/* Modernized Mobile View Cards Grid */}
                 <div className="md:hidden grid gap-4 p-4 bg-muted/5" dir="rtl">
                   {filteredOrders?.map((order) => {
-                    const isCancellationPendingMyAction = !isEmbedded && order.status === "executed" && order.cancellationRequested && (isExecutiveDirector || isSuperAdmin);
+                    const isCancellationPending = order.status === "executed" && !!order.cancellationRequested;
+                    const isCancellationPendingMyAction = !isEmbedded && isCancellationPending && (isExecutiveDirector || isSuperAdmin);
                     const isPendingMyAction = 
                       ((order.status === "pending" || order.status === "edited" || order.status === "draft") && (isSolayani || (!isEmbedded && isSuperAdmin))) ||
-                      (!isEmbedded && order.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin)) ||
-                      isCancellationPendingMyAction;
+                      (!isEmbedded && order.status === "pending_executive" && (isExecutiveDirector || isSuperAdmin));
 
                     return (
                       <Card 
                         key={order.id} 
                         className={`border shadow-sm overflow-hidden bg-background hover:shadow-md transition-all rounded-xl ${
-                          isPendingMyAction
-                            ? "bg-emerald-100/75 dark:bg-emerald-950/60 border-2 border-emerald-700 dark:border-emerald-400 shadow-md"
-                            : "border-border/80"
+                          isCancellationPending
+                            ? "bg-rose-100/75 dark:bg-rose-950/60 border-2 border-rose-600 dark:border-rose-400 shadow-md"
+                            : isPendingMyAction
+                              ? "bg-emerald-100/75 dark:bg-emerald-950/60 border-2 border-emerald-700 dark:border-emerald-400 shadow-md"
+                              : "border-border/80"
                         }`}
                       >
                         <div className="p-4 space-y-4">
                           {/* Card Header */}
                           <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-3">
                             <div className="flex items-center gap-1.5">
-                              {isPendingMyAction && (
+                              {isCancellationPendingMyAction ? (
+                                <TooltipProvider>
+                                  <Tooltip delayDuration={50}>
+                                    <TooltipTrigger asChild>
+                                      <div className="relative inline-flex items-center justify-center shrink-0 cursor-pointer">
+                                        <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-tr from-rose-700 via-rose-600 to-red-500 text-white shadow-sm border border-rose-400/40">
+                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-60"></span>
+                                          <RotateCcw className="w-3.5 h-3.5 text-rose-100 animate-spin relative z-10" style={{ animationDuration: '4s' }} />
+                                        </div>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse"></span>
+                                      <span>
+                                        {isExecutiveDirector ? "بانتظار تأكيدك لإلغاء الاعتماد (المدير التنفيذي)" : "بانتظار تأكيد المدير التنفيذي لإلغاء الاعتماد"}
+                                      </span>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : isPendingMyAction ? (
                                 <TooltipProvider>
                                   <Tooltip delayDuration={50}>
                                     <TooltipTrigger asChild>
@@ -1047,16 +1091,14 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                     <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
                                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
                                       <span>
-                                        {isCancellationPendingMyAction
-                                          ? (isExecutiveDirector ? "بانتظار تأكيدك لإلغاء الاعتماد (المدير التنفيذي)" : "بانتظار تأكيد المدير التنفيذي لإلغاء الاعتماد")
-                                          : order.status === "pending_executive" 
-                                            ? (isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي") 
-                                            : (isSolayani ? "بانتظار اعتمادك (الإدارة المالية)" : "بانتظار الاعتماد المالي")}
+                                        {order.status === "pending_executive" 
+                                          ? (isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتماد المدير التنفيذي") 
+                                          : (isSolayani ? "بانتظار اعتمادك (الإدارة المالية)" : "بانتظار الاعتماد المالي")}
                                       </span>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
-                              )}
+                              ) : null}
                               <span className="font-mono text-xs font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1 rounded-md">
                                 {order.orderNumber}
                               </span>
@@ -1080,8 +1122,8 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                               {STATUS_MAP[order.status || "draft"]?.label}
                             </Badge>
                             {order.cancellationRequested && (
-                              <Badge variant="outline" className="border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/30 text-[10px] px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1">
-                                <Clock className="w-2.5 h-2.5 text-amber-600 animate-pulse" />
+                              <Badge variant="outline" className="border-rose-500 text-rose-700 bg-rose-50 dark:bg-rose-950/30 dark:text-rose-400 text-[10px] px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                                <RotateCcw className="w-2.5 h-2.5 text-rose-600 dark:text-rose-400 animate-pulse" />
                                 <span>بانتظار تأكيد الإلغاء</span>
                               </Badge>
                             )}
@@ -1286,9 +1328,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                             ) : (
                                               <DropdownMenuItem
                                                 disabled
-                                                className="flex items-center gap-2 text-muted-foreground opacity-75 font-medium cursor-not-allowed"
+                                                className="flex items-center gap-2 text-rose-600/80 dark:text-rose-400/80 font-medium cursor-not-allowed"
                                               >
-                                                <Clock className="h-4 w-4 text-amber-500" />
+                                                <RotateCcw className="h-4 w-4 text-rose-500 animate-spin" style={{ animationDuration: '6s' }} />
                                                 <span>بانتظار تأكيد المدير التنفيذي</span>
                                               </DropdownMenuItem>
                                             )
@@ -2010,12 +2052,12 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
         {/* نافذة طلب إلغاء اعتماد أمر الصرف المنفذ */}
         <Dialog open={showCancelExecutedDialog} onOpenChange={setShowCancelExecutedDialog}>
           <DialogContent dir="rtl" className="sm:max-w-[500px] text-right">
-            <DialogHeader className="text-right">
-              <DialogTitle className="text-rose-700 dark:text-rose-400 flex items-center gap-2 text-lg font-bold">
+            <DialogHeader className="text-right sm:text-right items-start">
+              <DialogTitle className="text-rose-700 dark:text-rose-400 flex items-center gap-2 text-lg font-bold justify-start">
                 <RotateCcw className="w-5 h-5 text-rose-600 shrink-0" />
                 <span>إلغاء اعتماد أمر الصرف المنفذ</span>
               </DialogTitle>
-              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs mt-1">
+              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs mt-1 text-right sm:text-right w-full block">
                 طلب إلغاء اعتماد أمر الصرف رقم ({selectedOrder?.orderNumber}) بمبلغ {Number(selectedOrder?.amount || 0).toLocaleString()} ريال
               </DialogDescription>
             </DialogHeader>
@@ -2099,7 +2141,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
               </div>
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t">
+            <DialogFooter className="flex flex-row items-center justify-start gap-3 sm:gap-3 pt-3 border-t">
               <Button
                 variant="destructive"
                 onClick={() => {
@@ -2116,7 +2158,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                   });
                 }}
                 disabled={requestCancelExecutedMutation.isPending || !cancelReason.trim()}
-                className="font-bold text-xs rounded-xl"
+                className="font-bold text-xs rounded-xl px-5 py-2.5 cursor-pointer"
               >
                 {requestCancelExecutedMutation.isPending ? (
                   <>
@@ -2136,7 +2178,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                   setShowCancelExecutedDialog(false);
                   setCancelReason("");
                 }}
-                className="font-semibold text-xs rounded-xl"
+                className="font-semibold text-xs rounded-xl px-5 py-2.5 cursor-pointer"
               >
                 تراجع
               </Button>
@@ -2147,12 +2189,12 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
         {/* نافذة تأكيد / رفض إلغاء الاعتماد بواسطة المدير التنفيذي */}
         <Dialog open={showConfirmCancelDialog} onOpenChange={setShowConfirmCancelDialog}>
           <DialogContent dir="rtl" className="sm:max-w-[520px] text-right">
-            <DialogHeader className="text-right border-b pb-3">
-              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg font-bold">
+            <DialogHeader className="text-right sm:text-right items-start border-b pb-3">
+              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg font-bold justify-start">
                 <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
                 <span>مراجعة طلب إلغاء اعتماد أمر الصرف</span>
               </DialogTitle>
-              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs mt-1">
+              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs mt-1 text-right sm:text-right w-full block">
                 طلب وارد لإلغاء اعتماد أمر الصرف رقم ({selectedOrder?.orderNumber})
               </DialogDescription>
             </DialogHeader>
