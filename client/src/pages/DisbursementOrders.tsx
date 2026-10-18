@@ -353,7 +353,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
   const canCreateDirectOrder = permOrdersCreateDirect;
   const canExceptionApproveOrder = user?.role === "super_admin" || permOrdersExceptionApprove;
   const canRemind = user?.role === "super_admin" || user?.role === "system_admin" || permOrdersRemind;
-  const canCancelExecuted = user?.role === "super_admin" || user?.role === "system_admin" || permOrdersCancelExecuted;
+  const canCancelExecuted = permOrdersCancelExecuted;
 
   // نافذة إرسال تذكير بالاعتماد
   const [reminderModal, setReminderModal] = useState<{

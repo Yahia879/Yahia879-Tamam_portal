@@ -4326,9 +4326,8 @@ export const disbursementsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
       const hasPerm = await checkPermission(ctx.user.id, "disbursement_orders.cancel_executed");
-      if (!isAdmin && !hasPerm) {
+      if (!hasPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إلغاء اعتماد أوامر الصرف المنفذة" });
       }
 
