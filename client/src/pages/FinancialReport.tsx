@@ -213,7 +213,7 @@ const CustomPieOrdersStatusTooltip = ({ active, payload }: any) => {
 export default function FinancialReport({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState("projects");
+  const [activeTab, setActiveTab] = useState(embedded ? "contracts" : "projects");
   const [receiptVoucherSearch, setReceiptVoucherSearch] = useState<string>("");
 
   const userPermissions: string[] = (user as any)?.permissions ?? [];
@@ -476,7 +476,9 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
 
   const content = (
     <div className="space-y-6 print:space-y-4">
-        {/* العنوان */}
+        {!embedded && (
+          <>
+{/* العنوان */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between print:hidden">
           <div>
             <h1 className="text-2xl font-bold">التقرير المالي الشامل</h1>
@@ -564,12 +566,14 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
             </CardContent>
           </Card>
         </div>
+          </>
+        )}
 
         {/* أسلوب التبويبات الفاخر المطور */}
         <div className="flex justify-start mb-8 print:hidden">
           <div className="flex p-1.5 bg-slate-100/70 dark:bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-200/60 dark:border-slate-800/50 shadow-inner gap-1.5 max-w-full overflow-x-auto no-scrollbar">
             {[
-              { id: "projects", label: "المشاريع", count: reportData?.byProject?.length || 0, icon: Folder, activeColor: "from-primary to-teal-600" },
+              ...(!embedded ? [{ id: "projects", label: "المشاريع", count: reportData?.byProject?.length || 0, icon: Folder, activeColor: "from-primary to-teal-600" }] : []),
               { id: "contracts", label: "العقود", count: summary?.totalContracts || 0, icon: ScrollText, activeColor: "from-primary to-teal-600" },
               { id: "requests", label: "طلبات الصرف", count: summary?.totalRequests || 0, icon: FileText, activeColor: "from-primary to-teal-600" },
               { id: "orders", label: "أوامر الصرف", count: summary?.totalOrders || 0, icon: Wallet, activeColor: "from-primary to-teal-600" },
@@ -615,7 +619,8 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
 
         <Tabs dir="rtl" value={activeTab} onValueChange={setActiveTab} className="print:hidden">
           {/* تبويب المشاريع */}
-          <TabsContent value="projects" className="space-y-6">
+          {!embedded && (
+            <TabsContent value="projects" className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -704,6 +709,7 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
               </Card>
             </motion.div>
           </TabsContent>
+          )}
 
           {/* تبويب العقود */}
           <TabsContent value="contracts" className="space-y-6">

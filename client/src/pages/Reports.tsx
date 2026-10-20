@@ -190,6 +190,8 @@ export default function Reports({ embedded = false }: { embedded?: boolean }) {
 
   const content = (
     <div className="space-y-6">
+        {!embedded && (
+          <>
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">التقارير الإحصائية</h1>
@@ -321,6 +323,8 @@ export default function Reports({ embedded = false }: { embedded?: boolean }) {
             </CardContent>
           </Card>
         </div>
+          </>
+        )}
 
         {/* الرسوم البيانية */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -415,7 +419,8 @@ export default function Reports({ embedded = false }: { embedded?: boolean }) {
         </div>
 
         {/* جدول البيانات التفصيلي */}
-        <Card className="border border-border/60 shadow-sm bg-gradient-to-b from-card to-card/50">
+        {!embedded && (
+          <Card className="border border-border/60 shadow-sm bg-gradient-to-b from-card to-card/50">
           <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <CardTitle className="text-base sm:text-lg font-bold">سجل الطلبات التفصيلي</CardTitle>
@@ -533,6 +538,7 @@ export default function Reports({ embedded = false }: { embedded?: boolean }) {
             )}
           </CardContent>
         </Card>
+        )}
       </div>
     );
 

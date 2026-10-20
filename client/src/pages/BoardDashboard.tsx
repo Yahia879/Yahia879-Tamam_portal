@@ -316,7 +316,8 @@ export default function BoardDashboard({
   const content = (
     <div className="container py-8 max-w-7xl mx-auto space-y-8 text-right" dir="rtl">
         {/* ==================== 👑 الهيدر التنفيذي والتمايز القيادي ==================== */}
-        <div className="relative overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/10 via-background to-amber-500/10 dark:from-primary/15 dark:via-background dark:to-amber-950/20 p-6 sm:p-7 shadow-sm transition-all">
+        {!embedded && (
+          <div className="relative overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/10 via-background to-amber-500/10 dark:from-primary/15 dark:via-background dark:to-amber-950/20 p-6 sm:p-7 shadow-sm transition-all">
           <div className="absolute top-0 right-0 left-0 h-1.5 bg-gradient-to-r from-primary via-amber-500 to-emerald-600" />
 
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
@@ -388,6 +389,7 @@ export default function BoardDashboard({
             )}
           </div>
         </div>
+        )}
 
         {/* ==================== ⏳ حالة التحميل الأولية ==================== */}
         {isLoading && !data && (

@@ -16,8 +16,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ProgramIcon } from "@/components/ProgramIcon";
+import Reports from "@/pages/Reports";
+import FinancialReport from "@/pages/FinancialReport";
+import BoardDashboard from "@/pages/BoardDashboard";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
+
 import { 
-  Building2, 
+  Building2,
+  Briefcase,
+  LayoutDashboard, 
   FileText, 
   Users, 
   CheckCircle2,
@@ -66,6 +73,7 @@ import {
   Handshake,
   MessageSquare,
   Mail,
+  Truck,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useEffect, useState, useMemo } from "react";
@@ -142,6 +150,48 @@ export default function Dashboard() {
     customRoleNameAr === "المدير التنفيذي" ||
     customRoleNameEn === "system admin" ||
     isExecDirector;
+
+  const isSuperAdmin = user?.role === "super_admin";
+
+  // إدارة وضع العرض لمدير النظام الأعلى: الوضع الافتراضي (Default) أو الوضع المفصل (Detailed)
+  const [superAdminViewMode, setSuperAdminViewMode] = useState<"default" | "detailed">(() => {
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const viewParam = searchParams.get("view") || searchParams.get("mode");
+      if (viewParam === "detailed") return "detailed";
+      return "default";
+    } catch {
+      return "default";
+    }
+  });
+
+  const handleToggleViewMode = (mode: "default" | "detailed") => {
+    setSuperAdminViewMode(mode);
+    try {
+      const url = new URL(window.location.href);
+      if (mode === "detailed") {
+        url.searchParams.set("view", "detailed");
+      } else {
+        url.searchParams.delete("view");
+        url.searchParams.delete("mode");
+      }
+      window.history.replaceState({}, "", url.toString());
+    } catch {}
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        const viewParam = searchParams.get("view") || searchParams.get("mode");
+        if (viewParam === "detailed") setSuperAdminViewMode("detailed");
+        else setSuperAdminViewMode("default");
+      } catch {}
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
 
   const isFinancialRole = 
     ["financial", "financial_manager"].includes(user?.role || "") ||
@@ -444,6 +494,20 @@ export default function Dashboard() {
   const { data: growthStats } = trpc.analytics.getMonthlyGrowth.useQuery(undefined, {
     enabled: isExecutiveAdmin,
   });
+
+  // جلب إحصائيات مجلس الإدارة والتقرير المالي وسندات القبض لمدير النظام الأعلى
+  const { data: boardStats } = trpc.board.getExecutiveStats.useQuery(
+    { page: 1, pageSize: 1 },
+    { enabled: isSuperAdmin }
+  );
+  const { data: financialReportData } = trpc.disbursements.getFinancialReport.useQuery(
+    {},
+    { enabled: isSuperAdmin }
+  );
+  const { data: allReceiptVouchersData = [] } = trpc.projects.getAllReceiptVouchers.useQuery(
+    undefined,
+    { enabled: isSuperAdmin }
+  );
 
   // اسم الدور المعروض في الواجهة
   const roleLabel = isEn
@@ -750,60 +814,57 @@ export default function Dashboard() {
     : executiveStats;
 
   // =========================================================================
-  // لوحة تحكم الإدارة العليا (مدير عام، مدير النظام، المدير التنفيذي)
-  // مستعادة تماماً كما كانت في commit: a0d479f35d57725a5a146db0b840f88a0294f4a0
+  // دالة عرض النظرة العامة للإدارة العليا
   // =========================================================================
-  if (isExecutiveAdmin) {
-  const completionRate = requestStats?.total 
-    ? Math.round(((requestStats?.byStatus?.completed || 0) / requestStats.total) * 100) 
-    : 0;
+  const renderExecutiveOverview = () => {
+    const completionRate = requestStats?.total 
+      ? Math.round(((requestStats?.byStatus?.completed || 0) / requestStats.total) * 100) 
+      : 0;
 
+    const mainStats = [
+      {
+        title: "إجمالي الطلبات",
+        value: requestStats?.total || 0,
+        icon: FileText,
+        gradient: "from-blue-500 to-blue-600",
+        bgLight: "bg-blue-50",
+        textColor: "text-blue-600",
+        change: growthStats?.totalRequests.percentage,
+        trend: (growthStats?.totalRequests.percentage ?? 0) >= 0 ? "up" : "down",
+      },
+      {
+        title: "المساجد المسجلة",
+        value: mosqueStats?.total || 0,
+        icon: Building2,
+        gradient: "from-emerald-500 to-emerald-600",
+        bgLight: "bg-emerald-50",
+        textColor: "text-emerald-600",
+        change: growthStats?.registeredMosques.percentage,
+        trend: (growthStats?.registeredMosques.percentage ?? 0) >= 0 ? "up" : "down",
+      },
+      {
+        title: "قيد التنفيذ",
+        value: requestStats?.byStatus?.in_progress || 0,
+        icon: Clock,
+        gradient: "from-amber-500 to-amber-600",
+        bgLight: "bg-amber-50",
+        textColor: "text-amber-600",
+        change: growthStats?.inProgressRequests.percentage,
+        trend: (growthStats?.inProgressRequests.percentage ?? 0) >= 0 ? "up" : "down",
+      },
+      {
+        title: "مكتملة",
+        value: requestStats?.byStatus?.completed || 0,
+        icon: CheckCircle2,
+        gradient: "from-green-500 to-green-600",
+        bgLight: "bg-green-50",
+        textColor: "text-green-600",
+        change: growthStats?.completedRequests.percentage,
+        trend: (growthStats?.completedRequests.percentage ?? 0) >= 0 ? "up" : "down",
+      },
+    ];
 
-  const mainStats = [
-    {
-      title: "إجمالي الطلبات",
-      value: requestStats?.total || 0,
-      icon: FileText,
-      gradient: "from-blue-500 to-blue-600",
-      bgLight: "bg-blue-50",
-      textColor: "text-blue-600",
-      change: growthStats?.totalRequests.percentage,
-      trend: (growthStats?.totalRequests.percentage ?? 0) >= 0 ? "up" : "down",
-    },
-    {
-      title: "المساجد المسجلة",
-      value: mosqueStats?.total || 0,
-      icon: Building2,
-      gradient: "from-emerald-500 to-emerald-600",
-      bgLight: "bg-emerald-50",
-      textColor: "text-emerald-600",
-      change: growthStats?.registeredMosques.percentage,
-      trend: (growthStats?.registeredMosques.percentage ?? 0) >= 0 ? "up" : "down",
-    },
-    {
-      title: "قيد التنفيذ",
-      value: requestStats?.byStatus?.in_progress || 0,
-      icon: Clock,
-      gradient: "from-amber-500 to-amber-600",
-      bgLight: "bg-amber-50",
-      textColor: "text-amber-600",
-      change: growthStats?.inProgressRequests.percentage,
-      trend: (growthStats?.inProgressRequests.percentage ?? 0) >= 0 ? "up" : "down",
-    },
-    {
-      title: "مكتملة",
-      value: requestStats?.byStatus?.completed || 0,
-      icon: CheckCircle2,
-      gradient: "from-green-500 to-green-600",
-      bgLight: "bg-green-50",
-      textColor: "text-green-600",
-      change: growthStats?.completedRequests.percentage,
-      trend: (growthStats?.completedRequests.percentage ?? 0) >= 0 ? "up" : "down",
-    },
-  ];
-
-  return (
-    <DashboardLayout>
+    return (
       <div className="space-y-6 sm:space-y-8">
         {/* Hero Section - رسالة الترحيب */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 px-4 sm:px-6 py-4 sm:py-6 text-white shadow-lg">
@@ -830,6 +891,17 @@ export default function Dashboard() {
                 <Target className="w-3.5 h-3.5 shrink-0" />
                 <span className="text-[10px] sm:text-xs font-medium whitespace-nowrap">نسبة الإنجاز: {completionRate}%</span>
               </div>
+              {isSuperAdmin && (
+                <Button
+                  size="sm"
+                  onClick={() => handleToggleViewMode("detailed")}
+                  className="bg-white/20 hover:bg-white/30 text-white border-0 text-xs font-bold gap-1.5 h-10 rounded-xl shadow-xs cursor-pointer"
+                  title="الانتقال إلى الوضع المفصل لكافة التبويبات والمخططات"
+                >
+                  <Layers className="w-4 h-4" />
+                  <span>الوضع المفصل</span>
+                </Button>
+              )}
               <Link href="/support">
                 <Button 
                   size="default" 
@@ -1083,8 +1155,636 @@ export default function Dashboard() {
           </Card>
         )}
       </div>
-    </DashboardLayout>
-  );
+    );
+  };
+
+  // =========================================================================
+  // لوحة القيادة الشاملة الخاصة بـ super_admin
+  // مستعادة بالهيدر الأصلي الفاخر، وتصميم الكروت الأصلي، وأسماء قصيرة واضحة
+  // وتنبيه المستخدمين المعلقين في أسفل الصفحة
+  // =========================================================================
+  if (isSuperAdmin && superAdminViewMode === "detailed") {
+    const completionRate = requestStats?.total 
+      ? Math.round(((requestStats?.byStatus?.completed || 0) / requestStats.total) * 100) 
+      : 0;
+
+    // دالة موحدة لرسم أي بطاقة بنفس الـ UI الأصلي للمنظومة
+    const renderCard = (stat: {
+      title: string;
+      value: string | number;
+      subtext?: string;
+      icon: any;
+      gradient: string;
+      bgLight: string;
+      isCurrency?: boolean;
+      change?: number;
+    }, key: any) => (
+      <Card key={key} className="relative overflow-hidden border-0 shadow-sm hover:shadow-md transition-all bg-card">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+            <div className="space-y-1 sm:space-y-2 min-w-0">
+              <p className="text-[10px] sm:text-sm font-medium text-muted-foreground truncate">{stat.title}</p>
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                <p className="text-xl sm:text-3xl font-bold text-foreground leading-none font-sans">
+                  {stat.value}
+                </p>
+                {stat.isCurrency && <SaudiRiyal className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground shrink-0" />}
+              </div>
+              {stat.subtext && (
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
+                  {stat.subtext}
+                </p>
+              )}
+              {typeof stat.change === "number" && (
+                <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                  {stat.change >= 0 ? (
+                    <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-green-500" />
+                  ) : (
+                    <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500 transform scale-y-[-1]" />
+                  )}
+                  <span className={`text-[10px] sm:text-xs font-semibold ${stat.change >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                    {stat.change >= 0 ? "+" : ""}{stat.change}%
+                  </span>
+                  <span className="text-[9px] sm:text-[11px] text-muted-foreground whitespace-nowrap">هذا الشهر</span>
+                </div>
+              )}
+            </div>
+            <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-md shrink-0 order-first sm:order-last text-white`}>
+              <stat.icon className="w-5 h-5 sm:w-7 sm:h-7" />
+            </div>
+          </div>
+          {/* Decorative element exactly like original */}
+          <div className={`absolute -bottom-4 -left-4 w-16 h-16 sm:w-24 sm:h-24 rounded-full ${stat.bgLight} opacity-50 pointer-events-none`} />
+        </CardContent>
+      </Card>
+    );
+
+    // 1. المؤشرات الرئيسية الإجمالية
+    const mainOverviewCards = [
+      {
+        title: "إجمالي الطلبات",
+        value: (requestStats?.total || 0).toLocaleString("en-US"),
+        icon: FileText,
+        gradient: "from-blue-500 to-blue-600",
+        bgLight: "bg-blue-50 dark:bg-blue-950/40",
+        change: growthStats?.totalRequests.percentage,
+        subtext: "طلب مسجل بالبوابة",
+      },
+      {
+        title: "المساجد المسجلة",
+        value: (mosqueStats?.total || 0).toLocaleString("en-US"),
+        icon: Building2,
+        gradient: "from-emerald-500 to-emerald-600",
+        bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
+        change: growthStats?.registeredMosques.percentage,
+        subtext: "مسجد وجامع معتمد",
+      },
+      {
+        title: "قيد التنفيذ",
+        value: (requestStats?.byStatus?.in_progress || 0).toLocaleString("en-US"),
+        icon: Clock,
+        gradient: "from-amber-500 to-amber-600",
+        bgLight: "bg-amber-50 dark:bg-amber-950/40",
+        change: growthStats?.inProgressRequests.percentage,
+        subtext: "بمختلف المراحل النشطة",
+      },
+      {
+        title: "مكتملة",
+        value: (requestStats?.byStatus?.completed || 0).toLocaleString("en-US"),
+        icon: CheckCircle2,
+        gradient: "from-green-500 to-green-600",
+        bgLight: "bg-green-50 dark:bg-green-950/40",
+        change: growthStats?.completedRequests.percentage,
+        subtext: `نسبة الإنجاز: ${completionRate}%`,
+      },
+      {
+        title: "العقود المعتمدة",
+        value: ((disbursementStats as any)?.approvedContractsAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }),
+        isCurrency: true,
+        icon: Briefcase,
+        gradient: "from-indigo-500 to-indigo-600",
+        bgLight: "bg-indigo-50 dark:bg-indigo-950/40",
+        subtext: `${(disbursementStats as any)?.approvedContractsCount || 0} عقود نشطة`,
+      },
+      {
+        title: "المبالغ المصروفة",
+        value: ((disbursementStats as any)?.totalPaid || (disbursementStats as any)?.approvedOrdersAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }),
+        isCurrency: true,
+        icon: Receipt,
+        gradient: "from-rose-500 to-rose-600",
+        bgLight: "bg-rose-50 dark:bg-rose-950/40",
+        subtext: `${(disbursementStats as any)?.executedOrders || 0} أمر صرف منفذ`,
+      },
+      {
+        title: "سندات القبض",
+        value: ((disbursementStats as any)?.approvedReceiptVouchersAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }),
+        isCurrency: true,
+        icon: Wallet,
+        gradient: "from-teal-500 to-teal-600",
+        bgLight: "bg-teal-50 dark:bg-teal-950/40",
+        subtext: `${(disbursementStats as any)?.approvedReceiptVouchersCount || 0} سند معتمد`,
+      },
+      {
+        title: "المشاريع النشطة",
+        value: ((projectStats as any)?.active || projectStats?.total || 0).toLocaleString("en-US"),
+        icon: FolderKanban,
+        gradient: "from-violet-500 to-violet-600",
+        bgLight: "bg-violet-50 dark:bg-violet-950/40",
+        subtext: `الميزانية: ${(parseFloat(projectStats?.totalBudget || "0")).toLocaleString("en-US", { maximumFractionDigits: 0 })} ر.س`,
+      },
+    ];
+
+// 2. كروت تبويب المساجد (مجلس الإدارة)
+    const boardMosquesTotal = boardStats?.mosques?.total ?? mosqueStats?.total ?? 0;
+    const boardMosquesActive = boardStats?.mosques?.active ?? (mosqueStats as any)?.active ?? 0;
+    const boardMosquesRecent = boardStats?.mosques?.recent ?? 0;
+    const boardMosqueCoverage = boardMosquesTotal > 0 ? Math.round((boardMosquesActive / boardMosquesTotal) * 100) : 100;
+
+    const mosqueCards = [
+      {
+        title: "المساجد المسجلة",
+        value: boardMosquesTotal.toLocaleString("en-US"),
+        subtext: "مسجلة رسمياً بالبوابة",
+        icon: Building2,
+        gradient: "from-emerald-500 to-emerald-600",
+        bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
+      },
+      {
+        title: "المساجد النشطة",
+        value: boardMosquesActive.toLocaleString("en-US"),
+        subtext: "تتلقى الخدمات والزيارات",
+        icon: Activity,
+        gradient: "from-teal-500 to-teal-600",
+        bgLight: "bg-teal-50 dark:bg-teal-950/40",
+      },
+      {
+        title: "مساجد جديدة (30 يوم)",
+        value: `+${boardMosquesRecent.toLocaleString("en-US")}`,
+        subtext: "نمو تسجيلي مستمر",
+        icon: Clock,
+        gradient: "from-blue-500 to-blue-600",
+        bgLight: "bg-blue-50 dark:bg-blue-950/40",
+      },
+      {
+        title: "نسبة التغطية",
+        value: `${boardMosqueCoverage}%`,
+        subtext: "مساجد مفعّلة بالخدمات",
+        icon: Target,
+        gradient: "from-purple-500 to-purple-600",
+        bgLight: "bg-purple-50 dark:bg-purple-950/40",
+      },
+    ];
+
+    // 3. كروت تبويب الطلبات (مجلس الإدارة)
+    const boardRequestsTotal = boardStats?.requests?.total ?? requestStats?.total ?? 0;
+    const boardRequestsCompleted = boardStats?.requests?.approved ?? requestStats?.byStatus?.completed ?? 0;
+    const boardRequestsInProgress = (boardStats?.requests?.inProgress ?? 0) + (boardStats?.requests?.pending ?? 0) || (requestStats?.byStatus?.in_progress ?? 0);
+    const boardRequestsRejected = boardStats?.requests?.rejected ?? requestStats?.byStatus?.rejected ?? 0;
+
+    const requestCards = [
+      {
+        title: "إجمالي الطلبات",
+        value: boardRequestsTotal.toLocaleString("en-US"),
+        subtext: "كافة طلبات الخدمات",
+        icon: FileText,
+        gradient: "from-blue-600 to-indigo-600",
+        bgLight: "bg-blue-50 dark:bg-blue-950/40",
+      },
+      {
+        title: "الطلبات المكتملة",
+        value: boardRequestsCompleted.toLocaleString("en-US"),
+        subtext: "تم إنجازها بنجاح",
+        icon: CheckCircle2,
+        gradient: "from-green-500 to-emerald-600",
+        bgLight: "bg-green-50 dark:bg-green-950/40",
+      },
+      {
+        title: "قيد التنفيذ",
+        value: boardRequestsInProgress.toLocaleString("en-US"),
+        subtext: "مراحل دراسة وتنفيذ",
+        icon: Clock,
+        gradient: "from-amber-500 to-orange-500",
+        bgLight: "bg-amber-50 dark:bg-amber-950/40",
+      },
+      {
+        title: "الطلبات المرفوضة",
+        value: boardRequestsRejected.toLocaleString("en-US"),
+        subtext: "لعدم اكتمال المتطلبات",
+        icon: XCircle,
+        gradient: "from-rose-500 to-red-600",
+        bgLight: "bg-rose-50 dark:bg-rose-950/40",
+      },
+    ];
+
+    // 4. كروت تبويب المشتريات والعقود (مجلس الإدارة)
+    const boardSuppliersTotal = boardStats?.procurement?.totalSuppliers ?? supplierStats?.total ?? 0;
+    const boardSuppliersApproved = boardStats?.procurement?.approvedSuppliers ?? supplierStats?.approved ?? 0;
+    const boardContractsCount = boardStats?.procurement?.totalContracts ?? (disbursementStats as any)?.approvedContractsCount ?? 0;
+    const boardContractsValue = boardStats?.procurement?.totalContractsValue ?? (disbursementStats as any)?.approvedContractsAmount ?? 0;
+
+    const procurementCards = [
+      {
+        title: "إجمالي الموردين",
+        value: boardSuppliersTotal.toLocaleString("en-US"),
+        subtext: "موردون بالشبكة",
+        icon: Store,
+        gradient: "from-orange-500 to-amber-600",
+        bgLight: "bg-orange-50 dark:bg-orange-950/40",
+      },
+      {
+        title: "موردون معتمدون",
+        value: boardSuppliersApproved.toLocaleString("en-US"),
+        subtext: "منشآت مؤهلة رسمياً",
+        icon: ShieldCheck,
+        gradient: "from-emerald-500 to-teal-600",
+        bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
+      },
+      {
+        title: "العقود المعتمدة",
+        value: boardContractsCount.toLocaleString("en-US"),
+        subtext: "عقود رسمية سارية",
+        icon: FileSpreadsheet,
+        gradient: "from-blue-500 to-indigo-600",
+        bgLight: "bg-blue-50 dark:bg-blue-950/40",
+      },
+      {
+        title: "قيمة العقود",
+        value: Number(boardContractsValue).toLocaleString("en-US", { maximumFractionDigits: 0 }),
+        isCurrency: true,
+        subtext: "مجموع قيم العقود",
+        icon: Wallet,
+        gradient: "from-purple-500 to-violet-600",
+        bgLight: "bg-purple-50 dark:bg-purple-950/40",
+      },
+    ];
+
+    // 5. كروت تبويب المالية والصرف (مجلس الإدارة والتقرير المالي)
+    const boardDisbReqCount = boardStats?.financials?.approvedDisbursementRequestsCount ?? (disbursementStats as any)?.approvedRequests ?? 0;
+    const boardDisbOrdersCount = boardStats?.financials?.executiveApprovedOrdersCount ?? (disbursementStats as any)?.totalOrders ?? 0;
+    const boardDisbAmount = boardStats?.financials?.executedDisbursementOrdersAmount ?? (disbursementStats as any)?.totalPaid ?? 0;
+    const boardReceiptsCount = boardStats?.financials?.approvedReceiptVouchersCount ?? (disbursementStats as any)?.approvedReceiptVouchersCount ?? 0;
+    const boardReceiptsAmount = boardStats?.financials?.approvedReceiptVouchersAmount ?? (disbursementStats as any)?.approvedReceiptVouchersAmount ?? 0;
+
+    const financialCards = [
+      {
+        title: "طلبات الصرف",
+        value: boardDisbReqCount.toLocaleString("en-US"),
+        subtext: "طلبات معتمدة رسمياً",
+        icon: Receipt,
+        gradient: "from-amber-500 to-orange-600",
+        bgLight: "bg-amber-50 dark:bg-amber-950/40",
+      },
+      {
+        title: "أوامر الصرف",
+        value: boardDisbOrdersCount.toLocaleString("en-US"),
+        subtext: "أوامر معتمدة للتحويل",
+        icon: FileCheck2,
+        gradient: "from-emerald-500 to-green-600",
+        bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
+      },
+      {
+        title: "إجمالي المصروفات",
+        value: Number(boardDisbAmount).toLocaleString("en-US", { maximumFractionDigits: 0 }),
+        isCurrency: true,
+        subtext: "أوامر صرف منفذة بنكياً",
+        icon: Banknote,
+        gradient: "from-blue-600 to-cyan-600",
+        bgLight: "bg-blue-50 dark:bg-blue-950/40",
+      },
+      {
+        title: "سندات القبض",
+        value: boardReceiptsCount.toLocaleString("en-US"),
+        subtext: `بمبلغ: ${Number(boardReceiptsAmount).toLocaleString("en-US", { maximumFractionDigits: 0 })} ر.س`,
+        icon: Wallet,
+        gradient: "from-purple-600 to-indigo-600",
+        bgLight: "bg-purple-50 dark:bg-purple-950/40",
+      },
+    ];
+
+    // 6. كروت تبويب المشاريع وسندات القبض (التقرير المالي)
+    const finApprovedVouchers = allReceiptVouchersData.filter((v: any) => v.status === "approved");
+    const finApprovedVouchersAmount = finApprovedVouchers.reduce((acc: number, v: any) => acc + (parseFloat(v.amount) || 0), 0);
+    const finTotalProjectsCount = financialReportData?.byProject?.length ?? projectStats?.total ?? 0;
+    const finTotalProjectsBudget = parseFloat(projectStats?.totalBudget || "0");
+
+    const projectAndVoucherCards = [
+      {
+        title: "مبالغ سندات القبض",
+        value: Number(finApprovedVouchersAmount || (disbursementStats as any)?.approvedReceiptVouchersAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }),
+        isCurrency: true,
+        subtext: `من واقع ${finApprovedVouchers.length} سند معتمد`,
+        icon: Wallet,
+        gradient: "from-emerald-500 to-green-600",
+        bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
+      },
+      {
+        title: "مشاريع الدعم",
+        value: finTotalProjectsCount.toLocaleString("en-US"),
+        subtext: `نشط: ${(projectStats as any)?.active || 0} | مكتمل: ${(projectStats as any)?.completed || 0}`,
+        icon: FolderKanban,
+        gradient: "from-indigo-500 to-violet-600",
+        bgLight: "bg-indigo-50 dark:bg-indigo-950/40",
+      },
+      {
+        title: "ميزانية المشاريع",
+        value: Number(finTotalProjectsBudget).toLocaleString("en-US", { maximumFractionDigits: 0 }),
+        isCurrency: true,
+        subtext: "الموازنة الكلية المعتمدة",
+        icon: Banknote,
+        gradient: "from-purple-500 to-indigo-600",
+        bgLight: "bg-purple-50 dark:bg-purple-950/40",
+      },
+      {
+        title: "المبالغ المصروفة",
+        value: Number((financialReportData?.summary?.totalOrderAmount || (disbursementStats as any)?.totalPaid || 0)).toLocaleString("en-US", { maximumFractionDigits: 0 }),
+        isCurrency: true,
+        subtext: "المصروف الفعلي المنفذ",
+        icon: Banknote,
+        gradient: "from-teal-500 to-teal-600",
+        bgLight: "bg-teal-50 dark:bg-teal-950/40",
+      },
+    ];
+
+    const scrollToSection = (id: string) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+
+    return (
+      <DashboardLayout>
+        <div className="space-y-6 sm:space-y-8">
+          {/* ========================================================================= */}
+          {/* 1. الهيدر الأصلي الفاخر لرسالة الترحيب ونسبة الإنجاز والدعم الفني */}
+          {/* ========================================================================= */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 px-4 sm:px-6 py-4 sm:py-6 text-white shadow-lg">
+            <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.5))]" />
+            <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div className="flex items-center gap-2 text-white/60 text-[10px] sm:text-xs">
+                  <Activity className="w-3.5 h-3.5" />
+                  <span>الرئيسية</span>
+                </div>
+                <div className="hidden sm:block w-px h-4 bg-white/30" />
+                <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                  <h1 className="text-lg sm:text-xl lg:text-2xl font-bold truncate" title={user?.name}>
+                    مرحباً، {user?.name || "المستخدم"}
+                  </h1>
+                  <div className="hidden sm:block w-px h-4 bg-white/40" />
+                  <span className="text-white/80 text-[10px] sm:text-sm font-medium bg-white/15 rounded-full px-2 sm:px-3 py-0.5 whitespace-nowrap">
+                    {roleLabel}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 sm:gap-3.5 flex-wrap sm:flex-nowrap shrink-0">
+                <div className="flex items-center gap-2 bg-white/20 rounded-full px-3 py-1.5 w-fit shrink-0">
+                  <Target className="w-3.5 h-3.5 shrink-0" />
+                  <span className="text-[10px] sm:text-xs font-medium whitespace-nowrap">نسبة الإنجاز: {completionRate}%</span>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => handleToggleViewMode("default")}
+                  className="bg-white/20 hover:bg-white/30 text-white border-0 text-xs font-bold gap-1.5 h-10 rounded-xl shadow-xs cursor-pointer"
+                  title="العودة إلى الوضع الافتراضي للوحة التحكم"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>الوضع الافتراضي</span>
+                </Button>
+                <Link href="/support">
+                  <Button 
+                    size="default" 
+                    variant="ghost" 
+                    className="group flex items-center gap-2.5 bg-[#fafaf9] hover:bg-[#f4f4f3] text-teal-950 rounded-xl px-5 h-10 border border-neutral-200/30 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-sm"
+                    title="طلب الدعم الفني"
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-[ping_3s_infinite] absolute inline-flex h-full w-full rounded-full bg-emerald-600/30"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+                    </span>
+                    <LifeBuoy className="w-4 h-4 shrink-0 text-teal-700 transition-transform group-hover:rotate-12 duration-500" />
+                    <span className="text-xs sm:text-sm font-semibold whitespace-nowrap">الدعم الفني</span>
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* أزرار الانتقال السريع بين الأقسام */}
+          <div className="sticky top-2 z-20 bg-card/95 backdrop-blur-md border border-border/80 rounded-2xl p-3 sm:p-4 shadow-sm">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              <span className="text-xs font-bold text-muted-foreground shrink-0 ml-1">انتقال سريع:</span>
+              <button
+                type="button"
+                onClick={() => scrollToSection("section-board")}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-xs font-bold text-blue-700 dark:text-blue-300 border border-blue-500/30 transition-colors shrink-0 cursor-pointer"
+              >
+                <Briefcase className="w-3.5 h-3.5 text-blue-600" />
+                <span>مخططات مجلس الإدارة</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection("section-financial")}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-xs font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 transition-colors shrink-0 cursor-pointer"
+              >
+                <SaudiRiyal className="w-3.5 h-3.5 text-emerald-600" />
+                <span>التقرير المالي</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection("section-reports")}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-xs font-bold text-purple-700 dark:text-purple-300 border border-purple-500/30 transition-colors shrink-0 cursor-pointer"
+              >
+                <BarChart3 className="w-3.5 h-3.5 text-purple-600" />
+                <span>تقارير الطلبات</span>
+              </button>
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* 2. بطاقات المؤشرات الرقمية الرئيسية (UI الأصلي للمنظومة) */}
+          {/* ========================================================================= */}
+          <div id="section-cards" className="space-y-4 scroll-mt-28">
+            <div className="flex items-center gap-2 pb-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+              <h2 className="text-base sm:text-lg font-bold text-foreground">
+                المؤشرات الرقمية والبطاقات الرئيسية
+              </h2>
+              <span className="text-xs text-muted-foreground mr-1">
+                (الملخص الإجمالي للطلبات، المساجد، العقود، والمصروفات)
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+              {mainOverviewCards.map((stat, idx) => renderCard(stat, `main-${idx}`))}
+            </div>
+          </div>
+
+{/* ========================================================================= */}
+          {/* 3. بطاقات كافة التبويبات بالمنظومة */}
+          {/* ========================================================================= */}
+          <div id="section-tabs-cards" className="space-y-6 pt-4 border-t border-border/60 scroll-mt-28">
+            {/* أ) إحصائيات المساجد */}
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-emerald-600" />
+                <h4 className="text-sm font-bold text-foreground">إحصائيات المساجد</h4>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                {mosqueCards.map((stat, idx) => renderCard(stat, `mosque-${idx}`))}
+              </div>
+            </div>
+
+            {/* ب) إحصائيات الطلبات */}
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-blue-600" />
+                <h4 className="text-sm font-bold text-foreground">إحصائيات الطلبات</h4>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                {requestCards.map((stat, idx) => renderCard(stat, `req-${idx}`))}
+              </div>
+            </div>
+
+            {/* ج) المشتريات والعقود */}
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2">
+                <Store className="w-4 h-4 text-orange-600" />
+                <h4 className="text-sm font-bold text-foreground">المشتريات والعقود</h4>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                {procurementCards.map((stat, idx) => renderCard(stat, `proc-${idx}`))}
+              </div>
+            </div>
+
+            {/* د) المالية وأوامر الصرف */}
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2">
+                <Banknote className="w-4 h-4 text-indigo-600" />
+                <h4 className="text-sm font-bold text-foreground">المالية وأوامر الصرف</h4>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                {financialCards.map((stat, idx) => renderCard(stat, `fin-${idx}`))}
+              </div>
+            </div>
+
+            {/* هـ) التقرير المالي والمشاريع */}
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2">
+                <SaudiRiyal className="w-4 h-4 text-teal-600" />
+                <h4 className="text-sm font-bold text-foreground">التقرير المالي والمشاريع</h4>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                {projectAndVoucherCards.map((stat, idx) => renderCard(stat, `pv-${idx}`))}
+              </div>
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* 4. الإحصائيات والمخططات والتحليلات مباشرة تحت البطاقات */}
+          {/* ========================================================================= */}
+
+          {/* أ) المخططات والتحليلات الخاصة بمجلس الإدارة والإدارة العليا */}
+          <div id="section-board" className="space-y-4 pt-8 border-t-2 border-border/80 scroll-mt-28">
+            <div className="flex items-center justify-between pb-3 border-b border-border/70">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-sm border border-blue-500/20">
+                  <Briefcase className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-foreground">
+                    مخططات وتحليلات مجلس الإدارة والمؤشرات الإستراتيجية
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    مخططات المساجد، توزيع عقود المشاريع، مؤشرات أوامر الصرف، ومصفوفة الأداء الإستراتيجي
+                  </p>
+                </div>
+              </div>
+              </div>
+            <BoardDashboard embedded={true} forceAnalytics={true} />
+          </div>
+
+          {/* ب) المخططات والتحليلات المالية الشاملة */}
+          <div id="section-financial" className="space-y-4 pt-8 border-t-2 border-border/80 scroll-mt-28">
+            <div className="flex items-center justify-between pb-3 border-b border-border/70">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black text-sm border border-emerald-500/20">
+                  <SaudiRiyal className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-foreground">
+                    المخططات والتحليلات المالية الشاملة
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    الرسوم البيانية للتدفقات النقدية، المصروفات، سندات القبض، وتحليلات مشاريع الدعم والتغطية
+                  </p>
+                </div>
+              </div>
+              </div>
+            <FinancialReport embedded={true} />
+          </div>
+
+          {/* ج) مخططات التقارير الإحصائية للطلبات */}
+          <div id="section-reports" className="space-y-4 pt-8 border-t-2 border-border/80 scroll-mt-28">
+            <div className="flex items-center justify-between pb-3 border-b border-border/70">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center font-black text-sm border border-purple-500/20">
+                  <BarChart3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-foreground">
+                    المخططات الإحصائية والفنية للطلبات
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    مخططات توزيع الطلبات على البرامج التسعة، والمنحنى الشهري لتطور الطلبات
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Reports embedded={true} />
+          </div>
+
+          {/* ========================================================================= */}
+          {/* 5. تنبيه المستخدمين بانتظار الاعتماد (في أسفل الصفحة كما طلب المستخدم) */}
+          {/* ========================================================================= */}
+          {pendingUsers && pendingUsers.length > 0 && (
+            <div className="pt-4 border-t border-border/60">
+              <Card className="border-0 shadow-sm border-r-4 border-r-rose-500 rounded-2xl bg-card">
+                <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-200/80 dark:border-rose-800/80">
+                      <AlertTriangle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs sm:text-sm font-bold text-foreground">
+                        يوجد <span className="text-rose-600 font-black">{pendingUsers.length}</span> مستخدم بانتظار المراجعة والاعتماد
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">يتطلب اتخاذ إجراء إداري لتفعيل الحسابات</p>
+                    </div>
+                  </div>
+                  <Link href="/requester-approvals">
+                    <Button size="sm" variant="outline" className="text-xs font-bold hover:border-rose-300 hover:text-rose-600 gap-1 rounded-xl">
+                      <span>مراجعة الطلبات</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+
+  // لبقية مدراء الإدارة العليا (مدير عام، مدير تنفيذي، مدير نظام) يتم عرض النظرة العامة
+  if (isExecutiveAdmin) {
+    return (
+      <DashboardLayout>
+        {renderExecutiveOverview()}
+      </DashboardLayout>
+    );
   }
 
   return (
