@@ -4353,13 +4353,48 @@ export const projectsRouter = router({
         .leftJoin(suppliers, eq(quotations.supplierId, suppliers.id))
         .where(or(eq(quotations.projectId, input.projectId), project.requestId ? eq(quotations.requestId, project.requestId) : sql`1=0`));
 
-      // تحديد عرض السعر المعتمد (إما المحدد بـ approvedQuotationId أو الذي حالته approved)
+      // جلب العقد المرتبط بالمشروع إن وجد لاستخراج قيمة العقد والأجور الإدارية للجمعية والمورد المتعاقد معه
+      const [contract] = await db
+        .select({
+          id: contractsEnhanced.id,
+          contractNumber: contractsEnhanced.contractNumber,
+          contractTitle: contractsEnhanced.contractTitle,
+          contractAmount: contractsEnhanced.contractAmount,
+          managementPercentage: contractsEnhanced.managementPercentage,
+          status: contractsEnhanced.status,
+          supportingEntity: contractsEnhanced.supportingEntity,
+          supportType: contractsEnhanced.supportType,
+          supportedAmount: contractsEnhanced.supportedAmount,
+          supplierId: contractsEnhanced.supplierId,
+          secondPartyName: contractsEnhanced.secondPartyName,
+          startDate: contractsEnhanced.startDate,
+          endDate: contractsEnhanced.endDate,
+          createdAt: contractsEnhanced.createdAt,
+        })
+        .from(contractsEnhanced)
+        .where(or(
+          eq(contractsEnhanced.projectId, input.projectId),
+          project.requestId ? eq(contractsEnhanced.requestId, project.requestId) : sql`1=0`
+        ))
+        .orderBy(desc(contractsEnhanced.createdAt))
+        .limit(1);
+
+      // تحديد عرض السعر المعتمد:
+      // 1. إذا وُجد عقد مرتبط وله مورد، يُعتمد عرض السعر المقبول/المعتمد لذلك المورد أولاً
+      // 2. أو العرض المحدد مسبقاً في approvedQuotationId (إن لم يكن هناك عقد لمورد مختلف)
+      // 3. أو العرض الذي حالته approved أو accepted
+      // 4. أول عرض متاح كخيار أخير
       let approvedQuotation = null;
-      if (financialDetail?.approvedQuotationId) {
+      if (contract?.supplierId) {
+        approvedQuotation = allQuotations.find(q => q.supplierId === contract.supplierId && (q.status === "accepted" || q.status === "approved"))
+          || allQuotations.find(q => q.supplierId === contract.supplierId)
+          || null;
+      }
+      if (!approvedQuotation && financialDetail?.approvedQuotationId) {
         approvedQuotation = allQuotations.find(q => q.id === financialDetail.approvedQuotationId) || null;
       }
       if (!approvedQuotation) {
-        approvedQuotation = allQuotations.find(q => q.status === "approved") || allQuotations[0] || null;
+        approvedQuotation = allQuotations.find(q => q.status === "approved" || q.status === "accepted") || allQuotations[0] || null;
       }
 
       // جلب سندات القبض
@@ -4454,31 +4489,7 @@ export const projectsRouter = router({
       const manualAssociationFunding = parseFloat(financialDetail?.associationFundingAmount || "0");
       const totalAssociationFunding = manualAssociationFunding > 0 ? manualAssociationFunding : autoAssociationFunding;
 
-      // جلب العقد المرتبط بالمشروع إن وجد لاستخراج قيمة العقد والأجور الإدارية للجمعية
-      const [contract] = await db
-        .select({
-          id: contractsEnhanced.id,
-          contractNumber: contractsEnhanced.contractNumber,
-          contractTitle: contractsEnhanced.contractTitle,
-          contractAmount: contractsEnhanced.contractAmount,
-          managementPercentage: contractsEnhanced.managementPercentage,
-          status: contractsEnhanced.status,
-          supportingEntity: contractsEnhanced.supportingEntity,
-          supportType: contractsEnhanced.supportType,
-          supportedAmount: contractsEnhanced.supportedAmount,
-          supplierId: contractsEnhanced.supplierId,
-          secondPartyName: contractsEnhanced.secondPartyName,
-          startDate: contractsEnhanced.startDate,
-          endDate: contractsEnhanced.endDate,
-          createdAt: contractsEnhanced.createdAt,
-        })
-        .from(contractsEnhanced)
-        .where(or(
-          eq(contractsEnhanced.projectId, input.projectId),
-          project.requestId ? eq(contractsEnhanced.requestId, project.requestId) : sql`1=0`
-        ))
-        .orderBy(desc(contractsEnhanced.createdAt))
-        .limit(1);
+
 
       return {
         financialDetail: financialDetail || null,

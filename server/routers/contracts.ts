@@ -1050,32 +1050,56 @@ export const contractsRouter = router({
         }
       }
       
-      // مزامنة الأجور الإدارية مع البيانات المالية للمشروع عند إنشاء العقد
-      if (input.projectId && (input.managementAmount !== undefined || input.managementPercentage !== undefined || input.managementFeeType !== undefined)) {
+      // مزامنة الأجور الإدارية وعرض السعر المعتمد مع البيانات المالية للمشروع عند إنشاء العقد
+      if (input.projectId) {
         try {
           const [existingFin] = await db
             .select()
             .from(projectFinancialDetails)
             .where(eq(projectFinancialDetails.projectId, input.projectId));
 
+          // محاولة العثور على عرض السعر المعتمد لمورد العقد
+          let linkedQuotationId = existingFin?.approvedQuotationId || null;
+          if (input.supplierId) {
+            const [matchingQuotation] = await db
+              .select({ id: quotations.id })
+              .from(quotations)
+              .where(
+                and(
+                  eq(quotations.supplierId, input.supplierId),
+                  or(
+                    eq(quotations.projectId, input.projectId),
+                    input.requestId ? eq(quotations.requestId, input.requestId) : sql`1=0`
+                  ),
+                  inArray(quotations.status, ["accepted", "approved"])
+                )
+              )
+              .limit(1);
+            if (matchingQuotation) {
+              linkedQuotationId = matchingQuotation.id;
+            }
+          }
+
           const contractAmt = input.contractAmount;
           let feeType: "fixed" | "percentage" = input.managementFeeType || existingFin?.adminFeeType || "percentage";
-          let feeVal = "0.00";
-          let feeAmt = "0.00";
+          let feeVal = existingFin?.adminFeeValue || "0.00";
+          let feeAmt = existingFin?.adminFeeAmount || "0.00";
 
-          if (feeType === "fixed") {
-            const amount = input.managementAmount !== undefined
-              ? input.managementAmount
-              : (input.managementPercentage ? (contractAmt * input.managementPercentage) / 100 : 0);
-            feeVal = amount.toFixed(2);
-            feeAmt = amount.toFixed(2);
-          } else {
-            const pct = input.managementPercentage !== undefined
-              ? input.managementPercentage
-              : (contractAmt > 0 && input.managementAmount !== undefined ? parseFloat(((input.managementAmount / contractAmt) * 100).toFixed(2)) : 0);
-            const amount = (contractAmt * pct) / 100;
-            feeVal = pct.toFixed(2);
-            feeAmt = amount.toFixed(2);
+          if (input.managementAmount !== undefined || input.managementPercentage !== undefined || input.managementFeeType !== undefined) {
+            if (feeType === "fixed") {
+              const amount = input.managementAmount !== undefined
+                ? input.managementAmount
+                : (input.managementPercentage ? (contractAmt * input.managementPercentage) / 100 : 0);
+              feeVal = amount.toFixed(2);
+              feeAmt = amount.toFixed(2);
+            } else {
+              const pct = input.managementPercentage !== undefined
+                ? input.managementPercentage
+                : (contractAmt > 0 && input.managementAmount !== undefined ? parseFloat(((input.managementAmount / contractAmt) * 100).toFixed(2)) : 0);
+              const amount = (contractAmt * pct) / 100;
+              feeVal = pct.toFixed(2);
+              feeAmt = amount.toFixed(2);
+            }
           }
 
           if (existingFin) {
@@ -1084,6 +1108,7 @@ export const contractsRouter = router({
                 adminFeeType: feeType,
                 adminFeeValue: feeVal,
                 adminFeeAmount: feeAmt,
+                ...(linkedQuotationId ? { approvedQuotationId: linkedQuotationId } : {}),
                 updatedAt: new Date(),
               })
               .where(eq(projectFinancialDetails.id, existingFin.id));
@@ -1093,6 +1118,7 @@ export const contractsRouter = router({
               adminFeeType: feeType,
               adminFeeValue: feeVal,
               adminFeeAmount: feeAmt,
+              ...(linkedQuotationId ? { approvedQuotationId: linkedQuotationId } : {}),
             });
           }
         } catch (e) {

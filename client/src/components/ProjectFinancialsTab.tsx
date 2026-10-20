@@ -396,7 +396,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     const contractAmount = contract?.contractAmount ? parseFloat(contract.contractAmount.toString()) : 0;
 
     if (data?.financialDetail) {
-      setApprovedQuotationId(data.financialDetail.approvedQuotationId || data.approvedQuotation?.id || null);
+      setApprovedQuotationId(data.approvedQuotation?.id || data.financialDetail.approvedQuotationId || null);
       setSupportEntity(data.financialDetail.supportEntity || "");
       setCustomSupportEntity(data.financialDetail.customSupportEntity || "");
       setSupportAmount(parseFloat(data.financialDetail.supportAmount || "0"));
