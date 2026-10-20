@@ -45,6 +45,8 @@ import {
   ArrowUpDown,
   CreditCard,
   FileSpreadsheet,
+  Percent,
+  TrendingUp,
 } from "lucide-react";
 import {
   Table,
@@ -335,6 +337,7 @@ export default function ContractForm() {
   
   // جدول الدفعات ونظام الصرف
   const [paymentSystem, setPaymentSystem] = useState<"installments" | "milestones" | "">("");
+  const [hasFinalPayment, setHasFinalPayment] = useState<boolean>(false);
   const [paymentSchedule, setPaymentSchedule] = useState<PaymentScheduleItem[]>([]);
   const [expandedGuidanceMap, setExpandedGuidanceMap] = useState<Record<string, boolean>>({});
 
@@ -361,6 +364,180 @@ export default function ContractForm() {
       return paidAmt;
     }
     return Number(p.amount || 0);
+  };
+
+  // دالة مساعدة لضبط مسميات الدفعات وضمان أن الدفعة الختامية هي فقط الدفعة الأخيرة دائماً
+  const normalizePaymentNames = (schedule: PaymentScheduleItem[], closingMode: boolean): PaymentScheduleItem[] => {
+    if (!closingMode || schedule.length < 2) {
+      return schedule.map((p, idx) => {
+        if (p.name === "الدفعة الختامية") {
+          return { ...p, name: `الدفعة ${idx + 1}` };
+        }
+        return p;
+      });
+    }
+    const lastIdx = schedule.length - 1;
+    return schedule.map((p, idx) => {
+      if (idx === lastIdx) {
+        if (!p.name || p.name.trim() === "" || /^الدفعة \d+$/.test(p.name)) {
+          return { ...p, name: "الدفعة الختامية" };
+        }
+      } else {
+        if (p.name === "الدفعة الختامية") {
+          return { ...p, name: `الدفعة ${idx + 1}` };
+        }
+      }
+      return p;
+    });
+  };
+
+  // دالة مساعدة لإعادة حساب نسب الإنجاز التراكمية ونسب الدفعات بناءً على مبالغ الدفعات وقيمة العقد الإجمالية
+  // ملاحظة: في حال وجود دفعة ختامية، فإن قيمتها ليست ضمن قيمة المشروع بل إضافية، وتُحسب نسب الإنجاز التراكمية على دفعات الأعمال فقط لتصل 100% في الدفعة قبل الأخيرة
+  const recalculateScheduleWithCumulativeCompletion = (
+    schedule: PaymentScheduleItem[],
+    totalVal: number = contractData.totalValue || 0,
+    withFinalPayment: boolean = hasFinalPayment
+  ): PaymentScheduleItem[] => {
+    let runningCumulative = 0;
+    const isClosingFinalMode = withFinalPayment && schedule.length >= 2;
+    const penultimateIdx = schedule.length - 2;
+    const finalIdx = schedule.length - 1;
+
+    const normalizedSchedule = normalizePaymentNames(schedule, isClosingFinalMode);
+
+    return normalizedSchedule.map((p, idx) => {
+      const pAmt = Number(p.amount) || 0;
+      const isPaid = Boolean(p.isPaid || p.status === "paid" || (Number(p.paidAmount || 0) > 0));
+      const effectiveAmt = isPaid && Number(p.paidAmount || 0) > 0 ? Number(p.paidAmount) : pAmt;
+
+      const isFinalClosing = isClosingFinalMode && idx === finalIdx;
+      const isPenultimateClosing = isClosingFinalMode && idx === penultimateIdx;
+
+      // الدفعة الختامية ليست ضمن قيمة المشروع، لذلك لا تُجمع في تراكمي أعمال المشروع
+      if (!isFinalClosing) {
+        runningCumulative += effectiveAmt;
+      }
+
+      const pct = totalVal > 0 ? Number(((effectiveAmt / totalVal) * 100).toFixed(2)) : (p.percentage || 0);
+
+      let comp: number | undefined = p.completionPercentage;
+      if (isFinalClosing) {
+        // الدفعة الأخيرة ختامية وغير مرتبطة بنسبة إنجاز
+        comp = undefined;
+      } else if (isPenultimateClosing) {
+        // شرط أن تصل الدفعة قبل الأخيرة إلى 100%
+        comp = 100;
+      } else if (totalVal > 0) {
+        if (effectiveAmt > 0 || (idx === 0 && p.completionPercentage === 0)) {
+          const rawPct = (runningCumulative / totalVal) * 100;
+          const targetLastWorkIdx = isClosingFinalMode ? penultimateIdx : finalIdx;
+          if (idx === targetLastWorkIdx || runningCumulative >= totalVal - 0.05) {
+            comp = 100;
+          } else {
+            const rounded = Number(rawPct.toFixed(2));
+            comp = Math.min(99.99, Math.max(0, rounded));
+          }
+        } else if (effectiveAmt === 0 && !isPaid) {
+          comp = undefined;
+        }
+      }
+
+      return {
+        ...p,
+        percentage: pct,
+        completionPercentage: comp,
+      };
+    });
+  };
+
+  // معالج تفعيل أو تعطيل خيار الدفعة الختامية
+  const handleToggleFinalPayment = (enabled: boolean) => {
+    setHasFinalPayment(enabled);
+    setPaymentSchedule(prev => recalculateScheduleWithCumulativeCompletion(prev, contractData.totalValue, enabled));
+    toast.success(
+      enabled
+        ? "تم تفعيل خيار الدفعة الختامية (تطبيق شرط 100% إنجاز على الدفعة قبل الأخيرة)"
+        : "تم إيقاف خيار الدفعة الختامية (تطبيق شرط 100% إنجاز على الدفعة الأخيرة)"
+    );
+  };
+
+  // معالج تعديل مبلغ الدفعة وتحديث نسب الإنجاز التراكمية تلقائياً
+  const handlePaymentAmountChange = (paymentId: string, val: number) => {
+    const totalVal = contractData.totalValue || 0;
+    setPaymentSchedule(prev => {
+      const updated = prev.map(p => {
+        if (p.id === paymentId) {
+          return { ...p, amount: val };
+        }
+        return p;
+      });
+      return recalculateScheduleWithCumulativeCompletion(updated, totalVal, hasFinalPayment);
+    });
+  };
+
+  // معالج تعديل نسبة الدفعة وتحديث المبالغ ونسب الإنجاز التراكمية
+  const handlePaymentPercentageChange = (paymentId: string, pct: number) => {
+    const totalVal = contractData.totalValue || 0;
+    const amount = totalVal ? (totalVal * pct) / 100 : 0;
+    setPaymentSchedule(prev => {
+      const updated = prev.map(p => {
+        if (p.id === paymentId) {
+          return { ...p, percentage: pct, amount: Number(amount.toFixed(2)) };
+        }
+        return p;
+      });
+      return recalculateScheduleWithCumulativeCompletion(updated, totalVal, hasFinalPayment);
+    });
+  };
+
+  // معالج تعديل نسبة الإنجاز للدفعة ومزامنة المبالغ ونسب الإنجاز اللاحقة
+  const handlePaymentCompletionPercentageChange = (paymentId: string, compVal: number | undefined) => {
+    if (compVal === undefined || isNaN(compVal)) {
+      setPaymentSchedule(prev => prev.map(p => p.id === paymentId ? { ...p, completionPercentage: undefined } : p));
+      return;
+    }
+    const val = Math.min(100, Math.max(0, compVal));
+    const totalVal = contractData.totalValue || 0;
+
+    setPaymentSchedule(prev => {
+      const targetIndex = prev.findIndex(p => p.id === paymentId);
+      if (targetIndex === -1) return prev;
+
+      // الدفعة الختامية غير مرتبطة بنسبة إنجاز
+      if (hasFinalPayment && prev.length >= 2 && targetIndex === prev.length - 1) {
+        return prev;
+      }
+
+      if (totalVal > 0) {
+        let prevCumulative = 0;
+        for (let i = 0; i < targetIndex; i++) {
+          prevCumulative += getPaymentEffectiveAmount(prev[i]);
+        }
+
+        const prevComp = (prevCumulative / totalVal) * 100;
+        if (val <= prevComp) {
+          return prev.map((p, idx) => idx === targetIndex ? { ...p, completionPercentage: val } : p);
+        }
+        const targetCumulative = (val / 100) * totalVal;
+        const incrementalAmt = Math.max(0, targetCumulative - prevCumulative);
+        const incrementalPct = Number(((incrementalAmt / totalVal) * 100).toFixed(2));
+
+        const updated = prev.map((p, idx) => {
+          if (idx === targetIndex) {
+            return {
+              ...p,
+              amount: Number(incrementalAmt.toFixed(2)),
+              percentage: incrementalPct,
+              completionPercentage: val,
+            };
+          }
+          return p;
+        });
+        return recalculateScheduleWithCumulativeCompletion(updated, totalVal, hasFinalPayment);
+      } else {
+        return prev.map((p, idx) => idx === targetIndex ? { ...p, completionPercentage: val } : p);
+      }
+    });
   };
 
   // البنود المخصصة
@@ -967,6 +1144,9 @@ export default function ContractForm() {
           if (schedule && !Array.isArray(schedule) && schedule.paymentSystem) {
             detectedPaymentSystem = schedule.paymentSystem;
             setPaymentSystem(schedule.paymentSystem);
+            if (schedule.hasFinalPayment !== undefined) {
+              setHasFinalPayment(Boolean(schedule.hasFinalPayment));
+            }
             if (schedule.paymentSystem === "installments" && Array.isArray(schedule.schedule)) {
               jsonSchedule = schedule.schedule;
             }
@@ -1424,29 +1604,47 @@ export default function ContractForm() {
     if (paymentSystem === "milestones") {
       return;
     }
-    const lastPayment = paymentSchedule.length > 0 ? paymentSchedule[paymentSchedule.length - 1] : null;
-    if (lastPayment && Number(lastPayment.completionPercentage) >= 100) {
-      toast.info("الدفعة الأخيرة بلغت نسبة إنجازها 100%. لا يمكن إضافة دفعات بعد إنجاز كامل.");
-      return;
+    const isClosingMode = hasFinalPayment && paymentSchedule.length >= 2;
+
+    if (!hasFinalPayment) {
+      const lastPayment = paymentSchedule.length > 0 ? paymentSchedule[paymentSchedule.length - 1] : null;
+      if (lastPayment && Number(lastPayment.completionPercentage) >= 100 && contractData.totalValue > 0) {
+        const totalPayments = paymentSchedule.reduce((sum, p) => sum + getPaymentEffectiveAmount(p), 0);
+        if (Math.abs(totalPayments - contractData.totalValue) <= 0.05) {
+          toast.info("الدفعة الأخيرة بلغت نسبة إنجازها 100% وتمت تغطية كامل قيمة العقد. لا يمكن إضافة دفعات بعد إنجاز كامل.");
+          return;
+        }
+      }
     }
-    let suggestedCompletion: number | undefined = undefined;
-    if (lastPayment && lastPayment.completionPercentage !== undefined && lastPayment.completionPercentage !== null && !isNaN(Number(lastPayment.completionPercentage))) {
-      suggestedCompletion = Math.min(100, Number(lastPayment.completionPercentage) + 10);
-    } else if (paymentSchedule.length === 0) {
-      suggestedCompletion = 0;
-    }
+
     const newPayment: PaymentScheduleItem = {
       id: `payment-${Date.now()}`,
-      name: `الدفعة ${paymentSchedule.length + 1}`,
+      name: "",
       type: "progress",
       percentage: 0,
       amount: 0,
       dueDate: "",
       description: "",
-      completionPercentage: suggestedCompletion,
+      completionPercentage: undefined,
       items: [],
     };
-    setPaymentSchedule(sortPaymentsByDate([...paymentSchedule, newPayment]));
+
+    let updated: PaymentScheduleItem[];
+    if (isClosingMode) {
+      // إدراج الدفعة الجديدة قبل الدفعة الختامية لتبقى الدفعة الختامية في النهاية دائماً
+      const finalPayment = paymentSchedule[paymentSchedule.length - 1];
+      const workPayments = paymentSchedule.slice(0, -1);
+      newPayment.name = `الدفعة ${workPayments.length + 1}`;
+      updated = [...workPayments, newPayment, finalPayment];
+    } else if (hasFinalPayment && paymentSchedule.length === 1) {
+      newPayment.name = "الدفعة الختامية";
+      updated = [...paymentSchedule, newPayment];
+    } else {
+      newPayment.name = `الدفعة ${paymentSchedule.length + 1}`;
+      updated = [...paymentSchedule, newPayment];
+    }
+
+    setPaymentSchedule(recalculateScheduleWithCumulativeCompletion(updated, contractData.totalValue, hasFinalPayment));
   };
 
   // إدراج دفعة بين دفعتين
@@ -1457,25 +1655,10 @@ export default function ContractForm() {
     const prevComp = (prevPayment?.completionPercentage !== undefined && prevPayment?.completionPercentage !== null && !isNaN(Number(prevPayment.completionPercentage)))
       ? Number(prevPayment.completionPercentage)
       : null;
-    const nextComp = (nextPayment?.completionPercentage !== undefined && nextPayment?.completionPercentage !== null && !isNaN(Number(nextPayment.completionPercentage)))
-      ? Number(nextPayment.completionPercentage)
-      : null;
 
     if (prevComp !== null && prevComp >= 100) {
       toast.error("الدفعة السابقة بلغت نسبة إنجازها 100%، ولا يمكن إدراج دفعة بنسبة أعلى منها.");
       return;
-    }
-
-    let suggestedCompletion: number | undefined = undefined;
-    if (prevComp !== null && nextComp !== null) {
-      const mid = Math.floor((prevComp + nextComp) / 2);
-      suggestedCompletion = mid > prevComp && mid < nextComp ? mid : prevComp + 1;
-    } else if (prevComp !== null) {
-      suggestedCompletion = Math.min(100, prevComp + 10);
-    } else if (nextComp !== null) {
-      suggestedCompletion = Math.max(0, nextComp - 10);
-    } else {
-      suggestedCompletion = 0;
     }
 
     let suggestedDueDate = "";
@@ -1500,7 +1683,7 @@ export default function ContractForm() {
       amount: 0,
       dueDate: suggestedDueDate,
       description: "",
-      completionPercentage: suggestedCompletion,
+      completionPercentage: undefined,
     };
 
     const newSchedule = [...paymentSchedule];
@@ -1516,7 +1699,7 @@ export default function ContractForm() {
       return p;
     });
 
-    setPaymentSchedule(renamed);
+    setPaymentSchedule(recalculateScheduleWithCumulativeCompletion(renamed));
     toast.success(`تم إدراج دفعة جديدة بين الدفعات (الموضع: الدفعة ${targetIndex + 1})`);
   };
 
@@ -1678,16 +1861,19 @@ export default function ContractForm() {
     const roundedSum = Number(itemsSum.toFixed(2));
     const pct = contractData.totalValue > 0 ? Number(((roundedSum / contractData.totalValue) * 100).toFixed(2)) : 0;
 
-    setPaymentSchedule(prev => prev.map(p => {
-      if (p.id === paymentId) {
-        return {
-          ...p,
-          amount: roundedSum,
-          percentage: pct,
-        };
-      }
-      return p;
-    }));
+    setPaymentSchedule(prev => {
+      const updated = prev.map(p => {
+        if (p.id === paymentId) {
+          return {
+            ...p,
+            amount: roundedSum,
+            percentage: pct,
+          };
+        }
+        return p;
+      });
+      return recalculateScheduleWithCumulativeCompletion(updated);
+    });
     toast.success(`تم تعديل مبلغ الدفعة ليصبح ${roundedSum.toLocaleString("ar-SA")} ر.س (${pct}%)`);
   };
 
@@ -1698,7 +1884,8 @@ export default function ContractForm() {
       toast.error("لا يمكن حذف دفعة مسددة نهائياً");
       return;
     }
-    setPaymentSchedule(paymentSchedule.filter(p => p.id !== id));
+    const filtered = paymentSchedule.filter(p => p.id !== id);
+    setPaymentSchedule(recalculateScheduleWithCumulativeCompletion(filtered));
   };
 
   // تحديث دفعة
@@ -1800,9 +1987,17 @@ export default function ContractForm() {
           return true;
         }
 
+        // إذا تم تفعيل خيار الدفعة الختامية، يجب أن يكون هناك دفعتان على الأقل
+        if (hasFinalPayment && paymentSchedule.length < 2) {
+          toast.error("عند تفعيل خيار الدفعة الختامية، يجب إضافة دفعتين على الأقل (دفعة إنجاز الأعمال + الدفعة الختامية)");
+          return false;
+        }
+
         // التأكد من صحة حقول الدفعات في نظام الدفعات المجدولة أولاً
         for (let i = 0; i < paymentSchedule.length; i++) {
           const p = paymentSchedule[i];
+          const isClosing = hasFinalPayment && i === paymentSchedule.length - 1 && paymentSchedule.length >= 2;
+
           if (!p.dueDate) {
             toast.error(`يرجى تحديد تاريخ الاستحقاق للدفعة ${i + 1}`);
             return false;
@@ -1831,35 +2026,70 @@ export default function ContractForm() {
             toast.error(`يرجى إدخال وصف الأعمال للدفعة ${i + 1}`);
             return false;
           }
-          if (p.completionPercentage === undefined || p.completionPercentage === null || isNaN(p.completionPercentage) || p.completionPercentage < 0 || p.completionPercentage > 100) {
-            toast.error(`يرجى تحديد نسبة إنجاز صحيحة (بين 0 و 100) للدفعة ${i + 1}`);
-            return false;
-          }
-          if (i > 0) {
-            const prevComp = paymentSchedule[i - 1].completionPercentage;
-            if (prevComp !== undefined && prevComp !== null && !isNaN(prevComp)) {
-              if (p.completionPercentage <= prevComp) {
-                toast.error(`نسبة إنجاز الدفعة ${i + 1} (${p.completionPercentage}%) يجب أن تكون أكبر من نسبة إنجاز الدفعة السابقة (${paymentSchedule[i - 1].name || `الدفعة ${i}`}: ${prevComp}%)`);
-                return false;
+
+          // التحقق من نسبة الإنجاز: يتم لجميع الدفعات باستثناء الدفعة الختامية
+          if (!isClosing) {
+            if (p.completionPercentage === undefined || p.completionPercentage === null || isNaN(p.completionPercentage) || p.completionPercentage < 0 || p.completionPercentage > 100) {
+              toast.error(`يرجى تحديد نسبة إنجاز صحيحة (بين 0 و 100) للدفعة ${i + 1}`);
+              return false;
+            }
+            if (i > 0) {
+              const prevComp = paymentSchedule[i - 1].completionPercentage;
+              if (prevComp !== undefined && prevComp !== null && !isNaN(prevComp)) {
+                if (p.completionPercentage <= prevComp) {
+                  toast.error(`نسبة إنجاز الدفعة ${i + 1} (${p.completionPercentage}%) يجب أن تكون أكبر من نسبة إنجاز الدفعة السابقة (${paymentSchedule[i - 1].name || `الدفعة ${i}`}: ${prevComp}%)`);
+                  return false;
+                }
               }
             }
-          }
-          if (i < paymentSchedule.length - 1) {
-            const nextComp = paymentSchedule[i + 1].completionPercentage;
-            if (nextComp !== undefined && nextComp !== null && !isNaN(nextComp)) {
-              if (p.completionPercentage >= nextComp) {
-                toast.error(`نسبة إنجاز الدفعة ${i + 1} (${p.completionPercentage}%) يجب أن تكون أقل من نسبة إنجاز الدفعة التالية (${paymentSchedule[i + 1].name || `الدفعة ${i + 2}`}: ${nextComp}%)`);
-                return false;
+            if (i < paymentSchedule.length - 1 && !(hasFinalPayment && i === paymentSchedule.length - 2)) {
+              const nextComp = paymentSchedule[i + 1].completionPercentage;
+              if (nextComp !== undefined && nextComp !== null && !isNaN(nextComp)) {
+                if (p.completionPercentage >= nextComp) {
+                  toast.error(`نسبة إنجاز الدفعة ${i + 1} (${p.completionPercentage}%) يجب أن تكون أقل من نسبة إنجاز الدفعة التالية (${paymentSchedule[i + 1].name || `الدفعة ${i + 2}`}: ${nextComp}%)`);
+                  return false;
+                }
               }
             }
           }
         }
 
-        const totalPayments = paymentSchedule.reduce((sum, p) => sum + getPaymentEffectiveAmount(p), 0);
-        
-        if (Math.abs(totalPayments - contractData.totalValue) > 0.05) {
-          toast.error(`يجب أن يكون إجمالي مبالغ الدفعات مساوياً لقيمة العقد تماماً (${contractData.totalValue.toLocaleString()} ريال). الإجمالي الحالي: ${totalPayments.toLocaleString()} ريال`);
-          return false;
+        // شرط أن تصل نسبة الإنجاز إلى 100% (على الدفعة قبل الأخيرة في حال تفعيل الدفعة الختامية، أو على الدفعة الأخيرة في الوضع العادي):
+        if (hasFinalPayment && paymentSchedule.length >= 2) {
+          const penultimatePayment = paymentSchedule[paymentSchedule.length - 2];
+          if (Number(penultimatePayment.completionPercentage) !== 100) {
+            toast.error(`يجب أن تصل نسبة الإنجاز التراكمية في الدفعة قبل الأخيرة (${penultimatePayment.name || `الدفعة ${paymentSchedule.length - 1}`}) إلى 100%`);
+            return false;
+          }
+        } else if (!hasFinalPayment && paymentSchedule.length > 0) {
+          const lastPayment = paymentSchedule[paymentSchedule.length - 1];
+          if (Number(lastPayment.completionPercentage) !== 100) {
+            toast.error(`يجب أن تصل نسبة الإنجاز التراكمية في الدفعة الأخيرة (${lastPayment.name || `الدفعة ${paymentSchedule.length}`}) إلى 100%`);
+            return false;
+          }
+        }
+
+        // التحقق من مبالغ الدفعات:
+        // في حال تفعيل الدفعة الختامية، فإن قيمتها ليست ضمن قيمة المشروع، لذلك يجب أن تغطي دفعات الأعمال كامل قيمة المشروع
+        if (hasFinalPayment && paymentSchedule.length >= 2) {
+          const workPayments = paymentSchedule.slice(0, -1);
+          const workPaymentsTotal = workPayments.reduce((sum, p) => sum + getPaymentEffectiveAmount(p), 0);
+          if (Math.abs(workPaymentsTotal - contractData.totalValue) > 0.05) {
+            toast.error(`يجب أن يكون إجمالي مبالغ دفعات إنجاز الأعمال مساوياً لقيمة المشروع (${contractData.totalValue.toLocaleString()} ريال). الإجمالي الحالي لدفعات الأعمال: ${workPaymentsTotal.toLocaleString()} ريال`);
+            return false;
+          }
+          const finalPayment = paymentSchedule[paymentSchedule.length - 1];
+          const finalAmt = Number(finalPayment.amount || 0);
+          if (finalAmt <= 0) {
+            toast.error("يرجى إدخال مبلغ صحيح للدفعة الختامية");
+            return false;
+          }
+        } else if (!hasFinalPayment && paymentSchedule.length > 0) {
+          const totalPayments = paymentSchedule.reduce((sum, p) => sum + getPaymentEffectiveAmount(p), 0);
+          if (Math.abs(totalPayments - contractData.totalValue) > 0.05) {
+            toast.error(`يجب أن يكون إجمالي مبالغ الدفعات مساوياً لقيمة العقد تماماً (${contractData.totalValue.toLocaleString()} ريال). الإجمالي الحالي: ${totalPayments.toLocaleString()} ريال`);
+            return false;
+          }
         }
         return true;
       default:
@@ -1925,7 +2155,11 @@ export default function ContractForm() {
         startDate: contractData.startDate,
         customTerms: contractData.notes || undefined,
         // جدول الدفعات ونظام الصرف
-        paymentSchedule: JSON.stringify({ paymentSystem: paymentSystem || "installments", schedule: paymentSystem === "milestones" ? [] : paymentSchedule }),
+        paymentSchedule: JSON.stringify({ 
+          paymentSystem: paymentSystem || "installments", 
+          hasFinalPayment: Boolean(hasFinalPayment),
+          schedule: paymentSystem === "milestones" ? [] : paymentSchedule 
+        }),
         paymentSystem: (paymentSystem || undefined) as any,
         // بنود العقد المخصصة
         clauseValues: JSON.stringify(clauseValues.filter(c => c.isIncluded)),
@@ -1983,7 +2217,11 @@ export default function ContractForm() {
       contractDateHijri: contractData.startDateHijri ? `${contractData.startDateHijri.replace(/[^0-9/]/g, '')} هـ` : (contractData.startDate ? `${toHijriDate(contractData.startDate)} هـ` : undefined),
       startDate: contractData.startDate,
       // جدول الدفعات ونظام الصرف
-      paymentSchedule: JSON.stringify({ paymentSystem: paymentSystem || "installments", schedule: paymentSystem === "milestones" ? [] : paymentSchedule }),
+      paymentSchedule: JSON.stringify({ 
+        paymentSystem: paymentSystem || "installments", 
+        hasFinalPayment: Boolean(hasFinalPayment),
+        schedule: paymentSystem === "milestones" ? [] : paymentSchedule 
+      }),
       paymentSystem: (paymentSystem || undefined) as any,
       // بنود العقد
       clauseValues: clauseValues.length > 0 ? JSON.stringify(clauseValues.filter(c => c.isIncluded)) : undefined,
@@ -2129,7 +2367,7 @@ export default function ContractForm() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-5xl mx-auto space-y-6 px-4 md:px-0">
+      <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6 lg:px-8">
         {/* العنوان */}
         <div className="flex items-center gap-3 sm:gap-4 text-right">
           <Button 
@@ -2778,6 +3016,7 @@ export default function ContractForm() {
                             supportedAmount: prev.supportType === "full" ? val : prev.supportedAmount
                           };
                         });
+                        setPaymentSchedule(prev => recalculateScheduleWithCumulativeCompletion(prev, val));
                       }}
                       placeholder="أدخل القيمة المتفق عليها"
                       className={cn(
@@ -2912,6 +3151,62 @@ export default function ContractForm() {
                   </div>
                 </div>
 
+                {/* بطاقة تحديد خيار الدفعة الختامية (تظهر لنظام الدفعات ونظام المستخلصات) بتصميم أنيق وعصري */}
+                {(paymentSystem === "installments" || paymentSystem === "milestones") && (
+                  <div 
+                    onClick={() => handleToggleFinalPayment(!hasFinalPayment)}
+                    className={cn(
+                      "cursor-pointer p-4 rounded-2xl border transition-all flex items-start sm:items-center justify-between gap-4 text-right select-none",
+                      hasFinalPayment
+                        ? "border-amber-400/50 bg-amber-500/[0.04] dark:bg-amber-950/20 shadow-xs ring-1 ring-amber-400/20"
+                        : "border-border/80 hover:border-amber-500/30 bg-card hover:bg-muted/20"
+                    )}
+                  >
+                    <div className="flex items-start sm:items-center gap-3.5">
+                      <div className={cn(
+                        "p-2.5 rounded-xl transition-colors shrink-0 mt-0.5 sm:mt-0",
+                        hasFinalPayment 
+                          ? "bg-amber-500/15 text-amber-700 dark:text-amber-400" 
+                          : "bg-muted text-muted-foreground"
+                      )}>
+                        <Sparkles className="w-5 h-5" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-sm text-foreground">
+                            هل يتضمن جدول الدفعات دفعة ختامية؟
+                          </span>
+                          {hasFinalPayment ? (
+                            <Badge variant="outline" className="bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30 text-[11px] font-semibold">
+                              {paymentSystem === "installments"
+                                ? "✓ مفعّل: اكتمال الإنجاز 100% في الدفعة قبل الأخيرة"
+                                : "✓ مفعّل: يتضمن دفعة ختامية مستقلة"}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[11px]">
+                              {paymentSystem === "installments"
+                                ? "غير مفعّل: اكتمال الإنجاز 100% في الدفعة الأخيرة"
+                                : "غير مفعّل: بدون دفعة ختامية"}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          {paymentSystem === "installments"
+                            ? "عند تفعيل هذا الخيار، تكون الدفعة الأخيرة دفعة ختامية غير مرتبطة بنسبة إنجاز، ويتحول شرط اكتمال نسبة الإنجاز التراكمية (100%) تلقائياً إلى الدفعة قبل الأخيرة."
+                            : "عند تفعيل هذا الخيار، يتضمن العقد دفعة ختامية مستقلة غير مرتبطة بنسبة إنجاز، تُصرف كدفعة نهائية بعد استكمال إنجاز كافة أعمال المشروع ومستخلصاته بنسبة 100%."}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="pt-1 sm:pt-0 shrink-0 mr-1" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={hasFinalPayment}
+                        onCheckedChange={(checked) => handleToggleFinalPayment(Boolean(checked))}
+                        className="h-5 w-5 rounded-md data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600 focus-visible:ring-amber-500/30"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {/* في حال اختيار نظام المستخلصات: إخفاء جدول الدفعات وعرض بطاقة معلومات توضيحية */}
                 {paymentSystem === "milestones" && (
                   <Card className="bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/50 p-5 rounded-2xl">
@@ -2919,13 +3214,25 @@ export default function ContractForm() {
                       <div className="p-2.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0 mt-0.5">
                         <Check className="w-5 h-5" />
                       </div>
-                      <div className="space-y-1.5 text-right">
-                        <h4 className="text-sm font-bold text-emerald-950 dark:text-emerald-200">
-                          نظام المستخلصات بحسب الإنجاز الفعلي
-                        </h4>
+                      <div className="space-y-1.5 text-right flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-sm font-bold text-emerald-950 dark:text-emerald-200">
+                            نظام المستخلصات بحسب الإنجاز الفعلي
+                          </h4>
+                          {hasFinalPayment && (
+                            <Badge variant="outline" className="bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30 text-[11px] font-bold">
+                              🏆 يتضمن دفعة ختامية مستقلة
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                           في نظام المستخلصات، لا يتم تحديد أو جدولة مستخلصات مسبقة أثناء إنشاء العقد. يتم تقديم المستخلصات وصرفها لاحقاً وبشكل مرن بناءً على نسب الإنجاز الفعلية والمراحل المنجزة في المشروع.
                         </p>
+                        {hasFinalPayment && (
+                          <div className="text-xs text-amber-800 dark:text-amber-200 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 font-medium">
+                            ✓ تم اعتماد دفعة ختامية للعقد: تصرف كدفعة نهائية عند التسليم بعد اكتمال أعمال المشروع ومستخلصاته بنسبة 100%.
+                          </div>
+                        )}
                         <div className="pt-1 text-xs text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1.5">
                           <span>✓ يمكنك المتابعة للخطوة التالية مباشرة دون الحاجة لجدولة أي مستخلصات.</span>
                         </div>
@@ -3049,6 +3356,11 @@ export default function ContractForm() {
                       const prevPaymentDate = prevPayment?.dueDate || undefined;
                       const nextPaymentDate = nextPayment?.dueDate || undefined;
 
+                      const isLastPayment = index === paymentSchedule.length - 1;
+                      const isPenultimatePayment = index === paymentSchedule.length - 2;
+                      const isFinalClosingPayment = hasFinalPayment && isLastPayment && paymentSchedule.length >= 2;
+                      const isPenultimateClosingWork = hasFinalPayment && isPenultimatePayment && paymentSchedule.length >= 2;
+
                       return (
                       <React.Fragment key={payment.id}>
                         {index > 0 && (
@@ -3076,7 +3388,11 @@ export default function ContractForm() {
                               ? (isPartiallyPaid
                                   ? "bg-amber-50/75 dark:bg-amber-950/25 border-2 border-amber-500/60 shadow-sm"
                                   : "bg-emerald-50/75 dark:bg-emerald-950/25 border-2 border-emerald-500/60 shadow-sm")
-                              : "bg-card border-border/70"
+                              : isFinalClosingPayment
+                                ? "bg-amber-500/[0.02] border-amber-400/40 shadow-2xs"
+                                : isPenultimateClosingWork
+                                  ? "bg-purple-500/[0.015] border-purple-400/30 shadow-2xs"
+                                  : "bg-card border-border/70"
                           )}
                         >
                           {isPaid && (
@@ -3111,12 +3427,27 @@ export default function ContractForm() {
                           )}
                           <div className="flex flex-col md:flex-row items-start gap-4">
                             <div className="flex items-center justify-between w-full md:w-auto md:flex-col md:justify-start gap-2 text-muted-foreground border-b md:border-0 pb-2 md:pb-0 mb-2 md:mb-0">
-                              <div className="flex items-center gap-2">
-                                {!isPaid && <GripVertical className="h-5 w-5 hidden md:block" />}
-                                {isPaid && <Lock className="h-4 w-4 hidden md:block text-emerald-600 dark:text-emerald-400" />}
-                                <span className="font-bold text-primary md:text-foreground">
-                                  الدفعة {index + 1}
-                                </span>
+                              <div className="flex items-start gap-2">
+                                {!isPaid && <GripVertical className="h-5 w-5 hidden md:block mt-0.5 text-muted-foreground/50 shrink-0" />}
+                                {isPaid && <Lock className="h-4 w-4 hidden md:block text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />}
+                                <div className="flex flex-col items-start gap-1">
+                                  <span className={cn(
+                                    "font-bold text-sm sm:text-base leading-tight",
+                                    isFinalClosingPayment ? "text-amber-800 dark:text-amber-300" : isPenultimateClosingWork ? "text-purple-800 dark:text-purple-300" : "text-primary md:text-foreground"
+                                  )}>
+                                    الدفعة {index + 1}
+                                  </span>
+                                  {isFinalClosingPayment && (
+                                    <Badge variant="outline" className="bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30 text-[10px] font-bold py-0.5 px-2">
+                                      🏆 الدفعة الختامية
+                                    </Badge>
+                                  )}
+                                  {isPenultimateClosingWork && (
+                                    <Badge variant="outline" className="bg-purple-500/10 text-purple-800 dark:text-purple-300 border-purple-500/30 text-[10px] font-bold py-0.5 px-2">
+                                      🎯 اكتمال الأعمال (100%)
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                               {!isPaid && (
                                 <Button
@@ -3131,11 +3462,147 @@ export default function ContractForm() {
                             </div>
                             
                             <div className="flex-1 space-y-4 w-full">
-                              {/* الصف الأول: معلومات الدفعة */}
-                              <div className="grid gap-4 w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
-                                <div className="space-y-1">
-                                  <Label className="text-xs font-semibold">
-                                    التاريخ الميلادي
+                              {/* الصف الأول: معلومات الدفعة والقيم المالية */}
+                              <div className="grid gap-3.5 w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+                                {/* الحقل الأول: قيمة الدفعة (مبلغ مالي) */}
+                                <div className={cn(
+                                  "p-3 rounded-xl border transition-all flex flex-col justify-between space-y-2",
+                                  isPaid
+                                    ? "bg-slate-100/70 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800"
+                                    : isFinalClosingPayment
+                                      ? "bg-amber-500/[0.03] border-amber-500/20 dark:bg-amber-950/15"
+                                      : "bg-emerald-500/[0.03] border-emerald-500/20 dark:bg-emerald-950/15 dark:border-emerald-500/20"
+                                )}>
+                                  <Label className={cn(
+                                    "text-xs font-semibold flex items-center gap-1.5",
+                                    isPaid ? "text-slate-600 dark:text-slate-400" : "text-foreground/85"
+                                  )}>
+                                    <SaudiRiyal className={cn(
+                                      "w-3.5 h-3.5 shrink-0",
+                                      isFinalClosingPayment ? "text-amber-600/80 dark:text-amber-400/80" : "text-emerald-600/80 dark:text-emerald-400/80"
+                                    )} />
+                                    <span>
+                                      {isPaid 
+                                        ? (isPartiallyPaid ? "قيمة الدفعة (مبلغ مالي) - المتفق عليه" : "قيمة الدفعة (مبلغ مالي) - المسدد") 
+                                        : isFinalClosingPayment
+                                          ? "قيمة الدفعة الختامية (مبلغ مالي) *"
+                                          : "قيمة الدفعة (مبلغ مالي) *"}
+                                    </span>
+                                  </Label>
+                                  <div className="relative">
+                                    <Input
+                                      type="number"
+                                      value={payment.amount || ""}
+                                      disabled={isPaid}
+                                      required
+                                      className={cn(
+                                        "w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all", 
+                                        isPaid 
+                                          ? "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner" 
+                                          : "bg-background border-border/80 text-foreground focus-visible:border-emerald-500/40 focus-visible:ring-emerald-500/15 shadow-2xs"
+                                      )}
+                                      onChange={(e) => {
+                                        if (isPaid) return;
+                                        const val = parseFloat(e.target.value) || 0;
+                                        handlePaymentAmountChange(payment.id, val);
+                                      }}
+                                      placeholder="0.00"
+                                    />
+                                    <SaudiRiyal className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600/60 dark:text-emerald-400/60 pointer-events-none" />
+                                  </div>
+                                  {isPartiallyPaid && paidAmt > 0 && (
+                                    <p className="text-[11px] text-amber-700 dark:text-amber-400 font-semibold pt-0.5">
+                                      المبلغ المسدد الفعلي: {paidAmt.toLocaleString()} ر.س
+                                    </p>
+                                  )}
+                                </div>
+
+                                {/* الحقل الثاني: قيمة الدفعة (نسبة مئوية) */}
+                                <div className={cn(
+                                  "p-3 rounded-xl border transition-all flex flex-col justify-between space-y-2",
+                                  isPaid
+                                    ? "bg-slate-100/70 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800"
+                                    : "bg-blue-500/[0.03] border-blue-500/20 dark:bg-blue-950/15 dark:border-blue-500/20"
+                                )}>
+                                  <Label className={cn(
+                                    "text-xs font-semibold flex items-center gap-1.5",
+                                    isPaid ? "text-slate-600 dark:text-slate-400" : "text-foreground/85"
+                                  )}>
+                                    <Percent className="w-3.5 h-3.5 text-blue-600/80 dark:text-blue-400/80 shrink-0" />
+                                    <span>قيمة الدفعة (نسبة مئوية) *</span>
+                                  </Label>
+                                  <div className="relative">
+                                    <Input
+                                      type="number"
+                                      value={payment.percentage || ""}
+                                      disabled={isPaid}
+                                      required
+                                      className={cn(
+                                        "w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all", 
+                                        isPaid 
+                                          ? "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner" 
+                                          : "bg-background border-border/80 text-foreground focus-visible:border-blue-500/40 focus-visible:ring-blue-500/15 shadow-2xs"
+                                      )}
+                                      onChange={(e) => {
+                                        if (isPaid) return;
+                                        const pct = parseFloat(e.target.value) || 0;
+                                        handlePaymentPercentageChange(payment.id, pct);
+                                      }}
+                                      placeholder="0"
+                                      min="0"
+                                      max="100"
+                                    />
+                                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-blue-600/60 dark:text-blue-400/60 font-bold text-xs pointer-events-none">
+                                      %
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* الحقل الثالث: عنوان طلب الصرف */}
+                                <div className={cn(
+                                  "p-3 rounded-xl border transition-all flex flex-col justify-between space-y-2",
+                                  isPaid
+                                    ? "bg-slate-100/70 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800"
+                                    : "bg-indigo-500/[0.03] border-indigo-500/20 dark:bg-indigo-950/15 dark:border-indigo-500/20"
+                                )}>
+                                  <Label className={cn(
+                                    "text-xs font-semibold flex items-center gap-1.5",
+                                    isPaid ? "text-slate-600 dark:text-slate-400" : "text-foreground/85"
+                                  )}>
+                                    <FileText className="w-3.5 h-3.5 text-indigo-600/80 dark:text-indigo-400/80 shrink-0" />
+                                    <span>عنوان طلب الصرف *</span>
+                                  </Label>
+                                  <Input
+                                    value={payment.name}
+                                    disabled={isPaid}
+                                    required
+                                    className={cn(
+                                      "w-full rounded-xl font-medium transition-all", 
+                                      isPaid 
+                                        ? "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
+                                        : "bg-background border-border/80 text-foreground focus-visible:border-indigo-500/40 focus-visible:ring-indigo-500/15 shadow-2xs"
+                                    )}
+                                    onChange={(e) => {
+                                      if (isPaid) return;
+                                      updatePayment(payment.id, "name", e.target.value);
+                                    }}
+                                    placeholder="مثال: الدفعة الأولى"
+                                  />
+                                </div>
+
+                                {/* الحقل الرابع: التاريخ الميلادي */}
+                                <div className={cn(
+                                  "p-3 rounded-xl border transition-all flex flex-col justify-between space-y-2",
+                                  isPaid
+                                    ? "bg-slate-100/70 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800"
+                                    : "bg-amber-500/[0.03] border-amber-500/20 dark:bg-amber-950/15 dark:border-amber-500/20"
+                                )}>
+                                  <Label className={cn(
+                                    "text-xs font-semibold flex items-center gap-1.5",
+                                    isPaid ? "text-slate-600 dark:text-slate-400" : "text-foreground/85"
+                                  )}>
+                                    <Calendar className="w-3.5 h-3.5 text-amber-600/80 dark:text-amber-400/80 shrink-0" />
+                                    <span>التاريخ الميلادي *</span>
                                   </Label>
                                   <Input
                                     type="date"
@@ -3143,8 +3610,10 @@ export default function ContractForm() {
                                     disabled={isPaid}
                                     required
                                     className={cn(
-                                      "w-full rounded-xl", 
-                                      isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-medium cursor-not-allowed shadow-inner"
+                                      "w-full rounded-xl font-sans transition-all", 
+                                      isPaid 
+                                        ? "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
+                                        : "bg-background border-border/80 text-foreground focus-visible:border-amber-500/40 focus-visible:ring-amber-500/15 shadow-2xs"
                                     )}
                                     onChange={(e) => {
                                       if (isPaid) return;
@@ -3211,98 +3680,35 @@ export default function ContractForm() {
                                     })()}
                                   />
                                 </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs font-semibold">
-                                    عنوان طلب الصرف
-                                  </Label>
-                                  <Input
-                                    value={payment.name}
-                                    disabled={isPaid}
-                                    required
-                                    className={cn(
-                                      "w-full rounded-xl", 
-                                      isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-medium cursor-not-allowed shadow-inner"
-                                    )}
-                                    onChange={(e) => {
-                                      if (isPaid) return;
-                                      updatePayment(payment.id, "name", e.target.value);
-                                    }}
-                                    placeholder="عنوان الطلب"
-                                  />
-                                </div>
-
-                                <div className="space-y-1">
-                                  <Label className="text-xs font-semibold text-foreground">النسبة (%) *</Label>
-                                  <Input
-                                    type="number"
-                                    value={payment.percentage || ""}
-                                    disabled={isPaid}
-                                    required
-                                    className={cn(
-                                      "w-full rounded-xl font-bold font-sans", 
-                                      isPaid 
-                                        ? "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner" 
-                                        : "text-primary"
-                                    )}
-                                    onChange={(e) => {
-                                      if (isPaid) return;
-                                      const pct = parseFloat(e.target.value) || 0;
-                                      const amount = contractData.totalValue ? (contractData.totalValue * pct) / 100 : 0;
-                                      setPaymentSchedule(prev => prev.map(p => 
-                                        p.id === payment.id ? { ...p, percentage: pct, amount: Number(amount.toFixed(2)) } : p
-                                      ));
-                                    }}
-                                    placeholder="0"
-                                    min="0"
-                                    max="100"
-                                  />
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs font-semibold">
-                                    {isPaid ? (isPartiallyPaid ? "المبلغ المتفق عليه (ر.س)" : "المبلغ المسدد (ر.س)") : "المبلغ"}
-                                  </Label>
-                                  <Input
-                                    type="number"
-                                    value={payment.amount || ""}
-                                    disabled={isPaid}
-                                    required
-                                    className={cn(
-                                      "w-full rounded-xl font-bold font-sans", 
-                                      isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
-                                    )}
-                                    onChange={(e) => {
-                                      if (isPaid) return;
-                                      const val = parseFloat(e.target.value) || 0;
-                                      const pct = contractData.totalValue ? (val / contractData.totalValue) * 100 : 0;
-                                      setPaymentSchedule(prev => prev.map(p => 
-                                        p.id === payment.id ? { ...p, amount: val, percentage: Number(pct.toFixed(2)) } : p
-                                      ));
-                                    }}
-                                    placeholder="0.00"
-                                  />
-                                  {isPartiallyPaid && paidAmt > 0 && (
-                                    <p className="text-[11px] text-amber-700 dark:text-amber-400 font-semibold pt-0.5">
-                                      المبلغ المسدد الفعلي: {paidAmt.toLocaleString()} ر.س
-                                    </p>
-                                  )}
-                                </div>
                               </div>
 
-                              {/* الصف الثاني: تفاصيل الأعمال المطلوبة ونسبة الإنجاز لتفعيل الدفعة */}
-                              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full">
-                                <div className="space-y-1 md:col-span-2 lg:col-span-2 text-right">
-                                  <Label className="text-xs font-semibold">
-                                    وصف الأعمال التي سوف تنفذ *
+                              {/* الصف الثاني: تفاصيل الأعمال المطلوبة ونسبة الإنجاز التراكمية لتفعيل الدفعة */}
+                              <div className="grid grid-cols-1 md:grid-cols-4 gap-3.5 w-full">
+                                {/* الحقل الخامس: وصف الأعمال التي سوف تُنفّذ */}
+                                <div className={cn(
+                                  "p-3 rounded-xl border transition-all md:col-span-2 lg:col-span-2 flex flex-col justify-between space-y-2 text-right",
+                                  isPaid
+                                    ? "bg-slate-100/70 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800"
+                                    : "bg-teal-500/[0.03] border-teal-500/20 dark:bg-teal-950/15 dark:border-teal-500/20"
+                                )}>
+                                  <Label className={cn(
+                                    "text-xs font-semibold flex items-center gap-1.5",
+                                    isPaid ? "text-slate-600 dark:text-slate-400" : "text-foreground/85"
+                                  )}>
+                                    <FileSpreadsheet className="w-3.5 h-3.5 text-teal-600/80 dark:text-teal-400/80 shrink-0" />
+                                    <span>وصف الأعمال التي سوف تُنفّذ *</span>
                                   </Label>
                                   <Textarea
                                     value={payment.description || ""}
                                     disabled={isPaid}
                                     required
-                                    placeholder="وصف تفصيلي للأعمال التي سوف تنفذ..."
+                                    placeholder="وصف تفصيلي للأعمال التي سوف تُنفّذ لإطلاق وصرف هذه الدفعة..."
                                     rows={3}
                                     className={cn(
-                                      "w-full rounded-xl text-right", 
-                                      isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-medium cursor-not-allowed shadow-inner"
+                                      "w-full rounded-xl text-right font-medium transition-all h-full min-h-[88px]", 
+                                      isPaid 
+                                        ? "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
+                                        : "bg-background border-border/80 text-foreground focus-visible:border-teal-500/40 focus-visible:ring-teal-500/15 shadow-2xs"
                                     )}
                                     onChange={(e) => {
                                       if (isPaid) return;
@@ -3310,13 +3716,38 @@ export default function ContractForm() {
                                     }}
                                   />
                                 </div>
-                                <div className="space-y-1 md:col-span-2 lg:col-span-2 text-right">
-                                  <div className="flex items-center justify-between">
-                                    <Label className="text-xs font-semibold text-foreground">
-                                      نسبة الإنجاز (%) *
-                                    </Label>
-                                  </div>
-                                  {(() => {
+
+                                {/* الحقل السادس: نسبة الإنجاز التراكمية (%) */}
+                                <div className={cn(
+                                  "p-3 rounded-xl border transition-all md:col-span-2 lg:col-span-2 flex flex-col justify-between space-y-2 text-right",
+                                  isPaid
+                                    ? "bg-slate-100/70 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800"
+                                    : isFinalClosingPayment
+                                      ? "bg-amber-500/[0.03] border-amber-500/20 dark:bg-amber-950/15"
+                                      : isPenultimateClosingWork
+                                        ? "bg-purple-500/[0.03] border-purple-500/25 dark:bg-purple-950/20"
+                                        : "bg-purple-500/[0.03] border-purple-500/20 dark:bg-purple-950/15 dark:border-purple-500/20"
+                                )}>
+                                  {isFinalClosingPayment ? (
+                                    <div className="space-y-2.5 flex flex-col justify-between h-full">
+                                      <div className="flex items-center justify-between flex-wrap gap-1">
+                                        <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground/85">
+                                          <Sparkles className="w-3.5 h-3.5 text-amber-600/80 dark:text-amber-400/80 shrink-0" />
+                                          <span>نسبة الإنجاز: دفعة ختامية</span>
+                                        </Label>
+                                      </div>
+                                      <div className="bg-amber-500/[0.06] dark:bg-amber-950/25 border border-amber-500/20 rounded-xl p-3 text-xs space-y-1.5">
+                                        <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                                          <Check className="w-4 h-4 shrink-0 text-amber-600" />
+                                          <span>دفعة ختامية — غير مرتبطة بنسبة إنجاز</span>
+                                        </div>
+                                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                          هذه الدفعة مخصصة للصرف الختامي بعد استكمال أعمال المشروع بنسبة 100% في الدفعة السابقة، ولا تتطلب إدراج نسبة إنجاز.
+                                        </p>
+                                      </div>
+                                    </div>
+                                  ) : (() => {
+                                    const cumulativeAmount = paymentSchedule.slice(0, index + 1).reduce((sum, p) => sum + getPaymentEffectiveAmount(p), 0);
                                     const prevComp = (prevPayment?.completionPercentage !== undefined && prevPayment?.completionPercentage !== null && !isNaN(Number(prevPayment.completionPercentage)))
                                       ? Number(prevPayment.completionPercentage)
                                       : null;
@@ -3327,12 +3758,13 @@ export default function ContractForm() {
                                       ? Number(payment.completionPercentage)
                                       : null;
 
-                                    const isBelowPrev = prevComp !== null && currentComp !== null && currentComp <= prevComp;
-                                    const isAboveNext = nextComp !== null && currentComp !== null && currentComp >= nextComp;
-                                    const hasRedAlert = isBelowPrev || isAboveNext;
+                                    const hasAmount = Number(payment.amount || 0) > 0 || (payment.percentage || 0) > 0;
+                                    const isBelowPrev = prevComp !== null && currentComp !== null && currentComp <= prevComp && hasAmount;
+                                    const isAboveNext = nextComp !== null && currentComp !== null && currentComp >= nextComp && hasAmount;
+                                    const hasRedAlert = Boolean((isBelowPrev || isAboveNext) && hasAmount);
                                     const minAllowed = index === 0 ? 0 : (prevComp !== null ? prevComp + 1 : 0);
                                     const maxAllowed = nextComp !== null ? Math.max(minAllowed, nextComp - 1) : 100;
-                                    const isAfter100 = prevComp !== null && prevComp >= 100;
+                                    const isAfter100 = prevComp !== null && prevComp >= 100 && !isFinalClosingPayment;
 
                                     const isExpanded = expandedGuidanceMap[payment.id] !== undefined
                                       ? expandedGuidanceMap[payment.id]
@@ -3342,14 +3774,30 @@ export default function ContractForm() {
                                     const nextName = nextPayment ? (nextPayment.name || `الدفعة ${index + 2}`) : "";
 
                                     return (
-                                      <div className="space-y-1.5">
+                                      <div className="space-y-2 flex flex-col justify-between h-full">
+                                        <div className="flex items-center justify-between flex-wrap gap-1">
+                                          <Label className={cn(
+                                            "text-xs font-semibold flex items-center gap-1.5",
+                                            isPaid ? "text-slate-600 dark:text-slate-400" : "text-foreground/85"
+                                          )}>
+                                            <TrendingUp className="w-3.5 h-3.5 text-purple-600/80 dark:text-purple-400/80 shrink-0" />
+                                            <span>نسبة الإنجاز التراكمية (%) *</span>
+                                            {isPenultimateClosingWork ? (
+                                              <Badge variant="outline" className="bg-purple-500/15 text-purple-800 dark:text-purple-300 border-purple-500/30 text-[10px] font-bold mr-1">
+                                                اكتمال أعمال المشروع (100%)
+                                              </Badge>
+                                            ) : (
+                                              <span className="text-[10px] text-muted-foreground font-normal mr-1">(محسوبة تراكمياً بناءً على المبلغ)</span>
+                                            )}
+                                          </Label>
+                                        </div>
                                         {isAfter100 ? (
                                           <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-2.5 text-xs text-destructive font-bold flex items-center gap-2 animate-in fade-in">
                                             <AlertTriangle className="h-4 w-4 shrink-0" />
                                             <div className="space-y-0.5">
                                               <p className="font-bold">غير متاح إدراج نسبة إنجاز بعد دفعة مكتملة (100%)</p>
                                               <p className="font-normal text-[11px] text-destructive/90">
-                                                الدفعة السابقة ({prevName}) بلغت نسبة إنجازها 100%. لا يمكن إضافة دفعة بنسبة أعلى من 100%.
+                                                الدفعة السابقة ({prevName}) بلغت نسبة إنجازها التراكمية 100%. لا يمكن إضافة دفعة بنسبة أعلى من 100%.
                                               </p>
                                             </div>
                                           </div>
@@ -3361,28 +3809,28 @@ export default function ContractForm() {
                                                 "rounded-xl border transition-all duration-200 overflow-hidden mb-1.5",
                                                 hasRedAlert 
                                                   ? "bg-destructive/5 border-destructive/40 shadow-xs" 
-                                                  : "bg-sky-50/70 dark:bg-sky-950/20 border-sky-200/80 dark:border-sky-900/40"
+                                                  : "bg-purple-500/[0.04] dark:bg-purple-950/30 border-purple-500/15 dark:border-purple-800/30"
                                               )}>
                                                 <button
                                                   type="button"
                                                   onClick={() => setExpandedGuidanceMap(prev => ({ ...prev, [payment.id]: !isExpanded }))}
                                                   className={cn(
-                                                    "w-full flex items-center justify-between px-2.5 py-1.5 text-xs transition-colors select-none text-right font-semibold",
+                                                    "w-full flex items-center justify-between px-2.5 py-1.5 text-xs transition-colors select-none text-right font-medium",
                                                     hasRedAlert 
                                                       ? "text-destructive hover:bg-destructive/10" 
-                                                      : "text-sky-800 dark:text-sky-300 hover:bg-sky-100/60 dark:hover:bg-sky-900/30"
+                                                      : "text-foreground/80 hover:bg-purple-500/[0.06] dark:hover:bg-purple-900/30"
                                                   )}
                                                 >
                                                   <div className="flex items-center gap-1.5 flex-wrap">
-                                                    <Info className={cn("w-3.5 h-3.5 shrink-0", hasRedAlert ? "text-destructive" : "text-sky-600 dark:text-sky-400")} />
-                                                    <span>شروط ونطاق نسبة الإنجاز:</span>
+                                                    <Info className={cn("w-3.5 h-3.5 shrink-0", hasRedAlert ? "text-destructive" : "text-purple-600/80 dark:text-purple-400/80")} />
+                                                    <span>شروط ونطاق نسبة الإنجاز التراكمية:</span>
                                                     <span className={cn(
                                                       "font-bold px-1.5 py-0.5 rounded text-[11px] font-sans border",
                                                       hasRedAlert 
                                                         ? "bg-destructive/10 text-destructive border-destructive/30" 
-                                                        : "bg-sky-100 dark:bg-sky-900/60 text-sky-800 dark:text-sky-200 border-sky-300/60 dark:border-sky-800/60"
+                                                        : "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20"
                                                     )}>
-                                                      {minAllowed}% – {maxAllowed}%
+                                                      {isPenultimateClosingWork ? "100%" : `${minAllowed}% – ${maxAllowed}%`}
                                                     </span>
                                                     {hasRedAlert && (
                                                       <span className="text-[10px] font-bold text-destructive bg-destructive/15 px-1.5 py-0.5 rounded border border-destructive/30 animate-pulse">
@@ -3401,85 +3849,100 @@ export default function ContractForm() {
                                                     "p-2.5 pt-1.5 text-xs space-y-1 border-t animate-in fade-in duration-150",
                                                     hasRedAlert 
                                                       ? "border-destructive/20 text-destructive/95 bg-destructive/[0.02]" 
-                                                      : "border-sky-200/60 dark:border-sky-900/30 text-sky-800 dark:text-sky-300"
+                                                      : "border-purple-500/10 text-foreground/80"
                                                   )}>
-                                                    {prevComp !== null && (
-                                                      <p>
-                                                        📅 <strong>الدفعة السابقة ({prevName}):</strong> نسبة إنجازها <strong>{prevComp}%</strong> ← يجب أن تكون النسبة الحالية <strong>أكبر من ذلك</strong>
+                                                    {isPenultimateClosingWork ? (
+                                                      <p className="font-semibold text-purple-700 dark:text-purple-300">
+                                                        🎯 هذه الدفعة هي الدفعة قبل الأخيرة لمرحلة إنجاز الأعمال، لذلك تشترط استكمال الأعمال بنسبة 100% تمهيداً للدفعة الختامية.
                                                       </p>
+                                                    ) : (
+                                                      <>
+                                                        {prevComp !== null && (
+                                                          <p>
+                                                            📅 <strong>الدفعة السابقة ({prevName}):</strong> نسبة إنجازها التراكمية <strong>{prevComp}%</strong> ← يجب أن تكون النسبة الحالية <strong>أكبر من ذلك</strong>
+                                                          </p>
+                                                        )}
+                                                        {nextComp !== null && (
+                                                          <p>
+                                                            📅 <strong>الدفعة التالية ({nextName}):</strong> نسبة إنجازها التراكمية <strong>{nextComp}%</strong> ← يجب أن تكون النسبة الحالية <strong>أقل من ذلك</strong>
+                                                          </p>
+                                                        )}
+                                                        {prevComp === null && (
+                                                          <p>⭐ <strong>الدفعة الأولى:</strong> يمكن أن تبدأ نسبة الإنجاز من 0% فما فوق</p>
+                                                        )}
+                                                        <p className={cn("font-bold", hasRedAlert ? "text-destructive" : "text-purple-700 dark:text-purple-300")}>
+                                                          النطاق المسموح به: {minAllowed}% – {maxAllowed}%
+                                                        </p>
+                                                      </>
                                                     )}
-                                                    {nextComp !== null && (
-                                                      <p>
-                                                        📅 <strong>الدفعة التالية ({nextName}):</strong> نسبة إنجازها <strong>{nextComp}%</strong> ← يجب أن تكون النسبة الحالية <strong>أقل من ذلك</strong>
-                                                      </p>
-                                                    )}
-                                                    {prevComp === null && (
-                                                      <p>⭐ <strong>الدفعة الأولى:</strong> يمكن أن تبدأ نسبة الإنجاز من 0% فما فوق</p>
-                                                    )}
-                                                    <p className={cn("font-bold", hasRedAlert ? "text-destructive" : "text-sky-700 dark:text-sky-400")}>
-                                                      النطاق المسموح به: {minAllowed}% – {maxAllowed}%
-                                                    </p>
                                                   </div>
                                                 )}
                                               </div>
                                             )}
 
-                                            <Input
-                                              type="number"
-                                              min={minAllowed}
-                                              max={maxAllowed}
-                                              disabled={isPaid}
-                                              required
-                                              value={payment.completionPercentage !== undefined && payment.completionPercentage !== null ? payment.completionPercentage : ""}
-                                              placeholder={index === 0 ? "مثال: 0" : `الحد الأدنى: ${minAllowed}%`}
-                                              className={cn(
-                                                "w-full rounded-xl text-right font-bold transition-all font-sans",
-                                                (isBelowPrev || isAboveNext) && "border-2 border-destructive bg-destructive/5 text-destructive ring-2 ring-destructive/20",
-                                                isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
-                                              )}
-                                              onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                  e.currentTarget.blur();
-                                                }
-                                              }}
-                                              onChange={(e) => {
-                                                if (isPaid) return;
-                                                if (e.target.value === "") {
-                                                  updatePayment(payment.id, "completionPercentage", undefined);
-                                                } else {
-                                                  let val = parseInt(e.target.value);
-                                                  if (isNaN(val)) {
-                                                    updatePayment(payment.id, "completionPercentage", undefined);
+                                            <div className="relative">
+                                              <Input
+                                                type="number"
+                                                min={minAllowed}
+                                                max={100}
+                                                disabled={isPaid || isPenultimateClosingWork}
+                                                required
+                                                value={isPenultimateClosingWork ? 100 : (payment.completionPercentage !== undefined && payment.completionPercentage !== null ? payment.completionPercentage : "")}
+                                                placeholder={index === 0 ? "مثال: 0" : `الحد الأدنى: ${minAllowed}%`}
+                                                className={cn(
+                                                  "w-full rounded-xl text-right font-bold transition-all font-sans pl-3 pr-8 text-base",
+                                                  !isPenultimateClosingWork && (isBelowPrev || isAboveNext) && "border-2 border-destructive bg-destructive/5 text-destructive ring-2 ring-destructive/20",
+                                                  isPaid || isPenultimateClosingWork
+                                                    ? "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
+                                                    : "bg-background border-border/80 text-foreground focus-visible:border-purple-500/40 focus-visible:ring-purple-500/15 shadow-2xs"
+                                                )}
+                                                onKeyDown={(e) => {
+                                                  if (e.key === 'Enter') {
+                                                    e.currentTarget.blur();
+                                                  }
+                                                }}
+                                                onChange={(e) => {
+                                                  if (isPaid || isPenultimateClosingWork) return;
+                                                  if (e.target.value === "") {
+                                                    handlePaymentCompletionPercentageChange(payment.id, undefined);
                                                   } else {
-                                                    if (val > 100) val = 100;
-                                                    if (val < 0) val = 0;
-                                                    updatePayment(payment.id, "completionPercentage", val);
+                                                    let val = parseFloat(e.target.value);
+                                                    if (isNaN(val)) {
+                                                      handlePaymentCompletionPercentageChange(payment.id, undefined);
+                                                    } else {
+                                                      if (val > 100) val = 100;
+                                                      if (val < 0) val = 0;
+                                                      handlePaymentCompletionPercentageChange(payment.id, val);
+                                                    }
                                                   }
-                                                }
-                                              }}
-                                              onBlur={(e) => {
-                                                if (isPaid) return;
-                                                const val = e.target.value === "" ? undefined : parseInt(e.target.value);
-                                                if (val !== undefined && !isNaN(val)) {
-                                                  if (prevComp !== null && val <= prevComp) {
-                                                    toast.error(`نسبة إنجاز الدفعة ${index + 1} (${val}%) غير مقبولة — يجب أن تكون أكبر من نسبة الدفعة السابقة (${prevName}: ${prevComp}%). تم ضبطها على الحد الأدنى (${minAllowed}%).`);
-                                                    updatePayment(payment.id, "completionPercentage", minAllowed);
-                                                  } else if (nextComp !== null && val >= nextComp) {
-                                                    const maxVal = Math.max(minAllowed, nextComp - 1);
-                                                    toast.error(`نسبة إنجاز الدفعة ${index + 1} (${val}%) غير مقبولة — يجب أن تكون أقل من نسبة الدفعة التالية (${nextName}: ${nextComp}%). تم ضبطها على (${maxVal}%).`);
-                                                    updatePayment(payment.id, "completionPercentage", maxVal);
+                                                }}
+                                                onBlur={(e) => {
+                                                  if (isPaid || isPenultimateClosingWork) return;
+                                                  const val = e.target.value === "" ? undefined : parseFloat(e.target.value);
+                                                  if (val !== undefined && !isNaN(val)) {
+                                                    if (prevComp !== null && val <= prevComp) {
+                                                      toast.error(`نسبة إنجاز الدفعة ${index + 1} (${val}%) غير مقبولة — يجب أن تكون أكبر من نسبة إنجاز الدفعة السابقة (${prevName}: ${prevComp}%). تم ضبطها على الحد الأدنى (${minAllowed}%).`);
+                                                      handlePaymentCompletionPercentageChange(payment.id, minAllowed);
+                                                    } else if (nextComp !== null && val >= nextComp) {
+                                                      const maxVal = Math.max(minAllowed, nextComp - 1);
+                                                      toast.error(`نسبة إنجاز الدفعة ${index + 1} (${val}%) غير مقبولة — يجب أن تكون أقل من نسبة إنجاز الدفعة التالية (${nextName}: ${nextComp}%). تم ضبطها على (${maxVal}%).`);
+                                                      handlePaymentCompletionPercentageChange(payment.id, maxVal);
+                                                    }
                                                   }
-                                                }
-                                              }}
-                                            />
+                                                }}
+                                              />
+                                              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-purple-600/60 dark:text-purple-400/60 font-bold text-xs pointer-events-none">
+                                                %
+                                              </span>
+                                            </div>
 
-                                            {isBelowPrev && (
+                                            {isBelowPrev && !isPenultimateClosingWork && (
                                               <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/30 mt-1.5 animate-in fade-in">
                                                 <AlertTriangle className="h-4 w-4 shrink-0" />
                                                 <span>غير مقبول: النسبة ({currentComp}%) يجب أن تكون أكبر من الدفعة السابقة ({prevName}: {prevComp}%). الحد الأدنى هو {minAllowed}%.</span>
                                               </div>
                                             )}
-                                            {isAboveNext && (
+                                            {isAboveNext && !isPenultimateClosingWork && (
                                               <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/30 mt-1.5 animate-in fade-in">
                                                 <AlertTriangle className="h-4 w-4 shrink-0" />
                                                 <span>غير مقبول: النسبة ({currentComp}%) يجب أن تكون أقل من الدفعة التالية ({nextName}: {nextComp}%). الحد الأقصى هو {maxAllowed}%.</span>
@@ -3677,18 +4140,28 @@ export default function ContractForm() {
 
                     {/* ملخص الدفعات */}
                     {(() => {
-                      const totalPaymentsAmount = paymentSchedule.reduce((sum, p) => sum + getPaymentEffectiveAmount(p), 0);
-                      const isExact = Math.abs(totalPaymentsAmount - contractData.totalValue) <= 0.05;
-                      const isOver = totalPaymentsAmount > contractData.totalValue + 0.05;
-                      const isUnder = totalPaymentsAmount < contractData.totalValue - 0.05;
-                      const diff = contractData.totalValue - totalPaymentsAmount;
+                      const isClosingMode = hasFinalPayment && paymentSchedule.length >= 2;
+                      const workPayments = isClosingMode ? paymentSchedule.slice(0, -1) : paymentSchedule;
+                      const finalPayment = isClosingMode ? paymentSchedule[paymentSchedule.length - 1] : null;
+
+                      const workPaymentsAmount = workPayments.reduce((sum, p) => sum + getPaymentEffectiveAmount(p), 0);
+                      const finalPaymentAmount = finalPayment ? getPaymentEffectiveAmount(finalPayment) : 0;
+                      const totalPaymentsAmount = workPaymentsAmount + finalPaymentAmount;
+
+                      const targetValue = contractData.totalValue || 0;
+                      const isExact = Math.abs(workPaymentsAmount - targetValue) <= 0.05;
+                      const isOver = workPaymentsAmount > targetValue + 0.05;
+                      const isUnder = workPaymentsAmount < targetValue - 0.05;
+                      const diff = targetValue - workPaymentsAmount;
 
                       return (
-                        <Card className="bg-muted/50 p-4 rounded-xl border-dashed border-2">
+                        <Card className="bg-muted/50 p-4 sm:p-5 rounded-2xl border-dashed border-2">
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
                               <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground">إجمالي المبالغ:</span>
+                                <span className="text-muted-foreground">
+                                  {isClosingMode ? "إجمالي دفعات الأعمال (قيمة المشروع):" : "إجمالي المبالغ:"}
+                                </span>
                                 <span className={`font-black text-base ${
                                   isExact 
                                     ? "text-green-600 dark:text-green-400" 
@@ -3696,34 +4169,54 @@ export default function ContractForm() {
                                       ? "text-destructive" 
                                       : "text-amber-600"
                                 }`}>
-                                    {totalPaymentsAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                    {workPaymentsAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground">من قيمة العقد:</span>
+                                <span className="text-muted-foreground">قيمة المشروع المعتمدة:</span>
                                 <span className="font-bold text-foreground inline-flex items-center gap-1">
-                                  {contractData.totalValue.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                  {targetValue.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                                 </span>
                               </div>
+                              {isClosingMode && (
+                                <>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground">الدفعة الختامية (خارج قيمة المشروع):</span>
+                                    <span className="font-bold text-amber-700 dark:text-amber-400 inline-flex items-center gap-1">
+                                      {finalPaymentAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 border-r pr-4">
+                                    <span className="text-muted-foreground">إجمالي العقد الكلي (مع الختامية):</span>
+                                    <span className="font-black text-foreground inline-flex items-center gap-1">
+                                      {totalPaymentsAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                    </span>
+                                  </div>
+                                </>
+                              )}
                             </div>
 
                             <div className="flex flex-col gap-2">
                               {isOver && (
                                 <div className="flex items-center gap-2 text-destructive text-xs font-bold bg-destructive/10 p-2 rounded-lg">
                                   <AlertTriangle className="h-4 w-4 shrink-0" />
-                                  <span>تنبيه: إجمالي الدفعات يتجاوز قيمة العقد</span>
+                                  <span>{isClosingMode ? "تنبيه: دفعات أعمال المشروع تتجاوز قيمة المشروع" : "تنبيه: إجمالي الدفعات يتجاوز قيمة العقد"}</span>
                                 </div>
                               )}
                               {isUnder && (
                                 <div className="flex items-center gap-2 text-amber-600 text-xs font-bold bg-amber-500/10 p-2 rounded-lg">
                                   <AlertTriangle className="h-4 w-4 shrink-0" />
-                                  <span className="inline-flex items-center gap-1">تنبيه: متبقي للصرف { diff.toLocaleString() } <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
+                                  <span className="inline-flex items-center gap-1">
+                                    تنبيه: متبقٍ لتغطية قيمة المشروع { diff.toLocaleString() } <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                  </span>
                                 </div>
                               )}
                               {isExact && (
                                 <div className="flex items-center gap-2 text-green-600 text-xs font-bold bg-green-500/10 p-2 rounded-lg">
                                   <Check className="h-4 w-4 shrink-0" />
-                                  <span>تمت تغطية كامل قيمة العقد</span>
+                                  <span>
+                                    {isClosingMode ? "تمت تغطية كامل قيمة أعمال المشروع (100% في الدفعة قبل الأخيرة)" : "تمت تغطية كامل قيمة العقد"}
+                                  </span>
                                 </div>
                               )}
                             </div>
