@@ -48,6 +48,11 @@ import {
   CheckCircle,
   Package,
   Loader2,
+  Percent,
+  Calendar,
+  FileSpreadsheet,
+  TrendingUp,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -365,26 +370,6 @@ export default function NewDisbursementRequest() {
     }
   };
   
-  // تحديث بيانات المورد
-  const updateSupplier = (id: string, field: keyof SupplierEntry, value: string | number) => {
-    setSuppliers(suppliers.map(s => s.id === id ? { ...s, [field]: value } : s));
-  };
-
-  // اختيار مورد من القائمة
-  const handleSelectSupplier = (id: string, supplierName: string) => {
-    const selectedSupplier = allSuppliers?.find(s => s.name === supplierName);
-    if (selectedSupplier) {
-      setSuppliers(suppliers.map(s => s.id === id ? { 
-        ...s, 
-        name: selectedSupplier.name,
-        iban: selectedSupplier.iban || s.iban,
-        bank: selectedSupplier.bankName || s.bank
-      } : s));
-    } else {
-      updateSupplier(id, "name", supplierName);
-    }
-  };
-  
   // حساب تواريخ الحظر والحد الأدنى لتاريخ الدفعة
   const formatDateToYYYYMMDD = (d: any): string | null => {
     if (!d) return null;
@@ -506,6 +491,125 @@ export default function NewDisbursementRequest() {
     currentComp > benchmarkActualProgress || 
     (contractAmount > 0 && newCumulativePaidPct > benchmarkActualProgress + 0.5)
   );
+
+  // حساب مجموع مبالغ الدفعات السابقة لتحديد نسبة الإنجاز التراكمية تلقائياً
+  const effectivePriorPaymentsSum = useMemo(() => {
+    // 1. إذا تم اختيار دفعة من جدول دفعات العقد
+    if (contractDetails?.contract?.paymentScheduleJson) {
+      try {
+        const s = typeof contractDetails.contract.paymentScheduleJson === "string" 
+          ? JSON.parse(contractDetails.contract.paymentScheduleJson) 
+          : contractDetails.contract.paymentScheduleJson;
+        const list = Array.isArray(s) ? s : (Array.isArray(s?.schedule) ? s.schedule : []);
+        const targetIdx = formData.contractPaymentId > 0
+          ? list.findIndex((item: any, i: number) => {
+              return item.id === `cp-${formData.contractPaymentId}` ||
+                     item.id === String(formData.contractPaymentId) ||
+                     ((currContractPayment as any)?.phaseOrder !== undefined && i === (currContractPayment as any).phaseOrder) ||
+                     ((currContractPayment as any)?.phaseName && item.name === (currContractPayment as any).phaseName);
+            })
+          : -1;
+        if (targetIdx > 0) {
+          const sum = list.slice(0, targetIdx).reduce((acc: number, it: any) => acc + (Number(it.amount) || 0), 0);
+          if (sum > 0) return sum;
+        }
+      } catch (e) {}
+    }
+
+    // 2. حسب التاريخ الميلادي مقارنة بالدفعات السابقة المسجلة
+    if (normalizedSelectedDate) {
+      const before = (projectDetails?.payments || []).filter((p: any) => {
+        if (p.status === "rejected" || p.status === "cancelled") return false;
+        const d = formatDateToYYYYMMDD(p.date || p.dateMiladi || p.paidAt || p.createdAt) || "";
+        return d < normalizedSelectedDate;
+      });
+      return before.reduce((sum: number, p: any) => sum + getPaymentEffectiveAmount(p), 0);
+    }
+
+    // 3. إجمالي الدفعات المسجلة سابقاً
+    return totalPaymentsSum || 0;
+  }, [contractDetails, formData.contractPaymentId, currContractPayment, normalizedSelectedDate, projectDetails, totalPaymentsSum]);
+
+  // معالج تعديل مبلغ الدفعة وتحديث نسب الإنجاز التراكمية تلقائياً بناءً على المبلغ
+  const handleAmountChange = (val: number) => {
+    const numVal = Math.max(0, isNaN(val) ? 0 : val);
+    
+    setSuppliers(prev => {
+      if (prev.length === 0) {
+        return [{ id: crypto.randomUUID(), name: "", work: "", amount: numVal, iban: "", bank: "" }];
+      }
+      return prev.map((s, idx) => idx === 0 ? { ...s, amount: numVal } : s);
+    });
+
+    if (contractAmount > 0) {
+      const cumulativeAmt = effectivePriorPaymentsSum + numVal;
+      const rawPct = (cumulativeAmt / contractAmount) * 100;
+      const comp = Math.min(100, Math.max(0, Number(rawPct.toFixed(2))));
+      const finalComp = comp % 1 === 0 ? Math.round(comp) : comp;
+      setFormData(prev => ({ ...prev, completionPercentage: finalComp }));
+    }
+  };
+
+  // معالج تعديل نسبة الدفعة وتحديث المبالغ ونسب الإنجاز التراكمية
+  const handlePercentageChange = (pct: number) => {
+    const numPct = Math.max(0, Math.min(100, isNaN(pct) ? 0 : pct));
+    const calculatedAmount = contractAmount > 0 ? Number(((contractAmount * numPct) / 100).toFixed(2)) : 0;
+
+    setSuppliers(prev => {
+      if (prev.length === 0) {
+        return [{ id: crypto.randomUUID(), name: "", work: "", amount: calculatedAmount, iban: "", bank: "" }];
+      }
+      return prev.map((s, idx) => idx === 0 ? { ...s, amount: calculatedAmount } : s);
+    });
+
+    if (contractAmount > 0) {
+      const cumulativeAmt = effectivePriorPaymentsSum + calculatedAmount;
+      const rawPct = (cumulativeAmt / contractAmount) * 100;
+      const comp = Math.min(100, Math.max(0, Number(rawPct.toFixed(2))));
+      const finalComp = comp % 1 === 0 ? Math.round(comp) : comp;
+      setFormData(prev => ({ ...prev, completionPercentage: finalComp }));
+    }
+  };
+
+  // النسبة التراكمية المحسوبة تلقائياً لعرضها كإرشاد
+  const autoCalculatedCompletion = useMemo(() => {
+    if (contractAmount <= 0) return undefined;
+    const cumulativeAmt = effectivePriorPaymentsSum + totalAmount;
+    const rawPct = (cumulativeAmt / contractAmount) * 100;
+    const comp = Math.min(100, Math.max(0, Number(rawPct.toFixed(2))));
+    return comp % 1 === 0 ? Math.round(comp) : comp;
+  }, [contractAmount, effectivePriorPaymentsSum, totalAmount]);
+
+  // قيمة الدفعة الحالية كنسبة مئوية من قيمة العقد
+  const currentPaymentPercentage = useMemo(() => {
+    if (contractAmount <= 0) return 0;
+    const p = Number(((totalAmount / contractAmount) * 100).toFixed(2));
+    return p % 1 === 0 ? Math.round(p) : p;
+  }, [contractAmount, totalAmount]);
+
+  // تحديث بيانات المورد مع مزامنة المبالغ ونسب الإنجاز
+  const updateSupplier = (id: string, field: keyof SupplierEntry, value: string | number) => {
+    if (field === "amount") {
+      handleAmountChange(Number(value));
+    } else {
+      setSuppliers(suppliers.map(s => s.id === id ? { ...s, [field]: value } : s));
+    }
+  };
+
+  // اختيار مورد من القائمة
+  const handleSelectSupplier = (id: string, supplierName: string) => {
+    const selectedSupplier = allSuppliers?.find(s => s.name === supplierName);
+    if (selectedSupplier) {
+      setSuppliers(suppliers.map(s => s.id === id ? { 
+        ...s, 
+        name: selectedSupplier.name,
+        iban: selectedSupplier.iban || s.iban,
+        bank: selectedSupplier.bankName || s.bank
+      } : s));
+    } else {
+      updateSupplier(id, "name", supplierName);
+    }
+  };
 
   const executeCreateDisbursement = (reasonOverride?: string) => {
     let finalDescription = formData.description || formData.title;
@@ -686,108 +790,220 @@ export default function NewDisbursementRequest() {
                 </CardTitle>
                 <CardDescription className="text-right">معلومات أساسية عن طلب الدفعة</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4 text-right">
-                <div className="space-y-2 text-right">
-                  <Label className="text-right">التاريخ الميلادي *</Label>
-                  <Input
-                    type="date"
-                    value={formData.dateMiladi}
-                    onChange={(e) => {
-                      const newDate = e.target.value;
-                      const norm = formatDateToYYYYMMDD(newDate);
-                      if (dateOf100 && norm && norm > dateOf100) {
-                        toast.error(`لا يمكن اختيار تاريخ بعد الدفعة المكتملة بنسبة 100% (${dateOf100})`);
-                      }
-                      setFormData({ ...formData, dateMiladi: newDate });
-                    }}
-                    required
-                    className={`text-right ${(formData.dateMiladi && (isDateAlreadyUsed(formData.dateMiladi) || isAfter100PercentPayment)) ? 'border-2 border-destructive' : ''}`}
-                  />
+              <CardContent className="space-y-5 pt-6 text-right">
+                {/* اختيار المشروع والعقد */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-1">
+                  <div className="space-y-1.5 text-right">
+                    <Label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5" />
+                      <span>المشروع</span>
+                    </Label>
+                    <ProjectSearchSelect
+                      projects={projects}
+                      value={formData.projectId > 0 ? formData.projectId.toString() : ""}
+                      onValueChange={(value) => {
+                        setFormData({ ...formData, projectId: parseInt(value) || 0, contractId: 0 });
+                        setSelectedReportId(null);
+                      }}
+                      disabled={!!params.projectId}
+                      placeholder="ابحث واختر المشروع..."
+                    />
+                  </div>
+
+                  {formData.projectId > 0 && projectContracts && projectContracts.contracts && projectContracts.contracts.length > 0 && (
+                    <div className="space-y-1.5 text-right">
+                      <Label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>العقد</span>
+                      </Label>
+                      <Select
+                        value={formData.contractId.toString()}
+                        onValueChange={(value) => setFormData({ ...formData, contractId: parseInt(value) })}
+                        disabled={true}
+                      >
+                        <SelectTrigger className="text-right bg-muted/30 border-border/40 rounded-xl h-10 w-full" dir="rtl">
+                          <SelectValue placeholder="اختر العقد" />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl">
+                          <SelectItem value="0" className="text-right">بدون عقد</SelectItem>
+                          {projectContracts.contracts.map((contract) => (
+                            <SelectItem key={contract.id} value={contract.id.toString()} className="text-right">
+                              {contract.contractNumber} - {(contract as any).subject || contract.contractType}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+
+                {/* شبكة حقول الدفعة الملونة بالألوان الهادئة المتناسقة */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {/* الحقل 1: قيمة الدفعة (مبلغ مالي) - أخضر هادئ */}
+                  <div className="p-3 rounded-xl border transition-all flex flex-col justify-between space-y-2 bg-emerald-500/[0.03] border-emerald-500/20 dark:bg-emerald-950/15 dark:border-emerald-500/20">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground/85">
+                      <SaudiRiyal className="w-3.5 h-3.5 shrink-0 text-emerald-600/80 dark:text-emerald-400/80" />
+                      <span>قيمة الدفعة (مبلغ مالي) *</span>
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={totalAmount || ""}
+                        required
+                        className="w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-emerald-500/40 focus-visible:ring-emerald-500/15 shadow-2xs"
+                        onChange={(e) => handleAmountChange(parseFloat(e.target.value) || 0)}
+                        placeholder="0.00"
+                      />
+                      <SaudiRiyal className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600/60 dark:text-emerald-400/60 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {/* الحقل 2: قيمة الدفعة (نسبة مئوية) - أزرق هادئ */}
+                  <div className="p-3 rounded-xl border transition-all flex flex-col justify-between space-y-2 bg-blue-500/[0.03] border-blue-500/20 dark:bg-blue-950/15 dark:border-blue-500/20">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground/85">
+                      <Percent className="w-3.5 h-3.5 text-blue-600/80 dark:text-blue-400/80 shrink-0" />
+                      <span>قيمة الدفعة (نسبة مئوية) *</span>
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={currentPaymentPercentage || ""}
+                        required
+                        className="w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-blue-500/40 focus-visible:ring-blue-500/15 shadow-2xs"
+                        onChange={(e) => handlePercentageChange(parseFloat(e.target.value) || 0)}
+                        placeholder="0"
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-blue-600/60 dark:text-blue-400/60 font-bold text-xs pointer-events-none">
+                        %
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* الحقل 3: عنوان طلب الدفعة - نيلي هادئ */}
+                  <div className="p-3 rounded-xl border transition-all flex flex-col justify-between space-y-2 bg-indigo-500/[0.03] border-indigo-500/20 dark:bg-indigo-950/15 dark:border-indigo-500/20">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground/85">
+                      <FileText className="w-3.5 h-3.5 text-indigo-600/80 dark:text-indigo-400/80 shrink-0" />
+                      <span>عنوان طلب الدفعة *</span>
+                    </Label>
+                    <Input
+                      value={formData.title}
+                      required
+                      className="w-full rounded-xl font-medium transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-indigo-500/40 focus-visible:ring-indigo-500/15 shadow-2xs"
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      placeholder="مثال: الدفعة الأولى لمشروع..."
+                    />
+                  </div>
+
+                  {/* الحقل 4: التاريخ الميلادي - كهرماني هادئ */}
+                  <div className="p-3 rounded-xl border transition-all flex flex-col justify-between space-y-2 bg-amber-500/[0.03] border-amber-500/20 dark:bg-amber-950/15 dark:border-amber-500/20">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground/85">
+                      <Calendar className="w-3.5 h-3.5 text-amber-600/80 dark:text-amber-400/80 shrink-0" />
+                      <span>التاريخ الميلادي *</span>
+                    </Label>
+                    <Input
+                      type="date"
+                      value={formData.dateMiladi}
+                      required
+                      className={cn(
+                        "w-full rounded-xl font-sans text-sm transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-amber-500/40 focus-visible:ring-amber-500/15 shadow-2xs",
+                        (formData.dateMiladi && (isDateAlreadyUsed(formData.dateMiladi) || isAfter100PercentPayment)) && "border-2 border-destructive"
+                      )}
+                      onChange={(e) => {
+                        const newDate = e.target.value;
+                        const norm = formatDateToYYYYMMDD(newDate);
+                        if (dateOf100 && norm && norm > dateOf100) {
+                          toast.error(`لا يمكن اختيار تاريخ بعد الدفعة المكتملة بنسبة 100% (${dateOf100})`);
+                        }
+                        setFormData({ ...formData, dateMiladi: newDate });
+                      }}
+                    />
+                  </div>
+
+                  {/* الحقل 5: وصف الأعمال التي سوف تُنفّذ - تركوازي هادئ */}
+                  <div className="p-3 rounded-xl border transition-all space-y-2 md:col-span-2 lg:col-span-1 bg-teal-500/[0.03] border-teal-500/20 dark:bg-teal-950/15 dark:border-teal-500/20">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground/85">
+                      <FileSpreadsheet className="w-3.5 h-3.5 text-teal-600/80 dark:text-teal-400/80 shrink-0" />
+                      <span>وصف الأعمال التي سوف تُنفّذ *</span>
+                    </Label>
+                    <Textarea
+                      value={formData.description}
+                      rows={2}
+                      required
+                      className="w-full rounded-xl transition-all resize-none text-right text-xs bg-background border-border/80 text-foreground focus-visible:border-teal-500/40 focus-visible:ring-teal-500/15 shadow-2xs"
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="وصف تفصيلي للأعمال التي سوف تنفذ..."
+                    />
+                  </div>
+
+                  {/* الحقل 6: نسبة الإنجاز التراكمية (%) - بنفسجي هادئ */}
+                  <div className="p-3 rounded-xl border transition-all space-y-2 md:col-span-2 lg:col-span-1 bg-purple-500/[0.03] border-purple-500/20 dark:bg-purple-950/15 dark:border-purple-500/20">
+                    <Label className="text-xs font-semibold flex items-center justify-between gap-1.5 text-foreground/85">
+                      <span className="flex items-center gap-1.5">
+                        <TrendingUp className="w-3.5 h-3.5 text-purple-600/80 dark:text-purple-400/80 shrink-0" />
+                        <span>نسبة الإنجاز التراكمية (%) *</span>
+                      </span>
+                      {autoCalculatedCompletion !== undefined && (
+                        <span className="text-[11px] text-purple-700 dark:text-purple-300 font-normal">
+                          (محسوبة: {autoCalculatedCompletion}%)
+                        </span>
+                      )}
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step="any"
+                        value={formData.completionPercentage}
+                        disabled={!formData.dateMiladi}
+                        required
+                        className={cn(
+                          "w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-purple-500/40 focus-visible:ring-purple-500/15 shadow-2xs",
+                          isExceedingProgress && "border-amber-400 bg-amber-500/5 text-amber-900 ring-1 ring-amber-400/40"
+                        )}
+                        onChange={(e) => {
+                          if (e.target.value === "") {
+                            setFormData({ ...formData, completionPercentage: "" });
+                          } else {
+                            const val = parseFloat(e.target.value);
+                            setFormData({
+                              ...formData,
+                              completionPercentage: isNaN(val) ? "" : Math.min(100, Math.max(0, val))
+                            });
+                          }
+                        }}
+                        placeholder="0"
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-purple-600/60 dark:text-purple-400/60 font-bold text-xs pointer-events-none">
+                        %
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* التنبيهات والإرشادات المرتبطة بالتاريخ ونسب الإنجاز */}
+                <div className="space-y-2 text-right pt-1">
                   {formData.dateMiladi && isDateAlreadyUsed(formData.dateMiladi) && (
-                    <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/30 mt-1.5">
+                    <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/30">
                       <AlertCircle className="h-4 w-4 shrink-0" />
                       <span>هذا التاريخ مستخدم بالفعل لدفعة أخرى. يرجى اختيار تاريخ مختلف</span>
                     </div>
                   )}
+
                   {isAfter100PercentPayment && (
-                    <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2.5 rounded-lg border border-destructive/30 mt-1.5 animate-in fade-in">
+                    <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2.5 rounded-lg border border-destructive/30 animate-in fade-in">
                       <AlertCircle className="h-4 w-4 shrink-0" />
                       <span>لا يمكن إضافة دفعة بعد تاريخ ({dateOf100 || prevPaymentRef?.date}) لأن هذه الدفعة بلغت نسبة إنجازها 100%، ولا توجد نسبة إنجاز أعلى من 100%.</span>
                     </div>
                   )}
-                </div>
-                
-                <div className="space-y-2 text-right">
-                  <Label className="text-right">المشروع</Label>
-                  <ProjectSearchSelect
-                    projects={projects}
-                    value={formData.projectId > 0 ? formData.projectId.toString() : ""}
-                    onValueChange={(value) => {
-                      setFormData({ ...formData, projectId: parseInt(value) || 0, contractId: 0 });
-                      setSelectedReportId(null);
-                    }}
-                    disabled={!!params.projectId}
-                    placeholder="ابحث واختر المشروع..."
-                  />
-                </div>
 
-                
-                 {formData.projectId > 0 && projectContracts && projectContracts.contracts && projectContracts.contracts.length > 0 && (
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right">العقد</Label>
-                    <Select
-                      value={formData.contractId.toString()}
-                      onValueChange={(value) => setFormData({ ...formData, contractId: parseInt(value) })}
-                      disabled={true}
-                    >
-                      <SelectTrigger className="text-right w-full" dir="rtl">
-                        <SelectValue placeholder="اختر العقد" />
-                      </SelectTrigger>
-                      <SelectContent dir="rtl">
-                        <SelectItem value="0" className="text-right">بدون عقد</SelectItem>
-                        {projectContracts.contracts.map((contract) => (
-                          <SelectItem key={contract.id} value={contract.id.toString()} className="text-right">
-                            {contract.contractNumber} - {(contract as any).subject || contract.contractType}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-
-                
-
-
-                <div className="space-y-2 text-right">
-                  <Label className="text-right">عنوان طلب الدفعة *</Label>
-                  <Input
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="مثال: الدفعة الأولى لمشروع توريد الأجهزة"
-                    required
-                    className="text-right"
-                  />
-                </div>
-                
-                <div className="space-y-2 text-right">
-                  <Label className="text-right">وصف الأعمال التي سوف تنفذ *</Label>
-                  <Textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="وصف تفصيلي للأعمال التي سوف تنفذ..."
-                    rows={3}
-                    required
-                    className="text-right"
-                  />
-                </div>
-                
-                 <div className="space-y-2 text-right">
-                  <Label className="text-right font-semibold">نسبة الإنجاز التراكمية (%) *</Label>
                   {(() => {
-                    const currentComp = formData.completionPercentage !== "" ? Number(formData.completionPercentage) : null;
-                    const isBelowPrev = prevPaymentCompletion !== null && currentComp !== null && currentComp <= prevPaymentCompletion;
-                    const isAboveNext = nextPaymentCompletion !== null && currentComp !== null && currentComp >= nextPaymentCompletion;
+                    const currentCompVal = formData.completionPercentage !== "" ? Number(formData.completionPercentage) : null;
                     const minAllowed = prevPaymentCompletion !== null ? prevPaymentCompletion + 1 : 0;
                     const maxAllowed = nextPaymentCompletion !== null ? Math.max(minAllowed, nextPaymentCompletion - 1) : 100;
                     const prevDate = prevPaymentRef ? (formatDateToYYYYMMDD(prevPaymentRef.date || prevPaymentRef.dateMiladi || prevPaymentRef.paidAt || prevPaymentRef.createdAt) || "") : "";
@@ -795,100 +1011,54 @@ export default function NewDisbursementRequest() {
 
                     return (
                       <>
-                        {isAfter100PercentPayment ? (
-                          <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3.5 text-xs text-destructive font-bold flex items-center gap-2.5 animate-in fade-in">
-                            <AlertCircle className="h-5 w-5 shrink-0" />
-                            <div className="space-y-1">
-                              <p className="font-bold">غير متاح إدراج نسبة إنجاز بعد الدفعة المكتملة</p>
-                              <p className="font-normal text-[11px] text-destructive/90">
-                                الدفعة السابقة بتاريخ ({prevDate || dateOf100}) بلغت نسبة إنجازها 100%. لا يمكن إدراج أي دفعة جديدة بنسبة أعلى من 100%. يرجى اختيار تاريخ يسبق تاريخ هذه الدفعة لتحديد نسبة بين الدفعات السابقة.
+                        {/* نطاق مسموح به */}
+                        {formData.dateMiladi && !isAfter100PercentPayment && (prevPaymentCompletion !== null || nextPaymentCompletion !== null) && (
+                          <div className="bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-900/30 rounded-lg p-2.5 text-xs text-sky-800 dark:text-sky-300 space-y-1">
+                            {prevPaymentCompletion !== null && (
+                              <p>📅 الدفعة السابقة ({prevDate}): نسبة إنجازها <strong>{prevPaymentCompletion}%</strong> ← يجب أن تكون النسبة الجديدة أكبر من ذلك</p>
+                            )}
+                            {nextPaymentCompletion !== null && (
+                              <p>📅 الدفعة التالية ({nextDate}): نسبة إنجازها <strong>{nextPaymentCompletion}%</strong> ← يجب أن تكون النسبة الجديدة أقل من ذلك</p>
+                            )}
+                            {prevPaymentCompletion === null && (
+                              <p>⭐ لا توجد دفعات قبل هذا التاريخ — يمكن أن تبدأ النسبة من 0%</p>
+                            )}
+                            <p className="font-bold text-sky-700 dark:text-sky-400">
+                              النطاق المسموح: {minAllowed}% – {maxAllowed}%
+                            </p>
+                          </div>
+                        )}
+                        {!formData.dateMiladi && (
+                          <p className="text-xs text-amber-600">⚠ حدد التاريخ أولاً لمعرفة النطاق المسموح لنسبة الإنجاز</p>
+                        )}
+                        {benchmarkActualProgress > 0 && (
+                          <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 rounded-lg p-2.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                            <span className="font-semibold flex items-center gap-1.5">
+                              <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                              نسبة تقرير الإنجاز الفعلي المعتمدة للمشروع:
+                            </span>
+                            <span className="font-bold font-sans text-sm">{benchmarkActualProgress}%</span>
+                          </div>
+                        )}
+
+                        {/* التنبيه الذكي عند تجاوز نسبة الإنجاز الفعلي */}
+                        {isExceedingProgress && (
+                          <div className="flex items-start gap-2 text-xs font-semibold bg-amber-500/10 text-amber-900 dark:text-amber-200 p-2.5 rounded-lg border border-amber-500/30 mt-1.5 animate-in fade-in">
+                            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                            <div className="space-y-0.5">
+                              <span>تنبيه: المستخلص الحالي ({currentCompVal}%) يتجاوز تقرير الإنجاز الفعلي المعتمد للمشروع ({benchmarkActualProgress}%).</span>
+                              <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 font-normal">
+                                تطبيقاً لمرونة المستخلصات، يمكنك المتابعة وسيطلب منك النظام تأكيد الصرف الاستثنائي عند الإرسال.
                               </p>
                             </div>
                           </div>
-                        ) : (
-                          <>
-                            {/* نطاق مسموح به */}
-                            {formData.dateMiladi && (prevPaymentCompletion !== null || nextPaymentCompletion !== null) && (
-                              <div className="bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-900/30 rounded-lg p-2.5 text-xs text-sky-800 dark:text-sky-300 space-y-1">
-                                {prevPaymentCompletion !== null && (
-                                  <p>📅 الدفعة السابقة ({prevDate}): نسبة إنجازها <strong>{prevPaymentCompletion}%</strong> ← يجب أن تكون النسبة الجديدة أكبر من ذلك</p>
-                                )}
-                                {nextPaymentCompletion !== null && (
-                                  <p>📅 الدفعة التالية ({nextDate}): نسبة إنجازها <strong>{nextPaymentCompletion}%</strong> ← يجب أن تكون النسبة الجديدة أقل من ذلك</p>
-                                )}
-                                {prevPaymentCompletion === null && (
-                                  <p>⭐ لا توجد دفعات قبل هذا التاريخ — يمكن أن تبدأ النسبة من 0%</p>
-                                )}
-                                <p className="font-bold text-sky-700 dark:text-sky-400">
-                                  النطاق المسموح: {minAllowed}% – {maxAllowed}%
-                                </p>
-                              </div>
-                            )}
-                            {!formData.dateMiladi && (
-                              <p className="text-xs text-amber-600">⚠ حدد التاريخ أولاً لمعرفة النطاق المسموح لنسبة الإنجاز</p>
-                            )}
-                            {benchmarkActualProgress > 0 && (
-                              <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 rounded-lg p-2.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
-                                <span className="font-semibold flex items-center gap-1.5">
-                                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                                  نسبة تقرير الإنجاز الفعلي المعتمدة للمشروع:
-                                </span>
-                                <span className="font-bold font-sans text-sm">{benchmarkActualProgress}%</span>
-                              </div>
-                            )}
+                        )}
 
-                            <Input
-                              type="number"
-                              min={0}
-                              max={100}
-                              required
-                              placeholder="أدخل نسبة الإنجاز المرتبطة بالدفعة (مثال: 30%)"
-                              value={formData.completionPercentage}
-                              disabled={!formData.dateMiladi}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.currentTarget.blur();
-                                }
-                              }}
-                              onChange={(e) => {
-                                if (e.target.value === "") {
-                                  setFormData({ ...formData, completionPercentage: "" });
-                                } else {
-                                  const val = parseInt(e.target.value);
-                                  setFormData({
-                                    ...formData,
-                                    completionPercentage: isNaN(val) ? "" : Math.min(100, Math.max(0, val))
-                                  });
-                                }
-                              }}
-                              className={cn(
-                                "text-right font-bold transition-all",
-                                isExceedingProgress
-                                  ? "border-amber-400 bg-amber-500/5 text-amber-900 ring-1 ring-amber-400/40"
-                                  : ""
-                              )}
-                            />
-
-                            {/* التنبيه الذكي عند تجاوز نسبة الإنجاز الفعلي */}
-                            {isExceedingProgress && (
-                              <div className="flex items-start gap-2 text-xs font-semibold bg-amber-500/10 text-amber-900 dark:text-amber-200 p-2.5 rounded-lg border border-amber-500/30 mt-1.5 animate-in fade-in">
-                                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                                <div className="space-y-0.5">
-                                  <span>تنبيه: المستخلص الحالي ({currentComp}%) يتجاوز تقرير الإنجاز الفعلي المعتمد للمشروع ({benchmarkActualProgress}%).</span>
-                                  <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 font-normal">
-                                    تطبيقاً لمرونة المستخلصات، يمكنك المتابعة وسيطلب منك النظام تأكيد الصرف الاستثنائي عند الإرسال.
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-
-                            {prevPaymentCompletion !== null && currentComp !== null && currentComp <= prevPaymentCompletion && (
-                              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/40 p-2 rounded-lg border border-border/50 mt-1">
-                                <AlertCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                <span>ملاحظة: نسبة الإنجاز ({currentComp}%) أقل أو مساوية للدفعة السابقة ({prevPaymentCompletion}%). النظام يسمح بذلك لمرونة المستخلصات.</span>
-                              </div>
-                            )}
-                          </>
+                        {prevPaymentCompletion !== null && currentCompVal !== null && currentCompVal <= prevPaymentCompletion && (
+                          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/40 p-2 rounded-lg border border-border/50">
+                            <AlertCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span>ملاحظة: نسبة الإنجاز ({currentCompVal}%) أقل أو مساوية للدفعة السابقة ({prevPaymentCompletion}%). النظام يسمح بذلك لمرونة المستخلصات.</span>
+                          </div>
                         )}
                       </>
                     );
@@ -1129,41 +1299,54 @@ export default function NewDisbursementRequest() {
                       />
                     </div>
 
-                    {/* النسبة (%) */}
-                    <div className="space-y-2 text-right">
-                      <Label className="font-semibold text-foreground text-right block">النسبة (%)</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        value={contractAmount ? Number(((supplier.amount / contractAmount) * 100).toFixed(2)) : ""}
-                        onChange={(e) => {
-                          const pct = parseFloat(e.target.value) || 0;
-                          const calculatedAmount = contractAmount ? (contractAmount * pct) / 100 : 0;
-                          updateSupplier(supplier.id, "amount", Number(calculatedAmount.toFixed(2)));
-                        }}
-                        placeholder="0"
-                        className="text-right font-bold text-primary border-border/60 rounded-xl h-10 bg-background"
-                      />
+                    {/* قيمة الدفعة (نسبة مئوية) */}
+                    <div className="p-3 rounded-xl border transition-all flex flex-col justify-between space-y-2 bg-blue-500/[0.03] border-blue-500/20 dark:bg-blue-950/15 dark:border-blue-500/20">
+                      <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground/85">
+                        <Percent className="w-3.5 h-3.5 text-blue-600/80 dark:text-blue-400/80 shrink-0" />
+                        <span>قيمة الدفعة (نسبة مئوية) *</span>
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={currentPaymentPercentage || ""}
+                          onChange={(e) => {
+                            const pct = parseFloat(e.target.value) || 0;
+                            handlePercentageChange(pct);
+                          }}
+                          placeholder="0"
+                          className="w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-blue-500/40 focus-visible:ring-blue-500/15 shadow-2xs"
+                        />
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-blue-600/60 dark:text-blue-400/60 font-bold text-xs pointer-events-none">
+                          %
+                        </span>
+                      </div>
                     </div>
 
-                    {/* المبلغ */}
-                    <div className="space-y-2 text-right">
-                      <Label className="font-semibold text-foreground text-right block">المبلغ *</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        required
-                        value={supplier.amount || ""}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          updateSupplier(supplier.id, "amount", val);
-                        }}
-                        placeholder="0.00"
-                        className="text-right font-bold text-foreground border-border/60 rounded-xl h-10 bg-background"
-                      />
+                    {/* قيمة الدفعة (مبلغ مالي) */}
+                    <div className="p-3 rounded-xl border transition-all flex flex-col justify-between space-y-2 bg-emerald-500/[0.03] border-emerald-500/20 dark:bg-emerald-950/15 dark:border-emerald-500/20">
+                      <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground/85">
+                        <SaudiRiyal className="w-3.5 h-3.5 shrink-0 text-emerald-600/80 dark:text-emerald-400/80" />
+                        <span>قيمة الدفعة (مبلغ مالي) *</span>
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          required
+                          value={supplier.amount || ""}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            handleAmountChange(val);
+                          }}
+                          placeholder="0.00"
+                          className="w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-emerald-500/40 focus-visible:ring-emerald-500/15 shadow-2xs"
+                        />
+                        <SaudiRiyal className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600/60 dark:text-emerald-400/60 pointer-events-none" />
+                      </div>
                     </div>
                   </div>
                 ))}

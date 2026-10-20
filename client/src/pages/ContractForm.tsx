@@ -405,13 +405,29 @@ export default function ContractForm() {
 
     const normalizedSchedule = normalizePaymentNames(schedule, isClosingFinalMode);
 
-    return normalizedSchedule.map((p, idx) => {
-      const pAmt = Number(p.amount) || 0;
-      const isPaid = Boolean(p.isPaid || p.status === "paid" || (Number(p.paidAmount || 0) > 0));
-      const effectiveAmt = isPaid && Number(p.paidAmount || 0) > 0 ? Number(p.paidAmount) : pAmt;
+    // حساب مجموع مبالغ دفعات الأعمال السابقة للدفعة قبل الأخيرة
+    let priorWorksSum = 0;
+    if (isClosingFinalMode) {
+      for (let i = 0; i < penultimateIdx; i++) {
+        const item = normalizedSchedule[i];
+        const isItemPaid = Boolean(item.isPaid || item.status === "paid" || (Number(item.paidAmount || 0) > 0));
+        const amt = isItemPaid && Number(item.paidAmount || 0) > 0 ? Number(item.paidAmount) : (Number(item.amount) || 0);
+        priorWorksSum += amt;
+      }
+    }
 
+    return normalizedSchedule.map((p, idx) => {
+      const isPaid = Boolean(p.isPaid || p.status === "paid" || (Number(p.paidAmount || 0) > 0));
       const isFinalClosing = isClosingFinalMode && idx === finalIdx;
       const isPenultimateClosing = isClosingFinalMode && idx === penultimateIdx;
+
+      let pAmt = Number(p.amount) || 0;
+      // الدفعة قبل الأخيرة دائماً تكفي باقي المبلغ تلقائياً لتصل إلى 100%
+      if (isPenultimateClosing && !isPaid) {
+        pAmt = Math.max(0, Number((totalVal - priorWorksSum).toFixed(2)));
+      }
+
+      const effectiveAmt = isPaid && Number(p.paidAmount || 0) > 0 ? Number(p.paidAmount) : pAmt;
 
       // الدفعة الختامية ليست ضمن قيمة المشروع، لذلك لا تُجمع في تراكمي أعمال المشروع
       if (!isFinalClosing) {
@@ -444,6 +460,7 @@ export default function ContractForm() {
 
       return {
         ...p,
+        amount: isPenultimateClosing && !isPaid ? pAmt : p.amount,
         percentage: pct,
         completionPercentage: comp,
       };
@@ -3493,16 +3510,19 @@ export default function ContractForm() {
                                     <Input
                                       type="number"
                                       value={payment.amount || ""}
-                                      disabled={isPaid}
+                                      disabled={isPaid || isPenultimateClosingWork}
+                                      readOnly={isPenultimateClosingWork}
                                       required
                                       className={cn(
                                         "w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all", 
                                         isPaid 
                                           ? "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner" 
-                                          : "bg-background border-border/80 text-foreground focus-visible:border-emerald-500/40 focus-visible:ring-emerald-500/15 shadow-2xs"
+                                          : isPenultimateClosingWork
+                                            ? "bg-purple-500/[0.04] border-purple-500/30 text-purple-900 dark:text-purple-200 cursor-not-allowed"
+                                            : "bg-background border-border/80 text-foreground focus-visible:border-emerald-500/40 focus-visible:ring-emerald-500/15 shadow-2xs"
                                       )}
                                       onChange={(e) => {
-                                        if (isPaid) return;
+                                        if (isPaid || isPenultimateClosingWork) return;
                                         const val = parseFloat(e.target.value) || 0;
                                         handlePaymentAmountChange(payment.id, val);
                                       }}
@@ -3510,6 +3530,11 @@ export default function ContractForm() {
                                     />
                                     <SaudiRiyal className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600/60 dark:text-emerald-400/60 pointer-events-none" />
                                   </div>
+                                  {isPenultimateClosingWork && (
+                                    <p className="text-[11px] text-purple-700 dark:text-purple-300 font-semibold pt-0.5">
+                                      محسوبة تلقائياً لتغطية باقي قيمة أعمال المشروع (لتصبح 100%)
+                                    </p>
+                                  )}
                                   {isPartiallyPaid && paidAmt > 0 && (
                                     <p className="text-[11px] text-amber-700 dark:text-amber-400 font-semibold pt-0.5">
                                       المبلغ المسدد الفعلي: {paidAmt.toLocaleString()} ر.س
@@ -3535,16 +3560,19 @@ export default function ContractForm() {
                                     <Input
                                       type="number"
                                       value={payment.percentage || ""}
-                                      disabled={isPaid}
+                                      disabled={isPaid || isPenultimateClosingWork}
+                                      readOnly={isPenultimateClosingWork}
                                       required
                                       className={cn(
                                         "w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all", 
                                         isPaid 
                                           ? "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner" 
-                                          : "bg-background border-border/80 text-foreground focus-visible:border-blue-500/40 focus-visible:ring-blue-500/15 shadow-2xs"
+                                          : isPenultimateClosingWork
+                                            ? "bg-purple-500/[0.04] border-purple-500/30 text-purple-900 dark:text-purple-200 cursor-not-allowed"
+                                            : "bg-background border-border/80 text-foreground focus-visible:border-blue-500/40 focus-visible:ring-blue-500/15 shadow-2xs"
                                       )}
                                       onChange={(e) => {
-                                        if (isPaid) return;
+                                        if (isPaid || isPenultimateClosingWork) return;
                                         const pct = parseFloat(e.target.value) || 0;
                                         handlePaymentPercentageChange(payment.id, pct);
                                       }}
