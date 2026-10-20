@@ -109,30 +109,55 @@ export const finalReportsRouter = router({
 
         const totalPaymentsSum = unifiedPayments.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0);
         const totalContractsSum = projectContracts.reduce((sum, c) => sum + parseFloat(c.amount || "0"), 0);
+        const totalPaidSum = unifiedPayments.filter(p => p.status === "paid").reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0);
 
-        // التحقق من وجود دفعات أولاً
-        if (unifiedPayments.length === 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع.",
-          });
-        }
+        const hasClosingPayment = projectContracts.some((c: any) => {
+          let sched: any = null;
+          try {
+            sched = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+          } catch (e) {}
+          return sched?.hasFinalPayment === true;
+        }) || allContractPayments.some(cp => cp.phaseName?.includes("الختامية") || cp.phaseName?.includes("ختامية"));
 
-        // التحقق من أن جميع الدفعات مسددة
-        const allPaid = unifiedPayments.every(p => p.status === "paid");
-        if (!allPaid) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "لا يمكن الانتقال لمرحلة الاستلام: يجب أن تكون جميع الدفعات حالتها 'مسدد'.",
-          });
-        }
+        if (hasClosingPayment) {
+          // في حال وجود دفعة ختامية: التحقق فقط من سداد كامل مبالغ أعمال العقد للانتقال لمرحلة الاستلام
+          if (unifiedPayments.length === 0) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع.",
+            });
+          }
+          if (totalPaidSum < (totalContractsSum - 0.05)) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `لا يمكن الانتقال لمرحلة الاستلام: يجب سداد كامل مبلغ أعمال العقد أولاً للانتقال للاستلام. إجمالي المسدد (${totalPaidSum.toLocaleString()} ر.س) من إجمالي العقد (${totalContractsSum.toLocaleString()} ر.س).`,
+            });
+          }
+        } else {
+          // التحقق من وجود دفعات أولاً
+          if (unifiedPayments.length === 0) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع.",
+            });
+          }
 
-        // التحقق من تساوي إجمالي قيم المدفوعات مع إجمالي قيمة العقد
-        if (Math.abs(totalPaymentsSum - totalContractsSum) >= 0.01) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `لا يمكن الانتقال لمرحلة الاستلام: إجمالي قيم المدفوعات (${totalPaymentsSum}) لا يساوي إجمالي قيمة العقد (${totalContractsSum}).`,
-          });
+          // التحقق من أن جميع الدفعات مسددة
+          const allPaid = unifiedPayments.every(p => p.status === "paid");
+          if (!allPaid) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "لا يمكن الانتقال لمرحلة الاستلام: يجب أن تكون جميع الدفعات حالتها 'مسدد'.",
+            });
+          }
+
+          // التحقق من تساوي إجمالي قيم المدفوعات مع إجمالي قيمة العقد
+          if (Math.abs(totalPaymentsSum - totalContractsSum) >= 0.01) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `لا يمكن الانتقال لمرحلة الاستلام: إجمالي قيم المدفوعات (${totalPaymentsSum}) لا يساوي إجمالي قيمة العقد (${totalContractsSum}).`,
+            });
+          }
         }
       }
 

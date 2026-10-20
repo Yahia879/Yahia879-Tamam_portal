@@ -198,6 +198,81 @@ export async function triggerBeneficiarySatisfactionSurvey(requestId: number) {
   }
 }
 
+// التحقق من صرف الدفعة الختامية قبل السماح بإغلاق الطلب (في حال كان للمشروع عقد يتضمن دفعة ختامية)
+export async function verifyFinalPaymentDisbursedBeforeClose(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  requestId: number
+) {
+  const projectResult = await db.select({ id: projects.id }).from(projects).where(eq(projects.requestId, requestId)).limit(1);
+  if (projectResult.length === 0) return;
+  const projId = projectResult[0].id;
+
+  const projectContracts = await db.select({
+    id: contractsEnhanced.id,
+    paymentScheduleJson: contractsEnhanced.paymentScheduleJson,
+  }).from(contractsEnhanced).where(eq(contractsEnhanced.projectId, projId));
+
+  const contractIds = projectContracts.map((c: any) => c.id);
+  const allCps = contractIds.length > 0 
+    ? await db.select().from(contractPayments).where(inArray(contractPayments.contractId, contractIds))
+    : [];
+
+  const hasFinalClosing = projectContracts.some((c: any) => {
+    let sched: any = null;
+    try {
+      sched = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+    } catch (e) {}
+    return sched?.hasFinalPayment === true;
+  }) || allCps.some((cp: any) => cp.phaseName?.includes("الختامية") || cp.phaseName?.includes("ختامية"));
+
+  if (!hasFinalClosing) return;
+
+  const finalCp = allCps.find((cp: any) => cp.phaseName?.includes("الختامية") || cp.phaseName?.includes("ختامية")) 
+    || (allCps.length >= 2 ? allCps[allCps.length - 1] : null);
+
+  if (finalCp) {
+    if (finalCp.status === "paid") return;
+    const disbs = await db.select({ id: disbursementRequests.id, status: disbursementRequests.status })
+      .from(disbursementRequests)
+      .where(eq(disbursementRequests.contractPaymentId, finalCp.id));
+    const disbIds = disbs.map((d: any) => d.id);
+    const hasPaidDisb = disbs.some((d: any) => d.status === "paid" || d.status === "executed");
+    const hasExecutedOrder = disbIds.length > 0 
+      ? (await db.select({ id: disbursementOrders.id }).from(disbursementOrders).where(and(
+          inArray(disbursementOrders.disbursementRequestId, disbIds),
+          eq(disbursementOrders.status, "executed")
+        )).limit(1)).length > 0
+      : false;
+
+    if (!hasPaidDisb && !hasExecutedOrder) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "لا يمكن إغلاق الطلب: يجب صرف الدفعة الختامية أولاً لإتمام مرحلة الاستلام والانتقال لمرحلة الإغلاق.",
+      });
+    }
+  } else {
+    // في حال عدم وجود جدول دفعات مجدول (مثل نظام المستخلصات مع دفعة ختامية): التحقق من صرف طلب صرف ختامي
+    const disbs = await db.select({ id: disbursementRequests.id, status: disbursementRequests.status, title: disbursementRequests.title, paymentType: disbursementRequests.paymentType })
+      .from(disbursementRequests)
+      .where(eq(disbursementRequests.projectId, projId));
+    const finalDisbs = disbs.filter((d: any) => d.paymentType === "final" || d.title?.includes("الختامية") || d.title?.includes("ختامية"));
+    const hasPaidFinalDisb = finalDisbs.some((d: any) => d.status === "paid" || d.status === "executed");
+    const finalDisbIds = finalDisbs.map((d: any) => d.id);
+    const hasExecutedOrder = finalDisbIds.length > 0 
+      ? (await db.select({ id: disbursementOrders.id }).from(disbursementOrders).where(and(
+          inArray(disbursementOrders.disbursementRequestId, finalDisbIds),
+          eq(disbursementOrders.status, "executed")
+        )).limit(1)).length > 0
+      : false;
+    if (!hasPaidFinalDisb && !hasExecutedOrder) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "لا يمكن إغلاق الطلب: يجب صرف الدفعة الختامية أولاً لإتمام مرحلة الاستلام والانتقال لمرحلة الإغلاق.",
+      });
+    }
+  }
+}
+
 // دالة إنشاء رقم طلب فريد بمنهجية سنوية
 async function generateRequestNumber(
   db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
@@ -1514,7 +1589,29 @@ export const requestsRouter = router({
             totalContractsSum = parseFloat(String(proj?.budget || "0").replace(/,/g, "")) || 0;
           }
 
-          if (isMilestonesProject) {
+          const hasFinalClosingPayment = projectContracts.some((c: any) => {
+            let sched: any = null;
+            try {
+              sched = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+            } catch (e) {}
+            return sched?.hasFinalPayment === true;
+          }) || allContractPayments.some(cp => cp.phaseName?.includes("الختامية") || cp.phaseName?.includes("ختامية"));
+
+          if (hasFinalClosingPayment) {
+            // في حال كان للمشروع عقد يتضمن دفعة ختامية: التحقق فقط من سداد كامل مبالغ أعمال العقد للانتقال لمرحلة الاستلام
+            if (unifiedPayments.length === 0) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع.",
+              });
+            }
+            if (totalPaidSum < (totalContractsSum - 0.05)) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `لا يمكن الانتقال لمرحلة الاستلام: يجب سداد كامل مبلغ أعمال العقد أولاً للانتقال للاستلام. إجمالي المسدد (${totalPaidSum.toLocaleString()} ر.س) من إجمالي العقد (${totalContractsSum.toLocaleString()} ر.س).`,
+              });
+            }
+          } else if (isMilestonesProject) {
             // للمشاريع المرتبطة بمستخلصات: التحقق من أن المسدد يساوي قيمة العقد أو أكثر
             if (totalPaidSum < (totalContractsSum - 0.05)) {
               throw new TRPCError({
@@ -1533,7 +1630,7 @@ export const requestsRouter = router({
 
             // التحقق من أن جميع الدفعات مسددة
             const allPaid = unifiedPayments.every(p => p.status === "paid");
-            if (!allPaid && totalPaidSum < (totalContractsSum - 0.05)) {
+            if (!allPaid) {
               throw new TRPCError({
                 code: "BAD_REQUEST",
                 message: "لا يمكن الانتقال لمرحلة الاستلام: يجب أن تكون جميع الدفعات حالتها 'مسدد'.",
@@ -1541,7 +1638,7 @@ export const requestsRouter = router({
             }
 
             // التحقق من تساوي إجمالي قيم المدفوعات مع إجمالي قيمة العقد أو تجاوزه
-            if (Math.abs(totalPaymentsSum - totalContractsSum) >= 0.01 && totalPaidSum < (totalContractsSum - 0.05)) {
+            if (Math.abs(totalPaymentsSum - totalContractsSum) >= 0.01) {
               throw new TRPCError({
                 code: "BAD_REQUEST",
                 message: `لا يمكن الانتقال لمرحلة الاستلام: إجمالي قيم المدفوعات (${totalPaymentsSum}) لا يساوي إجمالي قيمة العقد (${totalContractsSum}).`,
@@ -1739,6 +1836,8 @@ export const requestsRouter = router({
 
       // التحقق من صلاحيات إغلاق الطلب وحصره بمدير النظام وتأكيد المدير التنفيذي
       if (input.newStage === 'closed') {
+        await verifyFinalPaymentDisbursedBeforeClose(db, input.requestId);
+
         const isSuperAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
         const isExecutive = ["executive_director", "general_manager"].includes(ctx.user.role);
 
@@ -2116,6 +2215,9 @@ export const requestsRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "هذا الطلب بانتظار تأكيد الإغلاق من المدير التنفيذي بالفعل" });
       }
 
+      // التحقق من صرف الدفعة الختامية أولاً في حال وجودها
+      await verifyFinalPaymentDisbursedBeforeClose(db, input.requestId);
+
       const effectiveReason = input.reason?.trim() || "إغلاق الطلب بناءً على قرار مدير النظام";
 
       await db.update(mosqueRequests).set({
@@ -2185,6 +2287,9 @@ export const requestsRouter = router({
       if (request.currentStage === "closed" || request.status === "completed") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "الطلب مغلق بالفعل" });
       }
+
+      // التحقق من صرف الدفعة الختامية أولاً في حال وجودها
+      await verifyFinalPaymentDisbursedBeforeClose(db, input.requestId);
 
       const oldStage = request.currentStage;
       const oldStatus = request.status;

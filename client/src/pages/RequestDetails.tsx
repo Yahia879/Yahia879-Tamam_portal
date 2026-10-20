@@ -37,6 +37,8 @@ import {
   PauseCircle,
   FolderKanban,
   AlertCircle,
+  AlertTriangle,
+  CreditCard,
   Loader2,
   Star,
 } from "lucide-react";
@@ -84,7 +86,8 @@ const ACTION_LABELS: Record<string, string> = {
   'project_started': 'تم بدء المشروع',
   'project_completed': 'تم إكمال المشروع',
 };
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Image, Download, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
@@ -165,7 +168,7 @@ export default function RequestDetails() {
   // جلب العقد المرتبط بالطلب
   const { data: existingContract } = trpc.contracts.getByRequestId.useQuery(
     { requestId },
-    { enabled: !!request && ['financial_eval_and_approval', 'contracting', 'execution', 'closed'].includes(request.currentStage) }
+    { enabled: !!request && ['financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'].includes(request.currentStage) }
   );
   
   // جلب كافة العقود المسجلة لهذا الطلب
@@ -173,6 +176,50 @@ export default function RequestDetails() {
     { requestId },
     { enabled: !!requestId }
   );
+
+  // جلب تفاصيل المشروع والدفعات
+  const { data: projectDetails } = trpc.projects.getById.useQuery(
+    { id: request?.project?.id! },
+    { enabled: !!request?.project?.id }
+  );
+
+  // التحقق من وجود دفعة ختامية وحالتها
+  const { hasFinalClosingPayment, finalPaymentItem, isFinalPaymentPaid } = useMemo(() => {
+    const contractsList = requestContracts.length > 0 ? requestContracts : (existingContract ? [existingContract] : []);
+    const fromContracts = contractsList.some((c: any) => {
+      let sched: any = null;
+      try {
+        sched = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+      } catch (e) {}
+      return sched?.hasFinalPayment === true;
+    });
+
+    const paymentsList = (projectDetails as any)?.payments || [];
+    const fromPayments = paymentsList.some((p: any) => 
+      p.description?.includes("الختامية") || p.description?.includes("ختامية") || p.phaseName?.includes("الختامية")
+    );
+
+    const hasFinal = fromContracts || fromPayments;
+
+    let finalItem: any = null;
+    if (hasFinal) {
+      finalItem = paymentsList.find((p: any) => 
+        p.description?.includes("الختامية") || p.description?.includes("ختامية") || p.phaseName?.includes("الختامية")
+      );
+      if (!finalItem && fromContracts) {
+        const cpPayments = paymentsList.filter((p: any) => String(p.id).startsWith("cp-") || p.source === "contract");
+        if (cpPayments.length >= 2) finalItem = cpPayments[cpPayments.length - 1];
+      }
+    }
+
+    const isPaid = !hasFinal || (finalItem ? (finalItem.status === "paid" || (finalItem.paidAmount && finalItem.paidAmount >= finalItem.agreedAmount)) : false);
+
+    return {
+      hasFinalClosingPayment: hasFinal,
+      finalPaymentItem: finalItem,
+      isFinalPaymentPaid: isPaid,
+    };
+  }, [requestContracts, existingContract, projectDetails]);
   
   // جلب موظفي الفريق الميداني
   const { data: fieldTeamMembers } = trpc.requests.getFieldTeamMembers.useQuery(
@@ -1604,16 +1651,53 @@ export default function RequestDetails() {
                               </Link>
                             )}
 
+                            {/* تنبيه شرط صرف الدفعة الختامية في مرحلة الاستلام */}
+                            {(request.currentStage as string) === "handover" && hasFinalClosingPayment && !isFinalPaymentPaid && (
+                              <div className="p-3.5 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 text-amber-950 dark:text-amber-200 text-right space-y-2.5 shadow-xs">
+                                <div className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-300 text-xs sm:text-sm">
+                                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                                  <span>يجب صرف الدفعة الختامية أولاً لإتمام مرحلة الاستلام</span>
+                                </div>
+                                <p className="text-[11px] sm:text-xs text-amber-700 dark:text-amber-300/90 leading-relaxed">
+                                  يتضمن العقد دفعة ختامية {finalPaymentItem?.amount ? `بمبلغ (${parseFloat(String(finalPaymentItem.amount)).toLocaleString()} ر.س)` : ""}. يشترط النظام صرفها قبل التمكن من إنهاء مرحلة الاستلام وإغلاق الطلب.
+                                </p>
+                                {request.project?.id && (
+                                  <Link href={`/disbursements/new-linked?projectId=${request.project.id}`}>
+                                    <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white font-bold w-full text-xs shadow-xs">
+                                      <CreditCard className="w-3.5 h-3.5 ml-1.5" />
+                                      صرف الدفعة الختامية الآن
+                                    </Button>
+                                  </Link>
+                                )}
+                              </div>
+                            )}
+
                             {/* زر إغلاق الطلب رسمياً للطلبات غير المغلقة بعد */}
                             {(request.currentStage as string) !== "closed" && (
                               canTransition ? (
                                 <Button 
-                                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm justify-center" 
-                                  onClick={() => updateStageMutation.mutate({ requestId, newStage: 'closed' as any })}
-                                  disabled={updateStageMutation.isPending}
+                                  className={cn(
+                                    "w-full font-bold shadow-sm justify-center transition-all",
+                                    (hasFinalClosingPayment && !isFinalPaymentPaid)
+                                      ? "bg-muted text-muted-foreground hover:bg-muted cursor-not-allowed border"
+                                      : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                  )} 
+                                  onClick={() => {
+                                    if (hasFinalClosingPayment && !isFinalPaymentPaid) {
+                                      toast.error("لا يمكن إغلاق الطلب: يجب صرف الدفعة الختامية أولاً لإتمام مرحلة الاستلام والانتقال لمرحلة الإغلاق.");
+                                      return;
+                                    }
+                                    updateStageMutation.mutate({ requestId, newStage: 'closed' as any });
+                                  }}
+                                  disabled={updateStageMutation.isPending || (hasFinalClosingPayment && !isFinalPaymentPaid)}
+                                  title={hasFinalClosingPayment && !isFinalPaymentPaid ? "يجب صرف الدفعة الختامية أولاً قبل إغلاق الطلب" : undefined}
                                 >
                                   <CheckCircle2 className="w-4 h-4 ml-2" />
-                                  {updateStageMutation.isPending ? "جاري الإغلاق..." : "إغلاق الطلب رسمياً"}
+                                  {updateStageMutation.isPending 
+                                    ? "جاري الإغلاق..." 
+                                    : (hasFinalClosingPayment && !isFinalPaymentPaid)
+                                    ? "بانتظار صرف الدفعة الختامية للإغلاق"
+                                    : "إغلاق الطلب رسمياً"}
                                 </Button>
                               ) : (
                                 <div className="p-3 bg-amber-50 rounded-lg">

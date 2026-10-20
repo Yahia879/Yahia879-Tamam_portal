@@ -243,6 +243,10 @@ export default function NewLinkedDisbursementRequest() {
     if (initialUrlParams.projectId > 0 && initialUrlParams.isAdvance) return true;
     return savedState?.isAdvanceSelected ?? false;
   });
+  const [isFinalClosingSelected, setIsFinalClosingSelected] = useState<boolean>(() => {
+    if (initialUrlParams.reportId > 0) return false;
+    return savedState?.isFinalClosingSelected ?? false;
+  });
   const [showReportReviewDialog, setShowReportReviewDialog] = useState(false);
   const [billerSearch, setBillerSearch] = useState("");
 
@@ -253,6 +257,7 @@ export default function NewLinkedDisbursementRequest() {
     const qProjectId = parseInt(sp.get("projectId") || "0") || 0;
     const qReportId = parseInt(sp.get("reportId") || "0") || 0;
     const qIsAdvance = sp.get("isAdvance") === "true" || sp.get("paymentNumber") === "1";
+    const qIsFinal = sp.get("isFinal") === "true" || sp.get("paymentType") === "final";
     if (qProjectId > 0) {
       setIsCustom(false);
       setIsDonationLinked(false);
@@ -265,13 +270,20 @@ export default function NewLinkedDisbursementRequest() {
       if (qReportId > 0) {
         setSelectedReportId(qReportId);
         setIsAdvanceSelected(false);
+        setIsFinalClosingSelected(false);
       } else if (qIsAdvance) {
         setIsAdvanceSelected(true);
+        setIsFinalClosingSelected(false);
+        setSelectedReportId(null);
+      } else if (qIsFinal) {
+        setIsFinalClosingSelected(true);
+        setIsAdvanceSelected(false);
         setSelectedReportId(null);
       }
     } else if (qReportId > 0) {
       setSelectedReportId(qReportId);
       setIsAdvanceSelected(false);
+      setIsFinalClosingSelected(false);
     }
   }, []);
 
@@ -313,6 +325,7 @@ export default function NewLinkedDisbursementRequest() {
         formData,
         selectedReportId,
         isAdvanceSelected,
+        isFinalClosingSelected,
         suppliers,
         isTamamLinked,
         showAttachmentFields,
@@ -375,6 +388,7 @@ export default function NewLinkedDisbursementRequest() {
   const handleCategoryChange = (cat: "donation_opportunity" | "tamam_platform" | "approved_report" | "custom") => {
     setSelectedReportId(null);
     setIsAdvanceSelected(false);
+    setIsFinalClosingSelected(false);
     if (cat === "donation_opportunity") {
       setIsDonationLinked(true);
       setIsTamamLinked(false);
@@ -957,6 +971,77 @@ export default function NewLinkedDisbursementRequest() {
     });
   };
 
+  // فحص ما إذا كان العقد يتضمن دفعة ختامية
+  const hasFinalClosingPaymentContract = useMemo(() => {
+    const contractsList = projectContracts?.contracts || (projectDetails as any)?.contracts || [];
+    return contractsList.some((c: any) => {
+      let sched: any = null;
+      try {
+        sched = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+      } catch (e) {}
+      return sched?.hasFinalPayment === true;
+    });
+  }, [projectContracts, projectDetails]);
+
+  // العثور على الدفعة الختامية للمشروع (إن وجدت)
+  const finalClosingPayment = useMemo(() => {
+    if (!projectDetails?.payments || projectDetails.payments.length === 0) return null;
+    
+    // 1. البحث عن دفعة تحمل اسم "الختامية"
+    const foundByName = projectDetails.payments.find((p: any) => 
+      p.description?.includes("الختامية") || p.description?.includes("ختامية") || p.phaseName?.includes("الختامية")
+    );
+    if (foundByName) return foundByName;
+
+    // 2. إذا كان العقد يحدد hasFinalPayment: فالدفع الأخيرة في جدول دفعات العقد
+    if (hasFinalClosingPaymentContract) {
+      const contractPaymentsList = projectDetails.payments.filter((p: any) => 
+        String(p.id).startsWith("cp-") || p.source === "contract"
+      );
+      if (contractPaymentsList.length >= 2) {
+        return contractPaymentsList[contractPaymentsList.length - 1];
+      }
+    }
+    return null;
+  }, [projectDetails?.payments, hasFinalClosingPaymentContract]);
+
+  // فحص ما إذا كانت الدفعة الختامية مسددة أو تم إنشاء طلب صرف لها
+  const isFinalClosingDisbursed = useMemo(() => {
+    if (!finalClosingPayment) return false;
+    return isPaymentDisbursed(finalClosingPayment) || finalClosingPayment.status === "paid";
+  }, [finalClosingPayment, projectRequests]);
+
+  // التحقق من صرف كافة دفعات أعمال المشروع الأخرى قبل السماح بتحديد أو صرف الدفعة الختامية
+  const isProjectWorkCompletedForFinalPayment = useMemo(() => {
+    if (!projectDetails?.payments || projectDetails.payments.length === 0) return true;
+
+    // دفعات أعمال المشروع باستثناء الدفعة الختامية
+    const workPayments = projectDetails.payments.filter((p: any) => {
+      if (finalClosingPayment && p.id === finalClosingPayment.id) return false;
+      if (p.description?.includes("الختامية") || p.description?.includes("ختامية")) return false;
+      return true;
+    });
+
+    const isMilestonesSystem = (projectContracts?.contracts || []).some((c: any) => {
+      let sched: any = null;
+      try {
+        sched = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+      } catch (e) {}
+      return c.paymentSystem === "milestones" || sched?.paymentSystem === "milestones";
+    });
+
+    if (isMilestonesSystem) {
+      const totalPaid = projectDetails.payments
+        .filter((p: any) => (!finalClosingPayment || p.id !== finalClosingPayment.id) && (p.status === "paid" || isPaymentDisbursed(p)))
+        .reduce((sum: number, p: any) => sum + parseFloat(String(p.amount || 0)), 0);
+      const totalContractAmt = projectContracts?.contracts?.reduce((sum: number, c: any) => sum + parseFloat(String(c.contractAmount || 0)), 0) || 0;
+      return totalPaid >= (totalContractAmt - 0.05);
+    }
+
+    if (workPayments.length === 0) return true;
+    return workPayments.every((p: any) => p.status === "paid" || isPaymentDisbursed(p));
+  }, [projectDetails?.payments, finalClosingPayment, projectContracts, projectRequests]);
+
   // مطابقة تقرير إنجاز مع دفعة معينة
   const isPaymentMatchingReport = (payment: any, report: any) => {
     if (!payment || !report) return false;
@@ -1009,8 +1094,22 @@ export default function NewLinkedDisbursementRequest() {
     if (approvedReports && approvedReports.length > 0) {
       list.push(...approvedReports);
     }
+    if (finalClosingPayment || hasFinalClosingPaymentContract) {
+      const finalAmt = finalClosingPayment ? parseFloat(String(finalClosingPayment.amount || "0")) : 0;
+      list.push({
+        id: "final_closing",
+        reportNumber: "دفعة ختامية",
+        title: finalClosingPayment?.description || "الدفعة الختامية للمشروع",
+        actualProgress: 100,
+        plannedProgress: 100,
+        budgetSpent: finalAmt,
+        agreedPaymentAmount: finalAmt,
+        isFinalClosing: true,
+        hint: "دفعة ختامية مستقلة من دون تقرير إنجاز",
+      });
+    }
     return list;
-  }, [advancePayment, approvedReports]);
+  }, [advancePayment, approvedReports, finalClosingPayment, hasFinalClosingPaymentContract]);
 
   const selectedReport = approvedReports?.find((r: any) => r.id === selectedReportId);
   
@@ -1156,6 +1255,37 @@ export default function NewLinkedDisbursementRequest() {
       });
     }
   }, [isAdvanceSelected, advancePayment, projectDetails, projectContracts]);
+
+  // الملء التلقائي بناءً على الدفعة الختامية المختارة
+  useEffect(() => {
+    if (isFinalClosingSelected) {
+      const targetPaymentId = finalClosingPayment 
+        ? (parseInt(String(finalClosingPayment.id).replace(/^(cp-|disb-|manual-)/i, "")) || 0)
+        : 0;
+      const paymentAmt = finalClosingPayment ? parseFloat(String(finalClosingPayment.amount || "0")) : 0;
+      const targetContractId = (finalClosingPayment as any)?.contractId || formData.contractId || (projectContracts?.contracts?.[0]?.id ?? 0);
+
+      setFormData(prev => {
+        if (
+          prev.contractPaymentId === targetPaymentId &&
+          (paymentAmt === 0 || prev.amount === paymentAmt) &&
+          prev.completionPercentage === 100 &&
+          prev.title.includes("الدفعة الختامية")
+        ) {
+          return prev;
+        }
+        return {
+          ...prev,
+          title: `طلب صرف لـ ${finalClosingPayment?.description || "الدفعة الختامية"} (دفعة ختامية)`,
+          description: `صرف الدفعة الختامية لمشروع ${projectDetails?.name || ""} بعد استكمال كافة أعمال ومراحل المشروع وتسليمه رسمياً`,
+          completionPercentage: 100,
+          contractPaymentId: targetPaymentId,
+          amount: paymentAmt > 0 ? paymentAmt : prev.amount,
+          contractId: targetContractId,
+        };
+      });
+    }
+  }, [isFinalClosingSelected, finalClosingPayment, projectDetails, projectContracts]);
   
   // جلب تفاصيل العقد
   const { data: contractDetails } = trpc.contracts.getById.useQuery(
@@ -1219,16 +1349,19 @@ export default function NewLinkedDisbursementRequest() {
       : 0;
 
     const advanceAmt = (isAdvanceSelected && advancePayment) ? parseFloat(String(advancePayment.amount || "0")) : 0;
-    // الأولوية الأولى هي قيمة المستخلص المحسوبة تلقائياً في حال المستخلص، أو الدفعة المقدمة، أو الدفعة المجدولة
+    const finalClosingAmt = (isFinalClosingSelected && finalClosingPayment) ? parseFloat(String(finalClosingPayment.amount || "0")) : 0;
+    // الأولوية الأولى هي قيمة المستخلص المحسوبة تلقائياً في حال المستخلص، أو الدفعة المقدمة، أو الدفعة الختامية، أو الدفعة المجدولة
     const calculatedAmount = advanceAmt > 0
       ? advanceAmt
-      : (invoiceAutoCalculatedAmount > 0
-        ? invoiceAutoCalculatedAmount
-        : (paymentAmt > 0
-          ? paymentAmt
-          : (reportBudget > 0 ? reportBudget : (contractAmt > 0 ? contractAmt : (quotationAmt > 0 ? quotationAmt : projectBudgetAmt)))));
+      : (finalClosingAmt > 0
+        ? finalClosingAmt
+        : (invoiceAutoCalculatedAmount > 0
+          ? invoiceAutoCalculatedAmount
+          : (paymentAmt > 0
+            ? paymentAmt
+            : (reportBudget > 0 ? reportBudget : (contractAmt > 0 ? contractAmt : (quotationAmt > 0 ? quotationAmt : projectBudgetAmt))))));
 
-    const shouldAutoFill = isAdvanceSelected || selectedReportId !== lastAutoFilledReportId.current || (suppliers.length > 0 && (!suppliers[0].amount || suppliers[0].amount === 0));
+    const shouldAutoFill = isAdvanceSelected || isFinalClosingSelected || selectedReportId !== lastAutoFilledReportId.current || (suppliers.length > 0 && (!suppliers[0].amount || suppliers[0].amount === 0));
 
     if (calculatedAmount > 0 && shouldAutoFill) {
       if (selectedReportId) {
@@ -1242,9 +1375,11 @@ export default function NewLinkedDisbursementRequest() {
           const secondPartyBank = contractDetails?.contract?.secondPartyBankName || (projectContracts?.contracts?.[0] as any)?.secondPartyBankName || "";
           const targetWork = isAdvanceSelected
             ? (advancePayment?.description ? `${advancePayment.description} (دفعة مقدمة)` : "دفعة مقدمة وفق شروط العقد")
-            : (isInvoice
-              ? (selectedReport?.title ? `مستخلص إنجاز (${progressPct}%) - ${selectedReport.title}` : `مستخلص إنجاز بنسبة ${progressPct}%`)
-              : (selectedReport?.title || contractDetails?.contract?.contractTitle || "أعمال منفذة حسب تقرير الإنجاز"));
+            : (isFinalClosingSelected
+              ? (finalClosingPayment?.description ? `${finalClosingPayment.description} (دفعة ختامية)` : "الدفعة الختامية للمشروع")
+              : (isInvoice
+                ? (selectedReport?.title ? `مستخلص إنجاز (${progressPct}%) - ${selectedReport.title}` : `مستخلص إنجاز بنسبة ${progressPct}%`)
+                : (selectedReport?.title || contractDetails?.contract?.contractTitle || "أعمال منفذة حسب تقرير الإنجاز")));
           
           updated[0] = {
             ...updated[0],
@@ -1264,7 +1399,7 @@ export default function NewLinkedDisbursementRequest() {
         amount: calculatedAmount,
       }));
     }
-  }, [selectedReport, isAdvanceSelected, advancePayment, paymentInfo, contractDetails, projectContracts, projectFinancials, projectDetails, selectedReportId]);
+  }, [selectedReport, isAdvanceSelected, isFinalClosingSelected, advancePayment, finalClosingPayment, paymentInfo, contractDetails, projectContracts, projectFinancials, projectDetails, selectedReportId]);
 
   // اختيار العقد تلقائياً إذا كان هناك عقد للمشروع (حتى لو كان قيد الاعتماد أو مسودة)
   useEffect(() => {
@@ -1289,7 +1424,9 @@ export default function NewLinkedDisbursementRequest() {
   const rawReportAmount = parseFloat(String(selectedReport?.budgetSpent || "0"));
   const rawPaymentAmount = isAdvanceSelected && advancePayment
     ? parseFloat(String(advancePayment.amount || "0"))
-    : parseFloat(String(paymentInfo?.amount || "0"));
+    : (isFinalClosingSelected && finalClosingPayment
+      ? parseFloat(String(finalClosingPayment.amount || "0"))
+      : parseFloat(String(paymentInfo?.amount || "0")));
   const rawQuotation = projectFinancials?.approvedQuotation;
   const rawQuotationAmount = parseFloat(String(
     rawQuotation?.approvedAmount || 
@@ -1439,6 +1576,9 @@ export default function NewLinkedDisbursementRequest() {
       if (isAdvanceSelected) {
         return !advancePayment || isPaymentDisbursed(advancePayment);
       }
+      if (isFinalClosingSelected) {
+        return !isProjectWorkCompletedForFinalPayment || isFinalClosingDisbursed;
+      }
       return !selectedReportId || (selectedReport && isReportLinked(selectedReport));
     }
     
@@ -1520,15 +1660,23 @@ export default function NewLinkedDisbursementRequest() {
       return;
     }
     if (requestType === "project_linked") {
-      if (!isAdvanceSelected && !selectedReportId) {
-        toast.error("يرجى اختيار الدفعة المقدمة أو تقرير إنجاز معتمد");
+      if (!isAdvanceSelected && !isFinalClosingSelected && !selectedReportId) {
+        toast.error("يرجى اختيار الدفعة المقدمة، الدفعة الختامية، أو تقرير إنجاز معتمد");
         return;
       }
       if (isAdvanceSelected && (!advancePayment || isPaymentDisbursed(advancePayment))) {
         toast.error("لا يمكن صرف الدفعة المقدمة لتقديم طلب صرف سابق لها");
         return;
       }
-      if (!isAdvanceSelected && selectedReport && isReportLinked(selectedReport)) {
+      if (isFinalClosingSelected && !isProjectWorkCompletedForFinalPayment) {
+        toast.error("لا يمكن صرف الدفعة الختامية إلا بعد صرف كافة دفعات أعمال المشروع");
+        return;
+      }
+      if (isFinalClosingSelected && isFinalClosingDisbursed) {
+        toast.error("تم إنشاء طلب صرف سابق للدفعة الختامية");
+        return;
+      }
+      if (!isAdvanceSelected && !isFinalClosingSelected && selectedReport && isReportLinked(selectedReport)) {
         toast.error("تم إنشاء طلب صرف لهذا التقرير مسبقاً");
         return;
       }
@@ -1549,7 +1697,7 @@ export default function NewLinkedDisbursementRequest() {
       toast.error("يرجى إدخال وصف الأعمال التي سوف تنفذ");
       return;
     }
-    if (!isAdvanceSelected && (formData.completionPercentage === undefined || formData.completionPercentage === null || isNaN(formData.completionPercentage) || formData.completionPercentage < 0 || formData.completionPercentage > 100)) {
+    if (!isAdvanceSelected && !isFinalClosingSelected && (formData.completionPercentage === undefined || formData.completionPercentage === null || isNaN(formData.completionPercentage) || formData.completionPercentage < 0 || formData.completionPercentage > 100)) {
       toast.error("يرجى إدخال نسبة إنجاز صحيحة (من 0 إلى 100)");
       return;
     }
@@ -1620,7 +1768,7 @@ export default function NewLinkedDisbursementRequest() {
   };
 
   const executeDisbursementSubmit = (useGeneralAccount: boolean) => {
-    const currentActivePayment = isAdvanceSelected ? advancePayment : paymentInfo;
+    const currentActivePayment = isAdvanceSelected ? advancePayment : (isFinalClosingSelected ? finalClosingPayment : paymentInfo);
     const isManual = !isCustom && currentActivePayment ? String(currentActivePayment.id).startsWith("manual-") : false;
     const resolvedCity = formData.projectCity === "other" ? formData.customCity : formData.projectCity;
     
@@ -1662,9 +1810,10 @@ export default function NewLinkedDisbursementRequest() {
         fundingSupport: formData.fundingSupport,
         mainProjectName: formData.mainProjectName,
         isAdvancePayment: isAdvanceSelected,
-        reportId: isAdvanceSelected ? null : (selectedReport?.id || null),
-        reportNumber: isAdvanceSelected ? null : (selectedReport?.reportNumber || null),
-        recommendations: isAdvanceSelected ? "" : (selectedReport?.recommendations || ""),
+        isFinalClosingPayment: isFinalClosingSelected,
+        reportId: (isAdvanceSelected || isFinalClosingSelected) ? null : (selectedReport?.id || null),
+        reportNumber: isAdvanceSelected ? null : (isFinalClosingSelected ? "دفعة ختامية" : (selectedReport?.reportNumber || null)),
+        recommendations: (isAdvanceSelected || isFinalClosingSelected) ? "" : (selectedReport?.recommendations || ""),
       }),
       type: "metadata"
     }] : [];
@@ -1707,9 +1856,9 @@ export default function NewLinkedDisbursementRequest() {
       description: formData.description,
       amount: totalAmount,
       adminFees: (requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses") ? formData.adminFees : undefined,
-      paymentType: isAdvanceSelected ? "advance" : "progress",
+      paymentType: isAdvanceSelected ? "advance" : (isFinalClosingSelected ? "final" : "progress"),
       dateMiladi: formData.dateMiladi,
-      completionPercentage: isAdvanceSelected ? 0 : formData.completionPercentage,
+      completionPercentage: isAdvanceSelected ? 0 : (isFinalClosingSelected ? 100 : formData.completionPercentage),
       fundingSourceName: formData.fundingSourceName || (supportSources.length === 1 ? supportSources[0].entity : undefined),
       attachments: finalAttachments.length > 0 ? finalAttachments : undefined,
     });
@@ -2116,6 +2265,7 @@ export default function NewLinkedDisbursementRequest() {
                         setFormData({ ...formData, projectId: parseInt(value) || 0, contractId: 0, fundingSourceName: "" });
                         setSelectedReportId(null);
                         setIsAdvanceSelected(false);
+                        setIsFinalClosingSelected(false);
                       }}
                       placeholder="ابحث واختر المشروع لتحديد تقرير الإنجاز أو المستخلص..."
                     />
@@ -2525,22 +2675,33 @@ export default function NewLinkedDisbursementRequest() {
                       </Label>
                       <ProgressReportSearchSelect
                         reports={combinedReportsList}
-                        value={isAdvanceSelected ? "advance" : (selectedReportId?.toString() || "")}
+                        value={isAdvanceSelected ? "advance" : isFinalClosingSelected ? "final_closing" : (selectedReportId?.toString() || "")}
                         onValueChange={(value) => {
                           if (value === "advance") {
                             setIsAdvanceSelected(true);
+                            setIsFinalClosingSelected(false);
                             setSelectedReportId(null);
                             toast.success("تم اختيار الدفعة المقدمة (غير بحاجة لعمل تقرير إنجاز)");
+                          } else if (value === "final_closing") {
+                            setIsFinalClosingSelected(true);
+                            setIsAdvanceSelected(false);
+                            setSelectedReportId(null);
+                            toast.success("تم اختيار الدفعة الختامية (غير بحاجة لعمل تقرير إنجاز)");
                           } else {
                             setIsAdvanceSelected(false);
+                            setIsFinalClosingSelected(false);
                             const val = value ? parseInt(value) : null;
                             setSelectedReportId(val);
                           }
                         }}
-                        placeholder="ابحث واختر تقرير الإنجاز أو المستخلص لمراجعته..."
+                        placeholder="ابحث واختر تقرير الإنجاز أو المستخلص أو الدفعة الختامية..."
                         isReportDisabled={(r: any) => {
                           if (r.isAdvance || r.id === "advance") {
                             return advancePayment ? isPaymentDisbursed(advancePayment) : false;
+                          }
+                          if (r.isFinalClosing || r.id === "final_closing") {
+                            if (isFinalClosingDisbursed) return true;
+                            return !isProjectWorkCompletedForFinalPayment;
                           }
                           return isReportLinked(r);
                         }}
@@ -2550,12 +2711,67 @@ export default function NewLinkedDisbursementRequest() {
                               ? "تم إنشاء طلب صرف سابق لهذه الدفعة"
                               : null;
                           }
+                          if (r.isFinalClosing || r.id === "final_closing") {
+                            if (isFinalClosingDisbursed) {
+                              return "تم إنشاء طلب صرف سابق للدفعة الختامية";
+                            }
+                            if (!isProjectWorkCompletedForFinalPayment) {
+                              return "لا يمكن تحديد أو صرف الدفعة الختامية إلا بعد صرف كافة دفعات أعمال المشروع";
+                            }
+                            return null;
+                          }
                           return isReportLinked(r) ? "تم إنشاء طلب صرف له سابقاً" : null;
                         }}
                       />
                     </div>
 
-                    {selectedReport && isReportLinked(selectedReport) && !isAdvanceSelected && (
+                    {isFinalClosingSelected && (
+                      <div className="space-y-4 animate-slide-up text-right">
+                        <div className="p-5 rounded-xl border border-amber-300/80 bg-amber-50/40 dark:bg-amber-950/20 text-right space-y-4 shadow-xs">
+                          <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center justify-between border-b border-amber-200/50 pb-3">
+                            <div className="flex items-center gap-2 justify-start">
+                              <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600">
+                                <Coins className="w-4.5 h-4.5" />
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] text-muted-foreground block font-bold">
+                                  الدفعة الختامية المعتمدة للمشروع (من دون تقرير إنجاز)
+                                </span>
+                                <h4 className="text-sm font-bold text-amber-950 dark:text-amber-200 mt-0.5">
+                                  🏆 {finalClosingPayment?.description || "الدفعة الختامية"}
+                                </h4>
+                              </div>
+                            </div>
+                            <Badge variant="outline" className="bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30 text-xs font-bold">
+                              تصرف عند استلام وإغلاق المشروع (100%)
+                            </Badge>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 text-right">
+                            <div className="bg-background/80 p-3 rounded-lg border border-amber-100 shadow-xs">
+                              <span className="text-[10px] text-muted-foreground block font-semibold">قيمة الدفعة</span>
+                              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 block">
+                                {finalClosingPayment?.amount ? `${parseFloat(String(finalClosingPayment.amount)).toLocaleString()} ر.س` : "حسب العقد"}
+                              </span>
+                            </div>
+                            <div className="bg-background/80 p-3 rounded-lg border border-amber-100 shadow-xs">
+                              <span className="text-[10px] text-muted-foreground block font-semibold">نسبة إنجاز المشروع</span>
+                              <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-1 block">
+                                100% (أعمال مكتملة)
+                              </span>
+                            </div>
+                            <div className="bg-background/80 p-3 rounded-lg border border-amber-100 shadow-xs">
+                              <span className="text-[10px] text-muted-foreground block font-semibold">حالة الاستحقاق</span>
+                              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mt-1 block">
+                                ✓ كافة دفعات أعمال المشروع مسددة
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedReport && isReportLinked(selectedReport) && !isAdvanceSelected && !isFinalClosingSelected && (
                       <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-red-900 dark:bg-red-950/20 dark:border-red-900 dark:text-red-200 text-right space-y-2 mt-4">
                         <div className="flex items-center gap-2 text-red-600 font-bold">
                           <AlertCircle className="w-5 h-5" />
@@ -2565,7 +2781,7 @@ export default function NewLinkedDisbursementRequest() {
                       </div>
                     )}
 
-                    {selectedReport && !isReportLinked(selectedReport) && !isAdvanceSelected && (
+                    {selectedReport && !isReportLinked(selectedReport) && !isAdvanceSelected && !isFinalClosingSelected && (
                       <div className="space-y-4 animate-slide-up text-right">
                         {/* Premium Linked Report Stats Card */}
                         <div className="p-5 rounded-xl border border-emerald-100 bg-emerald-50/10 dark:bg-emerald-950/5 text-right space-y-4 shadow-inner">
@@ -3073,11 +3289,13 @@ export default function NewLinkedDisbursementRequest() {
                   {!isCustom && (
                     <div className="space-y-1">
                       <span className="text-[10px] text-muted-foreground block font-bold">
-                        {isAdvanceSelected ? "نوع الدفعة التعاقدية" : (isInvoiceReport(selectedReport) ? "رقم المستخلص المالي" : "رقم تقرير الإنجاز")}
+                        {isAdvanceSelected ? "نوع الدفعة التعاقدية" : isFinalClosingSelected ? "نوع الدفعة التعاقدية" : (isInvoiceReport(selectedReport) ? "رقم المستخلص المالي" : "رقم تقرير الإنجاز")}
                       </span>
                       <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                         {isAdvanceSelected 
                           ? "الدفعة الأولى: دفعة مقدمة (غير بحاجة لتقرير إنجاز)" 
+                          : isFinalClosingSelected
+                          ? "الدفعة الختامية: دفعة تسليم ختامية (غير بحاجة لتقرير إنجاز)"
                           : (selectedReport?.reportNumber || "لا يوجد")}
                       </span>
                     </div>

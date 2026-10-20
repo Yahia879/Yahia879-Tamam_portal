@@ -22,6 +22,7 @@ export interface ProgressReportItem {
   workSummary?: string | null;
   actualWorkDone?: string | null;
   isAdvance?: boolean;
+  isFinalClosing?: boolean;
   hint?: string;
   [key: string]: any;
 }
@@ -46,6 +47,10 @@ export function getReportLabel(report: ProgressReportItem): string {
   if (report.isAdvance) {
     const amountStr = report.budgetSpent ? ` (${parseFloat(String(report.budgetSpent)).toLocaleString()} ر.س)` : "";
     return `${report.title || "الدفعة الأولى"} - دفعة مقدمة${amountStr}`;
+  }
+  if (report.isFinalClosing) {
+    const amountStr = report.budgetSpent ? ` (${parseFloat(String(report.budgetSpent)).toLocaleString()} ر.س)` : "";
+    return `🏆 ${report.title || "الدفعة الختامية"} - دفعة ختامية${amountStr}`;
   }
   const isInvoice = Boolean(
     (report.workSummary && /\[نوع:\s*مستخلص/i.test(report.workSummary)) ||
@@ -288,6 +293,8 @@ export function ProgressReportSearchSelect({
                         ? "bg-primary/10 border-primary/30 text-primary font-semibold cursor-pointer"
                         : report.isAdvance
                         ? "border-teal-200/80 bg-teal-50/40 hover:bg-teal-50/70 dark:bg-teal-950/20 text-foreground cursor-pointer"
+                        : report.isFinalClosing
+                        ? "border-amber-200/80 bg-amber-50/40 hover:bg-amber-50/70 dark:bg-amber-950/20 text-foreground cursor-pointer"
                         : "border-transparent hover:bg-muted/70 hover:border-border/50 text-foreground cursor-pointer"
                     )}
                   >
@@ -299,6 +306,11 @@ export function ProgressReportSearchSelect({
                         {report.isAdvance && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-teal-100 text-teal-800 dark:bg-teal-950/70 dark:text-teal-300 border border-teal-300 shrink-0">
                             دفعة مقدمة من دون تقرير إنجاز
+                          </span>
+                        )}
+                        {report.isFinalClosing && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300 shrink-0">
+                            🏆 دفعة ختامية من دون تقرير إنجاز
                           </span>
                         )}
                       </div>

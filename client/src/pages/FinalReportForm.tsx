@@ -125,11 +125,27 @@ export default function FinalReportForm() {
     },
   });
 
+  const totalPaidSum = projectPayments
+    .filter((p: any) => p.status === 'paid')
+    .reduce((sum: number, p: any) => sum + parseFloat(p.amount || "0"), 0);
+
+  const hasClosingPayment = projectContracts.some((c: any) => {
+    let sched: any = null;
+    try {
+      sched = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+    } catch (e) {}
+    return sched?.hasFinalPayment === true;
+  }) || projectPayments.some((p: any) => p.description?.includes("الختامية") || p.description?.includes("ختامية"));
+
   const hasPayments = projectPayments.length > 0;
   const allPaymentsPaid = hasPayments && projectPayments.every((p: any) => p.status === 'paid');
   const paymentsMatchContracts = hasPayments && Math.abs(totalPaymentsSum - totalContractsSum) < 0.01;
 
-  const isTransitionDisabled = request?.currentStage === "execution" && (!allPaymentsPaid || !paymentsMatchContracts);
+  const isTransitionDisabled = request?.currentStage === "execution" && (
+    hasClosingPayment
+      ? totalPaidSum < (totalContractsSum - 0.05)
+      : (!allPaymentsPaid || !paymentsMatchContracts)
+  );
 
   const isNotInExecution = request && request.currentStage !== "execution" && request.currentStage !== "handover";
   
