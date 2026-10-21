@@ -1982,7 +1982,12 @@ export const contractsRouter = router({
   // ==================== الموردين ====================
   
   // جلب قائمة الموردين
-  getSuppliers: permissionProcedure("suppliers.view").query(async () => {
+  getSuppliers: permissionProcedure([
+    "contracts.create",
+    "contracts.edit",
+    "contracts.view",
+    "suppliers.view",
+  ]).query(async () => {
     const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
     const suppliersList = await db

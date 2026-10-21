@@ -47,7 +47,8 @@ import {
   ShoppingCart,
   ShoppingBag,
   Boxes,
-  Sparkles
+  Sparkles,
+  Send
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -735,6 +736,7 @@ export default function RolePermissions() {
           nameAr: "قسم الاعتمادات",
           icon: CheckSquare,
           permissions: [
+            { id: "financial_approval.progress_invoices", nameAr: "عرض المستخلصات بانتظار الاعتماد" },
             { id: "financial_approval.disbursement_requests", nameAr: "عرض طلبات الصرف بانتظار الاعتماد" },
             { id: "financial_approval.disbursement_orders", nameAr: "عرض أوامر الصرف بانتظار الاعتماد" },
             { id: "financial_approval.custody_requests", nameAr: "عرض العهد المالية بانتظار الاعتماد" },
@@ -964,6 +966,7 @@ export default function RolePermissions() {
           nameAr: "قسم الاعتمادات",
           icon: CheckSquare,
           permissions: [
+            { id: "financial_approval.progress_invoices", nameAr: "عرض المستخلصات بانتظار الاعتماد" },
             { id: "financial_approval.disbursement_requests", nameAr: "عرض طلبات الصرف بانتظار الاعتماد" },
             { id: "financial_approval.disbursement_orders", nameAr: "عرض أوامر الصرف بانتظار الاعتماد" },
             { id: "financial_approval.custody_requests", nameAr: "عرض العهد المالية بانتظار الاعتماد" },
@@ -1123,6 +1126,7 @@ export default function RolePermissions() {
           nameAr: "قسم الاعتمادات",
           icon: CheckSquare,
           perms: [
+            "progress_invoices",
             "disbursement_requests",
             "disbursement_orders",
             "custody_requests",
@@ -1155,7 +1159,8 @@ export default function RolePermissions() {
         { id: "staff_users", nameAr: "المستخدمين", icon: Users, perms: ["view", "add", "edit", "suspend", "delete"] },
         { id: "staff_roles", nameAr: "الأدوار والصلاحيات", icon: Shield, perms: ["view", "customize", "suspend"] },
         { id: "staff_custom_roles", nameAr: "الأدوار المخصصة", icon: Briefcase, perms: ["view", "add", "edit", "delete"] },
-        { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["by_role", "edit_message_formats", "by_person", "beneficiary", "direct_send", "send_logs"] }
+        { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["by_role", "edit_message_formats", "by_person", "beneficiary"] },
+        { id: "notification_center", nameAr: "مركز الإشعارات", icon: Send, perms: ["direct_send", "send_logs"] }
       ]
     },
     {
@@ -1212,6 +1217,7 @@ export default function RolePermissions() {
           nameAr: "قسم الاعتمادات",
           icon: CheckSquare,
           perms: [
+            "progress_invoices",
             "disbursement_requests",
             "disbursement_orders",
             "custody_requests",
@@ -1279,7 +1285,8 @@ export default function RolePermissions() {
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
         { id: "forms_customization", nameAr: "تخصيص النماذج", icon: SlidersHorizontal, perms: ["evaluation", "services", "registration", "analytics"] },
         { id: "settings_escalation", nameAr: "تعيين وقت التأخير ومدد المراحل", icon: ShieldAlert, perms: ["view"] },
-        { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["by_role", "edit_message_formats", "by_person", "beneficiary", "direct_send", "send_logs"] },
+        { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["by_role", "edit_message_formats", "by_person", "beneficiary"] },
+        { id: "notification_center", nameAr: "مركز الإشعارات", icon: Send, perms: ["direct_send", "send_logs"] },
       ]
     },
     {
@@ -1412,6 +1419,7 @@ export default function RolePermissions() {
         approve: "الاعتمادات (اعتماد أو رفض طلب صرف)"
       },
       financial_approval: {
+        progress_invoices: "عرض المستخلصات بانتظار الاعتماد",
         disbursement_requests: "عرض طلبات الصرف بانتظار الاعتماد",
         disbursement_orders: "عرض أوامر الصرف بانتظار الاعتماد",
         custody_requests: "عرض العهد المالية بانتظار الاعتماد",
@@ -1539,9 +1547,12 @@ export default function RolePermissions() {
         edit_message_formats: "تعديل صيغ الرسائل",
         by_person: "تخصيص حسب الأشخاص",
         beneficiary: "إشعارات المستفيد",
+        edit: "تعديل تخصيص الإشعارات"
+      },
+      notification_center: {
         direct_send: "إرسال إشعار مباشر",
         send_logs: "سجل إرسال الإشعارات",
-        edit: "تعديل تخصيص الإشعارات"
+        view: "عرض مركز الإشعارات"
       },
       roles: {
         view: "عرض قائمة الأدوار",

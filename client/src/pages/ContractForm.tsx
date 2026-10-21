@@ -2196,7 +2196,19 @@ export default function ContractForm() {
       return;
     }
     
-    const supplier = selectedSupplier;
+    const supplier = selectedSupplier || (contractData.supplierId ? suppliersList.find((s: any) => s.id === contractData.supplierId) : null) || (approvedSupplierQuotation ? {
+      id: approvedSupplierQuotation.supplierId,
+      name: approvedSupplierQuotation.supplierName,
+      commercialRegister: undefined,
+      contactPerson: undefined,
+      contactPersonTitle: undefined,
+      address: undefined,
+      phone: undefined,
+      email: undefined,
+      bankName: undefined,
+      iban: undefined,
+      bankAccountName: undefined,
+    } : null);
     if (!supplier) {
       toast.error("يرجى اختيار المورد");
       setIsSubmitting(false);
@@ -2268,7 +2280,10 @@ export default function ContractForm() {
     setIsSavingDraft(true);
     
     const selectedTemplate = templatesData?.find((t: any) => t.id === contractData.templateId);
-    const supplier = selectedSupplier;
+    const supplier = selectedSupplier || (contractData.supplierId ? suppliersList.find((s: any) => s.id === contractData.supplierId) : null) || (approvedSupplierQuotation ? {
+      id: approvedSupplierQuotation.supplierId,
+      name: approvedSupplierQuotation.supplierName,
+    } : null);
 
     // عنوان افتراضي في حال لم يتم إدخاله بعد
     const defaultTitle = contractData.subject?.trim() 

@@ -1,7 +1,9 @@
+import React, { useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/usePermission";
+import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import {
   Settings as SettingsIcon,
@@ -19,6 +21,7 @@ import {
   SlidersHorizontal,
   ShieldAlert,
   Clock,
+  Send,
 } from "lucide-react";
 
 interface SettingCard {
@@ -106,6 +109,16 @@ const settingCards: SettingCard[] = [
     group: "المستخدمون",
     permission: "staff_notifications.edit",
   },
+  {
+    icon: Send,
+    title: "مركز الإشعارات",
+    description: "إرسال إشعارات مباشرة للمستفيدين والموظفين ومتابعة سجلات وحالات الإرسال",
+    path: "/notifications/center",
+    color: "text-blue-600",
+    bgColor: "bg-blue-50 dark:bg-blue-950/30",
+    group: "المستخدمون",
+    permission: "notification_center",
+  },
 ];
 
 const groupOrder = ["الجمعية", "العمليات", "البيانات", "المستخدمون", "التقارير"];
@@ -122,9 +135,22 @@ export default function Settings() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const userPermissions = useUserPermissions();
-  const effectivePermissions = (userPermissions && userPermissions.length > 0)
-    ? userPermissions
-    : (user as any)?.permissions || [];
+  const { data: directPerms } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user, staleTime: 0 }
+  );
+
+  const effectivePermissions = useMemo(() => {
+    const set = new Set<string>();
+    if (Array.isArray(directPerms)) {
+      directPerms.forEach((p: string) => set.add(p));
+    } else if (userPermissions && userPermissions.length > 0) {
+      userPermissions.forEach((p: string) => set.add(p));
+    } else if (Array.isArray((user as any)?.permissions)) {
+      (user as any).permissions.forEach((p: string) => set.add(p));
+    }
+    return Array.from(set);
+  }, [user, directPerms, userPermissions]);
 
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
 
@@ -149,9 +175,17 @@ export default function Settings() {
         effectivePermissions.includes("staff_notifications.by_role") ||
         effectivePermissions.includes("staff_notifications.edit_message_formats") ||
         effectivePermissions.includes("staff_notifications.by_person") ||
-        effectivePermissions.includes("staff_notifications.beneficiary") ||
-        effectivePermissions.includes("staff_notifications.direct_send") ||
-        effectivePermissions.includes("staff_notifications.send_logs")
+        effectivePermissions.includes("staff_notifications.beneficiary")
+      );
+    }
+    if (perm === "notification_center") {
+      const hasWildcard = effectivePermissions.includes("*");
+      return (
+        hasWildcard ||
+        effectivePermissions.includes("notification_center") ||
+        effectivePermissions.includes("notification_center.view") ||
+        effectivePermissions.includes("notification_center.direct_send") ||
+        effectivePermissions.includes("notification_center.send_logs")
       );
     }
     if (isAdmin) return true;

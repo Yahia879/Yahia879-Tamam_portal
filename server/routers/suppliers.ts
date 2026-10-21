@@ -326,7 +326,18 @@ export const suppliersRouter = router({
     }),
 
   // جلب مورد بالتفصيل
-  getById: permissionProcedure("suppliers.view")
+  getById: permissionProcedure([
+    "suppliers.view",
+    "contracts.view",
+    "contracts.create",
+    "contracts.edit",
+    "disbursements.view",
+    "disbursements.create",
+    "purchase_orders.view",
+    "purchase_orders.create",
+    "quotations.view",
+    "quotations.create",
+  ])
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();

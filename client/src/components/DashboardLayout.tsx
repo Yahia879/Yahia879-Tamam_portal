@@ -374,6 +374,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     finItems.push({ icon: Receipt, label: "عروض الأسعار", path: "/quotations" });
   }
   const VALID_APPROVAL_PERMS = [
+    "financial_approval.progress_invoices",
     "financial_approval.disbursement_requests",
     "financial_approval.disbursement_orders",
     "financial_approval.custody_requests",
@@ -505,8 +506,10 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     has("staff_notifications.edit_message_formats") ||
     has("staff_notifications.by_person") ||
     has("staff_notifications.beneficiary") ||
-    has("staff_notifications.direct_send") ||
-    has("staff_notifications.send_logs");
+    has("notification_center") ||
+    has("notification_center.view") ||
+    has("notification_center.direct_send") ||
+    has("notification_center.send_logs");
 
   if (canViewSettingsCenter) {
     settingsItems.push({ icon: Settings, label: "مركز الإعدادات", path: "/settings" });

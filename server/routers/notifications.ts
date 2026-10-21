@@ -2449,8 +2449,8 @@ export const notificationsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const userPerms = await calculateUserPermissions(ctx.user.id);
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role as any);
-      if (!isAdmin && !userPerms.includes("staff_notifications.edit") && !userPerms.includes("staff_notifications.direct_send")) {
+      const hasWildcard = userPerms.includes("*");
+      if (!hasWildcard && !userPerms.includes("notification_center.direct_send") && !userPerms.includes("notification_center")) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إرسال الإشعارات المباشرة" });
       }
 
@@ -2579,8 +2579,8 @@ export const notificationsRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const userPerms = await calculateUserPermissions(ctx.user.id);
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role as any);
-      if (!isAdmin && !userPerms.includes("staff_notifications.edit") && !userPerms.includes("staff_notifications.send_logs")) {
+      const hasWildcard = userPerms.includes("*");
+      if (!hasWildcard && !userPerms.includes("notification_center.send_logs") && !userPerms.includes("notification_center")) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض سجلات الإشعارات" });
       }
 
@@ -2715,8 +2715,13 @@ export const notificationsRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const userPerms = await calculateUserPermissions(ctx.user.id);
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role as any);
-      if (!isAdmin && !userPerms.includes("staff_notifications.edit") && !userPerms.includes("staff_notifications.send_logs") && !userPerms.includes("staff_notifications.direct_send")) {
+      const hasWildcard = userPerms.includes("*");
+      if (
+        !hasWildcard &&
+        !userPerms.includes("notification_center.send_logs") &&
+        !userPerms.includes("notification_center.direct_send") &&
+        !userPerms.includes("notification_center")
+      ) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إعادة إرسال الإشعارات" });
       }
 

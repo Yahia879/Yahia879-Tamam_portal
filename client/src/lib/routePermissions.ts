@@ -148,9 +148,19 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "staff_notifications.by_role",
     "staff_notifications.edit_message_formats",
     "staff_notifications.by_person",
-    "staff_notifications.beneficiary",
-    "staff_notifications.direct_send",
-    "staff_notifications.send_logs"
+    "staff_notifications.beneficiary"
+  ],
+  "/notifications/center": [
+    "notification_center",
+    "notification_center.view",
+    "notification_center.direct_send",
+    "notification_center.send_logs"
+  ],
+  "/notification-center": [
+    "notification_center",
+    "notification_center.view",
+    "notification_center.direct_send",
+    "notification_center.send_logs"
   ],
 
   // ── الموردون ──
@@ -170,6 +180,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
 
   // ── الاعتمادات ──
   "/financial-approval": [
+    "financial_approval.progress_invoices",
     "financial_approval.disbursement_requests",
     "financial_approval.disbursement_orders",
     "financial_approval.custody_requests",

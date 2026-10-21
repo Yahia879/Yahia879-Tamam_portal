@@ -25,6 +25,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useAnyPermission } from "@/hooks/usePermission";
 import { cn } from "@/lib/utils";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import {
   CheckSquare,
   Loader2,
@@ -45,60 +46,159 @@ import {
   Layers,
   CheckCircle,
   Filter,
+  Receipt,
+  Eye,
 } from "lucide-react";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 
 const CATEGORY_CONFIG: Record<
   string,
-  { label: string; icon: any; colorClass: string }
+  {
+    label: string;
+    pluralLabel: string;
+    icon: any;
+    badgeClass: string;
+    borderRClass: string;
+    rowBgClass: string;
+    iconContainerClass: string;
+    dotClass: string;
+    pillClass: string;
+  }
 > = {
+  progress_invoice: {
+    label: "مستخلص",
+    pluralLabel: "المستخلصات",
+    icon: Receipt,
+    badgeClass:
+      "bg-emerald-100/90 text-emerald-900 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-300 dark:border-emerald-700",
+    borderRClass: "border-r-4 border-r-emerald-500 dark:border-r-emerald-400",
+    rowBgClass:
+      "bg-emerald-50/70 hover:bg-emerald-100/80 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/40",
+    iconContainerClass:
+      "bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 shadow-xs",
+    dotClass: "bg-emerald-500 dark:bg-emerald-400",
+    pillClass:
+      "bg-emerald-100/90 text-emerald-900 dark:bg-emerald-950/70 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700",
+  },
   disbursement_request: {
     label: "طلب صرف",
+    pluralLabel: "طلبات الصرف",
     icon: Banknote,
-    colorClass:
-      "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800",
+    badgeClass:
+      "bg-teal-100/90 text-teal-900 border-teal-300 dark:bg-teal-950/70 dark:text-teal-300 dark:border-teal-700",
+    borderRClass: "border-r-4 border-r-teal-500 dark:border-r-teal-400",
+    rowBgClass:
+      "bg-teal-50/70 hover:bg-teal-100/80 dark:bg-teal-950/30 dark:hover:bg-teal-900/40",
+    iconContainerClass:
+      "bg-teal-100 dark:bg-teal-950/70 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-700 shadow-xs",
+    dotClass: "bg-teal-500 dark:bg-teal-400",
+    pillClass:
+      "bg-teal-100/90 text-teal-900 dark:bg-teal-950/70 dark:text-teal-300 border-teal-300 dark:border-teal-700",
   },
   disbursement_order: {
     label: "أمر صرف",
+    pluralLabel: "أوامر الصرف",
     icon: FileText,
-    colorClass:
-      "bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800",
-  },
-  progress_report: {
-    label: "تقرير إنجاز",
-    icon: Layers,
-    colorClass:
-      "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800",
-  },
-  purchase_order: {
-    label: "أمر شراء",
-    icon: ShoppingCart,
-    colorClass:
-      "bg-teal-50 text-teal-800 border-teal-300 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800",
+    badgeClass:
+      "bg-blue-100/90 text-blue-900 border-blue-300 dark:bg-blue-950/70 dark:text-blue-300 dark:border-blue-700",
+    borderRClass: "border-r-4 border-r-blue-500 dark:border-r-blue-400",
+    rowBgClass:
+      "bg-blue-50/70 hover:bg-blue-100/80 dark:bg-blue-950/30 dark:hover:bg-blue-900/40",
+    iconContainerClass:
+      "bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 shadow-xs",
+    dotClass: "bg-blue-500 dark:bg-blue-400",
+    pillClass:
+      "bg-blue-100/90 text-blue-900 dark:bg-blue-950/70 dark:text-blue-300 border-blue-300 dark:border-blue-700",
   },
   receipt_voucher: {
     label: "سند قبض",
+    pluralLabel: "سندات القبض",
     icon: Coins,
-    colorClass:
-      "bg-indigo-50 text-indigo-800 border-indigo-300 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800",
+    badgeClass:
+      "bg-indigo-100/90 text-indigo-900 border-indigo-300 dark:bg-indigo-950/70 dark:text-indigo-300 dark:border-indigo-700",
+    borderRClass: "border-r-4 border-r-indigo-500 dark:border-r-indigo-400",
+    rowBgClass:
+      "bg-indigo-50/70 hover:bg-indigo-100/80 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40",
+    iconContainerClass:
+      "bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700 shadow-xs",
+    dotClass: "bg-indigo-500 dark:bg-indigo-400",
+    pillClass:
+      "bg-indigo-100/90 text-indigo-900 dark:bg-indigo-950/70 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700",
   },
   custody_request: {
     label: "عهدة مالية",
+    pluralLabel: "العهد المالية",
     icon: Wallet,
-    colorClass:
-      "bg-cyan-50 text-cyan-800 border-cyan-300 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-800",
+    badgeClass:
+      "bg-sky-100/90 text-sky-900 border-sky-300 dark:bg-sky-950/70 dark:text-sky-300 dark:border-sky-700",
+    borderRClass: "border-r-4 border-r-sky-500 dark:border-r-sky-400",
+    rowBgClass:
+      "bg-sky-50/70 hover:bg-sky-100/80 dark:bg-sky-950/30 dark:hover:bg-sky-900/40",
+    iconContainerClass:
+      "bg-sky-100 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 border border-sky-300 dark:border-sky-700 shadow-xs",
+    dotClass: "bg-sky-500 dark:bg-sky-400",
+    pillClass:
+      "bg-sky-100/90 text-sky-900 dark:bg-sky-950/70 dark:text-sky-300 border-sky-300 dark:border-sky-700",
   },
   contract: {
     label: "عقد",
+    pluralLabel: "العقود",
     icon: FileText,
-    colorClass:
-      "bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-900/40 dark:text-slate-300 dark:border-slate-800",
+    badgeClass:
+      "bg-purple-100/90 text-purple-900 border-purple-300 dark:bg-purple-950/70 dark:text-purple-300 dark:border-purple-700",
+    borderRClass: "border-r-4 border-r-purple-500 dark:border-r-purple-400",
+    rowBgClass:
+      "bg-purple-50/70 hover:bg-purple-100/80 dark:bg-purple-950/30 dark:hover:bg-purple-900/40",
+    iconContainerClass:
+      "bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700 shadow-xs",
+    dotClass: "bg-purple-500 dark:bg-purple-400",
+    pillClass:
+      "bg-purple-100/90 text-purple-900 dark:bg-purple-950/70 dark:text-purple-300 border-purple-300 dark:border-purple-700",
+  },
+  purchase_order: {
+    label: "أمر شراء",
+    pluralLabel: "أوامر الشراء",
+    icon: ShoppingCart,
+    badgeClass:
+      "bg-rose-100/90 text-rose-900 border-rose-300 dark:bg-rose-950/70 dark:text-rose-300 dark:border-rose-700",
+    borderRClass: "border-r-4 border-r-rose-500 dark:border-r-rose-400",
+    rowBgClass:
+      "bg-rose-50/70 hover:bg-rose-100/80 dark:bg-rose-950/30 dark:hover:bg-rose-900/40",
+    iconContainerClass:
+      "bg-rose-100 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-700 shadow-xs",
+    dotClass: "bg-rose-500 dark:bg-rose-400",
+    pillClass:
+      "bg-rose-100/90 text-rose-900 dark:bg-rose-950/70 dark:text-rose-300 border-rose-300 dark:border-rose-700",
+  },
+  progress_report: {
+    label: "تقرير إنجاز",
+    pluralLabel: "تقارير الإنجاز",
+    icon: Layers,
+    badgeClass:
+      "bg-amber-100/90 text-amber-900 border-amber-300 dark:bg-amber-950/70 dark:text-amber-300 dark:border-amber-700",
+    borderRClass: "border-r-4 border-r-amber-500 dark:border-r-amber-400",
+    rowBgClass:
+      "bg-amber-50/70 hover:bg-amber-100/80 dark:bg-amber-950/30 dark:hover:bg-amber-900/40",
+    iconContainerClass:
+      "bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 shadow-xs",
+    dotClass: "bg-amber-500 dark:bg-amber-400",
+    pillClass:
+      "bg-amber-100/90 text-amber-900 dark:bg-amber-950/70 dark:text-amber-300 border-amber-300 dark:border-amber-700",
   },
   project_quotation: {
     label: "اعتماد مالي للطلب",
+    pluralLabel: "اعتمادات الطلبات",
     icon: CheckSquare,
-    colorClass:
-      "bg-purple-50 text-purple-800 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800",
+    badgeClass:
+      "bg-purple-100/90 text-purple-900 border-purple-300 dark:bg-purple-950/70 dark:text-purple-300 dark:border-purple-700",
+    borderRClass: "border-r-4 border-r-purple-500 dark:border-r-purple-400",
+    rowBgClass:
+      "bg-purple-50/70 hover:bg-purple-100/80 dark:bg-purple-950/30 dark:hover:bg-purple-900/40",
+    iconContainerClass:
+      "bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700 shadow-xs",
+    dotClass: "bg-purple-500 dark:bg-purple-400",
+    pillClass:
+      "bg-purple-100/90 text-purple-900 dark:bg-purple-950/70 dark:text-purple-300 border-purple-300 dark:border-purple-700",
   },
 };
 
@@ -138,14 +238,24 @@ const APPROVAL_CARDS = [
     iconBg: "bg-primary/10 text-primary",
   },
   {
-    key: "disbursement_request",
-    label: "طلبات الصرف",
-    subtitle: "قيد المراجعة والاعتماد",
-    icon: Banknote,
+    key: "progress_invoice",
+    label: "مستخلصات تحتاج اعتماد",
+    subtitle: "بانتظار تدقيق وصرف المستخلص",
+    icon: Receipt,
     border: "border-emerald-200/60 dark:border-emerald-900/40 hover:border-emerald-400",
     activeRing: "ring-2 ring-emerald-500/20 border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/20",
     textColor: "text-emerald-700 dark:text-emerald-300",
     iconBg: "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    key: "disbursement_request",
+    label: "طلبات الصرف",
+    subtitle: "قيد المراجعة والاعتماد",
+    icon: Banknote,
+    border: "border-teal-200/60 dark:border-teal-900/40 hover:border-teal-400",
+    activeRing: "ring-2 ring-teal-500/20 border-teal-500 bg-teal-50/20 dark:bg-teal-950/20",
+    textColor: "text-teal-700 dark:text-teal-300",
+    iconBg: "bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400",
   },
   {
     key: "disbursement_order",
@@ -182,20 +292,20 @@ const APPROVAL_CARDS = [
     label: "العقود",
     subtitle: "بانتظار الاعتماد النهائي",
     icon: FileText,
-    border: "border-slate-300/70 dark:border-slate-800 hover:border-slate-500",
-    activeRing: "ring-2 ring-slate-500/20 border-slate-600 bg-slate-100/40 dark:bg-slate-900/40",
-    textColor: "text-slate-700 dark:text-slate-300",
-    iconBg: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
+    border: "border-purple-200/60 dark:border-purple-900/40 hover:border-purple-400",
+    activeRing: "ring-2 ring-purple-500/20 border-purple-500 bg-purple-50/20 dark:bg-purple-950/20",
+    textColor: "text-purple-700 dark:text-purple-300",
+    iconBg: "bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400",
   },
   {
     key: "purchase_order",
     label: "أوامر الشراء",
     subtitle: "بانتظار اعتماد التوريد",
     icon: ShoppingCart,
-    border: "border-teal-200/60 dark:border-teal-900/40 hover:border-teal-400",
-    activeRing: "ring-2 ring-teal-500/20 border-teal-500 bg-teal-50/20 dark:bg-teal-950/20",
-    textColor: "text-teal-700 dark:text-teal-300",
-    iconBg: "bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400",
+    border: "border-rose-200/60 dark:border-rose-900/40 hover:border-rose-400",
+    activeRing: "ring-2 ring-rose-500/20 border-rose-500 bg-rose-50/20 dark:bg-rose-950/20",
+    textColor: "text-rose-700 dark:text-rose-300",
+    iconBg: "bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400",
   },
   {
     key: "progress_report",
@@ -210,6 +320,7 @@ const APPROVAL_CARDS = [
 ];
 
 const categoryPermMap: Record<string, string> = {
+  progress_invoice: "financial_approval.progress_invoices",
   disbursement_request: "financial_approval.disbursement_requests",
   disbursement_order: "financial_approval.disbursement_orders",
   custody_request: "financial_approval.custody_requests",
@@ -227,7 +338,7 @@ export default function FinancialApproval() {
   // جلب صلاحيات المستخدم بشكل مباشر لضمان عدم حدوث أي وميض أو تأخير في التحقق
   const { data: directPerms, isLoading: permsLoading } = trpc.permissions.getUserPermissions.useQuery(
     { userId: user?.id ?? 0 },
-    { enabled: !!user, staleTime: 30000 }
+    { enabled: !!user, staleTime: 0 }
   );
 
   const isAuthOrPermsLoading = authLoading || (!!user && permsLoading);
@@ -248,16 +359,16 @@ export default function FinancialApproval() {
 
   const userPerms: string[] = useMemo(() => {
     const set = new Set<string>();
-    if (Array.isArray((user as any)?.permissions)) {
-      (user as any).permissions.forEach((p: string) => set.add(p));
-    }
     if (Array.isArray(directPerms)) {
       directPerms.forEach((p: string) => set.add(p));
+    } else if (Array.isArray((user as any)?.permissions)) {
+      (user as any).permissions.forEach((p: string) => set.add(p));
     }
     return Array.from(set);
   }, [user, directPerms]);
 
   const APPROVAL_PERMISSION_KEYS = [
+    "financial_approval.progress_invoices",
     "financial_approval.disbursement_requests",
     "financial_approval.disbursement_orders",
     "financial_approval.custody_requests",
@@ -338,6 +449,19 @@ export default function FinancialApproval() {
   const items = approvalsData?.items || [];
   const totalFiltered = approvalsData?.totalFiltered ?? 0;
   const totalPages = approvalsData?.totalPages ?? 1;
+
+  // عناصر دلالات الألوان التفاعلية
+  const legendCategories = useMemo(() => {
+    return allowedCategoryCards.map((card) => {
+      const conf = CATEGORY_CONFIG[card.key];
+      return {
+        key: card.key,
+        label: conf?.pluralLabel || card.label,
+        dotClass: conf?.dotClass || "bg-primary",
+        pillClass: conf?.pillClass || "bg-muted text-foreground border-border",
+      };
+    });
+  }, [allowedCategoryCards]);
 
   // أثناء تحميل الجلسة أو الصلاحيات، عرض مؤشر تحميل أنيق لمنع وميض "عذراً، الوصول غير مصرح به"
   if (isAuthOrPermsLoading || (!user && authLoading)) {
@@ -527,9 +651,53 @@ export default function FinancialApproval() {
           </CardContent>
         </Card>
 
+        {/* ==================== دلالات ألوان المعاملات (Color Legend) ==================== */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 text-xs font-medium px-1 py-0.5 text-muted-foreground">
+          <span className="text-[11px] font-bold text-foreground flex items-center gap-1.5 ml-1">
+            <Filter className="h-3.5 w-3.5 text-primary" />
+            دلالات ألوان المعاملات:
+          </span>
+          {legendCategories.map((item) => {
+            const isSelected = categoryFilter === item.key;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => {
+                  setCategoryFilter((prev) => (prev === item.key ? "all" : item.key));
+                  setPage(1);
+                }}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold cursor-pointer transition-all",
+                  item.pillClass,
+                  isSelected
+                    ? "ring-2 ring-primary ring-offset-1 font-bold shadow-xs scale-105"
+                    : "opacity-85 hover:opacity-100"
+                )}
+                title={`تصفية حسب: ${item.label}`}
+              >
+                <span className={cn("w-2 h-2 rounded-full", item.dotClass)} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+          {categoryFilter !== "all" && (
+            <button
+              type="button"
+              onClick={() => {
+                setCategoryFilter("all");
+                setPage(1);
+              }}
+              className="text-[11px] text-muted-foreground hover:text-foreground underline mr-2 cursor-pointer font-medium"
+            >
+              عرض الكل
+            </button>
+          )}
+        </div>
+
         {/* ==================== جدول المعاملات المعلقة ==================== */}
-        <Card className="border-border/60 shadow-xs">
-          <CardHeader className="pb-3 border-b border-border/40">
+        <Card className="border-border/60 shadow-xs overflow-hidden">
+          <CardHeader className="pb-3 border-b border-border/40 bg-card">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <CheckSquare className="h-5 w-5 text-primary" />
@@ -565,10 +733,10 @@ export default function FinancialApproval() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader className="bg-muted/40">
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[320px]">الطلب / المعاملة</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[180px]">التصنيف داخل البوابة</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[220px]">مقدم الطلب</TableHead>
+                    <TableRow className="hover:bg-transparent border-b border-border/60">
+                      <TableHead className="text-right text-xs font-bold text-foreground w-[340px] pr-4">الطلب / المعاملة</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-foreground w-[160px]">التصنيف</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-foreground w-[200px]">مقدم الطلب</TableHead>
                       <TableHead className="text-right text-xs font-bold text-foreground w-[200px]">المسؤول عن الاعتماد</TableHead>
                       <TableHead className="text-right text-xs font-bold text-foreground w-[180px]">القيمة / المبلغ</TableHead>
                     </TableRow>
@@ -577,70 +745,98 @@ export default function FinancialApproval() {
                     {items.map((item) => {
                       const catConf = CATEGORY_CONFIG[item.categoryKey] || {
                         label: item.category,
+                        pluralLabel: item.category,
                         icon: FileText,
-                        colorClass: "bg-slate-100 text-slate-800 border-slate-300",
+                        badgeClass: "bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-900/40 dark:text-slate-300 dark:border-slate-800",
+                        borderRClass: "border-r-4 border-r-slate-400",
+                        rowBgClass: "hover:bg-muted/30",
+                        iconContainerClass: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700 shadow-xs",
+                        dotClass: "bg-slate-500",
+                        pillClass: "bg-slate-100 text-slate-800 border-slate-300",
                       };
                       const CatIcon = catConf.icon;
 
                       const appConf = APPROVER_CONFIG[item.requiredApproverKey] || {
                         label: item.requiredApprover,
-                        badgeClass: "bg-amber-50 text-amber-800 border-amber-300 font-bold",
+                        badgeClass: "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 font-bold",
                       };
 
                       return (
-                        <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
-                          <TableCell className="align-top py-3 text-right">
-                            <div className="space-y-1">
-                              <span className="text-xs font-bold text-foreground block text-right font-mono select-text">
-                                {item.itemNumber}
-                              </span>
-                              <p
-                                className="text-xs font-medium text-foreground text-right line-clamp-2 select-text"
-                                title={item.title}
+                        <TableRow
+                          key={item.id}
+                          onClick={() => {
+                            if (item.link) navigate(item.link);
+                          }}
+                          className={cn(
+                            "cursor-pointer transition-colors duration-150 border-b border-border/40",
+                            catConf.borderRClass,
+                            catConf.rowBgClass
+                          )}
+                        >
+                          <TableCell className="align-middle py-3.5 pr-4 text-right">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={cn(
+                                  "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border shadow-xs",
+                                  catConf.iconContainerClass
+                                )}
+                                title={catConf.label}
                               >
-                                {item.title}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-mono">
-                                <Clock className="h-3 w-3 text-muted-foreground/70" />
-                                <span>
-                                  {item.createdAt
-                                    ? new Date(item.createdAt).toLocaleDateString("en-CA").replace(/-/g, "/")
-                                    : "—"}
+                                <CatIcon className="w-4.5 h-4.5" />
+                              </div>
+                              <div className="space-y-1 min-w-0">
+                                <span className="text-xs font-bold text-foreground block text-right font-mono select-text">
+                                  {item.itemNumber}
                                 </span>
-                              </p>
+                                <p
+                                  className="text-xs font-semibold text-foreground text-right line-clamp-2 select-text"
+                                  title={item.title}
+                                >
+                                  {item.title}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-mono">
+                                  <Clock className="h-3 w-3 text-muted-foreground/70" />
+                                  <span>
+                                    {item.createdAt
+                                      ? new Date(item.createdAt).toLocaleDateString("en-CA").replace(/-/g, "/")
+                                      : "—"}
+                                  </span>
+                                </p>
+                              </div>
                             </div>
                           </TableCell>
 
-                          <TableCell className="align-top py-3 text-right">
+                          <TableCell className="align-middle py-3.5 text-right">
                             <Badge
                               variant="outline"
-                              className={cn("gap-1 text-[11px] font-semibold py-1 px-2.5", catConf.colorClass)}
+                              className={cn("gap-1 text-[11px] font-semibold py-1 px-2.5 shadow-xs", catConf.badgeClass)}
                             >
-                              <CatIcon className="h-3 w-3 shrink-0" />
+                              <CatIcon className="h-3.5 w-3.5 shrink-0" />
                               <span>{catConf.label}</span>
                             </Badge>
                           </TableCell>
 
-                          <TableCell className="align-top py-3 text-right">
+                          <TableCell className="align-middle py-3.5 text-right">
                             <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                               <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                               <span>{item.requesterName}</span>
                             </p>
                           </TableCell>
 
-                          <TableCell className="align-top py-3 text-right">
+                          <TableCell className="align-middle py-3.5 text-right">
                             <Badge
                               variant="outline"
-                              className={cn("text-[11px] py-1 px-2.5", appConf.badgeClass)}
+                              className={cn("text-[11px] py-1 px-2.5 font-bold shadow-xs", appConf.badgeClass)}
                             >
                               {item.requiredApprover}
                             </Badge>
                           </TableCell>
 
-                          <TableCell className="align-top py-3 text-right">
+                          <TableCell className="align-middle py-3.5 text-right">
                             {item.amount !== null && item.amount !== undefined ? (
-                              <div className="font-semibold text-xs text-foreground font-mono">
-                                {Number(item.amount).toLocaleString("en-US")} <span className="text-[10px] text-muted-foreground font-sans">ر.س</span>
+                              <div className="font-bold text-xs text-foreground font-mono inline-flex items-center gap-1.5">
+                                <span>{Number(item.amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <SaudiRiyal className="h-3.5 w-3.5 opacity-80" />
                               </div>
                             ) : (
                               <span className="text-xs text-muted-foreground font-mono">—</span>

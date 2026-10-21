@@ -88,6 +88,7 @@ export const approvalsRouter = router({
         "financial_approval.contracts",
         "financial_approval.purchase_orders",
         "financial_approval.progress_reports",
+        "financial_approval.progress_invoices",
       ];
 
       const hasWildcard = userPerms.includes("*");
@@ -209,7 +210,7 @@ export const approvalsRouter = router({
         console.error("Error fetching disbursement orders for approvals:", err);
       }
 
-      // 3. تقارير الإنجاز المعلقة (pending, submitted, draft, pending_executive)
+      // 3. تقارير الإنجاز والمستخلصات المعلقة (pending, submitted, draft, pending_executive)
       try {
         const progRows = await db
           .select({
@@ -218,6 +219,8 @@ export const approvalsRouter = router({
             title: progressReports.title,
             status: progressReports.status,
             createdAt: progressReports.createdAt,
+            workSummary: progressReports.workSummary,
+            budgetSpent: progressReports.budgetSpent,
             creatorName: users.name,
             projectName: projects.name,
           })
@@ -231,25 +234,61 @@ export const approvalsRouter = router({
 
         for (const row of progRows) {
           const isExec = row.status === "pending_executive";
-          items.push({
-            id: `prog_rep_${row.id}`,
-            rawId: row.id,
-            itemNumber: row.reportNumber || `PR-${row.id}`,
-            title: row.title || (row.projectName ? `تقرير إنجاز: ${row.projectName}` : `تقرير إنجاز رقم ${row.reportNumber || row.id}`),
-            category: "تقرير إنجاز",
-            categoryKey: "progress_report",
-            requesterName: row.creatorName || "غير محدد",
-            requiredApprover: isExec ? "المدير التنفيذي" : "مدير المشروع",
-            requiredApproverKey: isExec ? "executive_director" : "project_manager",
-            status: row.status || "pending",
-            statusLabel: isExec ? "بانتظار اعتماد المدير التنفيذي" : "بانتظار اعتماد مدير المشروع",
-            amount: null,
-            createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString(),
-            link: `/progress-reports/${row.id}/print`,
-          });
+          const ws = row.workSummary || "";
+          const t = (row.title || "").toLowerCase();
+          const isInv = Boolean(
+            ws.includes("[نوع: مستخلص") ||
+            ws.includes("[معرف المستخلص:") ||
+            ws.includes("[المبلغ المستحق:") ||
+            t.includes("مستخلص")
+          );
+
+          if (isInv) {
+            // مستخلص إنجاز
+            const amountMatch = ws.match(/\[المبلغ المستحق:\s*([^\]]+)\]/);
+            let invoiceAmount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, "")) : null;
+            if (!invoiceAmount && row.budgetSpent) {
+              invoiceAmount = parseFloat(String(row.budgetSpent)) || null;
+            }
+
+            items.push({
+              id: `prog_inv_${row.id}`,
+              rawId: row.id,
+              itemNumber: row.reportNumber || `INV-${row.id}`,
+              title: row.title || (row.projectName ? `مستخلص: ${row.projectName}` : `مستخلص رقم ${row.reportNumber || row.id}`),
+              category: "مستخلص",
+              categoryKey: "progress_invoice",
+              requesterName: row.creatorName || "غير محدد",
+              requiredApprover: isExec ? "المدير التنفيذي" : "مدير المشروع / الإدارة الهندسية",
+              requiredApproverKey: isExec ? "executive_director" : "project_manager",
+              status: row.status || "pending",
+              statusLabel: isExec ? "بانتظار اعتماد المدير التنفيذي" : "بانتظار تدقيق واعتماد المستخلص",
+              amount: invoiceAmount,
+              createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString(),
+              link: `/progress-reports/${row.id}/print`,
+            });
+          } else {
+            // تقرير إنجاز عادي
+            items.push({
+              id: `prog_rep_${row.id}`,
+              rawId: row.id,
+              itemNumber: row.reportNumber || `PR-${row.id}`,
+              title: row.title || (row.projectName ? `تقرير إنجاز: ${row.projectName}` : `تقرير إنجاز رقم ${row.reportNumber || row.id}`),
+              category: "تقرير إنجاز",
+              categoryKey: "progress_report",
+              requesterName: row.creatorName || "غير محدد",
+              requiredApprover: isExec ? "المدير التنفيذي" : "مدير المشروع",
+              requiredApproverKey: isExec ? "executive_director" : "project_manager",
+              status: row.status || "pending",
+              statusLabel: isExec ? "بانتظار اعتماد المدير التنفيذي" : "بانتظار اعتماد مدير المشروع",
+              amount: null,
+              createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString(),
+              link: `/progress-reports/${row.id}/print`,
+            });
+          }
         }
       } catch (err) {
-        console.error("Error fetching progress reports for approvals:", err);
+        console.error("Error fetching progress reports/invoices for approvals:", err);
       }
 
       // 4. سندات القبض المعلقة (pending_approval)
@@ -482,14 +521,15 @@ export const approvalsRouter = router({
       items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
       // تطبيق صلاحيات الأصناف المحددة إن وجدت
-      const categoryPermMap: Record<string, string> = {
-        disbursement_request: "financial_approval.disbursement_requests",
-        disbursement_order: "financial_approval.disbursement_orders",
-        custody_request: "financial_approval.custody_requests",
-        receipt_voucher: "financial_approval.receipt_vouchers",
-        contract: "financial_approval.contracts",
-        purchase_order: "financial_approval.purchase_orders",
-        progress_report: "financial_approval.progress_reports",
+      const categoryPermMap: Record<string, string[]> = {
+        progress_invoice: ["financial_approval.progress_invoices"],
+        disbursement_request: ["financial_approval.disbursement_requests"],
+        disbursement_order: ["financial_approval.disbursement_orders"],
+        custody_request: ["financial_approval.custody_requests"],
+        receipt_voucher: ["financial_approval.receipt_vouchers"],
+        contract: ["financial_approval.contracts"],
+        purchase_order: ["financial_approval.purchase_orders"],
+        progress_report: ["financial_approval.progress_reports"],
       };
 
       const hasAdminWildcard = userPerms.includes("*");
@@ -497,8 +537,8 @@ export const approvalsRouter = router({
       let accessibleItems = items;
       if (!hasAdminWildcard) {
         accessibleItems = items.filter((item) => {
-          const reqPerm = categoryPermMap[item.categoryKey];
-          return reqPerm && userPerms.includes(reqPerm);
+          const reqPerms = categoryPermMap[item.categoryKey];
+          return reqPerms && reqPerms.some((p) => userPerms.includes(p));
         });
       }
 

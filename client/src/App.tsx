@@ -80,6 +80,7 @@ import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import Notifications from "./pages/Notifications";
 import NotificationCustomization from "./pages/NotificationCustomization";
+import NotificationCenter from "./pages/NotificationCenter";
 import RequestEvaluation from "./pages/RequestEvaluation";
 import PublicEvaluation from "./pages/PublicEvaluation";
 import BeneficiarySatisfaction from "./pages/BeneficiarySatisfaction";
@@ -512,6 +513,8 @@ function Router() {
       <Route path="/forms-customization/option-2">{() => <AdminRoute component={FormsCustomizationOption2} />}</Route>
       <Route path="/forms-customization/escalation">{() => <AdminRoute component={FormsCustomizationEscalation} />}</Route>
       <Route path="/notifications/customization">{() => <AdminRoute component={NotificationCustomization} />}</Route>
+      <Route path="/notifications/center">{() => <AdminRoute component={NotificationCenter} />}</Route>
+      <Route path="/notification-center">{() => <AdminRoute component={NotificationCenter} />}</Route>
       <Route path="/support">
         {() => (
           <ProtectedRoute>

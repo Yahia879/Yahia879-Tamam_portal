@@ -8,13 +8,11 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Bell, Shield, Smartphone, MessageSquare, Mail, Users, Info, ArrowRight, Pencil, X, HeartHandshake, Search, CheckCircle2, XCircle, SlidersHorizontal, Filter, Boxes, Sparkles, Truck, Package, Send, History } from "lucide-react";
+import { Bell, Shield, Smartphone, MessageSquare, Mail, Users, Info, ArrowRight, Pencil, X, HeartHandshake, Search, CheckCircle2, XCircle, SlidersHorizontal, Filter, Boxes, Sparkles, Truck, Package } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import DirectNotificationTab from "@/components/DirectNotificationTab";
-import NotificationLogsTab from "@/components/NotificationLogsTab";
 import { useUserPermissions } from "@/hooks/usePermission";
 import { useAuth } from "@/_core/hooks/useAuth";
 
@@ -250,21 +248,15 @@ export default function NotificationCustomization() {
   const canEditMessageFormats = hasPerm("staff_notifications.edit_message_formats");
   const canByPerson = hasPerm("staff_notifications.by_person");
   const canBeneficiary = hasPerm("staff_notifications.beneficiary");
-  const canDirectSend = hasPerm("staff_notifications.direct_send");
-  const canSendLogs = hasPerm("staff_notifications.send_logs");
 
   const canShowRolesTab = canByRole || canEditMessageFormats;
   const canShowUsersTab = canByPerson;
   const canShowBeneficiaryTab = canBeneficiary || canEditMessageFormats;
-  const canShowDirectSendTab = canDirectSend;
-  const canShowLogsTab = canSendLogs;
 
   const availableTabs = [
     ...(canShowRolesTab ? [{ value: "roles", label: "تخصيص حسب الأدوار", icon: Shield }] : []),
     ...(canShowUsersTab ? [{ value: "users", label: "تخصيص حسب الأشخاص", icon: Users }] : []),
     ...(canShowBeneficiaryTab ? [{ value: "beneficiary", label: "إشعارات المستفيد", icon: HeartHandshake }] : []),
-    ...(canShowDirectSendTab ? [{ value: "direct_send", label: "إرسال إشعار مباشر", icon: Send }] : []),
-    ...(canShowLogsTab ? [{ value: "logs", label: "سجل إرسال الإشعارات", icon: History }] : []),
   ];
 
   const [activeTab, setActiveTab] = useState<string>("roles");
@@ -2735,19 +2727,7 @@ export default function NotificationCustomization() {
             </TabsContent>
           )}
 
-          {/* تبويب: إرسال إشعار مباشر ومخصص */}
-          {canShowDirectSendTab && (
-            <TabsContent value="direct_send" className="space-y-6 focus-visible:outline-none">
-              <DirectNotificationTab dbRoles={dbRoles} />
-            </TabsContent>
-          )}
 
-          {/* تبويب: سجل إرسال الإشعارات */}
-          {canShowLogsTab && (
-            <TabsContent value="logs" className="space-y-6 focus-visible:outline-none">
-              <NotificationLogsTab dbRoles={dbRoles} />
-            </TabsContent>
-          )}
 
         </Tabs>
       )}

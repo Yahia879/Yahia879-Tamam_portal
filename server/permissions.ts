@@ -203,24 +203,26 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
     "staff_notifications.by_role",
     "staff_notifications.edit_message_formats",
     "staff_notifications.by_person",
-    "staff_notifications.beneficiary",
-    "staff_notifications.direct_send",
-    "staff_notifications.send_logs"
+    "staff_notifications.beneficiary"
   ],
   staff_notifications: [
     "staff_notifications.by_role",
     "staff_notifications.edit_message_formats",
     "staff_notifications.by_person",
-    "staff_notifications.beneficiary",
-    "staff_notifications.direct_send",
-    "staff_notifications.send_logs"
+    "staff_notifications.beneficiary"
   ],
   "staff_notifications.by_role": ["settings.view"],
   "staff_notifications.edit_message_formats": ["settings.view"],
   "staff_notifications.by_person": ["settings.view"],
   "staff_notifications.beneficiary": ["settings.view"],
-  "staff_notifications.direct_send": ["settings.view"],
-  "staff_notifications.send_logs": ["settings.view"],
+  notification_center: [
+    "notification_center.view",
+    "notification_center.direct_send",
+    "notification_center.send_logs"
+  ],
+  "notification_center.view": ["settings.view"],
+  "notification_center.direct_send": ["settings.view"],
+  "notification_center.send_logs": ["settings.view"],
 
   settings: ["settings.view", "settings.edit"],
   "settings.view": ["settings.view"],
@@ -261,6 +263,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "forms_customization.services": ["settings.view"],
   "forms_customization.registration": ["settings.view"],
 
+  "financial_approval.progress_invoices": ["financial.view"],
   "financial_approval.disbursement_requests": ["financial.view"],
   "financial_approval.disbursement_orders": ["financial.view"],
   "financial_approval.custody_requests": ["financial.view"],
@@ -1099,6 +1102,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "suppliers.add", moduleId: "suppliers", action: "add", nameAr: "إضافة مورد", nameEn: "Add Supplier" },
       { id: "suppliers.suspend", moduleId: "suppliers", action: "suspend", nameAr: "إيقاف المورد وإعادة تفعيله", nameEn: "Suspend and Reactivate Supplier" },
       { id: "quotations.add", moduleId: "quotations", action: "add", nameAr: "إضافة عرض سعر", nameEn: "Add Quotation" },
+      { id: "financial_approval.progress_invoices", moduleId: "financial_approval", action: "progress_invoices", nameAr: "عرض المستخلصات بانتظار الاعتماد", nameEn: "View Pending Progress Invoices" },
       { id: "financial_approval.disbursement_requests", moduleId: "financial_approval", action: "disbursement_requests", nameAr: "عرض طلبات الصرف بانتظار الاعتماد", nameEn: "View Pending Disbursement Requests" },
       { id: "financial_approval.disbursement_orders", moduleId: "financial_approval", action: "disbursement_orders", nameAr: "عرض أوامر الصرف بانتظار الاعتماد", nameEn: "View Pending Disbursement Orders" },
       { id: "financial_approval.custody_requests", moduleId: "financial_approval", action: "custody_requests", nameAr: "عرض العهد المالية بانتظار الاعتماد", nameEn: "View Pending Financial Custody" },
@@ -1161,8 +1165,9 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "staff_notifications.edit_message_formats", moduleId: "permissions", action: "edit_message_formats", nameAr: "تعديل صيغ الرسائل", nameEn: "Edit Message Formats" },
       { id: "staff_notifications.by_person", moduleId: "permissions", action: "by_person", nameAr: "تخصيص حسب الأشخاص", nameEn: "Customize Notifications by Person" },
       { id: "staff_notifications.beneficiary", moduleId: "permissions", action: "beneficiary", nameAr: "إشعارات المستفيد", nameEn: "Beneficiary Notifications" },
-      { id: "staff_notifications.direct_send", moduleId: "permissions", action: "direct_send", nameAr: "إرسال إشعار مباشر", nameEn: "Send Direct Notification" },
-      { id: "staff_notifications.send_logs", moduleId: "permissions", action: "send_logs", nameAr: "سجل إرسال الإشعارات", nameEn: "Notification Send Log" },
+      { id: "notification_center.view", moduleId: "permissions", action: "view", nameAr: "عرض مركز الإشعارات", nameEn: "View Notification Center" },
+      { id: "notification_center.direct_send", moduleId: "permissions", action: "direct_send", nameAr: "إرسال إشعار مباشر", nameEn: "Send Direct Notification" },
+      { id: "notification_center.send_logs", moduleId: "permissions", action: "send_logs", nameAr: "سجل إرسال الإشعارات", nameEn: "Notification Send Log" },
       { id: "settings_org.view", moduleId: "settings", action: "view", nameAr: "عرض إعدادات الجمعية", nameEn: "View Org Settings" },
       { id: "settings_org.edit_basic", moduleId: "settings", action: "edit_basic", nameAr: "تعديل معلومات الجمعية الأساسية", nameEn: "Edit Org Basic Info" },
       { id: "settings_org.edit_signers", moduleId: "settings", action: "edit_signers", nameAr: "تعديل المفوضين بالتوقيع", nameEn: "Edit Org Signers" },
@@ -1742,6 +1747,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
         parentKey === "disbursements.create_custom" || 
         parentKey === "disbursements.create_donation" ||
         parentKey === "staff_notifications.edit" ||
+        parentKey === "notification_center" ||
         parentKey === "suppliers"
       ) {
         continue;
@@ -1871,8 +1877,10 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.has("staff_notifications.edit_message_formats") ||
     allPermissions.has("staff_notifications.by_person") ||
     allPermissions.has("staff_notifications.beneficiary") ||
-    allPermissions.has("staff_notifications.direct_send") ||
-    allPermissions.has("staff_notifications.send_logs")
+    allPermissions.has("notification_center") ||
+    allPermissions.has("notification_center.view") ||
+    allPermissions.has("notification_center.direct_send") ||
+    allPermissions.has("notification_center.send_logs")
   ) {
     allPermissions.add("staff");
     allPermissions.add("staff_management");
@@ -2126,9 +2134,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     "staff_notifications.by_role",
     "staff_notifications.edit_message_formats",
     "staff_notifications.by_person",
-    "staff_notifications.beneficiary",
-    "staff_notifications.direct_send",
-    "staff_notifications.send_logs"
+    "staff_notifications.beneficiary"
   ];
   const hasAllNotifSub = notifSubPerms.every(p => allPermissions.has(p) && !revokedPermissions.has(p));
   if (!hasAllNotifSub || revokedPermissions.has("staff_notifications.edit") || revokedPermissions.has("staff_notifications")) {
@@ -2137,6 +2143,38 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     if (revokedPermissions.has("staff_notifications.edit") || revokedPermissions.has("staff_notifications")) {
       notifSubPerms.forEach(p => allPermissions.delete(p));
     }
+  }
+
+  // التحقق من صلاحيات مركز الإشعارات
+  const notifCenterSubPerms = [
+    "notification_center.direct_send",
+    "notification_center.send_logs"
+  ];
+  const hasAllNotifCenterSub = notifCenterSubPerms.every(p => allPermissions.has(p) && !revokedPermissions.has(p));
+  if (!hasAllNotifCenterSub || revokedPermissions.has("notification_center")) {
+    allPermissions.delete("notification_center");
+    if (revokedPermissions.has("notification_center")) {
+      notifCenterSubPerms.forEach(p => allPermissions.delete(p));
+    }
+  }
+
+  if (revokedPermissions.has("notification_center.direct_send") || revokedPermissions.has("notification_center")) {
+    allPermissions.delete("notification_center.direct_send");
+    allPermissions.delete("staff_notifications.direct_send");
+  }
+  if (revokedPermissions.has("notification_center.send_logs") || revokedPermissions.has("notification_center")) {
+    allPermissions.delete("notification_center.send_logs");
+    allPermissions.delete("staff_notifications.send_logs");
+  }
+
+  const hasAnyNotifCenterPerm = notifCenterSubPerms.some(p => allPermissions.has(p) && !revokedPermissions.has(p));
+  if (!hasAnyNotifCenterPerm) {
+    allPermissions.delete("notification_center");
+    allPermissions.delete("notification_center.view");
+    allPermissions.delete("notification_center.direct_send");
+    allPermissions.delete("notification_center.send_logs");
+    allPermissions.delete("staff_notifications.direct_send");
+    allPermissions.delete("staff_notifications.send_logs");
   }
 
   // ضمان إزالة أي صلاحيات تم سحبها صراحة للتأكيد التام
@@ -2625,8 +2663,8 @@ export const permissionsRouter = router({
       const rolePermissionsMapping: Record<string, string[] | string> = {
         super_admin: "*",
         system_admin: "*",
-        general_manager: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports"],
-        executive_director: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports"],
+        general_manager: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports", "notification_center"],
+        executive_director: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports", "notification_center"],
         projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "progress_reports", "progress_invoices"],
         field_team: ["mosques.view", "requests.view", "requests.edit", "requests.manage_as_field_team", "field_visits"],
         quick_response: ["requests.view", "requests.manage_as_quick_response", "field_visits.view", "reports.create"],

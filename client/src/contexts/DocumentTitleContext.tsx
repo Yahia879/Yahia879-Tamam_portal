@@ -21,6 +21,7 @@ const ROUTE_TITLE_MAP: { pattern: RegExp; title: string }[] = [
   { pattern: /^\/profile\/?$/, title: "الملف الشخصي" },
   { pattern: /^\/notifications\/?$/, title: "الإشعارات" },
   { pattern: /^\/notifications\/customization\/?$/, title: "تخصيص الإشعارات" },
+  { pattern: /^\/(notifications\/center|notification-center)\/?$/, title: "مركز الإشعارات" },
   { pattern: /^\/support\/?$/, title: "الدعم الفني" },
   { pattern: /^\/403\/?$/, title: "غير مصرح" },
   { pattern: /^\/404\/?$/, title: "الصفحة غير موجودة" },
