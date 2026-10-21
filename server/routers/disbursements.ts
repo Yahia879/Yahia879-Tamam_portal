@@ -143,6 +143,34 @@ async function resolveLinkedProgressReport(
       );
       if (matched) return matched;
     }
+
+    // محاولة مطابقة المستخلصات التابعة للمشروع إذا كان الطلب لمستخلص
+    if (request.projectId) {
+      const isInvoiceRequest = (request.title && request.title.includes("مستخلص")) ||
+                               (request.description && request.description.includes("مستخلص"));
+      if (isInvoiceRequest) {
+        const reports = await db
+          .select({
+            id: progressReports.id,
+            reportNumber: progressReports.reportNumber,
+            title: progressReports.title,
+            recommendations: progressReports.recommendations,
+            workSummary: progressReports.workSummary,
+            actualProgress: progressReports.actualProgress,
+            plannedProgress: progressReports.plannedProgress,
+            status: progressReports.status,
+            reportDate: progressReports.reportDate,
+          })
+          .from(progressReports)
+          .where(eq(progressReports.projectId, request.projectId));
+
+        const invoiceReport = reports.find(r =>
+          (r.workSummary && /\[نوع:\s*مستخلص/i.test(r.workSummary)) ||
+          (r.title && r.title.includes("مستخلص"))
+        );
+        if (invoiceReport) return invoiceReport;
+      }
+    }
   } catch (err) {
     console.error("Error resolving linked progress report:", err);
   }

@@ -5,7 +5,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, Printer, PenTool, ExternalLink, Link2, Copy, X, Check, Loader2, FileText } from "lucide-react";
+import { ArrowRight, Printer, PenTool, ExternalLink, Link2, Copy, X, Check, Loader2, FileText, FileSpreadsheet } from "lucide-react";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { numberToArabicText } from "@shared/tafqeet";
 import { toast } from "sonner";
@@ -251,8 +251,14 @@ export default function DisbursementOrderPrint() {
   // البحث عن تقرير الإنجاز أو المستخلص المرتبط بالمشروع
   let linkedReportId: number | null = null;
   let linkedReportNumber: string | null = null;
+  let linkedReportObj: any = (order as any)?.linkedProgressReport || (request as any)?.linkedProgressReport || null;
 
-  if (linkedRequestInfo?.reportId) {
+  if (linkedReportObj) {
+    linkedReportId = linkedReportObj.id;
+    linkedReportNumber = linkedReportObj.reportNumber || null;
+  }
+
+  if (!linkedReportId && linkedRequestInfo?.reportId) {
     linkedReportId = Number(linkedRequestInfo.reportId);
     linkedReportNumber = linkedRequestInfo.reportNumber || null;
   }
@@ -273,13 +279,31 @@ export default function DisbursementOrderPrint() {
                pId === `manual-${request.paymentId}`;
       }
       return false;
-    }) || progressReports[0];
+    }) || progressReports.find((r: any) => 
+      (r.workSummary && /\[نوع:\s*مستخلص/i.test(r.workSummary)) || (r.title && r.title.includes("مستخلص"))
+    ) || progressReports[0];
 
     if (associatedReport) {
       linkedReportId = associatedReport.id;
       linkedReportNumber = associatedReport.reportNumber || null;
+      if (!linkedReportObj) linkedReportObj = associatedReport;
     }
   }
+
+  if (linkedReportId && !linkedReportObj && progressReports && progressReports.length > 0) {
+    linkedReportObj = progressReports.find((r: any) => r.id === linkedReportId) || null;
+  }
+
+  const isLinkedInvoice = Boolean(
+    (linkedReportObj?.workSummary && (/\[نوع:\s*مستخلص/i.test(linkedReportObj.workSummary) || /\[معرف المستخلص:/i.test(linkedReportObj.workSummary))) ||
+    (linkedReportObj?.title && linkedReportObj.title.includes("مستخلص")) ||
+    (linkedRequestInfo?.isInvoice) ||
+    (linkedRequestInfo?.reportTitle && linkedRequestInfo.reportTitle.includes("مستخلص")) ||
+    (request?.title && request.title.includes("مستخلص")) ||
+    (request?.description && request.description.includes("مستخلص")) ||
+    ((order as any)?.notes && (order as any).notes.includes("مستخلص")) ||
+    (order?.project?.contracts?.[0]?.billingType === "invoices")
+  );
 
   // تجميع كافة الروابط والمرفقات الخارجية لعرضها بشكل متناسق في التقرير
   const documentationLinks: { name: string; url: string; type?: string }[] = [];
@@ -536,6 +560,29 @@ export default function DisbursementOrderPrint() {
             <Printer className="h-3.5 w-3.5 ml-1" />
             <span>تنزيل PDF / طباعة</span>
           </Button>
+
+          {linkedReportId && (
+            <Button
+              size="sm"
+              onClick={() => {
+                const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+                window.open(`/progress-reports/${linkedReportId}/print?from=${returnUrl}`, "_blank");
+              }}
+              className="h-8 sm:h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-sm"
+            >
+              {isLinkedInvoice ? (
+                <>
+                  <FileSpreadsheet className="h-3.5 w-3.5 ml-1" />
+                  <span>عرض المستخلص</span>
+                </>
+              ) : (
+                <>
+                  <FileText className="h-3.5 w-3.5 ml-1" />
+                  <span>عرض تقرير الإنجاز</span>
+                </>
+              )}
+            </Button>
+          )}
 
 
           {/* زر اعتماد أمر الصرف لصاحبي الاعتماد */}
@@ -957,13 +1004,22 @@ export default function DisbursementOrderPrint() {
               </div>
 
               <div className="space-y-2.5 max-h-64 overflow-y-auto pl-0.5">
-                {/* زر تقرير الإنجاز داخل قائمة المرفقات */}
+                {/* زر تقرير الإنجاز أو المستخلص داخل قائمة المرفقات */}
                 {linkedReportId && (
                   <div className="p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/30 space-y-1.5 text-right text-xs">
                     <div className="font-bold text-emerald-900 dark:text-emerald-200 text-[11px] flex items-center justify-between">
                       <span className="flex items-center gap-1">
-                        <FileText className="w-3.5 h-3.5 text-emerald-600" />
-                        تقرير الإنجاز المرتبط
+                        {isLinkedInvoice ? (
+                          <>
+                            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                            المستخلص المالي المرتبط
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                            تقرير الإنجاز المرتبط
+                          </>
+                        )}
                       </span>
                       {linkedReportNumber && (
                         <span className="text-[10px] text-emerald-700 font-mono font-normal">
@@ -980,8 +1036,17 @@ export default function DisbursementOrderPrint() {
                         }}
                         className="w-full h-7 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold gap-1 shadow-xs"
                       >
-                        <FileText className="w-3 h-3 ml-1" />
-                        <span>عرض تقرير الإنجاز</span>
+                        {isLinkedInvoice ? (
+                          <>
+                            <FileSpreadsheet className="w-3 h-3 ml-1" />
+                            <span>عرض المستخلص</span>
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="w-3 h-3 ml-1" />
+                            <span>عرض تقرير الإنجاز</span>
+                          </>
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -1038,8 +1103,17 @@ export default function DisbursementOrderPrint() {
                   }}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg rounded-full px-3.5 py-1.5 flex items-center gap-1.5 text-xs font-bold transition-all animate-in fade-in-50"
                 >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>عرض تقرير الإنجاز</span>
+                  {isLinkedInvoice ? (
+                    <>
+                      <FileSpreadsheet className="w-3.5 h-3.5" />
+                      <span>عرض المستخلص</span>
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>عرض تقرير الإنجاز</span>
+                    </>
+                  )}
                 </Button>
               )}
               {documentationLinks.length > 0 && (

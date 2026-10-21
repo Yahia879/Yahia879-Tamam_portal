@@ -2546,7 +2546,32 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
             </CardContent>
           </Card>
 
-
+          {/* Card 4: توصية إدارة المشاريع */}
+          <Card className="border-border/60 shadow-sm border-emerald-500/30 bg-emerald-50/10 dark:bg-emerald-950/5">
+            <CardHeader className="bg-emerald-50/40 dark:bg-emerald-950/20 border-b border-border/40 py-4">
+              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                <ShieldCheck className="w-4.5 h-4.5 text-emerald-600" />
+                توصية إدارة المشاريع
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                توصية المهندس المشرف وإدارة المشاريع بشأن اعتماد المستخلص وإصدار أمر الصرف
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-3">
+              <div className="space-y-2">
+                <Label className="font-semibold text-foreground flex items-center justify-between">
+                  <span>نص توصية إدارة المشاريع</span>
+                </Label>
+                <Textarea
+                  value={invoiceRecommendations}
+                  onChange={(e) => setInvoiceRecommendations(e.target.value)}
+                  placeholder="اكتب هنا توصية إدارة المشاريع بشأن اعتماد المستخلص وإصدار أمر الصرف للمستفيد..."
+                  rows={4}
+                  className="w-full min-h-[110px] leading-relaxed text-foreground text-right"
+                />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Actions bar */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t">

@@ -798,13 +798,13 @@ export default function ProgressReportPrint() {
               </div>
 
               {/* القسم الرابع: التحديات والمعوقات والتوصيات */}
-              {(report.challenges || report.nextSteps || report.recommendations) && (
+              {(report.challenges || report.nextSteps || report.recommendations || isInvoiceReport) && (
                 <div className="mb-6 break-inside-avoid">
                   <h3 
                     className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
                     style={{ backgroundColor: '#1a5f4a', color: 'white' }}
                   >
-                    3. التحديات، الخطوات القادمة والتوصيات:
+                    {isInvoiceReport ? "3. توصية إدارة المشاريع واعتماد الصرف:" : "3. التحديات، الخطوات القادمة والتوصيات:"}
                   </h3>
                   <div className="space-y-4">
                     {report.challenges && (
@@ -819,14 +819,18 @@ export default function ProgressReportPrint() {
                         <p className="text-xs sm:text-sm text-gray-600 bg-gray-50/50 p-2 rounded-md border border-gray-100 whitespace-pre-wrap break-words [word-break:break-word]">{report.nextSteps}</p>
                       </div>
                     )}
-                    {report.recommendations && (
+                    {report.recommendations ? (
                       <div className="p-3 bg-amber-50/60 border border-amber-200/80 rounded-md">
                         <h4 className="font-bold text-xs sm:text-sm text-amber-900 mb-1 flex items-center gap-1.5">
                           ■ توصية إدارة المشاريع:
                         </h4>
-                        <p className="text-xs sm:text-sm text-gray-800 whitespace-pre-wrap break-words [word-break:break-word]">{report.recommendations}</p>
+                        <p className="text-xs sm:text-sm text-gray-800 whitespace-pre-wrap break-words [word-break:break-word] leading-relaxed">{report.recommendations}</p>
                       </div>
-                    )}
+                    ) : isInvoiceReport ? (
+                      <div className="p-3 bg-gray-50 border border-gray-200 rounded-md text-xs sm:text-sm text-gray-500 italic">
+                        لا توجد توصيات إضافية مسجلة لهذا المستخلص.
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               )}
