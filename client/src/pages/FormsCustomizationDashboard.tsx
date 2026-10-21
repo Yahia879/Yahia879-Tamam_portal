@@ -3,7 +3,6 @@ import { Link, useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
@@ -25,15 +24,11 @@ import {
   ArrowRight,
   Save,
   RotateCcw,
-  Eye,
-  EyeOff,
   Search,
   CheckCircle2,
   X,
   Loader2,
   Layers,
-  ChevronLeft,
-  SlidersHorizontal,
   TrendingUp,
   Briefcase,
   Building2,
@@ -129,7 +124,6 @@ export default function FormsCustomizationDashboard() {
 
   const utils = trpc.useUtils();
 
-  const [viewMode, setViewMode] = useState<"interactive" | "list">("interactive");
   const [enabledIds, setEnabledIds] = useState<string[]>([]);
   const [initialIds, setInitialIds] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -137,10 +131,6 @@ export default function FormsCustomizationDashboard() {
   const [isRestoreSheetOpen, setIsRestoreSheetOpen] = useState(false);
   const [restoreSearchQuery, setRestoreSearchQuery] = useState("");
   const [selectedRestoreCategory, setSelectedRestoreCategory] = useState("all");
-
-  // تصفح القائمة في وضع التبديل
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
 
   // استعلام الإعدادات
   const { data: configData, isLoading: isConfigLoading } = trpc.forms.getDetailedDashboardCustomizationConfig.useQuery();
@@ -249,21 +239,6 @@ export default function FormsCustomizationDashboard() {
     setEnabledIds(allIds);
     toast.success("تمت استعادة كافة العناصر والبطاقات إلى اللوحة المفصلة");
   };
-
-  // تصفية العناصر لقائمة التبديل
-  const filteredListElements = useMemo(() => {
-    return allElements.filter((el) => {
-      const matchesCategory =
-        selectedCategory === "all" || el.category === selectedCategory;
-      const matchesSearch =
-        !searchQuery.trim() ||
-        el.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        el.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        el.categoryName.toLowerCase().includes(searchQuery.toLowerCase());
-
-      return matchesCategory && matchesSearch;
-    });
-  }, [allElements, selectedCategory, searchQuery]);
 
   const isDetailedElementEnabled = (elementId: string) => enabledIds.includes(elementId);
 
@@ -664,6 +639,262 @@ export default function FormsCustomizationDashboard() {
 
   const visibleProjectCards = projectAndVoucherCardDefs.filter((c) => isDetailedElementEnabled(c.id));
 
+  // خريطة لكافة كروت الإحصائيات للوصول لخصائصها البصرية
+  const allCardDefsMap = useMemo(() => {
+    const map = new Map<string, any>();
+    [
+      ...mainOverviewCardDefs,
+      ...mosqueCardDefs,
+      ...requestCardDefs,
+      ...procurementCardDefs,
+      ...financialCardDefs,
+      ...projectAndVoucherCardDefs,
+    ].forEach((card) => map.set(card.id, card));
+    return map;
+  }, [
+    mainOverviewCardDefs,
+    mosqueCardDefs,
+    requestCardDefs,
+    procurementCardDefs,
+    financialCardDefs,
+    projectAndVoucherCardDefs,
+  ]);
+
+  // دالة لرسم العنصر المستبعد بصرياً طبق الأصل في صندوق الاستعادة
+  const renderRemovedVisualElement = (el: any) => {
+    const meta = CATEGORY_META[el.category] || CATEGORY_META.main_cards;
+    const cardDef = allCardDefsMap.get(el.id);
+
+    // إذا كان كرت إحصائي عادي (28 بطاقة إحصائية)
+    if (cardDef) {
+      return (
+        <div
+          key={el.id}
+          onClick={() => handleRestoreElement(el.id, el.title)}
+          className="relative group/restoreCard rounded-2xl border-2 border-dashed border-emerald-500/40 hover:border-emerald-600 bg-card hover:bg-emerald-50/20 dark:hover:bg-emerald-950/10 p-4 transition-all duration-200 shadow-2xs hover:shadow-md cursor-pointer flex flex-col justify-between overflow-hidden"
+        >
+          {/* خلفية تزيينية خفيفة */}
+          <div className={`absolute -bottom-6 -left-6 w-20 h-20 rounded-full ${cardDef.bgLight} opacity-40 pointer-events-none`} />
+
+          {/* شارة التصنيف مع زر الإضافة العلوي */}
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <span className={`text-[10px] px-2 py-0.5 rounded-md border font-bold ${meta.badgeColor}`}>
+              {el.categoryName}
+            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRestoreElement(el.id, el.title);
+              }}
+              className="w-7 h-7 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-sm transition-transform hover:scale-110 active:scale-95 cursor-pointer"
+              title={`إعادة إضافة ${el.title} للوحة`}
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+            </button>
+          </div>
+
+          {/* محتوى البطاقة الفعلي المطابق تماماً للوحة */}
+          <div className="flex items-start justify-between gap-3 relative z-10">
+            <div className="space-y-1 min-w-0">
+              <p className="text-xs font-semibold text-muted-foreground truncate">{cardDef.title}</p>
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                <p className="text-xl sm:text-2xl font-bold text-foreground leading-none font-sans">
+                  {cardDef.value}
+                </p>
+                {cardDef.isCurrency && <SaudiRiyal className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+              </div>
+              {cardDef.subtext && (
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {cardDef.subtext}
+                </p>
+              )}
+              {typeof cardDef.change === "number" && (
+                <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                  {cardDef.change >= 0 ? (
+                    <TrendingUp className="w-3 h-3 text-green-500" />
+                  ) : (
+                    <TrendingUp className="w-3 h-3 text-red-500 transform scale-y-[-1]" />
+                  )}
+                  <span className={`text-[10px] font-semibold ${cardDef.change >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                    {cardDef.change >= 0 ? "+" : ""}{cardDef.change}%
+                  </span>
+                  <span className="text-[9px] text-muted-foreground">هذا الشهر</span>
+                </div>
+              )}
+            </div>
+            <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${cardDef.gradient} flex items-center justify-center shadow-sm shrink-0 text-white`}>
+              <cardDef.icon className="w-5 h-5" />
+            </div>
+          </div>
+
+          {/* زر إعادة الإضافة أسفل الكرت */}
+          <div className="pt-3 mt-3 border-t border-border/60 relative z-10">
+            <Button
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRestoreElement(el.id, el.title);
+              }}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 rounded-xl gap-1.5 shadow-2xs cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>إعادة إضافة للوحة</span>
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    // إذا كان أحد الأقسام الكبرى (5 أقسام رئيسية)
+    return (
+      <div
+        key={el.id}
+        onClick={() => handleRestoreElement(el.id, el.title)}
+        className="col-span-1 sm:col-span-2 relative group/restoreSection rounded-2xl border-2 border-dashed border-emerald-500/40 hover:border-emerald-600 bg-card hover:bg-emerald-50/20 dark:hover:bg-emerald-950/10 p-4 transition-all duration-200 shadow-2xs hover:shadow-md cursor-pointer flex flex-col justify-between overflow-hidden"
+      >
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <span className={`text-[10px] px-2.5 py-0.5 rounded-md border font-bold ${meta.badgeColor}`}>
+            {el.categoryName}
+          </span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRestoreElement(el.id, el.title);
+            }}
+            className="w-7 h-7 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-sm transition-transform hover:scale-110 active:scale-95 cursor-pointer"
+            title={`إعادة إضافة ${el.title} للوحة`}
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+          </button>
+        </div>
+
+        {/* نموذج بصري مصغر ومميز للقسم */}
+        {el.id === "quick_nav" && (
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold text-xs border border-blue-500/20">
+                <LayoutDashboard className="w-4.5 h-4.5" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">{el.title}</h4>
+                <p className="text-[11px] text-muted-foreground truncate">{el.description}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 overflow-x-auto p-2 rounded-xl bg-muted/40 border border-border/50">
+              <span className="text-[10px] px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-700 dark:text-blue-300 font-bold border border-blue-500/20 whitespace-nowrap">
+                مخططات مجلس الإدارة
+              </span>
+              <span className="text-[10px] px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/20 whitespace-nowrap">
+                التقرير المالي
+              </span>
+              <span className="text-[10px] px-2.5 py-1 rounded-lg bg-purple-500/10 text-purple-700 dark:text-purple-300 font-bold border border-purple-500/20 whitespace-nowrap">
+                تقارير الطلبات
+              </span>
+            </div>
+          </div>
+        )}
+
+        {el.id === "section_board" && (
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xs border border-blue-500/20">
+                <Briefcase className="w-4.5 h-4.5" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">{el.title}</h4>
+                <p className="text-[11px] text-muted-foreground truncate">{el.description}</p>
+              </div>
+            </div>
+            <div className="p-3 rounded-xl bg-muted/40 border border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px]">
+              <span className="text-muted-foreground">معاينة: تحليلات المساجد، عقود المشاريع، مؤشرات أوامر الصرف</span>
+              <div className="flex items-center gap-1.5 text-blue-600 font-bold">
+                <BarChart3 className="w-4 h-4" />
+                <span>لوحة قيادة تفاعلية متكاملة</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {el.id === "section_financial" && (
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs border border-emerald-500/20">
+                <SaudiRiyal className="w-4.5 h-4.5" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">{el.title}</h4>
+                <p className="text-[11px] text-muted-foreground truncate">{el.description}</p>
+              </div>
+            </div>
+            <div className="p-3 rounded-xl bg-muted/40 border border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px]">
+              <span className="text-muted-foreground">معاينة: التدفقات النقدية، المصروفات، سندات القبض، وتحليلات مشاريع الدعم</span>
+              <div className="flex items-center gap-1.5 text-emerald-600 font-bold">
+                <Banknote className="w-4 h-4" />
+                <span>التقرير المالي العام</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {el.id === "section_reports" && (
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs border border-purple-500/20">
+                <BarChart3 className="w-4.5 h-4.5" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">{el.title}</h4>
+                <p className="text-[11px] text-muted-foreground truncate">{el.description}</p>
+              </div>
+            </div>
+            <div className="p-3 rounded-xl bg-muted/40 border border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px]">
+              <span className="text-muted-foreground">معاينة: توزيع الطلبات على البرامج التسعة والمنحنى الشهري</span>
+              <div className="flex items-center gap-1.5 text-purple-600 font-bold">
+                <Activity className="w-4 h-4" />
+                <span>المخططات الإحصائية والفنية</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {el.id === "section_pending_users" && (
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 flex items-center justify-center font-bold text-xs border border-rose-200 dark:border-rose-800">
+                <AlertTriangle className="w-4.5 h-4.5" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">{el.title}</h4>
+                <p className="text-[11px] text-muted-foreground truncate">{el.description}</p>
+              </div>
+            </div>
+            <div className="p-3 rounded-xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200/70 dark:border-rose-900/40 flex items-center justify-between text-[11px]">
+              <span className="text-rose-700 dark:text-rose-300 font-medium">شريط تنبيه أحمر بارز للحسابات الجديدة بانتظار الاعتماد</span>
+              <span className="text-rose-600 font-bold">تنبيه إداري</span>
+            </div>
+          </div>
+        )}
+
+        {/* زر إعادة الإضافة للقسم */}
+        <div className="pt-3 mt-3 border-t border-border/60">
+          <Button
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRestoreElement(el.id, el.title);
+            }}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 rounded-xl gap-1.5 shadow-2xs cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>إعادة إضافة القسم للوحة</span>
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   // تحقق صلاحية super_admin
   if (!isSuperAdmin) {
     return (
@@ -714,11 +945,11 @@ export default function FormsCustomizationDashboard() {
                     تخصيص ومعاينة لوحة القيادة المفصلة
                   </h1>
                   <Badge variant="outline" className="text-[10px] font-bold bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300">
-                    وضع التحرير التفاعلي (X)
+                    معاينة تفاعلية مباشرة
                   </Badge>
                 </div>
                 <p className="text-[11px] text-muted-foreground hidden sm:block">
-                  اضغط على زر <span className="text-rose-500 font-bold px-1 bg-rose-50 dark:bg-rose-950/50 rounded">X</span> على أي بطاقة أو قسم لإزالته فوراً، ويمكنك استعادة أي عنصر من صندوق الاستعادة.
+                  اضغط على زر <span className="text-rose-500 font-bold px-1 bg-rose-50 dark:bg-rose-950/50 rounded">X</span> على أي بطاقة أو قسم لإزالته فوراً، ويمكنك استعادة أي عنصر بصرياً من صندوق الاستعادة.
                 </p>
               </div>
             </div>
@@ -745,32 +976,6 @@ export default function FormsCustomizationDashboard() {
                   {disabledCount}
                 </span>
               </Button>
-
-              {/* تبديل نمط العرض بين المعاينة الحية بالـ X وقائمة التبديل */}
-              <div className="hidden lg:flex items-center bg-muted/60 p-0.5 rounded-xl border border-border/60">
-                <button
-                  type="button"
-                  onClick={() => setViewMode("interactive")}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                    viewMode === "interactive"
-                      ? "bg-card text-foreground shadow-2xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  معاينة تفاعلية (X)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode("list")}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                    viewMode === "list"
-                      ? "bg-card text-foreground shadow-2xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  قائمة التبديل
-                </button>
-              </div>
 
               {/* زر استعادة الافتراضي */}
               <Button
@@ -816,105 +1021,6 @@ export default function FormsCustomizationDashboard() {
           <div className="py-24 text-center space-y-3">
             <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
             <p className="text-xs text-muted-foreground">جاري تحميل المعاينة التفاعلية للوحة المفصلة...</p>
-          </div>
-        ) : viewMode === "list" ? (
-          /* ========================================================================= */
-          /* وضع القائمة السريعة للتبديل (List View Mode) */
-          /* ========================================================================= */
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-              <div className="relative flex-1 max-w-md">
-                <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                <Input
-                  placeholder="ابحث عن اسم مؤشر، بطاقة، أو قسم..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-9 pl-8 rounded-xl border-border/80 text-xs sm:text-sm h-10"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-              {filteredListElements.map((el) => {
-                const isEnabled = enabledIds.includes(el.id);
-                const meta = CATEGORY_META[el.category] || CATEGORY_META.main_cards;
-                const Icon = meta.icon;
-
-                return (
-                  <div
-                    key={el.id}
-                    onClick={() => {
-                      if (isEnabled) handleRemoveElement(el.id, el.title);
-                      else handleRestoreElement(el.id, el.title);
-                    }}
-                    className={`relative p-4 rounded-2xl border transition-all cursor-pointer select-none flex flex-col justify-between group ${
-                      isEnabled
-                        ? "bg-card border-border hover:border-primary/50 shadow-2xs"
-                        : "bg-muted/30 border-dashed border-border/60 opacity-60 hover:opacity-85"
-                    }`}
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${meta.iconBg} ${meta.accentColor}`}>
-                            <Icon className="w-4.5 h-4.5" />
-                          </div>
-                          <div className="min-w-0">
-                            <h4 className="text-sm font-bold text-foreground truncate group-hover:text-primary transition-colors">
-                              {el.title}
-                            </h4>
-                            <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md border mt-0.5 ${meta.badgeColor}`}>
-                              {el.categoryName}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <Switch
-                            checked={isEnabled}
-                            onCheckedChange={() => {
-                              if (isEnabled) handleRemoveElement(el.id, el.title);
-                              else handleRestoreElement(el.id, el.title);
-                            }}
-                            className="data-[state=checked]:bg-emerald-600"
-                          />
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                        {el.description}
-                      </p>
-                    </div>
-
-                    <div className="pt-3 mt-3 border-t border-border/40 flex items-center justify-between text-[11px]">
-                      <span className="font-mono text-[10px] text-muted-foreground/80 truncate">#{el.id}</span>
-                      <span className={`inline-flex items-center gap-1 font-bold ${isEnabled ? "text-emerald-600" : "text-muted-foreground"}`}>
-                        {isEnabled ? (
-                          <>
-                            <Eye className="w-3 h-3" />
-                            <span>ظاهر باللوحة</span>
-                          </>
-                        ) : (
-                          <>
-                            <EyeOff className="w-3 h-3" />
-                            <span>مخفي</span>
-                          </>
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           </div>
         ) : (
           /* ========================================================================= */
@@ -1353,7 +1459,7 @@ export default function FormsCustomizationDashboard() {
         {/* المكون الرئيسي لاستعادة العناصر المحذوفة (Restore Elements Component) */}
         {/* ========================================================================= */}
         <Sheet open={isRestoreSheetOpen} onOpenChange={setIsRestoreSheetOpen}>
-          <SheetContent side="left" className="w-full sm:max-w-xl p-0 flex flex-col bg-card" dir="rtl">
+          <SheetContent side="left" className="w-full sm:max-w-2xl lg:max-w-3xl p-0 flex flex-col bg-card" dir="rtl">
             <SheetHeader className="p-4 sm:p-5 border-b border-border/70 space-y-2 text-right">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -1369,7 +1475,7 @@ export default function FormsCustomizationDashboard() {
                 </Badge>
               </div>
               <SheetDescription className="text-xs text-muted-foreground">
-                العناصر والبطاقات والمخططات التي تم إخفاؤها من اللوحة المفصلة. اضغط على زر (+ إعادة إضافة) لإرجاع أي عنصر فوراً إلى مكانه.
+                العناصر والبطاقات والمخططات التي تم إخفاؤها من اللوحة المفصلة معروضة بشكلها المرئي الأصلي. انقر على أي كرت أو اضغط على (+ إعادة إضافة) لإرجاعه فوراً إلى مكانه.
               </SheetDescription>
             </SheetHeader>
 
@@ -1428,8 +1534,8 @@ export default function FormsCustomizationDashboard() {
               </div>
             </div>
 
-            {/* قائمة العناصر المستبعدة القابلة للاستعادة */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {/* قائمة العناصر المستبعدة المعروضة بصرياً طبق الأصل */}
+            <div className="flex-1 overflow-y-auto p-4">
               {disabledCount === 0 ? (
                 <div className="py-20 text-center space-y-3">
                   <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-200/60">
@@ -1439,7 +1545,7 @@ export default function FormsCustomizationDashboard() {
                     كافة العناصر والبطاقات ظاهرة ومفعلة!
                   </h4>
                   <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                    لا يوجد أي عنصر مستبعد حالياً. عند النقر على زر <span className="text-rose-600 font-bold">X</span> على أي كرت أو قسم بالصفحة، سيظهر هنا فوراً لإعادة إضافته متى شئت.
+                    لا يوجد أي عنصر مستبعد حالياً. عند النقر على زر <span className="text-rose-600 font-bold">X</span> على أي كرت أو قسم بالصفحة، سيظهر هنا فوراً بشكله المرئي الأصلي لإعادة إضافته متى شئت.
                   </p>
                 </div>
               ) : filteredRemovedElements.length === 0 ? (
@@ -1459,47 +1565,9 @@ export default function FormsCustomizationDashboard() {
                   </Button>
                 </div>
               ) : (
-                filteredRemovedElements.map((el) => {
-                  const meta = CATEGORY_META[el.category] || CATEGORY_META.main_cards;
-                  const Icon = meta.icon;
-
-                  return (
-                    <div
-                      key={el.id}
-                      className="p-3.5 rounded-2xl border border-border bg-card hover:border-emerald-500/50 transition-all flex items-center justify-between gap-3 shadow-2xs group"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${meta.iconBg} ${meta.accentColor}`}>
-                          <Icon className="w-4.5 h-4.5" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">
-                              {el.title}
-                            </h4>
-                            <span className={`text-[9px] px-1.5 py-0.2 rounded border font-semibold ${meta.badgeColor}`}>
-                              {el.categoryName}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                            {el.description}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* زر إعادة الإضافة الأخضر */}
-                      <Button
-                        size="sm"
-                        onClick={() => handleRestoreElement(el.id, el.title)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-3 rounded-xl gap-1 shrink-0 shadow-xs cursor-pointer"
-                        title={`إعادة إضافة ${el.title} للوحة المفصلة`}
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>إعادة إضافة</span>
-                      </Button>
-                    </div>
-                  );
-                })
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {filteredRemovedElements.map((el) => renderRemovedVisualElement(el))}
+                </div>
               )}
             </div>
 
