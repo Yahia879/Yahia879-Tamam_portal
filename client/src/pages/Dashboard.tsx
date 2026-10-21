@@ -1606,16 +1606,18 @@ export default function Dashboard() {
                   <LayoutDashboard className="w-4 h-4" />
                   <span>الوضع الافتراضي</span>
                 </Button>
-                <Link href="/forms-customization/dashboard">
-                  <Button
-                    size="sm"
-                    className="bg-white/20 hover:bg-white/30 text-white border-0 text-xs font-bold gap-1.5 h-10 rounded-xl shadow-xs cursor-pointer"
-                    title="تخصيص عناصر وأقسام اللوحة المفصلة"
-                  >
-                    <SlidersHorizontal className="w-4 h-4" />
-                    <span className="hidden sm:inline">تخصيص اللوحة</span>
-                  </Button>
-                </Link>
+                {isSuperAdmin && (
+                  <Link href="/forms-customization/dashboard">
+                    <Button
+                      size="sm"
+                      className="bg-white/20 hover:bg-white/30 text-white border-0 text-xs font-bold gap-1.5 h-10 rounded-xl shadow-xs cursor-pointer"
+                      title="تخصيص عناصر وأقسام اللوحة المفصلة"
+                    >
+                      <SlidersHorizontal className="w-4 h-4" />
+                      <span className="hidden sm:inline">تخصيص اللوحة</span>
+                    </Button>
+                  </Link>
+                )}
                 <Link href="/support">
                   <Button 
                     size="default" 

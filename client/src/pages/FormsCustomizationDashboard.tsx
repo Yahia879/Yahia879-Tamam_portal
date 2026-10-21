@@ -24,7 +24,6 @@ import {
   ArrowRight,
   Save,
   RotateCcw,
-  Search,
   CheckCircle2,
   X,
   Loader2,
@@ -129,8 +128,6 @@ export default function FormsCustomizationDashboard() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [isRestoreSheetOpen, setIsRestoreSheetOpen] = useState(false);
-  const [restoreSearchQuery, setRestoreSearchQuery] = useState("");
-  const [selectedRestoreCategory, setSelectedRestoreCategory] = useState("all");
 
   // استعلام الإعدادات
   const { data: configData, isLoading: isConfigLoading } = trpc.forms.getDetailedDashboardCustomizationConfig.useQuery();
@@ -186,26 +183,11 @@ export default function FormsCustomizationDashboard() {
   });
 
   const allElements = useMemo(() => configData?.elements || [], [configData]);
-  const allCategories = useMemo(() => configData?.categories || [], [configData]);
 
   // العناصر المستبعدة حالياً (المخفية)
   const removedElements = useMemo(() => {
     return allElements.filter((el) => !enabledIds.includes(el.id));
   }, [allElements, enabledIds]);
-
-  // العناصر المستبعدة المفلترة للبحث والتبويب في صندوق الاستعادة
-  const filteredRemovedElements = useMemo(() => {
-    return removedElements.filter((el) => {
-      const matchesCategory =
-        selectedRestoreCategory === "all" || el.category === selectedRestoreCategory;
-      const matchesSearch =
-        !restoreSearchQuery.trim() ||
-        el.title.toLowerCase().includes(restoreSearchQuery.toLowerCase()) ||
-        el.description.toLowerCase().includes(restoreSearchQuery.toLowerCase()) ||
-        el.categoryName.toLowerCase().includes(restoreSearchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
-    });
-  }, [removedElements, selectedRestoreCategory, restoreSearchQuery]);
 
   // هل يوجد تعديلات غير محفوظة؟
   const hasChanges = useMemo(() => {
@@ -231,13 +213,6 @@ export default function FormsCustomizationDashboard() {
   const handleRestoreElement = (id: string, title?: string) => {
     setEnabledIds((prev) => Array.from(new Set([...prev, id])));
     toast.success(`تمت استعادة "${title || id}" إلى اللوحة`);
-  };
-
-  // استعادة كافة العناصر المستبعدة
-  const handleRestoreAll = () => {
-    const allIds = allElements.map((el) => el.id);
-    setEnabledIds(allIds);
-    toast.success("تمت استعادة كافة العناصر والبطاقات إلى اللوحة المفصلة");
   };
 
   const isDetailedElementEnabled = (elementId: string) => enabledIds.includes(elementId);
@@ -1479,61 +1454,6 @@ export default function FormsCustomizationDashboard() {
               </SheetDescription>
             </SheetHeader>
 
-            {/* أدوات البحث والتصفية واستعادة الكل داخل صندوق الاستعادة */}
-            <div className="p-4 border-b border-border/50 space-y-3 bg-muted/20">
-              <div className="flex items-center justify-between gap-2">
-                <div className="relative flex-1">
-                  <Search className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="ابحث في العناصر المستبعدة..."
-                    value={restoreSearchQuery}
-                    onChange={(e) => setRestoreSearchQuery(e.target.value)}
-                    className="pr-8 pl-3 h-8 text-xs rounded-xl"
-                  />
-                </div>
-                {disabledCount > 0 && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleRestoreAll}
-                    className="h-8 text-xs font-bold text-emerald-700 hover:bg-emerald-50 border-emerald-200 shrink-0 gap-1"
-                    title="استعادة كافة العناصر المستبعدة بنقرة واحدة"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>استعادة الكل ({disabledCount})</span>
-                  </Button>
-                )}
-              </div>
-
-              {/* أزرار تصفية الأقسام */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-                {allCategories.map((cat) => {
-                  const isSelected = selectedRestoreCategory === cat.id;
-                  const countInCat = cat.id === "all" 
-                    ? removedElements.length 
-                    : removedElements.filter((el) => el.category === cat.id).length;
-
-                  if (countInCat === 0 && cat.id !== "all") return null;
-
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => setSelectedRestoreCategory(cat.id)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
-                        isSelected
-                          ? "bg-emerald-600 text-white"
-                          : "bg-card hover:bg-muted text-muted-foreground border"
-                      }`}
-                    >
-                      <span>{cat.name}</span>
-                      <span className="font-mono text-[10px] mr-1">({countInCat})</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* قائمة العناصر المستبعدة المعروضة بصرياً طبق الأصل */}
             <div className="flex-1 overflow-y-auto p-4">
               {disabledCount === 0 ? (
@@ -1548,25 +1468,9 @@ export default function FormsCustomizationDashboard() {
                     لا يوجد أي عنصر مستبعد حالياً. عند النقر على زر <span className="text-rose-600 font-bold">X</span> على أي كرت أو قسم بالصفحة، سيظهر هنا فوراً بشكله المرئي الأصلي لإعادة إضافته متى شئت.
                   </p>
                 </div>
-              ) : filteredRemovedElements.length === 0 ? (
-                <div className="py-16 text-center space-y-2">
-                  <AlertTriangle className="w-6 h-6 text-amber-500 mx-auto" />
-                  <p className="text-xs font-bold text-foreground">لا توجد عناصر مطابقة لبحثك في صندوق الاستعادة</p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setRestoreSearchQuery("");
-                      setSelectedRestoreCategory("all");
-                    }}
-                    className="text-xs text-primary"
-                  >
-                    عرض كافة العناصر المستبعدة
-                  </Button>
-                </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  {filteredRemovedElements.map((el) => renderRemovedVisualElement(el))}
+                  {removedElements.map((el) => renderRemovedVisualElement(el))}
                 </div>
               )}
             </div>
