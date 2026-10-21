@@ -160,6 +160,7 @@ import FormsCustomizationServices from "./pages/FormsCustomizationServices";
 import FormsCustomizationServiceDetail from "./pages/FormsCustomizationServiceDetail";
 import FormsCustomizationRegistration from "./pages/FormsCustomizationRegistration";
 import FormsCustomizationRegistrationDetail from "./pages/FormsCustomizationRegistrationDetail";
+import FormsCustomizationDashboard from "./pages/FormsCustomizationDashboard";
 import FormsCustomizationAnalytics from "./pages/FormsCustomizationAnalytics";
 import FormsCustomizationOption2 from "./pages/FormsCustomizationOption2";
 import FormsCustomizationEscalation from "./pages/FormsCustomizationEscalation";
@@ -506,6 +507,7 @@ function Router() {
       <Route path="/forms-customization/services/:serviceId">{() => <AdminRoute component={FormsCustomizationServiceDetail} />}</Route>
       <Route path="/forms-customization/registration">{() => <AdminRoute component={FormsCustomizationRegistration} />}</Route>
       <Route path="/forms-customization/registration/:formId">{() => <AdminRoute component={FormsCustomizationRegistrationDetail} />}</Route>
+      <Route path="/forms-customization/dashboard">{() => <AdminRoute component={FormsCustomizationDashboard} />}</Route>
       <Route path="/forms-customization/analytics">{() => <AdminRoute component={FormsCustomizationAnalytics} />}</Route>
       <Route path="/forms-customization/option-2">{() => <AdminRoute component={FormsCustomizationOption2} />}</Route>
       <Route path="/forms-customization/escalation">{() => <AdminRoute component={FormsCustomizationEscalation} />}</Route>

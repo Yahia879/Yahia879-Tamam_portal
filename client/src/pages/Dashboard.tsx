@@ -74,6 +74,7 @@ import {
   MessageSquare,
   Mail,
   Truck,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useEffect, useState, useMemo } from "react";
@@ -278,6 +279,20 @@ export default function Dashboard() {
   // جلب الإحصائيات العامة
   const { data: requestStats } = trpc.requests.getStats.useQuery();
   const { data: mosqueStats } = trpc.mosques.getStats.useQuery();
+
+  // جلب إعدادات تخصيص اللوحة المفصلة لمدير النظام الشامل
+  const { data: detailedDashboardConfig } = trpc.forms.getDetailedDashboardCustomizationConfig.useQuery(undefined, {
+    enabled: isSuperAdmin && superAdminViewMode === "detailed",
+  });
+
+  const enabledDetailedElementIds = useMemo(() => {
+    return new Set(detailedDashboardConfig?.enabledElementIds || []);
+  }, [detailedDashboardConfig]);
+
+  const isDetailedElementEnabled = (elementId: string) => {
+    if (!detailedDashboardConfig?.isCustomized) return true;
+    return enabledDetailedElementIds.has(elementId);
+  };
 
   // جلب الإحصائيات المالية (للمسؤول المالي ومكتب المشاريع والإدارة العليا ومجلس الإدارة)
   const { data: disbursementStats } = trpc.disbursements.getStats.useQuery(undefined, {
@@ -1220,8 +1235,9 @@ export default function Dashboard() {
     );
 
     // 1. المؤشرات الرئيسية الإجمالية
-    const mainOverviewCards = [
+    const mainOverviewCardDefs = [
       {
+        id: "main_total_requests",
         title: "إجمالي الطلبات",
         value: (requestStats?.total || 0).toLocaleString("en-US"),
         icon: FileText,
@@ -1231,6 +1247,7 @@ export default function Dashboard() {
         subtext: "طلب مسجل بالبوابة",
       },
       {
+        id: "main_registered_mosques",
         title: "المساجد المسجلة",
         value: (mosqueStats?.total || 0).toLocaleString("en-US"),
         icon: Building2,
@@ -1240,6 +1257,7 @@ export default function Dashboard() {
         subtext: "مسجد وجامع معتمد",
       },
       {
+        id: "main_in_progress_requests",
         title: "قيد التنفيذ",
         value: (requestStats?.byStatus?.in_progress || 0).toLocaleString("en-US"),
         icon: Clock,
@@ -1249,6 +1267,7 @@ export default function Dashboard() {
         subtext: "بمختلف المراحل النشطة",
       },
       {
+        id: "main_completed_requests",
         title: "مكتملة",
         value: (requestStats?.byStatus?.completed || 0).toLocaleString("en-US"),
         icon: CheckCircle2,
@@ -1258,6 +1277,7 @@ export default function Dashboard() {
         subtext: `نسبة الإنجاز: ${completionRate}%`,
       },
       {
+        id: "main_approved_contracts",
         title: "العقود المعتمدة",
         value: ((disbursementStats as any)?.approvedContractsAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }),
         isCurrency: true,
@@ -1267,6 +1287,7 @@ export default function Dashboard() {
         subtext: `${(disbursementStats as any)?.approvedContractsCount || 0} عقود نشطة`,
       },
       {
+        id: "main_paid_amounts",
         title: "المبالغ المصروفة",
         value: ((disbursementStats as any)?.totalPaid || (disbursementStats as any)?.approvedOrdersAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }),
         isCurrency: true,
@@ -1276,6 +1297,7 @@ export default function Dashboard() {
         subtext: `${(disbursementStats as any)?.executedOrders || 0} أمر صرف منفذ`,
       },
       {
+        id: "main_receipt_vouchers",
         title: "سندات القبض",
         value: ((disbursementStats as any)?.approvedReceiptVouchersAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }),
         isCurrency: true,
@@ -1285,6 +1307,7 @@ export default function Dashboard() {
         subtext: `${(disbursementStats as any)?.approvedReceiptVouchersCount || 0} سند معتمد`,
       },
       {
+        id: "main_active_projects",
         title: "المشاريع النشطة",
         value: ((projectStats as any)?.active || projectStats?.total || 0).toLocaleString("en-US"),
         icon: FolderKanban,
@@ -1294,14 +1317,17 @@ export default function Dashboard() {
       },
     ];
 
-// 2. كروت تبويب المساجد (مجلس الإدارة)
+    const mainOverviewCards = mainOverviewCardDefs.filter(c => isDetailedElementEnabled(c.id));
+
+    // 2. كروت تبويب المساجد (مجلس الإدارة)
     const boardMosquesTotal = boardStats?.mosques?.total ?? mosqueStats?.total ?? 0;
     const boardMosquesActive = boardStats?.mosques?.active ?? (mosqueStats as any)?.active ?? 0;
     const boardMosquesRecent = boardStats?.mosques?.recent ?? 0;
     const boardMosqueCoverage = boardMosquesTotal > 0 ? Math.round((boardMosquesActive / boardMosquesTotal) * 100) : 100;
 
-    const mosqueCards = [
+    const mosqueCardDefs = [
       {
+        id: "mosque_total",
         title: "المساجد المسجلة",
         value: boardMosquesTotal.toLocaleString("en-US"),
         subtext: "مسجلة رسمياً بالبوابة",
@@ -1310,6 +1336,7 @@ export default function Dashboard() {
         bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
       },
       {
+        id: "mosque_active",
         title: "المساجد النشطة",
         value: boardMosquesActive.toLocaleString("en-US"),
         subtext: "تتلقى الخدمات والزيارات",
@@ -1318,6 +1345,7 @@ export default function Dashboard() {
         bgLight: "bg-teal-50 dark:bg-teal-950/40",
       },
       {
+        id: "mosque_recent",
         title: "مساجد جديدة (30 يوم)",
         value: `+${boardMosquesRecent.toLocaleString("en-US")}`,
         subtext: "نمو تسجيلي مستمر",
@@ -1326,6 +1354,7 @@ export default function Dashboard() {
         bgLight: "bg-blue-50 dark:bg-blue-950/40",
       },
       {
+        id: "mosque_coverage",
         title: "نسبة التغطية",
         value: `${boardMosqueCoverage}%`,
         subtext: "مساجد مفعّلة بالخدمات",
@@ -1335,14 +1364,17 @@ export default function Dashboard() {
       },
     ];
 
+    const mosqueCards = mosqueCardDefs.filter(c => isDetailedElementEnabled(c.id));
+
     // 3. كروت تبويب الطلبات (مجلس الإدارة)
     const boardRequestsTotal = boardStats?.requests?.total ?? requestStats?.total ?? 0;
     const boardRequestsCompleted = boardStats?.requests?.approved ?? requestStats?.byStatus?.completed ?? 0;
     const boardRequestsInProgress = (boardStats?.requests?.inProgress ?? 0) + (boardStats?.requests?.pending ?? 0) || (requestStats?.byStatus?.in_progress ?? 0);
     const boardRequestsRejected = boardStats?.requests?.rejected ?? requestStats?.byStatus?.rejected ?? 0;
 
-    const requestCards = [
+    const requestCardDefs = [
       {
+        id: "request_total",
         title: "إجمالي الطلبات",
         value: boardRequestsTotal.toLocaleString("en-US"),
         subtext: "كافة طلبات الخدمات",
@@ -1351,6 +1383,7 @@ export default function Dashboard() {
         bgLight: "bg-blue-50 dark:bg-blue-950/40",
       },
       {
+        id: "request_completed",
         title: "الطلبات المكتملة",
         value: boardRequestsCompleted.toLocaleString("en-US"),
         subtext: "تم إنجازها بنجاح",
@@ -1359,6 +1392,7 @@ export default function Dashboard() {
         bgLight: "bg-green-50 dark:bg-green-950/40",
       },
       {
+        id: "request_in_progress",
         title: "قيد التنفيذ",
         value: boardRequestsInProgress.toLocaleString("en-US"),
         subtext: "مراحل دراسة وتنفيذ",
@@ -1367,6 +1401,7 @@ export default function Dashboard() {
         bgLight: "bg-amber-50 dark:bg-amber-950/40",
       },
       {
+        id: "request_rejected",
         title: "الطلبات المرفوضة",
         value: boardRequestsRejected.toLocaleString("en-US"),
         subtext: "لعدم اكتمال المتطلبات",
@@ -1376,14 +1411,17 @@ export default function Dashboard() {
       },
     ];
 
+    const requestCards = requestCardDefs.filter(c => isDetailedElementEnabled(c.id));
+
     // 4. كروت تبويب المشتريات والعقود (مجلس الإدارة)
     const boardSuppliersTotal = boardStats?.procurement?.totalSuppliers ?? supplierStats?.total ?? 0;
     const boardSuppliersApproved = boardStats?.procurement?.approvedSuppliers ?? supplierStats?.approved ?? 0;
     const boardContractsCount = boardStats?.procurement?.totalContracts ?? (disbursementStats as any)?.approvedContractsCount ?? 0;
     const boardContractsValue = boardStats?.procurement?.totalContractsValue ?? (disbursementStats as any)?.approvedContractsAmount ?? 0;
 
-    const procurementCards = [
+    const procurementCardDefs = [
       {
+        id: "procurement_suppliers_total",
         title: "إجمالي الموردين",
         value: boardSuppliersTotal.toLocaleString("en-US"),
         subtext: "موردون بالشبكة",
@@ -1392,6 +1430,7 @@ export default function Dashboard() {
         bgLight: "bg-orange-50 dark:bg-orange-950/40",
       },
       {
+        id: "procurement_suppliers_approved",
         title: "موردون معتمدون",
         value: boardSuppliersApproved.toLocaleString("en-US"),
         subtext: "منشآت مؤهلة رسمياً",
@@ -1400,6 +1439,7 @@ export default function Dashboard() {
         bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
       },
       {
+        id: "procurement_contracts_count",
         title: "العقود المعتمدة",
         value: boardContractsCount.toLocaleString("en-US"),
         subtext: "عقود رسمية سارية",
@@ -1408,6 +1448,7 @@ export default function Dashboard() {
         bgLight: "bg-blue-50 dark:bg-blue-950/40",
       },
       {
+        id: "procurement_contracts_value",
         title: "قيمة العقود",
         value: Number(boardContractsValue).toLocaleString("en-US", { maximumFractionDigits: 0 }),
         isCurrency: true,
@@ -1418,6 +1459,8 @@ export default function Dashboard() {
       },
     ];
 
+    const procurementCards = procurementCardDefs.filter(c => isDetailedElementEnabled(c.id));
+
     // 5. كروت تبويب المالية والصرف (مجلس الإدارة والتقرير المالي)
     const boardDisbReqCount = boardStats?.financials?.approvedDisbursementRequestsCount ?? (disbursementStats as any)?.approvedRequests ?? 0;
     const boardDisbOrdersCount = boardStats?.financials?.executiveApprovedOrdersCount ?? (disbursementStats as any)?.totalOrders ?? 0;
@@ -1425,8 +1468,9 @@ export default function Dashboard() {
     const boardReceiptsCount = boardStats?.financials?.approvedReceiptVouchersCount ?? (disbursementStats as any)?.approvedReceiptVouchersCount ?? 0;
     const boardReceiptsAmount = boardStats?.financials?.approvedReceiptVouchersAmount ?? (disbursementStats as any)?.approvedReceiptVouchersAmount ?? 0;
 
-    const financialCards = [
+    const financialCardDefs = [
       {
+        id: "financial_disb_requests",
         title: "طلبات الصرف",
         value: boardDisbReqCount.toLocaleString("en-US"),
         subtext: "طلبات معتمدة رسمياً",
@@ -1435,6 +1479,7 @@ export default function Dashboard() {
         bgLight: "bg-amber-50 dark:bg-amber-950/40",
       },
       {
+        id: "financial_disb_orders",
         title: "أوامر الصرف",
         value: boardDisbOrdersCount.toLocaleString("en-US"),
         subtext: "أوامر معتمدة للتحويل",
@@ -1443,6 +1488,7 @@ export default function Dashboard() {
         bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
       },
       {
+        id: "financial_total_expenses",
         title: "إجمالي المصروفات",
         value: Number(boardDisbAmount).toLocaleString("en-US", { maximumFractionDigits: 0 }),
         isCurrency: true,
@@ -1452,6 +1498,7 @@ export default function Dashboard() {
         bgLight: "bg-blue-50 dark:bg-blue-950/40",
       },
       {
+        id: "financial_receipt_vouchers",
         title: "سندات القبض",
         value: boardReceiptsCount.toLocaleString("en-US"),
         subtext: `بمبلغ: ${Number(boardReceiptsAmount).toLocaleString("en-US", { maximumFractionDigits: 0 })} ر.س`,
@@ -1461,14 +1508,17 @@ export default function Dashboard() {
       },
     ];
 
+    const financialCards = financialCardDefs.filter(c => isDetailedElementEnabled(c.id));
+
     // 6. كروت تبويب المشاريع وسندات القبض (التقرير المالي)
     const finApprovedVouchers = allReceiptVouchersData.filter((v: any) => v.status === "approved");
     const finApprovedVouchersAmount = finApprovedVouchers.reduce((acc: number, v: any) => acc + (parseFloat(v.amount) || 0), 0);
     const finTotalProjectsCount = financialReportData?.byProject?.length ?? projectStats?.total ?? 0;
     const finTotalProjectsBudget = parseFloat(projectStats?.totalBudget || "0");
 
-    const projectAndVoucherCards = [
+    const projectAndVoucherCardDefs = [
       {
+        id: "project_vouchers_amount",
         title: "مبالغ سندات القبض",
         value: Number(finApprovedVouchersAmount || (disbursementStats as any)?.approvedReceiptVouchersAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }),
         isCurrency: true,
@@ -1478,6 +1528,7 @@ export default function Dashboard() {
         bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
       },
       {
+        id: "project_support_projects",
         title: "مشاريع الدعم",
         value: finTotalProjectsCount.toLocaleString("en-US"),
         subtext: `نشط: ${(projectStats as any)?.active || 0} | مكتمل: ${(projectStats as any)?.completed || 0}`,
@@ -1486,6 +1537,7 @@ export default function Dashboard() {
         bgLight: "bg-indigo-50 dark:bg-indigo-950/40",
       },
       {
+        id: "project_budget",
         title: "ميزانية المشاريع",
         value: Number(finTotalProjectsBudget).toLocaleString("en-US", { maximumFractionDigits: 0 }),
         isCurrency: true,
@@ -1495,6 +1547,7 @@ export default function Dashboard() {
         bgLight: "bg-purple-50 dark:bg-purple-950/40",
       },
       {
+        id: "project_paid_amount",
         title: "المبالغ المصروفة",
         value: Number((financialReportData?.summary?.totalOrderAmount || (disbursementStats as any)?.totalPaid || 0)).toLocaleString("en-US", { maximumFractionDigits: 0 }),
         isCurrency: true,
@@ -1504,6 +1557,8 @@ export default function Dashboard() {
         bgLight: "bg-teal-50 dark:bg-teal-950/40",
       },
     ];
+
+    const projectAndVoucherCards = projectAndVoucherCardDefs.filter(c => isDetailedElementEnabled(c.id));
 
     const scrollToSection = (id: string) => {
       const el = document.getElementById(id);
@@ -1551,6 +1606,16 @@ export default function Dashboard() {
                   <LayoutDashboard className="w-4 h-4" />
                   <span>الوضع الافتراضي</span>
                 </Button>
+                <Link href="/forms-customization/dashboard">
+                  <Button
+                    size="sm"
+                    className="bg-white/20 hover:bg-white/30 text-white border-0 text-xs font-bold gap-1.5 h-10 rounded-xl shadow-xs cursor-pointer"
+                    title="تخصيص عناصر وأقسام اللوحة المفصلة"
+                  >
+                    <SlidersHorizontal className="w-4 h-4" />
+                    <span className="hidden sm:inline">تخصيص اللوحة</span>
+                  </Button>
+                </Link>
                 <Link href="/support">
                   <Button 
                     size="default" 
@@ -1571,183 +1636,211 @@ export default function Dashboard() {
           </div>
 
           {/* أزرار الانتقال السريع بين الأقسام */}
-          <div className="sticky top-2 z-20 bg-card/95 backdrop-blur-md border border-border/80 rounded-2xl p-3 sm:p-4 shadow-sm">
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              <span className="text-xs font-bold text-muted-foreground shrink-0 ml-1">انتقال سريع:</span>
-              <button
-                type="button"
-                onClick={() => scrollToSection("section-board")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-xs font-bold text-blue-700 dark:text-blue-300 border border-blue-500/30 transition-colors shrink-0 cursor-pointer"
-              >
-                <Briefcase className="w-3.5 h-3.5 text-blue-600" />
-                <span>مخططات مجلس الإدارة</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollToSection("section-financial")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-xs font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 transition-colors shrink-0 cursor-pointer"
-              >
-                <SaudiRiyal className="w-3.5 h-3.5 text-emerald-600" />
-                <span>التقرير المالي</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollToSection("section-reports")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-xs font-bold text-purple-700 dark:text-purple-300 border border-purple-500/30 transition-colors shrink-0 cursor-pointer"
-              >
-                <BarChart3 className="w-3.5 h-3.5 text-purple-600" />
-                <span>تقارير الطلبات</span>
-              </button>
+          {isDetailedElementEnabled("quick_nav") && (
+            <div className="sticky top-2 z-20 bg-card/95 backdrop-blur-md border border-border/80 rounded-2xl p-3 sm:p-4 shadow-sm">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                <span className="text-xs font-bold text-muted-foreground shrink-0 ml-1">انتقال سريع:</span>
+                {isDetailedElementEnabled("section_board") && (
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection("section-board")}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-xs font-bold text-blue-700 dark:text-blue-300 border border-blue-500/30 transition-colors shrink-0 cursor-pointer"
+                  >
+                    <Briefcase className="w-3.5 h-3.5 text-blue-600" />
+                    <span>مخططات مجلس الإدارة</span>
+                  </button>
+                )}
+                {isDetailedElementEnabled("section_financial") && (
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection("section-financial")}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-xs font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 transition-colors shrink-0 cursor-pointer"
+                  >
+                    <SaudiRiyal className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>التقرير المالي</span>
+                  </button>
+                )}
+                {isDetailedElementEnabled("section_reports") && (
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection("section-reports")}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-xs font-bold text-purple-700 dark:text-purple-300 border border-purple-500/30 transition-colors shrink-0 cursor-pointer"
+                  >
+                    <BarChart3 className="w-3.5 h-3.5 text-purple-600" />
+                    <span>تقارير الطلبات</span>
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* ========================================================================= */}
           {/* 2. بطاقات المؤشرات الرقمية الرئيسية (UI الأصلي للمنظومة) */}
           {/* ========================================================================= */}
-          <div id="section-cards" className="space-y-4 scroll-mt-28">
-            <div className="flex items-center gap-2 pb-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
-              <h2 className="text-base sm:text-lg font-bold text-foreground">
-                المؤشرات الرقمية والبطاقات الرئيسية
-              </h2>
-              <span className="text-xs text-muted-foreground mr-1">
-                (الملخص الإجمالي للطلبات، المساجد، العقود، والمصروفات)
-              </span>
-            </div>
+          {mainOverviewCards.length > 0 && (
+            <div id="section-cards" className="space-y-4 scroll-mt-28">
+              <div className="flex items-center gap-2 pb-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+                <h2 className="text-base sm:text-lg font-bold text-foreground">
+                  المؤشرات الرقمية والبطاقات الرئيسية
+                </h2>
+                <span className="text-xs text-muted-foreground mr-1">
+                  (الملخص الإجمالي للطلبات، المساجد، العقود، والمصروفات)
+                </span>
+              </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-              {mainOverviewCards.map((stat, idx) => renderCard(stat, `main-${idx}`))}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                {mainOverviewCards.map((stat, idx) => renderCard(stat, `main-${idx}`))}
+              </div>
             </div>
-          </div>
+          )}
 
-{/* ========================================================================= */}
+          {/* ========================================================================= */}
           {/* 3. بطاقات كافة التبويبات بالمنظومة */}
           {/* ========================================================================= */}
-          <div id="section-tabs-cards" className="space-y-6 pt-4 border-t border-border/60 scroll-mt-28">
-            {/* أ) إحصائيات المساجد */}
-            <div className="space-y-2.5">
-              <div className="flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-emerald-600" />
-                <h4 className="text-sm font-bold text-foreground">إحصائيات المساجد</h4>
-              </div>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                {mosqueCards.map((stat, idx) => renderCard(stat, `mosque-${idx}`))}
-              </div>
-            </div>
+          {(mosqueCards.length > 0 || requestCards.length > 0 || procurementCards.length > 0 || financialCards.length > 0 || projectAndVoucherCards.length > 0) && (
+            <div id="section-tabs-cards" className="space-y-6 pt-4 border-t border-border/60 scroll-mt-28">
+              {/* أ) إحصائيات المساجد */}
+              {mosqueCards.length > 0 && (
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-emerald-600" />
+                    <h4 className="text-sm font-bold text-foreground">إحصائيات المساجد</h4>
+                  </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                    {mosqueCards.map((stat, idx) => renderCard(stat, `mosque-${idx}`))}
+                  </div>
+                </div>
+              )}
 
-            {/* ب) إحصائيات الطلبات */}
-            <div className="space-y-2.5">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-blue-600" />
-                <h4 className="text-sm font-bold text-foreground">إحصائيات الطلبات</h4>
-              </div>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                {requestCards.map((stat, idx) => renderCard(stat, `req-${idx}`))}
-              </div>
-            </div>
+              {/* ب) إحصائيات الطلبات */}
+              {requestCards.length > 0 && (
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-blue-600" />
+                    <h4 className="text-sm font-bold text-foreground">إحصائيات الطلبات</h4>
+                  </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                    {requestCards.map((stat, idx) => renderCard(stat, `req-${idx}`))}
+                  </div>
+                </div>
+              )}
 
-            {/* ج) المشتريات والعقود */}
-            <div className="space-y-2.5">
-              <div className="flex items-center gap-2">
-                <Store className="w-4 h-4 text-orange-600" />
-                <h4 className="text-sm font-bold text-foreground">المشتريات والعقود</h4>
-              </div>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                {procurementCards.map((stat, idx) => renderCard(stat, `proc-${idx}`))}
-              </div>
-            </div>
+              {/* ج) المشتريات والعقود */}
+              {procurementCards.length > 0 && (
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <Store className="w-4 h-4 text-orange-600" />
+                    <h4 className="text-sm font-bold text-foreground">المشتريات والعقود</h4>
+                  </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                    {procurementCards.map((stat, idx) => renderCard(stat, `proc-${idx}`))}
+                  </div>
+                </div>
+              )}
 
-            {/* د) المالية وأوامر الصرف */}
-            <div className="space-y-2.5">
-              <div className="flex items-center gap-2">
-                <Banknote className="w-4 h-4 text-indigo-600" />
-                <h4 className="text-sm font-bold text-foreground">المالية وأوامر الصرف</h4>
-              </div>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                {financialCards.map((stat, idx) => renderCard(stat, `fin-${idx}`))}
-              </div>
-            </div>
+              {/* د) المالية وأوامر الصرف */}
+              {financialCards.length > 0 && (
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <Banknote className="w-4 h-4 text-indigo-600" />
+                    <h4 className="text-sm font-bold text-foreground">المالية وأوامر الصرف</h4>
+                  </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                    {financialCards.map((stat, idx) => renderCard(stat, `fin-${idx}`))}
+                  </div>
+                </div>
+              )}
 
-            {/* هـ) التقرير المالي والمشاريع */}
-            <div className="space-y-2.5">
-              <div className="flex items-center gap-2">
-                <SaudiRiyal className="w-4 h-4 text-teal-600" />
-                <h4 className="text-sm font-bold text-foreground">التقرير المالي والمشاريع</h4>
-              </div>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                {projectAndVoucherCards.map((stat, idx) => renderCard(stat, `pv-${idx}`))}
-              </div>
+              {/* هـ) التقرير المالي والمشاريع */}
+              {projectAndVoucherCards.length > 0 && (
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <SaudiRiyal className="w-4 h-4 text-teal-600" />
+                    <h4 className="text-sm font-bold text-foreground">التقرير المالي والمشاريع</h4>
+                  </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                    {projectAndVoucherCards.map((stat, idx) => renderCard(stat, `pv-${idx}`))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
           {/* ========================================================================= */}
           {/* 4. الإحصائيات والمخططات والتحليلات مباشرة تحت البطاقات */}
           {/* ========================================================================= */}
 
           {/* أ) المخططات والتحليلات الخاصة بمجلس الإدارة والإدارة العليا */}
-          <div id="section-board" className="space-y-4 pt-8 border-t-2 border-border/80 scroll-mt-28">
-            <div className="flex items-center justify-between pb-3 border-b border-border/70">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-sm border border-blue-500/20">
-                  <Briefcase className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="text-base sm:text-lg font-bold text-foreground">
-                    مخططات وتحليلات مجلس الإدارة والمؤشرات الإستراتيجية
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    مخططات المساجد، توزيع عقود المشاريع، مؤشرات أوامر الصرف، ومصفوفة الأداء الإستراتيجي
-                  </p>
+          {isDetailedElementEnabled("section_board") && (
+            <div id="section-board" className="space-y-4 pt-8 border-t-2 border-border/80 scroll-mt-28">
+              <div className="flex items-center justify-between pb-3 border-b border-border/70">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-sm border border-blue-500/20">
+                    <Briefcase className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-base sm:text-lg font-bold text-foreground">
+                      مخططات وتحليلات مجلس الإدارة والمؤشرات الإستراتيجية
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      مخططات المساجد، توزيع عقود المشاريع، مؤشرات أوامر الصرف، ومصفوفة الأداء الإستراتيجي
+                    </p>
+                  </div>
                 </div>
               </div>
-              </div>
-            <BoardDashboard embedded={true} forceAnalytics={true} />
-          </div>
+              <BoardDashboard embedded={true} forceAnalytics={true} />
+            </div>
+          )}
 
           {/* ب) المخططات والتحليلات المالية الشاملة */}
-          <div id="section-financial" className="space-y-4 pt-8 border-t-2 border-border/80 scroll-mt-28">
-            <div className="flex items-center justify-between pb-3 border-b border-border/70">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black text-sm border border-emerald-500/20">
-                  <SaudiRiyal className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="text-base sm:text-lg font-bold text-foreground">
-                    المخططات والتحليلات المالية الشاملة
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    الرسوم البيانية للتدفقات النقدية، المصروفات، سندات القبض، وتحليلات مشاريع الدعم والتغطية
-                  </p>
+          {isDetailedElementEnabled("section_financial") && (
+            <div id="section-financial" className="space-y-4 pt-8 border-t-2 border-border/80 scroll-mt-28">
+              <div className="flex items-center justify-between pb-3 border-b border-border/70">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black text-sm border border-emerald-500/20">
+                    <SaudiRiyal className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-base sm:text-lg font-bold text-foreground">
+                      المخططات والتحليلات المالية الشاملة
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      الرسوم البيانية للتدفقات النقدية، المصروفات، سندات القبض، وتحليلات مشاريع الدعم والتغطية
+                    </p>
+                  </div>
                 </div>
               </div>
-              </div>
-            <FinancialReport embedded={true} />
-          </div>
+              <FinancialReport embedded={true} />
+            </div>
+          )}
 
           {/* ج) مخططات التقارير الإحصائية للطلبات */}
-          <div id="section-reports" className="space-y-4 pt-8 border-t-2 border-border/80 scroll-mt-28">
-            <div className="flex items-center justify-between pb-3 border-b border-border/70">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center font-black text-sm border border-purple-500/20">
-                  <BarChart3 className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="text-base sm:text-lg font-bold text-foreground">
-                    المخططات الإحصائية والفنية للطلبات
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    مخططات توزيع الطلبات على البرامج التسعة، والمنحنى الشهري لتطور الطلبات
-                  </p>
+          {isDetailedElementEnabled("section_reports") && (
+            <div id="section-reports" className="space-y-4 pt-8 border-t-2 border-border/80 scroll-mt-28">
+              <div className="flex items-center justify-between pb-3 border-b border-border/70">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center font-black text-sm border border-purple-500/20">
+                    <BarChart3 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-base sm:text-lg font-bold text-foreground">
+                      المخططات الإحصائية والفنية للطلبات
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      مخططات توزيع الطلبات على البرامج التسعة، والمنحنى الشهري لتطور الطلبات
+                    </p>
+                  </div>
                 </div>
               </div>
+              <Reports embedded={true} />
             </div>
-            <Reports embedded={true} />
-          </div>
+          )}
 
           {/* ========================================================================= */}
           {/* 5. تنبيه المستخدمين بانتظار الاعتماد (في أسفل الصفحة كما طلب المستخدم) */}
           {/* ========================================================================= */}
-          {pendingUsers && pendingUsers.length > 0 && (
+          {isDetailedElementEnabled("section_pending_users") && pendingUsers && pendingUsers.length > 0 && (
             <div className="pt-4 border-t border-border/60">
               <Card className="border-0 shadow-sm border-r-4 border-r-rose-500 rounded-2xl bg-card">
                 <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1776,6 +1869,7 @@ export default function Dashboard() {
       </DashboardLayout>
     );
   }
+
 
 
   // لبقية مدراء الإدارة العليا (مدير عام، مدير تنفيذي، مدير نظام) يتم عرض النظرة العامة

@@ -11,13 +11,26 @@ import {
   FileText,
   ShieldAlert,
   HeartHandshake,
+  LayoutDashboard,
 } from "lucide-react";
 
 export default function FormsCustomization() {
   const [, navigate] = useLocation();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === "super_admin";
   const userPermissions = useUserPermissions();
 
   const allOptions = [
+    {
+      id: "dashboard",
+      title: "تخصيص لوحة التحكم المفصلة",
+      subtitle: "التحكم في ظهور أو إخفاء عناصر وبطاقات وأقسام لوحة التحكم بالوضع المفصل لمدير النظام",
+      path: "/forms-customization/dashboard",
+      icon: LayoutDashboard,
+      iconColor: "text-purple-600 bg-purple-50 dark:bg-purple-950/40",
+      visible: isSuperAdmin,
+      optionBadge: "حصري لمدير النظام الشامل",
+    },
     {
       id: "evaluation",
       title: "تخصيص استمارة تقييم رضا المستفيد",
