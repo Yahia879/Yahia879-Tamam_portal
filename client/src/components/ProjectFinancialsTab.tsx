@@ -1259,9 +1259,6 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                 <ArrowRightLeft className="w-3.5 h-3.5" />
                 <span>تحويل الفائض إلى الصندوق</span>
               </Button>}
-              {canDisburseFromFund && (fundable?.surplusAvailable || 0) > 0 && <Button variant="outline" onClick={() => navigate(`/fund?projectId=${projectId}&action=direct`)}>
-                طلب صرف من فائض المشروع
-              </Button>}
               </div>
             </div>
           )}
@@ -1290,36 +1287,14 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
             </div>
 
             {surplusAmount > 0 && (
-              <div className="p-4 bg-indigo-50/80 rounded-xl border border-indigo-200 text-right relative overflow-hidden">
+              <div className="p-3 sm:p-4 bg-indigo-50/80 rounded-xl border border-indigo-200 text-right relative overflow-hidden">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-indigo-900 font-bold block">فائض المقبوضات</span>
-                  <Badge className="bg-indigo-700 text-white text-[9px] font-bold px-1.5 py-0.2">فائض</Badge>
+                  <span className="text-[11px] sm:text-xs text-indigo-900 font-bold block">فائض المقبوضات</span>
+                  <Badge className="bg-indigo-700 text-white text-[9px] font-bold px-1.5 py-0.5">فائض</Badge>
                 </div>
-                <span className="text-lg font-black text-indigo-950 mt-1 block font-sans inline-flex items-center gap-1">
+                <span className="text-base sm:text-lg font-bold text-indigo-950 mt-0.5 sm:mt-1 block font-sans inline-flex items-center gap-1">
                   {surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                 </span>
-                {supportersWithSurplus.length > 0 && (
-                  <p className="text-[11px] text-indigo-800 font-semibold mt-1 flex flex-wrap items-center gap-1">
-                    <span>الفائض ناتج من:</span>
-                    {supportersWithSurplus.map((s, idx) => (
-                      <span key={idx} className="inline-flex items-center gap-0.5">
-                        {idx > 0 && "، "}
-                        <span>{s.name} ({s.surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-                        <SaudiRiyal className="w-3 h-3 inline" />
-                        <span>)</span>
-                      </span>
-                    ))}
-                  </p>
-                )}
-                {canTransferToFund && (fundable?.surplusAvailable || 0) > 0 && <Button
-                  variant="link"
-                  size="sm"
-                  onClick={() => navigate(`/fund?projectId=${projectId}&source=surplus`)}
-                  className="p-0 h-auto text-[11px] text-indigo-700 hover:text-indigo-900 font-bold mt-1.5 flex items-center gap-1 cursor-pointer"
-                >
-                  <ArrowRightLeft className="w-3 h-3" />
-                  <span>تحويل الفائض الآن</span>
-                </Button>}
               </div>
             )}
           </div>
