@@ -2,7 +2,7 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { permissionProcedure } from "../permissions";
 import { getDb } from "../db";
-import { users, employees, userRoleAssignments, passwordResetTokens, roles } from "../../drizzle/schema";
+import { users, employees, userRoleAssignments, passwordResetTokens, roles, auditLogs } from "../../drizzle/schema";
 import { eq, count, and, inArray, notInArray, desc, like, or, sql, isNull, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { randomBytes, pbkdf2Sync } from "crypto";
@@ -248,6 +248,43 @@ export const usersRouter = router({
       if (!user) return null;
       const [emp] = await db.select().from(employees).where(eq(employees.userId, input.id)).limit(1);
       return { ...user, employee: emp || null };
+    }),
+
+  createRequester: permissionProcedure("requesters.create")
+    .input(z.object({
+      name: z.string().trim().min(2, "الاسم يجب أن يكون حرفين على الأقل").max(60),
+      email: z.string().trim().toLowerCase().email("البريد الإلكتروني غير صحيح"),
+      phone: z.string().trim().regex(/^05[0-9]{8}$/, "رقم الجوال يجب أن يكون بصيغة 05XXXXXXXX"),
+      password: z.string().min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل").max(128),
+      nationalId: z.string().trim().max(20).optional(),
+      city: z.string().trim().max(100).optional(),
+      requesterType: z.enum(["imam", "muezzin"]),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+      const [existingEmail] = await db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).limit(1);
+      if (existingEmail) throw new TRPCError({ code: "CONFLICT", message: "البريد الإلكتروني مسجل مسبقاً" });
+      const [existingRequester] = await db.select({ id: users.id }).from(users).where(and(
+        eq(users.role, "service_requester"), isNull(users.deletedAt),
+        or(eq(users.phone, input.phone), input.nationalId ? eq(users.nationalId, input.nationalId) : undefined),
+      )).limit(1);
+      if (existingRequester) throw new TRPCError({ code: "CONFLICT", message: "رقم الجوال أو الهوية مسجل مسبقاً لمستفيد" });
+      const salt = randomBytes(16).toString("hex");
+      const passwordHash = `${salt}:${hashPassword(input.password, salt)}`;
+      return db.transaction(async (tx) => {
+        const [result] = await tx.insert(users).values({
+          name: input.name, email: input.email, phone: input.phone, passwordHash,
+          nationalId: input.nationalId || null, city: input.city || null,
+          requesterType: input.requesterType, role: "service_requester", status: "pending", loginMethod: "local",
+        });
+        const id = Number(result.insertId);
+        await tx.insert(auditLogs).values({
+          userId: ctx.user.id, action: "requester_created", entityType: "user", entityId: id,
+          newValues: { name: input.name, email: input.email, role: "service_requester", status: "pending" },
+        });
+        return { id, success: true };
+      });
     }),
 
   // Create new user (staff)

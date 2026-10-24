@@ -40,7 +40,8 @@ import {
   disbursementRequests,
   disbursementOrders,
 } from "../../drizzle/schema";
-import { eq, ne, and, desc, sql, inArray, notInArray, or, gte, lte, gt, isNotNull } from "drizzle-orm";
+import { eq, ne, and, desc, sql, inArray, notInArray, or, gte, lte, gt, isNotNull, isNull, like, asc } from "drizzle-orm";
+import { canTransferRequestToBeneficiary } from "@shared/requestBeneficiaryTransfer";
 import { alias } from "drizzle-orm/mysql-core";
 import { randomBytes } from "crypto";
 import { 
@@ -349,6 +350,51 @@ const searchRequestsSchema = z.object({
 });
 
 export const requestsRouter = router({
+  getTransferBeneficiaries: permissionProcedure("requests.transfer_to_beneficiary")
+    .input(z.object({ search: z.string().trim().max(100).default(""), page: z.number().int().min(1).default(1) }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const term = `%${input.search}%`;
+      const items = await db.select({ id: users.id, name: users.name, phone: users.phone, email: users.email, city: users.city, status: users.status })
+        .from(users).where(and(
+          eq(users.role, "service_requester"), isNull(users.deletedAt), inArray(users.status, ["active", "pending"]),
+          input.search ? or(like(users.name, term), like(users.phone, term), like(users.email, term)) : undefined,
+        )).orderBy(asc(users.name), asc(users.id)).limit(51).offset((input.page - 1) * 50);
+      return { items: items.slice(0, 50), hasMore: items.length > 50 };
+    }),
+
+  transferToBeneficiary: permissionProcedure("requests.transfer_to_beneficiary")
+    .input(z.object({ requestId: z.number().int().positive(), beneficiaryId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      return db.transaction(async (tx) => {
+        const [request] = await tx.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1).for("update");
+        if (!request) throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+        const [owner] = request.userId ? await tx.select({ role: users.role }).from(users).where(eq(users.id, request.userId)).limit(1) : [];
+        const [opportunity] = await tx.select({ id: donationOpportunities.id }).from(donationOpportunities).where(eq(donationOpportunities.requestId, request.id)).limit(1);
+        if (!canTransferRequestToBeneficiary(request, owner?.role, !!opportunity)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "التحويل متاح فقط للطلبات العامة التابعة للمسؤولين، ولا يشمل فرص التبرع أو الطلبات السريعة أو الطلبات التابعة لمستفيد بالفعل" });
+        }
+        const [beneficiary] = await tx.select({ id: users.id, name: users.name }).from(users).where(and(
+          eq(users.id, input.beneficiaryId), eq(users.role, "service_requester"),
+          isNull(users.deletedAt), inArray(users.status, ["active", "pending"]),
+        )).limit(1).for("update");
+        if (!beneficiary) throw new TRPCError({ code: "BAD_REQUEST", message: "المستفيد غير متاح للتحويل، يرجى اختيار حساب مسجل وغير موقوف" });
+        await tx.update(mosqueRequests).set({ userId: beneficiary.id }).where(eq(mosqueRequests.id, request.id));
+        await tx.insert(requestHistory).values({
+          requestId: request.id, userId: ctx.user.id, action: "transferred_to_beneficiary",
+          notes: `تم تحويل الطلب إلى المستفيد ${beneficiary.name} (#${beneficiary.id})`,
+        });
+        await tx.insert(auditLogs).values({
+          userId: ctx.user.id, action: "transferred_to_beneficiary", entityType: "request", entityId: request.id,
+          oldValues: { userId: request.userId }, newValues: { userId: beneficiary.id },
+        });
+        return { success: true, beneficiaryName: beneficiary.name };
+      });
+    }),
+
   // إنشاء طلب جديد
   create: protectedProcedure
     .input(createRequestSchema)
@@ -826,8 +872,11 @@ export const requestsRouter = router({
         adminName = requester[0].name;
       }
 
+      const [transferDonationOpportunity] = await db.select({ id: donationOpportunities.id }).from(donationOpportunities)
+        .where(eq(donationOpportunities.requestId, request.id)).limit(1);
       return {
         ...request,
+        canTransferToBeneficiary: canTransferRequestToBeneficiary(request, requester[0]?.role, !!transferDonationOpportunity),
         mosque: isMultiMosque ? null : mosque,
         requester: requester[0] || null,
         adminName,

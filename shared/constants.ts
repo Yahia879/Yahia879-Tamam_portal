@@ -1291,6 +1291,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   status_updated: "تم تحديث حالة الطلب",
   assigned_to_user: "تم تعيين المسؤول عن الطلب",
   assign_to: "تم تعيين المسؤول عن الطلب",
+  transferred_to_beneficiary: "تم تحويل الطلب لمستفيد",
   select_winning_quotation: "تم اختيار عرض السعر الفائز",
   financial_approval: "تمت الموافقة المالية",
   field_visit_assigned: "تم تعيين فريق الزيارة الميدانية",

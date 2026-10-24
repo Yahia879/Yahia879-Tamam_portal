@@ -34,6 +34,7 @@ import { formatErrorMessage } from "@/lib/utils";
 import { getAllFieldsForProgram } from "@/lib/programFields";
 import { SedanaDetailsView } from "@/components/sedana/SedanaDetailsView";
 import { SedanaOfficeEvaluation } from "@/components/sedana/SedanaOfficeEvaluation";
+import RequestBeneficiaryTransfer from "@/components/RequestBeneficiaryTransfer";
 
 function ProgressiveImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
   const [loading, setLoading] = useState(true);
@@ -74,6 +75,7 @@ export default function RequestDetailsNew() {
   const [, setLocation] = useLocation();
   const requestId = parseInt(id!);
   const canAddReviewNote = usePermission("requests.add_review_note") || user?.role === "super_admin" || user?.role === "system_admin";
+  const canTransferToBeneficiary = usePermission("requests.transfer_to_beneficiary");
 
   const userRole = user?.role ?? "";
   const isBaseRole = Boolean(userRole && Object.prototype.hasOwnProperty.call(BASE_ROLE_PERMISSIONS, userRole));
@@ -1825,6 +1827,9 @@ export default function RequestDetailsNew() {
 
             {/* Header Actions Toolbar */}
             <div className="flex items-center gap-2 flex-wrap sm:self-center">
+              {canTransferToBeneficiary && request.canTransferToBeneficiary && (
+                <RequestBeneficiaryTransfer requestId={request.id} requestNumber={request.requestNumber} />
+              )}
               {request.closureStatus === 'pending_confirmation' && isExecutiveDirector && (
                 <div className="flex items-center gap-2">
                   <Button

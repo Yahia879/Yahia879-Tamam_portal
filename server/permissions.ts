@@ -1093,11 +1093,13 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "mosque_map.view", moduleId: "mosques", action: "view", nameAr: "عرض خريطة المساجد", nameEn: "View Mosque Map" },
       { id: "requests.view_details", moduleId: "requests", action: "view_details", nameAr: "عرض تفاصيل الطلب وإدارته", nameEn: "View Request Details" },
       { id: "requests.add_review_note", moduleId: "requests", action: "add_review_note", nameAr: "إضافة ملاحظة على مراجعة المعلومات والمرفقات", nameEn: "Add review note" },
+      { id: "requests.transfer_to_beneficiary", moduleId: "requests", action: "transfer_to_beneficiary", nameAr: "تحويل الطلب لمستفيد", nameEn: "Transfer Request to Beneficiary" },
       { id: "appointments.view_all", moduleId: "settings", action: "view_all", nameAr: "عرض كافة المواعيد والزيارات للمنشأة", nameEn: "View All Appointments" },
       { id: "appointments.view_own", moduleId: "settings", action: "view_own", nameAr: "عرض زياراتي الميدانية الخاصة بي فقط", nameEn: "View Own Appointments" },
       { id: "projects.view_details", moduleId: "projects", action: "view_details", nameAr: "عرض تفاصيل المشروع وادارته", nameEn: "View Project Details" },
       { id: "requesters.view", moduleId: "requesters", action: "view", nameAr: "عرض قسم إدارة المستفيدين", nameEn: "View Requesters" },
       { id: "requesters.approve", moduleId: "requesters", action: "approve", nameAr: "اعتماد ورفض المستفيدين", nameEn: "Approve Requesters" },
+      { id: "requesters.create", moduleId: "requesters", action: "create", nameAr: "إضافة مستفيد", nameEn: "Create Beneficiary" },
       { id: "suppliers.view_details", moduleId: "suppliers", action: "view_details", nameAr: "عرض تفاصيل المورد", nameEn: "View Supplier Details" },
       { id: "suppliers.add", moduleId: "suppliers", action: "add", nameAr: "إضافة مورد", nameEn: "Add Supplier" },
       { id: "suppliers.suspend", moduleId: "suppliers", action: "suspend", nameAr: "إيقاف المورد وإعادة تفعيله", nameEn: "Suspend and Reactivate Supplier" },
@@ -1817,8 +1819,9 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.delete("requesters");
     allPermissions.delete("requesters.view");
     allPermissions.delete("requesters.approve");
+    allPermissions.delete("requesters.create");
     allPermissions.delete("service_requester_accounts");
-  } else if (allPermissions.has("requesters.view") || allPermissions.has("requesters.approve")) {
+  } else if (allPermissions.has("requesters.view") || allPermissions.has("requesters.approve") || allPermissions.has("requesters.create")) {
     allPermissions.add("requesters");
     allPermissions.add("requesters.view");
     allPermissions.add("service_requester_accounts");

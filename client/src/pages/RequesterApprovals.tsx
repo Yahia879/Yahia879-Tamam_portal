@@ -80,6 +80,7 @@ import {
   RefreshCw,
   Copy,
   Check,
+  UserPlus,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -160,7 +161,17 @@ export default function RequesterApprovals() {
   const [, navigate] = useLocation();
   const hasApprovePermission = usePermission("requesters.approve");
   const hasViewPermission = usePermission("requesters.view");
+  const canCreateRequester = usePermission("requesters.create");
   const canApprove = hasApprovePermission;
+  const emptyRequester = {
+    name: "", email: "", phone: "", password: "", confirmPassword: "", nationalId: "", city: "",
+    requesterType: "imam" as "imam" | "muezzin",
+  };
+  const [showCreateRequester, setShowCreateRequester] = useState(false);
+  const [newRequester, setNewRequester] = useState(emptyRequester);
+  const { data: requesterCities, isLoading: isLoadingRequesterCities } = trpc.categories.getCategoryByType.useQuery(
+    { type: "city" }, { enabled: canCreateRequester }
+  );
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -246,6 +257,18 @@ export default function RequesterApprovals() {
   const pendingExceptionsCount = exceptionRequests.filter(e => e.exception.status === "pending").length;
 
   const utils = trpc.useUtils();
+  const createRequester = trpc.users.createRequester.useMutation({
+    onSuccess: async () => {
+      setShowCreateRequester(false);
+      setNewRequester(emptyRequester);
+      setActiveTab("requests");
+      setSearch("");
+      setStatusFilter("all");
+      toast.success("تمت إضافة المستفيد بنجاح، وحسابه بانتظار الاعتماد");
+      await utils.users.getAll.invalidate();
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   // جلب إعدادات مهلة المستفيدين
   const { data: slaSettingsData } = trpc.escalation.getSettings.useQuery();
@@ -390,7 +413,93 @@ export default function RequesterApprovals() {
               </p>
             </div>
           </div>
+          {hasViewPermission && canCreateRequester && (
+            <Button className="gap-2 self-start sm:self-auto" onClick={() => setShowCreateRequester(true)}>
+              <UserPlus className="h-4 w-4" />
+              إضافة مستفيد
+            </Button>
+          )}
         </div>
+
+        {canCreateRequester && (
+          <Dialog open={showCreateRequester} onOpenChange={(open) => {
+            if (createRequester.isPending) return;
+            setShowCreateRequester(open);
+            if (!open) setNewRequester(emptyRequester);
+          }}>
+            <DialogContent dir="rtl" className="max-h-[90vh] w-[calc(100%-2rem)] overflow-y-auto p-6 sm:max-w-3xl sm:p-8">
+              <DialogHeader className="items-start text-right sm:text-right">
+                <DialogTitle>إضافة مستفيد</DialogTitle>
+                <DialogDescription className="text-right leading-relaxed">أدخل بيانات المستفيد وكلمة المرور. سيظهر الحساب ضمن الحسابات قيد المراجعة لحين اعتماده.</DialogDescription>
+              </DialogHeader>
+              <form className="space-y-4" onSubmit={(event) => {
+                event.preventDefault();
+                if (createRequester.isPending) return;
+                if (newRequester.password !== newRequester.confirmPassword) {
+                  toast.error("كلمة المرور وتأكيدها غير متطابقتين");
+                  return;
+                }
+                const { confirmPassword, ...input } = newRequester;
+                createRequester.mutate(input);
+              }}>
+                <fieldset disabled={createRequester.isPending} className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="requester-name">اسم المستفيد *</Label>
+                    <Input id="requester-name" required minLength={2} maxLength={60} autoComplete="name" value={newRequester.name} onChange={(event) => setNewRequester({ ...newRequester, name: event.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="requester-email">البريد الإلكتروني *</Label>
+                    <Input id="requester-email" type="email" dir="ltr" required autoComplete="email" value={newRequester.email} onChange={(event) => setNewRequester({ ...newRequester, email: event.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="requester-phone">رقم الجوال *</Label>
+                    <Input id="requester-phone" type="tel" dir="ltr" required pattern="05[0-9]{8}" maxLength={10} placeholder="05XXXXXXXX" autoComplete="tel" value={newRequester.phone} onChange={(event) => setNewRequester({ ...newRequester, phone: event.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="requester-password">كلمة المرور *</Label>
+                    <Input id="requester-password" type="password" dir="ltr" required minLength={8} maxLength={128} autoComplete="new-password" placeholder="8 أحرف على الأقل" value={newRequester.password} onChange={(event) => setNewRequester({ ...newRequester, password: event.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="requester-password-confirm">تأكيد كلمة المرور *</Label>
+                    <Input id="requester-password-confirm" type="password" dir="ltr" required minLength={8} maxLength={128} autoComplete="new-password" value={newRequester.confirmPassword} onChange={(event) => setNewRequester({ ...newRequester, confirmPassword: event.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="requester-national-id">رقم الهوية (اختياري)</Label>
+                    <Input id="requester-national-id" dir="ltr" maxLength={20} value={newRequester.nationalId} onChange={(event) => setNewRequester({ ...newRequester, nationalId: event.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="requester-city">المدينة (اختياري)</Label>
+                    <Select value={newRequester.city} onValueChange={(city) => setNewRequester({ ...newRequester, city })} disabled={isLoadingRequesterCities}>
+                      <SelectTrigger id="requester-city"><SelectValue placeholder={isLoadingRequesterCities ? "جارٍ تحميل المدن..." : "اختر المدينة"} /></SelectTrigger>
+                      <SelectContent dir="rtl">
+                        {requesterCities?.values?.map((city: any) => (
+                          <SelectItem key={city.id} value={city.valueAr || city.value}>{city.valueAr || city.value}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="requester-type">صفة المستفيد *</Label>
+                    <Select value={newRequester.requesterType} onValueChange={(value) => setNewRequester({ ...newRequester, requesterType: value as typeof newRequester.requesterType })}>
+                      <SelectTrigger id="requester-type"><SelectValue /></SelectTrigger>
+                      <SelectContent dir="rtl">
+                        <SelectItem value="imam">إمام</SelectItem>
+                        <SelectItem value="muezzin">مؤذن</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </fieldset>
+                <DialogFooter className="gap-2">
+                  <Button type="submit" disabled={createRequester.isPending} className="gap-2">
+                    {createRequester.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                    إضافة مستفيد
+                  </Button>
+                  <Button type="button" variant="outline" disabled={createRequester.isPending} onClick={() => { setShowCreateRequester(false); setNewRequester(emptyRequester); }}>إلغاء</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
 
         {/* بطاقات الإحصائيات المتغيرة بحسب التبويب النشط */}
         {activeTab === 'requests' && (

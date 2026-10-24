@@ -211,6 +211,14 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل مالية المشاريع إلا بعد تفعيل صلاحيتي الصندوق
+    if (permId === "projects.financials") {
+      if (!selectedPerms.includes("projects.financials") && (!selectedPerms.includes("fund.view") || !selectedPerms.includes("fund.transfer"))) {
+        toast.warning("يجب تفعيل صلاحيتي الصندوق ('عرض إحصائيات وسجلات الصندوق' و'تحويل فائض من المشروع إلى الصندوق') أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل صلاحيات الداعمين وسندات الصرف/القبض إذا كانت مالية المشاريع معطلة
     if (permId === "projects.edit_support_and_fees" || permId === "projects.add_receipt_voucher") {
       if (!selectedPerms.includes("projects.financials")) {
@@ -682,6 +690,7 @@ export default function RolePermissions() {
           icon: ClipboardList,
           permissions: [
             { id: "requests.assigned", nameAr: "عرض الطلبات الموكلة لكم" },
+            { id: "requests.transfer_to_beneficiary", nameAr: "تحويل الطلب لمستفيد" },
             { id: "requests.follow_up", nameAr: "متابعة حالة الطلب" },
             { id: "requests.view", nameAr: "عرض قائمة الطلبات" },
           ]
@@ -885,6 +894,7 @@ export default function RolePermissions() {
             { id: "requests.view", nameAr: "عرض قائمة الطلبات" },
             { id: "requests.create", nameAr: "إنشاء طلب جديد" },
             { id: "requests.edit", nameAr: "تعديل بيانات الطلب" },
+            { id: "requests.transfer_to_beneficiary", nameAr: "تحويل الطلب لمستفيد" },
             { id: "requests.follow_up", nameAr: "متابعة حالة الطلبات" },
           ]
         },
@@ -1112,6 +1122,7 @@ export default function RolePermissions() {
         { id: "requests.view", nameAr: "عرض الطلبات" },
         { id: "requests.create", nameAr: "إنشاء طلب جديد" },
         { id: "requests.edit", nameAr: "تعديل الطلب" },
+        { id: "requests.transfer_to_beneficiary", nameAr: "تحويل الطلب لمستفيد" },
         { id: "requests.follow_up", nameAr: "متابعة الطلب" },
       ]
     }
@@ -1124,7 +1135,7 @@ export default function RolePermissions() {
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report", "create_quick_request"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "transfer_to_beneficiary", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report", "create_quick_request"] },
         { id: "sedana_requests", nameAr: "طلبات سدانة", icon: Sparkles, perms: ["view", "desk_review", "manage"] },
         { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["view"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
@@ -1206,7 +1217,7 @@ export default function RolePermissions() {
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "transfer_to_beneficiary", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"] },
         { id: "sedana_requests", nameAr: "طلبات سدانة", icon: Sparkles, perms: ["view", "desk_review", "manage"] },
         { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["view"] },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
@@ -1286,7 +1297,7 @@ export default function RolePermissions() {
         { id: "staff_users", nameAr: "إدارة المستخدمين", icon: Users, perms: ["view", "add", "edit", "suspend", "delete"] },
         { id: "staff_roles", nameAr: "الأدوار والصلاحيات", icon: Shield, perms: ["view", "customize", "suspend"] },
         { id: "staff_custom_roles", nameAr: "الأدوار المخصصة", icon: Briefcase, perms: ["view", "add", "edit", "delete"] },
-        { id: "requesters", nameAr: "إدارة المستفيدين", icon: Users, perms: ["view", "approve"] },
+        { id: "requesters", nameAr: "إدارة المستفيدين", icon: Users, perms: ["view", "create", "approve"] },
       ]
     },
     {
@@ -1381,6 +1392,7 @@ export default function RolePermissions() {
         create: "إضافة طلب",
         view_details: "عرض تفاصيل الطلب وإدارته",
         add_review_note: "إضافة ملاحظة في مراجعة الطلب والمرفقات",
+        transfer_to_beneficiary: "تحويل الطلب لمستفيد",
         manage_as_field_team: "ادارة الطلبات كفريق ميداني",
         manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة",
         upload_final_report: "رفع التقرير الختامي",
@@ -1416,6 +1428,7 @@ export default function RolePermissions() {
       },
       requesters: {
         view: "عرض قسم إدارة المستفيدين",
+        create: "إضافة مستفيد",
         approve: "الاعتمادات (رفض أو اعتماد الحساب)",
         edit: "تعديل بيانات الحساب",
         delete: "حذف الحساب",
@@ -1918,6 +1931,7 @@ export default function RolePermissions() {
                                 (perm.id.startsWith("services.") && perm.id !== "services.view" && !selectedPerms.includes("services.view")) ||
                                 (perm.id.startsWith("requests.") && perm.id !== "requests.view" && perm.id !== "requests.sign_final_report" && !selectedPerms.includes("requests.view")) ||
                                 (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !selectedPerms.includes("projects.view")) ||
+                                (perm.id === "projects.financials" && (!selectedPerms.includes("fund.view") || !selectedPerms.includes("fund.transfer")) && !selectedPerms.includes("projects.financials")) ||
                                 ((perm.id === "projects.edit_support_and_fees" || perm.id === "projects.add_receipt_voucher") && !selectedPerms.includes("projects.financials")) ||
                                 (perm.id.startsWith("progress_reports.") && perm.id !== "progress_reports.view" && !selectedPerms.includes("progress_reports.view")) ||
                                 (perm.id.startsWith("progress_invoices.") && perm.id !== "progress_invoices.view" && !selectedPerms.includes("progress_invoices.view")) ||

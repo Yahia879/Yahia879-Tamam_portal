@@ -261,6 +261,14 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل مالية المشاريع إلا بعد تفعيل صلاحيتي الصندوق
+    if (permId === "projects.financials") {
+      if (!isChecked("projects.financials") && (!isChecked("fund.view") || !isChecked("fund.transfer"))) {
+        toast.warning("يجب تفعيل صلاحيتي الصندوق ('عرض إحصائيات وسجلات الصندوق' و'تحويل فائض من المشروع إلى الصندوق') أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل صلاحيات الداعمين وسندات الصرف/القبض إذا كانت مالية المشاريع معطلة
     if (permId === "projects.edit_support_and_fees" || permId === "projects.add_receipt_voucher") {
       if (!isChecked("projects.financials")) {
@@ -779,6 +787,7 @@ export default function UserPermissions() {
         create: "إضافة طلب",
         view_details: "عرض تفاصيل الطلب وإدارته",
         add_review_note: "إضافة ملاحظة في مراجعة الطلب والمرفقات",
+        transfer_to_beneficiary: "تحويل الطلب لمستفيد",
         manage_as_field_team: "ادارة الطلبات كفريق ميداني",
         manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة",
         upload_final_report: "رفع التقرير الختامي",
@@ -806,6 +815,7 @@ export default function UserPermissions() {
       },
       requesters: {
         view: "عرض قسم إدارة المستفيدين",
+        create: "إضافة مستفيد",
         approve: "الاعتمادات (رفض أو اعتماد الحساب)"
       },
       suppliers: {
@@ -1039,7 +1049,7 @@ export default function UserPermissions() {
           id: "requests", 
           nameAr: "الطلبات", 
           icon: Zap, 
-          perms: ["view", "create", "view_details", "add_review_note", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"]
+          perms: ["view", "create", "view_details", "add_review_note", "transfer_to_beneficiary", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"]
         },
         { id: "sedana_requests", nameAr: "طلبات سدانة", icon: Sparkles, perms: ["view", "desk_review", "manage"] },
         { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["view"] },
@@ -1110,7 +1120,7 @@ export default function UserPermissions() {
         { id: "staff_users", nameAr: "إدارة المستخدمين", icon: Users, perms: ["view", "add", "edit", "suspend", "delete"] },
         { id: "staff_roles", nameAr: "الأدوار والصلاحيات", icon: Shield, perms: ["view", "customize", "suspend"] },
         { id: "staff_custom_roles", nameAr: "الأدوار المخصصة", icon: Briefcase, perms: ["view", "add", "edit", "delete"] },
-        { id: "requesters", nameAr: "إدارة المستفيدين", icon: Users, perms: ["view", "approve"] },
+        { id: "requesters", nameAr: "إدارة المستفيدين", icon: Users, perms: ["view", "create", "approve"] },
       ]
     },
     {
@@ -1377,6 +1387,7 @@ export default function UserPermissions() {
                               (perm.id.startsWith("services.") && perm.id !== "services.view" && !isChecked("services.view")) ||
                               (perm.id.startsWith("requests.") && perm.id !== "requests.view" && perm.id !== "requests.sign_final_report" && !isChecked("requests.view")) ||
                               (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !isChecked("projects.view")) ||
+                              (perm.id === "projects.financials" && (!isChecked("fund.view") || !isChecked("fund.transfer")) && !isChecked("projects.financials")) ||
                               ((perm.id === "projects.edit_support_and_fees" || perm.id === "projects.add_receipt_voucher") && !isChecked("projects.financials")) ||
                               (perm.id.startsWith("progress_reports.") && perm.id !== "progress_reports.view" && !isChecked("progress_reports.view")) ||
                               (perm.id.startsWith("progress_invoices.") && perm.id !== "progress_invoices.view" && !isChecked("progress_invoices.view")) ||
