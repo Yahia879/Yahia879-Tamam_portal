@@ -211,6 +211,7 @@ export default function DisbursementOrderPrint() {
   }
   const amount = parseFloat(order.amount?.toString() || "0");
   const request = order.disbursementRequest;
+  const isProjectFundRequest = request?.fundRestrictionType === "project";
   const project = order.project;
   const orderDate = new Date(order.createdAt || new Date());
 
@@ -251,23 +252,23 @@ export default function DisbursementOrderPrint() {
   // البحث عن تقرير الإنجاز أو المستخلص المرتبط بالمشروع
   let linkedReportId: number | null = null;
   let linkedReportNumber: string | null = null;
-  let linkedReportObj: any = (order as any)?.linkedProgressReport || (request as any)?.linkedProgressReport || null;
+  let linkedReportObj: any = isProjectFundRequest ? null : ((order as any)?.linkedProgressReport || (request as any)?.linkedProgressReport || null);
 
   if (linkedReportObj) {
     linkedReportId = linkedReportObj.id;
     linkedReportNumber = linkedReportObj.reportNumber || null;
   }
 
-  if (!linkedReportId && linkedRequestInfo?.reportId) {
+  if (!isProjectFundRequest && !linkedReportId && linkedRequestInfo?.reportId) {
     linkedReportId = Number(linkedRequestInfo.reportId);
     linkedReportNumber = linkedRequestInfo.reportNumber || null;
   }
 
-  if (!linkedReportId && (order as any)?.disbursementRequest?.linkedProgressReportId) {
+  if (!isProjectFundRequest && !linkedReportId && (order as any)?.disbursementRequest?.linkedProgressReportId) {
     linkedReportId = Number((order as any).disbursementRequest.linkedProgressReportId);
   }
 
-  if (!linkedReportId && progressReports && progressReports.length > 0) {
+  if (!isProjectFundRequest && !linkedReportId && progressReports && progressReports.length > 0) {
     const associatedReport = progressReports.find((r: any) => {
       if (!r.workSummary || !request) return false;
       const match = r.workSummary.match(/\[(?:معرف الدفعة|معرف المستخلص):\s*([^\]]+)\]/);
@@ -294,7 +295,7 @@ export default function DisbursementOrderPrint() {
     linkedReportObj = progressReports.find((r: any) => r.id === linkedReportId) || null;
   }
 
-  const isLinkedInvoice = Boolean(
+  const isLinkedInvoice = !isProjectFundRequest && Boolean(
     (linkedReportObj?.workSummary && (/\[نوع:\s*مستخلص/i.test(linkedReportObj.workSummary) || /\[معرف المستخلص:/i.test(linkedReportObj.workSummary))) ||
     (linkedReportObj?.title && linkedReportObj.title.includes("مستخلص")) ||
     (linkedRequestInfo?.isInvoice) ||
@@ -426,7 +427,13 @@ export default function DisbursementOrderPrint() {
 
   const showRequestNumber = !!request && !request.isDirect;
 
-  const rawDescriptionText = (isCustomType && (customSupplier?.requiredWorksDesc || linkedRequestInfo?.requiredWorksDesc)) ? 
+  const savedFundWorkDescription = request?.description?.match(
+    /(?:^|\r?\n)الأعمال المطلوبة:[ \t]*([\s\S]*?)(?=\r?\n(?:عنوان المشروع|المستفيد|الحساب البنكي|البنك|الآيبان|المبلغ|الأجور الإدارية):|$)/
+  )?.[1]?.trim();
+  const rawDescriptionText = isProjectFundRequest
+    ? (customSupplier?.requiredWorksDesc || linkedRequestInfo?.requiredWorksDesc || savedFundWorkDescription ||
+        (request?.description?.startsWith("التمويل/الدعم:") ? "" : request?.description) || "—")
+    : (isCustomType && (customSupplier?.requiredWorksDesc || linkedRequestInfo?.requiredWorksDesc)) ?
                           (customSupplier?.requiredWorksDesc || linkedRequestInfo?.requiredWorksDesc) :
                           (customSupplier?.customProjectName || 
                            (request?.description ? request.description.replace(/^(?:ت?قرير\s+إنجاز\s+RPT-[A-Za-z0-9-]+(?:\s*-\s*الأعمال\s+المنفذة\s+فعلياً)?\s*:\s*)/i, "") : "") || 

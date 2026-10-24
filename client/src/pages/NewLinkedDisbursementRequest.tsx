@@ -114,6 +114,7 @@ export default function NewLinkedDisbursementRequest() {
   const canCreateStandard = userPermissions.includes("disbursements.add");
   const canCreateCustom = userPermissions.includes("disbursements.create_custom");
   const canCreateDonationDisbursement = userPermissions.includes("disbursements.create_donation");
+  const canCreateFromFund = userPermissions.includes("disbursements.create_from_fund") || ["financial", "financial_manager"].includes((user as any)?.role || "");
 
   // استرجاع حالة الصفحة المحفوظة في حال العودة من صفحة معاينة التقرير
   const savedState = (() => {
@@ -2076,6 +2077,7 @@ export default function NewLinkedDisbursementRequest() {
                       </button>
                     )}
 
+                    {canCreateFromFund && (
                     <button
                       type="button"
                       onClick={() => handleCategoryChange("fund_project_surplus")}
@@ -2091,6 +2093,7 @@ export default function NewLinkedDisbursementRequest() {
                         <p className={`text-[11px] leading-relaxed ${activeCategory === "fund_project_surplus" ? "text-amber-800 dark:text-amber-300" : "text-muted-foreground"}`}>اختر المشروع ثم استخدم فائضه المتاح والمسجل في صندوق الجمعية.</p>
                       </div>
                     </button>
+                    )}
 
                     {/* 2. المشروع المرتبط (فرصة التبرع) */}
                     {canCreateDonationDisbursement && (

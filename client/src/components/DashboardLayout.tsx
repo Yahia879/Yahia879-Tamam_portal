@@ -35,6 +35,7 @@ import {
   ClipboardList,
   BarChart3,
   Wallet,
+  Landmark,
   Handshake,
   Palette,
   UserCog,
@@ -176,7 +177,7 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
       { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
       { icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" },
       { icon: Coins, label: "سندات القبض", path: "/receipt-vouchers" },
-      { icon: Wallet, label: "الصندوق", path: "/fund" },
+      { icon: Landmark, label: "الصندوق", path: "/fund" },
       { icon: Wallet, label: isEn ? "Financial Custody" : "العهد المالية", path: "/custody-requests" },
       { icon: BarChart3, label: "التقرير المالي", path: "/financial-report" },
     ];
@@ -393,8 +394,8 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("disbursement_requests")) finItems.push({ icon: Banknote,  label: "طلبات الصرف",    path: "/disbursements" });
   if (has("disbursement_orders")) finItems.push({ icon: FileText,    label: "أوامر الصرف",    path: "/disbursement-orders" });
   if (has("receipt_vouchers") || has("receipt_vouchers.view") || has("receipt_vouchers.add") || has("receipt_vouchers.edit") || has("receipt_vouchers.exception_approve")) finItems.push({ icon: Coins, label: "سندات القبض", path: "/receipt-vouchers" });
-  if (has("*") || ["super_admin", "system_admin", "financial", "financial_manager"].includes(role) || has("fund.view") || has("fund.transfer") || has("fund.disburse")) {
-    finItems.push({ icon: Wallet, label: "الصندوق", path: "/fund" });
+  if (["financial", "financial_manager"].includes(role) || has("fund.view") || has("fund.transfer")) {
+    finItems.push({ icon: Landmark, label: "الصندوق", path: "/fund" });
   }
   if (role !== "service_requester" && (has("*") || has("custody_requests") || has("custody_requests.view") || has("custody_requests.create"))) {
     finItems.push({ icon: Wallet, label: isEn ? "Financial Custody" : "العهد المالية", path: "/custody-requests" });

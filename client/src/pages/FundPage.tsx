@@ -1,5 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +38,10 @@ const automaticTransferNotes = new Set([
 
 export default function FundPage() {
   const [location, navigate] = useLocation();
+  const { user } = useAuth();
+  const canTransferToFund =
+    usePermission("fund.transfer") ||
+    ["financial", "financial_manager"].includes(user?.role || "");
   const query = window.location.search;
   const showAllMovements = location === "/fund/movements" || new URLSearchParams(query).get("view") === "movements";
 
@@ -221,12 +227,14 @@ export default function FundPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button onClick={() => navigate("/fund/transfers/new")} className="bg-indigo-700 hover:bg-indigo-800 text-white font-bold">
-              <ArrowRightLeft className="w-4 h-4 ml-2" />
-              تحويل من مشروع
-            </Button>
-          </div>
+          {canTransferToFund && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button onClick={() => navigate("/fund/transfers/new")} className="bg-indigo-700 hover:bg-indigo-800 text-white font-bold">
+                <ArrowRightLeft className="w-4 h-4 ml-2" />
+                تحويل من مشروع
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* إجمالي أرصدة الصندوق من الحساب العام والتصنيفات وفوائض المشاريع */}
