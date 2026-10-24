@@ -62,7 +62,7 @@ export function requestBucketCondition(bucket: FundBucket) {
 export async function getFundAvailable(db: any, bucket: FundBucket, excludeRequestId?: number) {
   const [posted] = await db.select({ amount: sql<string>`COALESCE(SUM(${fundMovements.amount}), 0)` })
     .from(fundMovements).where(bucketCondition(bucket));
-  const [reserved] = await db.select({ amount: sql<string>`COALESCE(SUM(${disbursementRequests.amount}), 0)` })
+  const [reserved] = await db.select({ amount: sql<string>`COALESCE(SUM(${disbursementRequests.amount} + COALESCE(${disbursementRequests.adminFees}, 0)), 0)` })
     .from(disbursementRequests).where(and(
       requestBucketCondition(bucket),
       notInArray(disbursementRequests.status, ["rejected", "paid"]),
@@ -71,7 +71,11 @@ export async function getFundAvailable(db: any, bucket: FundBucket, excludeReque
   return {
     posted: money(posted?.amount),
     reserved: money(reserved?.amount),
-    available: money((cents(posted?.amount) - cents(reserved?.amount)) / 100),
+    // لا يُخصم الرصيد المتاح إلا عند تنفيذ أمر الصرف وتسجيل حركة الصرف الفعلية.
+    // يبقى الطلب غير المنفذ ظاهرًا في "المحجوز" للمعلومة فقط.
+    available: money(posted?.amount),
+    // يستخدم عند إنشاء طلب جديد لمنع تجاوز الرصيد المحجوز بطلبات قائمة.
+    spendable: money((cents(posted?.amount) - cents(reserved?.amount)) / 100),
   };
 }
 

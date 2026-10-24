@@ -48,18 +48,27 @@ async function resolveBucket(db: any, target: z.infer<typeof destinationSchema>,
 
 type FundRequestInput = {
   title: string; description?: string; amount: number; projectId?: number;
+  adminFees?: number;
+  workDescription?: string;
   beneficiaryName: string; beneficiaryBank?: string; beneficiaryIban?: string;
 };
 
 async function insertFundRequest(tx: any, input: FundRequestInput, bucket: FundBucket, userId: number) {
-  const requestNumber = `FDR-${new Date().getFullYear()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+  const year = new Date().getFullYear();
+  const prefix = `DR-${year}-`;
+  const [lastRequest] = await tx.select({ requestNumber: disbursementRequests.requestNumber })
+    .from(disbursementRequests).where(sql`${disbursementRequests.requestNumber} LIKE ${`${prefix}%`}`)
+    .orderBy(desc(disbursementRequests.requestNumber)).limit(1);
+  const lastSequence = lastRequest?.requestNumber ? Number(lastRequest.requestNumber.split("-").pop()) : 0;
+  const requestNumber = `${prefix}${(Number.isFinite(lastSequence) ? lastSequence + 1 : 1).toString().padStart(4, "0")}`;
   const [inserted] = await tx.insert(disbursementRequests).values({
     requestNumber, projectId: input.projectId || null, title: input.title,
     description: input.description || `طلب صرف من الصندوق (${bucket.donationPurposeName || bucket.restrictionType})`,
-    amount: input.amount.toFixed(2), status: "pending", requestedBy: userId,
+    amount: input.amount.toFixed(2), adminFees: (input.adminFees || 0).toFixed(2), status: "pending", requestedBy: userId,
     attachmentsJson: JSON.stringify([{ name: "custom_supplier_info", url: JSON.stringify({
       name: input.beneficiaryName, bank: input.beneficiaryBank || null,
       iban: input.beneficiaryIban || null, bankAccountName: input.beneficiaryName,
+      requiredWorksDesc: input.workDescription?.trim() || undefined,
     }) }]),
     fundingSourceName: bucket.restrictionType === "purpose" ? `الصندوق - ${bucket.donationPurposeName}`
       : bucket.restrictionType === "project" ? "فائض المشروع في الصندوق" : "الصندوق",
@@ -175,6 +184,8 @@ export const fundRouter = router({
       if (input.source === "surplus" && bucket.restrictionType !== "project" && !input.releaseRestriction) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "تحويل فائض المشروع خارج قيده يتطلب اختيار تحرير القيد وتوثيق السبب" });
       }
+      const notes = input.reason?.trim() || null;
+
       const eventKey = `${input.source}:${input.projectId}:${crypto.randomUUID()}`;
       await tx.insert(fundMovements).values({
         eventKey, movementType: input.source, amount: input.amount.toFixed(2),
@@ -184,7 +195,7 @@ export const fundRouter = router({
         restrictedProjectId: bucket.restrictedProjectId || null,
         projectId: input.projectId,
         sourceDetailsJson: JSON.stringify({ vouchers: available.vouchers, released: input.releaseRestriction }),
-        notes: input.reason, createdById: ctx.user.id,
+        notes, createdById: ctx.user.id,
       });
       return { success: true, eventKey, remaining: money(max - input.amount) };
     });
@@ -193,6 +204,8 @@ export const fundRouter = router({
   createDisbursementRequest: protectedProcedure.input(z.object({
     title: z.string().trim().min(3), description: z.string().optional(),
     amount: amountSchema, projectId: z.number().int().positive().optional(),
+    adminFees: z.number().finite().min(0).default(0),
+    workDescription: z.string().trim().optional(),
     beneficiaryName: z.string().trim().min(2), beneficiaryBank: z.string().optional(),
     beneficiaryIban: z.string().optional(),
     source: destinationSchema,
@@ -207,8 +220,9 @@ export const fundRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "هذا الرصيد مخصص للمشروع المرتبط به فقط" });
       }
       const balance = await getFundAvailable(tx, bucket);
-      if (Math.round(input.amount * 100) > Math.round(balance.available * 100)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: `الرصيد المتاح لهذا المصرف ${balance.available.toFixed(2)} ريال` });
+      const totalCharge = money(input.amount + input.adminFees);
+      if (Math.round(totalCharge * 100) > Math.round(balance.spendable * 100)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: `الرصيد المتاح لطلب صرف جديد من هذا المصرف ${balance.spendable.toFixed(2)} ريال` });
       }
       return insertFundRequest(tx, input, bucket, ctx.user.id);
     });

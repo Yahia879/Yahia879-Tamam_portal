@@ -939,15 +939,17 @@ export default function DisbursementRequests() {
                                   </DropdownMenu>
                                 ) : isConverted ? (
                                   hasApprovePermission ? (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
-                                      className="flex items-center gap-1.5 text-xs text-[#1a5f4a] border-[#1a5f4a]/20 hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] font-bold"
-                                    >
-                                      <FileText className="h-3.5 w-3.5" />
-                                      عرض تقرير طلب الصرف
-                                    </Button>
+                                    <div className="flex flex-wrap justify-center gap-1.5">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
+                                        className="flex items-center gap-1.5 text-xs text-[#1a5f4a] border-[#1a5f4a]/20 hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] font-bold"
+                                      >
+                                        <FileText className="h-3.5 w-3.5" />
+                                        عرض تقرير طلب الصرف
+                                      </Button>
+                                    </div>
                                   ) : (
                                     <span className="text-muted-foreground text-xs font-medium">—</span>
                                   )
@@ -977,7 +979,7 @@ export default function DisbursementRequests() {
                                           <span>تعديل طلب الدفعة</span>
                                         </DropdownMenuItem>
                                       )}
-                                      {correspondingReport && (
+                                      {request.fundRestrictionType !== "project" && correspondingReport && (
                                         <DropdownMenuItem
                                           onClick={() => navigate(`/progress-reports/${correspondingReport.id}/print`)}
                                           className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-blue-600 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-950/30"
@@ -1235,7 +1237,7 @@ export default function DisbursementRequests() {
                                     )}
 
                                     {/* 4. Progress Report - If exists */}
-                                    {correspondingReport && (
+                                    {request.fundRestrictionType !== "project" && correspondingReport && (
                                       <DropdownMenuItem
                                         onClick={() => navigate(`/progress-reports/${correspondingReport.id}/print`)}
                                         className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-purple-600 focus:text-purple-600 focus:bg-purple-50 dark:focus:bg-purple-950/30"

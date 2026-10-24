@@ -468,6 +468,7 @@ function Router() {
       <Route path="/disbursements/requests/:id/print">{() => <AdminRoute component={DisbursementRequestPrint} />}</Route>
       <Route path="/disbursements/requests/:id">{() => <AdminRoute component={DisbursementRequestPrint} />}</Route>
       <Route path="/receipt-vouchers">{() => <AdminRoute component={ReceiptVouchers} />}</Route>
+      <Route path="/fund/movements">{() => <AdminRoute component={FundPage} />}</Route>
       <Route path="/fund">{() => <AdminRoute component={FundPage} />}</Route>
       <Route path="/fund/transfers/new">{() => <AdminRoute component={NewFundTransferPage} />}</Route>
       <Route path="/receipt-vouchers/new">{() => <AdminRoute component={NewReceiptVoucherPage} />}</Route>

@@ -865,18 +865,19 @@ export const projectsRouter = router({
         ? await db.select().from(contractPayments).where(inArray(contractPayments.contractId, contractIds)).orderBy(contractPayments.phaseOrder)
         : [];
 
-      // جلب طلبات الصرف
+      // طلبات الصندوق مستقلة عن دفعات العقد، حتى إن كانت مقيدة بالمشروع نفسه.
       const projectDisbursements = await db
         .select()
         .from(disbursementRequests)
-        .where(
+        .where(and(
+          isNull(disbursementRequests.fundRestrictionType),
           contractIds.length > 0
             ? or(
                 eq(disbursementRequests.projectId, targetProjectId),
                 inArray(disbursementRequests.contractId, contractIds)
               )
             : eq(disbursementRequests.projectId, targetProjectId)
-        )
+        ))
         .orderBy(desc(disbursementRequests.createdAt));
 
       // جلب تقارير الإنجاز لهذا المشروع
@@ -4010,18 +4011,19 @@ export const projectsRouter = router({
         ? await db.select().from(contractPayments).where(inArray(contractPayments.contractId, contractIds))
         : [];
 
-      // جلب طلبات الصرف
+      // استبعاد طلبات الصندوق من جدول دفعات المشروع ومجاميع العقد.
       const projectDisbursements = await db
         .select()
         .from(disbursementRequests)
-        .where(
+        .where(and(
+          isNull(disbursementRequests.fundRestrictionType),
           contractIds.length > 0
             ? or(
                 eq(disbursementRequests.projectId, proj.id),
                 inArray(disbursementRequests.contractId, contractIds)
               )
             : eq(disbursementRequests.projectId, proj.id)
-        )
+        ))
         .orderBy(desc(disbursementRequests.createdAt));
 
       // جلب تقارير الإنجاز لهذا المشروع

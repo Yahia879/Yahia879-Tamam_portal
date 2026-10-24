@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,10 +28,16 @@ const movementName: Record<string, string> = {
   disbursement_reversal: "عكس صرف",
 };
 
+const automaticTransferNotes = new Set([
+  "تحويل فائض المشروع إلى الصندوق",
+  "تحويل الحصة الإدارية إلى الصندوق",
+  "تحويل الحصة التشغيلية إلى الصندوق",
+]);
+
 export default function FundPage() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const query = window.location.search;
-  const showAllMovements = new URLSearchParams(query).get("view") === "movements";
+  const showAllMovements = location === "/fund/movements" || new URLSearchParams(query).get("view") === "movements";
 
   useEffect(() => {
     const params = new URLSearchParams(query);
@@ -50,7 +57,7 @@ export default function FundPage() {
     : (projectsData as any)?.projects || [];
   const generalBucket = useMemo(
     () =>
-      summary?.buckets.find((b) => b.restrictionType === "general") || {
+      summary?.buckets.find((bucket) => bucket.restrictionType === "general") || {
         restrictionType: "general" as const,
         posted: 0,
         reserved: 0,
@@ -58,14 +65,24 @@ export default function FundPage() {
       },
     [summary]
   );
-
   const purposeBuckets = useMemo(
-    () => (summary?.buckets || []).filter((b) => b.restrictionType === "purpose"),
+    () => (summary?.buckets || []).filter((bucket) => bucket.restrictionType === "purpose"),
     [summary]
   );
-
   const projectBuckets = useMemo(
-    () => (summary?.buckets || []).filter((b) => b.restrictionType === "project"),
+    () => (summary?.buckets || []).filter((bucket) => bucket.restrictionType === "project"),
+    [summary]
+  );
+  const fundTotals = useMemo(
+    () =>
+      (summary?.buckets || []).reduce(
+        (totals, bucket) => ({
+          posted: totals.posted + bucket.posted,
+          reserved: totals.reserved + bucket.reserved,
+          available: totals.available + bucket.available,
+        }),
+        { posted: 0, reserved: 0, available: 0 }
+      ),
     [summary]
   );
 
@@ -94,7 +111,18 @@ export default function FundPage() {
               : `مشروع #${movement.restrictedProjectId}`}
           </Badge>
         </div>
-        {movement.notes && <p className="mt-0.5 text-xs text-muted-foreground">{movement.notes}</p>}
+        {movement.notes?.trim() && !automaticTransferNotes.has(movement.notes.trim()) && (
+          <div className="mt-1.5 flex min-w-0 items-center gap-1.5 text-xs">
+            <span className="shrink-0 font-bold text-slate-700">
+              {["surplus", "administrative", "operational"].includes(movement.movementType)
+                ? "سبب التحويل:"
+                : "البيان:"}
+            </span>
+            <span title={movement.notes} className="max-w-[18rem] truncate rounded-md border border-slate-200 bg-slate-100/90 px-2 py-0.5 font-medium text-slate-800 sm:max-w-[30rem]">
+              {movement.notes}
+            </span>
+          </div>
+        )}
         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span>{new Date(movement.createdAt).toLocaleString("ar-SA")}</span>
           {movement.voucherId ? (
@@ -124,7 +152,7 @@ export default function FundPage() {
       <div className="shrink-0 text-left sm:text-right">
         <span className={`font-sans text-base font-black ${Number(movement.amount) < 0 ? "text-rose-700" : "text-emerald-700"}`}>
           {Number(movement.amount) > 0 ? "+" : ""}{format(Number(movement.amount))}{" "}
-          <span className="font-sans text-xs font-bold">ريال</span>
+          <SaudiRiyal className="h-3 w-3" />
         </span>
       </div>
     </div>
@@ -146,7 +174,7 @@ export default function FundPage() {
           {showAllMovements ? (
             <Button variant="outline" size="sm" onClick={() => navigate("/fund")}>العودة إلى الصندوق</Button>
           ) : movements.length >= 6 ? (
-            <Button variant="outline" size="sm" onClick={() => navigate("/fund?view=movements")}>عرض الكل</Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/fund/movements")}>عرض الكل</Button>
           ) : null}
         </div>
       </CardHeader>
@@ -201,56 +229,55 @@ export default function FundPage() {
           </div>
         </div>
 
-        {/* 1. الحساب العام (الرصيد غير المقيد) - الأوضح والأبرز */}
-        <div className="rounded-2xl border-2 border-emerald-500/50 bg-gradient-to-br from-emerald-50 via-teal-50/30 to-white p-5 sm:p-6 shadow-sm relative overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-emerald-100">
+        {/* إجمالي أرصدة الصندوق من الحساب العام والتصنيفات وفوائض المشاريع */}
+        <div className="rounded-2xl border border-slate-200 bg-slate-100/80 p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start sm:items-center">
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-xl sm:text-2xl font-black text-emerald-950">
-                    الحساب العام (الرصيد غير المقيد)
+                  <h2 className="text-xl font-black text-slate-900 sm:text-2xl">
+                    إجمالي أرصدة حساب الجمعية
                   </h2>
                 </div>
-                <p className="text-xs sm:text-sm text-emerald-800/80 mt-1">
-                  رصيد التبرعات العامة غير المشروطة، متاح للصرف المباشر على جميع المشاريع والأنشطة الإدارية والتشغيلية.
+                <p className="mt-1 text-xs text-slate-600 sm:text-sm">
+                  يشمل رصيد الحساب العام وجميع التصنيفات وفوائض المشاريع.
                 </p>
               </div>
             </div>
 
           </div>
 
-          {/* تفاصيل أرقام الحساب العام */}
+          {/* إجماليات جميع أرصدة الصندوق */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-4">
-            <div className="p-4 rounded-xl bg-white/95 border-2 border-emerald-300 shadow-xs">
-              <span className="text-xs font-bold text-emerald-900 block">الرصيد المتاح الفعلي للصرف</span>
-              <span className="text-2xl sm:text-3xl font-black text-emerald-700 mt-1 block font-sans">
-                {isLoading ? "..." : format(generalBucket.available)}{" "}
-                <span className="text-sm font-bold font-sans">ريال</span>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-xs">
+              <span className="block text-xs font-bold text-slate-700">إجمالي الرصيد المتاح</span>
+              <span className="mt-1 block font-sans text-2xl font-black text-slate-900 sm:text-3xl">
+                {isLoading ? "..." : format(fundTotals.available)}{" "}
+                <SaudiRiyal className="h-4 w-4" />
               </span>
-              <span className="text-[11px] text-emerald-800/70 block mt-1">متاح للصرف المباشر فوراً</span>
+              <span className="mt-1 block text-[11px] text-slate-500">من جميع الأرصدة والتصنيفات</span>
             </div>
 
-            <div className="p-4 rounded-xl bg-white/80 border border-emerald-100 shadow-xs">
-              <span className="text-xs font-semibold text-slate-600 block">إجمالي المقبوض المسجل</span>
-              <span className="text-lg sm:text-xl font-bold text-slate-800 mt-1 block font-sans">
-                {isLoading ? "..." : format(generalBucket.posted)}{" "}
-                <span className="text-xs font-medium font-sans">ريال</span>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-xs">
+              <span className="block text-xs font-semibold text-slate-600">إجمالي الرصيد المسجل</span>
+              <span className="mt-1 block font-sans text-lg font-bold text-slate-800 sm:text-xl">
+                {isLoading ? "..." : format(fundTotals.posted)}{" "}
+                <SaudiRiyal className="h-3 w-3" />
               </span>
-              <span className="text-[11px] text-muted-foreground block mt-1">إجمالي الإيداعات غير المقيدة</span>
+              <span className="mt-1 block text-[11px] text-slate-500">مجموع الرصيد المسجل في كل الأرصدة</span>
             </div>
 
-            <div className="p-4 rounded-xl bg-white/80 border border-emerald-100 shadow-xs">
-              <span className="text-xs font-semibold text-slate-600 block">المحجوز لطلبات الصرف</span>
-              <span className="text-lg sm:text-xl font-bold text-amber-700 mt-1 block font-sans">
-                {isLoading ? "..." : format(generalBucket.reserved)}{" "}
-                <span className="text-xs font-medium font-sans">ريال</span>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-xs">
+              <span className="block text-xs font-semibold text-slate-600">إجمالي المحجوز لطلبات الصرف</span>
+              <span className="mt-1 block font-sans text-lg font-bold text-slate-800 sm:text-xl">
+                {isLoading ? "..." : format(fundTotals.reserved)}{" "}
+                <SaudiRiyal className="h-3 w-3" />
               </span>
-              <span className="text-[11px] text-muted-foreground block mt-1">طلبات قيد المراجعة والاعتماد</span>
+              <span className="mt-1 block text-[11px] text-slate-500">مجموع المحجوز في كل الأرصدة</span>
             </div>
           </div>
         </div>
 
-        {/* 2. تحته: التصنيفات والأرصدة المقيدة */}
         <Card className="shadow-xs border-slate-200 bg-slate-50">
           <CardHeader className="border-b border-slate-200 bg-transparent pb-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -259,12 +286,8 @@ export default function FundPage() {
                   <Layers className="w-5 h-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-base sm:text-lg font-bold text-slate-900">
-                    التصنيفات ومصارف التبرع (الأرصدة المقيدة)
-                  </CardTitle>
-                  <CardDescription className="text-xs mt-0.5">
-                    أرصدة تبرعات مقيدة بشروط الداعمين لمصارف محددة أو فوائض مشاريع مخصصة ولا يمكن صرفها خارج قيدها
-                  </CardDescription>
+                  <CardTitle className="text-base sm:text-lg font-bold text-slate-900">التصنيفات ومصارف التبرع (الأرصدة المقيدة)</CardTitle>
+                  <CardDescription className="text-xs mt-0.5">تفاصيل الأرصدة الداخلة ضمن إجمالي حساب الجمعية أعلاه</CardDescription>
                 </div>
               </div>
               <Badge variant="outline" className="text-indigo-800 border-indigo-200 bg-indigo-50 font-bold self-start sm:self-auto text-xs py-1 px-2.5">
@@ -272,49 +295,23 @@ export default function FundPage() {
               </Badge>
             </div>
           </CardHeader>
-
           <CardContent className="pt-5 space-y-6">
-            {/* مصارف التبرع المقيدة */}
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Tag className="w-4 h-4 text-indigo-600" />
-                <h3 className="text-sm font-bold text-slate-800">أرصدة مصارف التبرع المسجلة</h3>
-              </div>
-
+              <div className="flex items-center gap-2 mb-3"><Tag className="w-4 h-4 text-indigo-600" /><h3 className="text-sm font-bold text-slate-800">أرصدة مصارف التبرع المسجلة</h3></div>
               {purposeBuckets.length === 0 ? (
-                <div className="p-4 rounded-xl bg-slate-50 border border-dashed text-center text-xs text-muted-foreground">
-                  لا توجد أرصدة مقيدة بمصارف تبرع حالياً (جميع التبرعات مقبوضة في الحساب العام أو المشاريع مباشرة).
-                </div>
+                <div className="p-4 rounded-xl bg-slate-50 border border-dashed text-center text-xs text-muted-foreground">لا توجد أرصدة مقيدة بمصارف تبرع حالياً.</div>
               ) : (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                   {purposeBuckets.map((bucket, index) => (
-                    <div
-                      key={index}
-                      className="rounded-xl border border-indigo-100 bg-indigo-50/20 p-4 hover:border-indigo-300 transition-all shadow-2xs flex flex-col justify-between"
-                    >
+                    <div key={index} className="rounded-xl border border-indigo-100 bg-indigo-50/20 p-4 hover:border-indigo-300 transition-all shadow-2xs flex flex-col justify-between">
                       <div>
                         <div className="flex items-center justify-between gap-2 pb-2 border-b border-indigo-100/60">
-                          <span className="font-bold text-sm text-indigo-950 flex items-center gap-1.5 truncate">
-                            <span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0"></span>
-                            <span className="truncate">{bucket.donationPurposeName || "مصرف تبرع"}</span>
-                          </span>
-                          <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-100 border-indigo-200 text-[10px] font-bold shrink-0">
-                            مقيد بمصرف
-                          </Badge>
+                          <span className="font-bold text-sm text-indigo-950 flex items-center gap-1.5 truncate"><span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0" /><span className="truncate">{bucket.donationPurposeName || "مصرف تبرع"}</span></span>
+                          <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-100 border-indigo-200 text-[10px] font-bold shrink-0">مقيد بمصرف</Badge>
                         </div>
-
                         <div className="mt-3 space-y-1.5">
-                          <div className="flex items-baseline justify-between">
-                            <span className="text-xs text-muted-foreground">الرصيد المتاح:</span>
-                            <span className="text-lg font-black text-indigo-950 font-sans">
-                              {format(bucket.available)}{" "}
-                              <span className="text-xs font-normal">ريال</span>
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-indigo-50">
-                            <span>الإجمالي: {format(bucket.posted)} ريال</span>
-                            <span>المحجوز: {format(bucket.reserved)} ريال</span>
-                          </div>
+                          <div className="flex items-baseline justify-between"><span className="text-xs text-muted-foreground">الرصيد المتاح:</span><span className="inline-flex items-center gap-1 text-lg font-black text-indigo-950 font-sans">{format(bucket.available)} <SaudiRiyal className="h-3.5 w-3.5" /></span></div>
+                          <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-indigo-50"><span className="inline-flex items-center gap-1">الإجمالي: {format(bucket.posted)} <SaudiRiyal className="h-3 w-3" /></span><span className="inline-flex items-center gap-1">المحجوز: {format(bucket.reserved)} <SaudiRiyal className="h-3 w-3" /></span></div>
                         </div>
                       </div>
                     </div>
@@ -322,50 +319,13 @@ export default function FundPage() {
                 </div>
               )}
             </div>
-
-            {/* فوائض المشاريع المقيدة بالصندوق */}
             {projectBuckets.length > 0 && (
               <div className="pt-4 border-t">
-                <div className="flex items-center gap-2 mb-3">
-                  <Building2 className="w-4 h-4 text-purple-600" />
-                  <h3 className="text-sm font-bold text-slate-800">فوائض المشاريع المقيدة بالصندوق</h3>
-                </div>
+                <div className="flex items-center gap-2 mb-3"><Building2 className="w-4 h-4 text-purple-600" /><h3 className="text-sm font-bold text-slate-800">فوائض المشاريع المقيدة بالصندوق</h3></div>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                   {projectBuckets.map((bucket, index) => {
-                    const proj = projects.find((p) => p.id === bucket.restrictedProjectId);
-                    return (
-                      <div
-                        key={index}
-                        className="rounded-xl border border-purple-100 bg-purple-50/20 p-4 hover:border-purple-300 transition-all shadow-2xs flex flex-col justify-between"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between gap-2 pb-2 border-b border-purple-100/60">
-                            <span className="font-bold text-sm text-purple-950 truncate">
-                              {proj
-                                ? `${proj.projectNumber} - ${proj.name}`
-                                : `مشروع #${bucket.restrictedProjectId}`}
-                            </span>
-                            <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100 border-purple-200 text-[10px] font-bold shrink-0">
-                              مقيد بالمشروع
-                            </Badge>
-                          </div>
-
-                          <div className="mt-3 space-y-1.5">
-                            <div className="flex items-baseline justify-between">
-                              <span className="text-xs text-muted-foreground">الرصيد المتاح:</span>
-                              <span className="text-lg font-black text-purple-950 font-sans">
-                                {format(bucket.available)}{" "}
-                                <span className="text-xs font-normal">ريال</span>
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-purple-50">
-                              <span>الإجمالي: {format(bucket.posted)} ريال</span>
-                              <span>المحجوز: {format(bucket.reserved)} ريال</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
+                    const proj = projects.find((project) => project.id === bucket.restrictedProjectId);
+                    return <div key={index} className="rounded-xl border border-purple-100 bg-purple-50/20 p-4 hover:border-purple-300 transition-all shadow-2xs flex flex-col justify-between"><div><div className="flex items-center justify-between gap-2 pb-2 border-b border-purple-100/60"><span className="font-bold text-sm text-purple-950 truncate">{proj ? `${proj.projectNumber} - ${proj.name}` : `مشروع #${bucket.restrictedProjectId}`}</span><Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100 border-purple-200 text-[10px] font-bold shrink-0">مقيد بالمشروع</Badge></div><div className="mt-3 space-y-1.5"><div className="flex items-baseline justify-between"><span className="text-xs text-muted-foreground">الرصيد المتاح:</span><span className="inline-flex items-center gap-1 text-lg font-black text-purple-950 font-sans">{format(bucket.available)} <SaudiRiyal className="h-3.5 w-3.5" /></span></div><div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-purple-50"><span className="inline-flex items-center gap-1">الإجمالي: {format(bucket.posted)} <SaudiRiyal className="h-3 w-3" /></span><span className="inline-flex items-center gap-1">المحجوز: {format(bucket.reserved)} <SaudiRiyal className="h-3 w-3" /></span></div></div></div></div>;
                   })}
                 </div>
               </div>

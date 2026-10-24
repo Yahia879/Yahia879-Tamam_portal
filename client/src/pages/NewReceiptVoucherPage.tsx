@@ -508,9 +508,6 @@ export default function NewReceiptVoucherPage() {
                       </div>
                     </button>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    يُودع السند غير المقيد في الرصيد العام للصندوق فور اعتماده، ويُودع السند المقيد في رصيد مصرف التبرع المحدد.
-                  </p>
                 </div>
               </CardContent>
               <CardFooter className="border-t border-border/40 pt-4 flex justify-end gap-2">

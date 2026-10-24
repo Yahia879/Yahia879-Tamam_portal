@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRightLeft, ArrowRight, Loader2, Wallet } from "lucide-react";
+import { ArrowRightLeft, ArrowRight, Loader2, Landmark } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
@@ -123,7 +123,7 @@ export default function NewFundTransferPage() {
 
               <div className="rounded-xl border border-indigo-100 bg-gradient-to-l from-indigo-50/80 to-white p-4 md:col-span-2 sm:p-5">
                 <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-indigo-950">
-                  <Wallet className="h-4 w-4 text-indigo-700" />
+                  <Landmark className="h-4 w-4 text-indigo-700" />
                   رصيد {sourceName[source]} المتاح
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -141,7 +141,7 @@ export default function NewFundTransferPage() {
                 </div>
               </div>
 
-              <div>
+              <div className="md:col-span-2">
                 <Label htmlFor="transfer-amount">المبلغ المراد تحويله</Label>
                 <Input
                   id="transfer-amount"
@@ -157,12 +157,12 @@ export default function NewFundTransferPage() {
                 {amount && !isAmountValid && <p className="mt-1.5 text-xs text-rose-700">أدخل مبلغاً أكبر من صفر ولا يتجاوز الرصيد المتاح.</p>}
               </div>
 
-              <div>
-                <Label htmlFor="transfer-reason">سبب التحويل (اختياري)</Label>
+              <div className="md:col-span-2">
+                <Label htmlFor="transfer-reason">سبب التحويل</Label>
                 <Textarea
                   id="transfer-reason"
                   placeholder="اكتب تفاصيل سبب التحويل ورقم القرار إن وجد..."
-                  className="mt-2 min-h-24"
+                  className="mt-2 min-h-[90px] resize-y"
                   value={reason}
                   onChange={(event) => setReason(event.target.value)}
                 />

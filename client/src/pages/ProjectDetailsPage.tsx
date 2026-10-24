@@ -775,31 +775,28 @@ export default function ProjectDetailsPage() {
       return sum + getPaymentEffectiveAmount(p);
     }, 0) || 0;
 
-  const isMilestonesContract = Boolean(
-    (projectInvoices && projectInvoices.length > 0) ||
-    (project?.contracts && project.contracts.length > 0 &&
-    project.contracts.some((c: any) => {
-      if (c.paymentSystem === "milestones") return true;
-      if (c.paymentScheduleJson) {
+  const isMilestonesContract = (() => {
+    const contracts = project?.contracts || [];
+    const approvedContracts = contracts.filter((contract: any) => ["approved", "active"].includes(contract.status));
+    const relevantContracts = approvedContracts.length ? approvedContracts : contracts;
+    const paymentSystems = relevantContracts.map((contract: any) => {
+      if (["installments", "milestones"].includes(contract.paymentSystem)) return contract.paymentSystem;
+      let schedule = contract.paymentScheduleJson;
+      while (typeof schedule === "string") {
         try {
-          let parsed = c.paymentScheduleJson;
-          while (typeof parsed === "string") {
-            try {
-              parsed = JSON.parse(parsed);
-            } catch {
-              break;
-            }
-          }
-          if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.paymentSystem === "milestones") {
-            return true;
-          }
-        } catch (e) {}
+          schedule = JSON.parse(schedule);
+        } catch {
+          break;
+        }
       }
-      return false;
-    })) ||
-    // التحقق أيضاً إذا كان في المشروع أي مستخلص مرفوع (source: milestone أو معرف disb-)
-    (project?.payments && project.payments.some((p: any) => p.source === "milestone" || String(p.id).startsWith("disb-")))
-  );
+      if (Array.isArray(schedule)) return "installments";
+      return schedule?.paymentSystem;
+    }).filter((system: any) => ["installments", "milestones"].includes(system));
+
+    // نظام العقد الصريح له الأولوية على السجلات وطلبات الصرف المضافة للمشروع.
+    if (paymentSystems.length) return paymentSystems.includes("milestones");
+    return projectInvoices.length > 0 || Boolean(project?.payments?.some((payment: any) => payment.source === "milestone"));
+  })();
 
   const contractMilestones = (() => {
     const list: any[] = [];
@@ -882,7 +879,9 @@ export default function ProjectDetailsPage() {
 
   const unscheduledContractSum = Math.max(0, (totalContractsSum || effectiveContractAmount) - allPaymentsSum);
   const remainingContractSum = Math.max(0, (totalContractsSum || effectiveContractAmount) - paidPaymentsSum);
-  const isContractFullyAllocated = (totalContractsSum > 0 || effectiveContractAmount > 0) && allPaymentsSum >= ((totalContractsSum || effectiveContractAmount) - 0.05);
+  // مبالغ الملخص معروضة بالريال الكامل؛ نوحّد سماحية التقريب مع اكتمال جدولة الدفعات.
+  const paymentScheduleRoundingTolerance = 0.5;
+  const isContractFullyAllocated = (totalContractsSum > 0 || effectiveContractAmount > 0) && unscheduledContractSum <= paymentScheduleRoundingTolerance;
 
   // التحقق من اكتمال جدولة وبيانات كافة الدفعات
   const hasIncompletePaymentsData = Boolean(!isMilestonesContract && project?.payments?.some(payment => payment.source !== "manual" && (
@@ -895,7 +894,7 @@ export default function ProjectDetailsPage() {
   const arePaymentsComplete = Boolean(
     isMilestonesContract
       ? (projectInvoices.length > 0 || contractMilestones.length > 0 || (project?.payments && project.payments.length > 0))
-      : ((totalContractsSum > 0 ? (allPaymentsSum >= totalContractsSum - 0.5) : (project?.payments && project.payments.length > 0)) &&
+      : ((totalContractsSum > 0 ? (allPaymentsSum >= totalContractsSum - paymentScheduleRoundingTolerance) : (project?.payments && project.payments.length > 0)) &&
         !hasIncompletePaymentsData)
   );
 
@@ -965,7 +964,7 @@ export default function ProjectDetailsPage() {
       },
       { 
         id: "payments", 
-        label: isMilestonesContract ? "المستخلصات" : "المستخلصات والدفعات", 
+        label: isMilestonesContract ? "المستخلصات" : "الدفعات",
         icon: isMilestonesContract ? FileSpreadsheet : CreditCard, 
         badge: (isMilestonesContract ? (projectInvoices.length || contractMilestones.length || paymentsCount) : (projectInvoices.length + paymentsCount)) > 0 
           ? `${isMilestonesContract ? (projectInvoices.length || contractMilestones.length || paymentsCount) : (projectInvoices.length + paymentsCount)}` 
@@ -2201,17 +2200,17 @@ export default function ProjectDetailsPage() {
                         ) : (
                           <CreditCard className="w-4 h-4 text-primary" />
                         )}
-                        <span>{isMilestonesContract ? "مستخلصات المشروع" : "المستخلصات والدفعات المالية"}</span>
+                        <span>{isMilestonesContract ? "مستخلصات المشروع" : "الدفعات المالية"}</span>
                       </CardTitle>
                       <CardDescription className="text-xs mt-0.5">
                         {isMilestonesContract
                           ? "سجل المستخلصات المعتمدة والمصروفة بحسب نسب الإنجاز والمراحل"
-                          : "سجل المستخلصات المنفذة والدفعات المالية المعتمدة للمشروع"}
+                          : "جدول الدفعات المالية وحالة صرفها وفق عقد المشروع"}
                       </CardDescription>
                     </div>
                     {!isPaymentsLocked && (
                       <div className="flex flex-wrap items-center gap-2">
-                        <Button 
+                        {isMilestonesContract && <Button
                           className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9" 
                           onClick={() => {
                             if (!isRequestClosed && !has100Payment && !isContractFullyPaid) {
@@ -2233,7 +2232,7 @@ export default function ProjectDetailsPage() {
                         >
                           <Plus className="w-4 h-4 ml-1.5" />
                           رفع مستخلص جديد
-                        </Button>
+                        </Button>}
                         {!isMilestonesContract && (
                           <Button 
                             variant="outline"
@@ -2759,7 +2758,7 @@ export default function ProjectDetailsPage() {
 
                           {!isMilestonesContract && (
                             <div className="flex items-center gap-2">
-                              {unscheduledContractSum > 0.05 ? (
+                              {unscheduledContractSum > paymentScheduleRoundingTolerance ? (
                                 <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs font-bold bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20">
                                   <AlertTriangle className="h-4 w-4 shrink-0" />
                                   <span>
@@ -2784,16 +2783,16 @@ export default function ProjectDetailsPage() {
                           <CreditCard className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
                         )}
                         <h4 className="font-bold text-sm text-foreground">
-                          {isMilestonesContract ? "عقد مستخلصات مرنة - لا توجد مستخلصات مرفوعة بعد" : "لا توجد مستخلصات أو دفعات مسجلة"}
+                          {isMilestonesContract ? "عقد مستخلصات مرنة - لا توجد مستخلصات مرفوعة بعد" : "لا توجد دفعات مسجلة"}
                         </h4>
                         <p className="text-muted-foreground text-xs max-w-md mx-auto">
                           {isMilestonesContract
                             ? "يتم رفع مستخلصات المقاول دورياً بناءً على إنجاز الأعمال ومراحل المشروع المحددة في تبويب المراحل."
-                            : "يمكنك رفع مستخلصات إنجاز للمقاول أو تسجيل دفعات مالية لهذا المشروع."}
+                            : "يمكنك تسجيل دفعات مالية لهذا المشروع وفق جدول دفعات العقد."}
                         </p>
                         {!isPaymentsLocked && !isRequestClosed && (
                           <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
-                            <Button
+                            {isMilestonesContract && <Button
                               className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9"
                               disabled={isRequestClosed || has100Payment || isContractFullyPaid}
                               title={
@@ -2813,7 +2812,7 @@ export default function ProjectDetailsPage() {
                             >
                               <Plus className="w-4 h-4 ml-1.5" />
                               رفع مستخلص جديد للمشروع
-                            </Button>
+                            </Button>}
                             {!isMilestonesContract && (
                               <Button
                                 variant="outline"

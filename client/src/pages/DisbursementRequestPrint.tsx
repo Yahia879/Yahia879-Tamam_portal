@@ -321,7 +321,14 @@ export default function DisbursementRequestPrint() {
 
   const requestDate = new Date(request.requestedAt || new Date());
 
-  const rawDescriptionText = isCustomType 
+  const isProjectFundRequest = (request as any)?.fundRestrictionType === "project";
+  const savedFundWorkDescription = typeof request?.description === "string"
+    ? request.description.match(/(?:^|\r?\n)الأعمال المطلوبة:[ \t]*([\s\S]*?)(?=\r?\n(?:عنوان المشروع|المستفيد|الحساب البنكي|البنك|الآيبان|المبلغ|الأجور الإدارية):|$)/)?.[1]?.trim()
+    : "";
+  const rawDescriptionText = isProjectFundRequest
+    ? (customSupplier?.requiredWorksDesc || savedFundWorkDescription ||
+        (request.description?.startsWith("التمويل/الدعم:") ? "" : request.description) || "—")
+    : isCustomType 
     ? (customSupplier?.requiredWorksDesc || customSupplier?.customProjectName || "—") 
     : (parsedWorks.scheduled || request.description || request.title || "—");
 
@@ -434,15 +441,17 @@ export default function DisbursementRequestPrint() {
     }];
   }
 
+  const visibleSupportSources = supportSources.slice(0, 3);
+  const hiddenSupportSourcesCount = Math.max(0, supportSources.length - visibleSupportSources.length);
   const resolvedSupportingEntitiesNode = supportSources.length > 0 ? (
     <span>
-      {supportSources.map((s, idx) => {
+      {visibleSupportSources.map((s, idx) => {
         const name = s.entity === "other" || s.entity === "اخرى" ? (s.customEntity || "أخرى") : (s.entity || s.customEntity);
         return (
           <span key={idx} className="inline-flex items-center flex-wrap gap-0.5">
             {idx > 0 && <span>، </span>}
             <span>{name}</span>
-            {supportSources.length > 1 && s.amount > 0 && (
+            {supportSources.length > 1 && hiddenSupportSourcesCount === 0 && s.amount > 0 && (
               <span className="inline-flex items-center gap-0.5 mr-0.5 font-mono">
                 ({s.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 <SaudiRiyal className="w-3.5 h-3.5 inline" />)
@@ -451,6 +460,7 @@ export default function DisbursementRequestPrint() {
           </span>
         );
       })}
+      {hiddenSupportSourcesCount > 0 && <span className="mr-1 text-gray-500">…</span>}
     </span>
   ) : (
     ((request as any)?.fundingSourceName || (project as any)?.donorName || customSupplier?.fundingSupport || linkedRequestInfo?.fundingSupport || "—")

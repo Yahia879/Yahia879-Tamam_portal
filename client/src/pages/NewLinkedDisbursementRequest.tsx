@@ -144,6 +144,7 @@ export default function NewLinkedDisbursementRequest() {
   // التحكم بالخطوات
   const [step, setStep] = useState(() => savedState?.step ?? 1);
   const [isDonationLinked, setIsDonationLinked] = useState(false);
+  const [isFundProjectSurplus, setIsFundProjectSurplus] = useState(false);
   const [isTamamLinked, setIsTamamLinked] = useState(() => savedState?.isTamamLinked ?? false);
   const [requestType, setRequestType] = useState<string>(() => {
     if (initialUrlParams.projectId > 0) return "project_linked";
@@ -379,17 +380,27 @@ export default function NewLinkedDisbursementRequest() {
 
   const activeCategory = isDonationLinked 
     ? "donation_opportunity" 
+    : isFundProjectSurplus
+    ? "fund_project_surplus"
     : isTamamLinked 
     ? "tamam_platform" 
     : !isCustom 
     ? "approved_report" 
     : "custom";
 
-  const handleCategoryChange = (cat: "donation_opportunity" | "tamam_platform" | "approved_report" | "custom") => {
+  const handleCategoryChange = (cat: "donation_opportunity" | "fund_project_surplus" | "tamam_platform" | "approved_report" | "custom") => {
     setSelectedReportId(null);
     setIsAdvanceSelected(false);
     setIsFinalClosingSelected(false);
-    if (cat === "donation_opportunity") {
+    if (cat === "fund_project_surplus") {
+      setIsFundProjectSurplus(true);
+      setIsDonationLinked(false);
+      setIsTamamLinked(false);
+      setIsCustom(true);
+      setRequestType("supplier_one_time");
+      setFormData(prev => ({ ...prev, projectId: 0, fundingSupport: "فائض المشروع في صندوق الجمعية", mainProjectName: "", customProjectName: "", title: "", description: "", amount: 0 }));
+    } else if (cat === "donation_opportunity") {
+      setIsFundProjectSurplus(false);
       setIsDonationLinked(true);
       setIsTamamLinked(false);
       setIsCustom(true);
@@ -419,6 +430,7 @@ export default function NewLinkedDisbursementRequest() {
       }));
       setSuppliers([{ id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }]);
     } else if (cat === "tamam_platform") {
+      setIsFundProjectSurplus(false);
       setIsDonationLinked(false);
       setIsTamamLinked(true);
       setIsCustom(true);
@@ -448,6 +460,7 @@ export default function NewLinkedDisbursementRequest() {
       }));
       setSuppliers([{ id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }]);
     } else if (cat === "approved_report") {
+      setIsFundProjectSurplus(false);
       setIsDonationLinked(false);
       setIsTamamLinked(false);
       setIsCustom(false);
@@ -477,6 +490,7 @@ export default function NewLinkedDisbursementRequest() {
       }));
       setSuppliers([{ id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }]);
     } else if (cat === "custom") {
+      setIsFundProjectSurplus(false);
       setIsDonationLinked(false);
       setIsTamamLinked(false);
       setIsCustom(true);
@@ -513,6 +527,7 @@ export default function NewLinkedDisbursementRequest() {
   const handleDonationLinkedChange = (checked: boolean) => {
     setIsDonationLinked(checked);
     if (checked) {
+      setIsFundProjectSurplus(false);
       setIsTamamLinked(false);
       setIsCustom(true);
       setRequestType("supplier_one_time");
@@ -699,6 +714,22 @@ export default function NewLinkedDisbursementRequest() {
       return !isClosed;
     });
   }, [projects]);
+
+  const { data: fundSummary } = trpc.fund.summary.useQuery(undefined, { enabled: isFundProjectSurplus });
+  const fundSurplusProjects = useMemo(() => {
+    const balances = new Map(
+      (fundSummary?.buckets || [])
+        .filter((bucket) => bucket.restrictionType === "project" && bucket.restrictedProjectId && bucket.spendable > 0)
+        .map((bucket) => [bucket.restrictedProjectId!, bucket.spendable])
+    );
+    return activeProjects
+      .filter((project: any) => balances.has(project.id))
+      .map((project: any) => ({ ...project, fundAvailable: balances.get(project.id) || 0 }));
+  }, [activeProjects, fundSummary]);
+  const selectedFundSurplus = useMemo(
+    () => fundSurplusProjects.find((project: any) => project.id === formData.projectId)?.fundAvailable || 0,
+    [formData.projectId, fundSurplusProjects]
+  );
 
   // استبعاد أي فرصة تبرع يكون طلبها المرتبط مغلقاً أو مكتملاً
   const activeDonationOpportunities = useMemo(() => {
@@ -1309,9 +1340,17 @@ export default function NewLinkedDisbursementRequest() {
       toast.error(`خطأ: ${error.message}`);
     },
   });
+  const createFundSurplusMutation = trpc.fund.createDisbursementRequest.useMutation({
+    onSuccess: () => {
+      toast.success("تم إنشاء طلب الصرف من فائض المشروع في الصندوق");
+      navigate("/disbursements");
+    },
+    onError: (error) => toast.error(`خطأ: ${error.message}`),
+  });
   
   // تحديث بيانات المورد من العقد وتقرير الإنجاز والبيانات المالية تلقائياً
   useEffect(() => {
+    if (isFundProjectSurplus) return;
     const isInvoice = Boolean(
       (selectedReport?.workSummary && /\[نوع:\s*مستخلص/i.test(selectedReport.workSummary)) ||
       (selectedReport?.title && selectedReport.title.includes("مستخلص")) ||
@@ -1399,7 +1438,7 @@ export default function NewLinkedDisbursementRequest() {
         amount: calculatedAmount,
       }));
     }
-  }, [selectedReport, isAdvanceSelected, isFinalClosingSelected, advancePayment, finalClosingPayment, paymentInfo, contractDetails, projectContracts, projectFinancials, projectDetails, selectedReportId]);
+  }, [isFundProjectSurplus, selectedReport, isAdvanceSelected, isFinalClosingSelected, advancePayment, finalClosingPayment, paymentInfo, contractDetails, projectContracts, projectFinancials, projectDetails, selectedReportId]);
 
   // اختيار العقد تلقائياً إذا كان هناك عقد للمشروع (حتى لو كان قيد الاعتماد أو مسودة)
   useEffect(() => {
@@ -1419,6 +1458,8 @@ export default function NewLinkedDisbursementRequest() {
   // حساب الإجمالي من قائمة الموردين
   const rawSuppliersAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
   const totalAmount = rawSuppliersAmount;
+  const fundSurplusCharge = totalAmount + formData.adminFees;
+  const isFundSurplusExceeded = isFundProjectSurplus && fundSurplusCharge > selectedFundSurplus + 0.001;
   
   // حساب قيمة طلب الصرف المتوقع من التقرير، الدفعة المرتبطة، العقد، ميزانية المشروع، أو العرض المعتمد
   const rawReportAmount = parseFloat(String(selectedReport?.budgetSpent || "0"));
@@ -1625,6 +1666,10 @@ export default function NewLinkedDisbursementRequest() {
 
   // معالجة النقر على زر "التالي" بالخطوة الثانية
   const handleStep2Next = () => {
+    if (isFundSurplusExceeded) {
+      toast.error(`لا يمكن المتابعة: المبلغ مع الأجور الإدارية (${fundSurplusCharge.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال) أكبر من فائض المشروع المتاح في الصندوق (${selectedFundSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال).`);
+      return;
+    }
     if (isDisbursementUnderProgress && !isUnderProgressConfirmed) {
       setShowUnderProgressDialog(true);
       return;
@@ -1651,11 +1696,11 @@ export default function NewLinkedDisbursementRequest() {
   // إرسال للاعتماد
   const handleSubmit = () => {
     const isFundingRequired = requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses";
-    if (isFundingRequired && !formData.fundingSupport) {
+    if (!isFundProjectSurplus && isFundingRequired && !formData.fundingSupport) {
       toast.error("يرجى اختيار التمويل / الدعم");
       return;
     }
-    if (!formData.mainProjectName) {
+    if (!isFundProjectSurplus && !formData.mainProjectName) {
       toast.error("يرجى اختيار اسم المشروع الرئيسي");
       return;
     }
@@ -1681,7 +1726,7 @@ export default function NewLinkedDisbursementRequest() {
         return;
       }
     }
-    if (!isCustom && !formData.projectId) {
+    if ((!isCustom || isFundProjectSurplus) && !formData.projectId) {
       toast.error("يرجى اختيار المشروع");
       return;
     }
@@ -1709,6 +1754,10 @@ export default function NewLinkedDisbursementRequest() {
       toast.error("الأجور الإدارية لا يمكن أن تكون سالبة");
       return;
     }
+    if (isFundProjectSurplus && totalAmount + formData.adminFees > selectedFundSurplus + 0.001) {
+      toast.error(`المبلغ مع الأجور الإدارية يتجاوز فائض المشروع المتاح في الصندوق (${selectedFundSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)`);
+      return;
+    }
     if (isTamamLinked) {
       if (formData.actualProjectValue === undefined || formData.actualProjectValue <= 0) {
         toast.error("يرجى إدخال قيمة المشروع الفعلية");
@@ -1719,7 +1768,7 @@ export default function NewLinkedDisbursementRequest() {
         return;
       }
     }
-    if (isCustom && (requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses")) {
+    if (!isFundProjectSurplus && isCustom && (requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses")) {
       if (!formData.projectCity) {
         toast.error("يرجى اختيار عنوان المشروع");
         return;
@@ -1768,6 +1817,22 @@ export default function NewLinkedDisbursementRequest() {
   };
 
   const executeDisbursementSubmit = (useGeneralAccount: boolean) => {
+    if (isFundProjectSurplus) {
+      const supplier = suppliers[0];
+      createFundSurplusMutation.mutate({
+        projectId: formData.projectId,
+        title: formData.title,
+        description: formData.requiredWorksDesc.trim(),
+        amount: totalAmount,
+        adminFees: formData.adminFees,
+        workDescription: formData.requiredWorksDesc,
+        beneficiaryName: supplier?.name || formData.beneficiaryName,
+        beneficiaryBank: supplier?.bank || formData.bankName || undefined,
+        beneficiaryIban: supplier?.iban || formData.iban || undefined,
+        source: { restrictionType: "project", restrictedProjectId: formData.projectId },
+      });
+      return;
+    }
     const currentActivePayment = isAdvanceSelected ? advancePayment : (isFinalClosingSelected ? finalClosingPayment : paymentInfo);
     const isManual = !isCustom && currentActivePayment ? String(currentActivePayment.id).startsWith("manual-") : false;
     const resolvedCity = formData.projectCity === "other" ? formData.customCity : formData.projectCity;
@@ -2011,6 +2076,22 @@ export default function NewLinkedDisbursementRequest() {
                       </button>
                     )}
 
+                    <button
+                      type="button"
+                      onClick={() => handleCategoryChange("fund_project_surplus")}
+                      className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                        activeCategory === "fund_project_surplus"
+                          ? "bg-amber-50/80 dark:bg-amber-950/30 border-amber-500/80 dark:border-amber-500/60 shadow-xs ring-2 ring-amber-500/20"
+                          : "bg-background border-border hover:border-amber-300 dark:hover:border-amber-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
+                      }`}
+                    >
+                      <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${activeCategory === "fund_project_surplus" ? "bg-amber-600 text-white" : "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 group-hover:bg-amber-200"}`}><Coins className="w-5 h-5" /></div>
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center justify-between"><span className={`text-xs sm:text-sm font-bold block ${activeCategory === "fund_project_surplus" ? "text-amber-900 dark:text-amber-200" : "text-foreground"}`}>طلب صرف من صندوق الجمعية</span>{activeCategory === "fund_project_surplus" && <span className="w-2.5 h-2.5 rounded-full bg-amber-600 animate-pulse shrink-0" />}</div>
+                        <p className={`text-[11px] leading-relaxed ${activeCategory === "fund_project_surplus" ? "text-amber-800 dark:text-amber-300" : "text-muted-foreground"}`}>اختر المشروع ثم استخدم فائضه المتاح والمسجل في صندوق الجمعية.</p>
+                      </div>
+                    </button>
+
                     {/* 2. المشروع المرتبط (فرصة التبرع) */}
                     {canCreateDonationDisbursement && (
                       <button
@@ -2138,7 +2219,7 @@ export default function NewLinkedDisbursementRequest() {
               <CardContent className="space-y-6 pt-6 text-right">
 
                 {/* 1. نوع طلب الصرف المخصص (إذا كان المسار هو طلب صرف مخصص) */}
-                {activeCategory === "custom" && (
+                {activeCategory === "custom" && !isFundProjectSurplus && (
                   <div className="space-y-2 text-right pb-4 border-b border-border/40 animate-in slide-in-from-top-2 duration-200">
                     <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نوع طلب الصرف المخصص *</Label>
                     <Select
@@ -2154,6 +2235,45 @@ export default function NewLinkedDisbursementRequest() {
                         <SelectItem value="misc_expenses" className="text-right">مصروفات منوعة</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                )}
+
+                {activeCategory === "fund_project_surplus" && (
+                  <div className="space-y-3 border-b border-border/40 pb-4 animate-in slide-in-from-top-2 duration-200">
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المشروع الذي له فائض في الصندوق *</Label>
+                      <Select
+                        value={formData.projectId > 0 ? String(formData.projectId) : ""}
+                        onValueChange={(value) => {
+                          const projectId = Number(value);
+                          const project = fundSurplusProjects.find((item: any) => item.id === projectId);
+                          setFormData((prev) => ({
+                            ...prev,
+                            projectId,
+                            mainProjectName: project?.name || "",
+                            customProjectName: project?.name || "",
+                            fundingSupport: "فائض المشروع في صندوق الجمعية",
+                            amount: Number(project?.fundAvailable || 0),
+                          }));
+                          setSuppliers((previous) => previous.map((supplier, index) => index === 0
+                            ? { ...supplier, amount: Number(project?.fundAvailable || 0) }
+                            : supplier
+                          ));
+                        }}
+                      >
+                        <SelectTrigger className="h-11 w-full rounded-xl border-border bg-background text-right" dir="rtl"><SelectValue placeholder="اختر مشروعاً له فائض متاح في الصندوق" /></SelectTrigger>
+                        <SelectContent dir="rtl">
+                          {fundSurplusProjects.map((project: any) => (
+                            <SelectItem key={project.id} value={String(project.id)} className="text-right">
+                              {project.projectNumber} — {project.name} ({Number(project.fundAvailable).toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال متاح)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {fundSurplusProjects.length === 0 && (
+                      <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-500">لا توجد مشاريع لها فوائض متاحة في الصندوق حالياً.</p>
+                    )}
                   </div>
                 )}
 
@@ -2212,7 +2332,7 @@ export default function NewLinkedDisbursementRequest() {
                   </div>
                 )}
 
-                <div className="border-b border-border/40 pb-4 mb-4">
+                {!isFundProjectSurplus && <div className="border-b border-border/40 pb-4 mb-4">
                   <div className="space-y-2 text-right">
                     <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المشروع الرئيسي *</Label>
                     <Select
@@ -2231,10 +2351,10 @@ export default function NewLinkedDisbursementRequest() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
+                </div>}
 
                 {/* حقل التمويل / الدعم يظهر ديناميكياً تحت نوع طلب الصرف */}
-                {(requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses") && (
+                {!isFundProjectSurplus && (requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses") && (
                   <div className="space-y-2 text-right animate-in fade-in duration-200">
                     <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">التمويل / الدعم *</Label>
                     <Select
@@ -2666,7 +2786,7 @@ export default function NewLinkedDisbursementRequest() {
                   </div>
                 )}
 
-                {formData.projectId > 0 && (
+                {formData.projectId > 0 && !isFundProjectSurplus && (
                   <div className="space-y-4 text-right animate-slide-up">
                     {/* اختيار تقرير الإنجاز المعتمد أو المستخلص أو الدفعة المقدمة */}
                     <div className="space-y-2 text-right">
@@ -2926,7 +3046,13 @@ export default function NewLinkedDisbursementRequest() {
                   )}
                 </div>
               </CardContent>
-              <CardFooter className="border-t border-border/40 pt-4 flex justify-between items-center">
+              <CardFooter className="border-t border-border/40 pt-4 flex flex-wrap justify-between items-center">
+                {isFundSurplusExceeded && (
+                  <div className="mb-3 flex basis-full items-start gap-2 rounded-xl border border-red-300 bg-red-50 px-3 py-2.5 text-right text-xs font-semibold text-red-800">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                    <span>لا يمكن المتابعة: المبلغ مع الأجور الإدارية ({fundSurplusCharge.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال) أكبر من فائض المشروع المتاح في الصندوق ({selectedFundSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال).</span>
+                  </div>
+                )}
                 <Button
                   variant="outline"
                   onClick={() => setStep(1)}
@@ -3331,7 +3457,7 @@ export default function NewLinkedDisbursementRequest() {
             <div className="flex flex-col sm:flex-row-reverse items-stretch sm:items-center justify-between border-t border-border/60 pt-4 gap-3">
               <Button
                 onClick={handleSubmit}
-                disabled={createMutation.isPending || totalAmount <= 0 || (!isCustom && contractAmount > 0 && totalAmount > contractAmount)}
+                disabled={createMutation.isPending || createFundSurplusMutation.isPending || totalAmount <= 0 || (isFundProjectSurplus && totalAmount + formData.adminFees > selectedFundSurplus + 0.001) || (!isCustom && contractAmount > 0 && totalAmount > contractAmount)}
                 className="gradient-primary text-white font-bold px-6 sm:px-8 h-10 sm:h-11 rounded-xl shadow-sm text-xs sm:text-sm w-full sm:w-auto"
               >
                 <Send className="ml-2 h-4 w-4" />
