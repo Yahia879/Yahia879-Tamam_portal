@@ -4,7 +4,7 @@ import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { checkPermission } from "../permissions";
-import { categories, disbursementRequests, fundMovements, projects } from "../../drizzle/schema";
+import { categories, disbursementRequests, fundMovements, projects, receiptVouchers } from "../../drizzle/schema";
 import { FundBucket, getFundAvailable, getProjectFundableAmounts, lockFund, money } from "../fund";
 import { notifyDisbursementRequestCreation } from "./notifications";
 
@@ -100,12 +100,16 @@ export const fundRouter = router({
     };
   }),
 
-  movements: protectedProcedure.input(z.object({ limit: z.number().int().min(1).max(500).default(100) }).optional())
+  movements: protectedProcedure.input(z.object({
+    limit: z.number().int().min(1).max(500).default(100),
+    all: z.boolean().optional(),
+  }).optional())
     .query(async ({ input, ctx }) => {
       await authorize(ctx, "view");
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      return db.select().from(fundMovements).orderBy(desc(fundMovements.id)).limit(input?.limit || 100);
+      const query = db.select().from(fundMovements).orderBy(desc(fundMovements.id));
+      return input?.all ? query : query.limit(input?.limit || 100);
     }),
 
   projectAvailability: protectedProcedure.input(z.object({ projectId: z.number().int().positive() }))
@@ -117,12 +121,40 @@ export const fundRouter = router({
       return getProjectFundableAmounts(db, input.projectId);
     }),
 
+  transferableProjects: protectedProcedure.input(z.object({
+    source: z.enum(["surplus", "administrative", "operational"]).default("surplus"),
+  })).query(async ({ input, ctx }) => {
+    await authorize(ctx, "transfer");
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+    const candidates = await db.select({
+      id: projects.id, name: projects.name, projectNumber: projects.projectNumber,
+    }).from(projects).innerJoin(receiptVouchers, and(
+      eq(receiptVouchers.projectId, projects.id), eq(receiptVouchers.status, "approved"),
+    )).groupBy(projects.id, projects.name, projects.projectNumber);
+    const eligible = [];
+    for (const project of candidates) {
+      let available;
+      try {
+        available = await getProjectFundableAmounts(db, project.id);
+      } catch (error) {
+        // Projects without an approved cost cannot have a transferable balance.
+        if (error instanceof TRPCError && error.code === "BAD_REQUEST") continue;
+        throw error;
+      }
+      const amount = input.source === "surplus" ? available.surplusAvailable
+        : input.source === "administrative" ? available.administrativeAvailable : available.operationalAvailable;
+      if (amount > 0) eligible.push({ ...project, available: amount });
+    }
+    return eligible;
+  }),
+
   transferFromProject: protectedProcedure.input(z.object({
     projectId: z.number().int().positive(),
     source: z.enum(["surplus", "administrative", "operational"]),
     amount: amountSchema,
     destination: destinationSchema,
-    reason: z.string().trim().min(3),
+    reason: z.string().trim().optional().default(""),
     releaseRestriction: z.boolean().default(false),
   })).mutation(async ({ input, ctx }) => {
     await authorize(ctx, "transfer");

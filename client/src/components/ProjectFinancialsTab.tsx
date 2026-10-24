@@ -512,6 +512,9 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
   const targetRequiredAmount = totalRequiredCost > 0 ? totalRequiredCost : currentSupportAmount;
   const remainingSupportToCollect = Math.max(0, targetRequiredAmount - totalReceivedAmount);
   const surplusAmount = fundable?.surplusAvailable ?? (targetRequiredAmount > 0 ? Math.max(0, totalReceivedAmount - targetRequiredAmount) : 0);
+  const surplusTransferredAmount = fundable?.surplusTransferred || 0;
+  const totalProjectSurplus = surplusAmount + surplusTransferredAmount;
+  const hasSurplusHistory = totalProjectSurplus > 0;
   const collectionRawPct = targetRequiredAmount > 0 ? (totalReceivedAmount / targetRequiredAmount) * 100 : 0;
   const collectionPercentage = collectionRawPct > 0 && collectionRawPct < 1
     ? parseFloat(collectionRawPct.toFixed(2))
@@ -1178,12 +1181,12 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                     </span>
                   </div>
                   {canTransferToFund && (fundable?.administrativeAvailable || 0) > 0 && (
-                    <Button type="button" size="sm" variant="outline" onClick={() => navigate(`/fund?projectId=${projectId}&source=administrative`)}>
+                    <Button type="button" size="sm" variant="outline" onClick={() => navigate(`/fund/transfers/new?projectId=${projectId}&source=administrative`)}>
                       تحويل الحصة الإدارية إلى الصندوق ({fundable!.administrativeAvailable.toLocaleString("en-US")} ريال متاح)
                     </Button>
                   )}
                   {canTransferToFund && (fundable?.operationalAvailable || 0) > 0 && (
-                    <Button type="button" size="sm" variant="outline" onClick={() => navigate(`/fund?projectId=${projectId}&source=operational`)}>
+                    <Button type="button" size="sm" variant="outline" onClick={() => navigate(`/fund/transfers/new?projectId=${projectId}&source=operational`)}>
                       تحويل الحصة التشغيلية إلى الصندوق ({fundable!.operationalAvailable.toLocaleString("en-US")} ريال متاح)
                     </Button>
                   )}
@@ -1253,7 +1256,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
               </div>
               <div className="flex flex-col gap-2 w-full sm:w-auto">
               {canTransferToFund && (fundable?.surplusAvailable || 0) > 0 && <Button
-                onClick={() => navigate(`/fund?projectId=${projectId}&source=surplus`)}
+                onClick={() => navigate(`/fund/transfers/new?projectId=${projectId}&source=surplus`)}
                 className="bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs h-8 sm:h-9 px-3 sm:px-4 rounded-xl shadow-xs shrink-0 flex items-center gap-1.5 w-full sm:w-auto justify-center"
               >
                 <ArrowRightLeft className="w-3.5 h-3.5" />
@@ -1264,7 +1267,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
           )}
 
           {/* Cards metrics for Collection */}
-          <div className={`grid gap-2.5 sm:gap-4 ${surplusAmount > 0 ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-3"}`}>
+          <div className={`grid gap-2.5 sm:gap-4 ${hasSurplusHistory ? "grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" : "grid-cols-1 sm:grid-cols-3"}`}>
             <div className="p-3 sm:p-4 bg-blue-50/60 rounded-xl border border-blue-100 text-right">
               <span className="text-[11px] sm:text-xs text-muted-foreground block">إجمالي مبلغ الدعم المطلوب</span>
               <span className="text-base sm:text-lg font-bold text-blue-900 mt-0.5 sm:mt-1 block font-sans inline-flex items-center gap-1">
@@ -1286,16 +1289,30 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
               </span>
             </div>
 
-            {surplusAmount > 0 && (
+            {hasSurplusHistory && (
+              <>
               <div className="p-3 sm:p-4 bg-indigo-50/80 rounded-xl border border-indigo-200 text-right relative overflow-hidden">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] sm:text-xs text-indigo-900 font-bold block">فائض المقبوضات</span>
-                  <Badge className="bg-indigo-700 text-white text-[9px] font-bold px-1.5 py-0.5">فائض</Badge>
+                  <span className="text-[11px] sm:text-xs text-indigo-900 font-bold block">إجمالي الفائض</span>
+                  <Badge className="bg-indigo-700 text-white text-[9px] font-bold px-1.5 py-0.5">كامل</Badge>
                 </div>
                 <span className="text-base sm:text-lg font-bold text-indigo-950 mt-0.5 sm:mt-1 block font-sans inline-flex items-center gap-1">
+                  {totalProjectSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                </span>
+              </div>
+              <div className="p-3 sm:p-4 bg-sky-50/80 rounded-xl border border-sky-200 text-right">
+                <span className="text-[11px] sm:text-xs text-sky-900 font-bold block">المحوّل من الفائض للصندوق</span>
+                <span className="text-base sm:text-lg font-bold text-sky-950 mt-0.5 sm:mt-1 block font-sans inline-flex items-center gap-1">
+                  {surplusTransferredAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                </span>
+              </div>
+              <div className="p-3 sm:p-4 bg-violet-50/80 rounded-xl border border-violet-200 text-right">
+                <span className="text-[11px] sm:text-xs text-violet-900 font-bold block">المتبقي من الفائض للتحويل</span>
+                <span className="text-base sm:text-lg font-bold text-violet-950 mt-0.5 sm:mt-1 block font-sans inline-flex items-center gap-1">
                   {surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                 </span>
               </div>
+              </>
             )}
           </div>
 
@@ -1390,7 +1407,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                             type="button"
                             size="sm"
                             variant="ghost"
-                            onClick={() => navigate(`/fund?projectId=${projectId}&source=surplus`)}
+                            onClick={() => navigate(`/fund/transfers/new?projectId=${projectId}&source=surplus`)}
                             className="h-6 px-2 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 hover:text-indigo-900 flex items-center gap-1 cursor-pointer"
                           >
                             <ArrowRightLeft className="w-3 h-3" />
