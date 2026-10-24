@@ -70,6 +70,7 @@ export default function ProjectFinancialsTab({ projectId }: ProjectFinancialsTab
 
   // 1. Fetch Financial Data
   const { data, isLoading, refetch } = trpc.projects.getFinancialData.useQuery({ projectId });
+  const { data: fundable } = trpc.fund.projectAvailability.useQuery({ projectId });
 
   // 2. Fetch Support Categories
   const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery(undefined, {
@@ -82,12 +83,6 @@ export default function ProjectFinancialsTab({ projectId }: ProjectFinancialsTab
   const fundingSupportCategoryList: string[] = useMemo(() => {
     return (fundingSupportData?.values || []).map((v: any) => v.valueAr || v.value).filter(Boolean);
   }, [fundingSupportData]);
-
-  // Categories for Donation Purposes (مصارف التبرعات) from /categories
-  const { data: donationPurposesData } = trpc.categories.getCategoryByType.useQuery({ type: "donation_purposes" });
-  const donationPurposes: string[] = useMemo(() => {
-    return (donationPurposesData?.values || []).map((v: any) => v.valueAr || v.value).filter(Boolean);
-  }, [donationPurposesData]);
 
 interface SupportSourceItem {
   entity: string;
@@ -163,6 +158,8 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
   const isFaaa8User = user?.email === "solayani@manarah.org.sa";
   const hasExceptionApprove = usePermission("receipt_vouchers.exception_approve");
   const hasFinancials = usePermission("projects.financials");
+  const canTransferToFund = usePermission("fund.transfer") || ["super_admin", "system_admin", "financial", "financial_manager"].includes(user?.role || "");
+  const canDisburseFromFund = usePermission("fund.disburse") || ["super_admin", "system_admin", "financial", "financial_manager"].includes(user?.role || "");
   const canEditSupportPerm = usePermission("projects.edit_support_and_fees");
   const canAddReceiptPerm = usePermission("projects.add_receipt_voucher");
   const canEditSupportAndFees = hasFinancials && canEditSupportPerm;
@@ -292,36 +289,6 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     type: "revoke",
     voucherId: null,
   });
-  // Transfer Surplus Dialog States
-  const [isTransferSurplusOpen, setIsTransferSurplusOpen] = useState<boolean>(false);
-  const [transferType, setTransferType] = useState<"restricted" | "unrestricted">("restricted");
-  const [transferHonorificTitle, setTransferHonorificTitle] = useState<string>("السادة");
-  const [transferPayerSelect, setTransferPayerSelect] = useState<string>("__custom__");
-  const [transferCustomPayer, setTransferCustomPayer] = useState<string>("");
-  const [transferPayerName, setTransferPayerName] = useState<string>("");
-  const [transferPurpose, setTransferPurpose] = useState<string>("");
-  const [transferAmount, setTransferAmount] = useState<string>("");
-  const [transferDate, setTransferDate] = useState<string>(new Date().toISOString().split("T")[0]);
-  const [transferBankName, setTransferBankName] = useState<string>("مصرف الراجحي");
-  const [transferNotes, setTransferNotes] = useState<string>("");
-
-  const transferSurplusMutation = trpc.projects.transferProjectSurplusToReceiptVoucher.useMutation({
-    onSuccess: (_, variables) => {
-      const remainingAfter = Math.max(0, activeSupporterMaxSurplus - variables.amount);
-      toast.success(
-        `تم استقطاع (${variables.amount.toLocaleString("en-US")} ريال) من فائض المقبوضات وإنشاء سند القبض بنجاح، وأصبح الفائض المتبقي (${remainingAfter.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)`
-      );
-      setIsTransferSurplusOpen(false);
-      refetch();
-      utils.projects.getFinancialData.invalidate({ projectId });
-      utils.projects.getById.invalidate({ id: projectId });
-      utils.projects.getAllReceiptVouchers.invalidate();
-    },
-    onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء تحويل الفائض");
-    },
-  });
-
   const [actionReason, setActionReason] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
   const [justificationModalNote, setJustificationModalNote] = useState<string | null>(null);
@@ -544,7 +511,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
   const totalReceivedAmount = vouchersTotalReceived + generalAccountReceivedAmount;
   const targetRequiredAmount = totalRequiredCost > 0 ? totalRequiredCost : currentSupportAmount;
   const remainingSupportToCollect = Math.max(0, targetRequiredAmount - totalReceivedAmount);
-  const surplusAmount = targetRequiredAmount > 0 ? Math.max(0, totalReceivedAmount - targetRequiredAmount) : 0;
+  const surplusAmount = fundable?.surplusAvailable ?? (targetRequiredAmount > 0 ? Math.max(0, totalReceivedAmount - targetRequiredAmount) : 0);
   const collectionRawPct = targetRequiredAmount > 0 ? (totalReceivedAmount / targetRequiredAmount) * 100 : 0;
   const collectionPercentage = collectionRawPct > 0 && collectionRawPct < 1
     ? parseFloat(collectionRawPct.toFixed(2))
@@ -640,136 +607,6 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
   const supportersWithSurplus = useMemo(() => {
     return supportersFinancials.filter(s => s.surplusAmount > 0);
   }, [supportersFinancials]);
-
-  // List of distinct supporters registered for this project
-  const projectRegisteredSupporters: string[] = useMemo(() => {
-    const list: string[] = [];
-    validSupportSources.forEach((src) => {
-      let name = src.entity === "اخرى" ? src.customEntity : src.entity;
-      if (name && name.trim()) {
-        name = name.replace(/^(السيد|السيدة|السادة)\s*(\/|-)?\s*/, "").trim();
-        const isGenAcc = isGeneralAccountName(name);
-        if (name && !isGenAcc && !list.includes(name)) {
-          list.push(name);
-        }
-      }
-    });
-
-    // Fallback if validSupportSources is empty but supportEntity or donorName exists
-    if (list.length === 0 && (data as any)?.financialDetail?.supportEntity) {
-      let clean = ((data as any).financialDetail.supportEntity || "").replace(/^(السيد|السيدة|السادة)\s*(\/|-)?\s*/, "").trim();
-      if (clean && !isGeneralAccountName(clean) && !list.includes(clean)) {
-        list.push(clean);
-      }
-    }
-    if (list.length === 0 && (data as any)?.project?.donorName) {
-      let clean = ((data as any).project.donorName || "").replace(/^(السيد|السيدة|السادة)\s*(\/|-)?\s*/, "").trim();
-      if (clean && !isGeneralAccountName(clean) && !list.includes(clean)) {
-        list.push(clean);
-      }
-    }
-    return list;
-  }, [validSupportSources, data]);
-
-  // Selected supporter details inside modal
-  const selectedSupporterInfo = useMemo(() => {
-    const cleanSelect = (transferPayerSelect || transferPayerName).replace(/^(السيد|السيدة|السادة)\s*(\/|-)?\s*/, "").trim();
-    return supportersFinancials.find(s => s.cleanName === cleanSelect || normalizeArabicText(s.name) === normalizeArabicText(cleanSelect));
-  }, [supportersFinancials, transferPayerSelect, transferPayerName]);
-
-  // Effective max surplus for the selected supporter (or project surplus fallback)
-  const activeSupporterMaxSurplus = selectedSupporterInfo && selectedSupporterInfo.surplusAmount > 0
-    ? selectedSupporterInfo.surplusAmount
-    : (supportersWithSurplus.length > 0 ? supportersWithSurplus[0].surplusAmount : surplusAmount);
-
-  const openTransferSurplusModal = (targetSupporterName?: string) => {
-    const defaultSupporter = targetSupporterName || (supportersWithSurplus.length > 0 ? supportersWithSurplus[0].cleanName : (projectRegisteredSupporters[0] || ""));
-    let cleanPayer = defaultSupporter.trim();
-    let detectedHonorific = "السادة";
-
-    if (!cleanPayer) {
-      const rawPayer = validSupportSources[0]?.entity === "اخرى" ? validSupportSources[0]?.customEntity : validSupportSources[0]?.entity;
-      cleanPayer = (rawPayer || (data as any)?.project?.donorName || "").trim();
-    }
-
-    if (cleanPayer.startsWith("السادة")) {
-      detectedHonorific = "السادة";
-      cleanPayer = cleanPayer.replace(/^السادة\s*(\/|-)?\s*/, "").trim();
-    } else if (cleanPayer.startsWith("السيد")) {
-      detectedHonorific = "السيد";
-      cleanPayer = cleanPayer.replace(/^السيد\s*(\/|-)?\s*/, "").trim();
-    } else if (cleanPayer.startsWith("السيدة")) {
-      detectedHonorific = "السيدة";
-      cleanPayer = cleanPayer.replace(/^السيدة\s*(\/|-)?\s*/, "").trim();
-    }
-
-    setTransferHonorificTitle(detectedHonorific);
-    setTransferPayerSelect(cleanPayer);
-    setTransferCustomPayer("");
-    setTransferPayerName(cleanPayer);
-
-    const supInfo = supportersFinancials.find(s => s.cleanName === cleanPayer || normalizeArabicText(s.name) === normalizeArabicText(cleanPayer));
-    const targetSurplus = supInfo && supInfo.surplusAmount > 0 ? supInfo.surplusAmount : surplusAmount;
-
-    setTransferType("restricted");
-    if (donationPurposes.length > 0) {
-      setTransferPurpose(donationPurposes[0]);
-    } else {
-      setTransferPurpose("");
-    }
-    setTransferAmount(targetSurplus > 0 ? targetSurplus.toString() : "");
-    setTransferDate(new Date().toISOString().split("T")[0]);
-    setTransferBankName("مصرف الراجحي");
-    setTransferNotes(`تم تحويله من فائض مقبوضات المشروع ${(data as any)?.project?.projectNumber || `#${projectId}`}`);
-    setIsTransferSurplusOpen(true);
-  };
-
-  const handleConfirmTransferSurplus = () => {
-    const amt = parseFloat(transferAmount);
-    if (!transferAmount || isNaN(amt) || amt <= 0) {
-      toast.error("يرجى إدخال مبلغ تحويل صحيح أكبر من صفر");
-      return;
-    }
-    if (amt > activeSupporterMaxSurplus + 0.01) {
-      toast.error(`المبلغ المطلوب تحويله (${amt.toLocaleString()} ريال) يتجاوز مبلغ الفائض المتاح لهذا الداعم (${activeSupporterMaxSurplus.toLocaleString()} ريال)`);
-      return;
-    }
-    if (!transferDate) {
-      toast.error("يرجى تحديد تاريخ القبض");
-      return;
-    }
-
-    const currentPayer = (transferPayerSelect || transferPayerName).trim();
-    if (!currentPayer) {
-      toast.error("يرجى تحديد اسم الجهة الداعمة / المسدد");
-      return;
-    }
-
-    if (transferType === "restricted" && !transferPurpose.trim()) {
-      toast.error("يرجى اختيار أو تحديد مصرف التبرع المقيد");
-      return;
-    }
-
-    if (!transferNotes.trim()) {
-      toast.error("يرجى إدخال البيان أو سبب القبض");
-      return;
-    }
-
-    const fullPayerName = transferHonorificTitle ? `${transferHonorificTitle} / ${currentPayer}` : currentPayer;
-
-    transferSurplusMutation.mutate({
-      projectId,
-      targetType: transferType,
-      donationPurpose: transferType === "restricted" ? transferPurpose.trim() : undefined,
-      amount: amt,
-      receiptDate: transferDate,
-      payerName: fullPayerName,
-      paymentMethod: "bank_transfer",
-      referenceNumber: "",
-      bankName: transferBankName.trim() || "مصرف الراجحي",
-      notes: transferNotes.trim(),
-    });
-  };
 
   // Handlers
   const handleSaveFinancials = () => {
@@ -1340,6 +1177,16 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                       {calculatedAdminFeeAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                     </span>
                   </div>
+                  {canTransferToFund && (fundable?.administrativeAvailable || 0) > 0 && (
+                    <Button type="button" size="sm" variant="outline" onClick={() => navigate(`/fund?projectId=${projectId}&source=administrative`)}>
+                      تحويل الحصة الإدارية إلى الصندوق ({fundable!.administrativeAvailable.toLocaleString("en-US")} ريال متاح)
+                    </Button>
+                  )}
+                  {canTransferToFund && (fundable?.operationalAvailable || 0) > 0 && (
+                    <Button type="button" size="sm" variant="outline" onClick={() => navigate(`/fund?projectId=${projectId}&source=operational`)}>
+                      تحويل الحصة التشغيلية إلى الصندوق ({fundable!.operationalAvailable.toLocaleString("en-US")} ريال متاح)
+                    </Button>
+                  )}
                   <div className="flex items-center justify-between border-t border-amber-200/60 pt-2 text-[11px]">
                     <span className="text-muted-foreground">صافي حصة المورد بعد الاستقطاع:</span>
                     <span className="font-bold text-slate-800 font-sans inline-flex items-center gap-1">
@@ -1400,17 +1247,22 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                     <Badge className="bg-indigo-700 text-white text-[9px] sm:text-[10px] font-bold">فائض قابل للتحويل</Badge>
                   </div>
                   <p className="text-[11px] sm:text-xs text-indigo-900/80 mt-1 leading-relaxed">
-                    إجمالي سندات القبض المعتمدة يتجاوز تكلفة المشروع المقررة. يمكنك تحويل هذا الفائض إلى سند قبض مستقل ليظهر في صفحة سندات القبض العامة.
+                    إجمالي المقبوضات يتجاوز تكلفة المشروع. يبقى الفائض متاحاً للمشروع أو يمكن تحويله إلى الصندوق مع تحديد قيده.
                   </p>
                 </div>
               </div>
-              <Button
-                onClick={() => openTransferSurplusModal()}
+              <div className="flex flex-col gap-2 w-full sm:w-auto">
+              {canTransferToFund && (fundable?.surplusAvailable || 0) > 0 && <Button
+                onClick={() => navigate(`/fund?projectId=${projectId}&source=surplus`)}
                 className="bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs h-8 sm:h-9 px-3 sm:px-4 rounded-xl shadow-xs shrink-0 flex items-center gap-1.5 w-full sm:w-auto justify-center"
               >
                 <ArrowRightLeft className="w-3.5 h-3.5" />
-                <span>تحويل الفائض إلى سند قبض</span>
-              </Button>
+                <span>تحويل الفائض إلى الصندوق</span>
+              </Button>}
+              {canDisburseFromFund && (fundable?.surplusAvailable || 0) > 0 && <Button variant="outline" onClick={() => navigate(`/fund?projectId=${projectId}&action=direct`)}>
+                طلب صرف من فائض المشروع
+              </Button>}
+              </div>
             </div>
           )}
 
@@ -1459,15 +1311,15 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                     ))}
                   </p>
                 )}
-                <Button
+                {canTransferToFund && (fundable?.surplusAvailable || 0) > 0 && <Button
                   variant="link"
                   size="sm"
-                  onClick={() => openTransferSurplusModal()}
+                  onClick={() => navigate(`/fund?projectId=${projectId}&source=surplus`)}
                   className="p-0 h-auto text-[11px] text-indigo-700 hover:text-indigo-900 font-bold mt-1.5 flex items-center gap-1 cursor-pointer"
                 >
                   <ArrowRightLeft className="w-3 h-3" />
                   <span>تحويل الفائض الآن</span>
-                </Button>
+                </Button>}
               </div>
             )}
           </div>
@@ -1559,16 +1411,16 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                           <span className="text-indigo-900 font-bold text-[11px] inline-flex items-center gap-1">
                             فائض للداعم: {sSurplusAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3 h-3 inline" />
                           </span>
-                          <Button
+                          {canTransferToFund && (fundable?.surplusAvailable || 0) > 0 && <Button
                             type="button"
                             size="sm"
                             variant="ghost"
-                            onClick={() => openTransferSurplusModal(sName)}
+                            onClick={() => navigate(`/fund?projectId=${projectId}&source=surplus`)}
                             className="h-6 px-2 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 hover:text-indigo-900 flex items-center gap-1 cursor-pointer"
                           >
                             <ArrowRightLeft className="w-3 h-3" />
                             <span>تحويل الفائض</span>
-                          </Button>
+                          </Button>}
                         </div>
                       )}
 
@@ -2127,345 +1979,6 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
           <DialogFooter className="justify-start border-t pt-3">
             <Button type="button" variant="outline" size="sm" onClick={() => setJustificationModalNote(null)} className="text-xs font-bold border-amber-300">
               إغلاق
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog for Transferring Project Surplus */}
-      <Dialog open={isTransferSurplusOpen} onOpenChange={setIsTransferSurplusOpen}>
-        <DialogContent className="dir-rtl text-right max-w-3xl sm:max-w-3xl w-[94vw] max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-indigo-200/90 p-6">
-          <DialogHeader className="text-right border-b border-slate-100 pb-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center shrink-0 shadow-xs">
-                  <ArrowRightLeft className="w-5 h-5 text-indigo-700" />
-                </div>
-                <div>
-                  <DialogTitle className="text-lg font-bold text-slate-900">
-                    تحويل فائض المقبوضات إلى سند قبض
-                  </DialogTitle>
-                  <DialogDescription className="text-xs text-slate-500 mt-0.5">
-                    تحويل الفائض المالي المحصل من الداعم إلى سند قبض مقيد أو غير مقيد
-                  </DialogDescription>
-                </div>
-              </div>
-              <Badge className="bg-indigo-50 text-indigo-800 border border-indigo-300 text-xs font-black px-3 py-1 self-start sm:self-center inline-flex items-center gap-1">
-                <span>فائض الداعم المتاح للتحويل: {activeSupporterMaxSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-                <SaudiRiyal className="w-3.5 h-3.5 inline" />
-              </Badge>
-            </div>
-          </DialogHeader>
-
-          <div className="space-y-4 py-3 text-xs">
-            {/* بطاقة توضيح مصادر الفائض في المشروع والداعمين أصحاب الفائض */}
-            {surplusAmount > 0 && (
-              <div className="p-3.5 bg-indigo-50/80 rounded-xl border border-indigo-200 text-xs space-y-2.5 animate-in fade-in duration-200">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100/80 pb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-indigo-600 text-white shrink-0 shadow-2xs">
-                      <Sparkles className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="font-black text-xs text-indigo-950 block">
-                        {supportersWithSurplus.length > 1
-                          ? `مصادر الفائض في المشروع (${supportersWithSurplus.length} داعمين)`
-                          : `مصدر الفائض في المشروع: ${supportersWithSurplus[0]?.name || "الداعم المسجل"}`}
-                      </span>
-                      <span className="text-[11px] text-indigo-800/80">
-                        {supportersWithSurplus.length > 1
-                          ? "يوجد مبالغ فائضة متحققة من أكثر من داعم، انقر على الداعم المراد تحويل فائضه:"
-                          : "تم تحديد الداعم صاحب الفائض المسدد للمشروع تلقائياً ويصدر السند باسمه:"}
-                      </span>
-                    </div>
-                  </div>
-                  <Badge className="bg-indigo-700 text-white text-xs font-black px-2.5 py-0.5 self-start sm:self-center inline-flex items-center gap-1">
-                    <span>إجمالي الفائض: {surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-                    <SaudiRiyal className="w-3.5 h-3.5 inline" />
-                  </Badge>
-                </div>
-
-                {/* عرض كروت الفائض لكل داعم في حال وجود داعم أو أكثر */}
-                <div className={`grid gap-2 pt-0.5 ${supportersWithSurplus.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
-                  {supportersWithSurplus.map((sup, idx) => {
-                    const isSelected = transferPayerSelect === sup.cleanName || normalizeArabicText(transferPayerName) === normalizeArabicText(sup.name);
-                    return (
-                      <div
-                        key={idx}
-                        onClick={() => {
-                          setTransferPayerSelect(sup.cleanName);
-                          setTransferPayerName(sup.cleanName);
-                          setTransferAmount(sup.surplusAmount.toString());
-                        }}
-                        className={`p-3 rounded-xl border text-right transition-all cursor-pointer flex flex-col justify-between ${
-                          isSelected
-                            ? "bg-white border-indigo-600 ring-2 ring-indigo-600/20 shadow-xs"
-                            : "bg-white/60 border-indigo-100 hover:bg-white hover:border-indigo-300"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <Building2 className="w-3.5 h-3.5 text-indigo-700 shrink-0" />
-                            <span className="font-bold text-xs text-slate-900 truncate">{sup.name}</span>
-                          </div>
-                          <Badge className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 shrink-0 inline-flex items-center gap-1">
-                            فائض: {sup.surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3 h-3 inline" />
-                          </Badge>
-                        </div>
-                        
-                        <div className="grid grid-cols-3 gap-2 text-[10px] text-slate-600 mt-2.5 pt-2 border-t border-slate-100">
-                          <div>
-                            <span className="text-slate-400 block text-[9px]">المقرر التزامه:</span>
-                            <span className="font-bold text-slate-800 inline-flex items-center gap-0.5">{sup.committedAmount.toLocaleString("en-US")} <SaudiRiyal className="w-2.5 h-2.5 inline" /></span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 block text-[9px]">المسدد فعلياً:</span>
-                            <span className="font-bold text-emerald-700 inline-flex items-center gap-0.5">{sup.receivedAmount.toLocaleString("en-US")} <SaudiRiyal className="w-2.5 h-2.5 inline" /></span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 block text-[9px]">الحصة التكليفية:</span>
-                            <span className="font-bold text-indigo-900 inline-flex items-center gap-0.5">{sup.requiredShare.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-2.5 h-2.5 inline" /></span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* اختيار نوع السند */}
-            <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-800">نوع سند القبض المحول إليه *</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setTransferType("restricted")}
-                  className={`p-3.5 rounded-xl border text-right transition-all cursor-pointer flex items-center gap-3 ${
-                    transferType === "restricted"
-                      ? "bg-indigo-50/80 border-indigo-600 ring-2 ring-indigo-600/20 text-indigo-950 shadow-xs"
-                      : "bg-slate-50/70 border-slate-200 hover:bg-slate-100 text-slate-700"
-                  }`}
-                >
-                  <div className={`p-2.5 rounded-lg shrink-0 ${transferType === "restricted" ? "bg-indigo-700 text-white" : "bg-slate-200 text-slate-700"}`}>
-                    <FileCheck className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="font-bold block text-xs text-slate-900">سند قبض مقيد</span>
-                    <span className="text-[11px] text-slate-500">مقيد بمصرف تبرع محدد</span>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setTransferType("unrestricted")}
-                  className={`p-3.5 rounded-xl border text-right transition-all cursor-pointer flex items-center gap-3 ${
-                    transferType === "unrestricted"
-                      ? "bg-sky-50/80 border-sky-600 ring-2 ring-sky-600/20 text-sky-950 shadow-xs"
-                      : "bg-slate-50/70 border-slate-200 hover:bg-slate-100 text-slate-700"
-                  }`}
-                >
-                  <div className={`p-2.5 rounded-lg shrink-0 ${transferType === "unrestricted" ? "bg-sky-700 text-white" : "bg-slate-200 text-slate-700"}`}>
-                    <Coins className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="font-bold block text-xs text-slate-900">سند قبض غير مقيد</span>
-                    <span className="text-[11px] text-slate-500">تبرع عام غير مقيد بمشروع</span>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* في حال اختيار مقيد: تحديد المصرف */}
-            {transferType === "restricted" && (
-              <div className="p-3.5 bg-indigo-50/40 rounded-xl border border-indigo-200/90 space-y-2.5">
-                <Label className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
-                  <Layers className="w-4 h-4 text-indigo-700" />
-                  <span>مصارف التبرعات *</span>
-                </Label>
-                <Select
-                  value={transferPurpose}
-                  onValueChange={setTransferPurpose}
-                  disabled={donationPurposes.length === 0}
-                >
-                  <SelectTrigger className="h-10 text-xs bg-white border-indigo-200 focus:ring-indigo-600 text-right w-full" dir="rtl">
-                    <SelectValue placeholder={donationPurposes.length > 0 ? "اختر مصرف التبرع..." : "لا توجد مصارف تبرعات مسجلة في التصنيفات"} />
-                  </SelectTrigger>
-                  <SelectContent dir="rtl" className="max-h-60">
-                    {donationPurposes.map((p, idx) => (
-                      <SelectItem key={idx} value={p} className="text-right">
-                        {p}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* اللقب والجهة الداعمة / المسدد */}
-            <div className="space-y-3 border-t border-slate-100 pt-3">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="col-span-1 space-y-1.5 text-right">
-                  <Label className="text-xs font-bold text-slate-800">اللقب / الصفة *</Label>
-                  <Select value={transferHonorificTitle} onValueChange={setTransferHonorificTitle}>
-                    <SelectTrigger className="h-10 text-xs bg-white border-slate-200 focus:ring-indigo-600 text-right" dir="rtl">
-                      <SelectValue placeholder="اللقب..." />
-                    </SelectTrigger>
-                    <SelectContent dir="rtl">
-                      <SelectItem value="السادة" className="text-right">السادة</SelectItem>
-                      <SelectItem value="السيد" className="text-right">السيد</SelectItem>
-                      <SelectItem value="السيدة" className="text-right">السيدة</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="col-span-2 space-y-1.5 text-right">
-                  <Label className="text-xs font-bold text-slate-800">الجهة الداعمة / المسدد *</Label>
-                  <Select
-                    value={transferPayerSelect}
-                    onValueChange={(val) => {
-                      setTransferPayerSelect(val);
-                      setTransferPayerName(val);
-                      const sup = supportersFinancials.find(s => s.cleanName === val || normalizeArabicText(s.name) === normalizeArabicText(val));
-                      if (sup && sup.surplusAmount > 0) {
-                        setTransferAmount(sup.surplusAmount.toString());
-                      }
-                    }}
-                    disabled={projectRegisteredSupporters.length === 0}
-                  >
-                    <SelectTrigger className="h-10 text-xs bg-white border-slate-200 focus:ring-indigo-600 text-right w-full" dir="rtl">
-                      <SelectValue placeholder={projectRegisteredSupporters.length > 0 ? "اختر الداعم المسجل للمشروع..." : "لا يوجد داعمين مسجلين للمشروع"} />
-                    </SelectTrigger>
-                    <SelectContent dir="rtl" className="max-h-60">
-                      {projectRegisteredSupporters.map((sup, idx) => {
-                        const supInfo = supportersFinancials.find(s => s.cleanName === sup || normalizeArabicText(s.name) === normalizeArabicText(sup));
-                        const hasSurplus = supInfo && supInfo.surplusAmount > 0;
-                        return (
-                          <SelectItem key={idx} value={sup} className="text-right">
-                            <span className="font-medium">{sup}</span>
-                            {hasSurplus && (
-                              <span className="text-emerald-700 font-bold mr-2 text-[10px] inline-flex items-center gap-0.5">
-                                <span>(فائض متاح: {supInfo.surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-                                <SaudiRiyal className="w-2.5 h-2.5 inline" />
-                                <span>)</span>
-                              </span>
-                            )}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            {/* تفاصيل سند القبض: المبلغ والتاريخ */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-slate-100 pt-3">
-              {/* مبلغ الدفعة المقبوضة */}
-              <div className="space-y-1.5 text-right">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-slate-800 flex items-center gap-1">مبلغ الدفعة المقبوضة (<SaudiRiyal className="w-3.5 h-3.5" />) *</Label>
-                  {activeSupporterMaxSurplus > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setTransferAmount(activeSupporterMaxSurplus.toString())}
-                      className="text-[11px] font-bold text-indigo-700 hover:underline cursor-pointer inline-flex items-center gap-0.5"
-                    >
-                      <span>تعبئة كامل فائض الداعم ({activeSupporterMaxSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-                      <SaudiRiyal className="w-2.5 h-2.5 inline" />
-                      <span>)</span>
-                    </button>
-                  )}
-                </div>
-                <Input
-                  type="number"
-                  min={0.01}
-                  max={activeSupporterMaxSurplus}
-                  step="0.01"
-                  value={transferAmount}
-                  onChange={(e) => setTransferAmount(e.target.value)}
-                  placeholder="مثال: 50000"
-                  className="h-10 text-xs font-bold text-indigo-950 font-sans text-left [direction:ltr] border-slate-200 focus:border-indigo-600"
-                />
-
-                {/* معاينة الفائض المتبقي بعد التحويل مباشرة */}
-                {parseFloat(transferAmount) > 0 && parseFloat(transferAmount) <= activeSupporterMaxSurplus && (
-                  <div className="flex items-center justify-between text-[11px] bg-slate-50 p-2 rounded-lg border border-slate-200 mt-1 animate-in fade-in">
-                    <span className="text-slate-600 font-medium">الفائض المتبقي بعد هذا التحويل:</span>
-                    <span className="font-extrabold text-indigo-900 font-sans inline-flex items-center gap-1">
-                      {Math.max(0, activeSupporterMaxSurplus - (parseFloat(transferAmount) || 0)).toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* تاريخ القبض */}
-              <div className="space-y-1.5 text-right">
-                <Label className="text-xs font-bold text-slate-800">تاريخ القبض *</Label>
-                <Input
-                  type="date"
-                  value={transferDate}
-                  onChange={(e) => setTransferDate(e.target.value)}
-                  className="h-10 text-xs font-sans border-slate-200 focus:border-indigo-600 text-right"
-                />
-              </div>
-            </div>
-
-            {/* البيان والملاحظات */}
-            <div className="space-y-1.5 text-right border-t border-slate-100 pt-3">
-              <Label className="text-xs font-bold text-slate-800">وذلك مقابل (سبب المقبوض / البيان) *</Label>
-              <Textarea
-                value={transferNotes}
-                onChange={(e) => setTransferNotes(e.target.value)}
-                placeholder={
-                  transferType === "restricted"
-                    ? (transferPurpose ? `أدخل البيان أو سبب القبض (مثال: تبرع مقيد لمصرف ${transferPurpose}... تم تحويله من فائض مقبوضات المشروع #${projectId})` : "أدخل البيان أو سبب القبض...")
-                    : `أدخل البيان أو سبب القبض (مثال: تبرع عام للجمعية / تم تحويله من فائض مقبوضات المشروع #${projectId})`
-                }
-                rows={3}
-                className="text-xs border-slate-200 focus:border-indigo-600 leading-relaxed text-right"
-              />
-            </div>
-
-            {/* تفاصيل طريقة القبض والحساب البنكي */}
-            <div className="space-y-1.5 text-right border-t border-slate-100 pt-3">
-              <Label className="text-xs font-bold text-slate-800">تفاصيل طريقة القبض والحساب البنكي</Label>
-              <Input
-                type="text"
-                value={transferBankName}
-                onChange={(e) => setTransferBankName(e.target.value)}
-                placeholder="مثال: مصرف الراجحي"
-                className="h-10 text-xs border-slate-200 focus:border-indigo-600 font-medium text-right"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsTransferSurplusOpen(false)}
-              className="text-xs font-medium border-slate-300"
-            >
-              إلغاء
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleConfirmTransferSurplus}
-              disabled={
-                transferSurplusMutation.isPending ||
-                !transferPayerSelect.trim() ||
-                (transferType === "restricted" && !transferPurpose) ||
-                !transferAmount ||
-                parseFloat(transferAmount) <= 0 ||
-                !transferNotes.trim()
-              }
-              className="bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs px-6 h-9 gap-1.5 shadow-xs"
-            >
-              {transferSurplusMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              <span>تأكيد التحويل وإنشاء سند القبض</span>
             </Button>
           </DialogFooter>
         </DialogContent>

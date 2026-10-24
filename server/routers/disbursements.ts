@@ -22,6 +22,7 @@ import {
   roles,
   projectFinancialDetails,
   receiptVouchers,
+  fundMovements,
   quantitySchedules,
   custodyRequests,
   progressReports,
@@ -31,6 +32,7 @@ import { TRPCError } from "@trpc/server";
 import { createNotification, notifyDisbursementRequestCreation, notifyDisbursementOrderCreation, notifyDisbursementOrderApproval, notifyDisbursementOrderRejection, sendEmailNotification } from "./notifications";
 import { sendSms } from "../services/sms";
 import { triggerBeneficiarySatisfactionSurvey } from "./requests";
+import { lockFund, postFundDisbursement } from "../fund";
 
 // جلب وتدقيق تقرير الإنجاز المرتبط بطلب أو أمر الصرف
 async function resolveLinkedProgressReport(
@@ -1527,6 +1529,9 @@ export const disbursementsRouter = router({
       }
 
       // لا يمكن تعديل الطلب إذا تم دفعه أو تم ربطه بأمر صرف
+      if (request.fundRestrictionType && Number(request.amount) !== input.amount) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "مبلغ طلب الصرف من الصندوق محجوز؛ أنشئ طلباً جديداً لتغيير المبلغ" });
+      }
       if (request.status === "paid") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن تعديل طلب صرف تم دفعه بالفعل" });
       }
@@ -3533,18 +3538,20 @@ export const disbursementsRouter = router({
           throw new TRPCError({ code: "FORBIDDEN", message: "فقط رئيس مجلس الإدارة يمتلك صلاحية التحويل البنكي والتنفيذ لأوامر الصرف المعتمدة" });
         }
 
-        await db
-          .update(disbursementOrders)
-          .set({
-            status: "executed" as any,
-            approvedBy: ctx.user.id,
-            approvedAt: new Date(),
-            executedBy: ctx.user.id,
-            executedAt: new Date(),
-            approvalNotes: input.notes,
-            updatedAt: new Date(),
-          })
-          .where(eq(disbursementOrders.id, input.id));
+        await db.transaction(async (tx) => {
+          await lockFund(tx);
+          const [request] = await tx.select().from(disbursementRequests)
+            .where(eq(disbursementRequests.id, order.disbursementRequestId)).limit(1);
+          if (request) await postFundDisbursement(tx, order, request, ctx.user.id);
+          await tx.update(disbursementOrders)
+            .set({
+              status: "executed" as any, approvedBy: ctx.user.id, approvedAt: new Date(),
+              executedBy: ctx.user.id, executedAt: new Date(), approvalNotes: input.notes, updatedAt: new Date(),
+            })
+            .where(eq(disbursementOrders.id, input.id));
+          if (request) await tx.update(disbursementRequests).set({ status: "paid" })
+            .where(eq(disbursementRequests.id, request.id));
+        });
 
         return {
           success: true,
@@ -4081,21 +4088,17 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "أمر الصرف غير معتمد" });
       }
 
-      await db
-        .update(disbursementOrders)
-        .set({
-          status: "executed",
-          executedBy: ctx.user.id,
-          executedAt: new Date(),
-          transactionReference: input.transactionReference,
-        })
-        .where(eq(disbursementOrders.id, input.id));
-
-      // تحديث حالة طلب الصرف
-      await db
-        .update(disbursementRequests)
-        .set({ status: "paid" })
-        .where(eq(disbursementRequests.id, order.disbursementRequestId));
+      await db.transaction(async (tx) => {
+        await lockFund(tx);
+        const [fundedRequest] = await tx.select().from(disbursementRequests)
+          .where(eq(disbursementRequests.id, order.disbursementRequestId)).limit(1);
+        if (fundedRequest) await postFundDisbursement(tx, order, fundedRequest, ctx.user.id);
+        await tx.update(disbursementOrders)
+          .set({ status: "executed", executedBy: ctx.user.id, executedAt: new Date(), transactionReference: input.transactionReference })
+          .where(eq(disbursementOrders.id, input.id));
+        await tx.update(disbursementRequests).set({ status: "paid" })
+          .where(eq(disbursementRequests.id, order.disbursementRequestId));
+      });
 
       // تحديث حالة دفعة العقد إن وجدت
       const [request] = await db
@@ -4225,6 +4228,9 @@ export const disbursementsRouter = router({
 
       if (!orderData) {
         throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
+      }
+      if (orderData.status === "executed") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "استخدم مسار إلغاء اعتماد أمر الصرف المنفذ" });
       }
 
       const userEmail = ctx.user.email;
@@ -4435,20 +4441,34 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "لا يوجد طلب إلغاء اعتماد معلق لهذا الأمر" });
       }
 
-      // 1. تحديث أمر الصرف إلى مرفوض
-      await db
-        .update(disbursementOrders)
-        .set({
-          status: "rejected",
-          rejectedBy: ctx.user.id,
-          rejectedAt: new Date(),
-          rejectionReason: order.cancellationReason,
-          rejectedRole: "executive_director",
-          cancellationRequested: false,
-          cancellationConfirmedBy: ctx.user.id,
+      // Reverse the fund debit together with the order state change.
+      await db.transaction(async (tx) => {
+        await lockFund(tx);
+        const [request] = await tx.select().from(disbursementRequests)
+          .where(eq(disbursementRequests.id, order.disbursementRequestId)).limit(1);
+        if (request?.fundRestrictionType) {
+          await tx.insert(fundMovements).values({
+            eventKey: `disbursement:${order.id}:reversal`, movementType: "disbursement_reversal",
+            amount: order.amount, restrictionType: request.fundRestrictionType,
+            donationPurposeId: request.fundPurposeId, donationPurposeName: request.fundPurposeName,
+            restrictedProjectId: request.fundRestrictedProjectId, projectId: request.projectId,
+            requestId: request.id, disbursementOrderId: order.id,
+            notes: order.cancellationReason || "إلغاء أمر الصرف المنفذ", createdById: ctx.user.id,
+          });
+          await tx.update(disbursementRequests).set({
+            status: order.cancellationType === "both" ? "rejected" : "approved",
+            rejectedBy: order.cancellationType === "both" ? ctx.user.id : null,
+            rejectedAt: order.cancellationType === "both" ? new Date() : null,
+            rejectionReason: order.cancellationType === "both" ? order.cancellationReason : null,
+          }).where(eq(disbursementRequests.id, request.id));
+        }
+        await tx.update(disbursementOrders).set({
+          status: "rejected", rejectedBy: ctx.user.id, rejectedAt: new Date(),
+          rejectionReason: order.cancellationReason, rejectedRole: "executive_director",
+          cancellationRequested: false, cancellationConfirmedBy: ctx.user.id,
           cancellationConfirmedAt: new Date(),
-        })
-        .where(eq(disbursementOrders.id, input.id));
+        }).where(eq(disbursementOrders.id, input.id));
+      });
 
       // 2. معالجة طلب الصرف المرتبط ودفعات العقود وتكلفة المشروع
       if (order.disbursementRequestId) {

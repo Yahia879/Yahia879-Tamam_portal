@@ -1142,6 +1142,10 @@ export const disbursementRequests = mysqlTable("disbursement_requests", {
   completionPercentage: int("completionPercentage"), // نسبة الإنجاز المرتبطة بالدفعة
   
   fundingSourceName: varchar("fundingSourceName", { length: 255 }),
+  fundRestrictionType: mysqlEnum("fundRestrictionType", ["general", "purpose", "project"]),
+  fundPurposeId: int("fundPurposeId"),
+  fundPurposeName: varchar("fundPurposeName", { length: 255 }),
+  fundRestrictedProjectId: int("fundRestrictedProjectId"),
   
   // المرفقات
   attachmentsJson: text("attachmentsJson"), // JSON array of attachments
@@ -2184,6 +2188,9 @@ export const receiptVouchers = mysqlTable("receipt_vouchers", {
   id: int("id").primaryKey().autoincrement(),
   voucherNumber: varchar("voucherNumber", { length: 50 }).notNull().unique(),
   projectId: int("projectId").references(() => projects.id, { onDelete: "cascade" }),
+  category: mysqlEnum("category", ["project_linked", "restricted", "unrestricted"]).notNull().default("project_linked"),
+  donationPurposeId: int("donationPurposeId"),
+  donationPurposeName: varchar("donationPurposeName", { length: 255 }),
   amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
   receiptDate: datetime("receiptDate").notNull(),
   payerName: varchar("payerName", { length: 255 }),
@@ -2207,6 +2214,29 @@ export const receiptVouchers = mysqlTable("receipt_vouchers", {
 
 export type ReceiptVoucher = typeof receiptVouchers.$inferSelect;
 export type InsertReceiptVoucher = typeof receiptVouchers.$inferInsert;
+
+// An append-only cash allocation ledger. Positive amounts enter the fund and
+// negative amounts leave it. A purpose ID remains stable if its display name changes.
+export const fundMovements = mysqlTable("fund_movements", {
+  id: int("id").primaryKey().autoincrement(),
+  eventKey: varchar("eventKey", { length: 120 }).notNull().unique(),
+  movementType: mysqlEnum("movementType", ["receipt", "receipt_reversal", "surplus", "administrative", "operational", "disbursement", "disbursement_reversal"]).notNull(),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  restrictionType: mysqlEnum("restrictionType", ["general", "purpose", "project"]).notNull().default("general"),
+  donationPurposeId: int("donationPurposeId"),
+  donationPurposeName: varchar("donationPurposeName", { length: 255 }),
+  restrictedProjectId: int("restrictedProjectId"),
+  projectId: int("projectId"),
+  voucherId: int("voucherId"),
+  requestId: int("requestId"),
+  disbursementOrderId: int("disbursementOrderId"),
+  sourceDetailsJson: text("sourceDetailsJson"),
+  notes: text("notes"),
+  createdById: int("createdById"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FundMovement = typeof fundMovements.$inferSelect;
 
 // ==================== طلبات التبرعات والاستفسارات العامة (بدون حساب مستخدم) ====================
 export const publicSubmissions = mysqlTable("public_submissions", {

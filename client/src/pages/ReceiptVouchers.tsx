@@ -523,8 +523,8 @@ export default function ReceiptVouchers() {
 
         const projectOrType = v.projectId 
           ? (v.projectName || `مشروع #${v.projectId}`)
-          : v.notes?.startsWith("مصرف التبرع:")
-          ? v.notes.split(" | ")[0].replace("مصرف التبرع:", "سند مقيد:").trim()
+          : v.category === "restricted" || v.notes?.startsWith("مصرف التبرع:")
+          ? `سند مقيد: ${v.donationPurposeName || v.notes?.split(" | ")[0].replace("مصرف التبرع:", "").trim()}`
           : "سند قبض غير مقيد";
 
         worksheet.addRow([
@@ -794,9 +794,9 @@ export default function ReceiptVouchers() {
                                   </span>
                                 )}
                               </button>
-                            ) : voucher.notes?.startsWith("مصرف التبرع:") ? (
+                            ) : voucher.category === "restricted" || voucher.notes?.startsWith("مصرف التبرع:") ? (
                               <Badge variant="outline" className="bg-blue-50 text-blue-900 border-blue-200 text-[11px] font-semibold">
-                                {voucher.notes.split(" | ")[0].replace("مصرف التبرع:", "سند مقيد:").trim()}
+                                سند مقيد: {voucher.donationPurposeName || voucher.notes?.split(" | ")[0].replace("مصرف التبرع:", "").trim()}
                               </Badge>
                             ) : (
                               <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-200 text-[11px] font-semibold">

@@ -280,6 +280,10 @@ export default function NewReceiptVoucherPage() {
 
     createVoucherMutation.mutate({
       projectId: category === "project_linked" ? activeProjectId : null,
+      category,
+      donationPurposeId: category === "restricted"
+        ? (donationPurposesData?.values || []).find((value: any) => (value.valueAr || value.value) === donationPurpose)?.id
+        : undefined,
       amount: parseFloat(amount),
       receiptDate: receiptDate,
       payerName: fullPayerName,
@@ -504,6 +508,9 @@ export default function NewReceiptVoucherPage() {
                       </div>
                     </button>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    يُودع السند غير المقيد في الرصيد العام للصندوق فور اعتماده، ويُودع السند المقيد في رصيد مصرف التبرع المحدد.
+                  </p>
                 </div>
               </CardContent>
               <CardFooter className="border-t border-border/40 pt-4 flex justify-end gap-2">

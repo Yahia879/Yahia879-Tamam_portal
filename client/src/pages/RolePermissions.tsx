@@ -786,6 +786,14 @@ export default function RolePermissions() {
           ]
         },
         {
+          id: "fund", nameAr: "الصندوق", icon: Wallet,
+          permissions: [
+            { id: "fund.view", nameAr: "عرض الصندوق" },
+            { id: "fund.transfer", nameAr: "تحويل إلى الصندوق" },
+            { id: "fund.disburse", nameAr: "طلب صرف من الصندوق" },
+          ]
+        },
+        {
           id: "disbursement_orders",
           nameAr: "أوامر الصرف",
           icon: Banknote,
@@ -1015,6 +1023,14 @@ export default function RolePermissions() {
           ]
         },
         {
+          id: "fund", nameAr: "الصندوق", icon: Wallet,
+          permissions: [
+            { id: "fund.view", nameAr: "عرض الصندوق" },
+            { id: "fund.transfer", nameAr: "تحويل إلى الصندوق" },
+            { id: "fund.disburse", nameAr: "طلب صرف من الصندوق" },
+          ]
+        },
+        {
           id: "disbursement_orders",
           nameAr: "أوامر الصرف",
           icon: Banknote,
@@ -1139,6 +1155,7 @@ export default function RolePermissions() {
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "exception_approve"] },
+        { id: "fund", nameAr: "الصندوق", icon: Wallet, perms: ["view", "transfer", "disburse"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind", "cancel_executed"] },
         { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create"] },
       ]

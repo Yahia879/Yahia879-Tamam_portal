@@ -2284,6 +2284,7 @@ export default function ContractForm() {
       id: approvedSupplierQuotation.supplierId,
       name: approvedSupplierQuotation.supplierName,
     } : null);
+    const supplierDetails = supplier && "commercialRegister" in supplier ? supplier : null;
 
     // عنوان افتراضي في حال لم يتم إدخاله بعد
     const defaultTitle = contractData.subject?.trim() 
@@ -2300,15 +2301,15 @@ export default function ContractForm() {
       
       // بيانات الطرف الثاني
       secondPartyName: supplier?.name || "غير محدد (مسودة)",
-      secondPartyCommercialRegister: supplier?.commercialRegister || undefined,
-      secondPartyRepresentative: supplier?.contactPerson || undefined,
-      secondPartyTitle: supplier?.contactPersonTitle || undefined,
-      secondPartyAddress: supplier?.address || undefined,
-      secondPartyPhone: supplier?.phone || undefined,
-      secondPartyEmail: supplier?.email || undefined,
-      secondPartyBankName: supplier?.bankName || undefined,
-      secondPartyIban: supplier?.iban || undefined,
-      secondPartyAccountName: supplier?.bankAccountName || undefined,
+      secondPartyCommercialRegister: supplierDetails?.commercialRegister || undefined,
+      secondPartyRepresentative: supplierDetails?.contactPerson || undefined,
+      secondPartyTitle: supplierDetails?.contactPersonTitle || undefined,
+      secondPartyAddress: supplierDetails?.address || undefined,
+      secondPartyPhone: supplierDetails?.phone || undefined,
+      secondPartyEmail: supplierDetails?.email || undefined,
+      secondPartyBankName: supplierDetails?.bankName || undefined,
+      secondPartyIban: supplierDetails?.iban || undefined,
+      secondPartyAccountName: supplierDetails?.bankAccountName || undefined,
       
       // قيمة ومدة العقد
       contractAmount: contractData.totalValue || 0,

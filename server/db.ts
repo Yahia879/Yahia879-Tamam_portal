@@ -73,6 +73,65 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // Central fund: keep the original receipt intact and record each allocation.
+    const [voucherCols] = await promisePool.query("SHOW COLUMNS FROM receipt_vouchers") as any[];
+    const voucherFields = new Set((voucherCols as any[]).map((c: any) => c.Field));
+    if (!voucherFields.has("category")) await promisePool.query("ALTER TABLE receipt_vouchers ADD COLUMN category ENUM('project_linked','restricted','unrestricted') NOT NULL DEFAULT 'project_linked'");
+    if (!voucherFields.has("donationPurposeId")) await promisePool.query("ALTER TABLE receipt_vouchers ADD COLUMN donationPurposeId INT NULL");
+    if (!voucherFields.has("donationPurposeName")) await promisePool.query("ALTER TABLE receipt_vouchers ADD COLUMN donationPurposeName VARCHAR(255) NULL");
+
+    const [requestCols] = await promisePool.query("SHOW COLUMNS FROM disbursement_requests") as any[];
+    const requestFields = new Set((requestCols as any[]).map((c: any) => c.Field));
+    if (!requestFields.has("fundRestrictionType")) await promisePool.query("ALTER TABLE disbursement_requests ADD COLUMN fundRestrictionType ENUM('general','purpose','project') NULL");
+    if (!requestFields.has("fundPurposeId")) await promisePool.query("ALTER TABLE disbursement_requests ADD COLUMN fundPurposeId INT NULL");
+    if (!requestFields.has("fundPurposeName")) await promisePool.query("ALTER TABLE disbursement_requests ADD COLUMN fundPurposeName VARCHAR(255) NULL");
+    if (!requestFields.has("fundRestrictedProjectId")) await promisePool.query("ALTER TABLE disbursement_requests ADD COLUMN fundRestrictedProjectId INT NULL");
+
+    await promisePool.query(`CREATE TABLE IF NOT EXISTS fund_movements (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      eventKey VARCHAR(120) NOT NULL UNIQUE,
+      movementType ENUM('receipt','receipt_reversal','surplus','administrative','operational','disbursement','disbursement_reversal') NOT NULL,
+      amount DECIMAL(15,2) NOT NULL,
+      restrictionType ENUM('general','purpose','project') NOT NULL DEFAULT 'general',
+      donationPurposeId INT NULL,
+      donationPurposeName VARCHAR(255) NULL,
+      restrictedProjectId INT NULL,
+      projectId INT NULL,
+      voucherId INT NULL,
+      requestId INT NULL,
+      disbursementOrderId INT NULL,
+      sourceDetailsJson TEXT NULL,
+      notes TEXT NULL,
+      createdById INT NULL,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_fund_bucket (restrictionType, donationPurposeId, restrictedProjectId),
+      INDEX idx_fund_project_type (projectId, movementType),
+      INDEX idx_fund_voucher (voucherId)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+    await promisePool.query("CREATE TABLE IF NOT EXISTS fund_lock (id INT PRIMARY KEY) ENGINE=InnoDB");
+    await promisePool.query("INSERT IGNORE INTO fund_lock (id) VALUES (1)");
+    // The former UI stored the restriction in notes. Preserve that historical label.
+    await promisePool.query(`UPDATE receipt_vouchers
+      SET category = IF(notes LIKE 'مصرف التبرع:%', 'restricted', 'unrestricted'),
+          donationPurposeName = IF(notes LIKE 'مصرف التبرع:%', LEFT(TRIM(SUBSTRING_INDEX(SUBSTRING(notes, CHAR_LENGTH('مصرف التبرع:') + 1), '|', 1)), 255), NULL)
+      WHERE projectId IS NULL AND category = 'project_linked'`);
+    await promisePool.query(`INSERT INTO categories (name, nameAr, type, sortOrder, isActive)
+      SELECT DISTINCT LEFT(rv.donationPurposeName, 100), LEFT(rv.donationPurposeName, 100), 'donation_purposes', 0, 1
+      FROM receipt_vouchers rv LEFT JOIN categories c
+        ON c.type = 'donation_purposes' AND c.nameAr = LEFT(rv.donationPurposeName, 100)
+      WHERE rv.category = 'restricted' AND rv.donationPurposeName IS NOT NULL
+        AND rv.donationPurposeName <> '' AND c.id IS NULL`);
+    await promisePool.query(`UPDATE receipt_vouchers rv
+      JOIN categories c ON c.type = 'donation_purposes' AND c.nameAr = LEFT(rv.donationPurposeName, 100)
+      SET rv.donationPurposeId = c.id
+      WHERE rv.category = 'restricted' AND rv.donationPurposeId IS NULL`);
+    await promisePool.query(`INSERT IGNORE INTO fund_movements
+      (eventKey, movementType, amount, restrictionType, donationPurposeId, donationPurposeName, voucherId, notes, createdById, createdAt)
+      SELECT CONCAT('receipt:', id, ':deposit'), 'receipt', amount,
+        IF(category = 'restricted', 'purpose', 'general'), donationPurposeId, donationPurposeName,
+        id, CONCAT('إيداع تلقائي من سند القبض ', voucherNumber), createdById, COALESCE(approvedAt, receiptDate, createdAt)
+      FROM receipt_vouchers WHERE projectId IS NULL AND status = 'approved' AND category IN ('restricted','unrestricted')`);
+
     // نقل الملاحظات السابقة إلى الجدول الجديد إذا لم تكن منقولة
     await promisePool.query(`
       INSERT INTO disbursement_order_notes (orderId, userId, userName, userRole, side, content, createdAt)

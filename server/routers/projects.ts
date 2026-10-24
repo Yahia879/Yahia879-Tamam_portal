@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { projects, projectMosques, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, disbursementOrders, requestEvaluations, projectFinancialDetails, receiptVouchers, userPermissions, requestNumberSequence, requestHistory, auditLogs, progressReports } from "../../drizzle/schema";
+import { projects, projectMosques, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, disbursementOrders, requestEvaluations, projectFinancialDetails, receiptVouchers, fundMovements, userPermissions, requestNumberSequence, requestHistory, auditLogs, progressReports, categories } from "../../drizzle/schema";
 import { eq, desc, asc, and, sql, inArray, notInArray, or, ne, like, isNull, isNotNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { checkPermission } from "../permissions";
 import { notifyProjectManagerAssigned, notifyQuotationCreation, notifyQuotationApproval } from "./notifications";
 import { numberToArabicText } from "../../shared/tafqeet";
+import { lockFund, postVoucherDeposit, reverseVoucherDeposit } from "../fund";
 
 // توليد رقم مشروع بمنهجية سنوية فريدة وآمنة تمنع أي تكرار
 export async function generateProjectNumber(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<string> {
@@ -4404,6 +4405,9 @@ export const projectsRouter = router({
           id: receiptVouchers.id,
           voucherNumber: receiptVouchers.voucherNumber,
           projectId: receiptVouchers.projectId,
+          category: receiptVouchers.category,
+          donationPurposeId: receiptVouchers.donationPurposeId,
+          donationPurposeName: receiptVouchers.donationPurposeName,
           amount: receiptVouchers.amount,
           receiptDate: receiptVouchers.receiptDate,
           payerName: receiptVouchers.payerName,
@@ -4661,6 +4665,8 @@ export const projectsRouter = router({
           id: receiptVouchers.id,
           voucherNumber: receiptVouchers.voucherNumber,
           projectId: receiptVouchers.projectId,
+          category: receiptVouchers.category,
+          donationPurposeName: receiptVouchers.donationPurposeName,
           amount: receiptVouchers.amount,
           receiptDate: receiptVouchers.receiptDate,
           payerName: receiptVouchers.payerName,
@@ -4704,6 +4710,8 @@ export const projectsRouter = router({
   createReceiptVoucher: protectedProcedure
     .input(z.object({
       projectId: z.number().optional().nullable(),
+      category: z.enum(["project_linked", "restricted", "unrestricted"]).optional(),
+      donationPurposeId: z.number().int().positive().optional(),
       amount: z.number().positive("يرجى إدخال مبلغ صحيح أكبر من 0"),
       receiptDate: z.string().min(1, "يرجى تحديد تاريخ القبض"),
       payerName: z.string().optional(),
@@ -4732,9 +4740,25 @@ export const projectsRouter = router({
 
       const voucherNumber = await resequenceVoucherNumbers(db);
 
+      const category = input.projectId ? "project_linked" : (input.category || "unrestricted");
+      if ((category === "project_linked") !== Boolean(input.projectId)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "نوع السند لا يطابق ربط المشروع" });
+      }
+      let purpose: typeof categories.$inferSelect | undefined;
+      if (category === "restricted") {
+        if (!input.donationPurposeId) throw new TRPCError({ code: "BAD_REQUEST", message: "مصرف التبرع مطلوب" });
+        [purpose] = await db.select().from(categories).where(and(
+          eq(categories.id, input.donationPurposeId), eq(categories.type, "donation_purposes"), eq(categories.isActive, true),
+        )).limit(1);
+        if (!purpose) throw new TRPCError({ code: "BAD_REQUEST", message: "مصرف التبرع غير صالح" });
+      }
+
       await db.insert(receiptVouchers).values({
         voucherNumber,
         projectId: input.projectId && input.projectId > 0 ? input.projectId : null,
+        category,
+        donationPurposeId: purpose?.id || null,
+        donationPurposeName: purpose?.nameAr || null,
         amount: input.amount.toString(),
         receiptDate: new Date(input.receiptDate),
         payerName: input.payerName || "",
@@ -4752,115 +4776,13 @@ export const projectsRouter = router({
 
   transferProjectSurplusToReceiptVoucher: protectedProcedure
     .input(z.object({
-      projectId: z.number(),
-      targetType: z.enum(["restricted", "unrestricted"]),
-      donationPurpose: z.string().optional(),
-      amount: z.number().positive("يرجى إدخال مبلغ تحويل صحيح أكبر من 0"),
-      receiptDate: z.string().min(1, "يرجى تحديد تاريخ السند"),
-      payerName: z.string().min(1, "يرجى تحديد اسم الداعم"),
-      paymentMethod: z.string().optional(),
-      referenceNumber: z.string().optional(),
-      bankName: z.string().optional(),
-      notes: z.string().optional(),
+      projectId: z.number(), targetType: z.enum(["restricted", "unrestricted"]),
+      donationPurpose: z.string().optional(), amount: z.number(), receiptDate: z.string(),
+      payerName: z.string(), paymentMethod: z.string().optional(), referenceNumber: z.string().optional(),
+      bankName: z.string().optional(), notes: z.string().optional(),
     }))
-    .mutation(async ({ input, ctx }) => {
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
-
-      const [project] = await db.select().from(projects).where(eq(projects.id, input.projectId));
-      if (!project) throw new TRPCError({ code: "NOT_FOUND", message: "المشروع غير موجود" });
-
-      // جلب وترتيب سندات القبض المعتمدة للمشروع للخصم من سندات الداعم محدد الفائض أولاً
-      const projectVouchers = await db
-        .select()
-        .from(receiptVouchers)
-        .where(and(
-          eq(receiptVouchers.projectId, input.projectId),
-          eq(receiptVouchers.status, "approved")
-        ))
-        .orderBy(desc(receiptVouchers.receiptDate), desc(receiptVouchers.id));
-
-      if (projectVouchers.length === 0) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "لا توجد سندات قبض معتمدة لهذا المشروع لتحويل الفائض منها"
-        });
-      }
-
-      // فرز السندات لإعطاء الأولوية لسندات الداعم المسدد للفائض
-      const cleanInputPayer = (input.payerName || "").replace(/^(السيد|السيدة|السادة)\s*(\/|-)?\s*/, "").trim().toLowerCase();
-      const sortedVouchers = [...projectVouchers].sort((a, b) => {
-        const aClean = (a.payerName || "").replace(/^(السيد|السيدة|السادة)\s*(\/|-)?\s*/, "").trim().toLowerCase();
-        const bClean = (b.payerName || "").replace(/^(السيد|السيدة|السادة)\s*(\/|-)?\s*/, "").trim().toLowerCase();
-        const aMatch = cleanInputPayer && (aClean.includes(cleanInputPayer) || cleanInputPayer.includes(aClean));
-        const bMatch = cleanInputPayer && (bClean.includes(cleanInputPayer) || cleanInputPayer.includes(bClean));
-        if (aMatch && !bMatch) return -1;
-        if (!aMatch && bMatch) return 1;
-        return 0;
-      });
-
-      let remainingToDeduct = input.amount;
-
-      // خصم مبلغ التحويل من سندات الداعم المعتمدة للمشروع
-      for (const v of sortedVouchers) {
-        if (remainingToDeduct <= 0) break;
-        const vAmt = parseFloat(v.amount.toString() || "0");
-        if (vAmt <= 0) continue;
-
-        if (vAmt >= remainingToDeduct) {
-          const newAmt = vAmt - remainingToDeduct;
-          await db.update(receiptVouchers)
-            .set({
-              amount: newAmt.toString(),
-              notes: `${v.notes ? `${v.notes} | ` : ""}تم استقطاع (${remainingToDeduct.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال) كفائض محول لسند قبض مستقل للداعم`,
-              updatedAt: new Date(),
-            })
-            .where(eq(receiptVouchers.id, v.id));
-          remainingToDeduct = 0;
-        } else {
-          await db.update(receiptVouchers)
-            .set({
-              amount: "0",
-              notes: `${v.notes ? `${v.notes} | ` : ""}تم تحويل كامل مبلغ السند (${vAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال) كفائض محول لسند مستقل للداعم`,
-              updatedAt: new Date(),
-            })
-            .where(eq(receiptVouchers.id, v.id));
-          remainingToDeduct -= vAmt;
-        }
-      }
-
-      // تجهيز بيان السند الجديد المنشأ
-      let finalNotes = "";
-      if (input.targetType === "restricted") {
-        const purpose = input.donationPurpose?.trim() || "عام";
-        finalNotes = `مصرف التبرع: ${purpose} | ${input.notes?.trim() || `تم تحويله من فائض مقبوضات المشروع ${project.projectNumber} (${project.name})`}`;
-      } else {
-        finalNotes = input.notes?.trim() || `سند قبض غير مقيد - تم تحويله من فائض مقبوضات المشروع ${project.projectNumber} (${project.name})`;
-      }
-
-      // إنشاء سند القبض الجديد المستقل (معتمد ورقم تسلسلي رسمي)
-      const voucherNumber = await resequenceVoucherNumbers(db);
-
-      await db.insert(receiptVouchers).values({
-        voucherNumber,
-        projectId: null,
-        amount: input.amount.toString(),
-        receiptDate: new Date(input.receiptDate),
-        payerName: input.payerName,
-        paymentMethod: input.paymentMethod || "bank_transfer",
-        referenceNumber: input.referenceNumber || "",
-        bankName: input.bankName || "مصرف الراجحي",
-        attachmentUrl: "",
-        notes: finalNotes,
-        status: "approved",
-        createdById: ctx.user.id,
-        approvedBy: ctx.user.id,
-        approvedAt: new Date(),
-      });
-
-      await resequenceVoucherNumbers(db);
-
-      return { success: true, voucherNumber };
+    .mutation(() => {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "استخدم تحويل الفائض إلى الصندوق من صفحة مالية المشروع" });
     }),
 
   updateReceiptVoucher: protectedProcedure
@@ -4923,6 +4845,12 @@ export const projectsRouter = router({
         });
       }
 
+      const [fundEntry] = await db.select({ id: fundMovements.id }).from(fundMovements)
+        .where(eq(fundMovements.voucherId, input.id)).limit(1);
+      if (fundEntry) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "لا يمكن حذف سند قبض له حركات محفوظة في الصندوق" });
+      }
+
       await db.delete(receiptVouchers).where(eq(receiptVouchers.id, input.id));
       return { success: true };
     }),
@@ -4950,13 +4878,18 @@ export const projectsRouter = router({
         });
       }
 
-      await db.update(receiptVouchers)
-        .set({
-          status: "approved",
-          rejectionReason: null,
-          updatedAt: new Date(),
-        })
-        .where(eq(receiptVouchers.id, input.id));
+      await db.transaction(async (tx) => {
+        await lockFund(tx);
+        const [currentVoucher] = await tx.select().from(receiptVouchers)
+          .where(eq(receiptVouchers.id, input.id)).limit(1);
+        if (!currentVoucher || currentVoucher.status === "approval_revoked") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن اعتماد سند أُلغي اعتماده" });
+        }
+        await tx.update(receiptVouchers)
+          .set({ status: "approved", rejectionReason: null, approvedBy: ctx.user.id, approvedAt: new Date(), updatedAt: new Date() })
+          .where(eq(receiptVouchers.id, input.id));
+        await postVoucherDeposit(tx, { ...currentVoucher, status: "approved" }, ctx.user.id);
+      });
 
       await resequenceVoucherNumbers(db);
 
@@ -4985,13 +4918,16 @@ export const projectsRouter = router({
       const [voucher] = await db.select().from(receiptVouchers).where(eq(receiptVouchers.id, input.id));
       if (!voucher) throw new TRPCError({ code: "NOT_FOUND", message: "سند القبض غير موجود" });
 
-      await db.update(receiptVouchers)
-        .set({
-          status: "approval_revoked",
-          rejectionReason: input.revocationReason.trim(),
-          updatedAt: new Date(),
-        })
-        .where(eq(receiptVouchers.id, input.id));
+      await db.transaction(async (tx) => {
+        await lockFund(tx);
+        const [currentVoucher] = await tx.select().from(receiptVouchers)
+          .where(eq(receiptVouchers.id, input.id)).limit(1);
+        if (!currentVoucher) throw new TRPCError({ code: "NOT_FOUND", message: "سند القبض غير موجود" });
+        if (currentVoucher.status === "approved") await reverseVoucherDeposit(tx, currentVoucher, ctx.user.id, input.revocationReason.trim());
+        await tx.update(receiptVouchers)
+          .set({ status: "approval_revoked", rejectionReason: input.revocationReason.trim(), updatedAt: new Date() })
+          .where(eq(receiptVouchers.id, input.id));
+      });
 
       return { success: true };
     }),
@@ -5025,13 +4961,18 @@ export const projectsRouter = router({
         });
       }
 
-      await db.update(receiptVouchers)
-        .set({
-          status: "rejected",
-          rejectionReason: input.rejectionReason?.trim() || "مرفوض",
-          updatedAt: new Date(),
-        })
-        .where(eq(receiptVouchers.id, input.id));
+      await db.transaction(async (tx) => {
+        await lockFund(tx);
+        const [currentVoucher] = await tx.select().from(receiptVouchers)
+          .where(eq(receiptVouchers.id, input.id)).limit(1);
+        if (!currentVoucher || currentVoucher.status === "approval_revoked") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن رفض سند أُلغي اعتماده" });
+        }
+        if (currentVoucher.status === "approved") await reverseVoucherDeposit(tx, currentVoucher, ctx.user.id, input.rejectionReason?.trim() || "مرفوض");
+        await tx.update(receiptVouchers)
+          .set({ status: "rejected", rejectionReason: input.rejectionReason?.trim() || "مرفوض", updatedAt: new Date() })
+          .where(eq(receiptVouchers.id, input.id));
+      });
 
       return { success: true };
     }),
@@ -5064,19 +5005,22 @@ export const projectsRouter = router({
         });
       }
 
-      await db.update(receiptVouchers)
-        .set({
-          status: "approved",
-          isException: 1,
-          exceptionApprovedBy: ctx.user.id,
-          exceptionApprovedAt: new Date(),
-          exceptionReason: input.reason.trim(),
-          approvedBy: ctx.user.id,
-          approvedAt: new Date(),
-          rejectionReason: null,
-          updatedAt: new Date(),
-        })
-        .where(eq(receiptVouchers.id, input.id));
+      await db.transaction(async (tx) => {
+        await lockFund(tx);
+        const [currentVoucher] = await tx.select().from(receiptVouchers)
+          .where(eq(receiptVouchers.id, input.id)).limit(1);
+        if (!currentVoucher || currentVoucher.status === "approved") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "سند القبض معتمد بالفعل أو غير موجود" });
+        }
+        await tx.update(receiptVouchers)
+          .set({
+            status: "approved", isException: 1, exceptionApprovedBy: ctx.user.id,
+            exceptionApprovedAt: new Date(), exceptionReason: input.reason.trim(),
+            approvedBy: ctx.user.id, approvedAt: new Date(), rejectionReason: null, updatedAt: new Date(),
+          })
+          .where(eq(receiptVouchers.id, input.id));
+        await postVoucherDeposit(tx, { ...currentVoucher, status: "approved" }, ctx.user.id);
+      });
 
       await resequenceVoucherNumbers(db);
 
@@ -5096,6 +5040,8 @@ export const projectsRouter = router({
           id: receiptVouchers.id,
           voucherNumber: receiptVouchers.voucherNumber,
           projectId: receiptVouchers.projectId,
+          category: receiptVouchers.category,
+          donationPurposeName: receiptVouchers.donationPurposeName,
           amount: receiptVouchers.amount,
           receiptDate: receiptVouchers.receiptDate,
           payerName: receiptVouchers.payerName,
