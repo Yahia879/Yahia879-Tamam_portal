@@ -82,7 +82,7 @@ import {
   Check,
   UserPlus,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 
@@ -159,10 +159,28 @@ const submissionTypeLabels: Record<string, { label: string; shortLabel: string; 
 export default function RequesterApprovals() {
   const { user: currentUser } = useAuth();
   const [, navigate] = useLocation();
-  const hasApprovePermission = usePermission("requesters.approve");
-  const hasViewPermission = usePermission("requesters.view");
-  const canCreateRequester = usePermission("requesters.create");
-  const canApprove = hasApprovePermission;
+  // الصلاحيات الدقيقة لكل تبويب من تبويبات إدارة المستفيدين
+  const canViewAccounts = usePermission("requester_accounts.view") || usePermission("requesters.view");
+  const canCreateAccounts = usePermission("requester_accounts.create") || usePermission("requesters.create");
+  const canApproveAccounts = usePermission("requester_accounts.approve") || usePermission("requesters.approve");
+  const canSuspendAccounts = usePermission("requester_accounts.suspend") || usePermission("requesters.approve");
+
+  const canViewExceptions = usePermission("requester_exceptions.view") || usePermission("requesters.view");
+  const canReviewExceptions = usePermission("requester_exceptions.review") || usePermission("requesters.approve");
+
+  const canViewDonations = usePermission("requester_donations.view") || usePermission("requesters.view");
+  const canReviewDonations = usePermission("requester_donations.review") || usePermission("requesters.approve");
+  const canDeleteDonations = usePermission("requester_donations.delete");
+
+  const canViewInquiries = usePermission("requester_inquiries.view") || usePermission("requesters.view");
+  const canReviewInquiries = usePermission("requester_inquiries.review") || usePermission("requesters.approve");
+  const canDeleteInquiries = usePermission("requester_inquiries.delete");
+
+  const canViewSedana = usePermission("requester_sedana.view") || usePermission("requesters.view");
+  const canReviewSedana = usePermission("requester_sedana.review") || usePermission("requesters.approve");
+
+  const hasAnyPermission = canViewAccounts || canViewExceptions || canViewDonations || canViewInquiries || canViewSedana;
+
   const emptyRequester = {
     name: "", email: "", phone: "", password: "", confirmPassword: "", nationalId: "", city: "",
     requesterType: "imam" as "imam" | "muezzin",
@@ -170,7 +188,7 @@ export default function RequesterApprovals() {
   const [showCreateRequester, setShowCreateRequester] = useState(false);
   const [newRequester, setNewRequester] = useState(emptyRequester);
   const { data: requesterCities, isLoading: isLoadingRequesterCities } = trpc.categories.getCategoryByType.useQuery(
-    { type: "city" }, { enabled: canCreateRequester }
+    { type: "city" }, { enabled: canCreateAccounts }
   );
 
   const [search, setSearch] = useState("");
@@ -181,8 +199,30 @@ export default function RequesterApprovals() {
     action: "active" | "suspended";
   } | null>(null);
 
-  // التبويبات: حسابات | استثناءات | تبرعات غير مالية | استفسارات عامة | استفسارات سدانة
-  const [activeTab, setActiveTab] = useState<'requests' | 'exceptions' | 'donations' | 'inquiries' | 'sedana_inquiries'>('requests');
+  // التبويبات المتاحة للمستخدم بناءً على صلاحياته
+  const availableTabs = [
+    canViewAccounts && ('requests' as const),
+    canViewExceptions && ('exceptions' as const),
+    canViewDonations && ('donations' as const),
+    canViewInquiries && ('inquiries' as const),
+    canViewSedana && ('sedana_inquiries' as const),
+  ].filter(Boolean) as ('requests' | 'exceptions' | 'donations' | 'inquiries' | 'sedana_inquiries')[];
+
+  const [activeTab, setActiveTab] = useState<'requests' | 'exceptions' | 'donations' | 'inquiries' | 'sedana_inquiries'>(() => {
+    if (canViewAccounts) return 'requests';
+    if (canViewExceptions) return 'exceptions';
+    if (canViewDonations) return 'donations';
+    if (canViewInquiries) return 'inquiries';
+    if (canViewSedana) return 'sedana_inquiries';
+    return 'requests';
+  });
+
+  useEffect(() => {
+    if (availableTabs.length > 0 && !availableTabs.includes(activeTab)) {
+      setActiveTab(availableTabs[0]);
+    }
+  }, [canViewAccounts, canViewExceptions, canViewDonations, canViewInquiries, canViewSedana, activeTab]);
+
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // استفسارات وتأهيل سدانة
@@ -199,12 +239,12 @@ export default function RequesterApprovals() {
   const { data: activePrograms = [] } = trpc.programs.getActive.useQuery();
 
   const { data: sedanaStats = { total: 0, pending: 0, approved: 0, rejected: 0 } } = trpc.sedanaInquiries.getInquiriesStats.useQuery(undefined, {
-    enabled: hasViewPermission || hasApprovePermission,
+    enabled: canViewSedana,
   });
 
   const { data: sedanaInquiriesList = [], isLoading: isLoadingSedanaInquiries, refetch: refetchSedanaInquiries } = trpc.sedanaInquiries.getAllInquiries.useQuery(
     { status: sedanaStatusFilter, search: sedanaSearch },
-    { enabled: (hasViewPermission || hasApprovePermission) && activeTab === 'sedana_inquiries' }
+    { enabled: canViewSedana && activeTab === 'sedana_inquiries' }
   );
 
   const reviewSedanaInquiryMutation = trpc.sedanaInquiries.reviewInquiry.useMutation({
@@ -241,7 +281,7 @@ export default function RequesterApprovals() {
 
   // طلبات الاستثناء
   const { data: exceptionRequests = [], refetch: refetchExceptions } = trpc.requests.getExceptionRequests.useQuery(undefined, {
-    enabled: hasViewPermission || hasApprovePermission
+    enabled: canViewExceptions
   });
 
   const reviewExceptionMutation = trpc.requests.reviewException.useMutation({
@@ -278,6 +318,8 @@ export default function RequesterApprovals() {
   const { data: usersResponse, isLoading, refetch } = trpc.users.getAll.useQuery({
     role: "service_requester",
     limit: 100,
+  }, {
+    enabled: canViewAccounts
   });
 
   const toggleStatus = trpc.users.toggleStatus.useMutation({
@@ -310,6 +352,8 @@ export default function RequesterApprovals() {
     submissionType: donationTypeFilter !== "all" ? donationTypeFilter : undefined,
     status: donationStatusFilter !== "all" ? donationStatusFilter : undefined,
     search: submissionSearch || undefined,
+  }, {
+    enabled: canViewDonations
   });
 
   // جلب الاستفسارات العامة
@@ -321,10 +365,14 @@ export default function RequesterApprovals() {
     submissionType: "general_inquiry",
     status: inquiryStatusFilter !== "all" ? inquiryStatusFilter : undefined,
     search: submissionSearch || undefined,
+  }, {
+    enabled: canViewInquiries
   });
 
   // جلب إحصائيات التبرعات والاستفسارات
-  const { data: submissionStats, refetch: refetchSubmissionStats } = trpc.publicSubmissions.getStats.useQuery();
+  const { data: submissionStats, refetch: refetchSubmissionStats } = trpc.publicSubmissions.getStats.useQuery(undefined, {
+    enabled: canViewDonations || canViewInquiries
+  });
 
   // تحديث حالة الطلب الخارجي والملاحظات
   const updateSubmissionMutation = trpc.publicSubmissions.updateStatus.useMutation({
@@ -397,6 +445,18 @@ export default function RequesterApprovals() {
   const pendingDonationsCount = submissionStats?.donations?.pending || 0;
   const pendingInquiriesCount = submissionStats?.inquiries?.pending || 0;
 
+  if (!hasAnyPermission) {
+    return (
+      <DashboardLayout>
+        <div className="container py-20 text-center">
+          <Shield className="w-16 h-16 text-destructive mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-destructive">عذراً، لا تملك صلاحية للوصول إلى قسم إدارة المستفيدين</h2>
+          <Button variant="outline" className="mt-4" onClick={() => navigate("/")}>العودة للرئيسية</Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6 w-full max-w-full pb-12 font-['Cairo',sans-serif]">
@@ -413,7 +473,7 @@ export default function RequesterApprovals() {
               </p>
             </div>
           </div>
-          {hasViewPermission && canCreateRequester && (
+          {canCreateAccounts && (
             <Button className="gap-2 self-start sm:self-auto" onClick={() => setShowCreateRequester(true)}>
               <UserPlus className="h-4 w-4" />
               إضافة مستفيد
@@ -421,7 +481,7 @@ export default function RequesterApprovals() {
           )}
         </div>
 
-        {canCreateRequester && (
+        {canCreateAccounts && (
           <Dialog open={showCreateRequester} onOpenChange={(open) => {
             if (createRequester.isPending) return;
             setShowCreateRequester(open);
@@ -502,7 +562,7 @@ export default function RequesterApprovals() {
         )}
 
         {/* بطاقات الإحصائيات المتغيرة بحسب التبويب النشط */}
-        {activeTab === 'requests' && (
+        {activeTab === 'requests' && canViewAccounts && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             <Card className="border border-border/70 shadow-xs rounded-2xl hover:shadow-sm transition-all">
               <CardContent className="p-4 flex items-center gap-3">
@@ -551,7 +611,7 @@ export default function RequesterApprovals() {
           </div>
         )}
 
-        {activeTab === 'donations' && (
+        {activeTab === 'donations' && canViewDonations && (
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
             <Card className="border border-border/70 shadow-xs rounded-2xl">
               <CardContent className="p-4 flex items-center gap-3">
@@ -613,7 +673,7 @@ export default function RequesterApprovals() {
           </div>
         )}
 
-        {activeTab === 'inquiries' && (
+        {activeTab === 'inquiries' && canViewInquiries && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             <Card className="border border-border/70 shadow-xs rounded-2xl">
               <CardContent className="p-4 flex items-center gap-3">
@@ -653,80 +713,90 @@ export default function RequesterApprovals() {
           </div>
         )}
 
-        {/* التبويبات الأربعة المنظمة */}
+        {/* التبويبات المنظمة */}
         <Tabs value={activeTab} onValueChange={(val: any) => setActiveTab(val)} dir="rtl" className="w-full">
           <div className="flex justify-start sm:justify-center w-full mb-6 overflow-x-auto pb-2 sm:pb-0 scrollbar-none">
             <TabsList className="bg-muted/70 p-1.5 inline-flex w-max sm:w-fit h-auto border border-border/80 rounded-2xl shadow-xs whitespace-nowrap gap-1">
-              <TabsTrigger 
-                value="requests" 
-                className="gap-2 px-3.5 sm:px-6 py-2.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-xs text-xs font-bold transition-all rounded-xl shrink-0"
-              >
-                <CheckSquare className="h-4 w-4" />
-                <span>حسابات طالبي الخدمة</span>
-                {stats.pending > 0 && (
-                  <span className="bg-amber-500 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full">
-                    {stats.pending}
-                  </span>
-                )}
-              </TabsTrigger>
+              {canViewAccounts && (
+                <TabsTrigger 
+                  value="requests" 
+                  className="gap-2 px-3.5 sm:px-6 py-2.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-xs text-xs font-bold transition-all rounded-xl shrink-0"
+                >
+                  <CheckSquare className="h-4 w-4" />
+                  <span>حسابات طالبي الخدمة</span>
+                  {stats.pending > 0 && (
+                    <span className="bg-amber-500 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full">
+                      {stats.pending}
+                    </span>
+                  )}
+                </TabsTrigger>
+              )}
 
-              <TabsTrigger 
-                value="exceptions" 
-                className="gap-2 px-3.5 sm:px-6 py-2.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-xs text-xs font-bold transition-all rounded-xl shrink-0"
-              >
-                <FileText className="h-4 w-4" />
-                <span>طلبات الاستثناء</span>
-                {pendingExceptionsCount > 0 && (
-                  <span className="bg-rose-500 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full">
-                    {pendingExceptionsCount}
-                  </span>
-                )}
-              </TabsTrigger>
+              {canViewExceptions && (
+                <TabsTrigger 
+                  value="exceptions" 
+                  className="gap-2 px-3.5 sm:px-6 py-2.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-xs text-xs font-bold transition-all rounded-xl shrink-0"
+                >
+                  <FileText className="h-4 w-4" />
+                  <span>طلبات الاستثناء</span>
+                  {pendingExceptionsCount > 0 && (
+                    <span className="bg-rose-500 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full">
+                      {pendingExceptionsCount}
+                    </span>
+                  )}
+                </TabsTrigger>
+              )}
 
-              <TabsTrigger 
-                value="donations" 
-                className="gap-2 px-3.5 sm:px-6 py-2.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-xs text-xs font-bold transition-all rounded-xl shrink-0"
-              >
-                <Gift className="h-4 w-4 text-teal-600" />
-                <span>طلبات التبرعات</span>
-                {pendingDonationsCount > 0 && (
-                  <span className="bg-teal-600 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full">
-                    {pendingDonationsCount}
-                  </span>
-                )}
-              </TabsTrigger>
+              {canViewDonations && (
+                <TabsTrigger 
+                  value="donations" 
+                  className="gap-2 px-3.5 sm:px-6 py-2.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-xs text-xs font-bold transition-all rounded-xl shrink-0"
+                >
+                  <Gift className="h-4 w-4 text-teal-600" />
+                  <span>طلبات التبرعات</span>
+                  {pendingDonationsCount > 0 && (
+                    <span className="bg-teal-600 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full">
+                      {pendingDonationsCount}
+                    </span>
+                  )}
+                </TabsTrigger>
+              )}
 
-              <TabsTrigger 
-                value="inquiries" 
-                className="gap-2 px-3.5 sm:px-6 py-2.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-xs text-xs font-bold transition-all rounded-xl shrink-0"
-              >
-                <MessageSquareQuote className="h-4 w-4 text-sky-600" />
-                <span>الاستفسارات العامة</span>
-                {pendingInquiriesCount > 0 && (
-                  <span className="bg-sky-600 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full">
-                    {pendingInquiriesCount}
-                  </span>
-                )}
-              </TabsTrigger>
+              {canViewInquiries && (
+                <TabsTrigger 
+                  value="inquiries" 
+                  className="gap-2 px-3.5 sm:px-6 py-2.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-xs text-xs font-bold transition-all rounded-xl shrink-0"
+                >
+                  <MessageSquareQuote className="h-4 w-4 text-sky-600" />
+                  <span>الاستفسارات العامة</span>
+                  {pendingInquiriesCount > 0 && (
+                    <span className="bg-sky-600 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full">
+                      {pendingInquiriesCount}
+                    </span>
+                  )}
+                </TabsTrigger>
+              )}
 
-              <TabsTrigger 
-                value="sedana_inquiries" 
-                className="gap-2 px-3.5 sm:px-6 py-2.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-xs text-xs font-bold transition-all rounded-xl shrink-0"
-              >
-                <Sparkles className="h-4 w-4 text-cyan-600" />
-                <span>طلبات برنامج سدانة</span>
-                {sedanaStats.pending > 0 && (
-                  <span className="bg-cyan-600 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full">
-                    {sedanaStats.pending}
-                  </span>
-                )}
-              </TabsTrigger>
+              {canViewSedana && (
+                <TabsTrigger 
+                  value="sedana_inquiries" 
+                  className="gap-2 px-3.5 sm:px-6 py-2.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-xs text-xs font-bold transition-all rounded-xl shrink-0"
+                >
+                  <Sparkles className="h-4 w-4 text-cyan-600" />
+                  <span>طلبات برنامج سدانة</span>
+                  {sedanaStats.pending > 0 && (
+                    <span className="bg-cyan-600 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full">
+                      {sedanaStats.pending}
+                    </span>
+                  )}
+                </TabsTrigger>
+              )}
             </TabsList>
           </div>
         </Tabs>
 
         {/* 1. تبويب حسابات طالبي الخدمة */}
-        {activeTab === 'requests' && (
+        {activeTab === 'requests' && canViewAccounts && (
           <Card className="border border-border/70 shadow-xs rounded-3xl overflow-hidden">
             <CardHeader className="p-4 sm:p-6 pb-4 border-b border-border/60">
               <div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
@@ -853,32 +923,28 @@ export default function RequesterApprovals() {
                                     <Eye className="w-3.5 h-3.5" />
                                     التفاصيل
                                   </Button>
-                                  {canApprove && (
-                                    <>
-                                      {user.status !== "active" && (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          disabled={toggleStatus.isPending}
-                                          className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-950/30 font-bold rounded-xl gap-1"
-                                          onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
-                                        >
-                                          <CheckCircle2 className="w-3.5 h-3.5 ml-1" />
-                                          اعتماد
-                                        </Button>
-                                      )}
-                                      {user.status === "active" && (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold rounded-xl"
-                                          onClick={() => handleAction(user.id, user.name ?? "المستخدم", "suspended")}
-                                        >
-                                          <XCircle className="w-3.5 h-3.5 ml-1" />
-                                          إيقاف
-                                        </Button>
-                                      )}
-                                    </>
+                                  {user.status !== "active" && canApproveAccounts && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      disabled={toggleStatus.isPending}
+                                      className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-950/30 font-bold rounded-xl gap-1"
+                                      onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
+                                    >
+                                      <CheckCircle2 className="w-3.5 h-3.5 ml-1" />
+                                      اعتماد
+                                    </Button>
+                                  )}
+                                  {user.status === "active" && canSuspendAccounts && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold rounded-xl"
+                                      onClick={() => handleAction(user.id, user.name ?? "المستخدم", "suspended")}
+                                    >
+                                      <XCircle className="w-3.5 h-3.5 ml-1" />
+                                      إيقاف
+                                    </Button>
                                   )}
                                 </div>
                               </TableCell>
@@ -955,48 +1021,44 @@ export default function RequesterApprovals() {
                               <Eye className="w-4 h-4" />
                               عرض التفاصيل
                             </Button>
-                            {canApprove && (
-                              <>
-                                {user.status !== "active" && (
-                                  <Button
-                                    disabled={toggleStatus.isPending}
-                                    className="w-full h-9 bg-green-600 hover:bg-green-700 text-white font-bold gap-2 rounded-xl transition-all"
-                                    onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
-                                  >
-                                    {toggleStatus.isPending && toggleStatus.variables?.userId === user.id ? (
-                                      <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        <span>جاري الاعتماد...</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <CheckCircle2 className="w-4 h-4" />
-                                        <span>اعتماد الحساب</span>
-                                      </>
-                                    )}
-                                  </Button>
+                            {user.status !== "active" && canApproveAccounts && (
+                              <Button
+                                disabled={toggleStatus.isPending}
+                                className="w-full h-9 bg-green-600 hover:bg-green-700 text-white font-bold gap-2 rounded-xl transition-all"
+                                onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
+                              >
+                                {toggleStatus.isPending && toggleStatus.variables?.userId === user.id ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span>جاري الاعتماد...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    <span>اعتماد الحساب</span>
+                                  </>
                                 )}
-                                {user.status === "active" && (
-                                  <Button
-                                    variant="outline"
-                                    disabled={toggleStatus.isPending}
-                                    className="w-full h-9 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold gap-2 rounded-xl transition-all"
-                                    onClick={() => handleAction(user.id, user.name ?? "المستخدم", "suspended")}
-                                  >
-                                    {toggleStatus.isPending && toggleStatus.variables?.userId === user.id ? (
-                                      <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        <span>جاري الإيقاف...</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <XCircle className="w-4 h-4" />
-                                        <span>إيقاف الحساب</span>
-                                      </>
-                                    )}
-                                  </Button>
+                              </Button>
+                            )}
+                            {user.status === "active" && canSuspendAccounts && (
+                              <Button
+                                variant="outline"
+                                disabled={toggleStatus.isPending}
+                                className="w-full h-9 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold gap-2 rounded-xl transition-all"
+                                onClick={() => handleAction(user.id, user.name ?? "المستخدم", "suspended")}
+                              >
+                                {toggleStatus.isPending && toggleStatus.variables?.userId === user.id ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span>جاري الإيقاف...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <XCircle className="w-4 h-4" />
+                                    <span>إيقاف الحساب</span>
+                                  </>
                                 )}
-                              </>
+                              </Button>
                             )}
                           </div>
                         </div>
@@ -1010,7 +1072,7 @@ export default function RequesterApprovals() {
         )}
 
         {/* 2. تبويب طلبات الاستثناء */}
-        {activeTab === 'exceptions' && (
+        {activeTab === 'exceptions' && canViewExceptions && (
           <Card className="border border-border/70 shadow-xs rounded-3xl overflow-hidden animate-in fade-in-50 duration-200">
             <CardHeader className="p-4 sm:p-6 pb-4 border-b border-border/60">
               <div>
@@ -1097,7 +1159,7 @@ export default function RequesterApprovals() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-left pl-6">
-                            {item.exception.status === "pending" && canApprove ? (
+                            {item.exception.status === "pending" && canReviewExceptions ? (
                               <div className="flex items-center gap-1.5 justify-end">
                                 <Button
                                   size="sm"
@@ -1196,7 +1258,7 @@ export default function RequesterApprovals() {
                           )}
                         </div>
 
-                        {item.exception.status === "pending" && canApprove && (
+                        {item.exception.status === "pending" && canReviewExceptions && (
                           <div className="grid grid-cols-2 gap-2 pt-2">
                             <Button
                               className="w-full h-9 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
@@ -1232,7 +1294,7 @@ export default function RequesterApprovals() {
         )}
 
         {/* 3. تبويب طلبات التبرعات (الأراضي والعينية) - باستثناء التبرع المالي */}
-        {activeTab === 'donations' && (
+        {activeTab === 'donations' && canViewDonations && (
           <Card className="border border-border/70 shadow-xs rounded-3xl overflow-hidden animate-in fade-in-50 duration-200">
             <CardHeader className="p-4 sm:p-6 pb-4 border-b border-border/60">
               <div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
@@ -1371,7 +1433,7 @@ export default function RequesterApprovals() {
                               {/* الإجراءات */}
                               <TableCell className="text-left pl-6">
                                 <div className="flex items-center justify-end gap-1.5">
-                                  {sub.status === "new" && (
+                                  {sub.status === "new" && canReviewDonations && (
                                     <Button
                                       size="sm"
                                       className="h-8 text-xs font-bold gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
@@ -1487,7 +1549,7 @@ export default function RequesterApprovals() {
                               مراجعة الطلب
                             </Button>
 
-                            {sub.status === "new" && (
+                            {sub.status === "new" && canReviewDonations && (
                               <Button
                                 className="h-9 px-3 text-xs font-bold gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
                                 onClick={() => updateSubmissionMutation.mutate({ id: sub.id, status: "under_review" })}
@@ -1530,7 +1592,7 @@ export default function RequesterApprovals() {
         )}
 
         {/* 4. تبويب الاستفسارات العامة */}
-        {activeTab === 'inquiries' && (
+        {activeTab === 'inquiries' && canViewInquiries && (
           <Card className="border border-border/70 shadow-xs rounded-3xl overflow-hidden animate-in fade-in-50 duration-200">
             <CardHeader className="p-4 sm:p-6 pb-4 border-b border-border/60">
               <div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
@@ -1654,7 +1716,7 @@ export default function RequesterApprovals() {
 
                               <TableCell className="text-left pl-6">
                                 <div className="flex items-center justify-end gap-1.5">
-                                  {sub.status === "new" && (
+                                  {sub.status === "new" && canReviewInquiries && (
                                     <Button
                                       size="sm"
                                       className="h-8 text-xs font-bold gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
@@ -1775,7 +1837,7 @@ export default function RequesterApprovals() {
                               مراجعة الاستفسار
                             </Button>
 
-                            {sub.status === "new" && (
+                            {sub.status === "new" && canReviewInquiries && (
                               <Button
                                 className="h-9 px-3 text-xs font-bold gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
                                 onClick={() => updateSubmissionMutation.mutate({ id: sub.id, status: "under_review" })}
@@ -1818,7 +1880,7 @@ export default function RequesterApprovals() {
         )}
 
         {/* 5. تبويب طلبات برنامج سدانة */}
-        {activeTab === 'sedana_inquiries' && (
+        {activeTab === 'sedana_inquiries' && canViewSedana && (
           <Card className="border border-border/70 shadow-xs rounded-3xl overflow-hidden">
             <CardHeader className="p-4 sm:p-6 pb-4 border-b border-border/60">
               <div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
@@ -2201,7 +2263,7 @@ export default function RequesterApprovals() {
             {/* Footer */}
             <div className="flex items-center justify-between pt-5 border-t border-border/60">
               <div className="flex items-center gap-2">
-                {selectedSubmission.status === "new" && (
+                {selectedSubmission.status === "new" && (selectedSubmission.category === 'donor' ? canReviewDonations : canReviewInquiries) && (
                   <Button
                     type="button"
                     onClick={() => {
@@ -2224,6 +2286,23 @@ export default function RequesterApprovals() {
                         <span>تمت المراجعة</span>
                       </>
                     )}
+                  </Button>
+                )}
+
+                {(selectedSubmission.category === 'donor' ? canDeleteDonations : canDeleteInquiries) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      if (window.confirm("هل أنت متأكد من رغبتك في حذف هذا السجل نهائياً؟")) {
+                        deleteSubmissionMutation.mutate({ id: selectedSubmission.id });
+                      }
+                    }}
+                    disabled={deleteSubmissionMutation.isPending}
+                    className="rounded-2xl h-11 px-4 text-sm font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 gap-1.5 cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>حذف</span>
                   </Button>
                 )}
               </div>
@@ -2479,91 +2558,93 @@ export default function RequesterApprovals() {
                 )}
 
                 {/* قسم اتخاذ القرار */}
-                <div className="p-5 sm:p-6 rounded-3xl bg-cyan-50/40 dark:bg-cyan-950/20 border border-cyan-200/80 dark:border-cyan-800/60 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <PhoneCall className="w-4 h-4 text-cyan-600" />
-                    <h4 className="text-sm sm:text-base font-black text-foreground">
-                      قرار التأهيل
-                    </h4>
-                  </div>
-
-                  {/* بطاقات القرار */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* خيار 1: القبول والتمكين */}
-                    <div
-                      onClick={() => {
-                        setActionDecision("approved");
-                        setActionType("enable_sedana");
-                      }}
-                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                        actionDecision === "approved"
-                          ? "border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/50 shadow-xs ring-1 ring-cyan-500/20"
-                          : "border-border bg-card hover:border-cyan-300"
-                      }`}
-                    >
-                      <div className="flex items-start gap-2.5">
-                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
-                          actionDecision === "approved" ? "border-cyan-600 bg-cyan-600 text-white" : "border-slate-300"
-                        }`}>
-                          {actionDecision === "approved" && <CheckCircle2 className="w-3.5 h-3.5" />}
-                        </div>
-                        <div>
-                          <p className="font-bold text-sm text-foreground">
-                            قبول وتأهيل للبرنامج
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            إتاحة اكمال الطلب من المستفيد
-                          </p>
-                        </div>
-                      </div>
+                {canReviewSedana && (
+                  <div className="p-5 sm:p-6 rounded-3xl bg-cyan-50/40 dark:bg-cyan-950/20 border border-cyan-200/80 dark:border-cyan-800/60 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <PhoneCall className="w-4 h-4 text-cyan-600" />
+                      <h4 className="text-sm sm:text-base font-black text-foreground">
+                        قرار التأهيل
+                      </h4>
                     </div>
 
-                    {/* خيار 2: الرفض مع ذكر السبب */}
-                    <div
-                      onClick={() => {
-                        setActionDecision("rejected");
-                        setActionType("reject");
-                      }}
-                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                        actionDecision === "rejected"
-                          ? "border-rose-600 bg-rose-50/70 dark:bg-rose-950/40 shadow-xs ring-1 ring-rose-500/20"
-                          : "border-border bg-card hover:border-rose-300 dark:hover:border-rose-800"
-                      }`}
-                    >
-                      <div className="flex items-start gap-2.5">
-                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
-                          actionDecision === "rejected" ? "border-rose-600 bg-rose-600 text-white" : "border-slate-300 dark:border-slate-700"
-                        }`}>
-                          {actionDecision === "rejected" && <XCircle className="w-3.5 h-3.5" />}
-                        </div>
-                        <div>
-                          <p className={`font-bold text-sm ${
-                            actionDecision === "rejected" ? "text-rose-700 dark:text-rose-400" : "text-foreground"
+                    {/* بطاقات القرار */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* خيار 1: القبول والتمكين */}
+                      <div
+                        onClick={() => {
+                          setActionDecision("approved");
+                          setActionType("enable_sedana");
+                        }}
+                        className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                          actionDecision === "approved"
+                            ? "border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/50 shadow-xs ring-1 ring-cyan-500/20"
+                            : "border-border bg-card hover:border-cyan-300"
+                        }`}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
+                            actionDecision === "approved" ? "border-cyan-600 bg-cyan-600 text-white" : "border-slate-300"
                           }`}>
-                            رفض الطلب مع ذكر السبب
-                          </p>
+                            {actionDecision === "approved" && <CheckCircle2 className="w-3.5 h-3.5" />}
+                          </div>
+                          <div>
+                            <p className="font-bold text-sm text-foreground">
+                              قبول وتأهيل للبرنامج
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              إتاحة اكمال الطلب من المستفيد
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* خيار 2: الرفض مع ذكر السبب */}
+                      <div
+                        onClick={() => {
+                          setActionDecision("rejected");
+                          setActionType("reject");
+                        }}
+                        className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                          actionDecision === "rejected"
+                            ? "border-rose-600 bg-rose-50/70 dark:bg-rose-950/40 shadow-xs ring-1 ring-rose-500/20"
+                            : "border-border bg-card hover:border-rose-300 dark:hover:border-rose-800"
+                        }`}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
+                            actionDecision === "rejected" ? "border-rose-600 bg-rose-600 text-white" : "border-slate-300 dark:border-slate-700"
+                          }`}>
+                            {actionDecision === "rejected" && <XCircle className="w-3.5 h-3.5" />}
+                          </div>
+                          <div>
+                            <p className={`font-bold text-sm ${
+                              actionDecision === "rejected" ? "text-rose-700 dark:text-rose-400" : "text-foreground"
+                            }`}>
+                              رفض الطلب مع ذكر السبب
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
+
+                    {/* حقل تسجيل سبب الرفض (يظهر فقط عند اختيار الرفض) */}
+                    {actionDecision === "rejected" && (
+                      <div className="space-y-1.5 animate-in fade-in duration-200">
+                        <Label className="text-xs font-bold text-foreground">
+                          سبب الرفض <span className="text-rose-600">*</span>
+                        </Label>
+                        <Textarea
+                          rows={3}
+                          placeholder="اكتب سبب ومبررات الرفض بالتفصيل..."
+                          value={actionNotes}
+                          onChange={(e) => setActionNotes(e.target.value)}
+                          className="text-xs resize-none rounded-xl"
+                        />
+                      </div>
+                    )}
+
                   </div>
-
-                  {/* حقل تسجيل سبب الرفض (يظهر فقط عند اختيار الرفض) */}
-                  {actionDecision === "rejected" && (
-                    <div className="space-y-1.5 animate-in fade-in duration-200">
-                      <Label className="text-xs font-bold text-foreground">
-                        سبب الرفض <span className="text-rose-600">*</span>
-                      </Label>
-                      <Textarea
-                        rows={3}
-                        placeholder="اكتب سبب ومبررات الرفض بالتفصيل..."
-                        value={actionNotes}
-                        onChange={(e) => setActionNotes(e.target.value)}
-                        className="text-xs resize-none rounded-xl"
-                      />
-                    </div>
-                  )}
-
-                </div>
+                )}
               </div>
 
               {/* أسفل النافذة والأزرار */}
@@ -2576,47 +2657,49 @@ export default function RequesterApprovals() {
                   disabled={reviewSedanaInquiryMutation.isPending}
                   className="text-xs cursor-pointer h-9 px-4 rounded-xl"
                 >
-                  إلغاء
+                  {canReviewSedana ? "إلغاء" : "إغلاق"}
                 </Button>
 
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={
-                    reviewSedanaInquiryMutation.isPending ||
-                    (actionDecision === "rejected" && !actionNotes.trim())
-                  }
-                  onClick={() => {
-                    if (actionDecision === "rejected" && !actionNotes.trim()) {
-                      toast.error("يرجى كتابة سبب ومبررات الرفض");
-                      return;
+                {canReviewSedana && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={
+                      reviewSedanaInquiryMutation.isPending ||
+                      (actionDecision === "rejected" && !actionNotes.trim())
                     }
-                    reviewSedanaInquiryMutation.mutate({
-                      id: inq.id,
-                      status: actionDecision,
-                      actionType: actionDecision === "approved" ? "enable_sedana" : "reject",
-                      actionNotes: actionDecision === "approved" ? undefined : actionNotes.trim(),
-                      redirectProgram: null,
-                    });
-                  }}
-                  className={`text-xs font-bold px-6 h-9 rounded-xl shadow-xs gap-1.5 cursor-pointer ${
-                    actionDecision === "approved"
-                      ? "bg-cyan-600 hover:bg-cyan-700 text-white"
-                      : "bg-rose-600 hover:bg-rose-700 text-white"
-                  }`}
-                >
-                  {reviewSedanaInquiryMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>جاري الحفظ...</span>
-                    </>
-                  ) : (
-                    <>
-                      {actionDecision === "approved" ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                      <span>{actionDecision === "approved" ? "تأكيد القبول مباشرة" : "تأكيد الرفض"}</span>
-                    </>
-                  )}
-                </Button>
+                    onClick={() => {
+                      if (actionDecision === "rejected" && !actionNotes.trim()) {
+                        toast.error("يرجى كتابة سبب ومبررات الرفض");
+                        return;
+                      }
+                      reviewSedanaInquiryMutation.mutate({
+                        id: inq.id,
+                        status: actionDecision,
+                        actionType: actionDecision === "approved" ? "enable_sedana" : "reject",
+                        actionNotes: actionDecision === "approved" ? undefined : actionNotes.trim(),
+                        redirectProgram: null,
+                      });
+                    }}
+                    className={`text-xs font-bold px-6 h-9 rounded-xl shadow-xs gap-1.5 cursor-pointer ${
+                      actionDecision === "approved"
+                        ? "bg-cyan-600 hover:bg-cyan-700 text-white"
+                        : "bg-rose-600 hover:bg-rose-700 text-white"
+                    }`}
+                  >
+                    {reviewSedanaInquiryMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>جاري الحفظ...</span>
+                      </>
+                    ) : (
+                      <>
+                        {actionDecision === "approved" ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                        <span>{actionDecision === "approved" ? "تأكيد القبول مباشرة" : "تأكيد الرفض"}</span>
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             </DialogContent>
           );
