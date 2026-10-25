@@ -131,7 +131,7 @@ const superAdminGroups = [
   {
     title: "إدارة المستخدمين",
     modules: [
-      { id: "staff_users", nameAr: "إدارة المستخدمين", icon: Users, perms: ["view", "add", "edit", "suspend", "delete"] },
+      { id: "staff_users", nameAr: "إدارة المستخدمين", icon: Users, perms: ["view", "add", "edit", "customize", "suspend", "delete"] },
       { id: "staff_roles", nameAr: "الأدوار والصلاحيات", icon: Shield, perms: ["view", "customize", "suspend"] },
       { id: "staff_custom_roles", nameAr: "الأدوار المخصصة", icon: Briefcase, perms: ["view", "add", "edit", "delete"] },
       { id: "requesters", nameAr: "إدارة المستفيدين", icon: Users, perms: ["view", "create", "approve"] },
@@ -395,6 +395,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       view: "عرض قائمة المستخدمين",
       add: "إضافة موظف جديد",
       edit: "تعديل البيانات",
+      customize: "تخصيص الصلاحيات",
       suspend: "إيقاف الحساب",
       delete: "حذف"
     },
