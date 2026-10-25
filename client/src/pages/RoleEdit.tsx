@@ -103,6 +103,7 @@ const superAdminGroups = [
           "progress_reports"
         ] 
       },
+      { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
       { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "create_from_fund", "exception_approve"] },
       { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "exception_approve"] },
       { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "transfer"] },
@@ -119,17 +120,6 @@ const superAdminGroups = [
       { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "create_disbursement"] },
       { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add"] },
       { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound"] },
-    ]
-  },
-  {
-    title: "التوقيع",
-    modules: [
-      {
-        id: "signing",
-        nameAr: "صلاحيات التوقيع",
-        icon: PenLine,
-        perms: ["disbursements_sign", "disbursement_orders_sign", "final_reports_sign", "progress_reports_sign"]
-      }
     ]
   },
   {
@@ -163,6 +153,17 @@ const superAdminGroups = [
       { id: "settings_escalation", nameAr: "تعيين وقت التأخير ومدد المراحل", icon: ShieldAlert, perms: ["view"] },
       { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["by_role", "edit_message_formats", "by_person", "beneficiary"] },
       { id: "notification_center", nameAr: "مركز الإشعارات", icon: Send, perms: ["direct_send", "send_logs"] },
+    ]
+  },
+  {
+    title: "التوقيع",
+    modules: [
+      {
+        id: "signing",
+        nameAr: "صلاحيات التوقيع",
+        icon: PenLine,
+        perms: ["disbursements_sign", "disbursement_orders_sign", "final_reports_sign", "progress_reports_sign"]
+      }
     ]
   },
   {
@@ -858,6 +859,16 @@ export default function RoleEdit() {
         // عند إلغاء تفعيل صلاحية 'عرض طلبات الصرف'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات طلبات الصرف الأخرى
         if (permId === "disbursements.view") {
           next = next.filter(id => !id.startsWith("disbursements."));
+        }
+
+        // عند إلغاء تفعيل صلاحية 'عرض العقود وقالب العقود'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات العقود الأخرى
+        if (permId === "contracts.view") {
+          next = next.filter(id => !id.startsWith("contracts."));
+        }
+
+        // عند إلغاء تفعيل صلاحية 'عرض إحصائيات وسجلات الصندوق'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات الصندوق الأخرى
+        if (permId === "fund.view") {
+          next = next.filter(id => !id.startsWith("fund."));
         }
 
         // عند إلغاء تفعيل صلاحية 'عرض أوامر الصرف'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات أوامر الصرف الأخرى
