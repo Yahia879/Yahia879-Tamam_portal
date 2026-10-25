@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowRight, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
+import { usePermission } from "@/hooks/usePermission";
 
 const ROLE_OPTIONS = [
   { value: "board_chairman", label: "رئيس مجلس الإدارة" },
@@ -42,6 +43,13 @@ export default function UserEdit() {
   const { data: existingGMData } = trpc.users.getAll.useQuery({ role: "general_manager", includeAll: true });
   const existingGMUser = existingGMData?.items?.find((u: any) => u.role === "general_manager" || u.role === "executive_director");
   const isGMExistingAndNotSelf = Boolean(existingGMUser && existingGMUser.id !== userId);
+
+  const hasEditPermission = usePermission("staff_users.edit");
+  const hasCustomizePermission = usePermission("staff_users.customize");
+  const isSuperOrSystemAdmin = !!(currentUser && ["super_admin", "system_admin"].includes(currentUser.role));
+
+  const canEditUser = isSuperOrSystemAdmin || hasEditPermission;
+  const canCustomizeUser = isSuperOrSystemAdmin || hasCustomizePermission;
 
   const utils = trpc.useUtils();
 
@@ -109,8 +117,8 @@ export default function UserEdit() {
       phone: formData.phone || undefined,
     });
 
-    // تحديث الدور إذا تغيّر ولم يكن مديراً عاماً
-    if (user && formData.role !== user.role && formData.role && user.role !== "super_admin") {
+    // تحديث الدور إذا تغيّر ولم يكن مديراً عاماً ومصرحاً له بتخصيص الصلاحيات
+    if (canCustomizeUser && user && formData.role !== user.role && formData.role && user.role !== "super_admin") {
       updateRoleMutation.mutate({ userId, role: formData.role as any });
     }
 
@@ -137,6 +145,20 @@ export default function UserEdit() {
           <p className="text-muted-foreground">المستخدم غير موجود</p>
           <Link href="/users">
             <Button variant="outline" className="mt-4">العودة لإدارة المستخدمين</Button>
+          </Link>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!canEditUser) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">
+          <p className="text-destructive font-semibold mb-2">غير مصرح لك بتعديل بيانات المستخدمين</p>
+          <p className="text-muted-foreground text-sm">يتطلب هذا الإجراء صلاحية "تعديل البيانات".</p>
+          <Link href={`/users/${userId}`}>
+            <Button variant="outline" className="mt-4">العودة لتفاصيل المستخدم</Button>
           </Link>
         </div>
       </DashboardLayout>
@@ -208,6 +230,7 @@ export default function UserEdit() {
                 <Select
                   value={formData.role}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
+                  disabled={!canCustomizeUser}
                 >
                   <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm mt-1">
                     <SelectValue placeholder="اختر الدور" />
@@ -224,6 +247,11 @@ export default function UserEdit() {
                     })}
                   </SelectContent>
                 </Select>
+                {!canCustomizeUser && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    تعديل الدور الوظيفي يتطلب صلاحية "تخصيص الصلاحيات"
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
