@@ -58,6 +58,8 @@ import {
   Sparkles,
   Send,
   Landmark,
+  Gift,
+  MessageSquareQuote,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import DashboardLayout from "../components/DashboardLayout";
@@ -341,10 +343,34 @@ export default function UserPermissions() {
       }
     }
 
-    // منع تفعيل أي صلاحية فرعية لطالبي الخدمة إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("requesters.") && permId !== "requesters.view") {
-      if (!isChecked("requesters.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض بيانات طالبي الخدمة' أولاً");
+    // منع تفعيل أي صلاحية فرعية لتبويبات المستفيدين إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("requester_accounts.") && permId !== "requester_accounts.view") {
+      if (!isChecked("requester_accounts.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض حسابات طالبي الخدمة' أولاً");
+        return;
+      }
+    }
+    if (permId.startsWith("requester_exceptions.") && permId !== "requester_exceptions.view") {
+      if (!isChecked("requester_exceptions.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض طلبات الاستثناء' أولاً");
+        return;
+      }
+    }
+    if (permId.startsWith("requester_donations.") && permId !== "requester_donations.view") {
+      if (!isChecked("requester_donations.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض طلبات التبرعات' أولاً");
+        return;
+      }
+    }
+    if (permId.startsWith("requester_inquiries.") && permId !== "requester_inquiries.view") {
+      if (!isChecked("requester_inquiries.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض الاستفسارات العامة' أولاً");
+        return;
+      }
+    }
+    if (permId.startsWith("requester_sedana.") && permId !== "requester_sedana.view") {
+      if (!isChecked("requester_sedana.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض طلبات برنامج سدانة' أولاً");
         return;
       }
     }
@@ -444,8 +470,20 @@ export default function UserPermissions() {
             "requests.manage_as_quick_response",
             "requests.upload_final_report",
             "requests.create_quick_request",
-            "requesters.view",
-            "requesters.approve",
+            "requester_accounts.view",
+            "requester_accounts.create",
+            "requester_accounts.approve",
+            "requester_accounts.suspend",
+            "requester_exceptions.view",
+            "requester_exceptions.review",
+            "requester_donations.view",
+            "requester_donations.review",
+            "requester_donations.delete",
+            "requester_inquiries.view",
+            "requester_inquiries.review",
+            "requester_inquiries.delete",
+            "requester_sedana.view",
+            "requester_sedana.review",
           ];
           cascadePerms.forEach(pId => {
             const defVal = rolePermissions?.includes(pId) || false;
@@ -495,6 +533,41 @@ export default function UserPermissions() {
           } else {
             updated["sedana_warehouse.view"] = true;
           }
+        } else if (permId.startsWith("requester_accounts.") && permId !== "requester_accounts.view") {
+          const defVal = rolePermissions?.includes("requester_accounts.view") || false;
+          if (defVal) {
+            delete updated["requester_accounts.view"];
+          } else {
+            updated["requester_accounts.view"] = true;
+          }
+        } else if (permId.startsWith("requester_exceptions.") && permId !== "requester_exceptions.view") {
+          const defVal = rolePermissions?.includes("requester_exceptions.view") || false;
+          if (defVal) {
+            delete updated["requester_exceptions.view"];
+          } else {
+            updated["requester_exceptions.view"] = true;
+          }
+        } else if (permId.startsWith("requester_donations.") && permId !== "requester_donations.view") {
+          const defVal = rolePermissions?.includes("requester_donations.view") || false;
+          if (defVal) {
+            delete updated["requester_donations.view"];
+          } else {
+            updated["requester_donations.view"] = true;
+          }
+        } else if (permId.startsWith("requester_inquiries.") && permId !== "requester_inquiries.view") {
+          const defVal = rolePermissions?.includes("requester_inquiries.view") || false;
+          if (defVal) {
+            delete updated["requester_inquiries.view"];
+          } else {
+            updated["requester_inquiries.view"] = true;
+          }
+        } else if (permId.startsWith("requester_sedana.") && permId !== "requester_sedana.view") {
+          const defVal = rolePermissions?.includes("requester_sedana.view") || false;
+          if (defVal) {
+            delete updated["requester_sedana.view"];
+          } else {
+            updated["requester_sedana.view"] = true;
+          }
         }
       }
 
@@ -540,7 +613,11 @@ export default function UserPermissions() {
         if (permId === "progress_reports.view") cascadeRevoke("progress_reports.");
         if (permId === "progress_invoices.view") cascadeRevoke("progress_invoices.");
         if (permId === "project_reports.view") cascadeRevoke("project_reports.");
-        if (permId === "requesters.view") cascadeRevoke("requesters.");
+        if (permId === "requester_accounts.view") cascadeRevoke("requester_accounts.");
+        if (permId === "requester_exceptions.view") cascadeRevoke("requester_exceptions.");
+        if (permId === "requester_donations.view") cascadeRevoke("requester_donations.");
+        if (permId === "requester_inquiries.view") cascadeRevoke("requester_inquiries.");
+        if (permId === "requester_sedana.view") cascadeRevoke("requester_sedana.");
         if (permId === "financial_reports.view") cascadeRevoke("financial_reports.");
         if (permId === "reports.view_stats") cascadeRevoke("reports.");
         if (permId === "disbursements.view") {
@@ -644,8 +721,20 @@ export default function UserPermissions() {
             "requests.manage_as_quick_response",
             "requests.upload_final_report",
             "requests.create_quick_request",
-            "requesters.view",
-            "requesters.approve",
+            "requester_accounts.view",
+            "requester_accounts.create",
+            "requester_accounts.approve",
+            "requester_accounts.suspend",
+            "requester_exceptions.view",
+            "requester_exceptions.review",
+            "requester_donations.view",
+            "requester_donations.review",
+            "requester_donations.delete",
+            "requester_inquiries.view",
+            "requester_inquiries.review",
+            "requester_inquiries.delete",
+            "requester_sedana.view",
+            "requester_sedana.review",
           ];
           cascadePerms.forEach(pId => {
             const defVal = rolePermissions?.includes(pId) || false;
@@ -823,10 +912,29 @@ export default function UserPermissions() {
         edit_support_and_fees: "تعديل بيانات الداعمين والأجور الإدارية",
         add_receipt_voucher: "إضافة سند صرف",
       },
-      requesters: {
-        view: "عرض قسم إدارة المستفيدين",
+      requester_accounts: {
+        view: "عرض حسابات طالبي الخدمة",
         create: "إضافة مستفيد",
-        approve: "الاعتمادات (رفض أو اعتماد الحساب)"
+        approve: "اعتماد الحساب",
+        suspend: "إيقاف الحساب"
+      },
+      requester_exceptions: {
+        view: "عرض طلبات الاستثناء",
+        review: "الاعتمادات (قبول أو رفض طلب الاستثناء)"
+      },
+      requester_donations: {
+        view: "عرض طلبات التبرعات",
+        review: "مراجعة واعتماد الطلب",
+        delete: "حذف الطلب"
+      },
+      requester_inquiries: {
+        view: "عرض الاستفسارات العامة",
+        review: "مراجعة وتحديث حالة الاستفسار",
+        delete: "حذف الاستفسار"
+      },
+      requester_sedana: {
+        view: "عرض طلبات برنامج سدانة",
+        review: "اتخاذ إجراء واعتماد الطلب"
       },
       staff_users: {
         view: "عرض قائمة المستخدمين",
@@ -1132,7 +1240,16 @@ export default function UserPermissions() {
         { id: "staff_users", nameAr: "إدارة المستخدمين", icon: Users, perms: ["view", "add", "edit", "customize", "suspend", "activate", "delete"] },
         { id: "staff_roles", nameAr: "الأدوار والصلاحيات", icon: Shield, perms: ["view", "customize", "suspend"] },
         { id: "staff_custom_roles", nameAr: "الأدوار المخصصة", icon: Briefcase, perms: ["view", "add", "edit", "delete"] },
-        { id: "requesters", nameAr: "إدارة المستفيدين", icon: Users, perms: ["view", "create", "approve"] },
+      ]
+    },
+    {
+      title: "إدارة المستفيدين",
+      modules: [
+        { id: "requester_accounts", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "create", "approve", "suspend"] },
+        { id: "requester_exceptions", nameAr: "طلبات الاستثناء", icon: FileText, perms: ["view", "review"] },
+        { id: "requester_donations", nameAr: "طلبات التبرعات", icon: Gift, perms: ["view", "review", "delete"] },
+        { id: "requester_inquiries", nameAr: "الاستفسارات العامة", icon: MessageSquareQuote, perms: ["view", "review", "delete"] },
+        { id: "requester_sedana", nameAr: "طلبات برنامج سدانة", icon: Sparkles, perms: ["view", "review"] },
       ]
     },
     {
@@ -1416,7 +1533,11 @@ export default function UserPermissions() {
                               (perm.id.startsWith("progress_reports.") && perm.id !== "progress_reports.view" && !isChecked("progress_reports.view")) ||
                               (perm.id.startsWith("progress_invoices.") && perm.id !== "progress_invoices.view" && !isChecked("progress_invoices.view")) ||
                               (perm.id.startsWith("project_reports.") && perm.id !== "project_reports.view" && !isChecked("project_reports.view")) ||
-                              (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !isChecked("requesters.view")) ||
+                              (perm.id.startsWith("requester_accounts.") && perm.id !== "requester_accounts.view" && !isChecked("requester_accounts.view")) ||
+                              (perm.id.startsWith("requester_exceptions.") && perm.id !== "requester_exceptions.view" && !isChecked("requester_exceptions.view")) ||
+                              (perm.id.startsWith("requester_donations.") && perm.id !== "requester_donations.view" && !isChecked("requester_donations.view")) ||
+                              (perm.id.startsWith("requester_inquiries.") && perm.id !== "requester_inquiries.view" && !isChecked("requester_inquiries.view")) ||
+                              (perm.id.startsWith("requester_sedana.") && perm.id !== "requester_sedana.view" && !isChecked("requester_sedana.view")) ||
                               (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !isChecked("reports.view_stats")) ||
                               (perm.id.startsWith("beneficiary_evaluations.") && perm.id !== "beneficiary_evaluations.view" && !isChecked("beneficiary_evaluations.view"));
 
