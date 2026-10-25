@@ -153,9 +153,17 @@ export const sedanaInquiriesRouter = router({
         search: z.string().optional(),
       }).optional()
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return [];
+
+      const { checkPermission } = await import("../permissions");
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const canView = isAdmin ||
+        (await checkPermission(ctx.user.id, "requester_sedana.view")) ||
+        (await checkPermission(ctx.user.id, "requesters.view")) ||
+        (await checkPermission(ctx.user.id, "sedanaInquiries.view"));
+      if (!canView) return [];
 
       let query = db
         .select({
@@ -241,6 +249,20 @@ export const sedanaInquiriesRouter = router({
       const db = await getDb();
       if (!db) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "تعذر الاتصال بقاعدة البيانات" });
+      }
+
+      const { checkPermission } = await import("../permissions");
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const canReview = isAdmin ||
+        (await checkPermission(ctx.user.id, "requester_sedana.review")) ||
+        (await checkPermission(ctx.user.id, "requesters.review")) ||
+        (await checkPermission(ctx.user.id, "sedanaInquiries.edit"));
+
+      if (!canReview) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "غير مصرح لك بمراجعة طلبات سدانة (تتطلب صلاحية اتخاذ إجراء واعتماد الطلب)"
+        });
       }
 
       if (input.status === "rejected" && (!input.actionNotes || !input.actionNotes.trim())) {
