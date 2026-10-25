@@ -365,9 +365,9 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/suppliers\/\d+$/, permission: "suppliers.view_details" },
 
   // المستخدمين
-  { pattern: /^\/users\/\d+\/edit$/, permission: "staff_management" },
-  { pattern: /^\/users\/\d+\/permissions$/, permission: "staff_management" },
-  { pattern: /^\/users\/\d+$/, permission: "staff_management" },
+  { pattern: /^\/users\/\d+\/edit$/, permission: ["staff_users.edit", "users.edit"] },
+  { pattern: /^\/users\/\d+\/permissions$/, permission: ["staff_users.customize", "users.customize"] },
+  { pattern: /^\/users\/\d+$/, permission: ["staff_users.view", "users.view", "staff_management"] },
   { pattern: /^\/requester-approvals\/\d+$/, permission: ["staff_management", "service_requester_accounts", "requesters", "requesters.view", "requesters.approve"] },
 
   // الأدوار
