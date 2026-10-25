@@ -420,6 +420,16 @@ export default function RolePermissions() {
           next = next.filter(id => !id.startsWith("disbursements."));
         }
 
+        // عند إلغاء تفعيل صلاحية 'عرض العقود وقالب العقود'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات العقود الأخرى
+        if (permId === "contracts.view") {
+          next = next.filter(id => !id.startsWith("contracts."));
+        }
+
+        // عند إلغاء تفعيل صلاحية 'عرض إحصائيات وسجلات الصندوق'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات الصندوق الأخرى
+        if (permId === "fund.view") {
+          next = next.filter(id => !id.startsWith("fund."));
+        }
+
         // عند إلغاء تفعيل صلاحية 'عرض أوامر الصرف'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات أوامر الصرف الأخرى
         if (permId === "disbursement_orders.view") {
           next = next.filter(id => !id.startsWith("disbursement_orders."));
@@ -1257,8 +1267,9 @@ export default function RolePermissions() {
           ]
         },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
-        { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
+        { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "create_from_fund", "exception_approve"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "exception_approve"] },
+        { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "transfer"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind", "cancel_executed"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
         { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create"] },
@@ -1278,17 +1289,6 @@ export default function RolePermissions() {
       title: "الدعم الفني",
       modules: [
         { id: "technical_support", nameAr: "الدعم الفني", icon: LifeBuoy, perms: ["view", "create"] }
-      ]
-    },
-    {
-      title: "التوقيع",
-      modules: [
-        {
-          id: "signing",
-          nameAr: "صلاحيات التوقيع",
-          icon: PenLine,
-          perms: ["disbursements_sign", "disbursement_orders_sign", "final_reports_sign", "progress_reports_sign"]
-        }
       ]
     },
     {
@@ -1316,6 +1316,17 @@ export default function RolePermissions() {
         { id: "settings_escalation", nameAr: "تعيين وقت التأخير ومدد المراحل", icon: ShieldAlert, perms: ["view"] },
         { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["by_role", "edit_message_formats", "by_person", "beneficiary"] },
         { id: "notification_center", nameAr: "مركز الإشعارات", icon: Send, perms: ["direct_send", "send_logs"] },
+      ]
+    },
+    {
+      title: "التوقيع",
+      modules: [
+        {
+          id: "signing",
+          nameAr: "صلاحيات التوقيع",
+          icon: PenLine,
+          perms: ["disbursements_sign", "disbursement_orders_sign", "final_reports_sign", "progress_reports_sign"]
+        }
       ]
     },
     {
@@ -1500,6 +1511,7 @@ export default function RolePermissions() {
         delete: "حذف طلب صرف",
         approve: "اعتماد طلبات الصرف",
         create_custom: "انشاء طلبات صرف مخصصة",
+        create_from_fund: "إضافة طلب صرف من صندوق الجمعية",
         exception_approve: "استثناء اعتماد مُعد الطلب",
       },
       receipt_vouchers: {
@@ -1507,6 +1519,10 @@ export default function RolePermissions() {
         add: "تسجيل سند قبض جديد",
         edit: "تعديل سند القبض",
         exception_approve: "استثناء اعتماد السند",
+      },
+      fund: {
+        view: "عرض إحصائيات وسجلات الصندوق",
+        transfer: "تحويل فائض من المشروع إلى الصندوق",
       },
       disbursement_orders: {
         view: "عرض أوامر الصرف",
