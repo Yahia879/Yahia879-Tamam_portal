@@ -46,10 +46,14 @@ export default function UserEdit() {
 
   const hasEditPermission = usePermission("staff_users.edit");
   const hasCustomizePermission = usePermission("staff_users.customize");
+  const hasSuspendPermission = usePermission("staff_users.suspend");
+  const hasActivatePermission = usePermission("staff_users.activate");
   const isSuperOrSystemAdmin = !!(currentUser && ["super_admin", "system_admin"].includes(currentUser.role));
 
   const canEditUser = isSuperOrSystemAdmin || hasEditPermission;
   const canCustomizeUser = isSuperOrSystemAdmin || hasCustomizePermission;
+  const canSuspendUser = isSuperOrSystemAdmin || hasSuspendPermission;
+  const canActivateUser = isSuperOrSystemAdmin || hasActivatePermission;
 
   const utils = trpc.useUtils();
 
@@ -122,9 +126,15 @@ export default function UserEdit() {
       updateRoleMutation.mutate({ userId, role: formData.role as any });
     }
 
-    // تحديث الحالة إذا تغيّرت ولم يكن مديراً عاماً أو حساب الشخص نفسه
+    // تحديث الحالة إذا تغيّرت ولم يكن مديراً عاماً أو حساب الشخص نفسه مع التحقق من الصلاحية
     if (user && formData.status !== user.status && formData.status && user.role !== "super_admin" && currentUser?.id !== userId) {
-      updateStatusMutation.mutate({ userId, status: formData.status as any });
+      const isSuspending = formData.status === "suspended";
+      const isActivating = formData.status === "active";
+      if ((isSuspending && canSuspendUser) || (isActivating && canActivateUser)) {
+        updateStatusMutation.mutate({ userId, status: formData.status as any });
+      } else {
+        toast.error("ليس لديك صلاحية لتغيير حالة هذا الحساب");
+      }
     }
   };
 
@@ -265,13 +275,32 @@ export default function UserEdit() {
                     <SelectValue placeholder="اختر الحالة" />
                   </SelectTrigger>
                   <SelectContent>
-                    {STATUS_OPTIONS.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
+                    {STATUS_OPTIONS.map(option => {
+                      let isDisabled = false;
+                      if (user?.status === "active" && option.value === "suspended" && !canSuspendUser) {
+                        isDisabled = true;
+                      }
+                      if (user?.status !== "active" && option.value === "active" && !canActivateUser) {
+                        isDisabled = true;
+                      }
+                      return (
+                        <SelectItem key={option.value} value={option.value} disabled={isDisabled}>
+                          {option.label}{isDisabled ? " (غير مصرح)" : ""}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
+                {user?.status === "active" && !canSuspendUser && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    إيقاف الحساب يتطلب صلاحية "إيقاف الحساب"
+                  </p>
+                )}
+                {user?.status !== "active" && !canActivateUser && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    تنشيط الحساب يتطلب صلاحية "تنشيط الحساب"
+                  </p>
+                )}
                 {(user?.role === "super_admin" || currentUser?.id === userId) && (
                   <p className="text-[11px] text-muted-foreground mt-1">
                     {user?.role === "super_admin" ? "لا يمكن تعديل حالة حساب المدير العام" : "لا يمكنك إيقاف حسابك الشخصي من هنا"}
