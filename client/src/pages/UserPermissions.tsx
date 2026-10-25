@@ -61,6 +61,8 @@ import {
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import DashboardLayout from "../components/DashboardLayout";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 const getRoleLabelAr = (role: string) => {
   const rolesAr: Record<string, string> = {
@@ -87,6 +89,8 @@ export default function UserPermissions() {
   const [, params] = useRoute("/users/:id/permissions");
   const [, setLocation] = useLocation();
   const userId = params?.id ? parseInt(params.id) : null;
+  const { user: currentUser } = useAuth();
+  const canCustomize = usePermission("staff_users.customize") || ["super_admin", "system_admin"].includes(currentUser?.role || "");
 
   const utils = trpc.useUtils();
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
@@ -824,6 +828,14 @@ export default function UserPermissions() {
         create: "إضافة مستفيد",
         approve: "الاعتمادات (رفض أو اعتماد الحساب)"
       },
+      staff_users: {
+        view: "عرض قائمة المستخدمين",
+        add: "إضافة موظف جديد",
+        edit: "تعديل البيانات",
+        customize: "تخصيص الصلاحيات",
+        suspend: "إيقاف الحساب",
+        delete: "حذف الحساب"
+      },
       suppliers: {
         view: "عرض قائمة الموردين",
         view_details: "عرض تفاصيل المورد",
@@ -1123,7 +1135,7 @@ export default function UserPermissions() {
     {
       title: "إدارة المستخدمين",
       modules: [
-        { id: "staff_users", nameAr: "إدارة المستخدمين", icon: Users, perms: ["view", "add", "edit", "suspend", "delete"] },
+        { id: "staff_users", nameAr: "إدارة المستخدمين", icon: Users, perms: ["view", "add", "edit", "customize", "suspend", "delete"] },
         { id: "staff_roles", nameAr: "الأدوار والصلاحيات", icon: Shield, perms: ["view", "customize", "suspend"] },
         { id: "staff_custom_roles", nameAr: "الأدوار المخصصة", icon: Briefcase, perms: ["view", "add", "edit", "delete"] },
         { id: "requesters", nameAr: "إدارة المستفيدين", icon: Users, perms: ["view", "create", "approve"] },
@@ -1176,6 +1188,18 @@ export default function UserPermissions() {
       <DashboardLayout>
         <div className="container py-20 text-center">
           <h2 className="text-2xl font-bold text-destructive">خطأ في معرف المستخدم</h2>
+          <Button variant="outline" className="mt-4" onClick={() => setLocation("/users")}>العودة لقائمة المستخدمين</Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!canCustomize) {
+    return (
+      <DashboardLayout>
+        <div className="container py-20 text-center">
+          <Shield className="w-16 h-16 text-destructive mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-destructive">عذراً، لا تملك صلاحية لتخصيص صلاحيات المستخدمين</h2>
           <Button variant="outline" className="mt-4" onClick={() => setLocation("/users")}>العودة لقائمة المستخدمين</Button>
         </div>
       </DashboardLayout>
