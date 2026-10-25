@@ -187,6 +187,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "staff_users.view": ["users.view"],
   "staff_users.add": ["users.create"],
   "staff_users.edit": ["users.edit"],
+  "staff_users.customize": ["users.customize"],
   "staff_users.suspend": ["users.edit"],
   "staff_users.delete": ["users.delete"],
 
@@ -1152,7 +1153,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "reports.export_data", moduleId: "reports", action: "export_data", nameAr: "تصدير البيانات", nameEn: "Export Data" },
       { id: "staff_users.view", moduleId: "users", action: "view", nameAr: "عرض قائمة المستخدمين", nameEn: "View Staff Users" },
       { id: "staff_users.add", moduleId: "users", action: "add", nameAr: "إضافة موظف جديد", nameEn: "Add Staff User" },
-      { id: "staff_users.edit", moduleId: "users", action: "edit", nameAr: "تعديل البيانات الأساسية", nameEn: "Edit Staff User" },
+      { id: "staff_users.edit", moduleId: "users", action: "edit", nameAr: "تعديل البيانات", nameEn: "Edit User Data" },
+      { id: "staff_users.customize", moduleId: "users", action: "customize", nameAr: "تخصيص الصلاحيات", nameEn: "Customize Permissions" },
       { id: "staff_users.suspend", moduleId: "users", action: "suspend", nameAr: "إيقاف الحساب", nameEn: "Suspend Staff User" },
       { id: "staff_users.delete", moduleId: "users", action: "delete", nameAr: "حذف الحساب", nameEn: "Delete Staff User" },
       { id: "staff_roles.view", moduleId: "permissions", action: "view", nameAr: "عرض الأدوار والصلاحيات", nameEn: "View Staff Roles" },
@@ -1876,6 +1878,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (
     allPermissions.has("users.view") ||
     allPermissions.has("staff_users.view") ||
+    allPermissions.has("staff_users.customize") ||
     allPermissions.has("staff_roles.view") ||
     allPermissions.has("staff_custom_roles.view") ||
     allPermissions.has("staff_notifications.edit") ||
@@ -2181,6 +2184,17 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.delete("notification_center.send_logs");
     allPermissions.delete("staff_notifications.direct_send");
     allPermissions.delete("staff_notifications.send_logs");
+  }
+
+  // مزامنة صلاحيات إدارة المستخدمين بين المعرفات التقنية ومعرفات الواجهة
+  if (allPermissions.has("users.customize")) {
+    allPermissions.add("staff_users.customize");
+  }
+  if (allPermissions.has("staff_users.customize")) {
+    allPermissions.add("users.customize");
+  }
+  if (allPermissions.has("users.edit")) {
+    allPermissions.add("staff_users.edit");
   }
 
   // ضمان إزالة أي صلاحيات تم سحبها صراحة للتأكيد التام
@@ -2995,15 +3009,18 @@ export const permissionsRouter = router({
   /**
    * إسناد دور لمستخدم
    */
-  assignRole: permissionProcedure("users.edit")
+  assignRole: permissionProcedure(["users.customize", "staff_users.customize"])
     .input(z.object({
       userId: z.number(),
       roleId: z.string(),
       expiresAt: z.date().optional()
     }))
     .mutation(async ({ input, ctx }) => {
-      // التحقق من صلاحية المنفذ (يجب أن يكون مدير نظام أو مدير عام)
-      if (ctx.user.role !== 'super_admin' && ctx.user.role !== 'system_admin') {
+      // التحقق من صلاحية المنفذ
+      const canCustomize = (await checkPermission(ctx.user.id, "users.customize")) ||
+                           (await checkPermission(ctx.user.id, "staff_users.customize")) ||
+                           ['super_admin', 'system_admin'].includes(ctx.user.role);
+      if (!canCustomize) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإسناد الأدوار" });
       }
 
@@ -3036,14 +3053,17 @@ export const permissionsRouter = router({
   /**
    * إزالة دور من مستخدم
    */
-  removeRole: permissionProcedure("users.edit")
+  removeRole: permissionProcedure(["users.customize", "staff_users.customize"])
     .input(z.object({
       userId: z.number(),
       roleId: z.string()
     }))
     .mutation(async ({ input, ctx }) => {
       // التحقق من صلاحية المنفذ
-      if (ctx.user.role !== 'super_admin' && ctx.user.role !== 'system_admin') {
+      const canCustomize = (await checkPermission(ctx.user.id, "users.customize")) ||
+                           (await checkPermission(ctx.user.id, "staff_users.customize")) ||
+                           ['super_admin', 'system_admin'].includes(ctx.user.role);
+      if (!canCustomize) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإزالة الأدوار" });
       }
 
@@ -3070,7 +3090,7 @@ export const permissionsRouter = router({
   /**
    * تعيين الصلاحيات الفردية للمستخدم بالكامل (تزامن الأوفررايد)
    */
-  setUserDirectPermissions: permissionProcedure("users.edit")
+  setUserDirectPermissions: permissionProcedure(["users.customize", "staff_users.customize"])
     .input(z.object({
       userId: z.number(),
       permissions: z.array(z.object({
@@ -3081,7 +3101,10 @@ export const permissionsRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       // التحقق من صلاحية المنفذ
-      if (ctx.user.role !== 'super_admin' && ctx.user.role !== 'system_admin') {
+      const canCustomize = (await checkPermission(ctx.user.id, "users.customize")) ||
+                           (await checkPermission(ctx.user.id, "staff_users.customize")) ||
+                           ['super_admin', 'system_admin'].includes(ctx.user.role);
+      if (!canCustomize) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل الصلاحيات" });
       }
 
