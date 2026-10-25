@@ -960,13 +960,6 @@ export default function UserPermissions() {
         view_stats: "عرض احصائيات الطلبات",
         export_data: "تصدير البيانات"
       },
-      staff_users: {
-        view: "عرض قائمة المستخدمين",
-        add: "إضافة موظف جديد",
-        edit: "تعديل البيانات الأساسية",
-        suspend: "إيقاف الحساب",
-        delete: "حذف الحساب"
-      },
       staff_roles: {
         view: "عرض الأدوار والصلاحيات",
         customize: "تخصيص صلاحيات الدور الأساسي",
