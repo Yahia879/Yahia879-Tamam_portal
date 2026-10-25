@@ -231,6 +231,9 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/disbursement-requests": "disbursement_requests",
   "/disbursement-orders": "disbursement_orders",
   "/disbursement-orders/new-direct": "disbursement_orders",
+  "/fund": ["fund.view", "fund.transfer"],
+  "/fund/movements": ["fund.view", "fund.transfer"],
+  "/fund/transfers/new": ["fund.transfer"],
   "/receipt-vouchers": ["receipt_vouchers", "receipt_vouchers.view", "receipt_vouchers.add", "receipt_vouchers.edit", "receipt_vouchers.exception_approve"],
   "/custody-requests": ["custody_requests", "custody_requests.view", "custody_requests.create"],
   "/custody-requests/new": ["custody_requests.create"],
@@ -593,6 +596,11 @@ export function hasRouteAccess(
 
   // السماح للإدارة المالية بمعاينة وطباعة خطابات المسؤولية المجتمعية وأوامر الشراء
   if (userRole === "financial" && /^\/requests\/\d+\/(csr-letter|sedana-csr|purchase-order|sedana-po)$/.test(pathname)) {
+    return true;
+  }
+
+  // الصندوق: متاح دائماً للإدارة المالية (متوافق مع الخادم والقائمة الجانبية)
+  if ((pathname === "/fund" || pathname.startsWith("/fund/")) && ["financial", "financial_manager"].includes(userRole)) {
     return true;
   }
 
