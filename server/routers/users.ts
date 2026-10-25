@@ -630,6 +630,20 @@ export const usersRouter = router({
         }
       }
 
+      // التحقق من صلاحية تعديل الدور إذا تم تغييره
+      if (input.role && targetUser && input.role !== targetUser.role) {
+        const { checkPermission } = await import("../permissions");
+        const canCustomize = (await checkPermission(ctx.user.id, "users.customize")) ||
+                             (await checkPermission(ctx.user.id, "staff_users.customize")) ||
+                             ["super_admin", "system_admin"].includes(ctx.user.role);
+        if (!canCustomize) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "ليس لديك صلاحية تعديل الدور الوظيفي للمستخدم (تتطلب صلاحية تخصيص الصلاحيات)"
+          });
+        }
+      }
+
       const isTargetStaff = targetUser?.role !== "service_requester";
 
       // التحقق من عدم استخدام البريد الإلكتروني من قِبل مستخدم آخر في نفس الفئة
@@ -720,7 +734,7 @@ export const usersRouter = router({
     }),
 
   // Update user role
-  updateRole: permissionProcedure("users.edit")
+  updateRole: permissionProcedure(["users.customize", "staff_users.customize"])
     .input(
       z.object({
         userId: z.number(),
