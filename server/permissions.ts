@@ -48,6 +48,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   staff_management: [
     "permissions.view", "permissions.create", "permissions.edit", "permissions.delete",
     "users.view", "users.edit", "users.create", "users.delete",
+    "users.suspend", "users.activate", "users.customize"
   ],
   mosques: ["mosques.view", "mosques.create", "mosques.edit", "mosques.delete", "mosques.approve"],
   mosques_map: ["mosque_map.view"],
@@ -176,6 +177,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   staff: [
     "permissions.view", "permissions.create", "permissions.edit", "permissions.delete",
     "users.view", "users.edit", "users.create", "users.delete",
+    "users.suspend", "users.activate", "users.customize"
   ],
   "staff.view": ["users.view", "permissions.view"],
   "staff.add": ["users.create", "permissions.create"],
@@ -188,7 +190,8 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "staff_users.add": ["users.create"],
   "staff_users.edit": ["users.edit"],
   "staff_users.customize": ["users.customize"],
-  "staff_users.suspend": ["users.edit"],
+  "staff_users.suspend": ["users.suspend"],
+  "staff_users.activate": ["users.activate"],
   "staff_users.delete": ["users.delete"],
 
   "staff_roles.view": ["permissions.view"],
@@ -1156,6 +1159,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "staff_users.edit", moduleId: "users", action: "edit", nameAr: "تعديل البيانات", nameEn: "Edit User Data" },
       { id: "staff_users.customize", moduleId: "users", action: "customize", nameAr: "تخصيص الصلاحيات", nameEn: "Customize Permissions" },
       { id: "staff_users.suspend", moduleId: "users", action: "suspend", nameAr: "إيقاف الحساب", nameEn: "Suspend Staff User" },
+      { id: "staff_users.activate", moduleId: "users", action: "activate", nameAr: "تنشيط الحساب", nameEn: "Activate Staff User" },
       { id: "staff_users.delete", moduleId: "users", action: "delete", nameAr: "حذف الحساب", nameEn: "Delete Staff User" },
       { id: "staff_roles.view", moduleId: "permissions", action: "view", nameAr: "عرض الأدوار والصلاحيات", nameEn: "View Staff Roles" },
       { id: "staff_roles.customize", moduleId: "permissions", action: "customize", nameAr: "تخصيص صلاحيات الدور الأساسي", nameEn: "Customize Staff Roles" },
@@ -2192,6 +2196,18 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   }
   if (allPermissions.has("staff_users.customize")) {
     allPermissions.add("users.customize");
+  }
+  if (allPermissions.has("users.suspend")) {
+    allPermissions.add("staff_users.suspend");
+  }
+  if (allPermissions.has("staff_users.suspend")) {
+    allPermissions.add("users.suspend");
+  }
+  if (allPermissions.has("users.activate")) {
+    allPermissions.add("staff_users.activate");
+  }
+  if (allPermissions.has("staff_users.activate")) {
+    allPermissions.add("users.activate");
   }
   if (allPermissions.has("users.edit")) {
     allPermissions.add("staff_users.edit");
