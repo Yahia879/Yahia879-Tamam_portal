@@ -416,7 +416,7 @@ export const usersRouter = router({
     }),
 
   // Toggle user status
-  toggleStatus: permissionProcedure("users.edit")
+  toggleStatus: permissionProcedure(["users.suspend", "staff_users.suspend", "users.activate", "staff_users.activate"])
     .input(
       z.object({
         userId: z.number(),
@@ -443,6 +443,32 @@ export const usersRouter = router({
           code: "FORBIDDEN", 
           message: "لا يمكن إيقاف أو تنشيط حساب المدير العام" 
         });
+      }
+
+      // التحقق الدقيق من الصلاحيات حسب نوع العملية (إيقاف أم تنشيط)
+      const { checkPermission } = await import("../permissions");
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+
+      if (input.status === "suspended" || input.status === "blocked") {
+        const canSuspend = isAdmin ||
+          (await checkPermission(ctx.user.id, "users.suspend")) ||
+          (await checkPermission(ctx.user.id, "staff_users.suspend"));
+        if (!canSuspend) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "غير مصرح لك بإيقاف الحساب (تتطلب صلاحية إيقاف الحساب)"
+          });
+        }
+      } else if (input.status === "active") {
+        const canActivate = isAdmin ||
+          (await checkPermission(ctx.user.id, "users.activate")) ||
+          (await checkPermission(ctx.user.id, "staff_users.activate"));
+        if (!canActivate) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "غير مصرح لك بتنشيط الحساب (تتطلب صلاحية تنشيط الحساب)"
+          });
+        }
       }
 
       const updateData: any = { status: input.status };
@@ -641,6 +667,34 @@ export const usersRouter = router({
             code: "FORBIDDEN",
             message: "ليس لديك صلاحية تعديل الدور الوظيفي للمستخدم (تتطلب صلاحية تخصيص الصلاحيات)"
           });
+        }
+      }
+
+      // التحقق من صلاحية تعديل حالة الحساب إذا تم تغييرها
+      if (input.status && targetUser && input.status !== targetUser.status) {
+        const { checkPermission } = await import("../permissions");
+        const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+
+        if (input.status === "suspended" || input.status === "blocked") {
+          const canSuspend = isAdmin ||
+            (await checkPermission(ctx.user.id, "users.suspend")) ||
+            (await checkPermission(ctx.user.id, "staff_users.suspend"));
+          if (!canSuspend) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "غير مصرح لك بإيقاف الحساب (تتطلب صلاحية إيقاف الحساب)"
+            });
+          }
+        } else if (input.status === "active") {
+          const canActivate = isAdmin ||
+            (await checkPermission(ctx.user.id, "users.activate")) ||
+            (await checkPermission(ctx.user.id, "staff_users.activate"));
+          if (!canActivate) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "غير مصرح لك بتنشيط الحساب (تتطلب صلاحية تنشيط الحساب)"
+            });
+          }
         }
       }
 
