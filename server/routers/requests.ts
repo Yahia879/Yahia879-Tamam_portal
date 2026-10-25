@@ -5598,6 +5598,13 @@ export const requestsRouter = router({
     const db = await getDb();
     if (!db) return [];
 
+    const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+    const canView = isAdmin ||
+      (await checkPermission(ctx.user.id, "requester_exceptions.view")) ||
+      (await checkPermission(ctx.user.id, "requesters.view")) ||
+      (await checkPermission(ctx.user.id, "requests.view"));
+    if (!canView) return [];
+
     const results = await db
       .select({
         exception: requestExceptions,
@@ -5623,6 +5630,20 @@ export const requestsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const canReview = isAdmin ||
+        (await checkPermission(ctx.user.id, "requester_exceptions.review")) ||
+        (await checkPermission(ctx.user.id, "requesters.review")) ||
+        (await checkPermission(ctx.user.id, "requests.approve")) ||
+        (await checkPermission(ctx.user.id, "requests.edit"));
+
+      if (!canReview) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "غير مصرح لك بمراجعة طلبات الاستثناء (تتطلب صلاحية مراجعة واعتماد الاستثناءات)"
+        });
+      }
 
       await db
         .update(requestExceptions)
