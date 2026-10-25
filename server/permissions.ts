@@ -155,9 +155,35 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   requesters: ["users.view", "users.edit", "users.delete"],
   "requesters.view": ["users.view"],
   "requesters.approve": ["users.edit"],
+  "requesters.create": ["users.create", "users.edit"],
   "requesters.edit": ["users.edit"],
   "requesters.delete": ["users.delete"],
   "requesters.suspend": ["users.edit"],
+
+  // إدارة المستفيدين - 5 تبويبات مخصصة
+  requester_accounts: ["users.view", "users.edit"],
+  "requester_accounts.view": ["users.view"],
+  "requester_accounts.create": ["users.create", "users.edit"],
+  "requester_accounts.approve": ["users.edit"],
+  "requester_accounts.suspend": ["users.edit"],
+
+  requester_exceptions: ["requests.view", "requests.edit"],
+  "requester_exceptions.view": ["requests.view"],
+  "requester_exceptions.review": ["requests.edit", "requests.approve"],
+
+  requester_donations: ["publicSubmissions.view", "publicSubmissions.edit"],
+  "requester_donations.view": ["publicSubmissions.view"],
+  "requester_donations.review": ["publicSubmissions.edit"],
+  "requester_donations.delete": ["publicSubmissions.delete"],
+
+  requester_inquiries: ["publicSubmissions.view", "publicSubmissions.edit"],
+  "requester_inquiries.view": ["publicSubmissions.view"],
+  "requester_inquiries.review": ["publicSubmissions.edit"],
+  "requester_inquiries.delete": ["publicSubmissions.delete"],
+
+  requester_sedana: ["sedanaInquiries.view", "sedanaInquiries.edit"],
+  "requester_sedana.view": ["sedanaInquiries.view"],
+  "requester_sedana.review": ["sedanaInquiries.edit"],
 
   "suppliers.view": ["suppliers.view"],
   "suppliers.view_details": ["suppliers.view_details", "suppliers.view"],
@@ -908,6 +934,25 @@ async function ensureAllCustomPermissionsExist(db: any) {
       console.log("Inserted missing custom module: requesters");
     }
 
+    // Ensure the 5 granular beneficiary modules exist
+    const beneficiaryModulesToInsert = [
+      { id: "requester_accounts", nameAr: "حسابات طالبي الخدمة", nameEn: "Requester Accounts", icon: "Users", displayOrder: 14 },
+      { id: "requester_exceptions", nameAr: "طلبات الاستثناء", nameEn: "Requester Exceptions", icon: "FileText", displayOrder: 15 },
+      { id: "requester_donations", nameAr: "طلبات التبرعات", nameEn: "Requester Donations", icon: "Gift", displayOrder: 16 },
+      { id: "requester_inquiries", nameAr: "الاستفسارات العامة", nameEn: "Requester Inquiries", icon: "MessageSquareQuote", displayOrder: 17 },
+      { id: "requester_sedana", nameAr: "طلبات برنامج سدانة", nameEn: "Requester Sedana", icon: "Sparkles", displayOrder: 18 },
+    ];
+
+    for (const bm of beneficiaryModulesToInsert) {
+      const [ex] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, bm.id)).limit(1);
+      if (!ex) {
+        await db.insert(modules).values({ ...bm, isActive: true });
+        console.log(`Inserted missing custom module: ${bm.id}`);
+      } else {
+        await db.update(modules).set({ nameAr: bm.nameAr, nameEn: bm.nameEn, icon: bm.icon, displayOrder: bm.displayOrder, isActive: true }).where(eq(modules.id, bm.id)).catch(() => {});
+      }
+    }
+
     // Ensure 'orders_and_letters' module exists in the modules table with name 'مالية سدانة'
     const [existingOrdersLettersModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "orders_and_letters")).limit(1);
     if (!existingOrdersLettersModule) {
@@ -1104,6 +1149,25 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "requesters.view", moduleId: "requesters", action: "view", nameAr: "عرض قسم إدارة المستفيدين", nameEn: "View Requesters" },
       { id: "requesters.approve", moduleId: "requesters", action: "approve", nameAr: "اعتماد ورفض المستفيدين", nameEn: "Approve Requesters" },
       { id: "requesters.create", moduleId: "requesters", action: "create", nameAr: "إضافة مستفيد", nameEn: "Create Beneficiary" },
+      // 1. حسابات طالبي الخدمة
+      { id: "requester_accounts.view", moduleId: "requester_accounts", action: "view", nameAr: "عرض حسابات طالبي الخدمة", nameEn: "View Requester Accounts" },
+      { id: "requester_accounts.create", moduleId: "requester_accounts", action: "create", nameAr: "إضافة مستفيد", nameEn: "Create Beneficiary" },
+      { id: "requester_accounts.approve", moduleId: "requester_accounts", action: "approve", nameAr: "اعتماد الحساب", nameEn: "Approve Beneficiary Account" },
+      { id: "requester_accounts.suspend", moduleId: "requester_accounts", action: "suspend", nameAr: "إيقاف الحساب", nameEn: "Suspend Beneficiary Account" },
+      // 2. طلبات الاستثناء
+      { id: "requester_exceptions.view", moduleId: "requester_exceptions", action: "view", nameAr: "عرض طلبات الاستثناء", nameEn: "View Exceptions" },
+      { id: "requester_exceptions.review", moduleId: "requester_exceptions", action: "review", nameAr: "الاعتمادات (قبول أو رفض طلب الاستثناء)", nameEn: "Review Exceptions" },
+      // 3. طلبات التبرعات
+      { id: "requester_donations.view", moduleId: "requester_donations", action: "view", nameAr: "عرض طلبات التبرعات", nameEn: "View Donations" },
+      { id: "requester_donations.review", moduleId: "requester_donations", action: "review", nameAr: "مراجعة واعتماد الطلب", nameEn: "Review Donations" },
+      { id: "requester_donations.delete", moduleId: "requester_donations", action: "delete", nameAr: "حذف الطلب", nameEn: "Delete Donation" },
+      // 4. الاستفسارات العامة
+      { id: "requester_inquiries.view", moduleId: "requester_inquiries", action: "view", nameAr: "عرض الاستفسارات العامة", nameEn: "View Inquiries" },
+      { id: "requester_inquiries.review", moduleId: "requester_inquiries", action: "review", nameAr: "مراجعة وتحديث حالة الاستفسار", nameEn: "Review Inquiries" },
+      { id: "requester_inquiries.delete", moduleId: "requester_inquiries", action: "delete", nameAr: "حذف الاستفسار", nameEn: "Delete Inquiry" },
+      // 5. طلبات برنامج سدانة
+      { id: "requester_sedana.view", moduleId: "requester_sedana", action: "view", nameAr: "عرض طلبات برنامج سدانة", nameEn: "View Sedana Inquiries" },
+      { id: "requester_sedana.review", moduleId: "requester_sedana", action: "review", nameAr: "اتخاذ إجراء واعتماد الطلب", nameEn: "Review Sedana Inquiry" },
       { id: "suppliers.view_details", moduleId: "suppliers", action: "view_details", nameAr: "عرض تفاصيل المورد", nameEn: "View Supplier Details" },
       { id: "suppliers.add", moduleId: "suppliers", action: "add", nameAr: "إضافة مورد", nameEn: "Add Supplier" },
       { id: "suppliers.suspend", moduleId: "suppliers", action: "suspend", nameAr: "إيقاف المورد وإعادة تفعيله", nameEn: "Suspend and Reactivate Supplier" },
@@ -1821,17 +1885,39 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   } else {
     allPermissions.delete("reports");
   }
-  if (revokedPermissions.has("requesters.view") || revokedPermissions.has("requesters")) {
-    allPermissions.delete("requesters");
-    allPermissions.delete("requesters.view");
-    allPermissions.delete("requesters.approve");
-    allPermissions.delete("requesters.create");
-    allPermissions.delete("service_requester_accounts");
-  } else if (allPermissions.has("requesters.view") || allPermissions.has("requesters.approve") || allPermissions.has("requesters.create")) {
+  // مزامنة صلاحيات إدارة المستفيدين والتبويبات الخمسة
+  const hasLegacyRequesters = allPermissions.has("requesters") || allPermissions.has("requesters.view");
+  if (hasLegacyRequesters) {
+    if (!revokedPermissions.has("requester_accounts.view")) allPermissions.add("requester_accounts.view");
+    if (!revokedPermissions.has("requester_exceptions.view")) allPermissions.add("requester_exceptions.view");
+    if (!revokedPermissions.has("requester_donations.view")) allPermissions.add("requester_donations.view");
+    if (!revokedPermissions.has("requester_inquiries.view")) allPermissions.add("requester_inquiries.view");
+    if (!revokedPermissions.has("requester_sedana.view")) allPermissions.add("requester_sedana.view");
+  }
+  if (allPermissions.has("requesters.approve") || allPermissions.has("requesters")) {
+    if (!revokedPermissions.has("requester_accounts.approve")) allPermissions.add("requester_accounts.approve");
+    if (!revokedPermissions.has("requester_exceptions.review")) allPermissions.add("requester_exceptions.review");
+    if (!revokedPermissions.has("requester_donations.review")) allPermissions.add("requester_donations.review");
+    if (!revokedPermissions.has("requester_inquiries.review")) allPermissions.add("requester_inquiries.review");
+    if (!revokedPermissions.has("requester_sedana.review")) allPermissions.add("requester_sedana.review");
+  }
+  if (allPermissions.has("requesters.create") || allPermissions.has("requesters")) {
+    if (!revokedPermissions.has("requester_accounts.create")) allPermissions.add("requester_accounts.create");
+  }
+
+  // إذا كان يملك عرض أي تبويب من التبويبات الخمسة، نمنحه requesters و requesters.view للوصول للشاشة
+  const hasAnyBeneficiaryTab =
+    allPermissions.has("requester_accounts.view") ||
+    allPermissions.has("requester_exceptions.view") ||
+    allPermissions.has("requester_donations.view") ||
+    allPermissions.has("requester_inquiries.view") ||
+    allPermissions.has("requester_sedana.view");
+
+  if (hasAnyBeneficiaryTab) {
     allPermissions.add("requesters");
     allPermissions.add("requesters.view");
     allPermissions.add("service_requester_accounts");
-  } else {
+  } else if (!hasLegacyRequesters) {
     allPermissions.delete("requesters");
     allPermissions.delete("requesters.view");
     allPermissions.delete("service_requester_accounts");
@@ -2699,9 +2785,9 @@ export const permissionsRouter = router({
       const rolePermissionsMapping: Record<string, string[] | string> = {
         super_admin: "*",
         system_admin: "*",
-        general_manager: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports", "notification_center"],
-        executive_director: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports", "notification_center"],
-        projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "progress_reports", "progress_invoices"],
+        general_manager: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "requester_accounts", "requester_exceptions", "requester_donations", "requester_inquiries", "requester_sedana", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports", "notification_center"],
+        executive_director: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "requester_accounts", "requester_exceptions", "requester_donations", "requester_inquiries", "requester_sedana", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports", "notification_center"],
+        projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "progress_reports", "progress_invoices", "requester_accounts", "requester_exceptions", "requester_donations", "requester_inquiries", "requester_sedana"],
         field_team: ["mosques.view", "requests.view", "requests.edit", "requests.manage_as_field_team", "field_visits"],
         quick_response: ["requests.view", "requests.manage_as_quick_response", "field_visits.view", "reports.create"],
         financial: ["financial", "quotations", "disbursements", "suppliers.view", "financial_reports"],
