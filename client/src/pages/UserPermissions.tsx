@@ -566,6 +566,12 @@ export default function UserPermissions() {
         if (permId === "sedana_quotations.view") {
           cascadeRevoke("sedana_quotations.");
         }
+        if (permId === "contracts.view") {
+          cascadeRevoke("contracts.");
+        }
+        if (permId === "fund.view") {
+          cascadeRevoke("fund.");
+        }
         if (permId.startsWith("sedana_quotations.")) {
           const allSedanaKeys = ["sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve"];
           const hasRemaining = allSedanaKeys.some(k => k !== permId && isChecked(k));
