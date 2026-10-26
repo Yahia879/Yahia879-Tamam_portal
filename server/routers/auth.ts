@@ -558,7 +558,7 @@ export const authRouter = router({
     .input(z.object({ userId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       // التحقق من الصلاحية
-      const hasApprovePerm = await checkPermission(ctx.user.id, "requesters.approve");
+      const hasApprovePerm = await checkPermission(ctx.user.id, "requester_accounts.approve");
       const isDefaultAllowedRole = ["super_admin", "system_admin"].includes(ctx.user.role);
       if (!isDefaultAllowedRole && !hasApprovePerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لاعتماد المستخدمين" });
@@ -591,7 +591,7 @@ export const authRouter = router({
   rejectUser: protectedProcedure
     .input(z.object({ userId: z.number(), reason: z.string().optional() }))
     .mutation(async ({ input, ctx }) => {
-      const hasApprovePerm = await checkPermission(ctx.user.id, "requesters.approve");
+      const hasApprovePerm = await checkPermission(ctx.user.id, "requester_accounts.approve");
       const isDefaultAllowedRole = ["super_admin", "system_admin"].includes(ctx.user.role);
       if (!isDefaultAllowedRole && !hasApprovePerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لرفض المستخدمين" });
