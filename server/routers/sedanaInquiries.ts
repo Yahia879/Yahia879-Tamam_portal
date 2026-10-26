@@ -161,7 +161,6 @@ export const sedanaInquiriesRouter = router({
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
       const canView = isAdmin ||
         (await checkPermission(ctx.user.id, "requester_sedana.view")) ||
-        (await checkPermission(ctx.user.id, "requesters.view")) ||
         (await checkPermission(ctx.user.id, "sedanaInquiries.view"));
       if (!canView) return [];
 
@@ -255,7 +254,6 @@ export const sedanaInquiriesRouter = router({
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
       const canReview = isAdmin ||
         (await checkPermission(ctx.user.id, "requester_sedana.review")) ||
-        (await checkPermission(ctx.user.id, "requesters.review")) ||
         (await checkPermission(ctx.user.id, "sedanaInquiries.edit"));
 
       if (!canReview) {
