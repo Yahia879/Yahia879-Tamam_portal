@@ -464,10 +464,6 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     userManagementItems.push({ icon: Users, label: "إدارة المستخدمين", path: "/staff" });
   }
   if (
-    has("service_requester_accounts") ||
-    has("requesters") ||
-    has("requesters.view") ||
-    has("requesters.approve") ||
     has("requester_accounts.view") ||
     has("requester_exceptions.view") ||
     has("requester_donations.view") ||
