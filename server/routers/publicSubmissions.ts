@@ -93,13 +93,11 @@ export const publicSubmissionsRouter = router({
       if (input?.category === "donor") {
         const canView = isAdmin ||
           (await checkPermission(ctx.user.id, "requester_donations.view")) ||
-          (await checkPermission(ctx.user.id, "requesters.view")) ||
           (await checkPermission(ctx.user.id, "publicSubmissions.view"));
         if (!canView) return [];
       } else if (input?.category === "other") {
         const canView = isAdmin ||
           (await checkPermission(ctx.user.id, "requester_inquiries.view")) ||
-          (await checkPermission(ctx.user.id, "requesters.view")) ||
           (await checkPermission(ctx.user.id, "publicSubmissions.view"));
         if (!canView) return [];
       }
@@ -219,12 +217,10 @@ export const publicSubmissionsRouter = router({
       const canReview = isAdmin ||
         (isDonor && (
           (await checkPermission(ctx.user.id, "requester_donations.review")) ||
-          (await checkPermission(ctx.user.id, "requesters.review")) ||
           (await checkPermission(ctx.user.id, "publicSubmissions.edit"))
         )) ||
         (!isDonor && (
           (await checkPermission(ctx.user.id, "requester_inquiries.review")) ||
-          (await checkPermission(ctx.user.id, "requesters.review")) ||
           (await checkPermission(ctx.user.id, "publicSubmissions.edit"))
         ));
 
