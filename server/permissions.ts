@@ -1,4 +1,4 @@
-import { eq, and, or, ne, sql, inArray, notInArray, isNull } from "drizzle-orm";
+import { eq, and, or, ne, sql, inArray, notInArray, isNull, like } from "drizzle-orm";
 import { getDb } from "./db";
 import {
   modules,
