@@ -250,7 +250,7 @@ export const usersRouter = router({
       return { ...user, employee: emp || null };
     }),
 
-  createRequester: permissionProcedure(["requester_accounts.create", "requesters.create"])
+  createRequester: permissionProcedure("requester_accounts.create")
     .input(z.object({
       name: z.string().trim().min(2, "الاسم يجب أن يكون حرفين على الأقل").max(60),
       email: z.string().trim().toLowerCase().email("البريد الإلكتروني غير صحيح"),
@@ -453,10 +453,7 @@ export const usersRouter = router({
         const canSuspend = isAdmin ||
           (await checkPermission(ctx.user.id, "users.suspend")) ||
           (await checkPermission(ctx.user.id, "staff_users.suspend")) ||
-          (targetUser?.role === "service_requester" && (
-            (await checkPermission(ctx.user.id, "requester_accounts.suspend")) ||
-            (await checkPermission(ctx.user.id, "requesters.suspend"))
-          ));
+          (targetUser?.role === "service_requester" && (await checkPermission(ctx.user.id, "requester_accounts.suspend")));
         if (!canSuspend) {
           throw new TRPCError({
             code: "FORBIDDEN",
@@ -467,10 +464,7 @@ export const usersRouter = router({
         const canActivate = isAdmin ||
           (await checkPermission(ctx.user.id, "users.activate")) ||
           (await checkPermission(ctx.user.id, "staff_users.activate")) ||
-          (targetUser?.role === "service_requester" && (
-            (await checkPermission(ctx.user.id, "requester_accounts.approve")) ||
-            (await checkPermission(ctx.user.id, "requesters.approve"))
-          ));
+          (targetUser?.role === "service_requester" && (await checkPermission(ctx.user.id, "requester_accounts.approve")));
         if (!canActivate) {
           throw new TRPCError({
             code: "FORBIDDEN",
