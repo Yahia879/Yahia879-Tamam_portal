@@ -142,7 +142,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/users": "staff_management",
   "/roles": "staff_management",
   "/job-positions": "staff_management",
-  "/requester-approvals": ["staff_management", "service_requester_accounts", "requesters", "requesters.view", "requesters.approve", "requester_accounts.view", "requester_exceptions.view", "requester_donations.view", "requester_inquiries.view", "requester_sedana.view"],
+  "/requester-approvals": ["staff_management", "requester_accounts.view", "requester_exceptions.view", "requester_donations.view", "requester_inquiries.view", "requester_sedana.view"],
   "/notifications/customization": [
     "staff_notifications.edit",
     "staff_notifications.by_role",
@@ -368,7 +368,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/users\/\d+\/edit$/, permission: ["staff_users.edit", "users.edit"] },
   { pattern: /^\/users\/\d+\/permissions$/, permission: ["staff_users.customize", "users.customize"] },
   { pattern: /^\/users\/\d+$/, permission: ["staff_users.view", "users.view", "staff_management"] },
-  { pattern: /^\/requester-approvals\/\d+$/, permission: ["staff_management", "service_requester_accounts", "requesters", "requesters.view", "requesters.approve", "requester_accounts.view", "requester_exceptions.view", "requester_donations.view", "requester_inquiries.view", "requester_sedana.view"] },
+  { pattern: /^\/requester-approvals\/\d+$/, permission: ["staff_management", "requester_accounts.view", "requester_exceptions.view", "requester_donations.view", "requester_inquiries.view", "requester_sedana.view"] },
 
   // الأدوار
   { pattern: /^\/staff\/roles\/[^/]+$/, permission: "staff_management" },
