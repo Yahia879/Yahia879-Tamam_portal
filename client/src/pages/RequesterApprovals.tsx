@@ -159,25 +159,25 @@ const submissionTypeLabels: Record<string, { label: string; shortLabel: string; 
 export default function RequesterApprovals() {
   const { user: currentUser } = useAuth();
   const [, navigate] = useLocation();
-  // الصلاحيات الدقيقة لكل تبويب من تبويبات إدارة المستفيدين
-  const canViewAccounts = usePermission("requester_accounts.view") || usePermission("requesters.view");
-  const canCreateAccounts = usePermission("requester_accounts.create") || usePermission("requesters.create");
-  const canApproveAccounts = usePermission("requester_accounts.approve") || usePermission("requesters.approve");
-  const canSuspendAccounts = usePermission("requester_accounts.suspend") || usePermission("requesters.approve");
+  // الصلاحيات الدقيقة لكل تبويب من تبويبات إدارة المستفيدين (اعتماد حصري على الكاردات الجديدة)
+  const canViewAccounts = usePermission("requester_accounts.view");
+  const canCreateAccounts = usePermission("requester_accounts.create");
+  const canApproveAccounts = usePermission("requester_accounts.approve");
+  const canSuspendAccounts = usePermission("requester_accounts.suspend");
 
-  const canViewExceptions = usePermission("requester_exceptions.view") || usePermission("requesters.view");
-  const canReviewExceptions = usePermission("requester_exceptions.review") || usePermission("requesters.approve");
+  const canViewExceptions = usePermission("requester_exceptions.view");
+  const canReviewExceptions = usePermission("requester_exceptions.review");
 
-  const canViewDonations = usePermission("requester_donations.view") || usePermission("requesters.view");
-  const canReviewDonations = usePermission("requester_donations.review") || usePermission("requesters.approve");
+  const canViewDonations = usePermission("requester_donations.view");
+  const canReviewDonations = usePermission("requester_donations.review");
   const canDeleteDonations = usePermission("requester_donations.delete");
 
-  const canViewInquiries = usePermission("requester_inquiries.view") || usePermission("requesters.view");
-  const canReviewInquiries = usePermission("requester_inquiries.review") || usePermission("requesters.approve");
+  const canViewInquiries = usePermission("requester_inquiries.view");
+  const canReviewInquiries = usePermission("requester_inquiries.review");
   const canDeleteInquiries = usePermission("requester_inquiries.delete");
 
-  const canViewSedana = usePermission("requester_sedana.view") || usePermission("requesters.view");
-  const canReviewSedana = usePermission("requester_sedana.review") || usePermission("requesters.approve");
+  const canViewSedana = usePermission("requester_sedana.view");
+  const canReviewSedana = usePermission("requester_sedana.review");
 
   const hasAnyPermission = canViewAccounts || canViewExceptions || canViewDonations || canViewInquiries || canViewSedana;
 
