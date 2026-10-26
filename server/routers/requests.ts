@@ -5601,7 +5601,6 @@ export const requestsRouter = router({
     const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
     const canView = isAdmin ||
       (await checkPermission(ctx.user.id, "requester_exceptions.view")) ||
-      (await checkPermission(ctx.user.id, "requesters.view")) ||
       (await checkPermission(ctx.user.id, "requests.view"));
     if (!canView) return [];
 
@@ -5634,7 +5633,6 @@ export const requestsRouter = router({
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
       const canReview = isAdmin ||
         (await checkPermission(ctx.user.id, "requester_exceptions.review")) ||
-        (await checkPermission(ctx.user.id, "requesters.review")) ||
         (await checkPermission(ctx.user.id, "requests.approve")) ||
         (await checkPermission(ctx.user.id, "requests.edit"));
 
