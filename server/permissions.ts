@@ -151,15 +151,6 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "requests.create_quick_request": ["requests.create_quick_request"],
   field_visits: ["field_visits.view", "field_visits.create", "field_visits.edit", "field_visits.delete"],
 
-  // UI customized keys mapping to bridge checkboxes with database granular permissions
-  requesters: ["users.view", "users.edit", "users.delete"],
-  "requesters.view": ["users.view"],
-  "requesters.approve": ["users.edit"],
-  "requesters.create": ["users.create", "users.edit"],
-  "requesters.edit": ["users.edit"],
-  "requesters.delete": ["users.delete"],
-  "requesters.suspend": ["users.edit"],
-
   // إدارة المستفيدين - 5 تبويبات مخصصة
   requester_accounts: ["users.view", "users.edit"],
   "requester_accounts.view": ["users.view"],
@@ -795,36 +786,47 @@ async function ensureProjectsPermissionsExist(db: any) {
 }
 
 /**
- * دالة للتأكد من ربط صلاحيات طالبي الخدمة بالدور الأساسي مكتب المشاريع (projects_office)
+ * دالة للتأكد من ربط صلاحيات إدارة المستفيدين الجديدة بالدور الأساسي مكتب المشاريع (projects_office)
  */
 async function ensureRequestersPermissionsExist(db: any) {
   try {
     const roleId = "projects_office";
-    const permIds = ["requesters.view", "requesters.approve"];
+    const permIds = [
+      "requester_accounts.view",
+      "requester_accounts.approve",
+      "requester_exceptions.view",
+      "requester_exceptions.review",
+      "requester_donations.view",
+      "requester_donations.review",
+      "requester_inquiries.view",
+      "requester_inquiries.review",
+      "requester_sedana.view",
+      "requester_sedana.review",
+    ];
     
     const [roleExists] = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
     if (!roleExists) return;
 
-    const existingRolePerms = await db.select()
-      .from(rolePermissions)
-      .where(and(
-        eq(rolePermissions.roleId, roleId),
-        inArray(rolePermissions.permissionId, permIds)
-      ));
+    // حذف أي صلاحيات قديمة متبقية
+    await db.delete(rolePermissions).where(like(rolePermissions.permissionId, "requesters%")).catch(() => {});
+    await db.delete(userPermissions).where(like(userPermissions.permissionId, "requesters%")).catch(() => {});
+    await db.delete(permissions).where(like(permissions.id, "requesters%")).catch(() => {});
+    await db.delete(modules).where(eq(modules.id, "requesters")).catch(() => {});
 
-    if (existingRolePerms.length < permIds.length) {
-      // حذف التالف لضمان عدم وجود تكرار عند الربط
-      await db.delete(rolePermissions).where(and(
-        eq(rolePermissions.roleId, roleId),
-        inArray(rolePermissions.permissionId, permIds)
-      ));
-
-      const valuesToInsert = permIds.map(permId => ({
-        roleId,
-        permissionId: permId
-      }));
-      await db.insert(rolePermissions).values(valuesToInsert);
-      console.log(`Migrated role ${roleId} with requesters permissions: ${permIds.join(", ")}`);
+    for (const pId of permIds) {
+      const [existing] = await db.select({ id: rolePermissions.id })
+        .from(rolePermissions)
+        .where(and(
+          eq(rolePermissions.roleId, roleId),
+          eq(rolePermissions.permissionId, pId)
+        ))
+        .limit(1);
+      if (!existing) {
+        await db.insert(rolePermissions).values({
+          roleId,
+          permissionId: pId
+        }).catch(() => {});
+      }
     }
   } catch (err) {
     console.error("Error in ensureRequestersPermissionsExist:", err);
@@ -920,19 +922,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
       console.log("Inserted missing custom module: escalation");
     }
 
-    // Ensure 'requesters' module exists in the modules table
-    const [existingRequestersModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "requesters")).limit(1);
-    if (!existingRequestersModule) {
-      await db.insert(modules).values({
-        id: "requesters",
-        nameAr: "إدارة المستفيدين",
-        nameEn: "Beneficiary Management",
-        icon: "Users",
-        displayOrder: 14,
-        isActive: true
-      });
-      console.log("Inserted missing custom module: requesters");
-    }
+    // تنظيف وحدة المستفيدين القديمة إن وجدت
+    await db.delete(modules).where(eq(modules.id, "requesters")).catch(() => {});
 
     // Ensure the 5 granular beneficiary modules exist
     const beneficiaryModulesToInsert = [
@@ -1146,9 +1137,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "appointments.view_all", moduleId: "settings", action: "view_all", nameAr: "عرض كافة المواعيد والزيارات للمنشأة", nameEn: "View All Appointments" },
       { id: "appointments.view_own", moduleId: "settings", action: "view_own", nameAr: "عرض زياراتي الميدانية الخاصة بي فقط", nameEn: "View Own Appointments" },
       { id: "projects.view_details", moduleId: "projects", action: "view_details", nameAr: "عرض تفاصيل المشروع وادارته", nameEn: "View Project Details" },
-      { id: "requesters.view", moduleId: "requesters", action: "view", nameAr: "عرض قسم إدارة المستفيدين", nameEn: "View Requesters" },
-      { id: "requesters.approve", moduleId: "requesters", action: "approve", nameAr: "اعتماد ورفض المستفيدين", nameEn: "Approve Requesters" },
-      { id: "requesters.create", moduleId: "requesters", action: "create", nameAr: "إضافة مستفيد", nameEn: "Create Beneficiary" },
       // 1. حسابات طالبي الخدمة
       { id: "requester_accounts.view", moduleId: "requester_accounts", action: "view", nameAr: "عرض حسابات طالبي الخدمة", nameEn: "View Requester Accounts" },
       { id: "requester_accounts.create", moduleId: "requester_accounts", action: "create", nameAr: "إضافة مستفيد", nameEn: "Create Beneficiary" },
@@ -1885,43 +1873,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   } else {
     allPermissions.delete("reports");
   }
-  // مزامنة صلاحيات إدارة المستفيدين والتبويبات الخمسة
-  const hasLegacyRequesters = allPermissions.has("requesters") || allPermissions.has("requesters.view");
-  if (hasLegacyRequesters) {
-    if (!revokedPermissions.has("requester_accounts.view")) allPermissions.add("requester_accounts.view");
-    if (!revokedPermissions.has("requester_exceptions.view")) allPermissions.add("requester_exceptions.view");
-    if (!revokedPermissions.has("requester_donations.view")) allPermissions.add("requester_donations.view");
-    if (!revokedPermissions.has("requester_inquiries.view")) allPermissions.add("requester_inquiries.view");
-    if (!revokedPermissions.has("requester_sedana.view")) allPermissions.add("requester_sedana.view");
-  }
-  if (allPermissions.has("requesters.approve") || allPermissions.has("requesters")) {
-    if (!revokedPermissions.has("requester_accounts.approve")) allPermissions.add("requester_accounts.approve");
-    if (!revokedPermissions.has("requester_exceptions.review")) allPermissions.add("requester_exceptions.review");
-    if (!revokedPermissions.has("requester_donations.review")) allPermissions.add("requester_donations.review");
-    if (!revokedPermissions.has("requester_inquiries.review")) allPermissions.add("requester_inquiries.review");
-    if (!revokedPermissions.has("requester_sedana.review")) allPermissions.add("requester_sedana.review");
-  }
-  if (allPermissions.has("requesters.create") || allPermissions.has("requesters")) {
-    if (!revokedPermissions.has("requester_accounts.create")) allPermissions.add("requester_accounts.create");
-  }
 
-  // إذا كان يملك عرض أي تبويب من التبويبات الخمسة، نمنحه requesters و requesters.view للوصول للشاشة
-  const hasAnyBeneficiaryTab =
-    allPermissions.has("requester_accounts.view") ||
-    allPermissions.has("requester_exceptions.view") ||
-    allPermissions.has("requester_donations.view") ||
-    allPermissions.has("requester_inquiries.view") ||
-    allPermissions.has("requester_sedana.view");
-
-  if (hasAnyBeneficiaryTab) {
-    allPermissions.add("requesters");
-    allPermissions.add("requesters.view");
-    allPermissions.add("service_requester_accounts");
-  } else if (!hasLegacyRequesters) {
-    allPermissions.delete("requesters");
-    allPermissions.delete("requesters.view");
-    allPermissions.delete("service_requester_accounts");
-  }
 
   if (revokedPermissions.has("escalation.view") || revokedPermissions.has("escalation")) {
     allPermissions.delete("escalation");
@@ -2785,8 +2737,8 @@ export const permissionsRouter = router({
       const rolePermissionsMapping: Record<string, string[] | string> = {
         super_admin: "*",
         system_admin: "*",
-        general_manager: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "requester_accounts", "requester_exceptions", "requester_donations", "requester_inquiries", "requester_sedana", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports", "notification_center"],
-        executive_director: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "requester_accounts", "requester_exceptions", "requester_donations", "requester_inquiries", "requester_sedana", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports", "notification_center"],
+        general_manager: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requester_accounts", "requester_exceptions", "requester_donations", "requester_inquiries", "requester_sedana", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports", "notification_center"],
+        executive_director: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requester_accounts", "requester_exceptions", "requester_donations", "requester_inquiries", "requester_sedana", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports", "notification_center"],
         projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "progress_reports", "progress_invoices", "requester_accounts", "requester_exceptions", "requester_donations", "requester_inquiries", "requester_sedana"],
         field_team: ["mosques.view", "requests.view", "requests.edit", "requests.manage_as_field_team", "field_visits"],
         quick_response: ["requests.view", "requests.manage_as_quick_response", "field_visits.view", "reports.create"],
