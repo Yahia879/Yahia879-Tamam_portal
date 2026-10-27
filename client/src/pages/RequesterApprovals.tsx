@@ -172,7 +172,9 @@ export default function RequesterApprovals() {
 
   const canViewDonations = usePermission("requester_donations.view");
   const canReviewDonations = usePermission("requester_donations.review");
-  const canDeleteDonations = usePermission("requester_donations.delete");
+  const canApproveDonations = usePermission("requester_donations.approve");
+  const canSendEmailDonations = usePermission("requester_donations.send_email");
+  const canSendWhatsappDonations = usePermission("requester_donations.send_whatsapp");
 
   const canViewInquiries = usePermission("requester_inquiries.view");
   const canReviewInquiries = usePermission("requester_inquiries.review");
@@ -1449,13 +1451,13 @@ export default function RequesterApprovals() {
                               {/* الإجراءات */}
                               <TableCell className="text-left pl-6">
                                 <div className="flex items-center justify-end gap-1.5">
-                                  {sub.status === "new" && canReviewDonations && (
+                                  {sub.status === "new" && canApproveDonations && (
                                     <Button
                                       size="sm"
                                       className="h-8 text-xs font-bold gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
                                       onClick={() => updateSubmissionMutation.mutate({ id: sub.id, status: "under_review" })}
                                       disabled={updateSubmissionMutation.isPending}
-                                      title="تحديد الطلب كتمت المراجعة"
+                                      title="اعتماد الطلب"
                                     >
                                       {updateSubmissionMutation.isPending && updateSubmissionMutation.variables?.id === sub.id ? (
                                         <>
@@ -1465,13 +1467,13 @@ export default function RequesterApprovals() {
                                       ) : (
                                         <>
                                           <CheckCircle2 className="w-3.5 h-3.5" />
-                                          <span>تمت المراجعة</span>
+                                          <span>اعتماد الطلب</span>
                                         </>
                                       )}
                                     </Button>
                                   )}
 
-                                  {waPhone && (
+                                  {waPhone && canSendWhatsappDonations && (
                                     <a 
                                       href={`https://wa.me/${waPhone}`} 
                                       target="_blank" 
@@ -1483,7 +1485,7 @@ export default function RequesterApprovals() {
                                     </a>
                                   )}
 
-                                  {sub.email && (
+                                  {sub.email && canSendEmailDonations && (
                                     <a 
                                       href={`mailto:${sub.email}`} 
                                       className="p-1.5 rounded-xl text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-colors"
@@ -1493,15 +1495,17 @@ export default function RequesterApprovals() {
                                     </a>
                                   )}
 
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleOpenSubmissionDetails(sub)}
-                                    className="h-8 text-xs font-bold gap-1 rounded-xl border-border/70 hover:border-primary"
-                                  >
-                                    <Eye className="w-3.5 h-3.5" />
-                                    مراجعة الطلب
-                                  </Button>
+                                  {canReviewDonations && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleOpenSubmissionDetails(sub)}
+                                      className="h-8 text-xs font-bold gap-1 rounded-xl border-border/70 hover:border-primary"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" />
+                                      مراجعة الطلب
+                                    </Button>
+                                  )}
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -1556,27 +1560,29 @@ export default function RequesterApprovals() {
                           </div>
 
                           <div className="flex items-center gap-2 pt-1">
-                            <Button
-                              variant="outline"
-                              onClick={() => handleOpenSubmissionDetails(sub)}
-                              className="flex-1 h-9 text-xs font-bold gap-1.5 rounded-xl"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              مراجعة الطلب
-                            </Button>
+                            {canReviewDonations && (
+                              <Button
+                                variant="outline"
+                                onClick={() => handleOpenSubmissionDetails(sub)}
+                                className="flex-1 h-9 text-xs font-bold gap-1.5 rounded-xl"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                مراجعة الطلب
+                              </Button>
+                            )}
 
-                            {sub.status === "new" && canReviewDonations && (
+                            {sub.status === "new" && canApproveDonations && (
                               <Button
                                 className="h-9 px-3 text-xs font-bold gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
                                 onClick={() => updateSubmissionMutation.mutate({ id: sub.id, status: "under_review" })}
                                 disabled={updateSubmissionMutation.isPending}
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
-                                تمت المراجعة
+                                اعتماد الطلب
                               </Button>
                             )}
 
-                            {waPhone && (
+                            {waPhone && canSendWhatsappDonations && (
                               <a 
                                 href={`https://wa.me/${waPhone}`} 
                                 target="_blank" 
@@ -1587,7 +1593,7 @@ export default function RequesterApprovals() {
                                 <MessageCircle className="w-4 h-4" />
                               </a>
                             )}
-                            {sub.email && (
+                            {sub.email && canSendEmailDonations && (
                               <a 
                                 href={`mailto:${sub.email}`} 
                                 className="p-2 rounded-xl text-sky-600 bg-sky-50 dark:bg-sky-950/40 border border-sky-200/60"
@@ -2194,7 +2200,7 @@ export default function RequesterApprovals() {
                     بيانات مقدم الطلب والتواصل
                   </h4>
                   <div className="flex items-center gap-2">
-                    {selectedSubmission.phone && (
+                    {selectedSubmission.phone && (selectedSubmission.category === 'donor' ? canSendWhatsappDonations : true) && (
                       <a 
                         href={`https://wa.me/${selectedSubmission.phone.replace(/[^0-9]/g, "").startsWith("05") ? `966${selectedSubmission.phone.slice(1)}` : selectedSubmission.phone}`} 
                         target="_blank" 
@@ -2206,7 +2212,7 @@ export default function RequesterApprovals() {
                         واتساب
                       </a>
                     )}
-                    {selectedSubmission.email && (
+                    {selectedSubmission.email && (selectedSubmission.category === 'donor' ? canSendEmailDonations : true) && (
                       <a 
                         href={`mailto:${selectedSubmission.email}`} 
                         className="h-8 px-3.5 rounded-xl border border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800 text-xs font-bold flex items-center gap-1.5 hover:bg-sky-100 transition-all shadow-2xs"
@@ -2279,7 +2285,7 @@ export default function RequesterApprovals() {
             {/* Footer */}
             <div className="flex items-center justify-between pt-5 border-t border-border/60">
               <div className="flex items-center gap-2">
-                {selectedSubmission.status === "new" && (selectedSubmission.category === 'donor' ? canReviewDonations : canReviewInquiries) && (
+                {selectedSubmission.status === "new" && (selectedSubmission.category === 'donor' ? canApproveDonations : canReviewInquiries) && (
                   <Button
                     type="button"
                     onClick={() => {
@@ -2299,13 +2305,13 @@ export default function RequesterApprovals() {
                     ) : (
                       <>
                         <CheckCircle2 className="w-4 h-4" />
-                        <span>تمت المراجعة</span>
+                        <span>اعتماد الطلب</span>
                       </>
                     )}
                   </Button>
                 )}
 
-                {(selectedSubmission.category === 'donor' ? canDeleteDonations : canDeleteInquiries) && (
+                {selectedSubmission.category !== 'donor' && canDeleteInquiries && (
                   <Button
                     type="button"
                     variant="ghost"
