@@ -652,31 +652,23 @@ export default function InformationDashboard() {
         {(activeTab === "all" || activeTab === "mosques") && (
           <section id="section-mosques" className="space-y-6 pt-2 scroll-mt-36">
             {/* هيدر قسم المساجد */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 shadow-xs">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black shadow-md shadow-emerald-500/20 shrink-0">
-                  <Building2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base sm:text-lg lg:text-xl font-bold text-foreground">
-                      إحصائيات وتغطية المساجد والجوامع
-                    </h2>
-                    <span className="text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 shrink-0">
-                      قطاع المساجد
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    المساجد المعتمدة رسمياً، المساجد النشطة المستفيدة من الخدمات، ونسب التغطية الميدانية والنمو
-                  </p>
-                </div>
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 shadow-xs">
+              <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                <Building2 className="w-4 h-4" />
               </div>
-              <Link href="/mosques">
-                <Button variant="outline" size="sm" className="text-xs font-bold gap-1.5 rounded-xl border-emerald-300 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 shrink-0 cursor-pointer">
-                  <span>فتح دليل المساجد</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </Button>
-              </Link>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-sm sm:text-base font-bold text-foreground">
+                    إحصائيات وتغطية المساجد والجوامع
+                  </h2>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 shrink-0">
+                    قطاع المساجد
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                  المساجد المعتمدة رسمياً، المساجد النشطة المستفيدة من الخدمات، ونسب التغطية الميدانية والنمو
+                </p>
+              </div>
             </div>
 
             {/* كروت قسم المساجد */}
@@ -705,31 +697,23 @@ export default function InformationDashboard() {
         {(activeTab === "all" || activeTab === "requests") && (
           <section id="section-requests" className="space-y-6 pt-6 border-t-2 border-border/80 scroll-mt-36">
             {/* هيدر قسم الطلبات */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-blue-500/10 via-blue-500/5 to-transparent border border-blue-500/20 shadow-xs">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black shadow-md shadow-blue-500/20 shrink-0">
-                  <FileText className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base sm:text-lg lg:text-xl font-bold text-foreground">
-                      إحصائيات الطلبات وبرامج الخدمات التسعة
-                    </h2>
-                    <span className="text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/25 shrink-0">
-                      تقارير الطلبات
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    مخططات توزيع الطلبات على البرامج التسعة، والمنحنى الشهري لتطور الطلبات ومراحل الإنجاز
-                  </p>
-                </div>
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500/10 via-blue-500/5 to-transparent border border-blue-500/20 shadow-xs">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                <FileText className="w-4 h-4" />
               </div>
-              <Link href="/requests">
-                <Button variant="outline" size="sm" className="text-xs font-bold gap-1.5 rounded-xl border-blue-300 hover:bg-blue-500/10 text-blue-700 dark:text-blue-300 shrink-0 cursor-pointer">
-                  <span>فتح سجل الطلبات</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </Button>
-              </Link>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-sm sm:text-base font-bold text-foreground">
+                    إحصائيات الطلبات وبرامج الخدمات التسعة
+                  </h2>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/25 shrink-0">
+                    تقارير الطلبات
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                  مخططات توزيع الطلبات على البرامج التسعة، والمنحنى الشهري لتطور الطلبات ومراحل الإنجاز
+                </p>
+              </div>
             </div>
 
             {/* كروت قسم الطلبات */}
@@ -758,31 +742,23 @@ export default function InformationDashboard() {
         {(activeTab === "all" || activeTab === "procurement") && (
           <section id="section-procurement" className="space-y-6 pt-6 border-t-2 border-border/80 scroll-mt-36">
             {/* هيدر قسم المشاريع والعقود */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 shadow-xs">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-amber-600 text-white flex items-center justify-center font-black shadow-md shadow-amber-500/20 shrink-0">
-                  <Briefcase className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base sm:text-lg lg:text-xl font-bold text-foreground">
-                      المشاريع والعقود وشبكة الموردين
-                    </h2>
-                    <span className="text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/25 shrink-0">
-                      المشاريع والعقود
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    مشاريع الدعم، الميزانيات المعتمدة، شبكة الموردين المؤهلين، ومجموع قيم العقود الرسمية
-                  </p>
-                </div>
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 shadow-xs">
+              <div className="w-8 h-8 rounded-lg bg-amber-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                <Briefcase className="w-4 h-4" />
               </div>
-              <Link href="/projects">
-                <Button variant="outline" size="sm" className="text-xs font-bold gap-1.5 rounded-xl border-amber-300 hover:bg-amber-500/10 text-amber-700 dark:text-amber-300 shrink-0 cursor-pointer">
-                  <span>فتح إدارة المشاريع</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </Button>
-              </Link>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-sm sm:text-base font-bold text-foreground">
+                    المشاريع والعقود وشبكة الموردين
+                  </h2>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/25 shrink-0">
+                    المشاريع والعقود
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                  مشاريع الدعم، الميزانيات المعتمدة، شبكة الموردين المؤهلين، ومجموع قيم العقود الرسمية
+                </p>
+              </div>
             </div>
 
             {/* كروت قسم المشاريع والعقود */}
@@ -827,31 +803,23 @@ export default function InformationDashboard() {
         {(activeTab === "all" || activeTab === "financial") && (
           <section id="section-financial" className="space-y-6 pt-6 border-t-2 border-border/80 scroll-mt-36">
             {/* هيدر قسم المالية */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-teal-500/10 via-teal-500/5 to-transparent border border-teal-500/20 shadow-xs">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-teal-600 text-white flex items-center justify-center font-black shadow-md shadow-teal-500/20 shrink-0">
-                  <SaudiRiyal className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base sm:text-lg lg:text-xl font-bold text-foreground">
-                      التقرير والتحليلات المالية والتدفقات النقدية
-                    </h2>
-                    <span className="text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/25 shrink-0">
-                      المالية والصرف
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    الرسوم البيانية للتدفقات النقدية، أوامر الصرف المنفذة، سندات القبض، ومشاريع الدعم والتغطية
-                  </p>
-                </div>
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-teal-500/10 via-teal-500/5 to-transparent border border-teal-500/20 shadow-xs">
+              <div className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                <SaudiRiyal className="w-4 h-4" />
               </div>
-              <Link href="/financial-report">
-                <Button variant="outline" size="sm" className="text-xs font-bold gap-1.5 rounded-xl border-teal-300 hover:bg-teal-500/10 text-teal-700 dark:text-teal-300 shrink-0 cursor-pointer">
-                  <span>فتح التقرير المالي</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </Button>
-              </Link>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-sm sm:text-base font-bold text-foreground">
+                    التقرير والتحليلات المالية والتدفقات النقدية
+                  </h2>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/25 shrink-0">
+                    المالية والصرف
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                  الرسوم البيانية للتدفقات النقدية، أوامر الصرف المنفذة، سندات القبض، ومشاريع الدعم والتغطية
+                </p>
+              </div>
             </div>
 
             {/* كروت قسم المالية */}
