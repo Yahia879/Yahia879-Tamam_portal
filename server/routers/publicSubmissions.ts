@@ -216,19 +216,18 @@ export const publicSubmissionsRouter = router({
 
       const canReview = isAdmin ||
         (isDonor && (
-          (await checkPermission(ctx.user.id, "requester_donations.review")) ||
-          (await checkPermission(ctx.user.id, "publicSubmissions.edit"))
+          (await checkPermission(ctx.user.id, "requester_donations.approve")) ||
+          (await checkPermission(ctx.user.id, "requester_donations.review"))
         )) ||
         (!isDonor && (
-          (await checkPermission(ctx.user.id, "requester_inquiries.review")) ||
-          (await checkPermission(ctx.user.id, "publicSubmissions.edit"))
+          (await checkPermission(ctx.user.id, "requester_inquiries.review"))
         ));
 
       if (!canReview) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: isDonor 
-            ? "غير مصرح لك بمراجعة طلبات التبرعات (تتطلب صلاحية مراجعة واعتماد طلبات التبرعات)"
+            ? "غير مصرح لك بتحديث طلبات التبرعات (تتطلب صلاحية اعتماد أو مراجعة طلب التبرع)"
             : "غير مصرح لك بمراجعة الاستفسارات العامة (تتطلب صلاحية مراجعة وتحديث حالة الاستفسار)"
         });
       }
@@ -260,10 +259,6 @@ export const publicSubmissionsRouter = router({
       const isDonor = existing.category === "donor";
 
       const canDelete = isAdmin ||
-        (isDonor && (
-          (await checkPermission(ctx.user.id, "requester_donations.delete")) ||
-          (await checkPermission(ctx.user.id, "publicSubmissions.delete"))
-        )) ||
         (!isDonor && (
           (await checkPermission(ctx.user.id, "requester_inquiries.delete")) ||
           (await checkPermission(ctx.user.id, "publicSubmissions.delete"))
@@ -273,7 +268,7 @@ export const publicSubmissionsRouter = router({
         throw new TRPCError({
           code: "FORBIDDEN",
           message: isDonor 
-            ? "غير مصرح لك بحذف طلبات التبرعات (تتطلب صلاحية حذف طلب التبرع)"
+            ? "غير مصرح بحذف طلبات التبرعات"
             : "غير مصرح لك بحذف الاستفسارات العامة (تتطلب صلاحية حذف الاستفسار)"
         });
       }
