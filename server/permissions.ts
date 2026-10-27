@@ -173,8 +173,10 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   requester_inquiries: ["publicSubmissions.view", "publicSubmissions.edit"],
   "requester_inquiries.view": ["publicSubmissions.view"],
-  "requester_inquiries.review": ["publicSubmissions.edit"],
-  "requester_inquiries.delete": ["publicSubmissions.delete"],
+  "requester_inquiries.review": ["publicSubmissions.view"],
+  "requester_inquiries.mark_reviewed": ["publicSubmissions.edit"],
+  "requester_inquiries.send_email": ["publicSubmissions.view"],
+  "requester_inquiries.send_whatsapp": ["publicSubmissions.view"],
 
   requester_sedana: ["sedanaInquiries.view", "sedanaInquiries.edit"],
   "requester_sedana.view": ["sedanaInquiries.view"],
@@ -1164,8 +1166,10 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "requester_donations.send_whatsapp", moduleId: "requester_donations", action: "send_whatsapp", nameAr: "إرسال WhatsApp", nameEn: "Send WhatsApp" },
       // 4. الاستفسارات العامة
       { id: "requester_inquiries.view", moduleId: "requester_inquiries", action: "view", nameAr: "عرض الاستفسارات العامة", nameEn: "View Inquiries" },
-      { id: "requester_inquiries.review", moduleId: "requester_inquiries", action: "review", nameAr: "مراجعة وتحديث حالة الاستفسار", nameEn: "Review Inquiries" },
-      { id: "requester_inquiries.delete", moduleId: "requester_inquiries", action: "delete", nameAr: "حذف الاستفسار", nameEn: "Delete Inquiry" },
+      { id: "requester_inquiries.review", moduleId: "requester_inquiries", action: "review", nameAr: "مراجعة", nameEn: "Review Inquiry" },
+      { id: "requester_inquiries.mark_reviewed", moduleId: "requester_inquiries", action: "mark_reviewed", nameAr: "تمت المراجعة", nameEn: "Mark Inquiry As Reviewed" },
+      { id: "requester_inquiries.send_email", moduleId: "requester_inquiries", action: "send_email", nameAr: "إرسال Email", nameEn: "Send Email" },
+      { id: "requester_inquiries.send_whatsapp", moduleId: "requester_inquiries", action: "send_whatsapp", nameAr: "إرسال WhatsApp", nameEn: "Send WhatsApp" },
       // 5. طلبات برنامج سدانة
       { id: "requester_sedana.view", moduleId: "requester_sedana", action: "view", nameAr: "عرض طلبات برنامج سدانة", nameEn: "View Sedana Inquiries" },
       { id: "requester_sedana.review", moduleId: "requester_sedana", action: "review", nameAr: "اتخاذ إجراء واعتماد الطلب", nameEn: "Review Sedana Inquiry" },
