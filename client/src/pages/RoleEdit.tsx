@@ -145,7 +145,7 @@ const superAdminGroups = [
       { id: "requester_exceptions", nameAr: "طلبات الاستثناء", icon: FileText, perms: ["view", "approve", "reject"] },
       { id: "requester_donations", nameAr: "طلبات التبرعات", icon: Gift, perms: ["view", "review", "approve", "send_email", "send_whatsapp"] },
       { id: "requester_inquiries", nameAr: "الاستفسارات العامة", icon: MessageSquareQuote, perms: ["view", "review", "mark_reviewed", "send_email", "send_whatsapp"] },
-      { id: "requester_sedana", nameAr: "طلبات برنامج سدانة", icon: Sparkles, perms: ["view", "review"] },
+      { id: "requester_sedana", nameAr: "طلبات برنامج سدانة", icon: Sparkles, perms: ["view", "review", "send_email", "send_whatsapp"] },
     ]
   },
   {
@@ -450,7 +450,9 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     },
     requester_sedana: {
       view: "عرض طلبات برنامج سدانة",
-      review: "اتخاذ إجراء واعتماد الطلب"
+      review: "اتخاذ إجراء واعتماد الطلب",
+      send_email: "إرسال Email",
+      send_whatsapp: "إرسال WhatsApp",
     },
     staff_notifications: {
       by_role: "تخصيص الإشعارات حسب الدور",
@@ -1029,6 +1031,8 @@ export default function RoleEdit() {
             "requester_inquiries.send_whatsapp",
             "requester_sedana.view",
             "requester_sedana.review",
+            "requester_sedana.send_email",
+            "requester_sedana.send_whatsapp",
           ];
           cascadePerms.forEach(pId => {
             if (!next.includes(pId)) next.push(pId);
@@ -1111,6 +1115,8 @@ export default function RoleEdit() {
             "requester_inquiries.send_whatsapp",
             "requester_sedana.view",
             "requester_sedana.review",
+            "requester_sedana.send_email",
+            "requester_sedana.send_whatsapp",
           ];
           cascadePerms.forEach(pId => {
             if (!next.includes(pId)) next.push(pId);
