@@ -161,6 +161,7 @@ export default function RequesterApprovals() {
   const [, navigate] = useLocation();
   // الصلاحيات الدقيقة لكل تبويب من تبويبات إدارة المستفيدين (اعتماد حصري على الكاردات الجديدة)
   const canViewAccounts = usePermission("requester_accounts.view");
+  const canViewAccountDetails = usePermission("requester_accounts.view_details");
   const canCreateAccounts = usePermission("requester_accounts.create");
   const canApproveAccounts = usePermission("requester_accounts.approve");
   const canSuspendAccounts = usePermission("requester_accounts.suspend");
@@ -914,15 +915,17 @@ export default function RequesterApprovals() {
                               </TableCell>
                               <TableCell className="text-left">
                                 <div className="flex gap-2 justify-end">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 text-xs font-bold gap-1 rounded-xl"
-                                    onClick={() => navigate("/requester-approvals/" + user.id)}
-                                  >
-                                    <Eye className="w-3.5 h-3.5" />
-                                    التفاصيل
-                                  </Button>
+                                  {canViewAccountDetails && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 text-xs font-bold gap-1 rounded-xl"
+                                      onClick={() => navigate("/requester-approvals/" + user.id)}
+                                    >
+                                      <Eye className="w-3.5 h-3.5" />
+                                      التفاصيل
+                                    </Button>
+                                  )}
                                   {user.status !== "active" && canApproveAccounts && (
                                     <Button
                                       size="sm"
@@ -1013,14 +1016,16 @@ export default function RequesterApprovals() {
                           </div>
 
                           <div className="pt-1 flex flex-col sm:flex-row gap-2">
-                            <Button
-                              variant="outline"
-                              className="w-full h-9 font-bold gap-2 rounded-xl transition-all"
-                              onClick={() => navigate("/requester-approvals/" + user.id)}
-                            >
-                              <Eye className="w-4 h-4" />
-                              عرض التفاصيل
-                            </Button>
+                            {canViewAccountDetails && (
+                              <Button
+                                variant="outline"
+                                className="w-full h-9 font-bold gap-2 rounded-xl transition-all"
+                                onClick={() => navigate("/requester-approvals/" + user.id)}
+                              >
+                                <Eye className="w-4 h-4" />
+                                عرض التفاصيل
+                              </Button>
+                            )}
                             {user.status !== "active" && canApproveAccounts && (
                               <Button
                                 disabled={toggleStatus.isPending}
