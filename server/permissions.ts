@@ -181,6 +181,8 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   requester_sedana: ["sedanaInquiries.view", "sedanaInquiries.edit"],
   "requester_sedana.view": ["sedanaInquiries.view"],
   "requester_sedana.review": ["sedanaInquiries.edit"],
+  "requester_sedana.send_email": ["sedanaInquiries.view"],
+  "requester_sedana.send_whatsapp": ["sedanaInquiries.view"],
 
   "suppliers.view": ["suppliers.view"],
   "suppliers.view_details": ["suppliers.view_details", "suppliers.view"],
@@ -811,8 +813,13 @@ async function ensureRequestersPermissionsExist(db: any) {
       "requester_donations.send_whatsapp",
       "requester_inquiries.view",
       "requester_inquiries.review",
+      "requester_inquiries.mark_reviewed",
+      "requester_inquiries.send_email",
+      "requester_inquiries.send_whatsapp",
       "requester_sedana.view",
       "requester_sedana.review",
+      "requester_sedana.send_email",
+      "requester_sedana.send_whatsapp",
     ];
     
     const [roleExists] = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
@@ -1173,6 +1180,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
       // 5. طلبات برنامج سدانة
       { id: "requester_sedana.view", moduleId: "requester_sedana", action: "view", nameAr: "عرض طلبات برنامج سدانة", nameEn: "View Sedana Inquiries" },
       { id: "requester_sedana.review", moduleId: "requester_sedana", action: "review", nameAr: "اتخاذ إجراء واعتماد الطلب", nameEn: "Review Sedana Inquiry" },
+      { id: "requester_sedana.send_email", moduleId: "requester_sedana", action: "send_email", nameAr: "إرسال Email", nameEn: "Send Email" },
+      { id: "requester_sedana.send_whatsapp", moduleId: "requester_sedana", action: "send_whatsapp", nameAr: "إرسال WhatsApp", nameEn: "Send WhatsApp" },
       { id: "suppliers.view_details", moduleId: "suppliers", action: "view_details", nameAr: "عرض تفاصيل المورد", nameEn: "View Supplier Details" },
       { id: "suppliers.add", moduleId: "suppliers", action: "add", nameAr: "إضافة مورد", nameEn: "Add Supplier" },
       { id: "suppliers.suspend", moduleId: "suppliers", action: "suspend", nameAr: "إيقاف المورد وإعادة تفعيله", nameEn: "Suspend and Reactivate Supplier" },
