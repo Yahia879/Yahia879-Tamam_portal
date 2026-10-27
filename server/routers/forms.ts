@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { brandSettings, programs, evaluationTokens, mosqueRequests, mosques, users } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, like } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 export const formFieldOptionSchema = z.object({
@@ -467,67 +467,59 @@ export const DETAILED_DASHBOARD_SETTING_KEY = "detailed_dashboard_customization"
 
 export const DETAILED_DASHBOARD_CATEGORIES = [
   { id: "all", name: "كافة العناصر والأقسام" },
-  { id: "main_cards", name: "المؤشرات والبطاقات الرئيسية" },
-  { id: "mosque_cards", name: "إحصائيات المساجد" },
-  { id: "request_cards", name: "إحصائيات الطلبات" },
-  { id: "procurement_cards", name: "المشتريات والعقود" },
-  { id: "financial_cards", name: "المالية وأوامر الصرف" },
-  { id: "project_cards", name: "التقرير المالي والمشاريع" },
-  { id: "major_sections", name: "الأقسام والمخططات الكبرى" },
+  { id: "mosque_section", name: "قسم المساجد والتغطية" },
+  { id: "request_section", name: "قسم الطلبات وبرامج الخدمات" },
+  { id: "procurement_section", name: "قسم المشاريع والعقود وشبكة الموردين" },
+  { id: "financial_section", name: "قسم المالية والصرف والتدفقات" },
+  { id: "general_section", name: "تنبيهات وإشعارات عامة" },
 ];
 
 export const DETAILED_DASHBOARD_ELEMENT_DEFINITIONS = [
-  // 1. المؤشرات والبطاقات الرئيسية
-  { id: "main_total_requests", title: "إجمالي الطلبات", category: "main_cards", categoryName: "المؤشرات والبطاقات الرئيسية", description: "بطاقة إجمالي الطلبات المسجلة بالبوابة ونسبة التغير الشهري", defaultEnabled: true },
-  { id: "main_registered_mosques", title: "المساجد المسجلة", category: "main_cards", categoryName: "المؤشرات والبطاقات الرئيسية", description: "بطاقة عدد المساجد والجوامع المعتمدة ونسبة التغير", defaultEnabled: true },
-  { id: "main_in_progress_requests", title: "الطلبات قيد التنفيذ", category: "main_cards", categoryName: "المؤشرات والبطاقات الرئيسية", description: "بطاقة الطلبات الجارية بمختلف المراحل النشطة", defaultEnabled: true },
-  { id: "main_completed_requests", title: "الطلبات المكتملة", category: "main_cards", categoryName: "المؤشرات والبطاقات الرئيسية", description: "بطاقة الطلبات المنجزة ونسبة الإنجاز الكلية", defaultEnabled: true },
-  { id: "main_approved_contracts", title: "العقود المعتمدة", category: "main_cards", categoryName: "المؤشرات والبطاقات الرئيسية", description: "بطاقة مبالغ وعدد العقود المعتمدة والنشطة", defaultEnabled: true },
-  { id: "main_paid_amounts", title: "المبالغ المصروفة", category: "main_cards", categoryName: "المؤشرات والبطاقات الرئيسية", description: "بطاقة إجمالي المبالغ المصروفة وأوامر الصرف المنفذة", defaultEnabled: true },
-  { id: "main_receipt_vouchers", title: "سندات القبض", category: "main_cards", categoryName: "المؤشرات والبطاقات الرئيسية", description: "بطاقة إجمالي مبالغ سندات القبض وعددها", defaultEnabled: true },
-  { id: "main_active_projects", title: "المشاريع النشطة", category: "main_cards", categoryName: "المؤشرات والبطاقات الرئيسية", description: "بطاقة عدد المشاريع النشطة والميزانية الإجمالية المعتمدة", defaultEnabled: true },
+  // 1. قسم المساجد والتغطية
+  { id: "section_mosques", title: "قسم المساجد بالكامل (والتبويب)", category: "mosque_section", categoryName: "قسم المساجد والتغطية", description: "إظهار أو إخفاء قسم المساجد بالكامل مع تبويبه من شريط التنقل", defaultEnabled: true },
+  { id: "mosque_total", title: "المساجد المسجلة", category: "mosque_section", categoryName: "قسم المساجد والتغطية", description: "بطاقة إجمالي المساجد المسجلة رسمياً بالبوابة", defaultEnabled: true },
+  { id: "mosque_active", title: "المساجد النشطة", category: "mosque_section", categoryName: "قسم المساجد والتغطية", description: "بطاقة المساجد النشطة المستفيدة من الخدمات والزيارات", defaultEnabled: true },
+  { id: "mosque_recent", title: "مساجد جديدة (30 يوم)", category: "mosque_section", categoryName: "قسم المساجد والتغطية", description: "بطاقة نمو تسجيل المساجد الجديدة خلال آخر شهر", defaultEnabled: true },
+  { id: "mosque_coverage", title: "نسبة التغطية", category: "mosque_section", categoryName: "قسم المساجد والتغطية", description: "بطاقة نسبة المساجد المفعّلة والمستفيدة من الخدمات", defaultEnabled: true },
+  { id: "mosques_charts", title: "مخططات وتوزيع المساجد الجغرافية", category: "mosque_section", categoryName: "قسم المساجد والتغطية", description: "المخططات البيانية لتوزيع المساجد حسب المدن وحالات الاعتماد", defaultEnabled: true },
 
-  // 2. إحصائيات المساجد
-  { id: "mosque_total", title: "المساجد المسجلة (رسمياً)", category: "mosque_cards", categoryName: "إحصائيات المساجد", description: "إجمالي المساجد المسجلة رسمياً بالبوابة", defaultEnabled: true },
-  { id: "mosque_active", title: "المساجد النشطة", category: "mosque_cards", categoryName: "إحصائيات المساجد", description: "المساجد التي تتلقى الخدمات والزيارات الدورية", defaultEnabled: true },
-  { id: "mosque_recent", title: "مساجد جديدة (30 يوم)", category: "mosque_cards", categoryName: "إحصائيات المساجد", description: "مؤشر نمو تسجيل المساجد الجديدة خلال آخر شهر", defaultEnabled: true },
-  { id: "mosque_coverage", title: "نسبة التغطية", category: "mosque_cards", categoryName: "إحصائيات المساجد", description: "نسبة المساجد المفعّلة والمستفيدة من الخدمات", defaultEnabled: true },
+  // 2. قسم الطلبات وبرامج الخدمات
+  { id: "section_requests", title: "قسم الطلبات بالكامل (والتبويب)", category: "request_section", categoryName: "قسم الطلبات وبرامج الخدمات", description: "إظهار أو إخفاء قسم الطلبات بالكامل مع تبويبه من شريط التنقل", defaultEnabled: true },
+  { id: "request_total", title: "إجمالي الطلبات", category: "request_section", categoryName: "قسم الطلبات وبرامج الخدمات", description: "بطاقة كافة طلبات الخدمات المسجلة بالبوابة", defaultEnabled: true },
+  { id: "request_completed", title: "الطلبات المكتملة", category: "request_section", categoryName: "قسم الطلبات وبرامج الخدمات", description: "بطاقة الطلبات التي تم إنجازها بنجاح تام", defaultEnabled: true },
+  { id: "request_in_progress", title: "الطلبات قيد التنفيذ", category: "request_section", categoryName: "قسم الطلبات وبرامج الخدمات", description: "بطاقة الطلبات الجارية بمختلف المراحل النشطة", defaultEnabled: true },
+  { id: "request_rejected", title: "الطلبات المرفوضة", category: "request_section", categoryName: "قسم الطلبات وبرامج الخدمات", description: "بطاقة الطلبات المرفوضة لعدم اكتمال المتطلبات", defaultEnabled: true },
+  { id: "requests_charts", title: "مخططات تقارير الطلبات الفنية", category: "request_section", categoryName: "قسم الطلبات وبرامج الخدمات", description: "المخططات الإحصائية لتوزيع الطلبات على البرامج والمنحنى الشهري للنمو", defaultEnabled: true },
 
-  // 3. إحصائيات الطلبات
-  { id: "request_total", title: "إجمالي الطلبات", category: "request_cards", categoryName: "إحصائيات الطلبات", description: "كافة طلبات الخدمات الواردة للنظام", defaultEnabled: true },
-  { id: "request_completed", title: "الطلبات المكتملة", category: "request_cards", categoryName: "إحصائيات الطلبات", description: "الطلبات التي تم إنجازها بنجاح تام", defaultEnabled: true },
-  { id: "request_in_progress", title: "الطلبات قيد التنفيذ", category: "request_cards", categoryName: "إحصائيات الطلبات", description: "الطلبات الجارية في مراحل الدراسة والتنفيذ", defaultEnabled: true },
-  { id: "request_rejected", title: "الطلبات المرفوضة", category: "request_cards", categoryName: "إحصائيات الطلبات", description: "الطلبات المرفوضة لعدم اكتمال المتطلبات والشروط", defaultEnabled: true },
+  // 3. قسم المشاريع والعقود وشبكة الموردين
+  { id: "section_procurement", title: "قسم المشاريع والعقود بالكامل (والتبويب)", category: "procurement_section", categoryName: "قسم المشاريع والعقود وشبكة الموردين", description: "إظهار أو إخفاء قسم المشاريع والعقود بالكامل مع تبويبه من شريط التنقل", defaultEnabled: true },
+  { id: "procurement_suppliers_total", title: "إجمالي الموردين", category: "procurement_section", categoryName: "قسم المشاريع والعقود وشبكة الموردين", description: "بطاقة عدد الموردين والشركات المسجلة بالشبكة", defaultEnabled: true },
+  { id: "procurement_suppliers_approved", title: "موردون معتمدون", category: "procurement_section", categoryName: "قسم المشاريع والعقود وشبكة الموردين", description: "بطاقة عدد المنشآت المؤهلة والمعتمدة رسمياً", defaultEnabled: true },
+  { id: "procurement_contracts_count", title: "العقود المعتمدة", category: "procurement_section", categoryName: "قسم المشاريع والعقود وشبكة الموردين", description: "بطاقة عدد العقود الرسمية المبرمة", defaultEnabled: true },
+  { id: "procurement_contracts_value", title: "قيمة العقود", category: "procurement_section", categoryName: "قسم المشاريع والعقود وشبكة الموردين", description: "بطاقة مجموع القيم المالية للعقود المعتمدة", defaultEnabled: true },
+  { id: "project_vouchers_amount", title: "مبالغ سندات القبض", category: "procurement_section", categoryName: "قسم المشاريع والعقود وشبكة الموردين", description: "بطاقة إجمالي مبالغ سندات القبض المعتمدة للمشاريع", defaultEnabled: true },
+  { id: "project_support_projects", title: "مشاريع الدعم", category: "procurement_section", categoryName: "قسم المشاريع والعقود وشبكة الموردين", description: "بطاقة عدد مشاريع الدعم الجارية والمكتملة", defaultEnabled: true },
+  { id: "project_budget", title: "ميزانية المشاريع", category: "procurement_section", categoryName: "قسم المشاريع والعقود وشبكة الموردين", description: "بطاقة الموازنة الكلية المعتمدة للمشاريع بالريال", defaultEnabled: true },
+  { id: "project_paid_amount", title: "المبالغ المصروفة للمشاريع", category: "procurement_section", categoryName: "قسم المشاريع والعقود وشبكة الموردين", description: "بطاقة المصروف الفعلي المنفذ على المشاريع", defaultEnabled: true },
+  { id: "procurement_charts", title: "مخططات المشتريات والعقود والموردين", category: "procurement_section", categoryName: "قسم المشاريع والعقود وشبكة الموردين", description: "المخططات البيانية لتوزيع الموردين وحالات العقود التشغيلية", defaultEnabled: true },
 
-  // 4. المشتريات والعقود
-  { id: "procurement_suppliers_total", title: "إجمالي الموردين", category: "procurement_cards", categoryName: "المشتريات والعقود", description: "عدد الموردين والشركات المسجلة بالشبكة", defaultEnabled: true },
-  { id: "procurement_suppliers_approved", title: "موردون معتمدون", category: "procurement_cards", categoryName: "المشتريات والعقود", description: "عدد المنشآت المؤهلة والمعتمدة رسمياً", defaultEnabled: true },
-  { id: "procurement_contracts_count", title: "العقود المعتمدة", category: "procurement_cards", categoryName: "المشتريات والعقود", description: "عدد العقود الرسمية السارية بالمشاريع", defaultEnabled: true },
-  { id: "procurement_contracts_value", title: "قيمة العقود", category: "procurement_cards", categoryName: "المشتريات والعقود", description: "مجموع القيم المالية للعقود المعتمدة", defaultEnabled: true },
+  // 4. قسم المالية والصرف والتدفقات
+  { id: "section_financial", title: "قسم المالية بالكامل (والتبويب)", category: "financial_section", categoryName: "قسم المالية والصرف والتدفقات", description: "إظهار أو إخفاء قسم المالية بالكامل مع تبويبه من شريط التنقل", defaultEnabled: true },
+  { id: "financial_disb_requests", title: "طلبات الصرف", category: "financial_section", categoryName: "قسم المالية والصرف والتدفقات", description: "بطاقة عدد طلبات الصرف المعتمدة رسمياً", defaultEnabled: true },
+  { id: "financial_disb_orders", title: "أوامر الصرف", category: "financial_section", categoryName: "قسم المالية والصرف والتدفقات", description: "بطاقة عدد أوامر الصرف المعتمدة للصرف والتحويل", defaultEnabled: true },
+  { id: "financial_total_expenses", title: "إجمالي المصروفات", category: "financial_section", categoryName: "قسم المالية والصرف والتدفقات", description: "بطاقة إجمالي المبالغ المنفذة بنكياً من أوامر الصرف", defaultEnabled: true },
+  { id: "financial_receipt_vouchers", title: "سندات القبض", category: "financial_section", categoryName: "قسم المالية والصرف والتدفقات", description: "بطاقة عدد وإجمالي مبالغ سندات القبض المعتمدة", defaultEnabled: true },
+  { id: "financial_charts", title: "المخططات والتحليلات المالية الشاملة", category: "financial_section", categoryName: "قسم المالية والصرف والتدفقات", description: "الرسوم البيانية للتدفقات النقدية والمصروفات ومشاريع الدعم والتغطية", defaultEnabled: true },
 
-  // 5. المالية وأوامر الصرف
-  { id: "financial_disb_requests", title: "طلبات الصرف", category: "financial_cards", categoryName: "المالية وأوامر الصرف", description: "عدد طلبات الصرف المعتمدة رسمياً", defaultEnabled: true },
-  { id: "financial_disb_orders", title: "أوامر الصرف", category: "financial_cards", categoryName: "المالية وأوامر الصرف", description: "عدد أوامر الصرف المعتمدة للتحويل والبنك", defaultEnabled: true },
-  { id: "financial_total_expenses", title: "إجمالي المصروفات", category: "financial_cards", categoryName: "المالية وأوامر الصرف", description: "المبالغ المنفذة بنكياً من واقع أوامر الصرف", defaultEnabled: true },
-  { id: "financial_receipt_vouchers", title: "سندات القبض", category: "financial_cards", categoryName: "المالية وأوامر الصرف", description: "عدد وإجمالي مبالغ سندات القبض المعتمدة", defaultEnabled: true },
-
-  // 6. التقرير المالي والمشاريع
-  { id: "project_vouchers_amount", title: "مبالغ سندات القبض", category: "project_cards", categoryName: "التقرير المالي والمشاريع", description: "إجمالي مبالغ السندات المعتمدة مالياً", defaultEnabled: true },
-  { id: "project_support_projects", title: "مشاريع الدعم", category: "project_cards", categoryName: "التقرير المالي والمشاريع", description: "عدد مشاريع الدعم النشطة والمكتملة", defaultEnabled: true },
-  { id: "project_budget", title: "ميزانية المشاريع", category: "project_cards", categoryName: "التقرير المالي والمشاريع", description: "الموازنة الكلية المعتمدة للمشاريع بالريال", defaultEnabled: true },
-  { id: "project_paid_amount", title: "المبالغ المصروفة للمشاريع", category: "project_cards", categoryName: "التقرير المالي والمشاريع", description: "المصروف الفعلي المنفذ على المشاريع", defaultEnabled: true },
-
-  // 7. الأقسام والمخططات الكبرى
-  { id: "quick_nav", title: "شريط الانتقال السريع بين الأقسام", category: "major_sections", categoryName: "الأقسام والمخططات الكبرى", description: "الشريط العلوي المثبت للقفز السريع بين أقسام اللوحة", defaultEnabled: true },
-  { id: "section_board", title: "مخططات وتحليلات مجلس الإدارة", category: "major_sections", categoryName: "الأقسام والمخططات الكبرى", description: "مخططات المساجد وتوزيع عقود المشاريع ومؤشرات الصرف", defaultEnabled: true },
-  { id: "section_financial", title: "المخططات والتحليلات المالية الشاملة", category: "major_sections", categoryName: "الأقسام والمخططات الكبرى", description: "الرسوم البيانية للتدفقات النقدية والمصروفات ومشاريع الدعم", defaultEnabled: true },
-  { id: "section_reports", title: "المخططات الإحصائية والفنية للطلبات", category: "major_sections", categoryName: "الأقسام والمخططات الكبرى", description: "مخططات توزيع الطلبات على البرامج التسعة والمنحنى الشهري", defaultEnabled: true },
-  { id: "section_pending_users", title: "تنبيه المستخدمين بانتظار الاعتماد", category: "major_sections", categoryName: "الأقسام والمخططات الكبرى", description: "بطاقة التنبيه بالأسفل عند وجود مستخدمين جدد بانتظار التفعيل", defaultEnabled: true },
+  // 5. عام
+  { id: "section_pending_users", title: "تنبيه المستخدمين بانتظار الاعتماد", category: "general_section", categoryName: "تنبيهات وإشعارات عامة", description: "بطاقة التنبيه السفلية لمراجعة واعتماد حسابات المستخدمين الجدد", defaultEnabled: true },
 ];
 
 export const DEFAULT_ENABLED_DETAILED_DASHBOARD_IDS = DETAILED_DASHBOARD_ELEMENT_DEFINITIONS.filter(e => e.defaultEnabled).map(e => e.id);
 
 export const detailedDashboardCustomizationSchema = z.object({
+  targetType: z.enum(["global", "role", "user"]).default("global"),
+  targetId: z.string().optional(),
   enabledElementIds: z.array(z.string()).default(DEFAULT_ENABLED_DETAILED_DASHBOARD_IDS),
 });
 
@@ -974,52 +966,185 @@ export const formsRouter = router({
 
   // ==================== تخصيص لوحة القيادة المفصلة (مدير النظام) ====================
 
-  // جلب إعدادات اللوحة المفصلة
-  getDetailedDashboardCustomizationConfig: publicProcedure.query(async () => {
-    const db = await getDb();
-    const defaultResponse = {
-      enabledElementIds: DEFAULT_ENABLED_DETAILED_DASHBOARD_IDS,
-      categories: DETAILED_DASHBOARD_CATEGORIES,
-      elements: DETAILED_DASHBOARD_ELEMENT_DEFINITIONS,
-      isCustomized: false,
-      updatedAt: null,
-    };
+  // جلب إعدادات اللوحة المفصلة (يدعم الفلترة حسب المستخدم أو الدور أو النوع)
+  getDetailedDashboardCustomizationConfig: publicProcedure
+    .input(
+      z.object({
+        targetType: z.enum(["global", "role", "user"]).optional(),
+        targetId: z.string().optional(),
+        userId: z.number().optional(),
+        roleId: z.string().optional(),
+      }).optional()
+    )
+    .query(async ({ input }) => {
+      const db = await getDb();
+      const defaultResponse = {
+        enabledElementIds: DEFAULT_ENABLED_DETAILED_DASHBOARD_IDS,
+        categories: DETAILED_DASHBOARD_CATEGORIES,
+        elements: DETAILED_DASHBOARD_ELEMENT_DEFINITIONS,
+        isCustomized: false,
+        targetType: input?.targetType || "global",
+        targetId: input?.targetId,
+        updatedAt: null,
+      };
 
-    if (!db) return defaultResponse;
+      if (!db) return defaultResponse;
+
+      try {
+        // 1. إذا كان الاستعلام مخصصاً لمستخدم (مثلاً أثناء فتح لوحة المعلومات)
+        if (input?.userId || input?.roleId) {
+          // فحص تخصيص المستخدم أولاً
+          if (input.userId) {
+            const userKey = `detailed_dashboard_user_${input.userId}`;
+            const [userSetting] = await db
+              .select()
+              .from(brandSettings)
+              .where(eq(brandSettings.settingKey, userKey))
+              .limit(1);
+
+            if (userSetting?.settingValue) {
+              const parsed = JSON.parse(userSetting.settingValue);
+              const validated = detailedDashboardCustomizationSchema.safeParse(parsed);
+              if (validated.success) {
+                return {
+                  enabledElementIds: validated.data.enabledElementIds,
+                  categories: DETAILED_DASHBOARD_CATEGORIES,
+                  elements: DETAILED_DASHBOARD_ELEMENT_DEFINITIONS,
+                  isCustomized: true,
+                  targetType: "user" as const,
+                  targetId: String(input.userId),
+                  updatedAt: userSetting.updatedAt,
+                };
+              }
+            }
+          }
+
+          // فحص تخصيص الدور ثانياً
+          if (input.roleId) {
+            const roleKey = `detailed_dashboard_role_${input.roleId}`;
+            const [roleSetting] = await db
+              .select()
+              .from(brandSettings)
+              .where(eq(brandSettings.settingKey, roleKey))
+              .limit(1);
+
+            if (roleSetting?.settingValue) {
+              const parsed = JSON.parse(roleSetting.settingValue);
+              const validated = detailedDashboardCustomizationSchema.safeParse(parsed);
+              if (validated.success) {
+                return {
+                  enabledElementIds: validated.data.enabledElementIds,
+                  categories: DETAILED_DASHBOARD_CATEGORIES,
+                  elements: DETAILED_DASHBOARD_ELEMENT_DEFINITIONS,
+                  isCustomized: true,
+                  targetType: "role" as const,
+                  targetId: input.roleId,
+                  updatedAt: roleSetting.updatedAt,
+                };
+              }
+            }
+          }
+
+          // فحص التخصيص العام الافتراضي ثالثاً
+          const [globalSetting] = await db
+            .select()
+            .from(brandSettings)
+            .where(eq(brandSettings.settingKey, DETAILED_DASHBOARD_SETTING_KEY))
+            .limit(1);
+
+          if (globalSetting?.settingValue) {
+            const parsed = JSON.parse(globalSetting.settingValue);
+            const validated = detailedDashboardCustomizationSchema.safeParse(parsed);
+            if (validated.success) {
+              return {
+                enabledElementIds: validated.data.enabledElementIds,
+                categories: DETAILED_DASHBOARD_CATEGORIES,
+                elements: DETAILED_DASHBOARD_ELEMENT_DEFINITIONS,
+                isCustomized: true,
+                targetType: "global" as const,
+                targetId: undefined,
+                updatedAt: globalSetting.updatedAt,
+              };
+            }
+          }
+
+          return defaultResponse;
+        }
+
+        // 2. إذا كان الاستعلام من صفحة التخصيص لهدف محدد (global أو role أو user)
+        let settingKey = DETAILED_DASHBOARD_SETTING_KEY;
+        if (input?.targetType === "role" && input?.targetId) {
+          settingKey = `detailed_dashboard_role_${input.targetId}`;
+        } else if (input?.targetType === "user" && input?.targetId) {
+          settingKey = `detailed_dashboard_user_${input.targetId}`;
+        }
+
+        const [setting] = await db
+          .select()
+          .from(brandSettings)
+          .where(eq(brandSettings.settingKey, settingKey))
+          .limit(1);
+
+        if (setting?.settingValue) {
+          const parsed = JSON.parse(setting.settingValue);
+          const validated = detailedDashboardCustomizationSchema.safeParse(parsed);
+          if (validated.success) {
+            return {
+              enabledElementIds: validated.data.enabledElementIds,
+              categories: DETAILED_DASHBOARD_CATEGORIES,
+              elements: DETAILED_DASHBOARD_ELEMENT_DEFINITIONS,
+              isCustomized: true,
+              targetType: input?.targetType || "global",
+              targetId: input?.targetId,
+              updatedAt: setting.updatedAt,
+            };
+          }
+        }
+      } catch (e) {
+        console.error("Error reading detailed dashboard customization config:", e);
+      }
+
+      return defaultResponse;
+    }),
+
+  // معرفة الأهداف (الأدوار والمستخدمين) التي تم تخصيصها مسبقاً
+  getCustomizedDashboardTargets: protectedProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return { hasGlobal: false, roles: [], userIds: [] };
 
     try {
-      const [setting] = await db
-        .select()
+      const rows = await db
+        .select({ key: brandSettings.settingKey })
         .from(brandSettings)
-        .where(eq(brandSettings.settingKey, DETAILED_DASHBOARD_SETTING_KEY))
-        .limit(1);
+        .where(like(brandSettings.settingKey, "detailed_dashboard_%"));
 
-      if (setting && setting.settingValue) {
-        const parsed = JSON.parse(setting.settingValue);
-        const validated = detailedDashboardCustomizationSchema.safeParse(parsed);
-        if (validated.success) {
-          return {
-            enabledElementIds: validated.data.enabledElementIds,
-            categories: DETAILED_DASHBOARD_CATEGORIES,
-            elements: DETAILED_DASHBOARD_ELEMENT_DEFINITIONS,
-            isCustomized: true,
-            updatedAt: setting.updatedAt,
-          };
+      const roles: string[] = [];
+      const userIds: string[] = [];
+      let hasGlobal = false;
+
+      for (const r of rows) {
+        if (r.key === DETAILED_DASHBOARD_SETTING_KEY) {
+          hasGlobal = true;
+        } else if (r.key.startsWith("detailed_dashboard_role_")) {
+          roles.push(r.key.replace("detailed_dashboard_role_", ""));
+        } else if (r.key.startsWith("detailed_dashboard_user_")) {
+          userIds.push(r.key.replace("detailed_dashboard_user_", ""));
         }
       }
-    } catch (e) {
-      console.error("Error reading detailed dashboard customization config:", e);
-    }
 
-    return defaultResponse;
+      return { hasGlobal, roles, userIds };
+    } catch {
+      return { hasGlobal: false, roles: [], userIds: [] };
+    }
   }),
 
-  // حفظ إعدادات اللوحة المفصلة (متاح فقط لـ super_admin)
+  // حفظ إعدادات اللوحة المفصلة (للإعداد العام أو لدور محدد أو لمستخدم محدد)
   saveDetailedDashboardCustomizationConfig: protectedProcedure
     .input(detailedDashboardCustomizationSchema)
     .mutation(async ({ input, ctx }) => {
-      if (ctx.user.role !== "super_admin") {
-        throw new TRPCError({ code: "FORBIDDEN", message: "هذا الإجراء متاح فقط لمدير النظام الشامل (super_admin)" });
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      if (!isAdmin) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "هذا الإجراء متاح فقط لمديري النظام" });
       }
 
       const db = await getDb();
@@ -1027,12 +1152,23 @@ export const formsRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
       }
 
+      let settingKey = DETAILED_DASHBOARD_SETTING_KEY;
+      let desc = "تخصيص عام للوحة المعلومات لجميع المستخدمين";
+
+      if (input.targetType === "role" && input.targetId) {
+        settingKey = `detailed_dashboard_role_${input.targetId}`;
+        desc = `تخصيص لوحة المعلومات للدور الوظيفي: ${input.targetId}`;
+      } else if (input.targetType === "user" && input.targetId) {
+        settingKey = `detailed_dashboard_user_${input.targetId}`;
+        desc = `تخصيص لوحة المعلومات للمستخدم رقم: ${input.targetId}`;
+      }
+
       const serializedValue = JSON.stringify(input);
 
       const [existing] = await db
         .select()
         .from(brandSettings)
-        .where(eq(brandSettings.settingKey, DETAILED_DASHBOARD_SETTING_KEY))
+        .where(eq(brandSettings.settingKey, settingKey))
         .limit(1);
 
       if (existing) {
@@ -1043,13 +1179,13 @@ export const formsRouter = router({
             updatedBy: ctx.user.id,
             updatedAt: new Date(),
           })
-          .where(eq(brandSettings.settingKey, DETAILED_DASHBOARD_SETTING_KEY));
+          .where(eq(brandSettings.settingKey, settingKey));
       } else {
         await db.insert(brandSettings).values({
-          settingKey: DETAILED_DASHBOARD_SETTING_KEY,
+          settingKey,
           settingValue: serializedValue,
           settingType: "json",
-          description: "تخصيص عناصر وأقسام لوحة القيادة المفصلة لمدير النظام الشامل",
+          description: desc,
           updatedBy: ctx.user.id,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -1058,31 +1194,46 @@ export const formsRouter = router({
 
       return {
         success: true,
-        message: "تم حفظ تخصيص لوحة القيادة المفصلة بنجاح",
+        message: "تم حفظ تخصيص لوحة المعلومات بنجاح",
         data: input,
       };
     }),
 
-  // إعادة ضبط اللوحة المفصلة للافتراضي (متاح فقط لـ super_admin)
-  resetDetailedDashboardCustomizationConfig: protectedProcedure.mutation(async ({ ctx }) => {
-    if (ctx.user.role !== "super_admin") {
-      throw new TRPCError({ code: "FORBIDDEN", message: "هذا الإجراء متاح فقط لمدير النظام الشامل (super_admin)" });
-    }
+  // إعادة ضبط اللوحة المفصلة للافتراضي
+  resetDetailedDashboardCustomizationConfig: protectedProcedure
+    .input(
+      z.object({
+        targetType: z.enum(["global", "role", "user"]).default("global"),
+        targetId: z.string().optional(),
+      }).optional()
+    )
+    .mutation(async ({ input, ctx }) => {
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      if (!isAdmin) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "هذا الإجراء متاح فقط لمديري النظام" });
+      }
 
-    const db = await getDb();
-    if (!db) {
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
-    }
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+      }
 
-    await db
-      .delete(brandSettings)
-      .where(eq(brandSettings.settingKey, DETAILED_DASHBOARD_SETTING_KEY));
+      let settingKey = DETAILED_DASHBOARD_SETTING_KEY;
+      if (input?.targetType === "role" && input?.targetId) {
+        settingKey = `detailed_dashboard_role_${input.targetId}`;
+      } else if (input?.targetType === "user" && input?.targetId) {
+        settingKey = `detailed_dashboard_user_${input.targetId}`;
+      }
 
-    return {
-      success: true,
-      message: "تمت استعادة الإعدادات الافتراضية للوحة القيادة المفصلة بنجاح",
-    };
-  }),
+      await db
+        .delete(brandSettings)
+        .where(eq(brandSettings.settingKey, settingKey));
+
+      return {
+        success: true,
+        message: "تمت إعادة ضبط التخصيص للافتراضي بنجاح",
+      };
+    }),
 
   // توليد رابط استبيان فريد ومخصص للاستخدام لمرة واحدة
   generateOneTimeEvaluationLink: protectedProcedure
@@ -1219,5 +1370,5 @@ export const formsRouter = router({
         metadata: parsedMeta,
       };
     }),
-});
 
+});

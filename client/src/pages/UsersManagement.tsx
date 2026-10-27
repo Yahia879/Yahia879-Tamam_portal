@@ -65,6 +65,7 @@ const ROLE_OPTIONS = [
   { value: "project_manager", label: "مدير مشروع" },
   { value: "corporate_comm", label: "علاقات مؤسسية" },
   { value: "procurement_officer", label: "مسؤول المشتريات" },
+  { value: "dashboard_viewer", label: "مستخدم لوحة المعلومات" },
 ];
 
 const DEPARTMENTS = [
@@ -231,6 +232,7 @@ export default function UsersManagement() {
       corporate_comm: { label: "علاقات مؤسسية", variant: "secondary" },
       service_requester: { label: "طالب خدمة", variant: "outline" },
       procurement_officer: { label: "مسؤول المشتريات", variant: "secondary" },
+      dashboard_viewer: { label: "مستخدم لوحة المعلومات", variant: "secondary" },
     };
     const config = roleMap[role] || { label: role, variant: "outline" as const };
     return <Badge variant={config.variant}>{config.label}</Badge>;

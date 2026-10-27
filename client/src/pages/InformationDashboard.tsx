@@ -113,7 +113,13 @@ export default function InformationDashboard() {
   const roleLabel = customRoleNameAr || ROLE_LABELS[user?.role || ""] || user?.role || "مستخدم";
 
   // جلب إعدادات تخصيص اللوحة المفصلة
-  const { data: detailedDashboardConfig } = trpc.forms.getDetailedDashboardCustomizationConfig.useQuery();
+  const { data: detailedDashboardConfig } = trpc.forms.getDetailedDashboardCustomizationConfig.useQuery(
+    {
+      userId: user?.id,
+      roleId: user?.role,
+    },
+    { enabled: !!user }
+  );
 
   const enabledDetailedElementIds = useMemo(() => {
     return new Set(detailedDashboardConfig?.enabledElementIds || []);
@@ -210,91 +216,6 @@ export default function InformationDashboard() {
       </CardContent>
     </Card>
   );
-
-  // 1. المؤشرات الرئيسية الإجمالية
-  const mainOverviewCardDefs = [
-    {
-      id: "main_total_requests",
-      title: "إجمالي الطلبات",
-      value: (requestStats?.total || 0).toLocaleString("en-US"),
-      icon: FileText,
-      gradient: "from-blue-500 to-blue-600",
-      bgLight: "bg-blue-50 dark:bg-blue-950/40",
-      change: growthStats?.totalRequests.percentage,
-      subtext: "طلب مسجل بالبوابة",
-    },
-    {
-      id: "main_registered_mosques",
-      title: "المساجد المسجلة",
-      value: (mosqueStats?.total || 0).toLocaleString("en-US"),
-      icon: Building2,
-      gradient: "from-emerald-500 to-emerald-600",
-      bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
-      change: growthStats?.registeredMosques.percentage,
-      subtext: "مسجد وجامع معتمد",
-    },
-    {
-      id: "main_in_progress_requests",
-      title: "قيد التنفيذ",
-      value: (requestStats?.byStatus?.in_progress || 0).toLocaleString("en-US"),
-      icon: Clock,
-      gradient: "from-amber-500 to-amber-600",
-      bgLight: "bg-amber-50 dark:bg-amber-950/40",
-      change: growthStats?.inProgressRequests.percentage,
-      subtext: "بمختلف المراحل النشطة",
-    },
-    {
-      id: "main_completed_requests",
-      title: "مكتملة",
-      value: (requestStats?.byStatus?.completed || 0).toLocaleString("en-US"),
-      icon: CheckCircle2,
-      gradient: "from-green-500 to-green-600",
-      bgLight: "bg-green-50 dark:bg-green-950/40",
-      change: growthStats?.completedRequests.percentage,
-      subtext: `نسبة الإنجاز: ${completionRate}%`,
-    },
-    {
-      id: "main_approved_contracts",
-      title: "العقود المعتمدة",
-      value: ((disbursementStats as any)?.approvedContractsAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }),
-      isCurrency: true,
-      icon: Briefcase,
-      gradient: "from-indigo-500 to-indigo-600",
-      bgLight: "bg-indigo-50 dark:bg-indigo-950/40",
-      subtext: `${(disbursementStats as any)?.approvedContractsCount || 0} عقود نشطة`,
-    },
-    {
-      id: "main_paid_amounts",
-      title: "المبالغ المصروفة",
-      value: ((disbursementStats as any)?.totalPaid || (disbursementStats as any)?.approvedOrdersAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }),
-      isCurrency: true,
-      icon: Receipt,
-      gradient: "from-rose-500 to-rose-600",
-      bgLight: "bg-rose-50 dark:bg-rose-950/40",
-      subtext: `${(disbursementStats as any)?.executedOrders || 0} أمر صرف منفذ`,
-    },
-    {
-      id: "main_receipt_vouchers",
-      title: "سندات القبض",
-      value: ((disbursementStats as any)?.approvedReceiptVouchersAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }),
-      isCurrency: true,
-      icon: Wallet,
-      gradient: "from-teal-500 to-teal-600",
-      bgLight: "bg-teal-50 dark:bg-teal-950/40",
-      subtext: `${(disbursementStats as any)?.approvedReceiptVouchersCount || 0} سند معتمد`,
-    },
-    {
-      id: "main_active_projects",
-      title: "المشاريع النشطة",
-      value: ((projectStats as any)?.active || projectStats?.total || 0).toLocaleString("en-US"),
-      icon: FolderKanban,
-      gradient: "from-violet-500 to-violet-600",
-      bgLight: "bg-violet-50 dark:bg-violet-950/40",
-      subtext: `الميزانية: ${(parseFloat(projectStats?.totalBudget || "0")).toLocaleString("en-US", { maximumFractionDigits: 0 })} ر.س`,
-    },
-  ];
-
-  const mainOverviewCards = mainOverviewCardDefs.filter(c => isDetailedElementEnabled(c.id));
 
   // 2. كروت تبويب المساجد
   const boardMosquesTotal = boardStats?.mosques?.total ?? mosqueStats?.total ?? 0;
@@ -538,6 +459,27 @@ export default function InformationDashboard() {
   const projectAndVoucherCards = projectAndVoucherCardDefs.filter(c => isDetailedElementEnabled(c.id));
 
 
+  // تحديد التبويبات المتاحة حسب التخصيص
+  const availableTabs = useMemo(() => {
+    const tabs = [
+      { id: "all" as const, label: "عرض شامل", icon: LayoutGrid, color: "text-primary", badge: "الكل", sectionId: null },
+      { id: "mosques" as const, label: "المساجد والتغطية", icon: Building2, color: "text-emerald-600", badge: "المساجد", sectionId: "section_mosques" },
+      { id: "requests" as const, label: "الطلبات والبرامج", icon: FileText, color: "text-blue-600", badge: "الطلبات", sectionId: "section_requests" },
+      { id: "procurement" as const, label: "المشاريع والعقود", icon: Briefcase, color: "text-amber-600", badge: "المشاريع", sectionId: "section_procurement" },
+      { id: "financial" as const, label: "المالية والصرف", icon: SaudiRiyal, color: "text-teal-600", badge: "المالية", sectionId: "section_financial" },
+    ];
+    return tabs.filter((t) => !t.sectionId || isDetailedElementEnabled(t.sectionId));
+  }, [detailedDashboardConfig, enabledDetailedElementIds]);
+
+  useEffect(() => {
+    if (activeTab !== "all") {
+      const isCurrentTabAvailable = availableTabs.some((t) => t.id === activeTab);
+      if (!isCurrentTabAvailable) {
+        setActiveTab("all");
+      }
+    }
+  }, [availableTabs, activeTab]);
+
   return (
     <div className="min-h-screen w-full bg-slate-50/60 dark:bg-zinc-950 text-foreground flex flex-col font-sans">
       {/* شريط التحكم العلوي الخاص بوضع الشاشة الكاملة */}
@@ -649,7 +591,7 @@ export default function InformationDashboard() {
         {/* ========================================================================= */}
         {/* 1. قسم المساجد والزيارات الميدانية */}
         {/* ========================================================================= */}
-        {(activeTab === "all" || activeTab === "mosques") && (
+        {isDetailedElementEnabled("section_mosques") && (activeTab === "all" || activeTab === "mosques") && (
           <section id="section-mosques" className="space-y-6 pt-2 scroll-mt-36">
             {/* هيدر قسم المساجد */}
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 shadow-xs">
@@ -685,16 +627,18 @@ export default function InformationDashboard() {
             )}
 
             {/* مخططات قسم المساجد من لوحة التحليلات */}
-            <div className="pt-2">
-              <BoardDashboard embedded={true} forceAnalytics={true} initialTab="mosques" hideTabs={true} hideCards={true} />
-            </div>
+            {isDetailedElementEnabled("mosques_charts") && (
+              <div className="pt-2">
+                <BoardDashboard embedded={true} forceAnalytics={true} initialTab="mosques" hideTabs={true} hideCards={true} />
+              </div>
+            )}
           </section>
         )}
 
         {/* ========================================================================= */}
         {/* 2. قسم الطلبات وبرامج الخدمات */}
         {/* ========================================================================= */}
-        {(activeTab === "all" || activeTab === "requests") && (
+        {isDetailedElementEnabled("section_requests") && (activeTab === "all" || activeTab === "requests") && (
           <section id="section-requests" className="space-y-6 pt-6 border-t-2 border-border/80 scroll-mt-36">
             {/* هيدر قسم الطلبات */}
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500/10 via-blue-500/5 to-transparent border border-blue-500/20 shadow-xs">
@@ -704,14 +648,14 @@ export default function InformationDashboard() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-sm sm:text-base font-bold text-foreground">
-                    إحصائيات الطلبات وبرامج الخدمات التسعة
+                    إحصائيات الطلبات وبرامج الخدمات
                   </h2>
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/25 shrink-0">
                     تقارير الطلبات
                   </span>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                  مخططات توزيع الطلبات على البرامج التسعة، والمنحنى الشهري لتطور الطلبات ومراحل الإنجاز
+                  مخططات توزيع الطلبات على برامج الخدمات، والمنحنى الشهري لتطور الطلبات ومراحل الإنجاز
                 </p>
               </div>
             </div>
@@ -730,16 +674,18 @@ export default function InformationDashboard() {
             )}
 
             {/* مخططات التقارير الفنية للطلبات */}
-            <div className="pt-2">
-              <Reports embedded={true} />
-            </div>
+            {isDetailedElementEnabled("requests_charts") && (
+              <div className="pt-2">
+                <Reports embedded={true} />
+              </div>
+            )}
           </section>
         )}
 
         {/* ========================================================================= */}
         {/* 3. قسم المشاريع والعقود والمشتريات */}
         {/* ========================================================================= */}
-        {(activeTab === "all" || activeTab === "procurement") && (
+        {isDetailedElementEnabled("section_procurement") && (activeTab === "all" || activeTab === "procurement") && (
           <section id="section-procurement" className="space-y-6 pt-6 border-t-2 border-border/80 scroll-mt-36">
             {/* هيدر قسم المشاريع والعقود */}
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 shadow-xs">
@@ -791,16 +737,18 @@ export default function InformationDashboard() {
             )}
 
             {/* مخططات المشتريات والعقود من لوحة التحليلات */}
-            <div className="pt-2">
-              <BoardDashboard embedded={true} forceAnalytics={true} initialTab="procurement" hideTabs={true} hideCards={true} />
-            </div>
+            {isDetailedElementEnabled("procurement_charts") && (
+              <div className="pt-2">
+                <BoardDashboard embedded={true} forceAnalytics={true} initialTab="procurement" hideTabs={true} hideCards={true} />
+              </div>
+            )}
           </section>
         )}
 
         {/* ========================================================================= */}
         {/* 4. قسم المالية وأوامر الصرف والتدفقات */}
         {/* ========================================================================= */}
-        {(activeTab === "all" || activeTab === "financial") && (
+        {isDetailedElementEnabled("section_financial") && (activeTab === "all" || activeTab === "financial") && (
           <section id="section-financial" className="space-y-6 pt-6 border-t-2 border-border/80 scroll-mt-36">
             {/* هيدر قسم المالية */}
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-teal-500/10 via-teal-500/5 to-transparent border border-teal-500/20 shadow-xs">
@@ -836,9 +784,11 @@ export default function InformationDashboard() {
             )}
 
             {/* المخططات المالية الشاملة */}
-            <div className="pt-2">
-              <FinancialReport embedded={true} />
-            </div>
+            {isDetailedElementEnabled("financial_charts") && (
+              <div className="pt-2">
+                <FinancialReport embedded={true} />
+              </div>
+            )}
           </section>
         )}
 

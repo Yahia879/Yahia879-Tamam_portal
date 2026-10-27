@@ -21,14 +21,19 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ArrowRight,
   Save,
   RotateCcw,
   CheckCircle2,
   X,
   Loader2,
-  Layers,
-  TrendingUp,
   Briefcase,
   Building2,
   FileText,
@@ -49,15 +54,19 @@ import {
   FileCheck2,
   XCircle,
   Undo2,
-  LifeBuoy,
   ArrowUpRight,
-  Sparkles,
   ShieldCheck,
   BarChart3,
+  Users,
+  User,
+  Globe,
+  Search,
+  LayoutGrid,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { ROLE_LABELS } from "@shared/constants";
 import BoardDashboard from "@/pages/BoardDashboard";
 import FinancialReport from "@/pages/FinancialReport";
 import Reports from "@/pages/Reports";
@@ -71,114 +80,157 @@ const CATEGORY_META: Record<
     badgeColor: string;
   }
 > = {
-  main_cards: {
-    icon: TrendingUp,
-    accentColor: "text-blue-600 dark:text-blue-400",
-    iconBg: "bg-blue-500/10 border-blue-200/60 dark:bg-blue-950/40 dark:border-blue-800/40",
-    badgeColor: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300",
-  },
-  mosque_cards: {
+  mosque_section: {
     icon: Building2,
     accentColor: "text-emerald-600 dark:text-emerald-400",
     iconBg: "bg-emerald-500/10 border-emerald-200/60 dark:bg-emerald-950/40 dark:border-emerald-800/40",
     badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300",
   },
-  request_cards: {
+  request_section: {
     icon: FileText,
-    accentColor: "text-cyan-600 dark:text-cyan-400",
-    iconBg: "bg-cyan-500/10 border-cyan-200/60 dark:bg-cyan-950/40 dark:border-cyan-800/40",
-    badgeColor: "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/60 dark:text-cyan-300",
+    accentColor: "text-blue-600 dark:text-blue-400",
+    iconBg: "bg-blue-500/10 border-blue-200/60 dark:bg-blue-950/40 dark:border-blue-800/40",
+    badgeColor: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300",
   },
-  procurement_cards: {
-    icon: Store,
+  procurement_section: {
+    icon: Briefcase,
     accentColor: "text-amber-600 dark:text-amber-400",
     iconBg: "bg-amber-500/10 border-amber-200/60 dark:bg-amber-950/40 dark:border-amber-800/40",
     badgeColor: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300",
   },
-  financial_cards: {
-    icon: Banknote,
-    accentColor: "text-indigo-600 dark:text-indigo-400",
-    iconBg: "bg-indigo-500/10 border-indigo-200/60 dark:bg-indigo-950/40 dark:border-indigo-800/40",
-    badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300",
+  financial_section: {
+    icon: SaudiRiyal,
+    accentColor: "text-teal-600 dark:text-teal-400",
+    iconBg: "bg-teal-500/10 border-teal-200/60 dark:bg-teal-950/40 dark:border-teal-800/40",
+    badgeColor: "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/60 dark:text-teal-300",
   },
-  project_cards: {
-    icon: FolderKanban,
-    accentColor: "text-purple-600 dark:text-purple-400",
-    iconBg: "bg-purple-500/10 border-purple-200/60 dark:bg-purple-950/40 dark:border-purple-800/40",
-    badgeColor: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300",
-  },
-  major_sections: {
-    icon: Layers,
+  general_section: {
+    icon: AlertTriangle,
     accentColor: "text-rose-600 dark:text-rose-400",
     iconBg: "bg-rose-500/10 border-rose-200/60 dark:bg-rose-950/40 dark:border-rose-800/40",
     badgeColor: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300",
   },
 };
 
+type TargetType = "global" | "role" | "user";
+
 export default function FormsCustomizationDashboard() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const isSuperAdmin = user?.role === "super_admin";
-  const roleLabel = "مدير النظام الشامل";
 
   const utils = trpc.useUtils();
 
+  // نوع الهدف الحالي للتخصيص: عام، حسب الدور، أو حسب المستخدم
+  const [targetType, setTargetType] = useState<TargetType>("global");
+  const [selectedRoleId, setSelectedRoleId] = useState<string>("");
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [userSearchQuery, setUserSearchQuery] = useState<string>("");
+
+  // تبويب المعاينة الفعالة
+  const [previewTab, setPreviewTab] = useState<string>("all");
+
+  // المعرفات المفعلة والمستبعدة
   const [enabledIds, setEnabledIds] = useState<string[]>([]);
   const [initialIds, setInitialIds] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [isRestoreSheetOpen, setIsRestoreSheetOpen] = useState(false);
 
-  // استعلام الإعدادات
-  const { data: configData, isLoading: isConfigLoading } = trpc.forms.getDetailedDashboardCustomizationConfig.useQuery();
+  // جلب الأدوار المتاحة من النظام
+  const { data: allRoles = [] } = trpc.permissions.getRoles.useQuery();
 
-  // جلب إحصائيات حية لنفس شاشة الـ Dashboard المفصلة
+  // جلب قائمة المستخدمين
+  const { data: usersData } = trpc.users.getAll.useQuery({ limit: 100, includeAll: true });
+  const allUsers = usersData?.items || [];
+
+  // جلب الأهداف المخصصة حالياً (لعرض شارات التخصيص)
+  const { data: customizedTargets } = trpc.forms.getCustomizedDashboardTargets.useQuery();
+
+  // تحديد الـ targetId الحالي
+  const currentTargetId = useMemo(() => {
+    if (targetType === "role") return selectedRoleId || undefined;
+    if (targetType === "user") return selectedUserId || undefined;
+    return undefined;
+  }, [targetType, selectedRoleId, selectedUserId]);
+
+  // تعيين دور افتراضي عند اختيار تبويب الأدوار لأول مرة
+  useEffect(() => {
+    if (targetType === "role" && !selectedRoleId && allRoles.length > 0) {
+      // نفضل مستخدم لوحة المعلومات إن وجد
+      const dvRole = allRoles.find((r: any) => r.nameEn === "dashboard_viewer");
+      if (dvRole) {
+        setSelectedRoleId(dvRole.nameEn);
+      } else {
+        setSelectedRoleId(allRoles[0].nameEn);
+      }
+    }
+  }, [targetType, selectedRoleId, allRoles]);
+
+  // تعيين مستخدم افتراضي عند اختيار تبويب المستخدمين لأول مرة
+  useEffect(() => {
+    if (targetType === "user" && !selectedUserId && allUsers.length > 0) {
+      setSelectedUserId(String(allUsers[0].id));
+    }
+  }, [targetType, selectedUserId, allUsers]);
+
+  // استعلام الإعدادات للهدف الحالي
+  const {
+    data: configData,
+    isLoading: isConfigLoading,
+  } = trpc.forms.getDetailedDashboardCustomizationConfig.useQuery(
+    {
+      targetType,
+      targetId: currentTargetId,
+    },
+    {
+      enabled: targetType === "global" || !!currentTargetId,
+    }
+  );
+
+  // تحديث المعرفات عند تغيير الهدف أو جلب البيانات
+  useEffect(() => {
+    if (configData?.enabledElementIds) {
+      setEnabledIds(configData.enabledElementIds);
+      setInitialIds(configData.enabledElementIds);
+      setIsInitialized(true);
+    }
+  }, [configData, targetType, currentTargetId]);
+
+  // جلب إحصائيات حية للمعاينة
   const { data: requestStats } = trpc.requests.getStats.useQuery();
   const { data: mosqueStats } = trpc.mosques.getStats.useQuery();
   const { data: disbursementStats } = trpc.disbursements.getStats.useQuery();
   const { data: supplierStats } = trpc.suppliers.getStats.useQuery();
-  const { data: growthStats } = trpc.analytics.getMonthlyGrowth.useQuery();
   const { data: projectStats } = trpc.projects.getStats.useQuery();
   const { data: boardStats } = trpc.board.getExecutiveStats.useQuery();
   const { data: financialReportData } = trpc.disbursements.getFinancialReport.useQuery();
   const { data: allReceiptVouchersData = [] } = trpc.projects.getAllReceiptVouchers.useQuery();
   const { data: pendingUsers = [] } = trpc.auth.getPendingUsers.useQuery();
 
-  // تهيئة المعرفات عند تحميل البيانات
-  useEffect(() => {
-    if (configData?.enabledElementIds && !isInitialized) {
-      setEnabledIds(configData.enabledElementIds);
-      setInitialIds(configData.enabledElementIds);
-      setIsInitialized(true);
-    }
-  }, [configData, isInitialized]);
-
-  // حفظ التخصيص
+  // حفظ التخصيص للهدف المحدد
   const saveMutation = trpc.forms.saveDetailedDashboardCustomizationConfig.useMutation({
     onSuccess: (res) => {
-      toast.success(res.message || "تم حفظ تخصيص اللوحة المفصلة بنجاح وتطبيقه على النظام");
+      toast.success(res.message || "تم حفظ التخصيص بنجاح وتطبيقه على النظام");
       setInitialIds(enabledIds);
       utils.forms.getDetailedDashboardCustomizationConfig.invalidate();
+      utils.forms.getCustomizedDashboardTargets.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء حفظ التخصيص");
     },
   });
 
-  // استعادة الإعدادات الافتراضية
+  // استعادة الإعدادات للهدف المحدد
   const resetMutation = trpc.forms.resetDetailedDashboardCustomizationConfig.useMutation({
     onSuccess: (res) => {
-      toast.success(res.message || "تمت استعادة الإعدادات الافتراضية بنجاح");
+      toast.success(res.message || "تمت استعادة الإعدادات بنجاح");
       setShowResetDialog(false);
-      utils.forms.getDetailedDashboardCustomizationConfig.invalidate().then((data: any) => {
-        if (data?.enabledElementIds) {
-          setEnabledIds(data.enabledElementIds);
-          setInitialIds(data.enabledElementIds);
-        }
-      });
+      utils.forms.getDetailedDashboardCustomizationConfig.invalidate();
+      utils.forms.getCustomizedDashboardTargets.invalidate();
     },
     onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء استعادة الافتراضي");
+      toast.error(err.message || "حدث خطأ أثناء الاستعادة");
     },
   });
 
@@ -189,7 +241,7 @@ export default function FormsCustomizationDashboard() {
     return allElements.filter((el) => !enabledIds.includes(el.id));
   }, [allElements, enabledIds]);
 
-  // هل يوجد تعديلات غير محفوظة؟
+  // هل يوجد تعديلات غير محفوظة للهدف الحالي؟
   const hasChanges = useMemo(() => {
     if (!isInitialized) return false;
     if (enabledIds.length !== initialIds.length) return true;
@@ -197,10 +249,10 @@ export default function FormsCustomizationDashboard() {
     return enabledIds.some((id) => !initialSet.has(id));
   }, [enabledIds, initialIds, isInitialized]);
 
-  // إزالة عنصر (إخفاءه من اللوحة عبر زر X)
+  // إزالة عنصر (إخفاؤه من اللوحة عبر زر X)
   const handleRemoveElement = (id: string, title?: string) => {
     setEnabledIds((prev) => prev.filter((item) => item !== id));
-    toast.info(`تم إخفاء "${title || id}" من اللوحة ونقله لصندوق الاستعادة`, {
+    toast.info(`تم إخفاء "${title || id}" ونقله لصندوق الاستعادة`, {
       action: {
         label: "تراجع",
         onClick: () => handleRestoreElement(id, title),
@@ -209,7 +261,7 @@ export default function FormsCustomizationDashboard() {
     });
   };
 
-  // إعادة إضافة عنصر إلى اللوحة
+  // استعادة عنصر إلى اللوحة
   const handleRestoreElement = (id: string, title?: string) => {
     setEnabledIds((prev) => Array.from(new Set([...prev, id])));
     toast.success(`تمت استعادة "${title || id}" إلى اللوحة`);
@@ -231,40 +283,27 @@ export default function FormsCustomizationDashboard() {
   }) => (
     <div key={stat.id} className="relative group/card transition-all duration-200">
       <Card className="relative overflow-hidden border-0 shadow-sm hover:shadow-md transition-all bg-card">
-        <CardContent className="p-4 sm:p-6">
+        <CardContent className="p-4 sm:p-5">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-            <div className="space-y-1 sm:space-y-2 min-w-0">
-              <p className="text-[10px] sm:text-sm font-medium text-muted-foreground truncate">{stat.title}</p>
+            <div className="space-y-1 sm:space-y-1.5 min-w-0">
+              <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">{stat.title}</p>
               <div className="flex items-baseline gap-1.5 flex-wrap">
-                <p className="text-xl sm:text-3xl font-bold text-foreground leading-none font-sans">
+                <p className="text-xl sm:text-2xl font-bold text-foreground leading-none font-sans">
                   {stat.value}
                 </p>
-                {stat.isCurrency && <SaudiRiyal className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground shrink-0" />}
+                {stat.isCurrency && <SaudiRiyal className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
               </div>
               {stat.subtext && (
                 <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                   {stat.subtext}
                 </p>
               )}
-              {typeof stat.change === "number" && (
-                <div className="flex items-center gap-1 flex-wrap pt-0.5">
-                  {stat.change >= 0 ? (
-                    <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-green-500" />
-                  ) : (
-                    <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500 transform scale-y-[-1]" />
-                  )}
-                  <span className={`text-[10px] sm:text-xs font-semibold ${stat.change >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                    {stat.change >= 0 ? "+" : ""}{stat.change}%
-                  </span>
-                  <span className="text-[9px] sm:text-[11px] text-muted-foreground whitespace-nowrap">هذا الشهر</span>
-                </div>
-              )}
             </div>
-            <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-md shrink-0 order-first sm:order-last text-white`}>
-              <stat.icon className="w-5 h-5 sm:w-7 sm:h-7" />
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-md shrink-0 order-first sm:order-last text-white`}>
+              <stat.icon className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
           </div>
-          <div className={`absolute -bottom-4 -left-4 w-16 h-16 sm:w-24 sm:h-24 rounded-full ${stat.bgLight} opacity-50 pointer-events-none`} />
+          <div className={`absolute -bottom-4 -left-4 w-16 h-16 sm:w-20 sm:h-20 rounded-full ${stat.bgLight} opacity-50 pointer-events-none`} />
         </CardContent>
       </Card>
 
@@ -275,7 +314,7 @@ export default function FormsCustomizationDashboard() {
           e.stopPropagation();
           handleRemoveElement(stat.id, stat.title);
         }}
-        className="absolute top-2 left-2 z-20 w-7 h-7 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95 cursor-pointer border-2 border-white dark:border-slate-850"
+        className="absolute top-2 left-2 z-20 w-6 h-6 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center shadow-md transition-transform hover:scale-110 active:scale-95 cursor-pointer border border-white dark:border-zinc-800"
         title={`إخفاء بطاقة "${stat.title}" من اللوحة`}
       >
         <X className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -283,97 +322,7 @@ export default function FormsCustomizationDashboard() {
     </div>
   );
 
-  // حساب نسبة إنجاز الطلبات
-  const completionRate = requestStats?.total 
-    ? Math.round(((requestStats?.byStatus?.completed || 0) / requestStats.total) * 100) 
-    : 0;
-
-  // 1. المؤشرات الرئيسية الإجمالية
-  const mainOverviewCardDefs = [
-    {
-      id: "main_total_requests",
-      title: "إجمالي الطلبات",
-      value: (requestStats?.total || 0).toLocaleString("en-US"),
-      icon: FileText,
-      gradient: "from-blue-500 to-blue-600",
-      bgLight: "bg-blue-50 dark:bg-blue-950/40",
-      change: growthStats?.totalRequests.percentage,
-      subtext: "طلب مسجل بالبوابة",
-    },
-    {
-      id: "main_registered_mosques",
-      title: "المساجد المسجلة",
-      value: (mosqueStats?.total || 0).toLocaleString("en-US"),
-      icon: Building2,
-      gradient: "from-emerald-500 to-emerald-600",
-      bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
-      change: growthStats?.registeredMosques.percentage,
-      subtext: "مسجد وجامع معتمد",
-    },
-    {
-      id: "main_in_progress_requests",
-      title: "قيد التنفيذ",
-      value: (requestStats?.byStatus?.in_progress || 0).toLocaleString("en-US"),
-      icon: Clock,
-      gradient: "from-amber-500 to-amber-600",
-      bgLight: "bg-amber-50 dark:bg-amber-950/40",
-      change: growthStats?.inProgressRequests.percentage,
-      subtext: "بمختلف المراحل النشطة",
-    },
-    {
-      id: "main_completed_requests",
-      title: "مكتملة",
-      value: (requestStats?.byStatus?.completed || 0).toLocaleString("en-US"),
-      icon: CheckCircle2,
-      gradient: "from-green-500 to-green-600",
-      bgLight: "bg-green-50 dark:bg-green-950/40",
-      change: growthStats?.completedRequests.percentage,
-      subtext: `نسبة الإنجاز: ${completionRate}%`,
-    },
-    {
-      id: "main_approved_contracts",
-      title: "العقود المعتمدة",
-      value: ((disbursementStats as any)?.approvedContractsAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }),
-      isCurrency: true,
-      icon: Briefcase,
-      gradient: "from-indigo-500 to-indigo-600",
-      bgLight: "bg-indigo-50 dark:bg-indigo-950/40",
-      subtext: `${(disbursementStats as any)?.approvedContractsCount || 0} عقود نشطة`,
-    },
-    {
-      id: "main_paid_amounts",
-      title: "المبالغ المصروفة",
-      value: ((disbursementStats as any)?.totalPaid || (disbursementStats as any)?.approvedOrdersAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }),
-      isCurrency: true,
-      icon: Receipt,
-      gradient: "from-rose-500 to-rose-600",
-      bgLight: "bg-rose-50 dark:bg-rose-950/40",
-      subtext: `${(disbursementStats as any)?.executedOrders || 0} أمر صرف منفذ`,
-    },
-    {
-      id: "main_receipt_vouchers",
-      title: "سندات القبض",
-      value: ((disbursementStats as any)?.approvedReceiptVouchersAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }),
-      isCurrency: true,
-      icon: Wallet,
-      gradient: "from-teal-500 to-teal-600",
-      bgLight: "bg-teal-50 dark:bg-teal-950/40",
-      subtext: `${(disbursementStats as any)?.approvedReceiptVouchersCount || 0} سند معتمد`,
-    },
-    {
-      id: "main_active_projects",
-      title: "المشاريع النشطة",
-      value: ((projectStats as any)?.active || projectStats?.total || 0).toLocaleString("en-US"),
-      icon: FolderKanban,
-      gradient: "from-violet-500 to-violet-600",
-      bgLight: "bg-violet-50 dark:bg-violet-950/40",
-      subtext: `الميزانية: ${(parseFloat(projectStats?.totalBudget || "0")).toLocaleString("en-US", { maximumFractionDigits: 0 })} ر.س`,
-    },
-  ];
-
-  const visibleMainCards = mainOverviewCardDefs.filter((c) => isDetailedElementEnabled(c.id));
-
-  // 2. كروت تبويب المساجد
+  // 1. كروت تبويب المساجد
   const boardMosquesTotal = boardStats?.mosques?.total ?? mosqueStats?.total ?? 0;
   const boardMosquesActive = boardStats?.mosques?.active ?? (mosqueStats as any)?.active ?? 0;
   const boardMosquesRecent = boardStats?.mosques?.recent ?? 0;
@@ -420,7 +369,7 @@ export default function FormsCustomizationDashboard() {
 
   const visibleMosqueCards = mosqueCardDefs.filter((c) => isDetailedElementEnabled(c.id));
 
-  // 3. كروت تبويب الطلبات
+  // 2. كروت تبويب الطلبات
   const boardRequestsTotal = boardStats?.requests?.total ?? requestStats?.total ?? 0;
   const boardRequestsCompleted = boardStats?.requests?.approved ?? requestStats?.byStatus?.completed ?? 0;
   const boardRequestsInProgress = (boardStats?.requests?.inProgress ?? 0) + (boardStats?.requests?.pending ?? 0) || (requestStats?.byStatus?.in_progress ?? 0);
@@ -467,7 +416,7 @@ export default function FormsCustomizationDashboard() {
 
   const visibleRequestCards = requestCardDefs.filter((c) => isDetailedElementEnabled(c.id));
 
-  // 4. كروت تبويب المشتريات والعقود
+  // 3. كروت تبويب المشتريات والعقود
   const boardSuppliersTotal = boardStats?.procurement?.totalSuppliers ?? supplierStats?.total ?? 0;
   const boardSuppliersApproved = boardStats?.procurement?.approvedSuppliers ?? supplierStats?.approved ?? 0;
   const boardContractsCount = boardStats?.procurement?.totalContracts ?? (disbursementStats as any)?.approvedContractsCount ?? 0;
@@ -515,56 +464,7 @@ export default function FormsCustomizationDashboard() {
 
   const visibleProcurementCards = procurementCardDefs.filter((c) => isDetailedElementEnabled(c.id));
 
-  // 5. كروت تبويب المالية والصرف
-  const boardDisbReqCount = boardStats?.financials?.approvedDisbursementRequestsCount ?? (disbursementStats as any)?.approvedRequests ?? 0;
-  const boardDisbOrdersCount = boardStats?.financials?.executiveApprovedOrdersCount ?? (disbursementStats as any)?.totalOrders ?? 0;
-  const boardDisbAmount = boardStats?.financials?.executedDisbursementOrdersAmount ?? (disbursementStats as any)?.totalPaid ?? 0;
-  const boardReceiptsCount = boardStats?.financials?.approvedReceiptVouchersCount ?? (disbursementStats as any)?.approvedReceiptVouchersCount ?? 0;
-  const boardReceiptsAmount = boardStats?.financials?.approvedReceiptVouchersAmount ?? (disbursementStats as any)?.approvedReceiptVouchersAmount ?? 0;
-
-  const financialCardDefs = [
-    {
-      id: "financial_disb_requests",
-      title: "طلبات الصرف",
-      value: boardDisbReqCount.toLocaleString("en-US"),
-      subtext: "طلبات معتمدة رسمياً",
-      icon: Receipt,
-      gradient: "from-amber-500 to-orange-600",
-      bgLight: "bg-amber-50 dark:bg-amber-950/40",
-    },
-    {
-      id: "financial_disb_orders",
-      title: "أوامر الصرف",
-      value: boardDisbOrdersCount.toLocaleString("en-US"),
-      subtext: "أوامر معتمدة للتحويل",
-      icon: FileCheck2,
-      gradient: "from-emerald-500 to-green-600",
-      bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
-    },
-    {
-      id: "financial_total_expenses",
-      title: "إجمالي المصروفات",
-      value: Number(boardDisbAmount).toLocaleString("en-US", { maximumFractionDigits: 0 }),
-      isCurrency: true,
-      subtext: "أوامر صرف منفذة بنكياً",
-      icon: Banknote,
-      gradient: "from-blue-600 to-cyan-600",
-      bgLight: "bg-blue-50 dark:bg-blue-950/40",
-    },
-    {
-      id: "financial_receipt_vouchers",
-      title: "سندات القبض",
-      value: boardReceiptsCount.toLocaleString("en-US"),
-      subtext: `بمبلغ: ${Number(boardReceiptsAmount).toLocaleString("en-US", { maximumFractionDigits: 0 })} ر.س`,
-      icon: Wallet,
-      gradient: "from-purple-600 to-indigo-600",
-      bgLight: "bg-purple-50 dark:bg-purple-950/40",
-    },
-  ];
-
-  const visibleFinancialCards = financialCardDefs.filter((c) => isDetailedElementEnabled(c.id));
-
-  // 6. كروت تبويب المشاريع وسندات القبض
+  // 4. كروت تبويب المشاريع وسندات القبض
   const finApprovedVouchers = allReceiptVouchersData.filter((v: any) => v.status === "approved");
   const finApprovedVouchersAmount = finApprovedVouchers.reduce((acc: number, v: any) => acc + (parseFloat(v.amount) || 0), 0);
   const finTotalProjectsCount = financialReportData?.byProject?.length ?? projectStats?.total ?? 0;
@@ -602,8 +502,8 @@ export default function FormsCustomizationDashboard() {
     },
     {
       id: "project_paid_amount",
-      title: "المبالغ المصروفة",
-      value: Number((financialReportData?.summary?.totalOrderAmount || (disbursementStats as any)?.totalPaid || 0)).toLocaleString("en-US", { maximumFractionDigits: 0 }),
+      title: "المبالغ المصروفة للمشاريع",
+      value: Number(financialReportData?.summary?.totalOrderAmount || (disbursementStats as any)?.totalPaid || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }),
       isCurrency: true,
       subtext: "المصروف الفعلي المنفذ",
       icon: Banknote,
@@ -614,33 +514,79 @@ export default function FormsCustomizationDashboard() {
 
   const visibleProjectCards = projectAndVoucherCardDefs.filter((c) => isDetailedElementEnabled(c.id));
 
+  // 5. كروت تبويب المالية والصرف
+  const boardDisbReqCount = boardStats?.financials?.approvedDisbursementRequestsCount ?? (disbursementStats as any)?.approvedRequests ?? 0;
+  const boardDisbOrdersCount = boardStats?.financials?.executiveApprovedOrdersCount ?? (disbursementStats as any)?.totalOrders ?? 0;
+  const boardDisbAmount = boardStats?.financials?.executedDisbursementOrdersAmount ?? (disbursementStats as any)?.totalPaid ?? 0;
+  const boardReceiptsCount = boardStats?.financials?.approvedReceiptVouchersCount ?? (disbursementStats as any)?.approvedReceiptVouchersCount ?? 0;
+
+  const financialCardDefs = [
+    {
+      id: "financial_disb_requests",
+      title: "طلبات الصرف",
+      value: boardDisbReqCount.toLocaleString("en-US"),
+      subtext: "طلبات معتمدة رسمياً",
+      icon: Receipt,
+      gradient: "from-amber-500 to-orange-600",
+      bgLight: "bg-amber-50 dark:bg-amber-950/40",
+    },
+    {
+      id: "financial_disb_orders",
+      title: "أوامر الصرف",
+      value: boardDisbOrdersCount.toLocaleString("en-US"),
+      subtext: "أوامر معتمدة للتحويل",
+      icon: FileCheck2,
+      gradient: "from-emerald-500 to-green-600",
+      bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
+    },
+    {
+      id: "financial_total_expenses",
+      title: "إجمالي المصروفات",
+      value: Number(boardDisbAmount).toLocaleString("en-US", { maximumFractionDigits: 0 }),
+      isCurrency: true,
+      subtext: "أوامر صرف منفذة بنكياً",
+      icon: Banknote,
+      gradient: "from-blue-600 to-cyan-600",
+      bgLight: "bg-blue-50 dark:bg-blue-950/40",
+    },
+    {
+      id: "financial_receipt_vouchers",
+      title: "سندات القبض",
+      value: boardReceiptsCount.toLocaleString("en-US"),
+      subtext: "سندات معتمدة بالمنظومة",
+      icon: Wallet,
+      gradient: "from-purple-600 to-indigo-600",
+      bgLight: "bg-purple-50 dark:bg-purple-950/40",
+    },
+  ];
+
+  const visibleFinancialCards = financialCardDefs.filter((c) => isDetailedElementEnabled(c.id));
+
   // خريطة لكافة كروت الإحصائيات للوصول لخصائصها البصرية
   const allCardDefsMap = useMemo(() => {
     const map = new Map<string, any>();
     [
-      ...mainOverviewCardDefs,
       ...mosqueCardDefs,
       ...requestCardDefs,
       ...procurementCardDefs,
-      ...financialCardDefs,
       ...projectAndVoucherCardDefs,
+      ...financialCardDefs,
     ].forEach((card) => map.set(card.id, card));
     return map;
   }, [
-    mainOverviewCardDefs,
     mosqueCardDefs,
     requestCardDefs,
     procurementCardDefs,
-    financialCardDefs,
     projectAndVoucherCardDefs,
+    financialCardDefs,
   ]);
 
   // دالة لرسم العنصر المستبعد بصرياً طبق الأصل في صندوق الاستعادة
   const renderRemovedVisualElement = (el: any) => {
-    const meta = CATEGORY_META[el.category] || CATEGORY_META.main_cards;
+    const meta = CATEGORY_META[el.category] || CATEGORY_META.general_section;
     const cardDef = allCardDefsMap.get(el.id);
 
-    // إذا كان كرت إحصائي عادي (28 بطاقة إحصائية)
+    // إذا كان كرت إحصائي
     if (cardDef) {
       return (
         <div
@@ -648,10 +594,8 @@ export default function FormsCustomizationDashboard() {
           onClick={() => handleRestoreElement(el.id, el.title)}
           className="relative group/restoreCard rounded-2xl border-2 border-dashed border-emerald-500/40 hover:border-emerald-600 bg-card hover:bg-emerald-50/20 dark:hover:bg-emerald-950/10 p-4 transition-all duration-200 shadow-2xs hover:shadow-md cursor-pointer flex flex-col justify-between overflow-hidden"
         >
-          {/* خلفية تزيينية خفيفة */}
           <div className={`absolute -bottom-6 -left-6 w-20 h-20 rounded-full ${cardDef.bgLight} opacity-40 pointer-events-none`} />
 
-          {/* شارة التصنيف مع زر الإضافة العلوي */}
           <div className="flex items-center justify-between gap-2 mb-3">
             <span className={`text-[10px] px-2 py-0.5 rounded-md border font-bold ${meta.badgeColor}`}>
               {el.categoryName}
@@ -669,41 +613,24 @@ export default function FormsCustomizationDashboard() {
             </button>
           </div>
 
-          {/* محتوى البطاقة الفعلي المطابق تماماً للوحة */}
           <div className="flex items-start justify-between gap-3 relative z-10">
             <div className="space-y-1 min-w-0">
               <p className="text-xs font-semibold text-muted-foreground truncate">{cardDef.title}</p>
               <div className="flex items-baseline gap-1.5 flex-wrap">
-                <p className="text-xl sm:text-2xl font-bold text-foreground leading-none font-sans">
+                <p className="text-xl font-bold text-foreground leading-none font-sans">
                   {cardDef.value}
                 </p>
                 {cardDef.isCurrency && <SaudiRiyal className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
               </div>
               {cardDef.subtext && (
-                <p className="text-[11px] text-muted-foreground truncate">
-                  {cardDef.subtext}
-                </p>
-              )}
-              {typeof cardDef.change === "number" && (
-                <div className="flex items-center gap-1 flex-wrap pt-0.5">
-                  {cardDef.change >= 0 ? (
-                    <TrendingUp className="w-3 h-3 text-green-500" />
-                  ) : (
-                    <TrendingUp className="w-3 h-3 text-red-500 transform scale-y-[-1]" />
-                  )}
-                  <span className={`text-[10px] font-semibold ${cardDef.change >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                    {cardDef.change >= 0 ? "+" : ""}{cardDef.change}%
-                  </span>
-                  <span className="text-[9px] text-muted-foreground">هذا الشهر</span>
-                </div>
+                <p className="text-[11px] text-muted-foreground truncate">{cardDef.subtext}</p>
               )}
             </div>
-            <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${cardDef.gradient} flex items-center justify-center shadow-sm shrink-0 text-white`}>
+            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${cardDef.gradient} flex items-center justify-center shadow-sm shrink-0 text-white`}>
               <cardDef.icon className="w-5 h-5" />
             </div>
           </div>
 
-          {/* زر إعادة الإضافة أسفل الكرت */}
           <div className="pt-3 mt-3 border-t border-border/60 relative z-10">
             <Button
               size="sm"
@@ -721,7 +648,7 @@ export default function FormsCustomizationDashboard() {
       );
     }
 
-    // إذا كان أحد الأقسام الكبرى (5 أقسام رئيسية)
+    // إذا كان أحد الأقسام أو المخططات
     return (
       <div
         key={el.id}
@@ -745,114 +672,18 @@ export default function FormsCustomizationDashboard() {
           </button>
         </div>
 
-        {/* نموذج بصري مصغر ومميز للقسم */}
-        {el.id === "quick_nav" && (
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold text-xs border border-blue-500/20">
-                <LayoutDashboard className="w-4.5 h-4.5" />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">{el.title}</h4>
-                <p className="text-[11px] text-muted-foreground truncate">{el.description}</p>
-              </div>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2.5">
+            <div className={`w-9 h-9 rounded-xl ${meta.iconBg} flex items-center justify-center font-bold text-xs shrink-0`}>
+              <meta.icon className={`w-4.5 h-4.5 ${meta.accentColor}`} />
             </div>
-            <div className="flex items-center gap-2 overflow-x-auto p-2 rounded-xl bg-muted/40 border border-border/50">
-              <span className="text-[10px] px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-700 dark:text-blue-300 font-bold border border-blue-500/20 whitespace-nowrap">
-                مخططات مجلس الإدارة
-              </span>
-              <span className="text-[10px] px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/20 whitespace-nowrap">
-                التقرير المالي
-              </span>
-              <span className="text-[10px] px-2.5 py-1 rounded-lg bg-purple-500/10 text-purple-700 dark:text-purple-300 font-bold border border-purple-500/20 whitespace-nowrap">
-                تقارير الطلبات
-              </span>
+            <div className="min-w-0">
+              <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">{el.title}</h4>
+              <p className="text-[11px] text-muted-foreground truncate">{el.description}</p>
             </div>
           </div>
-        )}
+        </div>
 
-        {el.id === "section_board" && (
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xs border border-blue-500/20">
-                <Briefcase className="w-4.5 h-4.5" />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">{el.title}</h4>
-                <p className="text-[11px] text-muted-foreground truncate">{el.description}</p>
-              </div>
-            </div>
-            <div className="p-3 rounded-xl bg-muted/40 border border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px]">
-              <span className="text-muted-foreground">معاينة: تحليلات المساجد، عقود المشاريع، مؤشرات أوامر الصرف</span>
-              <div className="flex items-center gap-1.5 text-blue-600 font-bold">
-                <BarChart3 className="w-4 h-4" />
-                <span>لوحة قيادة تفاعلية متكاملة</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {el.id === "section_financial" && (
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs border border-emerald-500/20">
-                <SaudiRiyal className="w-4.5 h-4.5" />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">{el.title}</h4>
-                <p className="text-[11px] text-muted-foreground truncate">{el.description}</p>
-              </div>
-            </div>
-            <div className="p-3 rounded-xl bg-muted/40 border border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px]">
-              <span className="text-muted-foreground">معاينة: التدفقات النقدية، المصروفات، سندات القبض، وتحليلات مشاريع الدعم</span>
-              <div className="flex items-center gap-1.5 text-emerald-600 font-bold">
-                <Banknote className="w-4 h-4" />
-                <span>التقرير المالي العام</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {el.id === "section_reports" && (
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs border border-purple-500/20">
-                <BarChart3 className="w-4.5 h-4.5" />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">{el.title}</h4>
-                <p className="text-[11px] text-muted-foreground truncate">{el.description}</p>
-              </div>
-            </div>
-            <div className="p-3 rounded-xl bg-muted/40 border border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px]">
-              <span className="text-muted-foreground">معاينة: توزيع الطلبات على البرامج التسعة والمنحنى الشهري</span>
-              <div className="flex items-center gap-1.5 text-purple-600 font-bold">
-                <Activity className="w-4 h-4" />
-                <span>المخططات الإحصائية والفنية</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {el.id === "section_pending_users" && (
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 flex items-center justify-center font-bold text-xs border border-rose-200 dark:border-rose-800">
-                <AlertTriangle className="w-4.5 h-4.5" />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">{el.title}</h4>
-                <p className="text-[11px] text-muted-foreground truncate">{el.description}</p>
-              </div>
-            </div>
-            <div className="p-3 rounded-xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200/70 dark:border-rose-900/40 flex items-center justify-between text-[11px]">
-              <span className="text-rose-700 dark:text-rose-300 font-medium">شريط تنبيه أحمر بارز للحسابات الجديدة بانتظار الاعتماد</span>
-              <span className="text-rose-600 font-bold">تنبيه إداري</span>
-            </div>
-          </div>
-        )}
-
-        {/* زر إعادة الإضافة للقسم */}
         <div className="pt-3 mt-3 border-t border-border/60">
           <Button
             size="sm"
@@ -863,14 +694,14 @@ export default function FormsCustomizationDashboard() {
             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 rounded-xl gap-1.5 shadow-2xs cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>إعادة إضافة القسم للوحة</span>
+            <span>إعادة إضافة العنصر للوحة</span>
           </Button>
         </div>
       </div>
     );
   };
 
-  // تحقق صلاحية super_admin
+  // التحقق من صلاحية مدير النظام الشامل
   if (!isSuperAdmin) {
     return (
       <DashboardLayout>
@@ -880,7 +711,7 @@ export default function FormsCustomizationDashboard() {
           </div>
           <h2 className="text-xl font-bold text-foreground">غير مصرح بالدخول</h2>
           <p className="text-sm text-muted-foreground">
-            تخصيص لوحة القيادة المفصلة متاح حصرياً لمدير النظام الشامل (Super Admin).
+            تخصيص لوحة المعلومات متاح حصرياً لمدير النظام الشامل (Super Admin).
           </p>
           <Button
             variant="outline"
@@ -895,15 +726,37 @@ export default function FormsCustomizationDashboard() {
     );
   }
 
-  const enabledCount = enabledIds.length;
-  const totalCount = allElements.length;
+  // المستخدم الحالي المحدد بالاسم
+  const selectedUserObj = allUsers.find((u: any) => String(u.id) === selectedUserId);
+  const selectedRoleObj = allRoles.find((r: any) => r.nameEn === selectedRoleId);
+
+  // تصفية المستخدمين للبحث
+  const filteredUsers = allUsers.filter((u: any) => {
+    if (!userSearchQuery.trim()) return true;
+    const q = userSearchQuery.toLowerCase();
+    return (
+      u.name?.toLowerCase().includes(q) ||
+      u.email?.toLowerCase().includes(q) ||
+      u.role?.toLowerCase().includes(q)
+    );
+  });
+
   const disabledCount = removedElements.length;
+  const totalCount = allElements.length;
+
+  // هل الهدف الحالي يمتلك تخصيصاً خاصاً به؟
+  const currentTargetHasOverride = useMemo(() => {
+    if (targetType === "global") return !!customizedTargets?.hasGlobal;
+    if (targetType === "role") return !!customizedTargets?.roles?.includes(selectedRoleId);
+    if (targetType === "user") return !!customizedTargets?.userIds?.includes(selectedUserId);
+    return false;
+  }, [targetType, selectedRoleId, selectedUserId, customizedTargets]);
 
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-7xl mx-auto pb-24" dir="rtl">
         {/* شريط الأدوات العلوي المثبت للتحكم والتخصيص */}
-        <div className="sticky top-0 z-30 bg-card/95 backdrop-blur-md border border-border/80 rounded-2xl p-3 sm:p-4 shadow-sm">
+        <div className="sticky top-0 z-30 bg-card/95 backdrop-blur-md border border-border/80 rounded-2xl p-3 sm:p-4 shadow-sm space-y-3">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Link href="/forms-customization">
@@ -917,14 +770,14 @@ export default function FormsCustomizationDashboard() {
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-base sm:text-lg font-bold text-foreground">
-                    تخصيص ومعاينة لوحة القيادة المفصلة
+                    تخصيص لوحة المعلومات
                   </h1>
                   <Badge variant="outline" className="text-[10px] font-bold bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300">
-                    معاينة تفاعلية مباشرة
+                    عام، حسب الدور، أو حسب المستخدم
                   </Badge>
                 </div>
                 <p className="text-[11px] text-muted-foreground hidden sm:block">
-                  اضغط على زر <span className="text-rose-500 font-bold px-1 bg-rose-50 dark:bg-rose-950/50 rounded">X</span> على أي بطاقة أو قسم لإزالته فوراً، ويمكنك استعادة أي عنصر بصرياً من صندوق الاستعادة.
+                  تحكم بظهور أو إخفاء أي بطاقة أو قسم عبر زر <span className="text-rose-500 font-bold px-1 bg-rose-50 dark:bg-rose-950/50 rounded">X</span>، واستعدها متى شئت من صندوق الاستعادة.
                 </p>
               </div>
             </div>
@@ -957,9 +810,9 @@ export default function FormsCustomizationDashboard() {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowResetDialog(true)}
-                disabled={resetMutation.isPending || !configData?.isCustomized}
+                disabled={resetMutation.isPending || !currentTargetHasOverride}
                 className="gap-1.5 rounded-xl text-xs font-bold text-destructive hover:bg-destructive/10 border-destructive/30"
-                title="استعادة الحالة الافتراضية لكافة العناصر"
+                title="استعادة الحالة الافتراضية"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">استعادة الافتراضي</span>
@@ -968,7 +821,13 @@ export default function FormsCustomizationDashboard() {
               {/* زر حفظ التخصيص */}
               <Button
                 size="sm"
-                onClick={() => saveMutation.mutate({ enabledElementIds: enabledIds })}
+                onClick={() =>
+                  saveMutation.mutate({
+                    targetType,
+                    targetId: currentTargetId,
+                    enabledElementIds: enabledIds,
+                  })
+                }
                 disabled={saveMutation.isPending || !hasChanges}
                 className={`gap-1.5 rounded-xl text-xs font-bold px-4 shadow-sm transition-all ${
                   hasChanges
@@ -990,367 +849,620 @@ export default function FormsCustomizationDashboard() {
               </Button>
             </div>
           </div>
+
+          {/* تبويبات اختيار الهدف (عام / بالدور / بالمستخدم) */}
+          <div className="pt-2 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-xl border border-border/60 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setTargetType("global")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  targetType === "global"
+                    ? "bg-background text-foreground shadow-xs border border-border/80"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Globe className="w-3.5 h-3.5 text-blue-500" />
+                <span>افتراضي عام للجميع</span>
+                {customizedTargets?.hasGlobal && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" title="مخصص" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTargetType("role")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  targetType === "role"
+                    ? "bg-background text-foreground shadow-xs border border-border/80"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Users className="w-3.5 h-3.5 text-amber-500" />
+                <span>تخصيص حسب الدور</span>
+                {customizedTargets?.roles?.length ? (
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 font-mono font-bold bg-amber-500/10 text-amber-600 border-amber-300">
+                    {customizedTargets.roles.length}
+                  </Badge>
+                ) : null}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTargetType("user")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  targetType === "user"
+                    ? "bg-background text-foreground shadow-xs border border-border/80"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <User className="w-3.5 h-3.5 text-purple-500" />
+                <span>تخصيص لمستخدم محدد</span>
+                {customizedTargets?.userIds?.length ? (
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 font-mono font-bold bg-purple-500/10 text-purple-600 border-purple-300">
+                    {customizedTargets.userIds.length}
+                  </Badge>
+                ) : null}
+              </button>
+            </div>
+
+            {/* محدد الدور عند اختيار التخصيص حسب الدور */}
+            {targetType === "role" && (
+              <div className="flex items-center gap-2 flex-1 sm:max-w-xs">
+                <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">الدور:</span>
+                <Select value={selectedRoleId} onValueChange={(val) => setSelectedRoleId(val)}>
+                  <SelectTrigger className="w-full text-xs font-bold h-9 rounded-xl bg-background border-border">
+                    <SelectValue placeholder="اختر الدور الوظيفي..." />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-64" dir="rtl">
+                    {allRoles.map((role: any) => {
+                      const isCustom = customizedTargets?.roles?.includes(role.nameEn);
+                      const label = role.nameAr || ROLE_LABELS[role.nameEn] || role.nameEn;
+                      return (
+                        <SelectItem key={role.nameEn} value={role.nameEn} className="text-xs font-medium">
+                          <div className="flex items-center justify-between gap-3 w-full">
+                            <span>{label}</span>
+                            {isCustom && (
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/40">
+                                مخصص
+                              </Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* محدد المستخدم عند اختيار التخصيص لمستخدم محدد */}
+            {targetType === "user" && (
+              <div className="flex items-center gap-2 flex-1 sm:max-w-md">
+                <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">المستخدم:</span>
+                <Select value={selectedUserId} onValueChange={(val) => setSelectedUserId(val)}>
+                  <SelectTrigger className="w-full text-xs font-bold h-9 rounded-xl bg-background border-border">
+                    <SelectValue placeholder="اختر المستخدم..." />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72" dir="rtl">
+                    <div className="p-2 border-b border-border/60 sticky top-0 bg-popover z-10">
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-muted-foreground absolute right-2.5 top-2.5" />
+                        <Input
+                          value={userSearchQuery}
+                          onChange={(e) => setUserSearchQuery(e.target.value)}
+                          placeholder="ابحث بالاسم أو البريد..."
+                          className="h-8 text-xs pr-8 pl-2 rounded-lg"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                    </div>
+                    {filteredUsers.map((u: any) => {
+                      const isCustom = customizedTargets?.userIds?.includes(String(u.id));
+                      const roleName = ROLE_LABELS[u.role] || u.role;
+                      return (
+                        <SelectItem key={u.id} value={String(u.id)} className="text-xs font-medium">
+                          <div className="flex items-center justify-between gap-3 w-full">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="font-bold truncate">{u.name || "مستخدم"}</span>
+                              <span className="text-[10px] text-muted-foreground truncate">({roleName})</span>
+                            </div>
+                            {isCustom && (
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-purple-600 border-purple-300 bg-purple-50 dark:bg-purple-950/40 shrink-0">
+                                مخصص
+                              </Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* شريط الإشعار التوضيحي للهدف وسياق التخصيص */}
+        <div className="rounded-xl border border-border/70 bg-card p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+              targetType === "global"
+                ? "bg-blue-500/10 text-blue-600"
+                : targetType === "role"
+                ? "bg-amber-500/10 text-amber-600"
+                : "bg-purple-500/10 text-purple-600"
+            }`}>
+              {targetType === "global" ? (
+                <Globe className="w-4 h-4" />
+              ) : targetType === "role" ? (
+                <Users className="w-4 h-4" />
+              ) : (
+                <User className="w-4 h-4" />
+              )}
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs sm:text-sm font-bold text-foreground">
+                  {targetType === "global" && "أنت تقوم الآن بتخصيص العرض الافتراضي العام"}
+                  {targetType === "role" && `تخصيص لوحة المعلومات لدور: ${selectedRoleObj?.nameAr || ROLE_LABELS[selectedRoleId] || selectedRoleId}`}
+                  {targetType === "user" && `تخصيص لوحة المعلومات للمستخدم: ${selectedUserObj?.name || selectedUserId}`}
+                </span>
+                {currentTargetHasOverride ? (
+                  <Badge className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30">
+                    تخصيص مستقل محفوظ
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] text-muted-foreground border-border">
+                    يرث الإعدادات الحالية من المستوى الأعلى
+                  </Badge>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {targetType === "global" && "يطبق هذا التخصيص تلقائياً على كل مستخدم ليس لديه تخصيص شخصي خاص أو تخصيص لدوره الوظيفي."}
+                {targetType === "role" && "يشاهد هذا التخصيص أي مستخدم يمتلك هذا الدور، ما لم يقم مدير النظام بإنشاء تخصيص مستقل لحسابه شخصياً."}
+                {targetType === "user" && "هذا التخصيص ينطبق حصرياً على هذا المستخدم فقط، ويسبق تخصيص دوره والعرض الافتراضي العام."}
+              </p>
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground font-medium shrink-0">
+            العناصر المفعلة: <span className="font-bold text-foreground">{enabledIds.length}</span> من {totalCount}
+          </div>
         </div>
 
         {isConfigLoading ? (
           <div className="py-24 text-center space-y-3">
             <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
-            <p className="text-xs text-muted-foreground">جاري تحميل المعاينة التفاعلية للوحة المفصلة...</p>
+            <p className="text-xs text-muted-foreground">جاري تحميل المعاينة التفاعلية للوحة المعلومات...</p>
           </div>
         ) : (
           /* ========================================================================= */
-          /* وضع المعاينة التفاعلية الحية المباشرة (مع أزرار X على كل كرت وقسم) */
+          /* وضع المعاينة التفاعلية الحية المباشرة (مطابق تماماً لـ InformationDashboard) */
           /* ========================================================================= */
           <div className="space-y-6 sm:space-y-8 animate-in fade-in-50 duration-200">
-            {/* الهيدر الترحيبي للوحة المفصلة */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 px-4 sm:px-6 py-4 sm:py-6 text-white shadow-lg">
-              <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.5))]" />
-              <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                  <div className="flex items-center gap-2 text-white/60 text-[10px] sm:text-xs">
-                    <Activity className="w-3.5 h-3.5" />
-                    <span>الرئيسية (وضع المعاينة والتحرير)</span>
-                  </div>
-                  <div className="hidden sm:block w-px h-4 bg-white/30" />
-                  <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-                    <h2 className="text-lg sm:text-xl lg:text-2xl font-bold truncate">
-                      مرحباً، {user?.name || "مدير النظام"}
-                    </h2>
-                    <div className="hidden sm:block w-px h-4 bg-white/40" />
-                    <span className="text-white/80 text-[10px] sm:text-sm font-medium bg-white/15 rounded-full px-2 sm:px-3 py-0.5 whitespace-nowrap">
-                      {roleLabel}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 sm:gap-3.5 flex-wrap sm:flex-nowrap shrink-0">
-                  <div className="flex items-center gap-2 bg-white/20 rounded-full px-3 py-1.5 w-fit shrink-0">
-                    <Target className="w-3.5 h-3.5 shrink-0" />
-                    <span className="text-[10px] sm:text-xs font-medium whitespace-nowrap">نسبة الإنجاز: {completionRate}%</span>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={() => setIsRestoreSheetOpen(true)}
-                    className="bg-white/20 hover:bg-white/30 text-white border-0 text-xs font-bold gap-1.5 h-10 rounded-xl shadow-xs cursor-pointer"
-                  >
-                    <Undo2 className="w-4 h-4" />
-                    <span>استعادة العناصر ({disabledCount})</span>
-                  </Button>
-                </div>
+            {/* شريط تبديل الأقسام بالمعاينة */}
+            <div className="bg-card/95 backdrop-blur-md border border-border/80 rounded-2xl p-2.5 sm:p-3 shadow-xs">
+              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
+                <span className="text-xs font-bold text-muted-foreground shrink-0 ml-1 hidden xl:inline">
+                  معاينة الأقسام:
+                </span>
+                {[
+                  { id: "all", label: "عرض شامل", icon: LayoutGrid, color: "text-primary" },
+                  { id: "mosques", label: "المساجد والتغطية", icon: Building2, color: "text-emerald-600", sectionId: "section_mosques" },
+                  { id: "requests", label: "الطلبات والبرامج", icon: FileText, color: "text-blue-600", sectionId: "section_requests" },
+                  { id: "procurement", label: "المشاريع والعقود", icon: Briefcase, color: "text-amber-600", sectionId: "section_procurement" },
+                  { id: "financial", label: "المالية والصرف", icon: SaudiRiyal, color: "text-teal-600", sectionId: "section_financial" },
+                ].map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = previewTab === tab.id;
+                  const isSecDisabled = tab.sectionId && !isDetailedElementEnabled(tab.sectionId);
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setPreviewTab(tab.id)}
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer ${
+                        isActive
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60"
+                      } ${isSecDisabled ? "opacity-50 line-through" : ""}`}
+                    >
+                      <Icon className={`w-4 h-4 ${isActive ? "text-primary-foreground" : tab.color}`} />
+                      <span>{tab.label}</span>
+                      {isSecDisabled && (
+                        <span className="text-[9px] px-1 py-0.2 rounded bg-rose-500/20 text-rose-600 font-normal">مخفي</span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* شريط الانتقال السريع بين الأقسام مع زر X لإزالته */}
-            {isDetailedElementEnabled("quick_nav") && (
-              <div className="relative group/nav bg-card/95 backdrop-blur-md border border-border/80 rounded-2xl p-3 sm:p-4 shadow-sm flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide flex-1">
-                  <span className="text-xs font-bold text-muted-foreground shrink-0 ml-1">انتقال سريع:</span>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 text-xs font-bold text-blue-700 dark:text-blue-300 border border-blue-500/30 shrink-0">
-                    <Briefcase className="w-3.5 h-3.5 text-blue-600" />
-                    <span>مخططات مجلس الإدارة</span>
-                  </div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-xs font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 shrink-0">
-                    <SaudiRiyal className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>التقرير المالي</span>
-                  </div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/10 text-xs font-bold text-purple-700 dark:text-purple-300 border border-purple-500/30 shrink-0">
-                    <BarChart3 className="w-3.5 h-3.5 text-purple-600" />
-                    <span>تقارير الطلبات</span>
-                  </div>
-                </div>
-
-                {/* زر X لإخفاء شريط الانتقال السريع */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleRemoveElement("quick_nav", "شريط الانتقال السريع")}
-                  className="h-7 px-2 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg gap-1 border border-rose-200/60 dark:border-rose-900/40 cursor-pointer shrink-0"
-                  title="إخفاء شريط الانتقال السريع من اللوحة"
-                >
-                  <X className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">إخفاء الشريط</span>
-                </Button>
-              </div>
-            )}
-
-            {/* 1. المؤشرات الرقمية والبطاقات الرئيسية */}
-            {visibleMainCards.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between pb-1">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
-                    <h2 className="text-base sm:text-lg font-bold text-foreground">
-                      المؤشرات الرقمية والبطاقات الرئيسية
-                    </h2>
-                    <span className="text-xs text-muted-foreground hidden sm:inline">
-                      ({visibleMainCards.length} من {mainOverviewCardDefs.length} بطاقة معروضة)
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      mainOverviewCardDefs.forEach((c) => {
-                        setEnabledIds((prev) => prev.filter((id) => id !== c.id));
-                      });
-                      toast.info("تم إخفاء بطاقات المؤشرات الرئيسية الـ 8 ونقلها لصندوق الاستعادة");
-                    }}
-                    className="h-7 px-2 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg gap-1 border border-rose-200/60 dark:border-rose-900/40 cursor-pointer"
-                    title="إخفاء كافة بطاقات هذا القسم دفعة واحدة"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">إخفاء كل بطاقات القسم</span>
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                  {visibleMainCards.map((stat) => renderCard(stat))}
-                </div>
-              </div>
-            )}
-
-            {/* 2. بطاقات التبويبات بالمنظومة */}
-            {(visibleMosqueCards.length > 0 || visibleRequestCards.length > 0 || visibleProcurementCards.length > 0 || visibleFinancialCards.length > 0 || visibleProjectCards.length > 0) && (
-              <div className="space-y-6 pt-4 border-t border-border/60">
-                {/* أ) إحصائيات المساجد */}
-                {visibleMosqueCards.length > 0 && (
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-emerald-600" />
-                        <h4 className="text-sm font-bold text-foreground">إحصائيات المساجد ({visibleMosqueCards.length}/4)</h4>
+            {/* ========================================================================= */}
+            {/* 1. قسم المساجد والزيارات الميدانية */}
+            {/* ========================================================================= */}
+            {(previewTab === "all" || previewTab === "mosques") && (
+              <div className="space-y-6 pt-2">
+                {isDetailedElementEnabled("section_mosques") ? (
+                  <section id="section-mosques" className="space-y-6 pt-2">
+                    {/* هيدر قسم المساجد مع زر إخفاء القسم */}
+                    <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 shadow-xs">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                          <Building2 className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h2 className="text-sm sm:text-base font-bold text-foreground">
+                              إحصائيات وتغطية المساجد والجوامع
+                            </h2>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 shrink-0">
+                              قطاع المساجد
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                            المساجد المعتمدة رسمياً، المساجد النشطة المستفيدة من الخدمات، ونسب التغطية الميدانية والنمو
+                          </p>
+                        </div>
                       </div>
+
+                      {/* زر إخفاء قسم المساجد بالكامل */}
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          mosqueCardDefs.forEach((c) => setEnabledIds((prev) => prev.filter((id) => id !== c.id)));
-                          toast.info("تم إخفاء كروت إحصائيات المساجد");
-                        }}
-                        className="h-6.5 px-2 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg gap-1 border border-rose-200/50"
+                        onClick={() => handleRemoveElement("section_mosques", "قسم المساجد والتغطية")}
+                        className="h-7 px-2 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg gap-1 border border-rose-200/60 dark:border-rose-900/40 cursor-pointer shrink-0"
+                        title="إخفاء قسم المساجد بالكامل مع تبويبه"
                       >
-                        <X className="w-3 h-3" />
-                        <span>إخفاء كروت المساجد</span>
+                        <X className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">إخفاء قسم المساجد بالكامل</span>
                       </Button>
                     </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                      {visibleMosqueCards.map((stat) => renderCard(stat))}
-                    </div>
-                  </div>
-                )}
 
-                {/* ب) إحصائيات الطلبات */}
-                {visibleRequestCards.length > 0 && (
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-blue-600" />
-                        <h4 className="text-sm font-bold text-foreground">إحصائيات الطلبات ({visibleRequestCards.length}/4)</h4>
+                    {/* كروت قسم المساجد */}
+                    {visibleMosqueCards.length > 0 && (
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                            <h4 className="text-xs sm:text-sm font-bold text-foreground">مؤشرات المساجد والانتشار الميداني ({visibleMosqueCards.length}/4)</h4>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                          {visibleMosqueCards.map((stat) => renderCard(stat))}
+                        </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          requestCardDefs.forEach((c) => setEnabledIds((prev) => prev.filter((id) => id !== c.id)));
-                          toast.info("تم إخفاء كروت إحصائيات الطلبات");
-                        }}
-                        className="h-6.5 px-2 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg gap-1 border border-rose-200/50"
-                      >
-                        <X className="w-3 h-3" />
-                        <span>إخفاء كروت الطلبات</span>
-                      </Button>
-                    </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                      {visibleRequestCards.map((stat) => renderCard(stat))}
-                    </div>
-                  </div>
-                )}
+                    )}
 
-                {/* ج) المشتريات والعقود */}
-                {visibleProcurementCards.length > 0 && (
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Store className="w-4 h-4 text-orange-600" />
-                        <h4 className="text-sm font-bold text-foreground">المشتريات والعقود ({visibleProcurementCards.length}/4)</h4>
+                    {/* مخططات قسم المساجد مع زر إخفاء المخططات */}
+                    {isDetailedElementEnabled("mosques_charts") && (
+                      <div className="relative group/chart space-y-2 pt-2">
+                        <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-muted/40 border border-border/50">
+                          <span className="text-xs font-bold text-muted-foreground">مخططات وتوزيع المساجد الجغرافية</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveElement("mosques_charts", "مخططات وتوزيع المساجد الجغرافية")}
+                            className="h-6 px-2 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-md gap-1"
+                          >
+                            <X className="w-3 h-3" />
+                            <span>إخفاء المخططات</span>
+                          </Button>
+                        </div>
+                        <BoardDashboard embedded={true} forceAnalytics={true} initialTab="mosques" hideTabs={true} hideCards={true} />
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          procurementCardDefs.forEach((c) => setEnabledIds((prev) => prev.filter((id) => id !== c.id)));
-                          toast.info("تم إخفاء كروت المشتريات والعقود");
-                        }}
-                        className="h-6.5 px-2 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg gap-1 border border-rose-200/50"
-                      >
-                        <X className="w-3 h-3" />
-                        <span>إخفاء كروت المشتريات</span>
-                      </Button>
-                    </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                      {visibleProcurementCards.map((stat) => renderCard(stat))}
-                    </div>
-                  </div>
-                )}
-
-                {/* د) المالية وأوامر الصرف */}
-                {visibleFinancialCards.length > 0 && (
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Banknote className="w-4 h-4 text-indigo-600" />
-                        <h4 className="text-sm font-bold text-foreground">المالية وأوامر الصرف ({visibleFinancialCards.length}/4)</h4>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          financialCardDefs.forEach((c) => setEnabledIds((prev) => prev.filter((id) => id !== c.id)));
-                          toast.info("تم إخفاء كروت المالية وأوامر الصرف");
-                        }}
-                        className="h-6.5 px-2 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg gap-1 border border-rose-200/50"
-                      >
-                        <X className="w-3 h-3" />
-                        <span>إخفاء كروت المالية</span>
-                      </Button>
-                    </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                      {visibleFinancialCards.map((stat) => renderCard(stat))}
-                    </div>
-                  </div>
-                )}
-
-                {/* هـ) التقرير المالي والمشاريع */}
-                {visibleProjectCards.length > 0 && (
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <SaudiRiyal className="w-4 h-4 text-teal-600" />
-                        <h4 className="text-sm font-bold text-foreground">التقرير المالي والمشاريع ({visibleProjectCards.length}/4)</h4>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          projectAndVoucherCardDefs.forEach((c) => setEnabledIds((prev) => prev.filter((id) => id !== c.id)));
-                          toast.info("تم إخفاء كروت التقرير المالي والمشاريع");
-                        }}
-                        className="h-6.5 px-2 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg gap-1 border border-rose-200/50"
-                      >
-                        <X className="w-3 h-3" />
-                        <span>إخفاء كروت المشاريع</span>
-                      </Button>
-                    </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                      {visibleProjectCards.map((stat) => renderCard(stat))}
-                    </div>
+                    )}
+                  </section>
+                ) : (
+                  <div className="p-4 rounded-xl border border-dashed border-rose-300 dark:border-rose-900/40 bg-rose-50/20 text-center flex items-center justify-between">
+                    <span className="text-xs text-rose-600 font-bold">قسم المساجد والتغطية مخفي حالياً من اللوحة</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleRestoreElement("section_mosques", "قسم المساجد والتغطية")}
+                      className="text-xs font-bold text-emerald-600 border-emerald-300 hover:bg-emerald-50 h-7"
+                    >
+                      <Plus className="w-3.5 h-3.5 ml-1" />
+                      إظهار القسم
+                    </Button>
                   </div>
                 )}
               </div>
             )}
 
-            {/* 3. المخططات والتحليلات الخاصة بمجلس الإدارة والإدارة العليا */}
-            {isDetailedElementEnabled("section_board") && (
-              <div className="relative group/section space-y-4 pt-8 border-t-2 border-border/80">
-                <div className="flex items-center justify-between pb-3 border-b border-border/70">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-sm border border-blue-500/20">
-                      <Briefcase className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h2 className="text-base sm:text-lg font-bold text-foreground">
-                        مخططات وتحليلات مجلس الإدارة والمؤشرات الإستراتيجية
-                      </h2>
-                      <p className="text-xs text-muted-foreground">
-                        مخططات المساجد، توزيع عقود المشاريع، مؤشرات أوامر الصرف، ومصفوفة الأداء الإستراتيجي
-                      </p>
-                    </div>
-                  </div>
+            {/* ========================================================================= */}
+            {/* 2. قسم الطلبات وبرامج الخدمات */}
+            {/* ========================================================================= */}
+            {(previewTab === "all" || previewTab === "requests") && (
+              <div className="space-y-6 pt-6 border-t-2 border-border/80">
+                {isDetailedElementEnabled("section_requests") ? (
+                  <section id="section-requests" className="space-y-6">
+                    {/* هيدر قسم الطلبات مع زر إخفاء القسم */}
+                    <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500/10 via-blue-500/5 to-transparent border border-blue-500/20 shadow-xs">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h2 className="text-sm sm:text-base font-bold text-foreground">
+                              إحصائيات الطلبات وبرامج الخدمات
+                            </h2>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/25 shrink-0">
+                              تقارير الطلبات
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                            مخططات توزيع الطلبات على برامج الخدمات، والمنحنى الشهري لتطور الطلبات ومراحل الإنجاز
+                          </p>
+                        </div>
+                      </div>
 
-                  {/* زر X لإخفاء قسم مخططات مجلس الإدارة */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveElement("section_board", "مخططات وتحليلات مجلس الإدارة")}
-                    className="h-8 px-2.5 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl gap-1.5 border border-rose-200 dark:border-rose-900/60 cursor-pointer shrink-0"
-                    title="إخفاء قسم مخططات مجلس الإدارة من اللوحة"
-                  >
-                    <X className="w-4 h-4" />
-                    <span>إخفاء هذا القسم</span>
-                  </Button>
-                </div>
-                <BoardDashboard embedded={true} forceAnalytics={true} />
+                      {/* زر إخفاء قسم الطلبات بالكامل */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveElement("section_requests", "قسم الطلبات وبرامج الخدمات")}
+                        className="h-7 px-2 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg gap-1 border border-rose-200/60 dark:border-rose-900/40 cursor-pointer shrink-0"
+                        title="إخفاء قسم الطلبات بالكامل مع تبويبه"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">إخفاء قسم الطلبات بالكامل</span>
+                      </Button>
+                    </div>
+
+                    {/* كروت قسم الطلبات */}
+                    {visibleRequestCards.length > 0 && (
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-blue-500" />
+                            <h4 className="text-xs sm:text-sm font-bold text-foreground">تفصيل حالات الطلبات ومراحل المعالجة ({visibleRequestCards.length}/4)</h4>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                          {visibleRequestCards.map((stat) => renderCard(stat))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* مخططات التقارير الفنية للطلبات */}
+                    {isDetailedElementEnabled("requests_charts") && (
+                      <div className="relative group/chart space-y-2 pt-2">
+                        <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-muted/40 border border-border/50">
+                          <span className="text-xs font-bold text-muted-foreground">مخططات تقارير الطلبات الفنية</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveElement("requests_charts", "مخططات تقارير الطلبات الفنية")}
+                            className="h-6 px-2 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-md gap-1"
+                          >
+                            <X className="w-3 h-3" />
+                            <span>إخفاء المخططات</span>
+                          </Button>
+                        </div>
+                        <Reports embedded={true} />
+                      </div>
+                    )}
+                  </section>
+                ) : (
+                  <div className="p-4 rounded-xl border border-dashed border-rose-300 dark:border-rose-900/40 bg-rose-50/20 text-center flex items-center justify-between">
+                    <span className="text-xs text-rose-600 font-bold">قسم الطلبات وبرامج الخدمات مخفي حالياً من اللوحة</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleRestoreElement("section_requests", "قسم الطلبات وبرامج الخدمات")}
+                      className="text-xs font-bold text-emerald-600 border-emerald-300 hover:bg-emerald-50 h-7"
+                    >
+                      <Plus className="w-3.5 h-3.5 ml-1" />
+                      إظهار القسم
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* 4. المخططات والتحليلات المالية الشاملة */}
-            {isDetailedElementEnabled("section_financial") && (
-              <div className="relative group/section space-y-4 pt-8 border-t-2 border-border/80">
-                <div className="flex items-center justify-between pb-3 border-b border-border/70">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black text-sm border border-emerald-500/20">
-                      <SaudiRiyal className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h2 className="text-base sm:text-lg font-bold text-foreground">
-                        المخططات والتحليلات المالية الشاملة
-                      </h2>
-                      <p className="text-xs text-muted-foreground">
-                        الرسوم البيانية للتدفقات النقدية، المصروفات، سندات القبض، وتحليلات مشاريع الدعم والتغطية
-                      </p>
-                    </div>
-                  </div>
+            {/* ========================================================================= */}
+            {/* 3. قسم المشاريع والعقود والمشتريات */}
+            {/* ========================================================================= */}
+            {(previewTab === "all" || previewTab === "procurement") && (
+              <div className="space-y-6 pt-6 border-t-2 border-border/80">
+                {isDetailedElementEnabled("section_procurement") ? (
+                  <section id="section-procurement" className="space-y-6">
+                    {/* هيدر قسم المشاريع والعقود مع زر إخفاء القسم */}
+                    <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 shadow-xs">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-amber-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                          <Briefcase className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h2 className="text-sm sm:text-base font-bold text-foreground">
+                              المشاريع والعقود وشبكة الموردين
+                            </h2>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/25 shrink-0">
+                              المشاريع والعقود
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                            مشاريع الدعم، الميزانيات المعتمدة، شبكة الموردين المؤهلين، ومجموع قيم العقود الرسمية
+                          </p>
+                        </div>
+                      </div>
 
-                  {/* زر X لإخفاء قسم التحليلات المالية */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveElement("section_financial", "المخططات والتحليلات المالية الشاملة")}
-                    className="h-8 px-2.5 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl gap-1.5 border border-rose-200 dark:border-rose-900/60 cursor-pointer shrink-0"
-                    title="إخفاء قسم التحليلات المالية من اللوحة"
-                  >
-                    <X className="w-4 h-4" />
-                    <span>إخفاء هذا القسم</span>
-                  </Button>
-                </div>
-                <FinancialReport embedded={true} />
+                      {/* زر إخفاء قسم المشاريع والعقود بالكامل */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveElement("section_procurement", "قسم المشاريع والعقود وشبكة الموردين")}
+                        className="h-7 px-2 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg gap-1 border border-rose-200/60 dark:border-rose-900/40 cursor-pointer shrink-0"
+                        title="إخفاء قسم المشاريع والعقود بالكامل مع تبويبه"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">إخفاء قسم المشاريع بالكامل</span>
+                      </Button>
+                    </div>
+
+                    {/* كروت قسم المشاريع والعقود */}
+                    {(visibleProcurementCards.length > 0 || visibleProjectCards.length > 0) && (
+                      <div className="space-y-5">
+                        {visibleProcurementCards.length > 0 && (
+                          <div className="space-y-2.5">
+                            <div className="flex items-center gap-2">
+                              <Store className="w-4 h-4 text-amber-600" />
+                              <h4 className="text-xs sm:text-sm font-bold text-foreground">المشتريات وشبكة الموردين والعقود ({visibleProcurementCards.length}/4)</h4>
+                            </div>
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                              {visibleProcurementCards.map((stat) => renderCard(stat))}
+                            </div>
+                          </div>
+                        )}
+
+                        {visibleProjectCards.length > 0 && (
+                          <div className="space-y-2.5">
+                            <div className="flex items-center gap-2">
+                              <FolderKanban className="w-4 h-4 text-violet-600" />
+                              <h4 className="text-xs sm:text-sm font-bold text-foreground">مشاريع الدعم والميزانيات ({visibleProjectCards.length}/4)</h4>
+                            </div>
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                              {visibleProjectCards.map((stat) => renderCard(stat))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* مخططات المشتريات والعقود */}
+                    {isDetailedElementEnabled("procurement_charts") && (
+                      <div className="relative group/chart space-y-2 pt-2">
+                        <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-muted/40 border border-border/50">
+                          <span className="text-xs font-bold text-muted-foreground">مخططات المشتريات والعقود والموردين</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveElement("procurement_charts", "مخططات المشتريات والعقود والموردين")}
+                            className="h-6 px-2 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-md gap-1"
+                          >
+                            <X className="w-3 h-3" />
+                            <span>إخفاء المخططات</span>
+                          </Button>
+                        </div>
+                        <BoardDashboard embedded={true} forceAnalytics={true} initialTab="procurement" hideTabs={true} hideCards={true} />
+                      </div>
+                    )}
+                  </section>
+                ) : (
+                  <div className="p-4 rounded-xl border border-dashed border-rose-300 dark:border-rose-900/40 bg-rose-50/20 text-center flex items-center justify-between">
+                    <span className="text-xs text-rose-600 font-bold">قسم المشاريع والعقود وشبكة الموردين مخفي حالياً من اللوحة</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleRestoreElement("section_procurement", "قسم المشاريع والعقود وشبكة الموردين")}
+                      className="text-xs font-bold text-emerald-600 border-emerald-300 hover:bg-emerald-50 h-7"
+                    >
+                      <Plus className="w-3.5 h-3.5 ml-1" />
+                      إظهار القسم
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* 5. مخططات التقارير الإحصائية للطلبات */}
-            {isDetailedElementEnabled("section_reports") && (
-              <div className="relative group/section space-y-4 pt-8 border-t-2 border-border/80">
-                <div className="flex items-center justify-between pb-3 border-b border-border/70">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center font-black text-sm border border-purple-500/20">
-                      <BarChart3 className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h2 className="text-base sm:text-lg font-bold text-foreground">
-                        المخططات الإحصائية والفنية للطلبات
-                      </h2>
-                      <p className="text-xs text-muted-foreground">
-                        مخططات توزيع الطلبات على البرامج التسعة، والمنحنى الشهري لتطور الطلبات
-                      </p>
-                    </div>
-                  </div>
+            {/* ========================================================================= */}
+            {/* 4. قسم المالية وأوامر الصرف والتدفقات */}
+            {/* ========================================================================= */}
+            {(previewTab === "all" || previewTab === "financial") && (
+              <div className="space-y-6 pt-6 border-t-2 border-border/80">
+                {isDetailedElementEnabled("section_financial") ? (
+                  <section id="section-financial" className="space-y-6">
+                    {/* هيدر قسم المالية مع زر إخفاء القسم */}
+                    <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-teal-500/10 via-teal-500/5 to-transparent border border-teal-500/20 shadow-xs">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                          <SaudiRiyal className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h2 className="text-sm sm:text-base font-bold text-foreground">
+                              التقرير والتحليلات المالية والتدفقات النقدية
+                            </h2>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/25 shrink-0">
+                              المالية والصرف
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                            الرسوم البيانية للتدفقات النقدية، أوامر الصرف المنفذة، سندات القبض، ومشاريع الدعم والتغطية
+                          </p>
+                        </div>
+                      </div>
 
-                  {/* زر X لإخفاء قسم تقارير الطلبات */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveElement("section_reports", "المخططات الإحصائية للطلبات")}
-                    className="h-8 px-2.5 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl gap-1.5 border border-rose-200 dark:border-rose-900/60 cursor-pointer shrink-0"
-                    title="إخفاء قسم تقارير الطلبات من اللوحة"
-                  >
-                    <X className="w-4 h-4" />
-                    <span>إخفاء هذا القسم</span>
-                  </Button>
-                </div>
-                <Reports embedded={true} />
+                      {/* زر إخفاء قسم المالية بالكامل */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveElement("section_financial", "قسم المالية والصرف والتدفقات")}
+                        className="h-7 px-2 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg gap-1 border border-rose-200/60 dark:border-rose-900/40 cursor-pointer shrink-0"
+                        title="إخفاء قسم المالية بالكامل مع تبويبه"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">إخفاء قسم المالية بالكامل</span>
+                      </Button>
+                    </div>
+
+                    {/* كروت قسم المالية */}
+                    {visibleFinancialCards.length > 0 && (
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Banknote className="w-4 h-4 text-teal-600" />
+                            <h4 className="text-xs sm:text-sm font-bold text-foreground">مؤشرات المصروفات وأوامر الصرف وسندات القبض ({visibleFinancialCards.length}/4)</h4>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                          {visibleFinancialCards.map((stat) => renderCard(stat))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* المخططات المالية الشاملة */}
+                    {isDetailedElementEnabled("financial_charts") && (
+                      <div className="relative group/chart space-y-2 pt-2">
+                        <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-muted/40 border border-border/50">
+                          <span className="text-xs font-bold text-muted-foreground">المخططات والتحليلات المالية الشاملة</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveElement("financial_charts", "المخططات والتحليلات المالية الشاملة")}
+                            className="h-6 px-2 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-md gap-1"
+                          >
+                            <X className="w-3 h-3" />
+                            <span>إخفاء المخططات</span>
+                          </Button>
+                        </div>
+                        <FinancialReport embedded={true} />
+                      </div>
+                    )}
+                  </section>
+                ) : (
+                  <div className="p-4 rounded-xl border border-dashed border-rose-300 dark:border-rose-900/40 bg-rose-50/20 text-center flex items-center justify-between">
+                    <span className="text-xs text-rose-600 font-bold">قسم المالية والصرف والتدفقات مخفي حالياً من اللوحة</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleRestoreElement("section_financial", "قسم المالية والصرف والتدفقات")}
+                      className="text-xs font-bold text-emerald-600 border-emerald-300 hover:bg-emerald-50 h-7"
+                    >
+                      <Plus className="w-3.5 h-3.5 ml-1" />
+                      إظهار القسم
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* 6. تنبيه المستخدمين بانتظار الاعتماد */}
+            {/* ========================================================================= */}
+            {/* 5. تنبيه المستخدمين بانتظار الاعتماد */}
+            {/* ========================================================================= */}
             {isDetailedElementEnabled("section_pending_users") && pendingUsers && pendingUsers.length > 0 && (
               <div className="relative group/alert pt-4 border-t border-border/60">
                 <Card className="border-0 shadow-sm border-r-4 border-r-rose-500 rounded-2xl bg-card">
@@ -1378,7 +1490,7 @@ export default function FormsCustomizationDashboard() {
                       <button
                         type="button"
                         onClick={() => handleRemoveElement("section_pending_users", "تنبيه المستخدمين المعلقين")}
-                        className="w-7 h-7 rounded-full bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors"
+                        className="w-7 h-7 rounded-full bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
                         title="إخفاء هذا التنبيه من اللوحة"
                       >
                         <X className="w-4 h-4" />
@@ -1416,7 +1528,13 @@ export default function FormsCustomizationDashboard() {
           {hasChanges && (
             <Button
               size="lg"
-              onClick={() => saveMutation.mutate({ enabledElementIds: enabledIds })}
+              onClick={() =>
+                saveMutation.mutate({
+                  targetType,
+                  targetId: currentTargetId,
+                  enabledElementIds: enabledIds,
+                })
+              }
               disabled={saveMutation.isPending}
               className="bg-primary hover:bg-primary/90 text-white shadow-2xl rounded-full px-5 py-3 font-bold text-xs sm:text-sm gap-2 animate-pulse"
             >
@@ -1431,7 +1549,7 @@ export default function FormsCustomizationDashboard() {
         </div>
 
         {/* ========================================================================= */}
-        {/* المكون الرئيسي لاستعادة العناصر المحذوفة (Restore Elements Component) */}
+        {/* صندوق استعادة العناصر المحذوفة (Sheet / Drawer) */}
         {/* ========================================================================= */}
         <Sheet open={isRestoreSheetOpen} onOpenChange={setIsRestoreSheetOpen}>
           <SheetContent side="left" className="w-full sm:max-w-2xl lg:max-w-3xl p-0 flex flex-col bg-card" dir="rtl">
@@ -1450,7 +1568,7 @@ export default function FormsCustomizationDashboard() {
                 </Badge>
               </div>
               <SheetDescription className="text-xs text-muted-foreground">
-                العناصر والبطاقات والمخططات التي تم إخفاؤها من اللوحة المفصلة معروضة بشكلها المرئي الأصلي. انقر على أي كرت أو اضغط على (+ إعادة إضافة) لإرجاعه فوراً إلى مكانه.
+                العناصر والبطاقات والمخططات التي تم إخفاؤها من اللوحة معروضة هنا. انقر على أي كرت أو اضغط على (+ إضافة) لإرجاعه فوراً لمكانه.
               </SheetDescription>
             </SheetHeader>
 
@@ -1489,7 +1607,11 @@ export default function FormsCustomizationDashboard() {
                 <Button
                   size="sm"
                   onClick={() => {
-                    saveMutation.mutate({ enabledElementIds: enabledIds });
+                    saveMutation.mutate({
+                      targetType,
+                      targetId: currentTargetId,
+                      enabledElementIds: enabledIds,
+                    });
                     setIsRestoreSheetOpen(false);
                   }}
                   disabled={saveMutation.isPending}
@@ -1509,11 +1631,15 @@ export default function FormsCustomizationDashboard() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-destructive">
                 <AlertTriangle className="w-5 h-5 text-destructive" />
-                تأكيد استعادة الإعدادات الافتراضية
+                تأكيد استعادة الإعدادات
               </DialogTitle>
             </DialogHeader>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              هل أنت متأكد من رغبتك في استعادة الإعدادات الافتراضية للوحة القيادة المفصلة؟ سيتم تفعيل وإظهار كافة البطاقات والمؤشرات والأقسام الـ {totalCount} كما كانت عند تثبيت النظام.
+              {targetType === "global"
+                ? `هل أنت متأكد من رغبتك في استعادة الإعدادات الافتراضية العامة للوحة المعلومات؟ سيتم تفعيل وإظهار كافة البطاقات والمؤشرات والأقسام الـ ${totalCount}.`
+                : targetType === "role"
+                ? `هل أنت متأكد من حذف التخصيص المستقل لدور "${selectedRoleObj?.nameAr || ROLE_LABELS[selectedRoleId] || selectedRoleId}"؟ سيعود هذا الدور لوراثة الإعدادات الافتراضية العامة.`
+                : `هل أنت متأكد من حذف التخصيص المستقل للمستخدم "${selectedUserObj?.name || selectedUserId}"؟ سيعود هذا المستخدم لوراثة تخصيص دوره أو الإعدادات العامة.`}
             </p>
             <DialogFooter className="gap-2 sm:gap-0 mt-4">
               <Button
@@ -1527,7 +1653,12 @@ export default function FormsCustomizationDashboard() {
               <Button
                 variant="destructive"
                 size="sm"
-                onClick={() => resetMutation.mutate()}
+                onClick={() =>
+                  resetMutation.mutate({
+                    targetType,
+                    targetId: currentTargetId,
+                  })
+                }
                 disabled={resetMutation.isPending}
                 className="text-xs font-bold gap-1.5"
               >

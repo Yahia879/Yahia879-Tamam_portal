@@ -15,6 +15,7 @@ export const USER_ROLES = {
   corporate_comm: { key: 'corporate_comm', label: 'الاتصال المؤسسي', labelEn: 'Corporate Communications' },
   service_requester: { key: 'service_requester', label: 'طالب الخدمة', labelEn: 'Service Requester' },
   procurement_officer: { key: 'procurement_officer', label: 'مسؤول المشتريات', labelEn: 'Procurement Officer' },
+  dashboard_viewer: { key: 'dashboard_viewer', label: 'مستخدم لوحة المعلومات', labelEn: 'Dashboard Viewer' },
 } as const;
 
 export const ROLE_LABELS: Record<string, string> = {
@@ -33,6 +34,7 @@ export const ROLE_LABELS: Record<string, string> = {
   corporate_comm: 'الاتصال المؤسسي',
   service_requester: 'طالب الخدمة',
   procurement_officer: 'مسؤول المشتريات',
+  dashboard_viewer: 'مستخدم لوحة المعلومات',
 };
 
 // الأدوار الداخلية (الموظفين)
@@ -51,6 +53,7 @@ export const INTERNAL_ROLES = [
   'project_manager',
   'corporate_comm',
   'procurement_officer',
+  'dashboard_viewer',
 ];
 
 // ==================== البرامج ====================

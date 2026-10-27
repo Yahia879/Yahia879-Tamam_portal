@@ -23,8 +23,8 @@ export default function FormsCustomization() {
   const allOptions = [
     {
       id: "dashboard",
-      title: "تخصيص لوحة التحكم المفصلة",
-      subtitle: "التحكم في ظهور أو إخفاء عناصر وبطاقات وأقسام لوحة التحكم بالوضع المفصل لمدير النظام",
+      title: "تخصيص لوحة المعلومات",
+      subtitle: "التحكم في ظهور أو إخفاء بطاقات وأقسام ومخططات لوحة المعلومات (عام، أو حسب الدور أو المستخدم)",
       path: "/forms-customization/dashboard",
       icon: LayoutDashboard,
       iconColor: "text-purple-600 bg-purple-50 dark:bg-purple-950/40",

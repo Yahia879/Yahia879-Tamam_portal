@@ -36,6 +36,7 @@ export const SYSTEM_ROLE_DESCRIPTIONS: Record<string, string> = {
   board_chairman: "دور قيادي أعلى له كامل صلاحيات الاطلاع والاعتماد البنكي المباشر لطلبات وأوامر الصرف والوصول الشامل لجميع بيانات المنصة.",
   board_member: "دور قيادي مخصص لعضو مجلس الإدارة للاطلاع الشامل على لوحة إحصائيات ومؤشرات البوابة والمنصة دون صلاحيات تنفيذية مباشرة.",
   procurement_officer: "استعراض عروض الأسعار وإدخالها للنظام، مع اقتصار اعتماد وترسية العروض على المدير التنفيذي فقط.",
+  dashboard_viewer: "دور مخصص للاطلاع الحصري على لوحة المعلومات الشاملة ومؤشرات الأداء دون صلاحيات تشغيلية أخرى.",
 };
 
 export interface RolesTabProps {
@@ -74,6 +75,7 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
     field_team: 10,
     quick_response: 11,
     corporate_comm: 12,
+    dashboard_viewer: 13,
   };
 
   const roles = allRoles

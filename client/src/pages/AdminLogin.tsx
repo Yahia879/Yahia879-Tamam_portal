@@ -83,7 +83,7 @@ export default function AdminLogin() {
   // إعادة توجيه المستخدم إذا كان مسجلاً للدخول بالفعل
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      const path = user?.role === "service_requester" ? "/requester" : "/dashboard";
+      const path = user?.role === "service_requester" ? "/requester" : user?.role === "dashboard_viewer" ? "/information-dashboard" : "/dashboard";
       setLocation(path, { replace: true });
     }
   }, [isAuthenticated, authLoading, user, setLocation]);
@@ -97,7 +97,7 @@ export default function AdminLogin() {
       if (data?.user?.role === "quick_response") {
         localStorage.setItem("quick-response-lang", "en");
       }
-      const targetPath = data?.user?.role === "service_requester" ? "/requester" : "/dashboard";
+      const targetPath = data?.user?.role === "service_requester" ? "/requester" : data?.user?.role === "dashboard_viewer" ? "/information-dashboard" : "/dashboard";
       setLocation(targetPath, { replace: true });
     },
     onError: (error) => {

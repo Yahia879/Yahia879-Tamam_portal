@@ -241,7 +241,8 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
           'project_manager',
           'corporate_comm',
           'service_requester',
-          'procurement_officer'
+          'procurement_officer',
+          'dashboard_viewer'
         ) NOT NULL DEFAULT 'service_requester';
       `);
     } catch (roleEnumErr) {

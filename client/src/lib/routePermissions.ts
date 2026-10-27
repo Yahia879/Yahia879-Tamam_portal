@@ -113,6 +113,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/board-dashboard": ["board_chairman", "board_member", "board_chairman_view"],
   "/board-executive": ["board_chairman", "board_chairman_view"],
   "/board-analytics": "board_member",
+  "/information-dashboard": ["information_dashboard", "information_dashboard.view"],
 
   // ── لوحة التحكم ──
   "/dashboard": ["dashboard", "dashboard.view", "mosques", "requests", "projects", "suppliers", "staff_management", "settings_center"],
@@ -732,6 +733,11 @@ export function getUserHomeRoute(user: any): string {
     if (canAccess("/orders-and-letters")) return "/orders-and-letters";
     if (canAccess("/csr-letters")) return "/csr-letters";
     if (canAccess("/receipt-vouchers")) return "/receipt-vouchers";
+  }
+
+  // 2.5 مستخدم لوحة المعلومات
+  if (user.role === "dashboard_viewer" || userPerms.includes("information_dashboard") || userPerms.includes("information_dashboard.view")) {
+    if (canAccess("/information-dashboard")) return "/information-dashboard";
   }
 
   // 3. لوحة التحكم العامة (الافتراضية لمعظم الموظفين والمدراء)

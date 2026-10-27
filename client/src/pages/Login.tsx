@@ -89,7 +89,7 @@ export default function Login() {
   // إعادة توجيه المستخدم إذا كان مسجلاً للدخول بالفعل
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      const path = user?.role === "service_requester" ? "/requester" : "/dashboard";
+      const path = user?.role === "service_requester" ? "/requester" : user?.role === "dashboard_viewer" ? "/information-dashboard" : "/dashboard";
       setLocation(path, { replace: true });
     }
   }, [isAuthenticated, loading, user, setLocation]);

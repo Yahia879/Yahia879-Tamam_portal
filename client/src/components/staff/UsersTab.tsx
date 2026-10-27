@@ -68,6 +68,7 @@ const ROLE_OPTIONS = [
   { value: "quick_response", label: "استجابة سريعة" },
   { value: "corporate_comm", label: "علاقات مؤسسية" },
   { value: "procurement_officer", label: "مسؤول المشتريات" },
+  { value: "dashboard_viewer", label: "مستخدم لوحة المعلومات" },
 ];
 
 export interface UsersTabProps {
@@ -244,6 +245,7 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
       corporate_comm: "الاتصال المؤسسي",
       service_requester: "طالب خدمة",
       procurement_officer: "مسؤول المشتريات",
+      dashboard_viewer: "مستخدم لوحة المعلومات",
     };
 
     let label = "";
