@@ -184,6 +184,8 @@ export default function RequesterApprovals() {
 
   const canViewSedana = usePermission("requester_sedana.view");
   const canReviewSedana = usePermission("requester_sedana.review");
+  const canSendEmailSedana = usePermission("requester_sedana.send_email");
+  const canSendWhatsappSedana = usePermission("requester_sedana.send_whatsapp");
 
   const hasAnyPermission = canViewAccounts || canViewExceptions || canViewDonations || canViewInquiries || canViewSedana;
 
@@ -2056,7 +2058,7 @@ export default function RequesterApprovals() {
                               </TableCell>
                               <TableCell className="text-left pl-6">
                                 <div className="flex items-center justify-end gap-2">
-                                  {waPhone && (
+                                  {waPhone && canSendWhatsappSedana && (
                                     <a 
                                       href={`https://wa.me/${waPhone}`} 
                                       target="_blank" 
@@ -2068,7 +2070,7 @@ export default function RequesterApprovals() {
                                     </a>
                                   )}
 
-                                  {item.userEmail && (
+                                  {item.userEmail && canSendEmailSedana && (
                                     <a 
                                       href={`mailto:${item.userEmail}`} 
                                       className="p-1.5 rounded-xl text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-colors"
@@ -2139,7 +2141,7 @@ export default function RequesterApprovals() {
                               مراجعة الطلب
                             </Button>
 
-                            {waPhone && (
+                            {waPhone && canSendWhatsappSedana && (
                               <a 
                                 href={`https://wa.me/${waPhone}`} 
                                 target="_blank" 
@@ -2151,7 +2153,7 @@ export default function RequesterApprovals() {
                               </a>
                             )}
 
-                            {item.userEmail && (
+                            {item.userEmail && canSendEmailSedana && (
                               <a 
                                 href={`mailto:${item.userEmail}`} 
                                 className="h-9 w-9 rounded-xl border border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800 flex items-center justify-center shrink-0"
@@ -2424,7 +2426,7 @@ export default function RequesterApprovals() {
                       بيانات مقدم الطلب والتواصل
                     </h4>
                     <div className="flex items-center gap-2">
-                      {selectedInquiryForAction.userPhone && (() => {
+                      {canSendWhatsappSedana && selectedInquiryForAction.userPhone && (() => {
                         const cleanP = selectedInquiryForAction.userPhone.replace(/[^0-9]/g, "");
                         const waP = cleanP.startsWith("05") ? `966${cleanP.slice(1)}` : cleanP;
                         return (
@@ -2440,7 +2442,7 @@ export default function RequesterApprovals() {
                           </a>
                         );
                       })()}
-                      {selectedInquiryForAction.userEmail && (
+                      {canSendEmailSedana && selectedInquiryForAction.userEmail && (
                         <a 
                           href={`mailto:${selectedInquiryForAction.userEmail}`} 
                           className="h-8 px-3.5 rounded-xl border border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800 text-xs font-bold flex items-center gap-1.5 hover:bg-sky-100 transition-all shadow-2xs"
