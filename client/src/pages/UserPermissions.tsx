@@ -476,7 +476,8 @@ export default function UserPermissions() {
             "requester_accounts.approve",
             "requester_accounts.suspend",
             "requester_exceptions.view",
-            "requester_exceptions.review",
+            "requester_exceptions.approve",
+            "requester_exceptions.reject",
             "requester_donations.view",
             "requester_donations.review",
             "requester_donations.delete",
@@ -728,7 +729,8 @@ export default function UserPermissions() {
             "requester_accounts.approve",
             "requester_accounts.suspend",
             "requester_exceptions.view",
-            "requester_exceptions.review",
+            "requester_exceptions.approve",
+            "requester_exceptions.reject",
             "requester_donations.view",
             "requester_donations.review",
             "requester_donations.delete",
@@ -923,7 +925,8 @@ export default function UserPermissions() {
       },
       requester_exceptions: {
         view: "عرض طلبات الاستثناء",
-        review: "الاعتمادات (قبول أو رفض طلب الاستثناء)"
+        approve: "قبول طلب الاستثناء",
+        reject: "رفض طلب الاستثناء"
       },
       requester_donations: {
         view: "عرض طلبات التبرعات",
@@ -1249,7 +1252,7 @@ export default function UserPermissions() {
       title: "إدارة المستفيدين",
       modules: [
         { id: "requester_accounts", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "view_details", "create", "approve", "suspend"] },
-        { id: "requester_exceptions", nameAr: "طلبات الاستثناء", icon: FileText, perms: ["view", "review"] },
+        { id: "requester_exceptions", nameAr: "طلبات الاستثناء", icon: FileText, perms: ["view", "approve", "reject"] },
         { id: "requester_donations", nameAr: "طلبات التبرعات", icon: Gift, perms: ["view", "review", "delete"] },
         { id: "requester_inquiries", nameAr: "الاستفسارات العامة", icon: MessageSquareQuote, perms: ["view", "review", "delete"] },
         { id: "requester_sedana", nameAr: "طلبات برنامج سدانة", icon: Sparkles, perms: ["view", "review"] },
