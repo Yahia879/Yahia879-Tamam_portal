@@ -587,7 +587,11 @@ export default function UserPermissions() {
             if (p.id !== permId) {
               const defVal = rolePermissions?.includes(p.id) || false;
               if (defVal) {
-                updated[p.id] = false;
+                if (p.id.startsWith("requester_")) {
+                  delete updated[p.id];
+                } else {
+                  updated[p.id] = false;
+                }
               } else {
                 delete updated[p.id];
               }
@@ -701,7 +705,11 @@ export default function UserPermissions() {
         permIds.forEach(id => {
           const defVal = rolePermissions?.includes(id) || false;
           if (defVal) {
-            updated[id] = false;
+            if (id.startsWith("requester_")) {
+              delete updated[id];
+            } else {
+              updated[id] = false;
+            }
           } else {
             delete updated[id];
           }
@@ -1575,8 +1583,13 @@ export default function UserPermissions() {
                               cardClass = "border-green-200 bg-green-50/40 dark:bg-green-950/10 dark:border-green-900/30 text-green-950 dark:text-green-400 hover:bg-green-50/60 cursor-pointer";
                               badgeElement = <Badge variant="outline" className="text-[9px] bg-green-100 text-green-800 border-green-200 font-semibold py-0 shrink-0">منح خاص</Badge>;
                             } else if (overrideState === "revoked") {
-                              cardClass = "border-red-200 bg-red-50/40 dark:bg-red-950/10 dark:border-red-900/30 text-red-950 dark:text-red-400 hover:bg-red-50/60 cursor-pointer";
-                              badgeElement = <Badge variant="outline" className="text-[9px] bg-red-100 text-red-800 border-red-200 font-semibold py-0 shrink-0">حجب خاص</Badge>;
+                              if (perm.id.startsWith("requester_")) {
+                                cardClass = "border-slate-200 dark:border-slate-800 bg-background hover:bg-slate-50 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400 cursor-pointer";
+                                badgeElement = null;
+                              } else {
+                                cardClass = "border-red-200 bg-red-50/40 dark:bg-red-950/10 dark:border-red-900/30 text-red-950 dark:text-red-400 hover:bg-red-50/60 cursor-pointer";
+                                badgeElement = <Badge variant="outline" className="text-[9px] bg-red-100 text-red-800 border-red-200 font-semibold py-0 shrink-0">حجب خاص</Badge>;
+                              }
                             } else if (rolePermissions?.includes(perm.id)) {
                               badgeElement = <span className="text-[10px] text-slate-400 shrink-0">موروثة</span>;
                             }
