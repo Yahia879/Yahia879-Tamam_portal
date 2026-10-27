@@ -1213,6 +1213,12 @@ export default function RolePermissions() {
   // هيكل الصلاحيات الكامل لـ المدير العام (Categorized)
   const superAdminGroups = [
     {
+      title: "الرئيسية",
+      modules: [
+        { id: "information_dashboard", nameAr: "لوحة المعلومات", icon: LayoutDashboard, perms: ["view"] }
+      ]
+    },
+    {
       title: "المساجد والطلبات",
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
@@ -1342,6 +1348,9 @@ export default function RolePermissions() {
   // دالة مساعدة لتحويل الأفعال العامة إلى مسميات مهنية وصفية
   const getDescriptiveLabel = (moduleId: string, action: string) => {
     const mapping: Record<string, Record<string, string>> = {
+      information_dashboard: {
+        view: "عرض لوحة المعلومات",
+      },
       forms_customization: {
         evaluation: "استمارة تقييم رضا المستفيد",
         services: "نماذج طلبات الخدمات",

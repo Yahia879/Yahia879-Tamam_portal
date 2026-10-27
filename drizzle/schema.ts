@@ -1008,10 +1008,12 @@ export const contractsEnhanced = mysqlTable("contracts_enhanced", {
   
   // ربط بالقالب
   templateId: int("templateId"), // سيتم ربطه بعد إنشاء جدول القوالب
+  customIntro: text("customIntro"), // تمهيد مخصص للعقد
   
   // نوع العقد
   contractType: mysqlEnum("contractType", contractTypes).notNull(),
   contractTitle: varchar("contractTitle", { length: 500 }).notNull(),
+  description: text("description"), // وصف العقد
   
   // الربط بالمشروع والطلب
   projectId: int("projectId").references(() => projects.id),

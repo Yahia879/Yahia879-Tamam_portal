@@ -965,7 +965,7 @@ export default function ContractPreview() {
 
 
                 {/* التمهيد */}
-                {contract.introTemplate && (
+                {(contract.customIntro || contract.introTemplate) && (
                   <div className="mb-6 break-inside-avoid">
                     <h3 
                       className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base text-right"
@@ -974,7 +974,7 @@ export default function ContractPreview() {
                       تمهيد:
                     </h3>
                     <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right break-words">
-                      {replaceVariables(contract.introTemplate)}
+                      {replaceVariables(contract.customIntro || contract.introTemplate || "")}
                     </div>
                   </div>
                 )}

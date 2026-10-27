@@ -21,6 +21,8 @@ import { z } from "zod";
  * بالصلاحيات الدقيقة المستخدمة في permissionProcedure
  */
 const PERMISSION_EXPANSION: Record<string, string[]> = {
+  "information_dashboard.view": ["information_dashboard.view"],
+  information_dashboard: ["information_dashboard.view"],
   Create_Ticket: ["Create_Ticket"],
   View_Tickets: ["View_Tickets"],
   beneficiary_evaluations: [
@@ -806,6 +808,33 @@ async function ensureRequestersPermissionsExist(db: any) {
  */
 async function ensureAllCustomPermissionsExist(db: any) {
   try {
+    // Ensure 'information_dashboard' module and permission exist
+    const [existingInfoDashModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "information_dashboard")).limit(1);
+    if (!existingInfoDashModule) {
+      await db.insert(modules).values({
+        id: "information_dashboard",
+        nameAr: "لوحة المعلومات",
+        nameEn: "Information Dashboard",
+        icon: "LayoutDashboard",
+        displayOrder: 0,
+        isActive: true
+      });
+      console.log("Inserted missing custom module: information_dashboard");
+    }
+
+    const [existingInfoDashPerm] = await db.select({ id: permissions.id }).from(permissions).where(eq(permissions.id, "information_dashboard.view")).limit(1);
+    if (!existingInfoDashPerm) {
+      await db.insert(permissions).values({
+        id: "information_dashboard.view",
+        moduleId: "information_dashboard",
+        action: "view",
+        nameAr: "عرض لوحة المعلومات",
+        nameEn: "View Information Dashboard",
+        description: "عرض لوحة المعلومات المفصلة لكافة التبويبات والمخططات والإحصائيات"
+      });
+      console.log("Inserted missing permission: information_dashboard.view");
+    }
+
     // Ensure 'boq' module exists in the modules table
     const [existingBoqModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "boq")).limit(1);
     if (!existingBoqModule) {

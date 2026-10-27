@@ -60,6 +60,12 @@ import DashboardLayout from "../components/DashboardLayout";
 // مأخوذ من superAdminGroups في RolePermissions.tsx لتوحيد الواجهات بالكامل
 const superAdminGroups = [
   {
+    title: "الرئيسية",
+    modules: [
+      { id: "information_dashboard", nameAr: "لوحة المعلومات", icon: LayoutDashboard, perms: ["view"] }
+    ]
+  },
+  {
     title: "المساجد والطلبات",
     modules: [
       { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
@@ -180,6 +186,9 @@ const superAdminGroups = [
 
 const getDescriptiveLabel = (moduleId: string, action: string) => {
   const mapping: Record<string, Record<string, string>> = {
+    information_dashboard: {
+      view: "عرض لوحة المعلومات",
+    },
     analytics_hub: {
       custom: "اللوحة المخصصة",
       kpi: "مؤشرات الأداء العامة (KPI)",

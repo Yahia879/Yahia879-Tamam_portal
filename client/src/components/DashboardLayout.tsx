@@ -111,6 +111,9 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
   if (["super_admin", "system_admin"].includes(role) || isExecDirector || role !== "service_requester") {
     mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
   }
+  if (["super_admin", "system_admin"].includes(role)) {
+    mainItems.push({ icon: Layers, label: isEn ? "Information Dashboard" : "لوحة المعلومات", path: "/information-dashboard" });
+  }
   if (role === "board_chairman") {
     mainItems.push({ icon: BadgeCheck, label: isEn ? "Financial Approval Center" : "مركز الاعتماد المالي", path: "/board-executive" });
   }
@@ -300,6 +303,9 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
 
   if (canSeeDashboard) {
     mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
+  }
+  if (has("information_dashboard") || has("information_dashboard.view") || has("*") || ["super_admin", "system_admin"].includes(role)) {
+    mainItems.push({ icon: Layers, label: isEn ? "Information Dashboard" : "لوحة المعلومات", path: "/information-dashboard" });
   }
   if (has("board_chairman") || has("board_chairman_view")) {
     mainItems.push({ icon: BadgeCheck, label: isEn ? "Financial Approval Center" : "مركز الاعتماد المالي", path: "/board-executive" });

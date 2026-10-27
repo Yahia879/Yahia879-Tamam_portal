@@ -760,6 +760,9 @@ export default function UserPermissions() {
   // مسمى الصلاحيات المهنية (نفس المخرجات المعتمدة لصفحة تخصيص الدور)
   const getDescriptiveLabel = (moduleId: string, action: string) => {
     const mapping: Record<string, Record<string, string>> = {
+      information_dashboard: {
+        view: "عرض لوحة المعلومات",
+      },
       board_leadership: {
         board_chairman: "عرض مركز الاعتماد المالي",
         board_member: "عرض لوحة عضو مجلس الإدارة",
@@ -1040,6 +1043,12 @@ export default function UserPermissions() {
 
   // هيكل الصلاحيات الكامل (Categorized) - مطابق تماماً للـ superAdminGroups في RolePermissions.tsx
   const permissionsGroups = [
+    {
+      title: "الرئيسية",
+      modules: [
+        { id: "information_dashboard", nameAr: "لوحة المعلومات", icon: LayoutDashboard, perms: ["view"] }
+      ]
+    },
     {
       title: "المساجد والطلبات",
       modules: [

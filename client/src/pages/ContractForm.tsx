@@ -305,6 +305,8 @@ export default function ContractForm() {
     // تفاصيل العقد
     subject: "",
     description: "",
+    useCustomIntro: false,
+    customIntro: "",
     
     // المدة
     duration: 0,
@@ -1124,7 +1126,9 @@ export default function ContractForm() {
         signatoryId: c.signatoryId || null,
         supplierId: c.supplierId || null,
         subject: c.contractTitle || "",
-        description: "",
+        description: c.description || "",
+        useCustomIntro: Boolean(c.customIntro && String(c.customIntro).trim() !== ""),
+        customIntro: c.customIntro || "",
         duration: c.duration || 0,
         durationUnit: c.durationUnit || "months",
         startDate: c.startDate ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(c.startDate)) : "",
@@ -2147,6 +2151,8 @@ export default function ContractForm() {
         id: editContractId,
         contractType: selectedTemplate?.type || undefined,
         contractTitle: contractData.subject,
+        description: contractData.description || undefined,
+        customIntro: contractData.useCustomIntro ? (contractData.customIntro || "") : null,
         signatoryId: contractData.signatoryId,
         templateId: contractData.templateId || undefined,
         // بيانات الطرف الثاني من المورد
@@ -2219,6 +2225,8 @@ export default function ContractForm() {
     createMutation.mutate({
       contractType: selectedTemplate?.type || "supply",
       contractTitle: contractData.subject,
+      description: contractData.description || undefined,
+      customIntro: contractData.useCustomIntro ? (contractData.customIntro || "") : null,
       projectId: contractData.projectId || undefined,
       requestId: contractData.requestId || undefined,
       supplierId: contractData.supplierId!,
@@ -2293,6 +2301,8 @@ export default function ContractForm() {
     const payload: any = {
       contractType: selectedTemplate?.type || "supply",
       contractTitle: defaultTitle,
+      description: contractData.description || undefined,
+      customIntro: contractData.useCustomIntro ? (contractData.customIntro || "") : null,
       projectId: contractData.projectId || undefined,
       requestId: contractData.requestId || undefined,
       supplierId: contractData.supplierId || undefined,
@@ -2760,6 +2770,77 @@ export default function ContractForm() {
                     </div>
                   )}
                 </div>
+
+                {/* خيار استخدام تمهيد مختلف للعقد */}
+                {contractData.templateId && (
+                  <div className="p-4 border rounded-xl bg-card space-y-4 transition-all">
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id="useCustomIntro"
+                        checked={contractData.useCustomIntro}
+                        onCheckedChange={(checked) => {
+                          const isChecked = Boolean(checked);
+                          const activeTemplate = templates.find((t: any) => t.id === contractData.templateId);
+                          setContractData((prev) => ({
+                            ...prev,
+                            useCustomIntro: isChecked,
+                            customIntro: isChecked ? (prev.customIntro || activeTemplate?.introTemplate || "") : prev.customIntro,
+                          }));
+                        }}
+                      />
+                      <div className="space-y-0.5">
+                        <Label htmlFor="useCustomIntro" className="text-sm font-semibold cursor-pointer">
+                          هل تريد استخدام تمهيد مختلف للعقد؟
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          يتيح لك كتابة وتخصيص تمهيد العقد بدلاً من التمهيد الافتراضي المعتمد في قالب العقد
+                        </p>
+                      </div>
+                    </div>
+
+                    {contractData.useCustomIntro && (
+                      <div className="space-y-2 pt-2 border-t">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-medium text-foreground">
+                            تمهيد العقد المخصص *
+                          </Label>
+                          {(() => {
+                            const activeTemplate = templates.find((t: any) => t.id === contractData.templateId);
+                            if (activeTemplate?.introTemplate && contractData.customIntro !== activeTemplate.introTemplate) {
+                              return (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-xs h-7 text-primary hover:text-primary/80"
+                                  onClick={() => {
+                                    setContractData((prev) => ({
+                                      ...prev,
+                                      customIntro: activeTemplate.introTemplate || "",
+                                    }));
+                                  }}
+                                >
+                                  استعادة تمهيد القالب الأصلي
+                                </Button>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
+                        <Textarea
+                          value={contractData.customIntro}
+                          onChange={(e) => setContractData((prev) => ({ ...prev, customIntro: e.target.value }))}
+                          placeholder="اكتب تمهيد العقد هنا..."
+                          rows={4}
+                          className="leading-relaxed font-sans text-sm"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          سيتم استخدام هذا التمهيد في وثيقة العقد والمعاينة في صفحة العرض والطباعة.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* اختيار مفوض التوقيع */}
                 <div className="space-y-2">
@@ -4438,10 +4519,18 @@ export default function ContractForm() {
                 {/* ملخص القالب */}
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base">قالب العقد</CardTitle>
+                    <CardTitle className="text-base">قالب العقد والتمهيد</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    {templates.find((t: any) => t.id === contractData.templateId)?.name || (existingContract?.contract as any)?.templateName || "-"}
+                  <CardContent className="space-y-2">
+                    <p className="font-medium">
+                      {templates.find((t: any) => t.id === contractData.templateId)?.name || (existingContract?.contract as any)?.templateName || "-"}
+                    </p>
+                    {contractData.useCustomIntro && contractData.customIntro && (
+                      <div className="text-xs bg-muted/40 p-2.5 rounded-md border border-border/40 text-muted-foreground">
+                        <span className="font-bold text-foreground block mb-1">تمهيد مخصص للعقد:</span>
+                        <p className="whitespace-pre-wrap leading-relaxed">{contractData.customIntro}</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 

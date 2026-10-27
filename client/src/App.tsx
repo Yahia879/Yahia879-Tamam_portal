@@ -15,6 +15,7 @@ import Register from "./pages/Register";
 
 // لوحات التحكم
 import Dashboard from "./pages/Dashboard";
+import InformationDashboard from "./pages/InformationDashboard";
 import BoardDashboard from "./pages/BoardDashboard";
 import RequesterDashboard from "./pages/RequesterDashboard";
 import RequesterApprovals from "./pages/RequesterApprovals";
@@ -273,6 +274,8 @@ function Router() {
       
       {/* لوحات التحكم */}
       <Route path="/dashboard">{() => <AdminRoute component={Dashboard} />}</Route>
+      <Route path="/information-dashboard">{() => <AdminRoute component={InformationDashboard} />}</Route>
+      <Route path="/dashboard/detailed">{() => <AdminRoute component={InformationDashboard} />}</Route>
       <Route path="/board-dashboard">{() => <AdminRoute component={BoardDashboard} />}</Route>
       <Route path="/board-executive">{() => <AdminRoute component={BoardDashboard} />}</Route>
       <Route path="/board-analytics">{() => <AdminRoute component={BoardDashboard} />}</Route>

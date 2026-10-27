@@ -703,7 +703,9 @@ export const contractsRouter = router({
           firstPartySignatoryTitle,
           firstPartySignatureUrl,
           projectName: projectName || null,
-          introTemplate: contractData.introTemplate || null,
+          introTemplate: contract.customIntro || contractData.introTemplate || null,
+          customIntro: contract.customIntro || null,
+          description: contract.description || null,
           managementAmount: computedMgmtAmt,
           financialDetail,
           isRequestClosed,
@@ -721,6 +723,8 @@ export const contractsRouter = router({
       z.object({
         contractType: z.enum(contractTypes),
         contractTitle: z.string().min(1, "عنوان العقد مطلوب"),
+        description: z.string().optional(),
+        customIntro: z.string().nullable().optional(),
         projectId: z.number().optional(),
         requestId: z.number().optional(),
         supplierId: z.number().optional(),
@@ -869,6 +873,8 @@ export const contractsRouter = router({
         contractSequence: sequence,
         contractType: input.contractType,
         contractTitle: input.contractTitle,
+        description: input.description ?? null,
+        customIntro: input.customIntro ?? null,
         projectId: input.projectId ?? null,
         requestId: input.requestId ?? null,
         supplierId: input.supplierId,
@@ -1136,6 +1142,8 @@ export const contractsRouter = router({
         id: z.number(),
         contractType: z.string().optional(),
         contractTitle: z.string().optional(),
+        description: z.string().optional(),
+        customIntro: z.string().nullable().optional(),
         secondPartyName: z.string().optional(),
         secondPartyCommercialRegister: z.string().optional(),
         secondPartyRepresentative: z.string().optional(),
@@ -1354,6 +1362,14 @@ export const contractsRouter = router({
         } else {
           updates.customClausesJson = null;
         }
+      }
+
+      // تحديث الوصف والتمهيد المخصص
+      if (input.description !== undefined) {
+        updates.description = input.description || null;
+      }
+      if (input.customIntro !== undefined) {
+        updates.customIntro = input.customIntro || null;
       }
 
       // حفظ الخطوة الحالية وحالة العقد صراحةً
@@ -2012,6 +2028,7 @@ export const contractsRouter = router({
         nameAr: contractTemplates.nameAr,
         type: contractTemplates.type,
         description: contractTemplates.description,
+        introTemplate: contractTemplates.introTemplate,
         isActive: contractTemplates.isActive,
         isDefault: contractTemplates.isDefault,
         isSystem: contractTemplates.isSystem,
