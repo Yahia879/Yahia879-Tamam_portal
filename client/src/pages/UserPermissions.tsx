@@ -471,6 +471,7 @@ export default function UserPermissions() {
             "requests.upload_final_report",
             "requests.create_quick_request",
             "requester_accounts.view",
+            "requester_accounts.view_details",
             "requester_accounts.create",
             "requester_accounts.approve",
             "requester_accounts.suspend",
@@ -722,6 +723,7 @@ export default function UserPermissions() {
             "requests.upload_final_report",
             "requests.create_quick_request",
             "requester_accounts.view",
+            "requester_accounts.view_details",
             "requester_accounts.create",
             "requester_accounts.approve",
             "requester_accounts.suspend",
@@ -914,6 +916,7 @@ export default function UserPermissions() {
       },
       requester_accounts: {
         view: "عرض حسابات طالبي الخدمة",
+        view_details: "عرض تفاصيل الحساب",
         create: "إضافة مستفيد",
         approve: "اعتماد الحساب",
         suspend: "إيقاف الحساب"
@@ -1245,7 +1248,7 @@ export default function UserPermissions() {
     {
       title: "إدارة المستفيدين",
       modules: [
-        { id: "requester_accounts", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "create", "approve", "suspend"] },
+        { id: "requester_accounts", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "view_details", "create", "approve", "suspend"] },
         { id: "requester_exceptions", nameAr: "طلبات الاستثناء", icon: FileText, perms: ["view", "review"] },
         { id: "requester_donations", nameAr: "طلبات التبرعات", icon: Gift, perms: ["view", "review", "delete"] },
         { id: "requester_inquiries", nameAr: "الاستفسارات العامة", icon: MessageSquareQuote, perms: ["view", "review", "delete"] },
