@@ -137,12 +137,11 @@ export default function FormsCustomizationDashboard() {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [isRestoreSheetOpen, setIsRestoreSheetOpen] = useState(false);
 
-  // جلب الأدوار المتاحة من النظام
-  const { data: allRoles = [] } = trpc.permissions.getRoles.useQuery();
-
-  // جلب قائمة المستخدمين
-  const { data: usersData } = trpc.users.getAll.useQuery({ limit: 100, includeAll: true });
-  const allUsers = usersData?.items || [];
+  // جلب الأدوار والمستخدمين المؤهلين فقط (من يملكون صلاحية الوصول إلى لوحة المعلومات)
+  const { data: eligibleTargets, isLoading: isLoadingTargets } =
+    trpc.forms.getEligibleDashboardTargets.useQuery();
+  const eligibleRoles = eligibleTargets?.roles || [];
+  const eligibleUsers = eligibleTargets?.users || [];
 
   // جلب الأهداف المخصصة حالياً (لعرض شارات التخصيص)
   const { data: customizedTargets } = trpc.forms.getCustomizedDashboardTargets.useQuery();
@@ -156,23 +155,23 @@ export default function FormsCustomizationDashboard() {
 
   // تعيين دور افتراضي عند اختيار تبويب الأدوار لأول مرة
   useEffect(() => {
-    if (targetType === "role" && !selectedRoleId && allRoles.length > 0) {
+    if (targetType === "role" && (!selectedRoleId || !eligibleRoles.some((r: any) => r.id === selectedRoleId || r.nameEn === selectedRoleId)) && eligibleRoles.length > 0) {
       // نفضل مستخدم لوحة المعلومات إن وجد
-      const dvRole = allRoles.find((r: any) => r.nameEn === "dashboard_viewer");
+      const dvRole = eligibleRoles.find((r: any) => r.id === "dashboard_viewer" || r.nameEn === "dashboard_viewer");
       if (dvRole) {
-        setSelectedRoleId(dvRole.nameEn);
+        setSelectedRoleId(dvRole.id || dvRole.nameEn);
       } else {
-        setSelectedRoleId(allRoles[0].nameEn);
+        setSelectedRoleId(eligibleRoles[0].id || eligibleRoles[0].nameEn);
       }
     }
-  }, [targetType, selectedRoleId, allRoles]);
+  }, [targetType, selectedRoleId, eligibleRoles]);
 
   // تعيين مستخدم افتراضي عند اختيار تبويب المستخدمين لأول مرة
   useEffect(() => {
-    if (targetType === "user" && !selectedUserId && allUsers.length > 0) {
-      setSelectedUserId(String(allUsers[0].id));
+    if (targetType === "user" && (!selectedUserId || !eligibleUsers.some((u: any) => String(u.id) === selectedUserId)) && eligibleUsers.length > 0) {
+      setSelectedUserId(String(eligibleUsers[0].id));
     }
-  }, [targetType, selectedUserId, allUsers]);
+  }, [targetType, selectedUserId, eligibleUsers]);
 
   // استعلام الإعدادات للهدف الحالي
   const {
@@ -701,6 +700,32 @@ export default function FormsCustomizationDashboard() {
     );
   };
 
+  // المستخدم الحالي المحدد بالاسم
+  const selectedUserObj = eligibleUsers.find((u: any) => String(u.id) === selectedUserId);
+  const selectedRoleObj = eligibleRoles.find((r: any) => r.id === selectedRoleId || r.nameEn === selectedRoleId);
+
+  // تصفية المستخدمين للبحث
+  const filteredUsers = eligibleUsers.filter((u: any) => {
+    if (!userSearchQuery.trim()) return true;
+    const q = userSearchQuery.toLowerCase();
+    return (
+      u.name?.toLowerCase().includes(q) ||
+      u.email?.toLowerCase().includes(q) ||
+      u.role?.toLowerCase().includes(q)
+    );
+  });
+
+  const disabledCount = removedElements.length;
+  const totalCount = allElements.length;
+
+  // هل الهدف الحالي يمتلك تخصيصاً خاصاً به؟
+  const currentTargetHasOverride = useMemo(() => {
+    if (targetType === "global") return !!customizedTargets?.hasGlobal;
+    if (targetType === "role") return !!customizedTargets?.roles?.includes(selectedRoleId);
+    if (targetType === "user") return !!customizedTargets?.userIds?.includes(selectedUserId);
+    return false;
+  }, [targetType, selectedRoleId, selectedUserId, customizedTargets]);
+
   // التحقق من صلاحية مدير النظام الشامل
   if (!isSuperAdmin) {
     return (
@@ -725,32 +750,6 @@ export default function FormsCustomizationDashboard() {
       </DashboardLayout>
     );
   }
-
-  // المستخدم الحالي المحدد بالاسم
-  const selectedUserObj = allUsers.find((u: any) => String(u.id) === selectedUserId);
-  const selectedRoleObj = allRoles.find((r: any) => r.nameEn === selectedRoleId);
-
-  // تصفية المستخدمين للبحث
-  const filteredUsers = allUsers.filter((u: any) => {
-    if (!userSearchQuery.trim()) return true;
-    const q = userSearchQuery.toLowerCase();
-    return (
-      u.name?.toLowerCase().includes(q) ||
-      u.email?.toLowerCase().includes(q) ||
-      u.role?.toLowerCase().includes(q)
-    );
-  });
-
-  const disabledCount = removedElements.length;
-  const totalCount = allElements.length;
-
-  // هل الهدف الحالي يمتلك تخصيصاً خاصاً به؟
-  const currentTargetHasOverride = useMemo(() => {
-    if (targetType === "global") return !!customizedTargets?.hasGlobal;
-    if (targetType === "role") return !!customizedTargets?.roles?.includes(selectedRoleId);
-    if (targetType === "user") return !!customizedTargets?.userIds?.includes(selectedUserId);
-    return false;
-  }, [targetType, selectedRoleId, selectedUserId, customizedTargets]);
 
   return (
     <DashboardLayout>
@@ -880,9 +879,10 @@ export default function FormsCustomizationDashboard() {
               >
                 <Users className="w-3.5 h-3.5 text-amber-500" />
                 <span>تخصيص حسب الدور</span>
+                <span className="text-[10px] text-muted-foreground font-normal">({eligibleRoles.length})</span>
                 {customizedTargets?.roles?.length ? (
                   <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 font-mono font-bold bg-amber-500/10 text-amber-600 border-amber-300">
-                    {customizedTargets.roles.length}
+                    {customizedTargets.roles.length} مخصص
                   </Badge>
                 ) : null}
               </button>
@@ -898,9 +898,10 @@ export default function FormsCustomizationDashboard() {
               >
                 <User className="w-3.5 h-3.5 text-purple-500" />
                 <span>تخصيص لمستخدم محدد</span>
+                <span className="text-[10px] text-muted-foreground font-normal">({eligibleUsers.length})</span>
                 {customizedTargets?.userIds?.length ? (
                   <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 font-mono font-bold bg-purple-500/10 text-purple-600 border-purple-300">
-                    {customizedTargets.userIds.length}
+                    {customizedTargets.userIds.length} مخصص
                   </Badge>
                 ) : null}
               </button>
@@ -909,17 +910,18 @@ export default function FormsCustomizationDashboard() {
             {/* محدد الدور عند اختيار التخصيص حسب الدور */}
             {targetType === "role" && (
               <div className="flex items-center gap-2 flex-1 sm:max-w-xs">
-                <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">الدور:</span>
+                <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">الدور المصرح له:</span>
                 <Select value={selectedRoleId} onValueChange={(val) => setSelectedRoleId(val)}>
                   <SelectTrigger className="w-full text-xs font-bold h-9 rounded-xl bg-background border-border">
                     <SelectValue placeholder="اختر الدور الوظيفي..." />
                   </SelectTrigger>
                   <SelectContent className="max-h-64" dir="rtl">
-                    {allRoles.map((role: any) => {
-                      const isCustom = customizedTargets?.roles?.includes(role.nameEn);
-                      const label = role.nameAr || ROLE_LABELS[role.nameEn] || role.nameEn;
+                    {eligibleRoles.map((role: any) => {
+                      const roleVal = role.id || role.nameEn;
+                      const isCustom = customizedTargets?.roles?.includes(role.id) || customizedTargets?.roles?.includes(role.nameEn);
+                      const label = role.nameAr || ROLE_LABELS[role.id] || ROLE_LABELS[role.nameEn] || role.nameEn;
                       return (
-                        <SelectItem key={role.nameEn} value={role.nameEn} className="text-xs font-medium">
+                        <SelectItem key={roleVal} value={roleVal} className="text-xs font-medium">
                           <div className="flex items-center justify-between gap-3 w-full">
                             <span>{label}</span>
                             {isCustom && (
@@ -939,7 +941,7 @@ export default function FormsCustomizationDashboard() {
             {/* محدد المستخدم عند اختيار التخصيص لمستخدم محدد */}
             {targetType === "user" && (
               <div className="flex items-center gap-2 flex-1 sm:max-w-md">
-                <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">المستخدم:</span>
+                <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">المستخدم المصرح له:</span>
                 <Select value={selectedUserId} onValueChange={(val) => setSelectedUserId(val)}>
                   <SelectTrigger className="w-full text-xs font-bold h-9 rounded-xl bg-background border-border">
                     <SelectValue placeholder="اختر المستخدم..." />
@@ -951,7 +953,7 @@ export default function FormsCustomizationDashboard() {
                         <Input
                           value={userSearchQuery}
                           onChange={(e) => setUserSearchQuery(e.target.value)}
-                          placeholder="ابحث بالاسم أو البريد..."
+                          placeholder="ابحث بين المستخدمين المصرح لهم..."
                           className="h-8 text-xs pr-8 pl-2 rounded-lg"
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -983,52 +985,6 @@ export default function FormsCustomizationDashboard() {
           </div>
         </div>
 
-        {/* شريط الإشعار التوضيحي للهدف وسياق التخصيص */}
-        <div className="rounded-xl border border-border/70 bg-card p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-          <div className="flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-              targetType === "global"
-                ? "bg-blue-500/10 text-blue-600"
-                : targetType === "role"
-                ? "bg-amber-500/10 text-amber-600"
-                : "bg-purple-500/10 text-purple-600"
-            }`}>
-              {targetType === "global" ? (
-                <Globe className="w-4 h-4" />
-              ) : targetType === "role" ? (
-                <Users className="w-4 h-4" />
-              ) : (
-                <User className="w-4 h-4" />
-              )}
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs sm:text-sm font-bold text-foreground">
-                  {targetType === "global" && "أنت تقوم الآن بتخصيص العرض الافتراضي العام"}
-                  {targetType === "role" && `تخصيص لوحة المعلومات لدور: ${selectedRoleObj?.nameAr || ROLE_LABELS[selectedRoleId] || selectedRoleId}`}
-                  {targetType === "user" && `تخصيص لوحة المعلومات للمستخدم: ${selectedUserObj?.name || selectedUserId}`}
-                </span>
-                {currentTargetHasOverride ? (
-                  <Badge className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30">
-                    تخصيص مستقل محفوظ
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-[10px] text-muted-foreground border-border">
-                    يرث الإعدادات الحالية من المستوى الأعلى
-                  </Badge>
-                )}
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {targetType === "global" && "يطبق هذا التخصيص تلقائياً على كل مستخدم ليس لديه تخصيص شخصي خاص أو تخصيص لدوره الوظيفي."}
-                {targetType === "role" && "يشاهد هذا التخصيص أي مستخدم يمتلك هذا الدور، ما لم يقم مدير النظام بإنشاء تخصيص مستقل لحسابه شخصياً."}
-                {targetType === "user" && "هذا التخصيص ينطبق حصرياً على هذا المستخدم فقط، ويسبق تخصيص دوره والعرض الافتراضي العام."}
-              </p>
-            </div>
-          </div>
-          <div className="text-xs text-muted-foreground font-medium shrink-0">
-            العناصر المفعلة: <span className="font-bold text-foreground">{enabledIds.length}</span> من {totalCount}
-          </div>
-        </div>
 
         {isConfigLoading ? (
           <div className="py-24 text-center space-y-3">

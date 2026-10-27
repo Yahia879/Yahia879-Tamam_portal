@@ -9,6 +9,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
 import { trpc } from "@/lib/trpc";
 import {
+  LogOut,
   Activity,
   Target,
   LifeBuoy,
@@ -45,12 +46,13 @@ import BoardDashboard from "@/pages/BoardDashboard";
 
 export default function InformationDashboard() {
   const [, navigate] = useLocation();
-  const { user, loading: isUserLoading } = useAuth();
+  const { user, loading: isUserLoading, logout } = useAuth();
 
-    const isSuperAdmin = user?.role === "super_admin";
+  const isSuperAdmin = user?.role === "super_admin";
   const isSystemAdmin = user?.role === "system_admin";
-  const hasInfoPerm = usePermission("information_dashboard.view") || usePermission("information_dashboard");
-  const canView = hasInfoPerm;
+  const isDashboardViewer = user?.role === "dashboard_viewer";
+  const hasInfoPerm = usePermission("information_dashboard.view") || usePermission("information_dashboard") || isDashboardViewer;
+  const canView = isSuperAdmin || isSystemAdmin || isDashboardViewer || hasInfoPerm;
 
   type SectionTab = "all" | "mosques" | "requests" | "procurement" | "financial";
   const [activeTab, setActiveTab] = useState<SectionTab>(() => {
@@ -141,26 +143,6 @@ export default function InformationDashboard() {
   const { data: financialReportData } = trpc.disbursements.getFinancialReport.useQuery({}, { enabled: canView });
   const { data: allReceiptVouchersData = [] } = trpc.projects.getAllReceiptVouchers.useQuery(undefined, { enabled: canView });
   const { data: pendingUsers } = trpc.auth.getPendingUsers.useQuery(undefined, { enabled: canView });
-
-  // التحقق من الصلاحية
-  if (!isUserLoading && user && !canView) {
-    return (
-      <div className="min-h-screen w-full bg-slate-50/60 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
-        <div className="flex flex-col items-center justify-center text-center space-y-4 max-w-md p-8 rounded-2xl border border-border bg-card shadow-sm">
-          <div className="p-4 rounded-full bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
-            <AlertTriangle className="w-10 h-10" />
-          </div>
-          <h2 className="text-xl font-bold text-foreground">غير مصرح لك بالوصول</h2>
-          <p className="text-sm text-muted-foreground">
-            عذراً، لا تمتلك الصلاحية الكافية لعرض لوحة المعلومات. يرجى مراجعة مدير النظام للحصول على الصلاحية.
-          </p>
-          <Button onClick={() => navigate("/dashboard")} className="mt-2 rounded-xl">
-            العودة للرئيسية
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   const completionRate = requestStats?.total 
     ? Math.round(((requestStats?.byStatus?.completed || 0) / requestStats.total) * 100) 
@@ -480,6 +462,26 @@ export default function InformationDashboard() {
     }
   }, [availableTabs, activeTab]);
 
+  // التحقق من الصلاحية
+  if (!isUserLoading && user && !canView) {
+    return (
+      <div className="min-h-screen w-full bg-slate-50/60 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center justify-center text-center space-y-4 max-w-md p-8 rounded-2xl border border-border bg-card shadow-sm">
+          <div className="p-4 rounded-full bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
+            <AlertTriangle className="w-10 h-10" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground">غير مصرح لك بالوصول</h2>
+          <p className="text-sm text-muted-foreground">
+            عذراً، لا تمتلك الصلاحية الكافية لعرض لوحة المعلومات. يرجى مراجعة مدير النظام للحصول على الصلاحية.
+          </p>
+          <Button onClick={() => navigate("/dashboard")} className="mt-2 rounded-xl">
+            العودة للرئيسية
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full bg-slate-50/60 dark:bg-zinc-950 text-foreground flex flex-col font-sans">
       {/* شريط التحكم العلوي الخاص بوضع الشاشة الكاملة */}
@@ -487,18 +489,22 @@ export default function InformationDashboard() {
         <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           {/* اليمين: زر العودة + الشعار والعنوان */}
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate("/dashboard")}
-              className="gap-2 rounded-xl text-xs font-bold border-border/80 hover:bg-primary/5 hover:text-primary transition-all shrink-0 cursor-pointer shadow-xs"
-              title="العودة للرئيسية والمنظومة"
-            >
-              <ArrowRight className="w-4 h-4 text-primary" />
-              <span className="hidden sm:inline">العودة للرئيسية</span>
-            </Button>
+            {user?.role !== "dashboard_viewer" && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/dashboard")}
+                  className="gap-2 rounded-xl text-xs font-bold border-border/80 hover:bg-primary/5 hover:text-primary transition-all shrink-0 cursor-pointer shadow-xs"
+                  title="العودة للرئيسية والمنظومة"
+                >
+                  <ArrowRight className="w-4 h-4 text-primary" />
+                  <span className="hidden sm:inline">العودة للرئيسية</span>
+                </Button>
 
-            <div className="h-5 w-px bg-border/80 hidden sm:block" />
+                <div className="h-5 w-px bg-border/80 hidden sm:block" />
+              </>
+            )}
 
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20 shadow-xs">
@@ -537,6 +543,17 @@ export default function InformationDashboard() {
                   <span className="hidden sm:inline">ملء الشاشة</span>
                 </>
               )}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={logout}
+              className="gap-1.5 text-xs font-bold rounded-xl h-9 cursor-pointer shadow-xs border-border/80 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 dark:hover:bg-rose-950/30 transition-all text-muted-foreground"
+              title="تسجيل الخروج"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">خروج</span>
             </Button>
           </div>
         </div>

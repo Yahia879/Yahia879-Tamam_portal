@@ -2,8 +2,8 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { brandSettings, programs, evaluationTokens, mosqueRequests, mosques, users } from "../../drizzle/schema";
-import { eq, like } from "drizzle-orm";
+import { brandSettings, programs, evaluationTokens, mosqueRequests, mosques, users, roles, rolePermissions, userRoleAssignments, userPermissions } from "../../drizzle/schema";
+import { eq, like, inArray, and, or, isNull, isNotNull, ne, gt } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 export const formFieldOptionSchema = z.object({
@@ -1135,6 +1135,127 @@ export const formsRouter = router({
       return { hasGlobal, roles, userIds };
     } catch {
       return { hasGlobal: false, roles: [], userIds: [] };
+    }
+  }),
+
+  // جلب الأدوار والمستخدمين المؤهلين لتخصيص لوحة المعلومات (من يملكون صلاحية الوصول إليها فقط)
+  getEligibleDashboardTargets: protectedProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return { roles: [], users: [] };
+
+    try {
+      // 1. تحديد الأدوار التي تملك صلاحية لوحة المعلومات
+      const allRoles = await db.select().from(roles);
+      const rolePermRows = await db
+        .select({ roleId: rolePermissions.roleId, permissionId: rolePermissions.permissionId })
+        .from(rolePermissions)
+        .where(inArray(rolePermissions.permissionId, ["information_dashboard", "information_dashboard.view", "*"]));
+
+      const eligibleRoleIds = new Set<string>(["super_admin", "system_admin", "dashboard_viewer"]);
+      rolePermRows.forEach((rp) => eligibleRoleIds.add(rp.roleId));
+
+      for (const r of allRoles) {
+        if (r.description) {
+          try {
+            const parsed = JSON.parse(r.description);
+            if (
+              Array.isArray(parsed) &&
+              parsed.some((p: string) =>
+                ["information_dashboard", "information_dashboard.view", "*"].includes(p)
+              )
+            ) {
+              eligibleRoleIds.add(r.id);
+            }
+          } catch {}
+        }
+      }
+
+      const eligibleRoles = allRoles
+        .filter((r) => eligibleRoleIds.has(r.id) && (r.isActive === null || r.isActive === undefined || Boolean(r.isActive)))
+        .map((r) => ({
+          id: r.id,
+          name: r.nameEn || r.id,
+          nameAr: r.nameAr || r.nameEn || r.id,
+          nameEn: r.nameEn || r.id,
+          isSystem: Boolean(r.isSystem),
+        }));
+
+      // 2. تحديد المستخدمين الذين يملكون صلاحية لوحة المعلومات
+      const allUsers = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          role: users.role,
+          status: users.status,
+        })
+        .from(users)
+        .where(or(ne(users.status, "suspended"), isNull(users.status)));
+
+      const userRoleRows = await db
+        .select({ userId: userRoleAssignments.userId, roleId: userRoleAssignments.roleId })
+        .from(userRoleAssignments)
+        .where(
+          and(
+            isNotNull(userRoleAssignments.userId),
+            or(isNull(userRoleAssignments.expiresAt), gt(userRoleAssignments.expiresAt, new Date()))
+          )
+        );
+
+      const userPermRows = await db
+        .select({
+          userId: userPermissions.userId,
+          permissionId: userPermissions.permissionId,
+          granted: userPermissions.granted,
+        })
+        .from(userPermissions)
+        .where(
+          and(
+            isNotNull(userPermissions.userId),
+            inArray(userPermissions.permissionId, ["information_dashboard", "information_dashboard.view", "*"])
+          )
+        );
+
+      const userAdditionalRolesMap = new Map<number, string[]>();
+      userRoleRows.forEach((ur) => {
+        if (ur.userId) {
+          if (!userAdditionalRolesMap.has(ur.userId)) userAdditionalRolesMap.set(ur.userId, []);
+          userAdditionalRolesMap.get(ur.userId)!.push(ur.roleId);
+        }
+      });
+
+      const grantedPermUsers = new Set<number>();
+      const revokedPermUsers = new Set<number>();
+      userPermRows.forEach((up) => {
+        if (up.userId) {
+          if (up.granted === true || (up.granted as unknown) === 1) {
+            grantedPermUsers.add(up.userId);
+          } else if (up.granted === false || (up.granted as unknown) === 0) {
+            revokedPermUsers.add(up.userId);
+          }
+        }
+      });
+
+      const eligibleUsers = allUsers
+        .filter((u) => {
+          if (revokedPermUsers.has(u.id)) return false;
+          if (grantedPermUsers.has(u.id)) return true;
+          if (u.role && eligibleRoleIds.has(u.role)) return true;
+          const addRoles = userAdditionalRolesMap.get(u.id) || [];
+          if (addRoles.some((r) => eligibleRoleIds.has(r))) return true;
+          return false;
+        })
+        .map((u) => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          role: u.role,
+        }));
+
+      return { roles: eligibleRoles, users: eligibleUsers };
+    } catch (err) {
+      console.error("Error fetching eligible dashboard targets:", err);
+      return { roles: [], users: [] };
     }
   }),
 

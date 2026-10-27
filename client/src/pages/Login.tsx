@@ -97,15 +97,19 @@ export default function Login() {
   // جلب إعدادات الجمعية لعرض الشعار والألوان
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
+  const utils = trpc.useUtils();
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
+      utils.auth.me.invalidate();
       toast.success("تم تسجيل الدخول بنجاح");
       if (data.user?.role === "quick_response") {
         localStorage.setItem("quick-response-lang", "en");
       }
-      // توجيه المستفيد لصفحته الخاصة، والموظفين للوحة التحكم مع استبدال السجل لمنع الرجوع
+      // توجيه المستفيد لصفحته الخاصة، ومستخدم لوحة المعلومات لشاشته، والموظفين للوحة التحكم مع استبدال السجل لمنع الرجوع
       if (data.user?.role === "service_requester") {
         setLocation("/requester", { replace: true });
+      } else if (data.user?.role === "dashboard_viewer") {
+        setLocation("/information-dashboard", { replace: true });
       } else {
         setLocation("/dashboard", { replace: true });
       }

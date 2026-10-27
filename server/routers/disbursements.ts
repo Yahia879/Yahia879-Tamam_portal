@@ -4698,8 +4698,11 @@ export const disbursementsRouter = router({
     .query(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
       const hasView = await checkPermission(ctx.user.id, "financial_reports.view");
+      const hasDashboardView = ctx.user.role === "dashboard_viewer" || 
+                               await checkPermission(ctx.user.id, "information_dashboard.view") || 
+                               await checkPermission(ctx.user.id, "information_dashboard");
 
-      if (!isAdmin && !hasView) {
+      if (!isAdmin && !hasView && !hasDashboardView) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض التقرير المالي" });
       }
 

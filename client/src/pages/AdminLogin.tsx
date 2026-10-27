@@ -17,6 +17,7 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSuspended, setIsSuspended] = useState(false);
+  const utils = trpc.useUtils();
 
   // حالات استعادة كلمة المرور
   const [mode, setMode] = useState<"login" | "forgot">("login");
@@ -93,6 +94,7 @@ export default function AdminLogin() {
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
+      utils.auth.me.invalidate();
       toast.success("تم تسجيل الدخول بنجاح");
       if (data?.user?.role === "quick_response") {
         localStorage.setItem("quick-response-lang", "en");

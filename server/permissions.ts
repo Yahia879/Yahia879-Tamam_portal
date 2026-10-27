@@ -1741,6 +1741,10 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     rolePermissionsData.push("quotations.view", "quotations.create", "quotations.add");
   }
 
+  if ((userData?.role === "dashboard_viewer" || roleIds.includes("dashboard_viewer")) && !hasCustomRole) {
+    rolePermissionsData.push("information_dashboard", "information_dashboard.view");
+  }
+
 
   if (userData?.role === "board_chairman" || roleIds.includes("board_chairman")) {
     rolePermissionsData.push("board_chairman");

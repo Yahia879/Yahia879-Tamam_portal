@@ -215,11 +215,15 @@ export default function Dashboard() {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  // توجيه طالب الخدمة أو مسؤول المشتريات إلى شاشته المخصصة
+  // توجيه طالب الخدمة ومستخدم لوحة المعلومات ومسؤول المشتريات إلى شاشاتهم المخصصة
   useEffect(() => {
     if (!user) return;
     if (user.role === "service_requester") {
       navigate("/requester", { replace: true });
+      return;
+    }
+    if (user.role === "dashboard_viewer") {
+      navigate("/information-dashboard", { replace: true });
       return;
     }
     const userPermissions: string[] = (user as any)?.permissions ?? [];

@@ -688,7 +688,10 @@ export const authRouter = router({
       (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
       (ctx.user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
 
-    if (!["super_admin", "system_admin", "projects_office", "general_manager", "executive_director"].includes(ctx.user.role) && !isExecDirector) {
+    const hasDashboardView = ctx.user.role === "dashboard_viewer" || 
+                             await checkPermission(ctx.user.id, "information_dashboard.view") || 
+                             await checkPermission(ctx.user.id, "information_dashboard");
+    if (!["super_admin", "system_admin", "projects_office", "general_manager", "executive_director"].includes(ctx.user.role) && !isExecDirector && !hasDashboardView) {
       throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض المستخدمين" });
     }
 

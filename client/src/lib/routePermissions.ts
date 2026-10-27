@@ -87,6 +87,10 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   procurement_officer: [
     "quotations", "quotations.view", "quotations.add", "sedana_quotations", "custody_requests",
   ],
+
+  dashboard_viewer: [
+    "information_dashboard", "information_dashboard.view",
+  ],
 };
 
 // ─────────────────────────────────────────
@@ -702,7 +706,7 @@ export function getUserHomeRoute(user: any): string {
     "super_admin", "system_admin", "board_chairman", "board_member",
     "general_manager", "executive_director", "projects_office", "field_team",
     "quick_response", "financial", "financial_manager", "project_manager",
-    "corporate_comm", "service_requester", "procurement_officer"
+    "corporate_comm", "service_requester", "procurement_officer", "dashboard_viewer"
   ].includes(user.role);
   const hasCustom = !!(user as any)?.customRole || !isBaseRole;
 
@@ -737,7 +741,7 @@ export function getUserHomeRoute(user: any): string {
 
   // 2.5 مستخدم لوحة المعلومات
   if (user.role === "dashboard_viewer" || userPerms.includes("information_dashboard") || userPerms.includes("information_dashboard.view")) {
-    if (canAccess("/information-dashboard")) return "/information-dashboard";
+    return "/information-dashboard";
   }
 
   // 3. لوحة التحكم العامة (الافتراضية لمعظم الموظفين والمدراء)

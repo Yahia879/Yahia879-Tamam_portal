@@ -82,7 +82,10 @@ export const boardRouter = router({
       const isChairmanView = hasChairmanViewPerm;
       const isMember = (isChairman || isChairmanView) ? false : (isMemberRole || hasMemberPerm || isAdminRole);
 
-      const canAccessBoard = isChairman || isChairmanView || isMember || isAdminRole || hasMemberPerm;
+      const isDashboardViewer = ctx.user.role === "dashboard_viewer" || 
+                                await checkPermission(ctx.user.id, "information_dashboard.view") || 
+                                await checkPermission(ctx.user.id, "information_dashboard");
+      const canAccessBoard = isChairman || isChairmanView || isMember || isAdminRole || hasMemberPerm || isDashboardViewer;
 
       if (!canAccessBoard) {
         throw new TRPCError({

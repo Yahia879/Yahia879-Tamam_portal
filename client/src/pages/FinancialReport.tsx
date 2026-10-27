@@ -218,14 +218,17 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
 
   const userPermissions: string[] = (user as any)?.permissions ?? [];
   const isSuperOrSystemAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const canView = isSuperOrSystemAdmin || userPermissions.includes("financial_reports.view");
+  const hasDashboardView = userPermissions.includes("information_dashboard") || 
+                           userPermissions.includes("information_dashboard.view") || 
+                           user?.role === "dashboard_viewer";
+  const canView = isSuperOrSystemAdmin || userPermissions.includes("financial_reports.view") || (embedded && hasDashboardView);
   const canExport = isSuperOrSystemAdmin || userPermissions.includes("financial_reports.export");
 
   useEffect(() => {
-    if (user && !canView) {
+    if (!embedded && user && !canView) {
       setLocation("/403");
     }
-  }, [user, canView, setLocation]);
+  }, [user, canView, setLocation, embedded]);
 
   // جلب بيانات التقرير المالي
   const { data: reportData, isLoading } = trpc.disbursements.getFinancialReport.useQuery({});
