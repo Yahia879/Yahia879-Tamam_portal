@@ -13,6 +13,7 @@ import { ROLE_LABELS } from "@shared/constants";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 
 // ترجمة صفة طالب الخدمة
 const getRequesterTypeLabel = (type: string | null | undefined) => {
@@ -128,8 +129,17 @@ export default function UserDetails() {
   // التحقق من صلاحية منح الاستثناء
   const canManageExemptions = currentUser && ["super_admin", "system_admin", "projects_office"].includes(currentUser.role);
 
-  // التحقق من صلاحية إدارة الصلاحيات للمستخدم
-  const canManagePermissions = currentUser && ["super_admin", "system_admin"].includes(currentUser.role);
+  // التحقق من صلاحيات إدارة البيانات وتخصيص الصلاحيات وحالة الحساب
+  const hasEditPermission = usePermission("staff_users.edit");
+  const hasCustomizePermission = usePermission("staff_users.customize");
+  const hasSuspendPermission = usePermission("staff_users.suspend");
+  const hasActivatePermission = usePermission("staff_users.activate");
+  const isSuperOrSystemAdmin = !!(currentUser && ["super_admin", "system_admin"].includes(currentUser.role));
+
+  const canEditUser = isSuperOrSystemAdmin || hasEditPermission;
+  const canManagePermissions = isSuperOrSystemAdmin || hasCustomizePermission;
+  const canSuspendUser = isSuperOrSystemAdmin || hasSuspendPermission;
+  const canActivateUser = isSuperOrSystemAdmin || hasActivatePermission;
 
   if (isLoading) {
     return (
@@ -192,30 +202,34 @@ export default function UserDetails() {
                 </Button>
               </Link>
             )}
-            <Link href={`/users/${userId}/edit`} className="flex-1 sm:flex-initial">
-              <Button variant="outline" className="w-full text-xs sm:text-sm h-9 sm:h-10">
-                <Edit className="w-4 h-4 ml-2" />
-                تعديل
-              </Button>
-            </Link>
-            {userId !== currentUser?.id && (
+            {canEditUser && (
+              <Link href={`/users/${userId}/edit`} className="flex-1 sm:flex-initial">
+                <Button variant="outline" className="w-full text-xs sm:text-sm h-9 sm:h-10">
+                  <Edit className="w-4 h-4 ml-2" />
+                  تعديل
+                </Button>
+              </Link>
+            )}
+            {userId !== currentUser?.id && user?.status === "active" && canSuspendUser && (
               <Button 
                 variant="outline"
                 onClick={handleToggleStatus}
                 disabled={toggleStatus.isPending}
-                className="flex-1 sm:flex-initial text-xs sm:text-sm h-9 sm:h-10"
+                className="flex-1 sm:flex-initial text-xs sm:text-sm h-9 sm:h-10 text-destructive hover:text-destructive"
               >
-                {user?.status === "active" ? (
-                  <>
-                    <UserX className="w-4 h-4 ml-2" />
-                    إيقاف
-                  </>
-                ) : (
-                  <>
-                    <UserCheck className="w-4 h-4 ml-2" />
-                    تنشيط
-                  </>
-                )}
+                <UserX className="w-4 h-4 ml-2" />
+                إيقاف الحساب
+              </Button>
+            )}
+            {userId !== currentUser?.id && user?.status !== "active" && canActivateUser && (
+              <Button 
+                variant="outline"
+                onClick={handleToggleStatus}
+                disabled={toggleStatus.isPending}
+                className="flex-1 sm:flex-initial text-xs sm:text-sm h-9 sm:h-10 text-green-600 hover:text-green-700"
+              >
+                <UserCheck className="w-4 h-4 ml-2" />
+                تنشيط الحساب
               </Button>
             )}
             {userId !== currentUser?.id && (

@@ -83,9 +83,24 @@ export const publicSubmissionsRouter = router({
         search: z.string().optional(),
       }).optional()
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const { checkPermission } = await import("../permissions");
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+
+      if (input?.category === "donor") {
+        const canView = isAdmin ||
+          (await checkPermission(ctx.user.id, "requester_donations.view")) ||
+          (await checkPermission(ctx.user.id, "publicSubmissions.view"));
+        if (!canView) return [];
+      } else if (input?.category === "other") {
+        const canView = isAdmin ||
+          (await checkPermission(ctx.user.id, "requester_inquiries.view")) ||
+          (await checkPermission(ctx.user.id, "publicSubmissions.view"));
+        if (!canView) return [];
+      }
 
       const list = await db
         .select({
@@ -192,6 +207,32 @@ export const publicSubmissionsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      const [existing] = await db.select().from(publicSubmissions).where(eq(publicSubmissions.id, input.id)).limit(1);
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+
+      const { checkPermission } = await import("../permissions");
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const isDonor = existing.category === "donor";
+
+      const canReview = isAdmin ||
+        (isDonor && (
+          (await checkPermission(ctx.user.id, "requester_donations.approve")) ||
+          (await checkPermission(ctx.user.id, "requester_donations.review"))
+        )) ||
+        (!isDonor && (
+          (await checkPermission(ctx.user.id, "requester_inquiries.mark_reviewed")) ||
+          (await checkPermission(ctx.user.id, "requester_inquiries.review"))
+        ));
+
+      if (!canReview) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: isDonor 
+            ? "غير مصرح لك بتحديث طلبات التبرعات (تتطلب صلاحية اعتماد أو مراجعة طلب التبرع)"
+            : "غير مصرح لك بتحديث حالة الاستفسارات العامة (تتطلب صلاحية تمت المراجعة أو مراجعة الاستفسار)"
+        });
+      }
+
       await db
         .update(publicSubmissions)
         .set({
@@ -207,9 +248,27 @@ export const publicSubmissionsRouter = router({
   // حذف طلب
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [existing] = await db.select().from(publicSubmissions).where(eq(publicSubmissions.id, input.id)).limit(1);
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+
+      const { checkPermission } = await import("../permissions");
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const isDonor = existing.category === "donor";
+
+      const canDelete = isAdmin;
+
+      if (!canDelete) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: isDonor 
+            ? "غير مصرح بحذف طلبات التبرعات"
+            : "غير مصرح بحذف الاستفسارات العامة"
+        });
+      }
 
       await db.delete(publicSubmissions).where(eq(publicSubmissions.id, input.id));
       return { success: true };

@@ -1,4 +1,4 @@
-import { eq, and, or, ne, sql, inArray, notInArray, isNull } from "drizzle-orm";
+import { eq, and, or, ne, sql, inArray, notInArray, isNull, like } from "drizzle-orm";
 import { getDb } from "./db";
 import {
   modules,
@@ -50,6 +50,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   staff_management: [
     "permissions.view", "permissions.create", "permissions.edit", "permissions.delete",
     "users.view", "users.edit", "users.create", "users.delete",
+    "users.suspend", "users.activate", "users.customize"
   ],
   mosques: ["mosques.view", "mosques.create", "mosques.edit", "mosques.delete", "mosques.approve"],
   mosques_map: ["mosque_map.view"],
@@ -152,13 +153,38 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "requests.create_quick_request": ["requests.create_quick_request"],
   field_visits: ["field_visits.view", "field_visits.create", "field_visits.edit", "field_visits.delete"],
 
-  // UI customized keys mapping to bridge checkboxes with database granular permissions
-  requesters: ["users.view", "users.edit", "users.delete"],
-  "requesters.view": ["users.view"],
-  "requesters.approve": ["users.edit"],
-  "requesters.edit": ["users.edit"],
-  "requesters.delete": ["users.delete"],
-  "requesters.suspend": ["users.edit"],
+  // إدارة المستفيدين - 5 تبويبات مخصصة
+  requester_accounts: ["users.view", "users.edit"],
+  "requester_accounts.view": ["users.view"],
+  "requester_accounts.view_details": ["users.view"],
+  "requester_accounts.create": ["users.create", "users.edit"],
+  "requester_accounts.approve": ["users.edit"],
+  "requester_accounts.suspend": ["users.edit"],
+
+  requester_exceptions: ["requests.view", "requests.edit"],
+  "requester_exceptions.view": ["requests.view"],
+  "requester_exceptions.approve": ["requests.edit", "requests.approve"],
+  "requester_exceptions.reject": ["requests.edit", "requests.approve"],
+
+  requester_donations: ["publicSubmissions.view", "publicSubmissions.edit"],
+  "requester_donations.view": ["publicSubmissions.view"],
+  "requester_donations.review": ["publicSubmissions.view"],
+  "requester_donations.approve": ["publicSubmissions.edit"],
+  "requester_donations.send_email": ["publicSubmissions.view"],
+  "requester_donations.send_whatsapp": ["publicSubmissions.view"],
+
+  requester_inquiries: ["publicSubmissions.view", "publicSubmissions.edit"],
+  "requester_inquiries.view": ["publicSubmissions.view"],
+  "requester_inquiries.review": ["publicSubmissions.view"],
+  "requester_inquiries.mark_reviewed": ["publicSubmissions.edit"],
+  "requester_inquiries.send_email": ["publicSubmissions.view"],
+  "requester_inquiries.send_whatsapp": ["publicSubmissions.view"],
+
+  requester_sedana: ["sedanaInquiries.view", "sedanaInquiries.edit"],
+  "requester_sedana.view": ["sedanaInquiries.view"],
+  "requester_sedana.review": ["sedanaInquiries.edit"],
+  "requester_sedana.send_email": ["sedanaInquiries.view"],
+  "requester_sedana.send_whatsapp": ["sedanaInquiries.view"],
 
   "suppliers.view": ["suppliers.view"],
   "suppliers.view_details": ["suppliers.view_details", "suppliers.view"],
@@ -178,6 +204,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   staff: [
     "permissions.view", "permissions.create", "permissions.edit", "permissions.delete",
     "users.view", "users.edit", "users.create", "users.delete",
+    "users.suspend", "users.activate", "users.customize"
   ],
   "staff.view": ["users.view", "permissions.view"],
   "staff.add": ["users.create", "permissions.create"],
@@ -189,7 +216,9 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "staff_users.view": ["users.view"],
   "staff_users.add": ["users.create"],
   "staff_users.edit": ["users.edit"],
-  "staff_users.suspend": ["users.edit"],
+  "staff_users.customize": ["users.customize"],
+  "staff_users.suspend": ["users.suspend"],
+  "staff_users.activate": ["users.activate"],
   "staff_users.delete": ["users.delete"],
 
   "staff_roles.view": ["permissions.view"],
@@ -767,36 +796,57 @@ async function ensureProjectsPermissionsExist(db: any) {
 }
 
 /**
- * دالة للتأكد من ربط صلاحيات طالبي الخدمة بالدور الأساسي مكتب المشاريع (projects_office)
+ * دالة للتأكد من ربط صلاحيات إدارة المستفيدين الجديدة بالدور الأساسي مكتب المشاريع (projects_office)
  */
 async function ensureRequestersPermissionsExist(db: any) {
   try {
     const roleId = "projects_office";
-    const permIds = ["requesters.view", "requesters.approve"];
+    const permIds = [
+      "requester_accounts.view",
+      "requester_accounts.view_details",
+      "requester_accounts.approve",
+      "requester_exceptions.view",
+      "requester_exceptions.approve",
+      "requester_exceptions.reject",
+      "requester_donations.view",
+      "requester_donations.review",
+      "requester_donations.approve",
+      "requester_donations.send_email",
+      "requester_donations.send_whatsapp",
+      "requester_inquiries.view",
+      "requester_inquiries.review",
+      "requester_inquiries.mark_reviewed",
+      "requester_inquiries.send_email",
+      "requester_inquiries.send_whatsapp",
+      "requester_sedana.view",
+      "requester_sedana.review",
+      "requester_sedana.send_email",
+      "requester_sedana.send_whatsapp",
+    ];
     
     const [roleExists] = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
     if (!roleExists) return;
 
-    const existingRolePerms = await db.select()
-      .from(rolePermissions)
-      .where(and(
-        eq(rolePermissions.roleId, roleId),
-        inArray(rolePermissions.permissionId, permIds)
-      ));
+    // حذف أي صلاحيات قديمة متبقية
+    await db.delete(rolePermissions).where(like(rolePermissions.permissionId, "requesters%")).catch(() => {});
+    await db.delete(userPermissions).where(like(userPermissions.permissionId, "requesters%")).catch(() => {});
+    await db.delete(permissions).where(like(permissions.id, "requesters%")).catch(() => {});
+    await db.delete(modules).where(eq(modules.id, "requesters")).catch(() => {});
 
-    if (existingRolePerms.length < permIds.length) {
-      // حذف التالف لضمان عدم وجود تكرار عند الربط
-      await db.delete(rolePermissions).where(and(
-        eq(rolePermissions.roleId, roleId),
-        inArray(rolePermissions.permissionId, permIds)
-      ));
-
-      const valuesToInsert = permIds.map(permId => ({
-        roleId,
-        permissionId: permId
-      }));
-      await db.insert(rolePermissions).values(valuesToInsert);
-      console.log(`Migrated role ${roleId} with requesters permissions: ${permIds.join(", ")}`);
+    for (const pId of permIds) {
+      const [existing] = await db.select({ id: rolePermissions.id })
+        .from(rolePermissions)
+        .where(and(
+          eq(rolePermissions.roleId, roleId),
+          eq(rolePermissions.permissionId, pId)
+        ))
+        .limit(1);
+      if (!existing) {
+        await db.insert(rolePermissions).values({
+          roleId,
+          permissionId: pId
+        }).catch(() => {});
+      }
     }
   } catch (err) {
     console.error("Error in ensureRequestersPermissionsExist:", err);
@@ -919,18 +969,26 @@ async function ensureAllCustomPermissionsExist(db: any) {
       console.log("Inserted missing custom module: escalation");
     }
 
-    // Ensure 'requesters' module exists in the modules table
-    const [existingRequestersModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "requesters")).limit(1);
-    if (!existingRequestersModule) {
-      await db.insert(modules).values({
-        id: "requesters",
-        nameAr: "إدارة المستفيدين",
-        nameEn: "Beneficiary Management",
-        icon: "Users",
-        displayOrder: 14,
-        isActive: true
-      });
-      console.log("Inserted missing custom module: requesters");
+    // تنظيف وحدة المستفيدين القديمة إن وجدت
+    await db.delete(modules).where(eq(modules.id, "requesters")).catch(() => {});
+
+    // Ensure the 5 granular beneficiary modules exist
+    const beneficiaryModulesToInsert = [
+      { id: "requester_accounts", nameAr: "حسابات طالبي الخدمة", nameEn: "Requester Accounts", icon: "Users", displayOrder: 14 },
+      { id: "requester_exceptions", nameAr: "طلبات الاستثناء", nameEn: "Requester Exceptions", icon: "FileText", displayOrder: 15 },
+      { id: "requester_donations", nameAr: "طلبات التبرعات", nameEn: "Requester Donations", icon: "Gift", displayOrder: 16 },
+      { id: "requester_inquiries", nameAr: "الاستفسارات العامة", nameEn: "Requester Inquiries", icon: "MessageSquareQuote", displayOrder: 17 },
+      { id: "requester_sedana", nameAr: "طلبات برنامج سدانة", nameEn: "Requester Sedana", icon: "Sparkles", displayOrder: 18 },
+    ];
+
+    for (const bm of beneficiaryModulesToInsert) {
+      const [ex] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, bm.id)).limit(1);
+      if (!ex) {
+        await db.insert(modules).values({ ...bm, isActive: true });
+        console.log(`Inserted missing custom module: ${bm.id}`);
+      } else {
+        await db.update(modules).set({ nameAr: bm.nameAr, nameEn: bm.nameEn, icon: bm.icon, displayOrder: bm.displayOrder, isActive: true }).where(eq(modules.id, bm.id)).catch(() => {});
+      }
     }
 
     // Ensure 'orders_and_letters' module exists in the modules table with name 'مالية سدانة'
@@ -1126,9 +1184,33 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "appointments.view_all", moduleId: "settings", action: "view_all", nameAr: "عرض كافة المواعيد والزيارات للمنشأة", nameEn: "View All Appointments" },
       { id: "appointments.view_own", moduleId: "settings", action: "view_own", nameAr: "عرض زياراتي الميدانية الخاصة بي فقط", nameEn: "View Own Appointments" },
       { id: "projects.view_details", moduleId: "projects", action: "view_details", nameAr: "عرض تفاصيل المشروع وادارته", nameEn: "View Project Details" },
-      { id: "requesters.view", moduleId: "requesters", action: "view", nameAr: "عرض قسم إدارة المستفيدين", nameEn: "View Requesters" },
-      { id: "requesters.approve", moduleId: "requesters", action: "approve", nameAr: "اعتماد ورفض المستفيدين", nameEn: "Approve Requesters" },
-      { id: "requesters.create", moduleId: "requesters", action: "create", nameAr: "إضافة مستفيد", nameEn: "Create Beneficiary" },
+      // 1. حسابات طالبي الخدمة
+      { id: "requester_accounts.view", moduleId: "requester_accounts", action: "view", nameAr: "عرض حسابات طالبي الخدمة", nameEn: "View Requester Accounts" },
+      { id: "requester_accounts.view_details", moduleId: "requester_accounts", action: "view_details", nameAr: "عرض تفاصيل الحساب", nameEn: "View Account Details" },
+      { id: "requester_accounts.create", moduleId: "requester_accounts", action: "create", nameAr: "إضافة مستفيد", nameEn: "Create Beneficiary" },
+      { id: "requester_accounts.approve", moduleId: "requester_accounts", action: "approve", nameAr: "اعتماد الحساب", nameEn: "Approve Beneficiary Account" },
+      { id: "requester_accounts.suspend", moduleId: "requester_accounts", action: "suspend", nameAr: "إيقاف الحساب", nameEn: "Suspend Beneficiary Account" },
+      // 2. طلبات الاستثناء
+      { id: "requester_exceptions.view", moduleId: "requester_exceptions", action: "view", nameAr: "عرض طلبات الاستثناء", nameEn: "View Exceptions" },
+      { id: "requester_exceptions.approve", moduleId: "requester_exceptions", action: "approve", nameAr: "قبول طلب الاستثناء", nameEn: "Approve Exception Request" },
+      { id: "requester_exceptions.reject", moduleId: "requester_exceptions", action: "reject", nameAr: "رفض طلب الاستثناء", nameEn: "Reject Exception Request" },
+      // 3. طلبات التبرعات
+      { id: "requester_donations.view", moduleId: "requester_donations", action: "view", nameAr: "عرض طلبات التبرعات", nameEn: "View Donations" },
+      { id: "requester_donations.review", moduleId: "requester_donations", action: "review", nameAr: "مراجعة الطلب", nameEn: "Review Donation Request" },
+      { id: "requester_donations.approve", moduleId: "requester_donations", action: "approve", nameAr: "اعتماد الطلب", nameEn: "Approve Donation Request" },
+      { id: "requester_donations.send_email", moduleId: "requester_donations", action: "send_email", nameAr: "إرسال Email", nameEn: "Send Email" },
+      { id: "requester_donations.send_whatsapp", moduleId: "requester_donations", action: "send_whatsapp", nameAr: "إرسال WhatsApp", nameEn: "Send WhatsApp" },
+      // 4. الاستفسارات العامة
+      { id: "requester_inquiries.view", moduleId: "requester_inquiries", action: "view", nameAr: "عرض الاستفسارات العامة", nameEn: "View Inquiries" },
+      { id: "requester_inquiries.review", moduleId: "requester_inquiries", action: "review", nameAr: "مراجعة", nameEn: "Review Inquiry" },
+      { id: "requester_inquiries.mark_reviewed", moduleId: "requester_inquiries", action: "mark_reviewed", nameAr: "تمت المراجعة", nameEn: "Mark Inquiry As Reviewed" },
+      { id: "requester_inquiries.send_email", moduleId: "requester_inquiries", action: "send_email", nameAr: "إرسال Email", nameEn: "Send Email" },
+      { id: "requester_inquiries.send_whatsapp", moduleId: "requester_inquiries", action: "send_whatsapp", nameAr: "إرسال WhatsApp", nameEn: "Send WhatsApp" },
+      // 5. طلبات برنامج سدانة
+      { id: "requester_sedana.view", moduleId: "requester_sedana", action: "view", nameAr: "عرض طلبات برنامج سدانة", nameEn: "View Sedana Inquiries" },
+      { id: "requester_sedana.review", moduleId: "requester_sedana", action: "review", nameAr: "اتخاذ إجراء واعتماد الطلب", nameEn: "Review Sedana Inquiry" },
+      { id: "requester_sedana.send_email", moduleId: "requester_sedana", action: "send_email", nameAr: "إرسال Email", nameEn: "Send Email" },
+      { id: "requester_sedana.send_whatsapp", moduleId: "requester_sedana", action: "send_whatsapp", nameAr: "إرسال WhatsApp", nameEn: "Send WhatsApp" },
       { id: "suppliers.view_details", moduleId: "suppliers", action: "view_details", nameAr: "عرض تفاصيل المورد", nameEn: "View Supplier Details" },
       { id: "suppliers.add", moduleId: "suppliers", action: "add", nameAr: "إضافة مورد", nameEn: "Add Supplier" },
       { id: "suppliers.suspend", moduleId: "suppliers", action: "suspend", nameAr: "إيقاف المورد وإعادة تفعيله", nameEn: "Suspend and Reactivate Supplier" },
@@ -1181,8 +1263,10 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "reports.export_data", moduleId: "reports", action: "export_data", nameAr: "تصدير البيانات", nameEn: "Export Data" },
       { id: "staff_users.view", moduleId: "users", action: "view", nameAr: "عرض قائمة المستخدمين", nameEn: "View Staff Users" },
       { id: "staff_users.add", moduleId: "users", action: "add", nameAr: "إضافة موظف جديد", nameEn: "Add Staff User" },
-      { id: "staff_users.edit", moduleId: "users", action: "edit", nameAr: "تعديل البيانات الأساسية", nameEn: "Edit Staff User" },
+      { id: "staff_users.edit", moduleId: "users", action: "edit", nameAr: "تعديل البيانات", nameEn: "Edit User Data" },
+      { id: "staff_users.customize", moduleId: "users", action: "customize", nameAr: "تخصيص الصلاحيات", nameEn: "Customize Permissions" },
       { id: "staff_users.suspend", moduleId: "users", action: "suspend", nameAr: "إيقاف الحساب", nameEn: "Suspend Staff User" },
+      { id: "staff_users.activate", moduleId: "users", action: "activate", nameAr: "تنشيط الحساب", nameEn: "Activate Staff User" },
       { id: "staff_users.delete", moduleId: "users", action: "delete", nameAr: "حذف الحساب", nameEn: "Delete Staff User" },
       { id: "staff_roles.view", moduleId: "permissions", action: "view", nameAr: "عرض الأدوار والصلاحيات", nameEn: "View Staff Roles" },
       { id: "staff_roles.customize", moduleId: "permissions", action: "customize", nameAr: "تخصيص صلاحيات الدور الأساسي", nameEn: "Customize Staff Roles" },
@@ -1844,21 +1928,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   } else {
     allPermissions.delete("reports");
   }
-  if (revokedPermissions.has("requesters.view") || revokedPermissions.has("requesters")) {
-    allPermissions.delete("requesters");
-    allPermissions.delete("requesters.view");
-    allPermissions.delete("requesters.approve");
-    allPermissions.delete("requesters.create");
-    allPermissions.delete("service_requester_accounts");
-  } else if (allPermissions.has("requesters.view") || allPermissions.has("requesters.approve") || allPermissions.has("requesters.create")) {
-    allPermissions.add("requesters");
-    allPermissions.add("requesters.view");
-    allPermissions.add("service_requester_accounts");
-  } else {
-    allPermissions.delete("requesters");
-    allPermissions.delete("requesters.view");
-    allPermissions.delete("service_requester_accounts");
-  }
+
 
   if (revokedPermissions.has("escalation.view") || revokedPermissions.has("escalation")) {
     allPermissions.delete("escalation");
@@ -1905,6 +1975,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (
     allPermissions.has("users.view") ||
     allPermissions.has("staff_users.view") ||
+    allPermissions.has("staff_users.customize") ||
     allPermissions.has("staff_roles.view") ||
     allPermissions.has("staff_custom_roles.view") ||
     allPermissions.has("staff_notifications.edit") ||
@@ -2210,6 +2281,29 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.delete("notification_center.send_logs");
     allPermissions.delete("staff_notifications.direct_send");
     allPermissions.delete("staff_notifications.send_logs");
+  }
+
+  // مزامنة صلاحيات إدارة المستخدمين بين المعرفات التقنية ومعرفات الواجهة
+  if (allPermissions.has("users.customize")) {
+    allPermissions.add("staff_users.customize");
+  }
+  if (allPermissions.has("staff_users.customize")) {
+    allPermissions.add("users.customize");
+  }
+  if (allPermissions.has("users.suspend")) {
+    allPermissions.add("staff_users.suspend");
+  }
+  if (allPermissions.has("staff_users.suspend")) {
+    allPermissions.add("users.suspend");
+  }
+  if (allPermissions.has("users.activate")) {
+    allPermissions.add("staff_users.activate");
+  }
+  if (allPermissions.has("staff_users.activate")) {
+    allPermissions.add("users.activate");
+  }
+  if (allPermissions.has("users.edit")) {
+    allPermissions.add("staff_users.edit");
   }
 
   // ضمان إزالة أي صلاحيات تم سحبها صراحة للتأكيد التام
@@ -2698,9 +2792,9 @@ export const permissionsRouter = router({
       const rolePermissionsMapping: Record<string, string[] | string> = {
         super_admin: "*",
         system_admin: "*",
-        general_manager: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports", "notification_center"],
-        executive_director: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports", "notification_center"],
-        projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "progress_reports", "progress_invoices"],
+        general_manager: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requester_accounts", "requester_exceptions", "requester_donations", "requester_inquiries", "requester_sedana", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports", "notification_center"],
+        executive_director: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requester_accounts", "requester_exceptions", "requester_donations", "requester_inquiries", "requester_sedana", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports", "notification_center"],
+        projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "progress_reports", "progress_invoices", "requester_accounts", "requester_exceptions", "requester_donations", "requester_inquiries", "requester_sedana"],
         field_team: ["mosques.view", "requests.view", "requests.edit", "requests.manage_as_field_team", "field_visits"],
         quick_response: ["requests.view", "requests.manage_as_quick_response", "field_visits.view", "reports.create"],
         financial: ["financial", "quotations", "disbursements", "suppliers.view", "financial_reports"],
@@ -3024,15 +3118,18 @@ export const permissionsRouter = router({
   /**
    * إسناد دور لمستخدم
    */
-  assignRole: permissionProcedure("users.edit")
+  assignRole: permissionProcedure(["users.customize", "staff_users.customize"])
     .input(z.object({
       userId: z.number(),
       roleId: z.string(),
       expiresAt: z.date().optional()
     }))
     .mutation(async ({ input, ctx }) => {
-      // التحقق من صلاحية المنفذ (يجب أن يكون مدير نظام أو مدير عام)
-      if (ctx.user.role !== 'super_admin' && ctx.user.role !== 'system_admin') {
+      // التحقق من صلاحية المنفذ
+      const canCustomize = (await checkPermission(ctx.user.id, "users.customize")) ||
+                           (await checkPermission(ctx.user.id, "staff_users.customize")) ||
+                           ['super_admin', 'system_admin'].includes(ctx.user.role);
+      if (!canCustomize) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإسناد الأدوار" });
       }
 
@@ -3065,14 +3162,17 @@ export const permissionsRouter = router({
   /**
    * إزالة دور من مستخدم
    */
-  removeRole: permissionProcedure("users.edit")
+  removeRole: permissionProcedure(["users.customize", "staff_users.customize"])
     .input(z.object({
       userId: z.number(),
       roleId: z.string()
     }))
     .mutation(async ({ input, ctx }) => {
       // التحقق من صلاحية المنفذ
-      if (ctx.user.role !== 'super_admin' && ctx.user.role !== 'system_admin') {
+      const canCustomize = (await checkPermission(ctx.user.id, "users.customize")) ||
+                           (await checkPermission(ctx.user.id, "staff_users.customize")) ||
+                           ['super_admin', 'system_admin'].includes(ctx.user.role);
+      if (!canCustomize) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإزالة الأدوار" });
       }
 
@@ -3099,7 +3199,7 @@ export const permissionsRouter = router({
   /**
    * تعيين الصلاحيات الفردية للمستخدم بالكامل (تزامن الأوفررايد)
    */
-  setUserDirectPermissions: permissionProcedure("users.edit")
+  setUserDirectPermissions: permissionProcedure(["users.customize", "staff_users.customize"])
     .input(z.object({
       userId: z.number(),
       permissions: z.array(z.object({
@@ -3110,7 +3210,10 @@ export const permissionsRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       // التحقق من صلاحية المنفذ
-      if (ctx.user.role !== 'super_admin' && ctx.user.role !== 'system_admin') {
+      const canCustomize = (await checkPermission(ctx.user.id, "users.customize")) ||
+                           (await checkPermission(ctx.user.id, "staff_users.customize")) ||
+                           ['super_admin', 'system_admin'].includes(ctx.user.role);
+      if (!canCustomize) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل الصلاحيات" });
       }
 

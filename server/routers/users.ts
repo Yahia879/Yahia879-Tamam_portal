@@ -250,7 +250,7 @@ export const usersRouter = router({
       return { ...user, employee: emp || null };
     }),
 
-  createRequester: permissionProcedure("requesters.create")
+  createRequester: permissionProcedure("requester_accounts.create")
     .input(z.object({
       name: z.string().trim().min(2, "الاسم يجب أن يكون حرفين على الأقل").max(60),
       email: z.string().trim().toLowerCase().email("البريد الإلكتروني غير صحيح"),
@@ -416,7 +416,7 @@ export const usersRouter = router({
     }),
 
   // Toggle user status
-  toggleStatus: permissionProcedure("users.edit")
+  toggleStatus: permissionProcedure(["users.suspend", "staff_users.suspend", "users.activate", "staff_users.activate"])
     .input(
       z.object({
         userId: z.number(),
@@ -443,6 +443,34 @@ export const usersRouter = router({
           code: "FORBIDDEN", 
           message: "لا يمكن إيقاف أو تنشيط حساب المدير العام" 
         });
+      }
+
+      // التحقق الدقيق من الصلاحيات حسب نوع العملية (إيقاف أم تنشيط)
+      const { checkPermission } = await import("../permissions");
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+
+      if (input.status === "suspended" || input.status === "blocked") {
+        const canSuspend = isAdmin ||
+          (await checkPermission(ctx.user.id, "users.suspend")) ||
+          (await checkPermission(ctx.user.id, "staff_users.suspend")) ||
+          (targetUser?.role === "service_requester" && (await checkPermission(ctx.user.id, "requester_accounts.suspend")));
+        if (!canSuspend) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "غير مصرح لك بإيقاف الحساب (تتطلب صلاحية إيقاف الحساب)"
+          });
+        }
+      } else if (input.status === "active") {
+        const canActivate = isAdmin ||
+          (await checkPermission(ctx.user.id, "users.activate")) ||
+          (await checkPermission(ctx.user.id, "staff_users.activate")) ||
+          (targetUser?.role === "service_requester" && (await checkPermission(ctx.user.id, "requester_accounts.approve")));
+        if (!canActivate) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "غير مصرح لك بتنشيط الحساب (تتطلب صلاحية تنشيط الحساب)"
+          });
+        }
       }
 
       const updateData: any = { status: input.status };
@@ -630,6 +658,48 @@ export const usersRouter = router({
         }
       }
 
+      // التحقق من صلاحية تعديل الدور إذا تم تغييره
+      if (input.role && targetUser && input.role !== targetUser.role) {
+        const { checkPermission } = await import("../permissions");
+        const canCustomize = (await checkPermission(ctx.user.id, "users.customize")) ||
+                             (await checkPermission(ctx.user.id, "staff_users.customize")) ||
+                             ["super_admin", "system_admin"].includes(ctx.user.role);
+        if (!canCustomize) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "ليس لديك صلاحية تعديل الدور الوظيفي للمستخدم (تتطلب صلاحية تخصيص الصلاحيات)"
+          });
+        }
+      }
+
+      // التحقق من صلاحية تعديل حالة الحساب إذا تم تغييرها
+      if (input.status && targetUser && input.status !== targetUser.status) {
+        const { checkPermission } = await import("../permissions");
+        const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+
+        if (input.status === "suspended" || input.status === "blocked") {
+          const canSuspend = isAdmin ||
+            (await checkPermission(ctx.user.id, "users.suspend")) ||
+            (await checkPermission(ctx.user.id, "staff_users.suspend"));
+          if (!canSuspend) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "غير مصرح لك بإيقاف الحساب (تتطلب صلاحية إيقاف الحساب)"
+            });
+          }
+        } else if (input.status === "active") {
+          const canActivate = isAdmin ||
+            (await checkPermission(ctx.user.id, "users.activate")) ||
+            (await checkPermission(ctx.user.id, "staff_users.activate"));
+          if (!canActivate) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "غير مصرح لك بتنشيط الحساب (تتطلب صلاحية تنشيط الحساب)"
+            });
+          }
+        }
+      }
+
       const isTargetStaff = targetUser?.role !== "service_requester";
 
       // التحقق من عدم استخدام البريد الإلكتروني من قِبل مستخدم آخر في نفس الفئة
@@ -720,7 +790,7 @@ export const usersRouter = router({
     }),
 
   // Update user role
-  updateRole: permissionProcedure("users.edit")
+  updateRole: permissionProcedure(["users.customize", "staff_users.customize"])
     .input(
       z.object({
         userId: z.number(),

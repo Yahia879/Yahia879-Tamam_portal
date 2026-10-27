@@ -401,7 +401,7 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                                 </Link>
                               </DropdownMenuItem>
                             </PermissionGuard>
-                            <PermissionGuard permission="staff_users.edit">
+                            <PermissionGuard permission="staff_users.customize">
                               <DropdownMenuItem asChild>
                                 <Link href={`/users/${user.id}/permissions`}>
                                   <Shield className="ml-2 h-4 w-4" />
@@ -409,14 +409,19 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                                 </Link>
                               </DropdownMenuItem>
                             </PermissionGuard>
-                            {user.id !== currentUser?.id && user.role !== "super_admin" && (
+                            {user.id !== currentUser?.id && user.role !== "super_admin" && user.status === "active" && (
                               <PermissionGuard permission="staff_users.suspend">
                                 <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.status)}>
-                                  {user.status === "active" ? (
-                                    <><UserX className="ml-2 h-4 w-4" />إيقاف الحساب</>
-                                  ) : (
-                                    <><UserCheck className="ml-2 h-4 w-4" />تنشيط الحساب</>
-                                  )}
+                                  <UserX className="ml-2 h-4 w-4" />
+                                  إيقاف الحساب
+                                </DropdownMenuItem>
+                              </PermissionGuard>
+                            )}
+                            {user.id !== currentUser?.id && user.role !== "super_admin" && user.status !== "active" && (
+                              <PermissionGuard permission="staff_users.activate">
+                                <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.status)}>
+                                  <UserCheck className="ml-2 h-4 w-4" />
+                                  تنشيط الحساب
                                 </DropdownMenuItem>
                               </PermissionGuard>
                             )}
@@ -478,7 +483,7 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                           </Link>
                         </DropdownMenuItem>
                       </PermissionGuard>
-                      <PermissionGuard permission="staff_users.edit">
+                      <PermissionGuard permission="staff_users.customize">
                         <DropdownMenuItem asChild>
                           <Link href={`/users/${user.id}/permissions`}>
                             <Shield className="ml-2 h-4 w-4" />
@@ -486,14 +491,19 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                           </Link>
                         </DropdownMenuItem>
                       </PermissionGuard>
-                      {user.id !== currentUser?.id && user.role !== "super_admin" && (
+                      {user.id !== currentUser?.id && user.role !== "super_admin" && user.status === "active" && (
                         <PermissionGuard permission="staff_users.suspend">
                           <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.status)}>
-                            {user.status === "active" ? (
-                              <><UserX className="ml-2 h-4 w-4" />إيقاف الحساب</>
-                            ) : (
-                              <><UserCheck className="ml-2 h-4 w-4" />تنشيط الحساب</>
-                            )}
+                            <UserX className="ml-2 h-4 w-4" />
+                            إيقاف الحساب
+                          </DropdownMenuItem>
+                        </PermissionGuard>
+                      )}
+                      {user.id !== currentUser?.id && user.role !== "super_admin" && user.status !== "active" && (
+                        <PermissionGuard permission="staff_users.activate">
+                          <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.status)}>
+                            <UserCheck className="ml-2 h-4 w-4" />
+                            تنشيط الحساب
                           </DropdownMenuItem>
                         </PermissionGuard>
                       )}

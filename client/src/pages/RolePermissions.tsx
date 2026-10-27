@@ -47,9 +47,11 @@ import {
   ShieldAlert,
   ShoppingCart,
   ShoppingBag,
-  Boxes,
   Sparkles,
-  Send
+  Send,
+  Gift,
+  MessageSquareQuote,
+  Boxes,
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -267,10 +269,34 @@ export default function RolePermissions() {
       }
     }
 
-    // منع تفعيل أي صلاحية فرعية لطالبي الخدمة إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("requesters.") && permId !== "requesters.view") {
-      if (!selectedPerms.includes("requesters.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض بيانات طالبي الخدمة' أولاً");
+    // منع تفعيل أي صلاحية فرعية لتبويبات المستفيدين إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("requester_accounts.") && permId !== "requester_accounts.view") {
+      if (!selectedPerms.includes("requester_accounts.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض حسابات طالبي الخدمة' أولاً");
+        return;
+      }
+    }
+    if (permId.startsWith("requester_exceptions.") && permId !== "requester_exceptions.view") {
+      if (!selectedPerms.includes("requester_exceptions.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض طلبات الاستثناء' أولاً");
+        return;
+      }
+    }
+    if (permId.startsWith("requester_donations.") && permId !== "requester_donations.view") {
+      if (!selectedPerms.includes("requester_donations.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض طلبات التبرعات' أولاً");
+        return;
+      }
+    }
+    if (permId.startsWith("requester_inquiries.") && permId !== "requester_inquiries.view") {
+      if (!selectedPerms.includes("requester_inquiries.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض الاستفسارات العامة' أولاً");
+        return;
+      }
+    }
+    if (permId.startsWith("requester_sedana.") && permId !== "requester_sedana.view") {
+      if (!selectedPerms.includes("requester_sedana.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض طلبات برنامج سدانة' أولاً");
         return;
       }
     }
@@ -404,9 +430,21 @@ export default function RolePermissions() {
         if (permId === "project_reports.view") {
           next = next.filter(id => !id.startsWith("project_reports."));
         }
-        // عند إلغاء تفعيل صلاحية 'عرض بيانات طالبي الخدمة'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات طالبي الخدمة الأخرى
-        if (permId === "requesters.view") {
-          next = next.filter(id => !id.startsWith("requesters."));
+        // عند إلغاء تفعيل صلاحية العرض لأي تبويب من تبويبات المستفيدين، نقوم تلقائياً بإلغاء تفعيل كافة صلاحياته الفرعية
+        if (permId === "requester_accounts.view") {
+          next = next.filter(id => !id.startsWith("requester_accounts."));
+        }
+        if (permId === "requester_exceptions.view") {
+          next = next.filter(id => !id.startsWith("requester_exceptions."));
+        }
+        if (permId === "requester_donations.view") {
+          next = next.filter(id => !id.startsWith("requester_donations."));
+        }
+        if (permId === "requester_inquiries.view") {
+          next = next.filter(id => !id.startsWith("requester_inquiries."));
+        }
+        if (permId === "requester_sedana.view") {
+          next = next.filter(id => !id.startsWith("requester_sedana."));
         }
         // عند إلغاء تفعيل صلاحية 'عرض تقرير المالية والإحصائيات'، نقوم تلقائياً بإلغاء تفعيل تصدير البيانات المالية
         if (permId === "financial_reports.view") {
@@ -418,6 +456,16 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض طلبات الصرف'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات طلبات الصرف الأخرى
         if (permId === "disbursements.view") {
           next = next.filter(id => !id.startsWith("disbursements."));
+        }
+
+        // عند إلغاء تفعيل صلاحية 'عرض العقود وقالب العقود'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات العقود الأخرى
+        if (permId === "contracts.view") {
+          next = next.filter(id => !id.startsWith("contracts."));
+        }
+
+        // عند إلغاء تفعيل صلاحية 'عرض إحصائيات وسجلات الصندوق'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات الصندوق الأخرى
+        if (permId === "fund.view") {
+          next = next.filter(id => !id.startsWith("fund."));
         }
 
         // عند إلغاء تفعيل صلاحية 'عرض أوامر الصرف'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات أوامر الصرف الأخرى
@@ -479,8 +527,28 @@ export default function RolePermissions() {
             "requests.manage_as_quick_response",
             "requests.upload_final_report",
             "requests.create_quick_request",
-            "requesters.view",
-            "requesters.approve",
+            "requester_accounts.view",
+            "requester_accounts.view_details",
+            "requester_accounts.create",
+            "requester_accounts.approve",
+            "requester_accounts.suspend",
+            "requester_exceptions.view",
+            "requester_exceptions.approve",
+            "requester_exceptions.reject",
+            "requester_donations.view",
+            "requester_donations.review",
+            "requester_donations.approve",
+            "requester_donations.send_email",
+            "requester_donations.send_whatsapp",
+            "requester_inquiries.view",
+            "requester_inquiries.review",
+            "requester_inquiries.mark_reviewed",
+            "requester_inquiries.send_email",
+            "requester_inquiries.send_whatsapp",
+            "requester_sedana.view",
+            "requester_sedana.review",
+            "requester_sedana.send_email",
+            "requester_sedana.send_whatsapp",
           ];
           cascadePerms.forEach(pId => {
             if (!next.includes(pId)) next.push(pId);
@@ -543,8 +611,28 @@ export default function RolePermissions() {
             "requests.manage_as_quick_response",
             "requests.upload_final_report",
             "requests.create_quick_request",
-            "requesters.view",
-            "requesters.approve",
+            "requester_accounts.view",
+            "requester_accounts.view_details",
+            "requester_accounts.create",
+            "requester_accounts.approve",
+            "requester_accounts.suspend",
+            "requester_exceptions.view",
+            "requester_exceptions.approve",
+            "requester_exceptions.reject",
+            "requester_donations.view",
+            "requester_donations.review",
+            "requester_donations.approve",
+            "requester_donations.send_email",
+            "requester_donations.send_whatsapp",
+            "requester_inquiries.view",
+            "requester_inquiries.review",
+            "requester_inquiries.mark_reviewed",
+            "requester_inquiries.send_email",
+            "requester_inquiries.send_whatsapp",
+            "requester_sedana.view",
+            "requester_sedana.review",
+            "requester_sedana.send_email",
+            "requester_sedana.send_whatsapp",
           ];
           cascadePerms.forEach(pId => {
             if (!next.includes(pId)) next.push(pId);
@@ -1263,8 +1351,9 @@ export default function RolePermissions() {
           ]
         },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
-        { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
+        { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "create_from_fund", "exception_approve"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "exception_approve"] },
+        { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "transfer"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind", "cancel_executed"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
         { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create"] },
@@ -1287,23 +1376,21 @@ export default function RolePermissions() {
       ]
     },
     {
-      title: "التوقيع",
+      title: "إدارة المستخدمين",
       modules: [
-        {
-          id: "signing",
-          nameAr: "صلاحيات التوقيع",
-          icon: PenLine,
-          perms: ["disbursements_sign", "disbursement_orders_sign", "final_reports_sign", "progress_reports_sign"]
-        }
+        { id: "staff_users", nameAr: "إدارة المستخدمين", icon: Users, perms: ["view", "add", "edit", "customize", "suspend", "activate", "delete"] },
+        { id: "staff_roles", nameAr: "الأدوار والصلاحيات", icon: Shield, perms: ["view", "customize", "suspend"] },
+        { id: "staff_custom_roles", nameAr: "الأدوار المخصصة", icon: Briefcase, perms: ["view", "add", "edit", "delete"] },
       ]
     },
     {
-      title: "إدارة المستخدمين",
+      title: "إدارة المستفيدين",
       modules: [
-        { id: "staff_users", nameAr: "إدارة المستخدمين", icon: Users, perms: ["view", "add", "edit", "suspend", "delete"] },
-        { id: "staff_roles", nameAr: "الأدوار والصلاحيات", icon: Shield, perms: ["view", "customize", "suspend"] },
-        { id: "staff_custom_roles", nameAr: "الأدوار المخصصة", icon: Briefcase, perms: ["view", "add", "edit", "delete"] },
-        { id: "requesters", nameAr: "إدارة المستفيدين", icon: Users, perms: ["view", "create", "approve"] },
+        { id: "requester_accounts", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "view_details", "create", "approve", "suspend"] },
+        { id: "requester_exceptions", nameAr: "طلبات الاستثناء", icon: FileText, perms: ["view", "approve", "reject"] },
+        { id: "requester_donations", nameAr: "طلبات التبرعات", icon: Gift, perms: ["view", "review", "approve", "send_email", "send_whatsapp"] },
+        { id: "requester_inquiries", nameAr: "الاستفسارات العامة", icon: MessageSquareQuote, perms: ["view", "review", "mark_reviewed", "send_email", "send_whatsapp"] },
+        { id: "requester_sedana", nameAr: "طلبات برنامج سدانة", icon: Sparkles, perms: ["view", "review", "send_email", "send_whatsapp"] },
       ]
     },
     {
@@ -1322,6 +1409,17 @@ export default function RolePermissions() {
         { id: "settings_escalation", nameAr: "تعيين وقت التأخير ومدد المراحل", icon: ShieldAlert, perms: ["view"] },
         { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["by_role", "edit_message_formats", "by_person", "beneficiary"] },
         { id: "notification_center", nameAr: "مركز الإشعارات", icon: Send, perms: ["direct_send", "send_logs"] },
+      ]
+    },
+    {
+      title: "التوقيع",
+      modules: [
+        {
+          id: "signing",
+          nameAr: "صلاحيات التوقيع",
+          icon: PenLine,
+          perms: ["disbursements_sign", "disbursement_orders_sign", "final_reports_sign", "progress_reports_sign"]
+        }
       ]
     },
     {
@@ -1509,6 +1607,7 @@ export default function RolePermissions() {
         delete: "حذف طلب صرف",
         approve: "اعتماد طلبات الصرف",
         create_custom: "انشاء طلبات صرف مخصصة",
+        create_from_fund: "إضافة طلب صرف من صندوق الجمعية",
         exception_approve: "استثناء اعتماد مُعد الطلب",
       },
       receipt_vouchers: {
@@ -1516,6 +1615,10 @@ export default function RolePermissions() {
         add: "تسجيل سند قبض جديد",
         edit: "تعديل سند القبض",
         exception_approve: "استثناء اعتماد السند",
+      },
+      fund: {
+        view: "عرض إحصائيات وسجلات الصندوق",
+        transfer: "تحويل فائض من المشروع إلى الصندوق",
       },
       disbursement_orders: {
         view: "عرض أوامر الصرف",
@@ -1568,7 +1671,9 @@ export default function RolePermissions() {
         view: "عرض قائمة المستخدمين",
         add: "إضافة موظف جديد",
         edit: "تعديل البيانات",
+        customize: "تخصيص الصلاحيات",
         suspend: "إيقاف الحساب",
+        activate: "تنشيط الحساب",
         delete: "حذف"
       },
       staff_roles: {
@@ -1581,6 +1686,38 @@ export default function RolePermissions() {
         add: "إضافة دور",
         edit: "تعديل الدور",
         delete: "حذف الدور"
+      },
+      requester_accounts: {
+        view: "عرض حسابات طالبي الخدمة",
+        view_details: "عرض تفاصيل الحساب",
+        create: "إضافة مستفيد",
+        approve: "اعتماد الحساب",
+        suspend: "إيقاف الحساب"
+      },
+      requester_exceptions: {
+        view: "عرض طلبات الاستثناء",
+        approve: "قبول طلب الاستثناء",
+        reject: "رفض طلب الاستثناء"
+      },
+      requester_donations: {
+        view: "عرض طلبات التبرعات",
+        review: "مراجعة الطلب",
+        approve: "اعتماد الطلب",
+        send_email: "إرسال Email",
+        send_whatsapp: "إرسال WhatsApp",
+      },
+      requester_inquiries: {
+        view: "عرض الاستفسارات العامة",
+        review: "مراجعة",
+        mark_reviewed: "تمت المراجعة",
+        send_email: "إرسال Email",
+        send_whatsapp: "إرسال WhatsApp",
+      },
+      requester_sedana: {
+        view: "عرض طلبات برنامج سدانة",
+        review: "اتخاذ إجراء واعتماد الطلب",
+        send_email: "إرسال Email",
+        send_whatsapp: "إرسال WhatsApp",
       },
       staff_notifications: {
         by_role: "تخصيص الإشعارات حسب الدور",
@@ -1945,7 +2082,11 @@ export default function RolePermissions() {
                                 (perm.id.startsWith("progress_reports.") && perm.id !== "progress_reports.view" && !selectedPerms.includes("progress_reports.view")) ||
                                 (perm.id.startsWith("progress_invoices.") && perm.id !== "progress_invoices.view" && !selectedPerms.includes("progress_invoices.view")) ||
                                 (perm.id.startsWith("project_reports.") && perm.id !== "project_reports.view" && !selectedPerms.includes("project_reports.view")) ||
-                                (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !selectedPerms.includes("requesters.view")) ||
+                                (perm.id.startsWith("requester_accounts.") && perm.id !== "requester_accounts.view" && !selectedPerms.includes("requester_accounts.view")) ||
+                                (perm.id.startsWith("requester_exceptions.") && perm.id !== "requester_exceptions.view" && !selectedPerms.includes("requester_exceptions.view")) ||
+                                (perm.id.startsWith("requester_donations.") && perm.id !== "requester_donations.view" && !selectedPerms.includes("requester_donations.view")) ||
+                                (perm.id.startsWith("requester_inquiries.") && perm.id !== "requester_inquiries.view" && !selectedPerms.includes("requester_inquiries.view")) ||
+                                (perm.id.startsWith("requester_sedana.") && perm.id !== "requester_sedana.view" && !selectedPerms.includes("requester_sedana.view")) ||
                                 (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !selectedPerms.includes("reports.view_stats")) ||
                                 (perm.id.startsWith("beneficiary_evaluations.") && perm.id !== "beneficiary_evaluations.view" && !selectedPerms.includes("beneficiary_evaluations.view"));
                               return (

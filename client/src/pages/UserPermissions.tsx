@@ -58,9 +58,13 @@ import {
   Sparkles,
   Send,
   Landmark,
+  Gift,
+  MessageSquareQuote,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import DashboardLayout from "../components/DashboardLayout";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 const getRoleLabelAr = (role: string) => {
   const rolesAr: Record<string, string> = {
@@ -87,6 +91,8 @@ export default function UserPermissions() {
   const [, params] = useRoute("/users/:id/permissions");
   const [, setLocation] = useLocation();
   const userId = params?.id ? parseInt(params.id) : null;
+  const { user: currentUser } = useAuth();
+  const canCustomize = usePermission("staff_users.customize") || ["super_admin", "system_admin"].includes(currentUser?.role || "");
 
   const utils = trpc.useUtils();
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
@@ -337,10 +343,34 @@ export default function UserPermissions() {
       }
     }
 
-    // منع تفعيل أي صلاحية فرعية لطالبي الخدمة إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("requesters.") && permId !== "requesters.view") {
-      if (!isChecked("requesters.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض بيانات طالبي الخدمة' أولاً");
+    // منع تفعيل أي صلاحية فرعية لتبويبات المستفيدين إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("requester_accounts.") && permId !== "requester_accounts.view") {
+      if (!isChecked("requester_accounts.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض حسابات طالبي الخدمة' أولاً");
+        return;
+      }
+    }
+    if (permId.startsWith("requester_exceptions.") && permId !== "requester_exceptions.view") {
+      if (!isChecked("requester_exceptions.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض طلبات الاستثناء' أولاً");
+        return;
+      }
+    }
+    if (permId.startsWith("requester_donations.") && permId !== "requester_donations.view") {
+      if (!isChecked("requester_donations.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض طلبات التبرعات' أولاً");
+        return;
+      }
+    }
+    if (permId.startsWith("requester_inquiries.") && permId !== "requester_inquiries.view") {
+      if (!isChecked("requester_inquiries.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض الاستفسارات العامة' أولاً");
+        return;
+      }
+    }
+    if (permId.startsWith("requester_sedana.") && permId !== "requester_sedana.view") {
+      if (!isChecked("requester_sedana.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض طلبات برنامج سدانة' أولاً");
         return;
       }
     }
@@ -440,8 +470,28 @@ export default function UserPermissions() {
             "requests.manage_as_quick_response",
             "requests.upload_final_report",
             "requests.create_quick_request",
-            "requesters.view",
-            "requesters.approve",
+            "requester_accounts.view",
+            "requester_accounts.view_details",
+            "requester_accounts.create",
+            "requester_accounts.approve",
+            "requester_accounts.suspend",
+            "requester_exceptions.view",
+            "requester_exceptions.approve",
+            "requester_exceptions.reject",
+            "requester_donations.view",
+            "requester_donations.review",
+            "requester_donations.approve",
+            "requester_donations.send_email",
+            "requester_donations.send_whatsapp",
+            "requester_inquiries.view",
+            "requester_inquiries.review",
+            "requester_inquiries.mark_reviewed",
+            "requester_inquiries.send_email",
+            "requester_inquiries.send_whatsapp",
+            "requester_sedana.view",
+            "requester_sedana.review",
+            "requester_sedana.send_email",
+            "requester_sedana.send_whatsapp",
           ];
           cascadePerms.forEach(pId => {
             const defVal = rolePermissions?.includes(pId) || false;
@@ -491,6 +541,41 @@ export default function UserPermissions() {
           } else {
             updated["sedana_warehouse.view"] = true;
           }
+        } else if (permId.startsWith("requester_accounts.") && permId !== "requester_accounts.view") {
+          const defVal = rolePermissions?.includes("requester_accounts.view") || false;
+          if (defVal) {
+            delete updated["requester_accounts.view"];
+          } else {
+            updated["requester_accounts.view"] = true;
+          }
+        } else if (permId.startsWith("requester_exceptions.") && permId !== "requester_exceptions.view") {
+          const defVal = rolePermissions?.includes("requester_exceptions.view") || false;
+          if (defVal) {
+            delete updated["requester_exceptions.view"];
+          } else {
+            updated["requester_exceptions.view"] = true;
+          }
+        } else if (permId.startsWith("requester_donations.") && permId !== "requester_donations.view") {
+          const defVal = rolePermissions?.includes("requester_donations.view") || false;
+          if (defVal) {
+            delete updated["requester_donations.view"];
+          } else {
+            updated["requester_donations.view"] = true;
+          }
+        } else if (permId.startsWith("requester_inquiries.") && permId !== "requester_inquiries.view") {
+          const defVal = rolePermissions?.includes("requester_inquiries.view") || false;
+          if (defVal) {
+            delete updated["requester_inquiries.view"];
+          } else {
+            updated["requester_inquiries.view"] = true;
+          }
+        } else if (permId.startsWith("requester_sedana.") && permId !== "requester_sedana.view") {
+          const defVal = rolePermissions?.includes("requester_sedana.view") || false;
+          if (defVal) {
+            delete updated["requester_sedana.view"];
+          } else {
+            updated["requester_sedana.view"] = true;
+          }
         }
       }
 
@@ -502,7 +587,11 @@ export default function UserPermissions() {
             if (p.id !== permId) {
               const defVal = rolePermissions?.includes(p.id) || false;
               if (defVal) {
-                updated[p.id] = false;
+                if (p.id.startsWith("requester_")) {
+                  delete updated[p.id];
+                } else {
+                  updated[p.id] = false;
+                }
               } else {
                 delete updated[p.id];
               }
@@ -536,7 +625,11 @@ export default function UserPermissions() {
         if (permId === "progress_reports.view") cascadeRevoke("progress_reports.");
         if (permId === "progress_invoices.view") cascadeRevoke("progress_invoices.");
         if (permId === "project_reports.view") cascadeRevoke("project_reports.");
-        if (permId === "requesters.view") cascadeRevoke("requesters.");
+        if (permId === "requester_accounts.view") cascadeRevoke("requester_accounts.");
+        if (permId === "requester_exceptions.view") cascadeRevoke("requester_exceptions.");
+        if (permId === "requester_donations.view") cascadeRevoke("requester_donations.");
+        if (permId === "requester_inquiries.view") cascadeRevoke("requester_inquiries.");
+        if (permId === "requester_sedana.view") cascadeRevoke("requester_sedana.");
         if (permId === "financial_reports.view") cascadeRevoke("financial_reports.");
         if (permId === "reports.view_stats") cascadeRevoke("reports.");
         if (permId === "disbursements.view") {
@@ -565,6 +658,12 @@ export default function UserPermissions() {
         }
         if (permId === "sedana_quotations.view") {
           cascadeRevoke("sedana_quotations.");
+        }
+        if (permId === "contracts.view") {
+          cascadeRevoke("contracts.");
+        }
+        if (permId === "fund.view") {
+          cascadeRevoke("fund.");
         }
         if (permId.startsWith("sedana_quotations.")) {
           const allSedanaKeys = ["sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve"];
@@ -606,7 +705,11 @@ export default function UserPermissions() {
         permIds.forEach(id => {
           const defVal = rolePermissions?.includes(id) || false;
           if (defVal) {
-            updated[id] = false;
+            if (id.startsWith("requester_")) {
+              delete updated[id];
+            } else {
+              updated[id] = false;
+            }
           } else {
             delete updated[id];
           }
@@ -634,8 +737,28 @@ export default function UserPermissions() {
             "requests.manage_as_quick_response",
             "requests.upload_final_report",
             "requests.create_quick_request",
-            "requesters.view",
-            "requesters.approve",
+            "requester_accounts.view",
+            "requester_accounts.view_details",
+            "requester_accounts.create",
+            "requester_accounts.approve",
+            "requester_accounts.suspend",
+            "requester_exceptions.view",
+            "requester_exceptions.approve",
+            "requester_exceptions.reject",
+            "requester_donations.view",
+            "requester_donations.review",
+            "requester_donations.approve",
+            "requester_donations.send_email",
+            "requester_donations.send_whatsapp",
+            "requester_inquiries.view",
+            "requester_inquiries.review",
+            "requester_inquiries.mark_reviewed",
+            "requester_inquiries.send_email",
+            "requester_inquiries.send_whatsapp",
+            "requester_sedana.view",
+            "requester_sedana.review",
+            "requester_sedana.send_email",
+            "requester_sedana.send_whatsapp",
           ];
           cascadePerms.forEach(pId => {
             const defVal = rolePermissions?.includes(pId) || false;
@@ -816,10 +939,46 @@ export default function UserPermissions() {
         edit_support_and_fees: "تعديل بيانات الداعمين والأجور الإدارية",
         add_receipt_voucher: "إضافة سند صرف",
       },
-      requesters: {
-        view: "عرض قسم إدارة المستفيدين",
+      requester_accounts: {
+        view: "عرض حسابات طالبي الخدمة",
+        view_details: "عرض تفاصيل الحساب",
         create: "إضافة مستفيد",
-        approve: "الاعتمادات (رفض أو اعتماد الحساب)"
+        approve: "اعتماد الحساب",
+        suspend: "إيقاف الحساب"
+      },
+      requester_exceptions: {
+        view: "عرض طلبات الاستثناء",
+        approve: "قبول طلب الاستثناء",
+        reject: "رفض طلب الاستثناء"
+      },
+      requester_donations: {
+        view: "عرض طلبات التبرعات",
+        review: "مراجعة الطلب",
+        approve: "اعتماد الطلب",
+        send_email: "إرسال Email",
+        send_whatsapp: "إرسال WhatsApp",
+      },
+      requester_inquiries: {
+        view: "عرض الاستفسارات العامة",
+        review: "مراجعة",
+        mark_reviewed: "تمت المراجعة",
+        send_email: "إرسال Email",
+        send_whatsapp: "إرسال WhatsApp",
+      },
+      requester_sedana: {
+        view: "عرض طلبات برنامج سدانة",
+        review: "اتخاذ إجراء واعتماد الطلب",
+        send_email: "إرسال Email",
+        send_whatsapp: "إرسال WhatsApp",
+      },
+      staff_users: {
+        view: "عرض قائمة المستخدمين",
+        add: "إضافة موظف جديد",
+        edit: "تعديل البيانات",
+        customize: "تخصيص الصلاحيات",
+        suspend: "إيقاف الحساب",
+        activate: "تنشيط الحساب",
+        delete: "حذف الحساب"
       },
       suppliers: {
         view: "عرض قائمة الموردين",
@@ -944,13 +1103,6 @@ export default function UserPermissions() {
       reports: {
         view_stats: "عرض احصائيات الطلبات",
         export_data: "تصدير البيانات"
-      },
-      staff_users: {
-        view: "عرض قائمة المستخدمين",
-        add: "إضافة موظف جديد",
-        edit: "تعديل البيانات الأساسية",
-        suspend: "إيقاف الحساب",
-        delete: "حذف الحساب"
       },
       staff_roles: {
         view: "عرض الأدوار والصلاحيات",
@@ -1126,10 +1278,19 @@ export default function UserPermissions() {
     {
       title: "إدارة المستخدمين",
       modules: [
-        { id: "staff_users", nameAr: "إدارة المستخدمين", icon: Users, perms: ["view", "add", "edit", "suspend", "delete"] },
+        { id: "staff_users", nameAr: "إدارة المستخدمين", icon: Users, perms: ["view", "add", "edit", "customize", "suspend", "activate", "delete"] },
         { id: "staff_roles", nameAr: "الأدوار والصلاحيات", icon: Shield, perms: ["view", "customize", "suspend"] },
         { id: "staff_custom_roles", nameAr: "الأدوار المخصصة", icon: Briefcase, perms: ["view", "add", "edit", "delete"] },
-        { id: "requesters", nameAr: "إدارة المستفيدين", icon: Users, perms: ["view", "create", "approve"] },
+      ]
+    },
+    {
+      title: "إدارة المستفيدين",
+      modules: [
+        { id: "requester_accounts", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "view_details", "create", "approve", "suspend"] },
+        { id: "requester_exceptions", nameAr: "طلبات الاستثناء", icon: FileText, perms: ["view", "approve", "reject"] },
+        { id: "requester_donations", nameAr: "طلبات التبرعات", icon: Gift, perms: ["view", "review", "approve", "send_email", "send_whatsapp"] },
+        { id: "requester_inquiries", nameAr: "الاستفسارات العامة", icon: MessageSquareQuote, perms: ["view", "review", "mark_reviewed", "send_email", "send_whatsapp"] },
+        { id: "requester_sedana", nameAr: "طلبات برنامج سدانة", icon: Sparkles, perms: ["view", "review", "send_email", "send_whatsapp"] },
       ]
     },
     {
@@ -1179,6 +1340,18 @@ export default function UserPermissions() {
       <DashboardLayout>
         <div className="container py-20 text-center">
           <h2 className="text-2xl font-bold text-destructive">خطأ في معرف المستخدم</h2>
+          <Button variant="outline" className="mt-4" onClick={() => setLocation("/users")}>العودة لقائمة المستخدمين</Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!canCustomize) {
+    return (
+      <DashboardLayout>
+        <div className="container py-20 text-center">
+          <Shield className="w-16 h-16 text-destructive mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-destructive">عذراً، لا تملك صلاحية لتخصيص صلاحيات المستخدمين</h2>
           <Button variant="outline" className="mt-4" onClick={() => setLocation("/users")}>العودة لقائمة المستخدمين</Button>
         </div>
       </DashboardLayout>
@@ -1401,7 +1574,11 @@ export default function UserPermissions() {
                               (perm.id.startsWith("progress_reports.") && perm.id !== "progress_reports.view" && !isChecked("progress_reports.view")) ||
                               (perm.id.startsWith("progress_invoices.") && perm.id !== "progress_invoices.view" && !isChecked("progress_invoices.view")) ||
                               (perm.id.startsWith("project_reports.") && perm.id !== "project_reports.view" && !isChecked("project_reports.view")) ||
-                              (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !isChecked("requesters.view")) ||
+                              (perm.id.startsWith("requester_accounts.") && perm.id !== "requester_accounts.view" && !isChecked("requester_accounts.view")) ||
+                              (perm.id.startsWith("requester_exceptions.") && perm.id !== "requester_exceptions.view" && !isChecked("requester_exceptions.view")) ||
+                              (perm.id.startsWith("requester_donations.") && perm.id !== "requester_donations.view" && !isChecked("requester_donations.view")) ||
+                              (perm.id.startsWith("requester_inquiries.") && perm.id !== "requester_inquiries.view" && !isChecked("requester_inquiries.view")) ||
+                              (perm.id.startsWith("requester_sedana.") && perm.id !== "requester_sedana.view" && !isChecked("requester_sedana.view")) ||
                               (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !isChecked("reports.view_stats")) ||
                               (perm.id.startsWith("beneficiary_evaluations.") && perm.id !== "beneficiary_evaluations.view" && !isChecked("beneficiary_evaluations.view"));
 
@@ -1415,8 +1592,13 @@ export default function UserPermissions() {
                               cardClass = "border-green-200 bg-green-50/40 dark:bg-green-950/10 dark:border-green-900/30 text-green-950 dark:text-green-400 hover:bg-green-50/60 cursor-pointer";
                               badgeElement = <Badge variant="outline" className="text-[9px] bg-green-100 text-green-800 border-green-200 font-semibold py-0 shrink-0">منح خاص</Badge>;
                             } else if (overrideState === "revoked") {
-                              cardClass = "border-red-200 bg-red-50/40 dark:bg-red-950/10 dark:border-red-900/30 text-red-950 dark:text-red-400 hover:bg-red-50/60 cursor-pointer";
-                              badgeElement = <Badge variant="outline" className="text-[9px] bg-red-100 text-red-800 border-red-200 font-semibold py-0 shrink-0">حجب خاص</Badge>;
+                              if (perm.id.startsWith("requester_")) {
+                                cardClass = "border-slate-200 dark:border-slate-800 bg-background hover:bg-slate-50 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400 cursor-pointer";
+                                badgeElement = null;
+                              } else {
+                                cardClass = "border-red-200 bg-red-50/40 dark:bg-red-950/10 dark:border-red-900/30 text-red-950 dark:text-red-400 hover:bg-red-50/60 cursor-pointer";
+                                badgeElement = <Badge variant="outline" className="text-[9px] bg-red-100 text-red-800 border-red-200 font-semibold py-0 shrink-0">حجب خاص</Badge>;
+                              }
                             } else if (rolePermissions?.includes(perm.id)) {
                               badgeElement = <span className="text-[10px] text-slate-400 shrink-0">موروثة</span>;
                             }
