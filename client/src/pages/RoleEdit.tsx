@@ -144,7 +144,7 @@ const superAdminGroups = [
       { id: "requester_accounts", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "view_details", "create", "approve", "suspend"] },
       { id: "requester_exceptions", nameAr: "طلبات الاستثناء", icon: FileText, perms: ["view", "approve", "reject"] },
       { id: "requester_donations", nameAr: "طلبات التبرعات", icon: Gift, perms: ["view", "review", "approve", "send_email", "send_whatsapp"] },
-      { id: "requester_inquiries", nameAr: "الاستفسارات العامة", icon: MessageSquareQuote, perms: ["view", "review", "delete"] },
+      { id: "requester_inquiries", nameAr: "الاستفسارات العامة", icon: MessageSquareQuote, perms: ["view", "review", "mark_reviewed", "send_email", "send_whatsapp"] },
       { id: "requester_sedana", nameAr: "طلبات برنامج سدانة", icon: Sparkles, perms: ["view", "review"] },
     ]
   },
@@ -443,8 +443,10 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     },
     requester_inquiries: {
       view: "عرض الاستفسارات العامة",
-      review: "مراجعة وتحديث حالة الاستفسار",
-      delete: "حذف الاستفسار"
+      review: "مراجعة",
+      mark_reviewed: "تمت المراجعة",
+      send_email: "إرسال Email",
+      send_whatsapp: "إرسال WhatsApp",
     },
     requester_sedana: {
       view: "عرض طلبات برنامج سدانة",
@@ -1022,7 +1024,9 @@ export default function RoleEdit() {
             "requester_donations.send_whatsapp",
             "requester_inquiries.view",
             "requester_inquiries.review",
-            "requester_inquiries.delete",
+            "requester_inquiries.mark_reviewed",
+            "requester_inquiries.send_email",
+            "requester_inquiries.send_whatsapp",
             "requester_sedana.view",
             "requester_sedana.review",
           ];
@@ -1102,7 +1106,9 @@ export default function RoleEdit() {
             "requester_donations.send_whatsapp",
             "requester_inquiries.view",
             "requester_inquiries.review",
-            "requester_inquiries.delete",
+            "requester_inquiries.mark_reviewed",
+            "requester_inquiries.send_email",
+            "requester_inquiries.send_whatsapp",
             "requester_sedana.view",
             "requester_sedana.review",
           ];
