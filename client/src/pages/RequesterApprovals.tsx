@@ -178,7 +178,9 @@ export default function RequesterApprovals() {
 
   const canViewInquiries = usePermission("requester_inquiries.view");
   const canReviewInquiries = usePermission("requester_inquiries.review");
-  const canDeleteInquiries = usePermission("requester_inquiries.delete");
+  const canMarkReviewedInquiries = usePermission("requester_inquiries.mark_reviewed");
+  const canSendEmailInquiries = usePermission("requester_inquiries.send_email");
+  const canSendWhatsappInquiries = usePermission("requester_inquiries.send_whatsapp");
 
   const canViewSedana = usePermission("requester_sedana.view");
   const canReviewSedana = usePermission("requester_sedana.review");
@@ -1738,7 +1740,7 @@ export default function RequesterApprovals() {
 
                               <TableCell className="text-left pl-6">
                                 <div className="flex items-center justify-end gap-1.5">
-                                  {sub.status === "new" && canReviewInquiries && (
+                                  {sub.status === "new" && canMarkReviewedInquiries && (
                                     <Button
                                       size="sm"
                                       className="h-8 text-xs font-bold gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
@@ -1760,7 +1762,7 @@ export default function RequesterApprovals() {
                                     </Button>
                                   )}
 
-                                  {waPhone && (
+                                  {waPhone && canSendWhatsappInquiries && (
                                     <a 
                                       href={`https://wa.me/${waPhone}`} 
                                       target="_blank" 
@@ -1772,7 +1774,7 @@ export default function RequesterApprovals() {
                                     </a>
                                   )}
 
-                                  {sub.email && (
+                                  {sub.email && canSendEmailInquiries && (
                                     <a 
                                       href={`mailto:${sub.email}`} 
                                       className="p-1.5 rounded-xl text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-colors"
@@ -1782,15 +1784,17 @@ export default function RequesterApprovals() {
                                     </a>
                                   )}
 
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleOpenSubmissionDetails(sub)}
-                                    className="h-8 text-xs font-bold gap-1 rounded-xl border-border/70 hover:border-primary"
-                                  >
-                                    <Eye className="w-3.5 h-3.5" />
-                                    مراجعة الاستفسار
-                                  </Button>
+                                  {canReviewInquiries && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleOpenSubmissionDetails(sub)}
+                                      className="h-8 text-xs font-bold gap-1 rounded-xl border-border/70 hover:border-primary"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" />
+                                      مراجعة الاستفسار
+                                    </Button>
+                                  )}
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -1850,16 +1854,18 @@ export default function RequesterApprovals() {
                           </div>
 
                           <div className="flex items-center gap-2 pt-1">
-                            <Button
-                              variant="outline"
-                              onClick={() => handleOpenSubmissionDetails(sub)}
-                              className="flex-1 h-9 text-xs font-bold gap-1.5 rounded-xl"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              مراجعة الاستفسار
-                            </Button>
+                            {canReviewInquiries && (
+                              <Button
+                                variant="outline"
+                                onClick={() => handleOpenSubmissionDetails(sub)}
+                                className="flex-1 h-9 text-xs font-bold gap-1.5 rounded-xl"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                مراجعة الاستفسار
+                              </Button>
+                            )}
 
-                            {sub.status === "new" && canReviewInquiries && (
+                            {sub.status === "new" && canMarkReviewedInquiries && (
                               <Button
                                 className="h-9 px-3 text-xs font-bold gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
                                 onClick={() => updateSubmissionMutation.mutate({ id: sub.id, status: "under_review" })}
@@ -1870,7 +1876,7 @@ export default function RequesterApprovals() {
                               </Button>
                             )}
 
-                            {waPhone && (
+                            {waPhone && canSendWhatsappInquiries && (
                               <a 
                                 href={`https://wa.me/${waPhone}`} 
                                 target="_blank" 
@@ -1881,7 +1887,7 @@ export default function RequesterApprovals() {
                                 <MessageCircle className="w-4 h-4" />
                               </a>
                             )}
-                            {sub.email && (
+                            {sub.email && canSendEmailInquiries && (
                               <a 
                                 href={`mailto:${sub.email}`} 
                                 className="p-2 rounded-xl text-sky-600 bg-sky-50 dark:bg-sky-950/40 border border-sky-200/60"
@@ -2200,7 +2206,7 @@ export default function RequesterApprovals() {
                     بيانات مقدم الطلب والتواصل
                   </h4>
                   <div className="flex items-center gap-2">
-                    {selectedSubmission.phone && (selectedSubmission.category === 'donor' ? canSendWhatsappDonations : true) && (
+                    {selectedSubmission.phone && (selectedSubmission.category === 'donor' ? canSendWhatsappDonations : canSendWhatsappInquiries) && (
                       <a 
                         href={`https://wa.me/${selectedSubmission.phone.replace(/[^0-9]/g, "").startsWith("05") ? `966${selectedSubmission.phone.slice(1)}` : selectedSubmission.phone}`} 
                         target="_blank" 
@@ -2212,7 +2218,7 @@ export default function RequesterApprovals() {
                         واتساب
                       </a>
                     )}
-                    {selectedSubmission.email && (selectedSubmission.category === 'donor' ? canSendEmailDonations : true) && (
+                    {selectedSubmission.email && (selectedSubmission.category === 'donor' ? canSendEmailDonations : canSendEmailInquiries) && (
                       <a 
                         href={`mailto:${selectedSubmission.email}`} 
                         className="h-8 px-3.5 rounded-xl border border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800 text-xs font-bold flex items-center gap-1.5 hover:bg-sky-100 transition-all shadow-2xs"
@@ -2285,7 +2291,7 @@ export default function RequesterApprovals() {
             {/* Footer */}
             <div className="flex items-center justify-between pt-5 border-t border-border/60">
               <div className="flex items-center gap-2">
-                {selectedSubmission.status === "new" && (selectedSubmission.category === 'donor' ? canApproveDonations : canReviewInquiries) && (
+                {selectedSubmission.status === "new" && (selectedSubmission.category === 'donor' ? canApproveDonations : canMarkReviewedInquiries) && (
                   <Button
                     type="button"
                     onClick={() => {
@@ -2305,26 +2311,9 @@ export default function RequesterApprovals() {
                     ) : (
                       <>
                         <CheckCircle2 className="w-4 h-4" />
-                        <span>اعتماد الطلب</span>
+                        <span>{selectedSubmission.category === 'donor' ? "اعتماد الطلب" : "تمت المراجعة"}</span>
                       </>
                     )}
-                  </Button>
-                )}
-
-                {selectedSubmission.category !== 'donor' && canDeleteInquiries && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      if (window.confirm("هل أنت متأكد من رغبتك في حذف هذا السجل نهائياً؟")) {
-                        deleteSubmissionMutation.mutate({ id: selectedSubmission.id });
-                      }
-                    }}
-                    disabled={deleteSubmissionMutation.isPending}
-                    className="rounded-2xl h-11 px-4 text-sm font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 gap-1.5 cursor-pointer"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span>حذف</span>
                   </Button>
                 )}
               </div>
