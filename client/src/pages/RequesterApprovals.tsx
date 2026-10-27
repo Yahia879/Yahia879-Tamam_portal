@@ -1101,8 +1101,8 @@ export default function RequesterApprovals() {
                   <TableHeader className="bg-muted/30">
                     <TableRow>
                       <TableHead className="text-right">اسم الإمام</TableHead>
-                      <TableHead className="text-right">التاريخ</TableHead>
-                      <TableHead className="text-right">سبب الاستثناء</TableHead>
+                      <TableHead className="text-right px-6">التاريخ</TableHead>
+                      <TableHead className="text-right px-6">سبب الاستثناء</TableHead>
                       <TableHead className="text-right">المرفق</TableHead>
                       <TableHead className="text-right">الحالة</TableHead>
                       <TableHead className="text-left pl-6">الإجراءات</TableHead>
@@ -1140,10 +1140,10 @@ export default function RequesterApprovals() {
                                 </div>
                               </div>
                             </TableCell>
-                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap" dir="ltr">
-                            {formatSubmissionDate(item.exception.createdAt)}
+                          <TableCell className="px-6 text-right text-xs text-muted-foreground whitespace-nowrap">
+                            <span dir="ltr">{formatSubmissionDate(item.exception.createdAt)}</span>
                           </TableCell>
-                          <TableCell className="max-w-xs truncate text-xs" title={item.exception.reason}>
+                          <TableCell className="px-6 text-right max-w-xs truncate text-xs" title={item.exception.reason}>
                             {item.exception.reason}
                           </TableCell>
                           <TableCell>
