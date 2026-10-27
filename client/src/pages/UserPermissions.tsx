@@ -480,7 +480,9 @@ export default function UserPermissions() {
             "requester_exceptions.reject",
             "requester_donations.view",
             "requester_donations.review",
-            "requester_donations.delete",
+            "requester_donations.approve",
+            "requester_donations.send_email",
+            "requester_donations.send_whatsapp",
             "requester_inquiries.view",
             "requester_inquiries.review",
             "requester_inquiries.delete",
@@ -733,7 +735,9 @@ export default function UserPermissions() {
             "requester_exceptions.reject",
             "requester_donations.view",
             "requester_donations.review",
-            "requester_donations.delete",
+            "requester_donations.approve",
+            "requester_donations.send_email",
+            "requester_donations.send_whatsapp",
             "requester_inquiries.view",
             "requester_inquiries.review",
             "requester_inquiries.delete",
@@ -930,8 +934,10 @@ export default function UserPermissions() {
       },
       requester_donations: {
         view: "عرض طلبات التبرعات",
-        review: "مراجعة واعتماد الطلب",
-        delete: "حذف الطلب"
+        review: "مراجعة الطلب",
+        approve: "اعتماد الطلب",
+        send_email: "إرسال Email",
+        send_whatsapp: "إرسال WhatsApp",
       },
       requester_inquiries: {
         view: "عرض الاستفسارات العامة",
@@ -1253,7 +1259,7 @@ export default function UserPermissions() {
       modules: [
         { id: "requester_accounts", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "view_details", "create", "approve", "suspend"] },
         { id: "requester_exceptions", nameAr: "طلبات الاستثناء", icon: FileText, perms: ["view", "approve", "reject"] },
-        { id: "requester_donations", nameAr: "طلبات التبرعات", icon: Gift, perms: ["view", "review", "delete"] },
+        { id: "requester_donations", nameAr: "طلبات التبرعات", icon: Gift, perms: ["view", "review", "approve", "send_email", "send_whatsapp"] },
         { id: "requester_inquiries", nameAr: "الاستفسارات العامة", icon: MessageSquareQuote, perms: ["view", "review", "delete"] },
         { id: "requester_sedana", nameAr: "طلبات برنامج سدانة", icon: Sparkles, perms: ["view", "review"] },
       ]
