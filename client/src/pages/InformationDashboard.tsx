@@ -52,12 +52,12 @@ export default function InformationDashboard() {
   const hasInfoPerm = usePermission("information_dashboard.view") || usePermission("information_dashboard");
   const canView = hasInfoPerm;
 
-  type SectionTab = "all" | "mosques" | "requests" | "procurement" | "financial" | "board";
+  type SectionTab = "all" | "mosques" | "requests" | "procurement" | "financial";
   const [activeTab, setActiveTab] = useState<SectionTab>(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get("tab") as SectionTab;
-      if (["mosques", "requests", "procurement", "financial", "board"].includes(tab)) return tab;
+      if (["mosques", "requests", "procurement", "financial"].includes(tab)) return tab;
     } catch {}
     return "all";
   });
@@ -537,12 +537,6 @@ export default function InformationDashboard() {
 
   const projectAndVoucherCards = projectAndVoucherCardDefs.filter(c => isDetailedElementEnabled(c.id));
 
-  const scrollToSection = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
 
   return (
     <div className="min-h-screen w-full bg-slate-50/60 dark:bg-zinc-950 text-foreground flex flex-col font-sans">
@@ -577,35 +571,12 @@ export default function InformationDashboard() {
                     {roleLabel}
                   </span>
                 </div>
-                <p className="text-[10px] text-muted-foreground hidden md:block truncate">
-                  عرض تحليلي شامل لمؤشرات المنظومة والمشاريع والمالية والطلبات
-                </p>
               </div>
             </div>
           </div>
 
           {/* اليسار: أدوات التحكم وملء الشاشة */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="hidden lg:flex items-center gap-2 bg-muted/60 dark:bg-muted/30 border border-border/60 rounded-xl px-3 py-1.5 text-xs">
-              <Target className="w-3.5 h-3.5 text-primary shrink-0" />
-              <span className="text-muted-foreground font-medium">نسبة الإنجاز:</span>
-              <span className="font-bold text-foreground">{completionRate}%</span>
-            </div>
-
-            {isSuperAdmin && (
-              <Link href="/forms-customization/dashboard">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-xs font-bold gap-1.5 h-9 rounded-xl border-border/80 hover:bg-primary/5 hover:text-primary cursor-pointer shadow-xs"
-                >
-                  <SlidersHorizontal className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">تخصيص اللوحة</span>
-                </Button>
-              </Link>
-            )}
-
-            {/* زر ملء الشاشة الكامل */}
             <Button
               variant="default"
               size="sm"
@@ -630,65 +601,7 @@ export default function InformationDashboard() {
       </header>
 
       <main className="flex-1 w-full p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-[1920px] mx-auto">
-        {/* ========================================================================= */}
-        {/* 1. الهيدر الفاخر لرسالة الترحيب ونسبة الإنجاز وتخصيص اللوحة والدعم الفني */}
-        {/* ========================================================================= */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 px-4 sm:px-6 py-4 sm:py-6 text-white shadow-lg">
-          <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.5))]" />
-          <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-              <div className="flex items-center gap-2 text-white/60 text-[10px] sm:text-xs">
-                <Activity className="w-3.5 h-3.5" />
-                <span>الرئيسية</span>
-                <span>/</span>
-                <span className="text-white font-medium">لوحة المعلومات</span>
-              </div>
-              <div className="hidden sm:block w-px h-4 bg-white/30" />
-              <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold truncate" title={user?.name}>
-                  لوحة المعلومات الشاملة
-                </h1>
-                <div className="hidden sm:block w-px h-4 bg-white/40" />
-                <span className="text-white/80 text-[10px] sm:text-sm font-medium bg-white/15 rounded-full px-2 sm:px-3 py-0.5 whitespace-nowrap">
-                  {roleLabel}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5 sm:gap-3.5 flex-wrap sm:flex-nowrap shrink-0">
-              <div className="flex items-center gap-2 bg-white/20 rounded-full px-3 py-1.5 w-fit shrink-0">
-                <Target className="w-3.5 h-3.5 shrink-0" />
-                <span className="text-[10px] sm:text-xs font-medium whitespace-nowrap">نسبة الإنجاز: {completionRate}%</span>
-              </div>
-              {isSuperAdmin && (
-                <Link href="/forms-customization/dashboard">
-                  <Button
-                    size="sm"
-                    className="bg-white/20 hover:bg-white/30 text-white border-0 text-xs font-bold gap-1.5 h-10 rounded-xl shadow-xs cursor-pointer"
-                    title="تخصيص عناصر وأقسام لوحة المعلومات"
-                  >
-                    <SlidersHorizontal className="w-4 h-4" />
-                    <span className="hidden sm:inline">تخصيص اللوحة</span>
-                  </Button>
-                </Link>
-              )}
-              <Link href="/support">
-                <Button 
-                  size="default" 
-                  variant="ghost" 
-                  className="group flex items-center gap-2.5 bg-[#fafaf9] hover:bg-[#f4f4f3] text-teal-950 rounded-xl px-5 h-10 border border-neutral-200/30 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-sm"
-                  title="طلب الدعم الفني"
-                >
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-[ping_3s_infinite] absolute inline-flex h-full w-full rounded-full bg-emerald-600/30"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
-                  </span>
-                  <LifeBuoy className="w-4 h-4 shrink-0 text-teal-700 transition-transform group-hover:rotate-12 duration-500" />
-                  <span className="text-xs sm:text-sm font-semibold whitespace-nowrap">الدعم الفني</span>
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
+        
 
         {/* 2. شريط التنقل المحوري والتبديل بين الأقسام */}
         <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-md border border-border/80 rounded-2xl p-2.5 sm:p-3 shadow-xs">
@@ -703,7 +616,6 @@ export default function InformationDashboard() {
                 { id: "requests" as const, label: "الطلبات والبرامج", icon: FileText, color: "text-blue-600", badge: "الطلبات" },
                 { id: "procurement" as const, label: "المشاريع والعقود", icon: Briefcase, color: "text-amber-600", badge: "المشاريع" },
                 { id: "financial" as const, label: "المالية والصرف", icon: SaudiRiyal, color: "text-teal-600", badge: "المالية" },
-                { id: "board" as const, label: "القيادة العليا والمجلس", icon: Shield, color: "text-indigo-600", badge: "الإدارة العليا" },
               ].map(tab => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -731,71 +643,8 @@ export default function InformationDashboard() {
                 );
               })}
             </div>
-
-            {activeTab === "all" && (
-              <div className="hidden 2xl:flex items-center gap-2.5 shrink-0 text-xs text-muted-foreground border-r border-border/80 pr-3 mr-2">
-                <span className="font-bold text-foreground">انتقال سريع:</span>
-                <button
-                  type="button"
-                  onClick={() => scrollToSection("section-mosques")}
-                  className="hover:text-emerald-600 transition-colors font-medium hover:underline cursor-pointer"
-                >
-                  المساجد
-                </button>
-                <span>•</span>
-                <button
-                  type="button"
-                  onClick={() => scrollToSection("section-requests")}
-                  className="hover:text-blue-600 transition-colors font-medium hover:underline cursor-pointer"
-                >
-                  الطلبات
-                </button>
-                <span>•</span>
-                <button
-                  type="button"
-                  onClick={() => scrollToSection("section-procurement")}
-                  className="hover:text-amber-600 transition-colors font-medium hover:underline cursor-pointer"
-                >
-                  المشاريع
-                </button>
-                <span>•</span>
-                <button
-                  type="button"
-                  onClick={() => scrollToSection("section-financial")}
-                  className="hover:text-teal-600 transition-colors font-medium hover:underline cursor-pointer"
-                >
-                  المالية
-                </button>
-                <span>•</span>
-                <button
-                  type="button"
-                  onClick={() => scrollToSection("section-board")}
-                  className="hover:text-indigo-600 transition-colors font-medium hover:underline cursor-pointer"
-                >
-                  القيادة العليا
-                </button>
-              </div>
-            )}
           </div>
         </div>
-
-        {/* ملخص المؤشرات الرقمية العامة عند اختيار كافة الأقسام */}
-        {activeTab === "all" && mainOverviewCards.length > 0 && (
-          <div className="space-y-3 pt-1">
-            <div className="flex items-center gap-2 pb-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
-              <h3 className="text-sm sm:text-base font-bold text-foreground">
-                المؤشرات الرقمية القيادية العامة
-              </h3>
-              <span className="text-xs text-muted-foreground mr-1">
-                (الملخص الإجمالي لكافة أعمال المنظومة)
-              </span>
-            </div>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-              {mainOverviewCards.slice(0, 4).map((stat, idx) => renderCard(stat, `headline-${idx}`))}
-            </div>
-          </div>
-        )}
 
         {/* ========================================================================= */}
         {/* 1. قسم المساجد والزيارات الميدانية */}
@@ -845,7 +694,7 @@ export default function InformationDashboard() {
 
             {/* مخططات قسم المساجد من لوحة التحليلات */}
             <div className="pt-2">
-              <BoardDashboard embedded={true} forceAnalytics={true} initialTab="mosques" hideTabs={true} />
+              <BoardDashboard embedded={true} forceAnalytics={true} initialTab="mosques" hideTabs={true} hideCards={true} />
             </div>
           </section>
         )}
@@ -967,7 +816,7 @@ export default function InformationDashboard() {
 
             {/* مخططات المشتريات والعقود من لوحة التحليلات */}
             <div className="pt-2">
-              <BoardDashboard embedded={true} forceAnalytics={true} initialTab="procurement" hideTabs={true} />
+              <BoardDashboard embedded={true} forceAnalytics={true} initialTab="procurement" hideTabs={true} hideCards={true} />
             </div>
           </section>
         )}
@@ -1025,45 +874,6 @@ export default function InformationDashboard() {
           </section>
         )}
 
-        {/* ========================================================================= */}
-        {/* 5. قسم القيادة العليا ومجلس الإدارة */}
-        {/* ========================================================================= */}
-        {(activeTab === "all" || activeTab === "board") && (
-          <section id="section-board" className="space-y-6 pt-6 border-t-2 border-border/80 scroll-mt-36">
-            {/* هيدر قسم مجلس الإدارة */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-indigo-500/5 to-transparent border border-indigo-500/20 shadow-xs">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-md shadow-indigo-500/20 shrink-0">
-                  <Shield className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base sm:text-lg lg:text-xl font-bold text-foreground">
-                      تحليلات مجلس الإدارة والحوكمة العليا
-                    </h2>
-                    <span className="text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/25 shrink-0">
-                      لوحة الإدارة العليا
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    التحليلات الاستراتيجية الشاملة ومصفوفة الأداء المؤسسي ومركز اعتمادات أوامر الصرف
-                  </p>
-                </div>
-              </div>
-              <Link href="/board-analytics">
-                <Button variant="outline" size="sm" className="text-xs font-bold gap-1.5 rounded-xl border-indigo-300 hover:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 shrink-0 cursor-pointer">
-                  <span>فتح صفحة مجلس الإدارة</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </Button>
-              </Link>
-            </div>
-
-            {/* لوحة تحليلات مجلس الإدارة التفاعلية الشاملة بكافة تبويباتها */}
-            <div className="pt-2">
-              <BoardDashboard embedded={true} forceAnalytics={true} initialTab="mosques" hideTabs={false} />
-            </div>
-          </section>
-        )}
 
         {/* ========================================================================= */}
         {isDetailedElementEnabled("section_pending_users") && pendingUsers && pendingUsers.length > 0 && (

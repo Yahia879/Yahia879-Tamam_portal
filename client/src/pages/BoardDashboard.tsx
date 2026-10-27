@@ -97,11 +97,13 @@ export default function BoardDashboard({
   forceAnalytics = false,
   initialTab = "mosques",
   hideTabs = false,
+  hideCards = false,
 }: {
   embedded?: boolean;
   forceAnalytics?: boolean;
   initialTab?: string;
   hideTabs?: boolean;
+  hideCards?: boolean;
 }) {
   const [location, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -961,7 +963,8 @@ export default function BoardDashboard({
 
             {/* 1️⃣ تبويب إحصائيات المساجد */}
             <TabsContent value="mosques" className="space-y-8 animate-in fade-in-50 duration-300">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {!hideCards && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
@@ -1026,7 +1029,7 @@ export default function BoardDashboard({
                   </CardContent>
                 </Card>
               </div>
-
+              )}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <Card className="rounded-3xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                   <CardHeader className="p-0 mb-6 text-right">
@@ -1134,7 +1137,8 @@ export default function BoardDashboard({
 
             {/* 2️⃣ تبويب إحصائيات الطلبات */}
             <TabsContent value="requests" className="space-y-8 animate-in fade-in-50 duration-300">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {!hideCards && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
@@ -1197,7 +1201,7 @@ export default function BoardDashboard({
                   </CardContent>
                 </Card>
               </div>
-
+              )}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <Card className="lg:col-span-2 rounded-3xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                   <CardHeader className="p-0 mb-6 text-right">
@@ -1275,7 +1279,8 @@ export default function BoardDashboard({
 
             {/* 3️⃣ تبويب المشتريات والعقود والموردين */}
             <TabsContent value="procurement" className="space-y-8 animate-in fade-in-50 duration-300">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {!hideCards && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
@@ -1338,6 +1343,7 @@ export default function BoardDashboard({
                   </CardContent>
                 </Card>
               </div>
+              )}
 
               {/* 📊 تشارتات المشتريات والعقود والموردين */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -1489,7 +1495,8 @@ export default function BoardDashboard({
 
             {/* 4️⃣ تبويب الأمور المالية والصرف */}
             <TabsContent value="financials" className="space-y-8 animate-in fade-in-50 duration-300">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {!hideCards && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
@@ -1559,6 +1566,7 @@ export default function BoardDashboard({
                   </CardContent>
                 </Card>
               </div>
+              )}
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* 1. سير طلبات الصرف */}
