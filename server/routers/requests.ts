@@ -5631,15 +5631,19 @@ export const requestsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const canReview = isAdmin ||
-        (await checkPermission(ctx.user.id, "requester_exceptions.review")) ||
-        (await checkPermission(ctx.user.id, "requests.approve")) ||
-        (await checkPermission(ctx.user.id, "requests.edit"));
+      const isApproved = input.status === "approved";
+      const hasPermission = isApproved
+        ? (await checkPermission(ctx.user.id, "requester_exceptions.approve"))
+        : (await checkPermission(ctx.user.id, "requester_exceptions.reject"));
 
-      if (!canReview) {
+      const canAct = isAdmin || hasPermission;
+
+      if (!canAct) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "غير مصرح لك بمراجعة طلبات الاستثناء (تتطلب صلاحية مراجعة واعتماد الاستثناءات)"
+          message: isApproved
+            ? "غير مصرح لك بقبول طلبات الاستثناء (تتطلب صلاحية قبول طلب الاستثناء)"
+            : "غير مصرح لك برفض طلبات الاستثناء (تتطلب صلاحية رفض طلب الاستثناء)"
         });
       }
 
