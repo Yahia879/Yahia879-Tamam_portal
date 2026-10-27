@@ -1303,7 +1303,13 @@ export default function RolePermissions() {
     {
       title: "الرئيسية",
       modules: [
-        { id: "information_dashboard", nameAr: "لوحة المعلومات", icon: LayoutDashboard, perms: ["view"] }
+        { id: "information_dashboard", nameAr: "لوحة المعلومات", icon: LayoutDashboard, perms: ["view"] },
+      {
+        id: "board_leadership",
+        nameAr: "مجلس الإدارة والقيادة العليا",
+        icon: Shield,
+        perms: ["board_chairman", "board_member", "remind"]
+      }
       ]
     },
     {
@@ -1419,17 +1425,6 @@ export default function RolePermissions() {
           nameAr: "صلاحيات التوقيع",
           icon: PenLine,
           perms: ["disbursements_sign", "disbursement_orders_sign", "final_reports_sign", "progress_reports_sign"]
-        }
-      ]
-    },
-    {
-      title: "مجلس الإدارة والقيادة العليا",
-      modules: [
-        {
-          id: "board_leadership",
-          nameAr: "مجلس الإدارة والقيادة العليا",
-          icon: Shield,
-          perms: ["board_chairman", "board_member", "remind"]
         }
       ]
     }

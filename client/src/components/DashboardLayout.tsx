@@ -111,9 +111,6 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
   if (["super_admin", "system_admin"].includes(role) || isExecDirector || role !== "service_requester") {
     mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
   }
-  if (["super_admin", "system_admin"].includes(role)) {
-    mainItems.push({ icon: Layers, label: isEn ? "Information Dashboard" : "لوحة المعلومات", path: "/information-dashboard" });
-  }
   if (role === "board_chairman") {
     mainItems.push({ icon: BadgeCheck, label: isEn ? "Financial Approval Center" : "مركز الاعتماد المالي", path: "/board-executive" });
   }
@@ -304,7 +301,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (canSeeDashboard) {
     mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
   }
-  if (has("information_dashboard") || has("information_dashboard.view") || has("*") || ["super_admin", "system_admin"].includes(role)) {
+  if (has("information_dashboard") || has("information_dashboard.view") || has("*")) {
     mainItems.push({ icon: Layers, label: isEn ? "Information Dashboard" : "لوحة المعلومات", path: "/information-dashboard" });
   }
   if (has("board_chairman") || has("board_chairman_view")) {
@@ -853,7 +850,16 @@ function DashboardLayoutContent({
 
   // إذا كان للمستخدم دور قابل للتخصيص (أي دور غير super_admin و system_admin و service_requester)،
   // نبني القائمة الجانبية من صلاحياته الفعلية المسجلة
-  const userPermissions: string[] = (user as any)?.permissions ?? [];
+    const { data: directPermissions } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    {
+      enabled: !!user?.id,
+      staleTime: 5 * 1000,
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,
+    }
+  );
+  const userPermissions: string[] = directPermissions ?? (user as any)?.permissions ?? [];
   const hasCustomRole = !!(user as any)?.customRole;
   const isSuperOrSystemAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
   const isServiceRequester = user?.role === "service_requester";

@@ -1,6 +1,6 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import DashboardLayout from "@/components/DashboardLayout";
+// DashboardLayout removed to support native full screen view
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
@@ -31,6 +31,10 @@ import {
   AlertTriangle,
   ArrowUpRight,
   TrendingUp,
+  Layers,
+  ArrowRight,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 
 import Reports from "@/pages/Reports";
@@ -41,10 +45,44 @@ export default function InformationDashboard() {
   const [, navigate] = useLocation();
   const { user, loading: isUserLoading } = useAuth();
 
-  const isSuperAdmin = user?.role === "super_admin";
+    const isSuperAdmin = user?.role === "super_admin";
   const isSystemAdmin = user?.role === "system_admin";
   const hasInfoPerm = usePermission("information_dashboard.view") || usePermission("information_dashboard");
-  const canView = isSuperAdmin || isSystemAdmin || hasInfoPerm;
+  const canView = hasInfoPerm;
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+    // محاولة تفعيل ملء الشاشة تلقائياً عند فتح الصفحة
+    try {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {
+          // يتطلب المتصفح تفاعل المستخدم أولاً، والزر في الهيدر جاهز
+        });
+      }
+    } catch {}
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(err => console.warn(err));
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(err => console.warn(err));
+      }
+    }
+  };
 
   const customRoleNameAr = (user as any)?.customRoleNameAr || "";
   const roleLabel = customRoleNameAr || ROLE_LABELS[user?.role || ""] || user?.role || "مستخدم";
@@ -76,20 +114,20 @@ export default function InformationDashboard() {
   // التحقق من الصلاحية
   if (!isUserLoading && user && !canView) {
     return (
-      <DashboardLayout>
-        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center space-y-4">
+      <div className="min-h-screen w-full bg-slate-50/60 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center justify-center text-center space-y-4 max-w-md p-8 rounded-2xl border border-border bg-card shadow-sm">
           <div className="p-4 rounded-full bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
             <AlertTriangle className="w-10 h-10" />
           </div>
           <h2 className="text-xl font-bold text-foreground">غير مصرح لك بالوصول</h2>
-          <p className="text-sm text-muted-foreground max-w-md">
+          <p className="text-sm text-muted-foreground">
             عذراً، لا تمتلك الصلاحية الكافية لعرض لوحة المعلومات. يرجى مراجعة مدير النظام للحصول على الصلاحية.
           </p>
-          <Button onClick={() => navigate("/dashboard")} className="mt-2">
+          <Button onClick={() => navigate("/dashboard")} className="mt-2 rounded-xl">
             العودة للرئيسية
           </Button>
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
@@ -482,8 +520,91 @@ export default function InformationDashboard() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 sm:space-y-8">
+    <div className="min-h-screen w-full bg-slate-50/60 dark:bg-zinc-950 text-foreground flex flex-col font-sans">
+      {/* شريط التحكم العلوي الخاص بوضع الشاشة الكاملة */}
+      <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 shadow-xs">
+        <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+          {/* اليمين: زر العودة + الشعار والعنوان */}
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/dashboard")}
+              className="gap-2 rounded-xl text-xs font-bold border-border/80 hover:bg-primary/5 hover:text-primary transition-all shrink-0 cursor-pointer shadow-xs"
+              title="العودة للرئيسية والمنظومة"
+            >
+              <ArrowRight className="w-4 h-4 text-primary" />
+              <span className="hidden sm:inline">العودة للرئيسية</span>
+            </Button>
+
+            <div className="h-5 w-px bg-border/80 hidden sm:block" />
+
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20 shadow-xs">
+                <Layers className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-sm sm:text-base font-bold text-foreground truncate">
+                    لوحة المعلومات
+                  </h1>
+                  <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 shrink-0">
+                    {roleLabel}
+                  </span>
+                </div>
+                <p className="text-[10px] text-muted-foreground hidden md:block truncate">
+                  عرض تحليلي شامل لمؤشرات المنظومة والمشاريع والمالية والطلبات
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* اليسار: أدوات التحكم وملء الشاشة */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="hidden lg:flex items-center gap-2 bg-muted/60 dark:bg-muted/30 border border-border/60 rounded-xl px-3 py-1.5 text-xs">
+              <Target className="w-3.5 h-3.5 text-primary shrink-0" />
+              <span className="text-muted-foreground font-medium">نسبة الإنجاز:</span>
+              <span className="font-bold text-foreground">{completionRate}%</span>
+            </div>
+
+            {isSuperAdmin && (
+              <Link href="/forms-customization/dashboard">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs font-bold gap-1.5 h-9 rounded-xl border-border/80 hover:bg-primary/5 hover:text-primary cursor-pointer shadow-xs"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">تخصيص اللوحة</span>
+                </Button>
+              </Link>
+            )}
+
+            {/* زر ملء الشاشة الكامل */}
+            <Button
+              variant="default"
+              size="sm"
+              onClick={toggleFullscreen}
+              className="gap-1.5 text-xs font-bold rounded-xl h-9 cursor-pointer shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground"
+              title={isFullscreen ? "إنهاء وضع ملء الشاشة (Esc)" : "تفعيل وضع ملء الشاشة الكامل"}
+            >
+              {isFullscreen ? (
+                <>
+                  <Minimize2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">إنهاء ملء الشاشة</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">ملء الشاشة</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1 w-full p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-[1920px] mx-auto">
         {/* ========================================================================= */}
         {/* 1. الهيدر الفاخر لرسالة الترحيب ونسبة الإنجاز وتخصيص اللوحة والدعم الفني */}
         {/* ========================================================================= */}
@@ -774,7 +895,7 @@ export default function InformationDashboard() {
             </Card>
           </div>
         )}
-      </div>
-    </DashboardLayout>
+            </main>
+    </div>
   );
 }
