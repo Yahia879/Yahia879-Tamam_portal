@@ -95,12 +95,22 @@ const TOOLTIP_LABEL_STYLE = {
 export default function BoardDashboard({
   embedded = false,
   forceAnalytics = false,
+  initialTab = "mosques",
+  hideTabs = false,
 }: {
   embedded?: boolean;
   forceAnalytics?: boolean;
+  initialTab?: string;
+  hideTabs?: boolean;
 }) {
   const [location, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState("mosques");
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [approvingId, setApprovingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -911,7 +921,8 @@ export default function BoardDashboard({
         {/* ==================== 📊 2. صفحة عضو مجلس الإدارة (التبويبات الـ 5 للإحصائيات) ==================== */}
         {!isChairmanView && data && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8 w-full" dir="rtl">
-            <div className="w-full" dir="rtl">
+            {!hideTabs && (
+              <div className="w-full" dir="rtl">
               <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto bg-slate-100/90 dark:bg-slate-800/90 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 gap-2 sm:gap-3">
                 <TabsTrigger
                   value="mosques"
@@ -945,7 +956,8 @@ export default function BoardDashboard({
                   <span>المالية والصرف</span>
                 </TabsTrigger>
               </TabsList>
-            </div>
+              </div>
+            )}
 
             {/* 1️⃣ تبويب إحصائيات المساجد */}
             <TabsContent value="mosques" className="space-y-8 animate-in fade-in-50 duration-300">
