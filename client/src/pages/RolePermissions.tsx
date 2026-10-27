@@ -269,10 +269,34 @@ export default function RolePermissions() {
       }
     }
 
-    // منع تفعيل أي صلاحية فرعية لطالبي الخدمة إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("requesters.") && permId !== "requesters.view") {
-      if (!selectedPerms.includes("requesters.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض بيانات طالبي الخدمة' أولاً");
+    // منع تفعيل أي صلاحية فرعية لتبويبات المستفيدين إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("requester_accounts.") && permId !== "requester_accounts.view") {
+      if (!selectedPerms.includes("requester_accounts.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض حسابات طالبي الخدمة' أولاً");
+        return;
+      }
+    }
+    if (permId.startsWith("requester_exceptions.") && permId !== "requester_exceptions.view") {
+      if (!selectedPerms.includes("requester_exceptions.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض طلبات الاستثناء' أولاً");
+        return;
+      }
+    }
+    if (permId.startsWith("requester_donations.") && permId !== "requester_donations.view") {
+      if (!selectedPerms.includes("requester_donations.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض طلبات التبرعات' أولاً");
+        return;
+      }
+    }
+    if (permId.startsWith("requester_inquiries.") && permId !== "requester_inquiries.view") {
+      if (!selectedPerms.includes("requester_inquiries.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض الاستفسارات العامة' أولاً");
+        return;
+      }
+    }
+    if (permId.startsWith("requester_sedana.") && permId !== "requester_sedana.view") {
+      if (!selectedPerms.includes("requester_sedana.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض طلبات برنامج سدانة' أولاً");
         return;
       }
     }
@@ -1316,7 +1340,7 @@ export default function RolePermissions() {
     {
       title: "إدارة المستفيدين",
       modules: [
-        { id: "requester_accounts", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "create", "approve", "suspend"] },
+        { id: "requester_accounts", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "view_details", "create", "approve", "suspend"] },
         { id: "requester_exceptions", nameAr: "طلبات الاستثناء", icon: FileText, perms: ["view", "review"] },
         { id: "requester_donations", nameAr: "طلبات التبرعات", icon: Gift, perms: ["view", "review", "delete"] },
         { id: "requester_inquiries", nameAr: "الاستفسارات العامة", icon: MessageSquareQuote, perms: ["view", "review", "delete"] },
@@ -1616,6 +1640,7 @@ export default function RolePermissions() {
       },
       requester_accounts: {
         view: "عرض حسابات طالبي الخدمة",
+        view_details: "عرض تفاصيل الحساب",
         create: "إضافة مستفيد",
         approve: "اعتماد الحساب",
         suspend: "إيقاف الحساب"
