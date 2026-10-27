@@ -161,7 +161,8 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   requester_exceptions: ["requests.view", "requests.edit"],
   "requester_exceptions.view": ["requests.view"],
-  "requester_exceptions.review": ["requests.edit", "requests.approve"],
+  "requester_exceptions.approve": ["requests.edit", "requests.approve"],
+  "requester_exceptions.reject": ["requests.edit", "requests.approve"],
 
   requester_donations: ["publicSubmissions.view", "publicSubmissions.edit"],
   "requester_donations.view": ["publicSubmissions.view"],
@@ -797,7 +798,8 @@ async function ensureRequestersPermissionsExist(db: any) {
       "requester_accounts.view_details",
       "requester_accounts.approve",
       "requester_exceptions.view",
-      "requester_exceptions.review",
+      "requester_exceptions.approve",
+      "requester_exceptions.reject",
       "requester_donations.view",
       "requester_donations.review",
       "requester_inquiries.view",
@@ -1147,7 +1149,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "requester_accounts.suspend", moduleId: "requester_accounts", action: "suspend", nameAr: "إيقاف الحساب", nameEn: "Suspend Beneficiary Account" },
       // 2. طلبات الاستثناء
       { id: "requester_exceptions.view", moduleId: "requester_exceptions", action: "view", nameAr: "عرض طلبات الاستثناء", nameEn: "View Exceptions" },
-      { id: "requester_exceptions.review", moduleId: "requester_exceptions", action: "review", nameAr: "الاعتمادات (قبول أو رفض طلب الاستثناء)", nameEn: "Review Exceptions" },
+      { id: "requester_exceptions.approve", moduleId: "requester_exceptions", action: "approve", nameAr: "قبول طلب الاستثناء", nameEn: "Approve Exception Request" },
+      { id: "requester_exceptions.reject", moduleId: "requester_exceptions", action: "reject", nameAr: "رفض طلب الاستثناء", nameEn: "Reject Exception Request" },
       // 3. طلبات التبرعات
       { id: "requester_donations.view", moduleId: "requester_donations", action: "view", nameAr: "عرض طلبات التبرعات", nameEn: "View Donations" },
       { id: "requester_donations.review", moduleId: "requester_donations", action: "review", nameAr: "مراجعة واعتماد الطلب", nameEn: "Review Donations" },
