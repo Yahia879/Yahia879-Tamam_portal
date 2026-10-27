@@ -154,6 +154,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   // إدارة المستفيدين - 5 تبويبات مخصصة
   requester_accounts: ["users.view", "users.edit"],
   "requester_accounts.view": ["users.view"],
+  "requester_accounts.view_details": ["users.view"],
   "requester_accounts.create": ["users.create", "users.edit"],
   "requester_accounts.approve": ["users.edit"],
   "requester_accounts.suspend": ["users.edit"],
@@ -793,6 +794,7 @@ async function ensureRequestersPermissionsExist(db: any) {
     const roleId = "projects_office";
     const permIds = [
       "requester_accounts.view",
+      "requester_accounts.view_details",
       "requester_accounts.approve",
       "requester_exceptions.view",
       "requester_exceptions.review",
@@ -1139,6 +1141,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "projects.view_details", moduleId: "projects", action: "view_details", nameAr: "عرض تفاصيل المشروع وادارته", nameEn: "View Project Details" },
       // 1. حسابات طالبي الخدمة
       { id: "requester_accounts.view", moduleId: "requester_accounts", action: "view", nameAr: "عرض حسابات طالبي الخدمة", nameEn: "View Requester Accounts" },
+      { id: "requester_accounts.view_details", moduleId: "requester_accounts", action: "view_details", nameAr: "عرض تفاصيل الحساب", nameEn: "View Account Details" },
       { id: "requester_accounts.create", moduleId: "requester_accounts", action: "create", nameAr: "إضافة مستفيد", nameEn: "Create Beneficiary" },
       { id: "requester_accounts.approve", moduleId: "requester_accounts", action: "approve", nameAr: "اعتماد الحساب", nameEn: "Approve Beneficiary Account" },
       { id: "requester_accounts.suspend", moduleId: "requester_accounts", action: "suspend", nameAr: "إيقاف الحساب", nameEn: "Suspend Beneficiary Account" },
