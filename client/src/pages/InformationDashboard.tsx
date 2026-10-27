@@ -35,6 +35,7 @@ import {
   ArrowRight,
   Maximize2,
   Minimize2,
+  LayoutGrid,
 } from "lucide-react";
 
 import Reports from "@/pages/Reports";
@@ -49,6 +50,29 @@ export default function InformationDashboard() {
   const isSystemAdmin = user?.role === "system_admin";
   const hasInfoPerm = usePermission("information_dashboard.view") || usePermission("information_dashboard");
   const canView = hasInfoPerm;
+
+  type SectionTab = "all" | "board" | "financial" | "reports";
+  const [activeTab, setActiveTab] = useState<SectionTab>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab") as SectionTab;
+      if (tab === "board" || tab === "financial" || tab === "reports") return tab;
+    } catch {}
+    return "all";
+  });
+
+  const handleTabChange = (tab: SectionTab) => {
+    setActiveTab(tab);
+    try {
+      const url = new URL(window.location.href);
+      if (tab === "all") {
+        url.searchParams.delete("tab");
+      } else {
+        url.searchParams.set("tab", tab);
+      }
+      window.history.replaceState({}, "", url.toString());
+    } catch {}
+  };
 
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -665,209 +689,318 @@ export default function InformationDashboard() {
           </div>
         </div>
 
-        {/* أزرار الانتقال السريع بين الأقسام */}
-        {isDetailedElementEnabled("quick_nav") && (
-          <div className="sticky top-2 z-20 bg-card/95 backdrop-blur-md border border-border/80 rounded-2xl p-3 sm:p-4 shadow-sm">
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              <span className="text-xs font-bold text-muted-foreground shrink-0 ml-1">انتقال سريع:</span>
-              {isDetailedElementEnabled("section_board") && (
-                <button
-                  type="button"
-                  onClick={() => scrollToSection("section-board")}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-xs font-bold text-blue-700 dark:text-blue-300 border border-blue-500/30 transition-colors shrink-0 cursor-pointer"
-                >
-                  <Briefcase className="w-3.5 h-3.5 text-blue-600" />
-                  <span>مخططات مجلس الإدارة</span>
-                </button>
-              )}
-              {isDetailedElementEnabled("section_financial") && (
-                <button
-                  type="button"
-                  onClick={() => scrollToSection("section-financial")}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-xs font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 transition-colors shrink-0 cursor-pointer"
-                >
-                  <SaudiRiyal className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>التقرير المالي</span>
-                </button>
-              )}
-              {isDetailedElementEnabled("section_reports") && (
-                <button
-                  type="button"
-                  onClick={() => scrollToSection("section-reports")}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-xs font-bold text-purple-700 dark:text-purple-300 border border-purple-500/30 transition-colors shrink-0 cursor-pointer"
-                >
-                  <BarChart3 className="w-3.5 h-3.5 text-purple-600" />
-                  <span>تقارير الطلبات</span>
-                </button>
-              )}
+        {/* 2. شريط التنقل المحوري والتبديل بين الأقسام */}
+        <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-md border border-border/80 rounded-2xl p-2.5 sm:p-3 shadow-xs">
+          <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 scrollbar-hide">
+              <span className="text-xs font-bold text-muted-foreground shrink-0 ml-1 hidden lg:inline">
+                الأقسام:
+              </span>
+              {[
+                { id: "all" as const, label: "كافة الأقسام", icon: LayoutGrid, color: "text-primary", badge: "عرض شامل" },
+                ...(isDetailedElementEnabled("section_board")
+                  ? [{ id: "board" as const, label: "مجلس الإدارة والقيادة العليا", icon: Briefcase, color: "text-blue-600", badge: "الإدارة العليا" }]
+                  : []),
+                ...(isDetailedElementEnabled("section_financial")
+                  ? [{ id: "financial" as const, label: "التقرير والتحليلات المالية", icon: SaudiRiyal, color: "text-emerald-600", badge: "المالية" }]
+                  : []),
+                ...(isDetailedElementEnabled("section_reports")
+                  ? [{ id: "reports" as const, label: "التقارير الفنية والإحصائية", icon: BarChart3, color: "text-purple-600", badge: "الطلبات" }]
+                  : []),
+              ].map(tab => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer ${
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25 scale-[1.02]"
+                        : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60"
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 ${isActive ? "text-primary-foreground" : tab.color}`} />
+                    <span>{tab.label}</span>
+                    {tab.badge && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                        isActive ? "bg-white/20 text-white" : "bg-background text-muted-foreground border border-border/50"
+                      }`}>
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-          </div>
-        )}
 
-        {/* ========================================================================= */}
-        {/* 2. بطاقات المؤشرات الرقمية الرئيسية */}
-        {/* ========================================================================= */}
-        {mainOverviewCards.length > 0 && (
-          <div id="section-cards" className="space-y-4 scroll-mt-28">
+            {activeTab === "all" && (
+              <div className="hidden xl:flex items-center gap-2.5 shrink-0 text-xs text-muted-foreground border-r border-border/80 pr-3 mr-2">
+                <span className="font-bold text-foreground">انتقال سريع:</span>
+                {isDetailedElementEnabled("section_board") && (
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection("section-board")}
+                    className="hover:text-blue-600 transition-colors font-medium hover:underline cursor-pointer"
+                  >
+                    مجلس الإدارة
+                  </button>
+                )}
+                {isDetailedElementEnabled("section_financial") && (
+                  <>
+                    <span>•</span>
+                    <button
+                      type="button"
+                      onClick={() => scrollToSection("section-financial")}
+                      className="hover:text-emerald-600 transition-colors font-medium hover:underline cursor-pointer"
+                    >
+                      المالية
+                    </button>
+                  </>
+                )}
+                {isDetailedElementEnabled("section_reports") && (
+                  <>
+                    <span>•</span>
+                    <button
+                      type="button"
+                      onClick={() => scrollToSection("section-reports")}
+                      className="hover:text-purple-600 transition-colors font-medium hover:underline cursor-pointer"
+                    >
+                      التقارير
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ملخص المؤشرات الرقمية العامة عند اختيار كافة الأقسام */}
+        {activeTab === "all" && mainOverviewCards.length > 0 && (
+          <div className="space-y-3 pt-1">
             <div className="flex items-center gap-2 pb-1">
               <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
-              <h2 className="text-base sm:text-lg font-bold text-foreground">
-                المؤشرات الرقمية والبطاقات الرئيسية
-              </h2>
+              <h3 className="text-sm sm:text-base font-bold text-foreground">
+                المؤشرات الرقمية القيادية العامة
+              </h3>
               <span className="text-xs text-muted-foreground mr-1">
-                (الملخص الإجمالي للطلبات، المساجد، العقود، والمصروفات)
+                (الملخص الإجمالي لكافة أعمال المنظومة)
               </span>
             </div>
-
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-              {mainOverviewCards.map((stat, idx) => renderCard(stat, `main-${idx}`))}
+              {mainOverviewCards.slice(0, 4).map((stat, idx) => renderCard(stat, `headline-${idx}`))}
             </div>
           </div>
         )}
 
         {/* ========================================================================= */}
-        {/* 3. بطاقات كافة التبويبات بالمنظومة */}
+        {/* القسم الأول: تحليلات مجلس الإدارة والقيادة العليا (board-analytics) */}
         {/* ========================================================================= */}
-        {(mosqueCards.length > 0 || requestCards.length > 0 || procurementCards.length > 0 || financialCards.length > 0 || projectAndVoucherCards.length > 0) && (
-          <div id="section-tabs-cards" className="space-y-6 pt-4 border-t border-border/60 scroll-mt-28">
-            {/* أ) إحصائيات المساجد */}
-            {mosqueCards.length > 0 && (
-              <div className="space-y-2.5">
-                <div className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-emerald-600" />
-                  <h4 className="text-sm font-bold text-foreground">إحصائيات المساجد</h4>
-                </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                  {mosqueCards.map((stat, idx) => renderCard(stat, `mosque-${idx}`))}
-                </div>
-              </div>
-            )}
-
-            {/* ب) إحصائيات الطلبات */}
-            {requestCards.length > 0 && (
-              <div className="space-y-2.5">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-blue-600" />
-                  <h4 className="text-sm font-bold text-foreground">إحصائيات الطلبات</h4>
-                </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                  {requestCards.map((stat, idx) => renderCard(stat, `req-${idx}`))}
-                </div>
-              </div>
-            )}
-
-            {/* ج) المشتريات والعقود */}
-            {procurementCards.length > 0 && (
-              <div className="space-y-2.5">
-                <div className="flex items-center gap-2">
-                  <Store className="w-4 h-4 text-orange-600" />
-                  <h4 className="text-sm font-bold text-foreground">المشتريات والعقود</h4>
-                </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                  {procurementCards.map((stat, idx) => renderCard(stat, `proc-${idx}`))}
-                </div>
-              </div>
-            )}
-
-            {/* د) المالية وأوامر الصرف */}
-            {financialCards.length > 0 && (
-              <div className="space-y-2.5">
-                <div className="flex items-center gap-2">
-                  <Banknote className="w-4 h-4 text-indigo-600" />
-                  <h4 className="text-sm font-bold text-foreground">المالية وأوامر الصرف</h4>
-                </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                  {financialCards.map((stat, idx) => renderCard(stat, `fin-${idx}`))}
-                </div>
-              </div>
-            )}
-
-            {/* هـ) التقرير المالي والمشاريع */}
-            {projectAndVoucherCards.length > 0 && (
-              <div className="space-y-2.5">
-                <div className="flex items-center gap-2">
-                  <SaudiRiyal className="w-4 h-4 text-teal-600" />
-                  <h4 className="text-sm font-bold text-foreground">التقرير المالي والمشاريع</h4>
-                </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                  {projectAndVoucherCards.map((stat, idx) => renderCard(stat, `pv-${idx}`))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* 4. الإحصائيات والمخططات والتحليلات */}
-        {/* ========================================================================= */}
-
-        {/* أ) المخططات والتحليلات الخاصة بمجلس الإدارة والإدارة العليا */}
-        {isDetailedElementEnabled("section_board") && (
-          <div id="section-board" className="space-y-4 pt-8 border-t-2 border-border/80 scroll-mt-28">
-            <div className="flex items-center justify-between pb-3 border-b border-border/70">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-sm border border-blue-500/20">
-                  <Briefcase className="w-4 h-4" />
+        {isDetailedElementEnabled("section_board") && (activeTab === "all" || activeTab === "board") && (
+          <section id="section-board" className="space-y-6 pt-2 scroll-mt-36">
+            {/* هيدر قسم مجلس الإدارة */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-blue-500/10 via-blue-500/5 to-transparent border border-blue-500/20 shadow-xs">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black shadow-md shadow-blue-500/20 shrink-0">
+                  <Briefcase className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base sm:text-lg font-bold text-foreground">
-                    مخططات وتحليلات مجلس الإدارة والمؤشرات الإستراتيجية
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    مخططات المساجد، توزيع عقود المشاريع، مؤشرات أوامر الصرف، ومصفوفة الأداء الإستراتيجي
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base sm:text-lg lg:text-xl font-bold text-foreground">
+                      تحليلات مجلس الإدارة والقيادة العليا
+                    </h2>
+                    <span className="text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/25 shrink-0">
+                      لوحة الإدارة العليا
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    مؤشرات المساجد الفعالة، المشتريات وشبكة الموردين، العقود المعتمدة، ومصفوفة الأداء الإستراتيجي
                   </p>
                 </div>
               </div>
+              <Link href="/board-analytics">
+                <Button variant="outline" size="sm" className="text-xs font-bold gap-1.5 rounded-xl border-blue-300 hover:bg-blue-500/10 text-blue-700 dark:text-blue-300 shrink-0 cursor-pointer">
+                  <span>فتح لوحة مجلس الإدارة</span>
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </Button>
+              </Link>
             </div>
-            <BoardDashboard embedded={true} forceAnalytics={true} />
-          </div>
-        )}
 
-        {/* ب) المخططات والتحليلات المالية الشاملة */}
-        {isDetailedElementEnabled("section_financial") && (
-          <div id="section-financial" className="space-y-4 pt-8 border-t-2 border-border/80 scroll-mt-28">
-            <div className="flex items-center justify-between pb-3 border-b border-border/70">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black text-sm border border-emerald-500/20">
-                  <SaudiRiyal className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="text-base sm:text-lg font-bold text-foreground">
-                    المخططات والتحليلات المالية الشاملة
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    الرسوم البيانية للتدفقات النقدية، المصروفات، سندات القبض، وتحليلات مشاريع الدعم والتغطية
-                  </p>
-                </div>
-              </div>
-            </div>
-            <FinancialReport embedded={true} />
-          </div>
-        )}
+            {/* كروت قسم مجلس الإدارة */}
+            {(mosqueCards.length > 0 || procurementCards.length > 0) && (
+              <div className="space-y-5">
+                {mosqueCards.length > 0 && (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-emerald-600" />
+                      <h4 className="text-xs sm:text-sm font-bold text-foreground">إحصائيات المساجد والتغطية</h4>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                      {mosqueCards.map((stat, idx) => renderCard(stat, `mosque-${idx}`))}
+                    </div>
+                  </div>
+                )}
 
-        {/* ج) مخططات التقارير الإحصائية للطلبات */}
-        {isDetailedElementEnabled("section_reports") && (
-          <div id="section-reports" className="space-y-4 pt-8 border-t-2 border-border/80 scroll-mt-28">
-            <div className="flex items-center justify-between pb-3 border-b border-border/70">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center font-black text-sm border border-purple-500/20">
-                  <BarChart3 className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="text-base sm:text-lg font-bold text-foreground">
-                    المخططات الإحصائية والفنية للطلبات
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    مخططات توزيع الطلبات على البرامج التسعة، والمنحنى الشهري لتطور الطلبات
-                  </p>
-                </div>
+                {procurementCards.length > 0 && (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <Store className="w-4 h-4 text-orange-600" />
+                      <h4 className="text-xs sm:text-sm font-bold text-foreground">المشتريات وشبكة الموردين والعقود</h4>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                      {procurementCards.map((stat, idx) => renderCard(stat, `proc-${idx}`))}
+                    </div>
+                  </div>
+                )}
               </div>
+            )}
+
+            {/* مخططات قسم مجلس الإدارة */}
+            <div className="pt-2">
+              <BoardDashboard embedded={true} forceAnalytics={true} />
             </div>
-            <Reports embedded={true} />
-          </div>
+          </section>
         )}
 
         {/* ========================================================================= */}
+        {/* القسم الثاني: التقرير والتحليلات المالية (financial-report) */}
+        {/* ========================================================================= */}
+        {isDetailedElementEnabled("section_financial") && (activeTab === "all" || activeTab === "financial") && (
+          <section id="section-financial" className="space-y-6 pt-6 border-t-2 border-border/80 scroll-mt-36">
+            {/* هيدر قسم المالية */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 shadow-xs">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black shadow-md shadow-emerald-500/20 shrink-0">
+                  <SaudiRiyal className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base sm:text-lg lg:text-xl font-bold text-foreground">
+                      التقرير والتحليلات المالية الشاملة
+                    </h2>
+                    <span className="text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 shrink-0">
+                      المالية والصرف
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    الرسوم البيانية للتدفقات النقدية، أوامر الصرف المنفذة، سندات القبض، ومشاريع الدعم والتغطية
+                  </p>
+                </div>
+              </div>
+              <Link href="/financial-report">
+                <Button variant="outline" size="sm" className="text-xs font-bold gap-1.5 rounded-xl border-emerald-300 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 shrink-0 cursor-pointer">
+                  <span>فتح التقرير المالي</span>
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </Button>
+              </Link>
+            </div>
+
+            {/* كروت قسم المالية */}
+            {(financialCards.length > 0 || projectAndVoucherCards.length > 0) && (
+              <div className="space-y-5">
+                {financialCards.length > 0 && (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <Banknote className="w-4 h-4 text-emerald-600" />
+                      <h4 className="text-xs sm:text-sm font-bold text-foreground">المالية وأوامر الصرف</h4>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                      {financialCards.map((stat, idx) => renderCard(stat, `fin-${idx}`))}
+                    </div>
+                  </div>
+                )}
+
+                {projectAndVoucherCards.length > 0 && (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <SaudiRiyal className="w-4 h-4 text-teal-600" />
+                      <h4 className="text-xs sm:text-sm font-bold text-foreground">مشاريع الدعم وسندات القبض</h4>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                      {projectAndVoucherCards.map((stat, idx) => renderCard(stat, `pv-${idx}`))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* مخططات قسم المالية */}
+            <div className="pt-2">
+              <FinancialReport embedded={true} />
+            </div>
+          </section>
+        )}
+
+        {/* ========================================================================= */}
+        {/* القسم الثالث: التقارير الفنية والإحصائية (reports) */}
+        {/* ========================================================================= */}
+        {isDetailedElementEnabled("section_reports") && (activeTab === "all" || activeTab === "reports") && (
+          <section id="section-reports" className="space-y-6 pt-6 border-t-2 border-border/80 scroll-mt-36">
+            {/* هيدر قسم التقارير */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-purple-500/10 via-purple-500/5 to-transparent border border-purple-500/20 shadow-xs">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-purple-600 text-white flex items-center justify-center font-black shadow-md shadow-purple-500/20 shrink-0">
+                  <BarChart3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base sm:text-lg lg:text-xl font-bold text-foreground">
+                      التقارير الفنية والإحصائية للطلبات
+                    </h2>
+                    <span className="text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/25 shrink-0">
+                      تقارير الطلبات
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    مخططات توزيع الطلبات على البرامج التسعة، والمنحنى الشهري لتطور الطلبات ومراحل الإنجاز
+                  </p>
+                </div>
+              </div>
+              <Link href="/reports">
+                <Button variant="outline" size="sm" className="text-xs font-bold gap-1.5 rounded-xl border-purple-300 hover:bg-purple-500/10 text-purple-700 dark:text-purple-300 shrink-0 cursor-pointer">
+                  <span>فتح التقارير الفنية</span>
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </Button>
+              </Link>
+            </div>
+
+            {/* كروت قسم التقارير */}
+            {(mainOverviewCards.length > 0 || requestCards.length > 0) && (
+              <div className="space-y-5">
+                {mainOverviewCards.length > 0 && (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <Target className="w-4 h-4 text-purple-600" />
+                      <h4 className="text-xs sm:text-sm font-bold text-foreground">المؤشرات الإجمالية العامة</h4>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                      {mainOverviewCards.map((stat, idx) => renderCard(stat, `main-${idx}`))}
+                    </div>
+                  </div>
+                )}
+
+                {requestCards.length > 0 && (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      <h4 className="text-xs sm:text-sm font-bold text-foreground">تفصيل حالات الطلبات</h4>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                      {requestCards.map((stat, idx) => renderCard(stat, `req-${idx}`))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* مخططات قسم التقارير */}
+            <div className="pt-2">
+              <Reports embedded={true} />
+            </div>
+          </section>
+        )}
+
         {/* 5. تنبيه المستخدمين بانتظار الاعتماد */}
         {/* ========================================================================= */}
         {isDetailedElementEnabled("section_pending_users") && pendingUsers && pendingUsers.length > 0 && (
