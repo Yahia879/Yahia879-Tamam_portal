@@ -527,8 +527,24 @@ export default function RolePermissions() {
             "requests.manage_as_quick_response",
             "requests.upload_final_report",
             "requests.create_quick_request",
-            "requesters.view",
-            "requesters.approve",
+            "requester_accounts.view",
+            "requester_accounts.view_details",
+            "requester_accounts.create",
+            "requester_accounts.approve",
+            "requester_accounts.suspend",
+            "requester_exceptions.view",
+            "requester_exceptions.approve",
+            "requester_exceptions.reject",
+            "requester_donations.view",
+            "requester_donations.review",
+            "requester_donations.approve",
+            "requester_donations.send_email",
+            "requester_donations.send_whatsapp",
+            "requester_inquiries.view",
+            "requester_inquiries.review",
+            "requester_inquiries.delete",
+            "requester_sedana.view",
+            "requester_sedana.review",
           ];
           cascadePerms.forEach(pId => {
             if (!next.includes(pId)) next.push(pId);
@@ -591,8 +607,24 @@ export default function RolePermissions() {
             "requests.manage_as_quick_response",
             "requests.upload_final_report",
             "requests.create_quick_request",
-            "requesters.view",
-            "requesters.approve",
+            "requester_accounts.view",
+            "requester_accounts.view_details",
+            "requester_accounts.create",
+            "requester_accounts.approve",
+            "requester_accounts.suspend",
+            "requester_exceptions.view",
+            "requester_exceptions.approve",
+            "requester_exceptions.reject",
+            "requester_donations.view",
+            "requester_donations.review",
+            "requester_donations.approve",
+            "requester_donations.send_email",
+            "requester_donations.send_whatsapp",
+            "requester_inquiries.view",
+            "requester_inquiries.review",
+            "requester_inquiries.delete",
+            "requester_sedana.view",
+            "requester_sedana.review",
           ];
           cascadePerms.forEach(pId => {
             if (!next.includes(pId)) next.push(pId);
@@ -1342,7 +1374,7 @@ export default function RolePermissions() {
       modules: [
         { id: "requester_accounts", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "view_details", "create", "approve", "suspend"] },
         { id: "requester_exceptions", nameAr: "طلبات الاستثناء", icon: FileText, perms: ["view", "approve", "reject"] },
-        { id: "requester_donations", nameAr: "طلبات التبرعات", icon: Gift, perms: ["view", "review", "delete"] },
+        { id: "requester_donations", nameAr: "طلبات التبرعات", icon: Gift, perms: ["view", "review", "approve", "send_email", "send_whatsapp"] },
         { id: "requester_inquiries", nameAr: "الاستفسارات العامة", icon: MessageSquareQuote, perms: ["view", "review", "delete"] },
         { id: "requester_sedana", nameAr: "طلبات برنامج سدانة", icon: Sparkles, perms: ["view", "review"] },
       ]
@@ -1652,8 +1684,10 @@ export default function RolePermissions() {
       },
       requester_donations: {
         view: "عرض طلبات التبرعات",
-        review: "مراجعة واعتماد الطلب",
-        delete: "حذف الطلب"
+        review: "مراجعة الطلب",
+        approve: "اعتماد الطلب",
+        send_email: "إرسال Email",
+        send_whatsapp: "إرسال WhatsApp",
       },
       requester_inquiries: {
         view: "عرض الاستفسارات العامة",
