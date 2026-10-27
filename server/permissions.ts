@@ -166,8 +166,10 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   requester_donations: ["publicSubmissions.view", "publicSubmissions.edit"],
   "requester_donations.view": ["publicSubmissions.view"],
-  "requester_donations.review": ["publicSubmissions.edit"],
-  "requester_donations.delete": ["publicSubmissions.delete"],
+  "requester_donations.review": ["publicSubmissions.view"],
+  "requester_donations.approve": ["publicSubmissions.edit"],
+  "requester_donations.send_email": ["publicSubmissions.view"],
+  "requester_donations.send_whatsapp": ["publicSubmissions.view"],
 
   requester_inquiries: ["publicSubmissions.view", "publicSubmissions.edit"],
   "requester_inquiries.view": ["publicSubmissions.view"],
@@ -802,6 +804,9 @@ async function ensureRequestersPermissionsExist(db: any) {
       "requester_exceptions.reject",
       "requester_donations.view",
       "requester_donations.review",
+      "requester_donations.approve",
+      "requester_donations.send_email",
+      "requester_donations.send_whatsapp",
       "requester_inquiries.view",
       "requester_inquiries.review",
       "requester_sedana.view",
@@ -1153,8 +1158,10 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "requester_exceptions.reject", moduleId: "requester_exceptions", action: "reject", nameAr: "رفض طلب الاستثناء", nameEn: "Reject Exception Request" },
       // 3. طلبات التبرعات
       { id: "requester_donations.view", moduleId: "requester_donations", action: "view", nameAr: "عرض طلبات التبرعات", nameEn: "View Donations" },
-      { id: "requester_donations.review", moduleId: "requester_donations", action: "review", nameAr: "مراجعة واعتماد الطلب", nameEn: "Review Donations" },
-      { id: "requester_donations.delete", moduleId: "requester_donations", action: "delete", nameAr: "حذف الطلب", nameEn: "Delete Donation" },
+      { id: "requester_donations.review", moduleId: "requester_donations", action: "review", nameAr: "مراجعة الطلب", nameEn: "Review Donation Request" },
+      { id: "requester_donations.approve", moduleId: "requester_donations", action: "approve", nameAr: "اعتماد الطلب", nameEn: "Approve Donation Request" },
+      { id: "requester_donations.send_email", moduleId: "requester_donations", action: "send_email", nameAr: "إرسال Email", nameEn: "Send Email" },
+      { id: "requester_donations.send_whatsapp", moduleId: "requester_donations", action: "send_whatsapp", nameAr: "إرسال WhatsApp", nameEn: "Send WhatsApp" },
       // 4. الاستفسارات العامة
       { id: "requester_inquiries.view", moduleId: "requester_inquiries", action: "view", nameAr: "عرض الاستفسارات العامة", nameEn: "View Inquiries" },
       { id: "requester_inquiries.review", moduleId: "requester_inquiries", action: "review", nameAr: "مراجعة وتحديث حالة الاستفسار", nameEn: "Review Inquiries" },
