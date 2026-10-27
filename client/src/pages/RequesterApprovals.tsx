@@ -167,7 +167,8 @@ export default function RequesterApprovals() {
   const canSuspendAccounts = usePermission("requester_accounts.suspend");
 
   const canViewExceptions = usePermission("requester_exceptions.view");
-  const canReviewExceptions = usePermission("requester_exceptions.review");
+  const canApproveExceptions = usePermission("requester_exceptions.approve");
+  const canRejectExceptions = usePermission("requester_exceptions.reject");
 
   const canViewDonations = usePermission("requester_donations.view");
   const canReviewDonations = usePermission("requester_donations.review");
@@ -1164,33 +1165,39 @@ export default function RequesterApprovals() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-left pl-6">
-                            {item.exception.status === "pending" && canReviewExceptions ? (
+                            {item.exception.status === "pending" && (canApproveExceptions || canRejectExceptions) ? (
                               <div className="flex items-center gap-1.5 justify-end">
-                                <Button
-                                  size="sm"
-                                  className="h-8 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
-                                  onClick={() => reviewExceptionMutation.mutate({ id: item.exception.id, status: "approved" })}
-                                  disabled={reviewExceptionMutation.isPending}
-                                >
-                                  قبول
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="h-8 text-xs font-bold rounded-xl"
-                                  onClick={() => {
-                                    const reason = prompt("يرجى إدخال سبب الرفض:");
-                                    if (reason !== null) {
-                                      reviewExceptionMutation.mutate({ id: item.exception.id, status: "rejected" });
-                                    }
-                                  }}
-                                  disabled={reviewExceptionMutation.isPending}
-                                >
-                                  رفض
-                                </Button>
+                                {canApproveExceptions && (
+                                  <Button
+                                    size="sm"
+                                    className="h-8 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
+                                    onClick={() => reviewExceptionMutation.mutate({ id: item.exception.id, status: "approved" })}
+                                    disabled={reviewExceptionMutation.isPending}
+                                  >
+                                    قبول
+                                  </Button>
+                                )}
+                                {canRejectExceptions && (
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="h-8 text-xs font-bold rounded-xl"
+                                    onClick={() => {
+                                      const reason = prompt("يرجى إدخال سبب الرفض:");
+                                      if (reason !== null) {
+                                        reviewExceptionMutation.mutate({ id: item.exception.id, status: "rejected" });
+                                      }
+                                    }}
+                                    disabled={reviewExceptionMutation.isPending}
+                                  >
+                                    رفض
+                                  </Button>
+                                )}
                               </div>
                             ) : (
-                              <span className="text-xs text-muted-foreground">مكتمل</span>
+                              <span className="text-xs text-muted-foreground">
+                                {item.exception.status === "pending" ? "قيد المراجعة" : "مكتمل"}
+                              </span>
                             )}
                           </TableCell>
                         </TableRow>
@@ -1263,30 +1270,34 @@ export default function RequesterApprovals() {
                           )}
                         </div>
 
-                        {item.exception.status === "pending" && canReviewExceptions && (
-                          <div className="grid grid-cols-2 gap-2 pt-2">
-                            <Button
-                              className="w-full h-9 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
-                              onClick={() => reviewExceptionMutation.mutate({ id: item.exception.id, status: "approved" })}
-                              disabled={reviewExceptionMutation.isPending}
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5 ml-1.5" />
-                              قبول
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              className="w-full h-9 text-xs font-bold rounded-xl"
-                              onClick={() => {
-                                const reason = prompt("يرجى إدخال سبب الرفض:");
-                                if (reason !== null) {
-                                  reviewExceptionMutation.mutate({ id: item.exception.id, status: "rejected" });
-                                }
-                              }}
-                              disabled={reviewExceptionMutation.isPending}
-                            >
-                              <XCircle className="w-3.5 h-3.5 ml-1.5" />
-                              رفض
-                            </Button>
+                        {item.exception.status === "pending" && (canApproveExceptions || canRejectExceptions) && (
+                          <div className={`grid ${canApproveExceptions && canRejectExceptions ? "grid-cols-2" : "grid-cols-1"} gap-2 pt-2`}>
+                            {canApproveExceptions && (
+                              <Button
+                                className="w-full h-9 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
+                                onClick={() => reviewExceptionMutation.mutate({ id: item.exception.id, status: "approved" })}
+                                disabled={reviewExceptionMutation.isPending}
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5 ml-1.5" />
+                                قبول
+                              </Button>
+                            )}
+                            {canRejectExceptions && (
+                              <Button
+                                variant="destructive"
+                                className="w-full h-9 text-xs font-bold rounded-xl"
+                                onClick={() => {
+                                  const reason = prompt("يرجى إدخال سبب الرفض:");
+                                  if (reason !== null) {
+                                    reviewExceptionMutation.mutate({ id: item.exception.id, status: "rejected" });
+                                  }
+                                }}
+                                disabled={reviewExceptionMutation.isPending}
+                              >
+                                <XCircle className="w-3.5 h-3.5 ml-1.5" />
+                                رفض
+                              </Button>
+                            )}
                           </div>
                         )}
                       </div>
