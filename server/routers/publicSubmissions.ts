@@ -220,6 +220,7 @@ export const publicSubmissionsRouter = router({
           (await checkPermission(ctx.user.id, "requester_donations.review"))
         )) ||
         (!isDonor && (
+          (await checkPermission(ctx.user.id, "requester_inquiries.mark_reviewed")) ||
           (await checkPermission(ctx.user.id, "requester_inquiries.review"))
         ));
 
@@ -228,7 +229,7 @@ export const publicSubmissionsRouter = router({
           code: "FORBIDDEN",
           message: isDonor 
             ? "غير مصرح لك بتحديث طلبات التبرعات (تتطلب صلاحية اعتماد أو مراجعة طلب التبرع)"
-            : "غير مصرح لك بمراجعة الاستفسارات العامة (تتطلب صلاحية مراجعة وتحديث حالة الاستفسار)"
+            : "غير مصرح لك بتحديث حالة الاستفسارات العامة (تتطلب صلاحية تمت المراجعة أو مراجعة الاستفسار)"
         });
       }
 
@@ -258,18 +259,14 @@ export const publicSubmissionsRouter = router({
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
       const isDonor = existing.category === "donor";
 
-      const canDelete = isAdmin ||
-        (!isDonor && (
-          (await checkPermission(ctx.user.id, "requester_inquiries.delete")) ||
-          (await checkPermission(ctx.user.id, "publicSubmissions.delete"))
-        ));
+      const canDelete = isAdmin;
 
       if (!canDelete) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: isDonor 
             ? "غير مصرح بحذف طلبات التبرعات"
-            : "غير مصرح لك بحذف الاستفسارات العامة (تتطلب صلاحية حذف الاستفسار)"
+            : "غير مصرح بحذف الاستفسارات العامة"
         });
       }
 
