@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { eq, and, gte, lte, count, avg, sum, desc, isNotNull, sql } from "drizzle-orm";
-import { router, protectedProcedure } from "../_core/trpc";
-import { permissionProcedure } from "../permissions";
+import { router } from "../_core/trpc";
+import { checkPermission, permissionProcedure } from "../permissions";
 import { getDb } from "../db";
 import {
   mosqueRequests,
@@ -12,9 +12,16 @@ import {
   contracts,
 } from "../../drizzle/schema";
 
+// These read-only metrics also power the information dashboard.
+const analyticsViewProcedure = permissionProcedure([
+  "reports.view",
+  "information_dashboard.view",
+  "information_dashboard",
+]);
+
 export const analyticsRouter = router({
   // مؤشرات الأداء الرئيسية KPI
-  getKPIs: permissionProcedure("reports.view")
+  getKPIs: analyticsViewProcedure
     .input(
       z.object({
         fromDate: z.string().optional(),
@@ -195,7 +202,7 @@ export const analyticsRouter = router({
   /**
    * حساب نسبة النمو الشهري للمقاييس الرئيسية
    */
-  getMonthlyGrowth: permissionProcedure("reports.view")
+  getMonthlyGrowth: analyticsViewProcedure
     .query(async ({ ctx }) => {
       const isExecDirector =
         ["general_manager", "executive_director"].includes(ctx.user.role) ||
@@ -204,7 +211,10 @@ export const analyticsRouter = router({
 
       // التأكد من أن المستخدم لديه الصلاحية
       if (!["super_admin", "system_admin", "projects_office", "financial_manager", "corporate_comm", "general_manager", "executive_director"].includes(ctx.user.role) && !isExecDirector) {
-        return null;
+        const canViewDashboard =
+          await checkPermission(ctx.user.id, "information_dashboard.view") ||
+          await checkPermission(ctx.user.id, "information_dashboard");
+        if (!canViewDashboard) return null;
       }
       
       const db = await getDb();
