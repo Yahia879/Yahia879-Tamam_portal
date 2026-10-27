@@ -47,6 +47,8 @@ export interface RolesTabProps {
 export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProps) {
   const [, setLocation] = useLocation();
   const canCustomize = usePermission("staff_roles.customize");
+  const canSuspend = usePermission("staff_roles.suspend");
+  const showActions = canCustomize || canSuspend;
 
   const utils = trpc.useContext();
   const { data: allRoles, isLoading } = trpc.permissions.getRoles.useQuery();
@@ -153,7 +155,7 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
                 <TableHead className="text-right">الوصف</TableHead>
                 <TableHead className="text-right">النوع</TableHead>
                 <TableHead className="text-right">الحالة</TableHead>
-                <TableHead className="text-left">الإجراءات</TableHead>
+                {showActions && <TableHead className="text-left">الإجراءات</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -186,7 +188,7 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
                         <Badge variant="destructive">موقوف</Badge>
                       )}
                     </TableCell>
-                     <TableCell className="text-left animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                    {showActions && <TableCell className="text-left animate-fade-in" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-2 justify-end" dir="rtl">
                         {role.id !== 'super_admin' && role.id !== 'system_admin' ? (
                           <DropdownMenu>
@@ -222,12 +224,12 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
                           <span className="text-xs text-muted-foreground font-medium pl-2">-</span>
                         )}
                       </div>
-                    </TableCell>
+                    </TableCell>}
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={showActions ? 5 : 4} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <Shield className="h-12 w-12 text-muted-foreground/50" />
                       <p className="text-muted-foreground">لا توجد أدوار</p>
@@ -264,7 +266,7 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
                     </div>
                   </div>
                   
-                  <div onClick={(e) => e.stopPropagation()}>
+                  {showActions && <div onClick={(e) => e.stopPropagation()}>
                     {role.id !== 'super_admin' && role.id !== 'system_admin' ? (
                        <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -297,7 +299,7 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
                     ) : (
                       <span className="text-xs text-muted-foreground font-medium pl-2">-</span>
                     )}
-                  </div>
+                  </div>}
                 </div>
 
                 {(SYSTEM_ROLE_DESCRIPTIONS[role.id] || (role.description && !role.description.startsWith("["))) && (

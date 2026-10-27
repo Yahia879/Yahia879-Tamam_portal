@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PermissionGuard } from "@/components/PermissionGuard";
+import { usePermission } from "@/hooks/usePermission";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -78,6 +79,18 @@ export interface UsersTabProps {
 
 export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProps) {
   const { user: currentUser } = useAuth();
+  const canEdit = usePermission("staff_users.edit");
+  const canCustomize = usePermission("staff_users.customize");
+  const canSuspend = usePermission("staff_users.suspend");
+  const canActivate = usePermission("staff_users.activate");
+  const canDelete = usePermission("staff_users.delete");
+  const showActions = canEdit || canCustomize || canSuspend || canActivate || canDelete;
+  const hasActionsForUser = (user: { id: number; role: string; status: string }) =>
+    canEdit || canCustomize || (
+      user.id !== currentUser?.id && user.role !== "super_admin" && (
+        canDelete || (user.status === "active" ? canSuspend : canActivate)
+      )
+    );
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage, resetPage] = usePersistedPage("staff_users_page");
@@ -360,13 +373,13 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                   <TableHead className="text-right">الدور</TableHead>
                   <TableHead className="text-right">الحالة</TableHead>
                   <TableHead className="text-right">تاريخ الإنشاء</TableHead>
-                  <TableHead className="text-left">إجراءات</TableHead>
+                  {showActions && <TableHead className="text-left">إجراءات</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={showActions ? 6 : 5} className="text-center py-12 text-muted-foreground">
                       {searchQuery ? "لا توجد نتائج للبحث" : "لا يوجد موظفون مسجلون بعد"}
                     </TableCell>
                   </TableRow>
@@ -387,8 +400,9 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                       <TableCell>
                         {new Date(user.createdAt).toLocaleDateString("ar-SA")}
                       </TableCell>
-                      <TableCell className="text-left">
-                        <DropdownMenu>
+                      {showActions && (
+                        <TableCell className="text-left">
+                        {hasActionsForUser(user) && <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                               <MoreVertical className="h-4 w-4" />
@@ -439,8 +453,9 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                               </PermissionGuard>
                             )}
                           </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+                        </DropdownMenu>}
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 )}
@@ -470,7 +485,7 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                       <div className="text-xs text-muted-foreground">{user.email}</div>
                     </div>
                   </div>
-                  <DropdownMenu>
+                  {hasActionsForUser(user) && <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                         <MoreVertical className="h-4 w-4" />
@@ -521,7 +536,7 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                         </PermissionGuard>
                       )}
                     </DropdownMenuContent>
-                  </DropdownMenu>
+                  </DropdownMenu>}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4 py-2 border-y border-dashed">

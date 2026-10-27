@@ -41,7 +41,9 @@ export interface CustomRolesTabProps {
 
 export default function CustomRolesTab({ openAddModal, setOpenAddModal }: CustomRolesTabProps) {
   const [, setLocation] = useLocation();
-  const canCustomize = usePermission("staff_roles.customize");
+  const canEdit = usePermission("staff_custom_roles.edit");
+  const canDelete = usePermission("staff_custom_roles.delete");
+  const showActions = canEdit || canDelete;
   const [roleToDelete, setRoleToDelete] = useState<{ id: string; nameAr: string } | null>(null);
 
   const utils = trpc.useContext();
@@ -109,7 +111,7 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
                 <TableHead className="text-right">الدور المخصص</TableHead>
                 <TableHead className="text-right">النوع</TableHead>
                 <TableHead className="text-right">الحالة</TableHead>
-                <TableHead className="text-left">الإجراءات</TableHead>
+                {showActions && <TableHead className="text-left">الإجراءات</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -117,8 +119,8 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
                 roles.map((role) => (
                   <TableRow 
                     key={role.id}
-                    onClick={() => canCustomize && setLocation(`/staff/roles/${role.id}`)}
-                    className={`${canCustomize ? "cursor-pointer" : "cursor-default"} hover:bg-muted/50 transition-colors`}
+                    onClick={() => canEdit && setLocation(`/roles/${role.id}/edit`)}
+                    className={`${canEdit ? "cursor-pointer" : "cursor-default"} hover:bg-muted/50 transition-colors`}
                   >
                     <TableCell className="font-medium text-right">
                       {role.nameAr}
@@ -135,7 +137,7 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
                         <Badge variant="destructive">موقوف</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-left" onClick={(e) => e.stopPropagation()}>
+                    {showActions && <TableCell className="text-left" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -164,12 +166,12 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
                           </PermissionGuard>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TableCell>
+                    </TableCell>}
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-16">
+                  <TableCell colSpan={showActions ? 4 : 3} className="text-center py-16">
                     <div className="flex flex-col items-center justify-center gap-4">
                       <div className="p-4 bg-muted/30 rounded-full">
                         <Shield className="h-12 w-12 text-muted-foreground/40" />
@@ -227,8 +229,8 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
             roles.map((role) => (
               <Card 
                 key={role.id} 
-                className={`p-4 space-y-4 border-sidebar-border/10 hover:shadow-md transition-all ${canCustomize ? "cursor-pointer" : "cursor-default"}`}
-                onClick={() => canCustomize && setLocation(`/staff/roles/${role.id}`)}
+                className={`p-4 space-y-4 border-sidebar-border/10 hover:shadow-md transition-all ${canEdit ? "cursor-pointer" : "cursor-default"}`}
+                onClick={() => canEdit && setLocation(`/roles/${role.id}/edit`)}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
@@ -241,7 +243,7 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
                     </div>
                   </div>
                   
-                  <div onClick={(e) => e.stopPropagation()}>
+                  {showActions && <div onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
@@ -269,7 +271,7 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
                         </PermissionGuard>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </div>
+                  </div>}
                 </div>
 
                 <div className="flex justify-between items-center pt-2 border-t border-dashed">
