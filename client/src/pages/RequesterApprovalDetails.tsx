@@ -75,8 +75,8 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
   const userId = parseInt(params.id);
   const [, navigate] = useLocation();
   const { user: currentUser } = useAuth();
-  const hasApprovePermission = usePermission("requesters.approve");
-  const canApprove = hasApprovePermission;
+  const canViewDetails = usePermission("requester_accounts.view_details");
+  const canApprove = usePermission("requester_accounts.approve");
   const hasEditPermission = usePermission("users.edit");
   const canEdit = hasEditPermission || ["super_admin", "system_admin"].includes(currentUser?.role || "");
 
@@ -99,7 +99,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
 
   const { data: user, isLoading, refetch } = trpc.users.getById.useQuery(
     { id: userId },
-    { enabled: !isNaN(userId) }
+    { enabled: !isNaN(userId) && canViewDetails }
   );
 
   const { data: slaSettingsData } = trpc.escalation.getSettings.useQuery();
@@ -189,6 +189,26 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
       toast.error(error.message || "حدث خطأ أثناء تحديث البيانات");
     },
   });
+
+  if (!canViewDetails) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center py-20 gap-4 px-6 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-950/30 flex items-center justify-center">
+            <Shield className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div className="space-y-1">
+            <p className="font-semibold text-foreground text-lg">غير مصرح لك بالوصول</p>
+            <p className="text-muted-foreground text-sm">ليس لديك صلاحية عرض تفاصيل حساب طالب الخدمة.</p>
+          </div>
+          <Button onClick={() => navigate("/requester-approvals")} variant="outline" className="mt-2 font-bold gap-2">
+            <ArrowRight className="w-4 h-4" />
+            العودة للقائمة
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (isLoading) {
     return (
