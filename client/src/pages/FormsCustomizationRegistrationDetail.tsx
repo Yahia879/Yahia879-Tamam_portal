@@ -276,14 +276,14 @@ export default function FormsCustomizationRegistrationDetail() {
 
   const userPermissions = useUserPermissions();
   const hasWildcard = userPermissions.includes("*");
-  const canAnyRegistration =
-    hasWildcard ||
-    userPermissions.some(
-      (p) =>
-        p.startsWith("forms_customization.registration")
-    );
 
+  const canView =
+    hasWildcard ||
+    userPermissions.includes("forms_customization.registration_view") ||
+    userPermissions.includes("forms_customization.registration") ||
+    userPermissions.some((p) => p.startsWith("forms_customization.registration"));
   const canAddField = hasWildcard || userPermissions.includes("forms_customization.registration_add_field");
+  const canDeleteField = hasWildcard || userPermissions.includes("forms_customization.registration_delete");
   const canDuplicate = hasWildcard || userPermissions.includes("forms_customization.registration_duplicate");
   const canPlaceholder = hasWildcard || userPermissions.includes("forms_customization.registration_placeholder");
   const canDescription = hasWildcard || userPermissions.includes("forms_customization.registration_description");
@@ -291,6 +291,19 @@ export default function FormsCustomizationRegistrationDetail() {
   const canRequired = hasWildcard || userPermissions.includes("forms_customization.registration_required");
   const canToggleActive = hasWildcard || userPermissions.includes("forms_customization.registration_toggle_active");
   const canReorder = hasWildcard || userPermissions.includes("forms_customization.registration_reorder");
+
+  const canEditAny =
+    canAddField ||
+    canDeleteField ||
+    canDuplicate ||
+    canPlaceholder ||
+    canDescription ||
+    canChangeType ||
+    canRequired ||
+    canToggleActive ||
+    canReorder;
+  const isViewOnly = !canEditAny;
+  const canAnyRegistration = canView || canEditAny;
 
   const [fields, setFields] = useState<ServiceField[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
@@ -405,7 +418,9 @@ export default function FormsCustomizationRegistrationDetail() {
 
     setFields((prev) => [...prev, newField]);
     setHasChanges(true);
-    setExpandedFields((prev) => ({ ...prev, [newField.id]: true }));
+    if (canPlaceholder || canDescription || ["select", "radio"].includes(type)) {
+      setExpandedFields((prev) => ({ ...prev, [newField.id]: true }));
+    }
     toast.success("تمت إضافة حقل جديد للنموذج");
   };
 
@@ -891,6 +906,11 @@ export default function FormsCustomizationRegistrationDetail() {
                 <h1 className="text-lg sm:text-2xl font-black text-foreground tracking-tight">
                   تخصيص استمارة: {meta.label}
                 </h1>
+                {isViewOnly && (
+                  <Badge variant="outline" className="text-[11px] font-bold text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30 flex items-center gap-1">
+                    <span>وضع العرض فقط</span>
+                  </Badge>
+                )}
                 {hasChanges && (
                   <Badge variant="outline" className="text-[11px] font-bold text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30 animate-pulse flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
@@ -911,25 +931,27 @@ export default function FormsCustomizationRegistrationDetail() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsResetConfirmOpen(true)}
-              disabled={resetMutation.isPending || !isCustomizedFromDefault}
-              className={`text-xs h-10 px-3.5 rounded-xl border-border/80 shadow-2xs transition-all ${isCustomizedFromDefault
-                  ? "text-muted-foreground hover:text-foreground hover:bg-muted/60 cursor-pointer"
-                  : "text-muted-foreground/40 opacity-50 cursor-not-allowed hover:bg-transparent"
-                }`}
-              title={
-                isCustomizedFromDefault
-                  ? "استعادة الترتيب والحقول الافتراضية الأصلية للاستمارة"
-                  : "النموذج مضبوط على الإعدادات الافتراضية الأصلية بالفعل"
-              }
-            >
-              <RotateCcw className="w-3.5 h-3.5 mr-1" />
-              الافتراضي
-            </Button>
+            {!isViewOnly && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsResetConfirmOpen(true)}
+                disabled={resetMutation.isPending || !isCustomizedFromDefault}
+                className={`text-xs h-10 px-3.5 rounded-xl border-border/80 shadow-2xs transition-all ${isCustomizedFromDefault
+                    ? "text-muted-foreground hover:text-foreground hover:bg-muted/60 cursor-pointer"
+                    : "text-muted-foreground/40 opacity-50 cursor-not-allowed hover:bg-transparent"
+                  }`}
+                title={
+                  isCustomizedFromDefault
+                    ? "استعادة الترتيب والحقول الافتراضية الأصلية للاستمارة"
+                    : "النموذج مضبوط على الإعدادات الافتراضية الأصلية بالفعل"
+                }
+              >
+                <RotateCcw className="w-3.5 h-3.5 mr-1" />
+                الافتراضي
+              </Button>
+            )}
 
             <Button
               type="button"
@@ -942,24 +964,26 @@ export default function FormsCustomizationRegistrationDetail() {
               <span>معاينة حية</span>
             </Button>
 
-            <Button
-              type="button"
-              onClick={handleSave}
-              disabled={saveMutation.isPending || !hasChanges}
-              className={`text-xs font-bold px-5 h-10 rounded-xl shadow-md gap-2 transition-all ${hasChanges
-                  ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 hover:shadow-lg cursor-pointer"
-                  : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed shadow-none hover:bg-muted"
-                }`}
-              title={hasChanges ? "حفظ التعديلات (Ctrl+S)" : "لا توجد تعديلات غير محفوظة"}
-            >
-              {saveMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              <span>حفظ النموذج</span>
-              <span className="hidden lg:inline text-[10px] opacity-75 font-mono">(Ctrl+S)</span>
-            </Button>
+            {!isViewOnly && (
+              <Button
+                type="button"
+                onClick={handleSave}
+                disabled={saveMutation.isPending || !hasChanges}
+                className={`text-xs font-bold px-5 h-10 rounded-xl shadow-md gap-2 transition-all ${hasChanges
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 hover:shadow-lg cursor-pointer"
+                    : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed shadow-none hover:bg-muted"
+                  }`}
+                title={hasChanges ? "حفظ التعديلات (Ctrl+S)" : "لا توجد تعديلات غير محفوظة"}
+              >
+                {saveMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                <span>حفظ النموذج</span>
+                <span className="hidden lg:inline text-[10px] opacity-75 font-mono">(Ctrl+S)</span>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -1220,9 +1244,10 @@ export default function FormsCustomizationRegistrationDetail() {
                       <div className="flex-1 min-w-0">
                         <Input
                           value={field.label}
+                          disabled={isViewOnly}
                           onChange={(e) => handleUpdateField(field.id, { label: e.target.value })}
                           placeholder="اسم الحقل / السؤال المطلوب..."
-                          className="h-10 text-xs sm:text-sm font-bold text-right rounded-xl bg-background border-border/80 focus-visible:border-primary"
+                          className="h-10 text-xs sm:text-sm font-bold text-right rounded-xl bg-background border-border/80 focus-visible:border-primary disabled:opacity-80"
                         />
                       </div>
 
@@ -1307,16 +1332,18 @@ export default function FormsCustomizationRegistrationDetail() {
                         </Button>
                         )}
 
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteField(field.id)}
-                          className="h-9 w-9 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                          title="حذف الحقل"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {canDeleteField && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteField(field.id)}
+                            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            title="حذف الحقل"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
 
@@ -1325,34 +1352,36 @@ export default function FormsCustomizationRegistrationDetail() {
                       <div className="p-4 pt-3 border-t border-border/70 bg-muted/15 space-y-4 animate-in fade-in duration-200">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {/* النص التلميحي (Placeholder) */}
-                          <div className="space-y-1.5">
-                            <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                              <FileText className="w-3.5 h-3.5 text-primary/70" />
-                              <span>نص التلميح الداخلي (Placeholder):</span>
-                            </Label>
-                            <Input
-                              value={field.placeholder || ""}
-                              onChange={(e) => handleUpdateField(field.id, { placeholder: e.target.value })}
-                              placeholder="مثال: اكتب التفاصيل هنا..."
-                              disabled={!canPlaceholder}
-                              className="h-9 text-xs bg-background rounded-xl text-right border-border/80"
-                            />
-                          </div>
+                          {canPlaceholder && (
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                <FileText className="w-3.5 h-3.5 text-primary/70" />
+                                <span>نص التلميح الداخلي (Placeholder):</span>
+                              </Label>
+                              <Input
+                                value={field.placeholder || ""}
+                                onChange={(e) => handleUpdateField(field.id, { placeholder: e.target.value })}
+                                placeholder="مثال: اكتب التفاصيل هنا..."
+                                className="h-9 text-xs bg-background rounded-xl text-right border-border/80"
+                              />
+                            </div>
+                          )}
 
                           {/* النص المساعد التوضيحي (Help Text) */}
-                          <div className="space-y-1.5">
-                            <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                              <HelpCircle className="w-3.5 h-3.5 text-primary/70" />
-                              <span>الوصف الإرشادي للمستخدم (Help Text):</span>
-                            </Label>
-                            <Input
-                              value={field.helpText || ""}
-                              onChange={(e) => handleUpdateField(field.id, { helpText: e.target.value })}
-                              placeholder="يظهر بخط أصغر أسفل الحقل لإرشاد مقدم الطلب..."
-                              disabled={!canDescription}
-                              className="h-9 text-xs bg-background rounded-xl text-right border-border/80"
-                            />
-                          </div>
+                          {canDescription && (
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                <HelpCircle className="w-3.5 h-3.5 text-primary/70" />
+                                <span>الوصف الإرشادي للمستخدم (Help Text):</span>
+                              </Label>
+                              <Input
+                                value={field.helpText || ""}
+                                onChange={(e) => handleUpdateField(field.id, { helpText: e.target.value })}
+                                placeholder="يظهر بخط أصغر أسفل الحقل لإرشاد مقدم الطلب..."
+                                className="h-9 text-xs bg-background rounded-xl text-right border-border/80"
+                              />
+                            </div>
+                          )}
                         </div>
 
                         {/* محرر خيارات القوائم وأسئلة الاختيار (Radio / Select) */}
@@ -1368,19 +1397,21 @@ export default function FormsCustomizationRegistrationDetail() {
                               </div>
 
                               {/* قوالب خيارات سريعة */}
-                              <div className="flex items-center gap-1 flex-wrap">
-                                <span className="text-[11px] text-muted-foreground ml-1">قوالب جاهزة:</span>
-                                {PRESET_OPTIONS.map((preset, pIdx) => (
-                                  <button
-                                    key={pIdx}
-                                    type="button"
-                                    onClick={() => handleApplyPreset(field.id, preset.options)}
-                                    className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted hover:bg-primary/10 hover:text-primary transition-colors border border-border/60"
-                                  >
-                                    {preset.name}
-                                  </button>
-                                ))}
-                              </div>
+                              {canChangeType && (
+                                <div className="flex items-center gap-1 flex-wrap">
+                                  <span className="text-[11px] text-muted-foreground ml-1">قوالب جاهزة:</span>
+                                  {PRESET_OPTIONS.map((preset, pIdx) => (
+                                    <button
+                                      key={pIdx}
+                                      type="button"
+                                      onClick={() => handleApplyPreset(field.id, preset.options)}
+                                      className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted hover:bg-primary/10 hover:text-primary transition-colors border border-border/60"
+                                    >
+                                      {preset.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                             </div>
 
                             {/* قائمة الخيارات المضافة كرقاقات تفاعلية */}
@@ -1393,45 +1424,49 @@ export default function FormsCustomizationRegistrationDetail() {
                                   >
                                     <span className="w-2 h-2 rounded-full bg-purple-500" />
                                     <span>{opt.label}</span>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveOption(field.id, oIdx)}
-                                      className="p-0.5 rounded-md text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors mr-1"
-                                      title="حذف هذا الخيار"
-                                    >
-                                      <X className="w-3.5 h-3.5" />
-                                    </button>
+                                    {canChangeType && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveOption(field.id, oIdx)}
+                                        className="p-0.5 rounded-md text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors mr-1"
+                                        title="حذف هذا الخيار"
+                                      >
+                                        <X className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
                                   </div>
                                 ))}
                               </div>
                             )}
 
                             {/* حقل إضافة خيار جديد */}
-                            <div className="flex items-center gap-2 max-w-md pt-1">
-                              <Input
-                                value={newOptionInputs[field.id] || ""}
-                                onChange={(e) =>
-                                  setNewOptionInputs((prev) => ({ ...prev, [field.id]: e.target.value }))
-                                }
-                                placeholder="اكتب اسم الخيار ثم اضغط Enter أو إضافة..."
-                                className="h-9 text-xs bg-background rounded-xl text-right border-border/80 focus-visible:border-purple-500"
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    handleAddOption(field.id);
+                            {canChangeType && (
+                              <div className="flex items-center gap-2 max-w-md pt-1">
+                                <Input
+                                  value={newOptionInputs[field.id] || ""}
+                                  onChange={(e) =>
+                                    setNewOptionInputs((prev) => ({ ...prev, [field.id]: e.target.value }))
                                   }
-                                }}
-                              />
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={() => handleAddOption(field.id)}
-                                className="h-9 px-4 text-xs font-bold gap-1 rounded-xl shrink-0 bg-purple-600 hover:bg-purple-700 text-white"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>إضافة</span>
-                              </Button>
-                            </div>
+                                  placeholder="اكتب اسم الخيار ثم اضغط Enter أو إضافة..."
+                                  className="h-9 text-xs bg-background rounded-xl text-right border-border/80 focus-visible:border-purple-500"
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      handleAddOption(field.id);
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={() => handleAddOption(field.id)}
+                                  className="h-9 px-4 text-xs font-bold gap-1 rounded-xl shrink-0 bg-purple-600 hover:bg-purple-700 text-white"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                  <span>إضافة</span>
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

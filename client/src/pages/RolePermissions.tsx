@@ -1445,7 +1445,9 @@ export default function RolePermissions() {
           nameAr: "تخصيص استمارة تقييم رضا المستفيد", 
           icon: Star, 
           perms: [
+            "evaluation_view",
             "evaluation_add_field", 
+            "evaluation_delete",
             "evaluation_duplicate", 
             "evaluation_placeholder", 
             "evaluation_description", 
@@ -1460,7 +1462,9 @@ export default function RolePermissions() {
           nameAr: "تخصيص نماذج طلبات الخدمات", 
           icon: FileText, 
           perms: [
+            "services_view",
             "services_add_field", 
+            "services_delete",
             "services_duplicate", 
             "services_placeholder", 
             "services_description", 
@@ -1475,7 +1479,9 @@ export default function RolePermissions() {
           nameAr: "تخصيص نماذج التسجيل والتبرع", 
           icon: HeartHandshake, 
           perms: [
+            "registration_view",
             "registration_add_field", 
+            "registration_delete",
             "registration_duplicate", 
             "registration_placeholder", 
             "registration_description", 
@@ -1692,7 +1698,9 @@ export default function RolePermissions() {
           nameAr: "تخصيص استمارة تقييم رضا المستفيد", 
           icon: Star, 
           perms: [
+            "evaluation_view",
             "evaluation_add_field", 
+            "evaluation_delete",
             "evaluation_duplicate", 
             "evaluation_placeholder", 
             "evaluation_description", 
@@ -1707,7 +1715,9 @@ export default function RolePermissions() {
           nameAr: "تخصيص نماذج طلبات الخدمات", 
           icon: FileText, 
           perms: [
+            "services_view",
             "services_add_field", 
+            "services_delete",
             "services_duplicate", 
             "services_placeholder", 
             "services_description", 
@@ -1722,7 +1732,9 @@ export default function RolePermissions() {
           nameAr: "تخصيص نماذج التسجيل والتبرع", 
           icon: HeartHandshake, 
           perms: [
+            "registration_view",
             "registration_add_field", 
+            "registration_delete",
             "registration_duplicate", 
             "registration_placeholder", 
             "registration_description", 
@@ -1835,7 +1847,9 @@ export default function RolePermissions() {
         dashboard_user: "تخصيص الصفحة حسب المستخدم",
       },
       forms_customization_evaluation: {
+        evaluation_view: "عرض فقط",
         evaluation_add_field: "إضافة حقل جديد",
+        evaluation_delete: "حذف حقل",
         evaluation_duplicate: "تكرار حقل",
         evaluation_placeholder: "إضافة وتعديل نص التلميح",
         evaluation_description: "إضافة وتعديل الوصف الإرشادي",
@@ -1845,7 +1859,9 @@ export default function RolePermissions() {
         evaluation_reorder: "تبديل أماكن وترتيب الحقول",
       },
       forms_customization_services: {
+        services_view: "عرض فقط",
         services_add_field: "إضافة حقل جديد",
+        services_delete: "حذف حقل",
         services_duplicate: "تكرار حقل",
         services_placeholder: "إضافة وتعديل نص التلميح",
         services_description: "إضافة وتعديل الوصف الإرشادي",
@@ -1855,7 +1871,9 @@ export default function RolePermissions() {
         services_reorder: "تبديل أماكن وترتيب الحقول",
       },
       forms_customization_registration: {
+        registration_view: "عرض فقط",
         registration_add_field: "إضافة حقل جديد",
+        registration_delete: "حذف حقل",
         registration_duplicate: "تكرار حقل",
         registration_placeholder: "إضافة وتعديل نص التلميح",
         registration_description: "إضافة وتعديل الوصف الإرشادي",

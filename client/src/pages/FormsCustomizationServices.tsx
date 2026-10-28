@@ -41,7 +41,11 @@ export default function FormsCustomizationServices() {
   const userPermissions = useUserPermissions();
   const { data: programs = [], isLoading } = trpc.programs.getAll.useQuery();
 
-  const hasPermission = userPermissions.includes("forms_customization.services");
+  const hasWildcard = userPermissions.includes("*");
+  const hasPermission =
+    hasWildcard ||
+    userPermissions.includes("forms_customization.services") ||
+    userPermissions.some((p) => p.startsWith("forms_customization.services"));
   const activePrograms = useMemo(() => programs.filter((p) => p.isActive), [programs]);
 
   if (!hasPermission) {

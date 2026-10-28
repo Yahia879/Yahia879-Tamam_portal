@@ -30,7 +30,9 @@ export default function FormsCustomization() {
     "forms_customization.dashboard_user"
   ];
   const evaluationSubPerms = [
+    "forms_customization.evaluation_view",
     "forms_customization.evaluation_add_field",
+    "forms_customization.evaluation_delete",
     "forms_customization.evaluation_duplicate",
     "forms_customization.evaluation_placeholder",
     "forms_customization.evaluation_description",
@@ -40,7 +42,9 @@ export default function FormsCustomization() {
     "forms_customization.evaluation_reorder"
   ];
   const servicesSubPerms = [
+    "forms_customization.services_view",
     "forms_customization.services_add_field",
+    "forms_customization.services_delete",
     "forms_customization.services_duplicate",
     "forms_customization.services_placeholder",
     "forms_customization.services_description",
@@ -50,7 +54,9 @@ export default function FormsCustomization() {
     "forms_customization.services_reorder"
   ];
   const registrationSubPerms = [
+    "forms_customization.registration_view",
     "forms_customization.registration_add_field",
+    "forms_customization.registration_delete",
     "forms_customization.registration_duplicate",
     "forms_customization.registration_placeholder",
     "forms_customization.registration_description",

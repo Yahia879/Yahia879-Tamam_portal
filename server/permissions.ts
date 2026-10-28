@@ -240,7 +240,9 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
     "forms_customization.dashboard_global",
     "forms_customization.dashboard_role",
     "forms_customization.dashboard_user",
+    "forms_customization.evaluation_view",
     "forms_customization.evaluation_add_field",
+    "forms_customization.evaluation_delete",
     "forms_customization.evaluation_duplicate",
     "forms_customization.evaluation_placeholder",
     "forms_customization.evaluation_description",
@@ -248,7 +250,9 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
     "forms_customization.evaluation_required",
     "forms_customization.evaluation_toggle_active",
     "forms_customization.evaluation_reorder",
+    "forms_customization.services_view",
     "forms_customization.services_add_field",
+    "forms_customization.services_delete",
     "forms_customization.services_duplicate",
     "forms_customization.services_placeholder",
     "forms_customization.services_description",
@@ -256,7 +260,9 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
     "forms_customization.services_required",
     "forms_customization.services_toggle_active",
     "forms_customization.services_reorder",
+    "forms_customization.registration_view",
     "forms_customization.registration_add_field",
+    "forms_customization.registration_delete",
     "forms_customization.registration_duplicate",
     "forms_customization.registration_placeholder",
     "forms_customization.registration_description",
@@ -278,7 +284,9 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "forms_customization.dashboard_user": ["forms_customization.dashboard_user", "forms_customization.view", "settings.view"],
 
   // استمارة تقييم رضا المستفيد
+  "forms_customization.evaluation_view": ["forms_customization.evaluation_view", "forms_customization.view", "settings.view"],
   "forms_customization.evaluation_add_field": ["forms_customization.evaluation_add_field", "forms_customization.view", "settings.view"],
+  "forms_customization.evaluation_delete": ["forms_customization.evaluation_delete", "forms_customization.view", "settings.view"],
   "forms_customization.evaluation_duplicate": ["forms_customization.evaluation_duplicate", "forms_customization.view", "settings.view"],
   "forms_customization.evaluation_placeholder": ["forms_customization.evaluation_placeholder", "forms_customization.view", "settings.view"],
   "forms_customization.evaluation_description": ["forms_customization.evaluation_description", "forms_customization.view", "settings.view"],
@@ -288,7 +296,9 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "forms_customization.evaluation_reorder": ["forms_customization.evaluation_reorder", "forms_customization.view", "settings.view"],
 
   // نماذج طلبات الخدمات
+  "forms_customization.services_view": ["forms_customization.services_view", "forms_customization.view", "settings.view"],
   "forms_customization.services_add_field": ["forms_customization.services_add_field", "forms_customization.view", "settings.view"],
+  "forms_customization.services_delete": ["forms_customization.services_delete", "forms_customization.view", "settings.view"],
   "forms_customization.services_duplicate": ["forms_customization.services_duplicate", "forms_customization.view", "settings.view"],
   "forms_customization.services_placeholder": ["forms_customization.services_placeholder", "forms_customization.view", "settings.view"],
   "forms_customization.services_description": ["forms_customization.services_description", "forms_customization.view", "settings.view"],
@@ -298,7 +308,9 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "forms_customization.services_reorder": ["forms_customization.services_reorder", "forms_customization.view", "settings.view"],
 
   // نماذج التسجيل والتبرع
+  "forms_customization.registration_view": ["forms_customization.registration_view", "forms_customization.view", "settings.view"],
   "forms_customization.registration_add_field": ["forms_customization.registration_add_field", "forms_customization.view", "settings.view"],
+  "forms_customization.registration_delete": ["forms_customization.registration_delete", "forms_customization.view", "settings.view"],
   "forms_customization.registration_duplicate": ["forms_customization.registration_duplicate", "forms_customization.view", "settings.view"],
   "forms_customization.registration_placeholder": ["forms_customization.registration_placeholder", "forms_customization.view", "settings.view"],
   "forms_customization.registration_description": ["forms_customization.registration_description", "forms_customization.view", "settings.view"],
@@ -322,10 +334,8 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
     "settings.view",
     "settings.edit"
   ],
-  "forms_customization.services_view": ["forms_customization.services_view", "forms_customization.view", "settings.view"],
-  "forms_customization.services_add": ["forms_customization.services_add", "forms_customization.services_view", "forms_customization.view", "settings.view", "settings.edit"],
-  "forms_customization.services_edit": ["forms_customization.services_edit", "forms_customization.services_view", "forms_customization.view", "settings.view", "settings.edit"],
-  "forms_customization.services_delete": ["forms_customization.services_delete", "forms_customization.services_view", "forms_customization.view", "settings.view", "settings.edit"],
+  "forms_customization.services_add": ["forms_customization.services_add_field", "forms_customization.services_view", "forms_customization.view", "settings.view", "settings.edit"],
+  "forms_customization.services_edit": ["forms_customization.services_change_type", "forms_customization.services_view", "forms_customization.view", "settings.view", "settings.edit"],
   "forms_customization.services": [
     "forms_customization.services",
     "forms_customization.services_add_field",
@@ -1525,7 +1535,9 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "forms_customization.dashboard_user", moduleId: "settings", action: "dashboard_user", nameAr: "تخصيص الصفحة حسب المستخدم", nameEn: "Customize Dashboard by User" },
 
       // 2. تخصيص استمارة تقييم رضا المستفيد
+      { id: "forms_customization.evaluation_view", moduleId: "settings", action: "evaluation_view", nameAr: "عرض استمارة التقييم فقط", nameEn: "View Evaluation Form Only" },
       { id: "forms_customization.evaluation_add_field", moduleId: "settings", action: "evaluation_add_field", nameAr: "إضافة حقل جديد", nameEn: "Evaluation Add Field" },
+      { id: "forms_customization.evaluation_delete", moduleId: "settings", action: "evaluation_delete", nameAr: "حذف حقل", nameEn: "Evaluation Delete Field" },
       { id: "forms_customization.evaluation_duplicate", moduleId: "settings", action: "evaluation_duplicate", nameAr: "تكرار حقل", nameEn: "Evaluation Duplicate Field" },
       { id: "forms_customization.evaluation_placeholder", moduleId: "settings", action: "evaluation_placeholder", nameAr: "إضافة وتعديل نص التلميح", nameEn: "Evaluation Placeholder" },
       { id: "forms_customization.evaluation_description", moduleId: "settings", action: "evaluation_description", nameAr: "إضافة وتعديل الوصف الإرشادي", nameEn: "Evaluation Description" },
@@ -1535,7 +1547,9 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "forms_customization.evaluation_reorder", moduleId: "settings", action: "evaluation_reorder", nameAr: "تبديل أماكن وترتيب الحقول", nameEn: "Evaluation Reorder Fields" },
 
       // 3. تخصيص نماذج طلبات الخدمات
+      { id: "forms_customization.services_view", moduleId: "settings", action: "services_view", nameAr: "عرض نماذج طلبات الخدمات فقط", nameEn: "View Service Request Forms Only" },
       { id: "forms_customization.services_add_field", moduleId: "settings", action: "services_add_field", nameAr: "إضافة حقل جديد", nameEn: "Services Add Field" },
+      { id: "forms_customization.services_delete", moduleId: "settings", action: "services_delete", nameAr: "حذف حقل", nameEn: "Services Delete Field" },
       { id: "forms_customization.services_duplicate", moduleId: "settings", action: "services_duplicate", nameAr: "تكرار حقل", nameEn: "Services Duplicate Field" },
       { id: "forms_customization.services_placeholder", moduleId: "settings", action: "services_placeholder", nameAr: "إضافة وتعديل نص التلميح", nameEn: "Services Placeholder" },
       { id: "forms_customization.services_description", moduleId: "settings", action: "services_description", nameAr: "إضافة وتعديل الوصف الإرشادي", nameEn: "Services Description" },
@@ -1545,7 +1559,9 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "forms_customization.services_reorder", moduleId: "settings", action: "services_reorder", nameAr: "تبديل أماكن وترتيب الحقول", nameEn: "Services Reorder Fields" },
 
       // 4. تخصيص نماذج التسجيل والتبرع
+      { id: "forms_customization.registration_view", moduleId: "settings", action: "registration_view", nameAr: "عرض نماذج التسجيل والتبرع فقط", nameEn: "View Registration Forms Only" },
       { id: "forms_customization.registration_add_field", moduleId: "settings", action: "registration_add_field", nameAr: "إضافة حقل جديد", nameEn: "Registration Add Field" },
+      { id: "forms_customization.registration_delete", moduleId: "settings", action: "registration_delete", nameAr: "حذف حقل", nameEn: "Registration Delete Field" },
       { id: "forms_customization.registration_duplicate", moduleId: "settings", action: "registration_duplicate", nameAr: "تكرار حقل", nameEn: "Registration Duplicate Field" },
       { id: "forms_customization.registration_placeholder", moduleId: "settings", action: "registration_placeholder", nameAr: "إضافة وتعديل نص التلميح", nameEn: "Registration Placeholder" },
       { id: "forms_customization.registration_description", moduleId: "settings", action: "registration_description", nameAr: "إضافة وتعديل الوصف الإرشادي", nameEn: "Registration Description" },
@@ -2699,7 +2715,9 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     "forms_customization.dashboard_user"
   ];
   const formsEvaluationSubPerms = [
+    "forms_customization.evaluation_view",
     "forms_customization.evaluation_add_field",
+    "forms_customization.evaluation_delete",
     "forms_customization.evaluation_duplicate",
     "forms_customization.evaluation_placeholder",
     "forms_customization.evaluation_description",
@@ -2709,7 +2727,9 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     "forms_customization.evaluation_reorder"
   ];
   const formsServicesSubPerms = [
+    "forms_customization.services_view",
     "forms_customization.services_add_field",
+    "forms_customization.services_delete",
     "forms_customization.services_duplicate",
     "forms_customization.services_placeholder",
     "forms_customization.services_description",
@@ -2719,7 +2739,9 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     "forms_customization.services_reorder"
   ];
   const formsRegistrationSubPerms = [
+    "forms_customization.registration_view",
     "forms_customization.registration_add_field",
+    "forms_customization.registration_delete",
     "forms_customization.registration_duplicate",
     "forms_customization.registration_placeholder",
     "forms_customization.registration_description",
