@@ -273,7 +273,7 @@ export const categoriesRouter = router({
       if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
         const { calculateUserPermissions } = await import("../permissions");
         const userPermissions = await calculateUserPermissions(ctx.user.id);
-        const hasEditPerm = userPermissions.includes("settings_categories.edit");
+        const hasEditPerm = userPermissions.includes("settings_categories.edit") || userPermissions.includes("settings_categories.reorder");
         if (!hasEditPerm) {
           throw new TRPCError({ code: "FORBIDDEN" });
         }
@@ -378,7 +378,7 @@ export const categoriesRouter = router({
       if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
         const { calculateUserPermissions } = await import("../permissions");
         const userPermissions = await calculateUserPermissions(ctx.user.id);
-        const hasEditPerm = userPermissions.includes("settings_categories.edit");
+        const hasEditPerm = userPermissions.includes("settings_categories.edit") || userPermissions.includes("settings_categories.reorder");
         if (!hasEditPerm) {
           throw new TRPCError({ code: "FORBIDDEN" });
         }
@@ -437,7 +437,7 @@ export const categoriesRouter = router({
       if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
         const { calculateUserPermissions } = await import("../permissions");
         const userPermissions = await calculateUserPermissions(ctx.user.id);
-        const hasEditPerm = userPermissions.includes("settings_categories.edit");
+        const hasEditPerm = userPermissions.includes("settings_categories.edit") || userPermissions.includes("settings_categories.reorder");
         if (!hasEditPerm) {
           throw new TRPCError({ code: "FORBIDDEN" });
         }

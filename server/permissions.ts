@@ -143,11 +143,136 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "analytics_hub.operations": ["requests.view", "reports.view"],
   "analytics_hub.progress": ["progress_reports.view"],
 
-  "forms_customization.analytics": ["settings.view", "settings.edit"],
-  settings_center: ["settings.view", "settings.edit"],
-  programs_services: ["settings.view", "settings.edit"],
-  settings_escalation: ["settings_escalation.view"],
-  "settings_escalation.view": ["settings_escalation.view"],
+  "forms_customization.analytics": ["settings.view", "settings.edit", "forms_customization.analytics", "forms_customization.view"],
+  settings_center: [
+    "settings.view", 
+    "settings_org.view", 
+    "settings_branding.view", 
+    "settings_categories.view", 
+    "services.view", 
+    "forms_customization.view", 
+    "settings_escalation.view", 
+    "staff_notifications.view", 
+    "notification_center.view"
+  ],
+  programs_services: [
+    "settings.view",
+    "services.view",
+    "services.add",
+    "services.edit",
+    "services.toggle_status",
+    "services.reorder",
+    "services.delete"
+  ],
+  settings_escalation: [
+    "settings_escalation.view",
+    "settings_escalation.edit_durations",
+    "settings_escalation.edit_beneficiary_sla",
+    "settings_escalation.save"
+  ],
+  "settings_escalation.view": ["settings_escalation.view", "settings.view", "escalation.view"],
+  "settings_escalation.edit_durations": ["settings_escalation.edit_durations", "settings_escalation.view", "settings.view", "settings.edit"],
+  "settings_escalation.edit_beneficiary_sla": ["settings_escalation.edit_beneficiary_sla", "settings_escalation.view", "settings.view", "settings.edit"],
+  "settings_escalation.save": ["settings_escalation.save", "settings_escalation.view", "settings.view", "settings.edit"],
+  "settings_escalation.edit": [
+    "settings_escalation.view",
+    "settings_escalation.edit_durations",
+    "settings_escalation.edit_beneficiary_sla",
+    "settings_escalation.save",
+    "settings.view",
+    "settings.edit"
+  ],
+
+  settings_org: ["settings.view", "settings.edit", "settings_org.view"],
+  "settings_org.view": ["settings_org.view", "settings.view"],
+  "settings_org.edit_basic": ["settings_org.edit_basic", "settings_org.view", "settings.view", "settings.edit"],
+  "settings_org.edit_supervision": ["settings_org.edit_supervision", "settings_org.view", "settings.view", "settings.edit"],
+  "settings_org.edit_officials": ["settings_org.edit_officials", "settings_org.view", "settings.view", "settings.edit"],
+  "settings_org.signers_view": ["settings_org.signers_view", "settings_org.view", "settings.view"],
+  "settings_org.signers_add": ["settings_org.signers_add", "settings_org.signers_view", "settings_org.view", "settings.view", "settings.edit"],
+  "settings_org.signers_edit": ["settings_org.signers_edit", "settings_org.signers_view", "settings_org.view", "settings.view", "settings.edit"],
+  "settings_org.signers_set_default": ["settings_org.signers_set_default", "settings_org.signers_view", "settings_org.view", "settings.view", "settings.edit"],
+  "settings_org.signers_delete": ["settings_org.signers_delete", "settings_org.signers_view", "settings_org.view", "settings.view", "settings.edit"],
+  "settings_org.edit_banks": ["settings_org.edit_banks", "settings_org.view", "settings.view", "settings.edit"],
+  "settings_org.edit_contracts": ["settings_org.edit_contracts", "settings_org.view", "settings.view", "settings.edit"],
+  "settings_org.edit_signers": [
+    "settings_org.signers_view",
+    "settings_org.signers_add",
+    "settings_org.signers_edit",
+    "settings_org.signers_set_default",
+    "settings_org.signers_delete",
+    "settings_org.view",
+    "settings.view",
+    "settings.edit"
+  ],
+
+  settings_branding: ["settings.view", "settings.edit", "settings_branding.view"],
+  "settings_branding.view": ["settings_branding.view", "settings.view"],
+  "settings_branding.edit_colors": ["settings_branding.edit_colors", "settings_branding.view", "settings.view", "settings.edit"],
+  "settings_branding.upload_logos": ["settings_branding.upload_logos", "settings_branding.view", "settings.view", "settings.edit"],
+  "settings_branding.delete_logos": ["settings_branding.delete_logos", "settings_branding.view", "settings.view", "settings.edit"],
+  "settings_branding.edit": [
+    "settings_branding.view",
+    "settings_branding.edit_colors",
+    "settings_branding.upload_logos",
+    "settings_branding.delete_logos",
+    "settings.view",
+    "settings.edit"
+  ],
+
+  settings_contracts: ["settings.view", "settings.edit", "settings_contracts.view"],
+  "settings_contracts.view": ["settings_contracts.view", "settings.view"],
+  "settings_contracts.edit": ["settings_contracts.edit", "settings_contracts.view", "settings.view", "settings.edit"],
+
+  settings_categories: ["settings.view", "settings.edit", "settings_categories.view"],
+  "settings_categories.view": ["settings_categories.view", "settings.view"],
+  "settings_categories.add": ["settings_categories.add", "settings_categories.view", "settings.view", "settings.edit"],
+  "settings_categories.edit": ["settings_categories.edit", "settings_categories.view", "settings.view", "settings.edit"],
+  "settings_categories.reorder": ["settings_categories.reorder", "settings_categories.view", "settings.view", "settings.edit"],
+  "settings_categories.delete": ["settings_categories.delete", "settings_categories.view", "settings.view", "settings.edit"],
+
+  services: ["settings.view", "settings.edit", "services.view"],
+  "services.view": ["services.view", "settings.view"],
+  "services.add": ["services.add", "services.view", "settings.view", "settings.edit"],
+  "services.edit": ["services.edit", "services.view", "settings.view", "settings.edit"],
+  "services.toggle_status": ["services.toggle_status", "services.view", "settings.view", "settings.edit"],
+  "services.reorder": ["services.reorder", "services.view", "settings.view", "settings.edit"],
+  "services.delete": ["services.delete", "services.view", "settings.view", "settings.edit"],
+
+  forms_customization: [
+    "forms_customization.view",
+    "forms_customization.evaluation",
+    "forms_customization.services",
+    "forms_customization.registration",
+    "settings.view",
+    "settings.edit"
+  ],
+  "forms_customization.view": ["forms_customization.view", "settings.view"],
+  "forms_customization.evaluation": ["forms_customization.evaluation", "forms_customization.view", "settings.view", "settings.edit"],
+  "forms_customization.services_view": ["forms_customization.services_view", "forms_customization.view", "settings.view"],
+  "forms_customization.services_add": ["forms_customization.services_add", "forms_customization.services_view", "forms_customization.view", "settings.view", "settings.edit"],
+  "forms_customization.services_edit": ["forms_customization.services_edit", "forms_customization.services_view", "forms_customization.view", "settings.view", "settings.edit"],
+  "forms_customization.services_delete": ["forms_customization.services_delete", "forms_customization.services_view", "forms_customization.view", "settings.view", "settings.edit"],
+  "forms_customization.services": [
+    "forms_customization.services_view",
+    "forms_customization.services_add",
+    "forms_customization.services_edit",
+    "forms_customization.services_delete",
+    "forms_customization.view",
+    "settings.view",
+    "settings.edit"
+  ],
+  "forms_customization.registration": ["forms_customization.registration", "forms_customization.view", "settings.view", "settings.edit"],
+
+  "staff_notifications.view": ["staff_notifications.view", "settings.view"],
+  "staff_notifications.by_role": ["staff_notifications.by_role", "staff_notifications.view", "settings.view", "settings.edit"],
+  "staff_notifications.by_person": ["staff_notifications.by_person", "staff_notifications.view", "settings.view", "settings.edit"],
+  "staff_notifications.beneficiary": ["staff_notifications.beneficiary", "staff_notifications.view", "settings.view", "settings.edit"],
+  "staff_notifications.edit_message_formats": ["staff_notifications.edit_message_formats", "staff_notifications.view", "settings.view", "settings.edit"],
+
+  "notification_center.view": ["notification_center.view", "settings.view"],
+  "notification_center.direct_send": ["notification_center.direct_send", "notification_center.view", "settings.view", "settings.edit"],
+  "notification_center.send_logs": ["notification_center.send_logs", "notification_center.view", "settings.view"],
   corporate_comm: ["requests.view", "reports.view", "settings.view", "requests.upload_final_report"],
   "requests.upload_final_report": ["requests.view", "requests.upload_final_report"],
   "requests.create_quick_request": ["requests.create_quick_request"],
@@ -242,57 +367,17 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
     "staff_notifications.by_person",
     "staff_notifications.beneficiary"
   ],
-  "staff_notifications.by_role": ["settings.view"],
-  "staff_notifications.edit_message_formats": ["settings.view"],
-  "staff_notifications.by_person": ["settings.view"],
-  "staff_notifications.beneficiary": ["settings.view"],
   notification_center: [
     "notification_center.view",
     "notification_center.direct_send",
     "notification_center.send_logs"
   ],
-  "notification_center.view": ["settings.view"],
-  "notification_center.direct_send": ["settings.view"],
-  "notification_center.send_logs": ["settings.view"],
 
   settings: ["settings.view", "settings.edit"],
   "settings.view": ["settings.view"],
   "settings.add": ["settings.edit"],
   "settings.edit": ["settings.edit"],
   "settings.delete": ["settings.edit"],
-
-  settings_org: ["settings.view", "settings.edit"],
-  "settings_org.view": ["settings.view"],
-  "settings_org.edit": ["settings.edit"],
-  "settings_org.edit_basic": ["settings.edit"],
-  "settings_org.edit_signers": ["settings.edit"],
-  "settings_org.edit_banks": ["settings.edit"],
-  "settings_org.edit_contracts": ["settings.edit"],
-
-  settings_branding: ["settings.view", "settings.edit"],
-  "settings_branding.view": ["settings.view"],
-  "settings_branding.edit": ["settings.edit"],
-
-  settings_contracts: ["settings.view", "settings.edit"],
-  "settings_contracts.view": ["settings.view"],
-  "settings_contracts.edit": ["settings.edit"],
-
-  settings_categories: ["settings.view", "settings.edit"],
-  "settings_categories.view": ["settings.view"],
-  "settings_categories.add": ["settings.edit"],
-  "settings_categories.edit": ["settings.edit"],
-  "settings_categories.delete": ["settings.edit"],
-
-  services: ["settings.view", "settings.edit"],
-  "services.view": ["settings.view"],
-  "services.add": ["settings.edit"],
-  "services.edit": ["settings.edit"],
-  "services.delete": ["settings.edit"],
-
-  forms_customization: ["forms_customization.evaluation", "forms_customization.services", "forms_customization.registration"],
-  "forms_customization.evaluation": ["settings.view"],
-  "forms_customization.services": ["settings.view"],
-  "forms_customization.registration": ["settings.view"],
 
   "financial_approval.progress_invoices": ["financial.view"],
   "financial_approval.disbursement_requests": ["financial.view"],
@@ -1277,7 +1362,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "staff_custom_roles.add", moduleId: "permissions", action: "add", nameAr: "إضافة دور مخصص جديد", nameEn: "Add Custom Role" },
       { id: "staff_custom_roles.edit", moduleId: "permissions", action: "edit", nameAr: "تعديل الدور المخصص", nameEn: "Edit Custom Role" },
       { id: "staff_custom_roles.delete", moduleId: "permissions", action: "delete", nameAr: "حذف الدور المخصص", nameEn: "Delete Custom Role" },
-      { id: "staff_notifications.edit", moduleId: "permissions", action: "edit", nameAr: "تعديل تخصيص الإشعارات", nameEn: "Edit Notification Customization" },
+      { id: "staff_notifications.view", moduleId: "permissions", action: "view", nameAr: "استعراض إعدادات وقوالب الإشعارات", nameEn: "View Notification Settings" },
+      { id: "staff_notifications.edit", moduleId: "permissions", action: "edit", nameAr: "تعديل تخصيص الإشعارات (شامل)", nameEn: "Edit Notification Customization" },
       { id: "staff_notifications.by_role", moduleId: "permissions", action: "by_role", nameAr: "تخصيص الإشعارات حسب الدور", nameEn: "Customize Notifications by Role" },
       { id: "staff_notifications.edit_message_formats", moduleId: "permissions", action: "edit_message_formats", nameAr: "تعديل صيغ الرسائل", nameEn: "Edit Message Formats" },
       { id: "staff_notifications.by_person", moduleId: "permissions", action: "by_person", nameAr: "تخصيص حسب الأشخاص", nameEn: "Customize Notifications by Person" },
@@ -1285,24 +1371,60 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "notification_center.view", moduleId: "permissions", action: "view", nameAr: "عرض مركز الإشعارات", nameEn: "View Notification Center" },
       { id: "notification_center.direct_send", moduleId: "permissions", action: "direct_send", nameAr: "إرسال إشعار مباشر", nameEn: "Send Direct Notification" },
       { id: "notification_center.send_logs", moduleId: "permissions", action: "send_logs", nameAr: "سجل إرسال الإشعارات", nameEn: "Notification Send Log" },
+
+      // --- إعدادات الجمعية (تفصيل كامل) ---
       { id: "settings_org.view", moduleId: "settings", action: "view", nameAr: "عرض إعدادات الجمعية", nameEn: "View Org Settings" },
       { id: "settings_org.edit_basic", moduleId: "settings", action: "edit_basic", nameAr: "تعديل معلومات الجمعية الأساسية", nameEn: "Edit Org Basic Info" },
-      { id: "settings_org.edit_signers", moduleId: "settings", action: "edit_signers", nameAr: "تعديل المفوضين بالتوقيع", nameEn: "Edit Org Signers" },
+      { id: "settings_org.edit_supervision", moduleId: "settings", action: "edit_supervision", nameAr: "تعديل جهات الإشراف", nameEn: "Edit Supervision Authorities" },
+      { id: "settings_org.edit_officials", moduleId: "settings", action: "edit_officials", nameAr: "تعديل أسماء المسؤولين", nameEn: "Edit Organization Officials" },
+      { id: "settings_org.signers_view", moduleId: "settings", action: "signers_view", nameAr: "عرض قائمة مفوضي التوقيع", nameEn: "View Org Signatories" },
+      { id: "settings_org.signers_add", moduleId: "settings", action: "signers_add", nameAr: "إضافة مفوض توقيع جديد", nameEn: "Add Org Signatory" },
+      { id: "settings_org.signers_edit", moduleId: "settings", action: "signers_edit", nameAr: "تعديل بيانات المفوض والتوقيع الرقمي", nameEn: "Edit Org Signatory" },
+      { id: "settings_org.signers_set_default", moduleId: "settings", action: "signers_set_default", nameAr: "تعيين مفوض التوقيع كافتراضي", nameEn: "Set Default Org Signatory" },
+      { id: "settings_org.signers_delete", moduleId: "settings", action: "signers_delete", nameAr: "حذف مفوض التوقيع", nameEn: "Delete Org Signatory" },
       { id: "settings_org.edit_banks", moduleId: "settings", action: "edit_banks", nameAr: "تعديل الحسابات البنكية المعتمدة", nameEn: "Edit Org Banks" },
       { id: "settings_org.edit_contracts", moduleId: "settings", action: "edit_contracts", nameAr: "تعديل إعدادات وصياغة العقود", nameEn: "Edit Org Contracts Settings" },
-      { id: "settings_branding.edit", moduleId: "settings", action: "edit", nameAr: "تعديل الهوية البصرية وشعارات البوابة", nameEn: "Edit Branding Settings" },
-      { id: "settings_categories.view", moduleId: "settings", action: "view", nameAr: "عرض وتحديث تصنيفات الخدمات", nameEn: "View Categories" },
+      { id: "settings_org.edit_signers", moduleId: "settings", action: "edit_signers", nameAr: "تعديل المفوضين بالتوقيع (شامل)", nameEn: "Edit Org Signers" },
+
+      // --- الهوية البصرية (تفصيل كامل) ---
+      { id: "settings_branding.view", moduleId: "settings", action: "view", nameAr: "عرض إعدادات الهوية والشعارات", nameEn: "View Branding Settings" },
+      { id: "settings_branding.edit_colors", moduleId: "settings", action: "edit_colors", nameAr: "تعديل وحفظ الألوان والمظهر العام", nameEn: "Edit Branding Colors & Theme" },
+      { id: "settings_branding.upload_logos", moduleId: "settings", action: "upload_logos", nameAr: "رفع وتحديث الشعارات والختم الرسمي", nameEn: "Upload Logos & Stamp" },
+      { id: "settings_branding.delete_logos", moduleId: "settings", action: "delete_logos", nameAr: "حذف وإزالة الشعارات والأختام المرفوعة", nameEn: "Delete Uploaded Logos" },
+      { id: "settings_branding.edit", moduleId: "settings", action: "edit", nameAr: "تعديل الهوية البصرية وشعارات البوابة (شامل)", nameEn: "Edit Branding Settings" },
+
+      // --- إدارة التصنيفات (تفصيل كامل) ---
+      { id: "settings_categories.view", moduleId: "settings", action: "view", nameAr: "عرض وتصفح التصنيفات", nameEn: "View Categories" },
       { id: "settings_categories.add", moduleId: "settings", action: "add", nameAr: "إضافة تصنيف جديد للخدمات", nameEn: "Add Category" },
       { id: "settings_categories.edit", moduleId: "settings", action: "edit", nameAr: "تعديل وحفظ تصنيف الخدمات", nameEn: "Edit Category" },
+      { id: "settings_categories.reorder", moduleId: "settings", action: "reorder", nameAr: "إعادة ترتيب وتسلسل التصنيفات", nameEn: "Reorder Categories" },
       { id: "settings_categories.delete", moduleId: "settings", action: "delete", nameAr: "حذف تصنيف الخدمات", nameEn: "Delete Category" },
+
+      // --- البرامج والخدمات (تفصيل كامل) ---
       { id: "services.view", moduleId: "settings", action: "view", nameAr: "عرض قائمة البرامج والخدمات", nameEn: "View Services" },
       { id: "services.add", moduleId: "settings", action: "add", nameAr: "إضافة برنامج أو خدمة جديدة", nameEn: "Add Service" },
       { id: "services.edit", moduleId: "settings", action: "edit", nameAr: "تعديل مواصفات البرامج والخدمات", nameEn: "Edit Service" },
+      { id: "services.toggle_status", moduleId: "settings", action: "toggle_status", nameAr: "تفعيل أو تعطيل حالة البرامج والخدمات", nameEn: "Toggle Service Status" },
+      { id: "services.reorder", moduleId: "settings", action: "reorder", nameAr: "إعادة ترتيب وتسلسل البرامج والخدمات", nameEn: "Reorder Services" },
       { id: "services.delete", moduleId: "settings", action: "delete", nameAr: "حذف برنامج أو خدمة", nameEn: "Delete Service" },
+
+      // --- تخصيص النماذج (تفصيل كامل) ---
+      { id: "forms_customization.view", moduleId: "settings", action: "view", nameAr: "عرض وتصفح النماذج والحقول المخصصة", nameEn: "View Custom Forms" },
       { id: "forms_customization.evaluation", moduleId: "settings", action: "evaluation", nameAr: "تخصيص استمارة التقييم", nameEn: "Customize Evaluation Form" },
-      { id: "forms_customization.services", moduleId: "settings", action: "services", nameAr: "تخصيص نماذج طلبات الخدمات", nameEn: "Customize Service Request Forms" },
+      { id: "forms_customization.services", moduleId: "settings", action: "services", nameAr: "تخصيص نماذج طلبات الخدمات (شامل)", nameEn: "Customize Service Request Forms" },
+      { id: "forms_customization.services_view", moduleId: "settings", action: "services_view", nameAr: "استعراض حقول نماذج طلبات الخدمات", nameEn: "View Service Request Form Fields" },
+      { id: "forms_customization.services_add", moduleId: "settings", action: "services_add", nameAr: "إضافة حقول لنماذج الخدمات", nameEn: "Add Service Request Form Fields" },
+      { id: "forms_customization.services_edit", moduleId: "settings", action: "services_edit", nameAr: "تعديل حقول نماذج الخدمات", nameEn: "Edit Service Request Form Fields" },
+      { id: "forms_customization.services_delete", moduleId: "settings", action: "services_delete", nameAr: "حذف حقول نماذج الخدمات", nameEn: "Delete Service Request Form Fields" },
       { id: "forms_customization.registration", moduleId: "settings", action: "registration", nameAr: "تخصيص نماذج التسجيل والتبرع", nameEn: "Customize Registration & Donation Forms" },
-      { id: "settings_escalation.view", moduleId: "settings", action: "view", nameAr: "تعيين وقت التأخير ومدد المراحل", nameEn: "Set Delay Times & Stage Durations" },
+      { id: "forms_customization.analytics", moduleId: "settings", action: "analytics", nameAr: "لوحة تحليلات وإحصائيات النماذج", nameEn: "Forms Custom Analytics" },
+
+      // --- تعيين وقت التأخير ومدد المراحل (تفصيل كامل) ---
+      { id: "settings_escalation.view", moduleId: "settings", action: "view", nameAr: "عرض مدد المراحل وأوقات التأخير", nameEn: "View Delay Times & Stage Durations" },
+      { id: "settings_escalation.edit_durations", moduleId: "settings", action: "edit_durations", nameAr: "تعديل مدد المراحل الرئيسية", nameEn: "Edit Stage Durations" },
+      { id: "settings_escalation.edit_beneficiary_sla", moduleId: "settings", action: "edit_beneficiary_sla", nameAr: "تعديل مهلة تجاوب وقبول المستفيد", nameEn: "Edit Beneficiary Acceptance SLA" },
+      { id: "settings_escalation.save", moduleId: "settings", action: "save", nameAr: "حفظ وتطبيق إعدادات أوقات التأخير والتصعيد", nameEn: "Save Escalation & Delay Settings" },
+      { id: "settings_escalation.edit", moduleId: "settings", action: "edit", nameAr: "تعديل إعدادات أوقات التأخير (شامل)", nameEn: "Edit Delay Settings" },
       { id: "requests.upload_final_report", moduleId: "requests", action: "upload_final_report", nameAr: "رفع التقرير الختامي", nameEn: "Upload Final Report" },
       { id: "boq.view", moduleId: "boq", action: "view", nameAr: "عرض جداول الكميات", nameEn: "View BOQ" },
       { id: "boq.add", moduleId: "boq", action: "add", nameAr: "إضافة بند جديد", nameEn: "Add BOQ Item" },
@@ -1887,6 +2009,49 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     }
   });
 
+  // تنظيف مفاتيح إعدادات الجمعية عند سحب أي من الصلاحيات التابعة
+  if (
+    revokedPermissions.has("settings_org.signers_view") ||
+    revokedPermissions.has("settings_org.signers_add") ||
+    revokedPermissions.has("settings_org.signers_edit") ||
+    revokedPermissions.has("settings_org.signers_set_default") ||
+    revokedPermissions.has("settings_org.signers_delete")
+  ) {
+    allPermissions.delete("settings_org.edit_signers");
+  }
+
+  // إذا تم سحب عرض قائمة المفوضين، تسحب جميع إجراءات المفوضين تلقائياً
+  if (revokedPermissions.has("settings_org.signers_view")) {
+    allPermissions.delete("settings_org.signers_view");
+    allPermissions.delete("settings_org.signers_add");
+    allPermissions.delete("settings_org.signers_edit");
+    allPermissions.delete("settings_org.signers_set_default");
+    allPermissions.delete("settings_org.signers_delete");
+    allPermissions.delete("settings_org.edit_signers");
+  }
+
+  // إذا تم سحب كافة صلاحيات إعدادات الجمعية (أو لم يتبق أي منها)، يتم حذف صلاحية عرض إعدادات الجمعية والمفتاح العام
+  const allOrgSubPerms = [
+    "settings_org.edit_basic",
+    "settings_org.edit_supervision",
+    "settings_org.edit_officials",
+    "settings_org.signers_view",
+    "settings_org.signers_add",
+    "settings_org.signers_edit",
+    "settings_org.signers_set_default",
+    "settings_org.signers_delete",
+    "settings_org.edit_banks",
+    "settings_org.edit_contracts"
+  ];
+  const hasRemainingOrgPerms = allOrgSubPerms.some(
+    p => allPermissions.has(p) && !revokedPermissions.has(p)
+  );
+  if (!hasRemainingOrgPerms) {
+    allPermissions.delete("settings_org.view");
+    allPermissions.delete("settings_org");
+    allPermissions.delete("settings_org.edit_signers");
+  }
+
   // 7. إضافة مفاتيح الصلاحيات البسيطة تلقائياً لتوافق الواجهة الجانبية والتحقق من المسارات
   if (allPermissions.has("mosques.view")) {
     allPermissions.add("mosques");
@@ -2210,10 +2375,17 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   }
   if (
     allPermissions.has("settings.view") ||
+    allPermissions.has("settings_org.view") ||
+    allPermissions.has("settings_branding.view") ||
+    allPermissions.has("settings_categories.view") ||
     allPermissions.has("services.view") ||
     allPermissions.has("services.add") ||
     allPermissions.has("services.edit") ||
-    allPermissions.has("services.delete")
+    allPermissions.has("services.delete") ||
+    allPermissions.has("forms_customization.view") ||
+    allPermissions.has("settings_escalation.view") ||
+    allPermissions.has("staff_notifications.view") ||
+    allPermissions.has("notification_center.view")
   ) {
     allPermissions.add("settings");
     allPermissions.add("settings_center");
@@ -2221,9 +2393,15 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.add("programs_services");
   }
   if (
+    allPermissions.has("forms_customization.view") ||
     allPermissions.has("forms_customization.evaluation") ||
     allPermissions.has("forms_customization.services") ||
-    allPermissions.has("forms_customization.registration")
+    allPermissions.has("forms_customization.services_view") ||
+    allPermissions.has("forms_customization.services_add") ||
+    allPermissions.has("forms_customization.services_edit") ||
+    allPermissions.has("forms_customization.services_delete") ||
+    allPermissions.has("forms_customization.registration") ||
+    allPermissions.has("forms_customization.analytics")
   ) {
     allPermissions.add("forms_customization");
   } else {

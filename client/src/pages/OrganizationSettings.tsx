@@ -69,6 +69,21 @@ import { Badge } from "@/components/ui/badge";
 
 // مكون إدارة المفوضين
 function SignatoriesSection() {
+  const { user } = useAuth();
+  const { data: userPermissions = [] } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user }
+  );
+  const hasPerm = (p: string) =>
+    userPermissions.includes("*") ||
+    userPermissions.includes(p);
+
+  const canShowSigners = hasPerm("settings_org.signers_view");
+  const canAddSigner = hasPerm("settings_org.signers_add");
+  const canEditSigner = hasPerm("settings_org.signers_edit");
+  const canSetDefault = hasPerm("settings_org.signers_set_default");
+  const canDeleteSigner = hasPerm("settings_org.signers_delete");
+
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingSignatory, setEditingSignatory] = useState<any>(null);
   const [uploadingSignature, setUploadingSignature] = useState(false);
@@ -353,11 +368,13 @@ function SignatoriesSection() {
               إدارة الأشخاص المفوضين بالتوقيع على العقود نيابة عن الجمعية وتخصيص صور التوقيع الرقمي
             </CardDescription>
           </div>
-          <Button onClick={() => setShowAddDialog(true)} className="gradient-primary text-white shrink-0">
-            <Plus className="h-4 w-4 sm:mr-0 ml-1 sm:ml-2" />
-            <span className="hidden sm:inline">إضافة مفوض</span>
-            <span className="sm:hidden">إضافة</span>
-          </Button>
+          {canAddSigner && (
+            <Button onClick={() => setShowAddDialog(true)} className="gradient-primary text-white shrink-0">
+              <Plus className="h-4 w-4 sm:mr-0 ml-1 sm:ml-2" />
+              <span className="hidden sm:inline">إضافة مفوض</span>
+              <span className="sm:hidden">إضافة</span>
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="p-0 sm:p-6">
@@ -379,7 +396,9 @@ function SignatoriesSection() {
                     <TableHead className="text-right">البريد الإلكتروني</TableHead>
                     <TableHead className="text-center">التوقيع الرقمي</TableHead>
                     <TableHead className="text-right">الحالة</TableHead>
-                    <TableHead className="text-left">الإجراءات</TableHead>
+                    {(canEditSigner || canSetDefault || canDeleteSigner) && (
+                      <TableHead className="text-left">الإجراءات</TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -409,39 +428,45 @@ function SignatoriesSection() {
                           <Badge variant="outline" className="font-medium">نشط</Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-left">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-primary"
-                            onClick={() => openEditDialog(signatory)}
-                            title="تعديل المفوض والتوقيع"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          {!signatory.isDefault && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-amber-500 hover:text-amber-600"
-                              onClick={() => setDefaultMutation.mutate({ id: signatory.id })}
-                              title="تعيين كافتراضي"
-                            >
-                              <Star className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-600"
-                            onClick={() => deleteMutation.mutate({ id: signatory.id })}
-                            title="حذف"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {(canEditSigner || canSetDefault || canDeleteSigner) && (
+                        <TableCell className="text-left">
+                          <div className="flex items-center justify-end gap-1">
+                            {canEditSigner && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                onClick={() => openEditDialog(signatory)}
+                                title="تعديل المفوض والتوقيع"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {!signatory.isDefault && canSetDefault && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-amber-500 hover:text-amber-600"
+                                onClick={() => setDefaultMutation.mutate({ id: signatory.id })}
+                                title="تعيين كافتراضي"
+                              >
+                                <Star className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {canDeleteSigner && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-500 hover:text-red-600"
+                                onClick={() => deleteMutation.mutate({ id: signatory.id })}
+                                title="حذف"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -491,36 +516,42 @@ function SignatoriesSection() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 pt-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 h-8 text-xs font-bold"
-                      onClick={() => openEditDialog(signatory)}
-                    >
-                      <Edit2 className="h-3.5 w-3.5 ml-1.5" />
-                      تعديل والتوقيع
-                    </Button>
-                    {!signatory.isDefault && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-10 text-amber-600 border-amber-200 bg-amber-50/50 p-0 flex items-center justify-center"
-                        onClick={() => setDefaultMutation.mutate({ id: signatory.id })}
-                        title="افتراضي"
-                      >
-                        <Star className="h-3.5 w-3.5 fill-current" />
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 w-10 text-red-500 border-red-200 p-0 flex items-center justify-center"
-                      onClick={() => deleteMutation.mutate({ id: signatory.id })}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                  {(canEditSigner || canSetDefault || canDeleteSigner) && (
+                    <div className="flex gap-2 pt-1">
+                      {canEditSigner && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 h-8 text-xs font-bold"
+                          onClick={() => openEditDialog(signatory)}
+                        >
+                          <Edit2 className="h-3.5 w-3.5 ml-1.5" />
+                          تعديل والتوقيع
+                        </Button>
+                      )}
+                      {!signatory.isDefault && canSetDefault && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-10 text-amber-600 border-amber-200 bg-amber-50/50 p-0 flex items-center justify-center"
+                          onClick={() => setDefaultMutation.mutate({ id: signatory.id })}
+                          title="افتراضي"
+                        >
+                          <Star className="h-3.5 w-3.5 fill-current" />
+                        </Button>
+                      )}
+                      {canDeleteSigner && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-10 text-red-500 border-red-200 p-0 flex items-center justify-center"
+                          onClick={() => deleteMutation.mutate({ id: signatory.id })}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -783,17 +814,25 @@ function SignatoriesSection() {
 
 export default function OrganizationSettings() {
   const { user } = useAuth();
-  
-  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const userPermissions: string[] = (user as any)?.permissions ?? [];
+  const { data: userPermissions = [] } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user }
+  );
   const hasPerm = (p: string) => 
-    isAdmin || 
+    userPermissions.includes("*") ||
     userPermissions.includes(p);
 
-  const canShowBasic = hasPerm("settings_org.edit_basic");
-  const canShowSigners = hasPerm("settings_org.edit_signers");
+  const canShowBasic = hasPerm("settings_org.edit_basic") || hasPerm("settings_org.edit_supervision") || hasPerm("settings_org.edit_officials");
+  const canShowSigners = hasPerm("settings_org.signers_view");
   const canShowBanks = hasPerm("settings_org.edit_banks");
   const canShowContracts = hasPerm("settings_org.edit_contracts");
+
+  const canEditBasic = hasPerm("settings_org.edit_basic");
+  const canEditSupervision = hasPerm("settings_org.edit_supervision");
+  const canEditOfficials = hasPerm("settings_org.edit_officials");
+  const canEditBanks = hasPerm("settings_org.edit_banks");
+  const canEditContracts = hasPerm("settings_org.edit_contracts");
+  const canSaveAnySettings = canEditBasic || canEditSupervision || canEditOfficials || canEditBanks || canEditContracts;
 
   const defaultTab = canShowBasic 
     ? "basic" 
@@ -956,17 +995,32 @@ export default function OrganizationSettings() {
               </p>
             </div>
           </div>
-          <Button onClick={handleSave} disabled={updateMutation.isPending} className="w-full sm:w-auto gradient-primary text-white order-first sm:order-last">
-            {updateMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin ml-2" />
-            ) : (
-              <Save className="h-4 w-4 ml-2" />
-            )}
-            حفظ الإعدادات
-          </Button>
+          {canSaveAnySettings && (
+            <Button onClick={handleSave} disabled={updateMutation.isPending} className="w-full sm:w-auto gradient-primary text-white order-first sm:order-last">
+              {updateMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin ml-2" />
+              ) : (
+                <Save className="h-4 w-4 ml-2" />
+              )}
+              حفظ الإعدادات
+            </Button>
+          )}
         </div>
 
-        <Tabs key={defaultTab} defaultValue={defaultTab} className="space-y-6">
+        {!canShowBasic && !canShowSigners && !canShowBanks && !canShowContracts ? (
+          <Card className="border border-red-200/60 dark:border-red-900/30 bg-red-50/20 dark:bg-red-900/10 p-8 rounded-2xl text-center">
+            <div className="max-w-md mx-auto space-y-3">
+              <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full w-fit mx-auto">
+                <Lock className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">تم حجب صلاحيات إعدادات الجمعية</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                تم إلغاء أو سحب كافة صلاحيات قسم إعدادات الجمعية عن حسابك، لا يمكنك استعراض أو تعديل أي من هذه الإعدادات حالياً.
+              </p>
+            </div>
+          </Card>
+        ) : (
+          <Tabs key={defaultTab} defaultValue={defaultTab} className="space-y-6">
           <div className="w-full overflow-x-auto overflow-y-hidden pb-3 scrollbar-thin">
             <TabsList 
               className="bg-muted/60 p-1 inline-flex md:grid w-auto md:w-full border shadow-sm rounded-xl h-auto"
@@ -1010,194 +1064,214 @@ export default function OrganizationSettings() {
           {/* معلومات الجمعية الأساسية */}
           {canShowBasic && (
             <TabsContent value="basic" className="space-y-6">
-            <Card className="border-0 shadow-sm overflow-hidden" dir="rtl">
-              <CardHeader className="p-4 sm:p-6 pb-2">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Building2 className="h-5 w-5 text-primary" />
-                  معلومات الجمعية الأساسية
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
-                  البيانات الأساسية للجمعية التي تظهر في العقود والمستندات الرسمية
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-6 space-y-6" dir="rtl">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="name" className="text-xs sm:text-sm font-bold">اسم الجمعية</Label>
-                    <Input
-                      id="name"
-                      value={orgSettings.name}
-                      onChange={(e) => setOrgSettings({ ...orgSettings, name: e.target.value })}
-                      placeholder="اسم الجمعية الرسمي"
-                      className="h-10 sm:h-11"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="metaTitle" className="text-xs sm:text-sm font-bold flex items-center gap-1.5">
-                      <Globe className="w-4 h-4 text-primary" />
-                      عنوان تبويب المتصفح
-                    </Label>
-                    <Input
-                      id="metaTitle"
-                      value={orgSettings.metaTitle}
-                      onChange={(e) => setOrgSettings({ ...orgSettings, metaTitle: e.target.value })}
-                      placeholder="مثال: بوابة تمام | نظام إدارة برامج ومشاريع الجمعية"
-                      className="h-10 sm:h-11 font-medium"
-                    />
-                  </div>
-                </div>
+              {canEditBasic && (
+                <Card className="border-0 shadow-sm overflow-hidden" dir="rtl">
+                  <CardHeader className="p-4 sm:p-6 pb-2">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Building2 className="h-5 w-5 text-primary" />
+                      معلومات الجمعية الأساسية
+                    </CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">
+                      البيانات الأساسية للجمعية التي تظهر في العقود والمستندات الرسمية
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-6 space-y-6" dir="rtl">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="name" className="text-xs sm:text-sm font-bold">اسم الجمعية</Label>
+                        <Input
+                          id="name"
+                          value={orgSettings.name}
+                          onChange={(e) => setOrgSettings({ ...orgSettings, name: e.target.value })}
+                          placeholder="اسم الجمعية الرسمي"
+                          className="h-10 sm:h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="metaTitle" className="text-xs sm:text-sm font-bold flex items-center gap-1.5">
+                          <Globe className="w-4 h-4 text-primary" />
+                          عنوان تبويب المتصفح
+                        </Label>
+                        <Input
+                          id="metaTitle"
+                          value={orgSettings.metaTitle}
+                          onChange={(e) => setOrgSettings({ ...orgSettings, metaTitle: e.target.value })}
+                          placeholder="مثال: بوابة تمام | نظام إدارة برامج ومشاريع الجمعية"
+                          className="h-10 sm:h-11 font-medium"
+                        />
+                      </div>
+                    </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="officialReportsName" className="text-xs sm:text-sm font-bold">اسم الجمعية للتقارير الرسمية</Label>
-                    <Input
-                      id="officialReportsName"
-                      value={orgSettings.officialReportsName}
-                      onChange={(e) => setOrgSettings({ ...orgSettings, officialReportsName: e.target.value })}
-                      placeholder="يظهر في ترويسة التقارير المطبوعة"
-                      className="h-10 sm:h-11"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="licenseNumber" className="text-xs sm:text-sm font-bold">رقم الترخيص</Label>
-                    <Input
-                      id="licenseNumber"
-                      value={orgSettings.licenseNumber}
-                      onChange={(e) => setOrgSettings({ ...orgSettings, licenseNumber: e.target.value })}
-                      placeholder="رقم ترخيص الجمعية"
-                      className="h-10 sm:h-11"
-                    />
-                  </div>
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="officialReportsName" className="text-xs sm:text-sm font-bold">اسم الجمعية للتقارير الرسمية</Label>
+                        <Input
+                          id="officialReportsName"
+                          value={orgSettings.officialReportsName}
+                          onChange={(e) => setOrgSettings({ ...orgSettings, officialReportsName: e.target.value })}
+                          placeholder="يظهر في ترويسة التقارير المطبوعة"
+                          className="h-10 sm:h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="licenseNumber" className="text-xs sm:text-sm font-bold">رقم الترخيص</Label>
+                        <Input
+                          id="licenseNumber"
+                          value={orgSettings.licenseNumber}
+                          onChange={(e) => setOrgSettings({ ...orgSettings, licenseNumber: e.target.value })}
+                          placeholder="رقم ترخيص الجمعية"
+                          className="h-10 sm:h-11"
+                        />
+                      </div>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="address" className="text-xs sm:text-sm font-bold">العنوان</Label>
-                  <Textarea
-                    id="address"
-                    value={orgSettings.address}
-                    onChange={(e) => setOrgSettings({ ...orgSettings, address: e.target.value })}
-                    placeholder="العنوان التفصيلي للجمعية"
-                    rows={2}
-                    className="resize-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="city" className="text-xs sm:text-sm font-bold">المدينة</Label>
-                    <Input
-                      id="city"
-                      value={orgSettings.city}
-                      onChange={(e) => setOrgSettings({ ...orgSettings, city: e.target.value })}
-                      placeholder="المدينة"
-                      className="h-10 sm:h-11"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-xs sm:text-sm font-bold">رقم الهاتف</Label>
-                    <Input
-                      id="phone"
-                      value={orgSettings.phone}
-                      onChange={(e) => setOrgSettings({ ...orgSettings, phone: e.target.value })}
-                      placeholder="رقم الهاتف"
-                      className="h-10 sm:h-11 text-right"
-                    />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-                    <Label htmlFor="email" className="text-xs sm:text-sm font-bold">البريد الإلكتروني</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={orgSettings.email}
-                      onChange={(e) => setOrgSettings({ ...orgSettings, email: e.target.value })}
-                      placeholder="البريد الإلكتروني"
-                      className="h-10 sm:h-11 text-right"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="website" className="text-xs sm:text-sm font-bold">الموقع الإلكتروني</Label>
-                  <Input
-                    id="website"
-                    value={orgSettings.website}
-                    onChange={(e) => setOrgSettings({ ...orgSettings, website: e.target.value })}
-                    placeholder="https://www.example.com"
-                    className="h-10 sm:h-11 text-right"
-                  />
-                </div>
-
-                {/* جهات الإشراف */}
-                <div className="border-t border-dashed pt-6 mt-2">
-                  <h3 className="font-bold text-sm sm:text-base mb-4 flex items-center gap-2">
-                    <div className="w-1.5 h-4 bg-primary rounded-full" />
-                    جهات الإشراف
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="administrativeSupervisor" className="text-xs sm:text-sm font-bold text-muted-foreground">جهة الإشراف الإداري</Label>
-                      <Input
-                        id="administrativeSupervisor"
-                        value={orgSettings.administrativeSupervisor}
-                        onChange={(e) => setOrgSettings({ ...orgSettings, administrativeSupervisor: e.target.value })}
-                        placeholder="وزارة الموارد البشرية..."
-                        className="h-10 sm:h-11"
+                      <Label htmlFor="address" className="text-xs sm:text-sm font-bold">العنوان</Label>
+                      <Textarea
+                        id="address"
+                        value={orgSettings.address}
+                        onChange={(e) => setOrgSettings({ ...orgSettings, address: e.target.value })}
+                        placeholder="العنوان التفصيلي للجمعية"
+                        rows={2}
+                        className="resize-none"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="technicalSupervisor" className="text-xs sm:text-sm font-bold text-muted-foreground">جهة الإشراف الفني</Label>
-                      <Input
-                        id="technicalSupervisor"
-                        value={orgSettings.technicalSupervisor}
-                        onChange={(e) => setOrgSettings({ ...orgSettings, technicalSupervisor: e.target.value })}
-                        placeholder="وزارة الشؤون الإسلامية..."
-                        className="h-10 sm:h-11"
-                      />
-                    </div>
-                  </div>
-                </div>
 
-                {/* أسماء المسؤولين */}
-                <div className="border-t border-dashed pt-6">
-                  <h3 className="font-bold text-sm sm:text-base mb-4 flex items-center gap-2">
-                    <div className="w-1.5 h-4 bg-primary rounded-full" />
-                    أسماء المسؤولين
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="city" className="text-xs sm:text-sm font-bold">المدينة</Label>
+                        <Input
+                          id="city"
+                          value={orgSettings.city}
+                          onChange={(e) => setOrgSettings({ ...orgSettings, city: e.target.value })}
+                          placeholder="المدينة"
+                          className="h-10 sm:h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone" className="text-xs sm:text-sm font-bold">رقم الهاتف</Label>
+                        <Input
+                          id="phone"
+                          value={orgSettings.phone}
+                          onChange={(e) => setOrgSettings({ ...orgSettings, phone: e.target.value })}
+                          placeholder="رقم الهاتف"
+                          className="h-10 sm:h-11 text-right"
+                        />
+                      </div>
+                      <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+                        <Label htmlFor="email" className="text-xs sm:text-sm font-bold">البريد الإلكتروني</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={orgSettings.email}
+                          onChange={(e) => setOrgSettings({ ...orgSettings, email: e.target.value })}
+                          placeholder="البريد الإلكتروني"
+                          className="h-10 sm:h-11 text-right"
+                        />
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="boardChairmanName" className="text-xs sm:text-sm font-bold text-muted-foreground">رئيس مجلس الإدارة</Label>
+                      <Label htmlFor="website" className="text-xs sm:text-sm font-bold">الموقع الإلكتروني</Label>
                       <Input
-                        id="boardChairmanName"
-                        value={orgSettings.boardChairmanName}
-                        onChange={(e) => setOrgSettings({ ...orgSettings, boardChairmanName: e.target.value })}
-                        placeholder="اسم رئيس مجلس الإدارة"
-                        className="h-10 sm:h-11"
+                        id="website"
+                        value={orgSettings.website}
+                        onChange={(e) => setOrgSettings({ ...orgSettings, website: e.target.value })}
+                        placeholder="https://www.example.com"
+                        className="h-10 sm:h-11 text-right"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="executiveDirectorName" className="text-xs sm:text-sm font-bold text-muted-foreground">المدير التنفيذي</Label>
-                      <Input
-                        id="executiveDirectorName"
-                        value={orgSettings.executiveDirectorName}
-                        onChange={(e) => setOrgSettings({ ...orgSettings, executiveDirectorName: e.target.value })}
-                        placeholder="اسم المدير التنفيذي"
-                        className="h-10 sm:h-11"
-                      />
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* جهات الإشراف */}
+              {canEditSupervision && (
+                <Card className="border-0 shadow-sm overflow-hidden" dir="rtl">
+                  <CardHeader className="p-4 sm:p-6 pb-2">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <ShieldCheck className="h-5 w-5 text-primary" />
+                      جهات الإشراف
+                    </CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">
+                      الجهات الحكومية والوزارات المشرفة إدارياً وفنياً على أعمال وأنشطة الجمعية
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-6 space-y-6" dir="rtl">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="administrativeSupervisor" className="text-xs sm:text-sm font-bold text-muted-foreground">جهة الإشراف الإداري</Label>
+                        <Input
+                          id="administrativeSupervisor"
+                          value={orgSettings.administrativeSupervisor}
+                          onChange={(e) => setOrgSettings({ ...orgSettings, administrativeSupervisor: e.target.value })}
+                          placeholder="وزارة الموارد البشرية..."
+                          className="h-10 sm:h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="technicalSupervisor" className="text-xs sm:text-sm font-bold text-muted-foreground">جهة الإشراف الفني</Label>
+                        <Input
+                          id="technicalSupervisor"
+                          value={orgSettings.technicalSupervisor}
+                          onChange={(e) => setOrgSettings({ ...orgSettings, technicalSupervisor: e.target.value })}
+                          placeholder="وزارة الشؤون الإسلامية..."
+                          className="h-10 sm:h-11"
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="accountantName" className="text-xs sm:text-sm font-bold text-muted-foreground">المحاسب</Label>
-                      <Input
-                        id="accountantName"
-                        value={orgSettings.accountantName}
-                        onChange={(e) => setOrgSettings({ ...orgSettings, accountantName: e.target.value })}
-                        placeholder="اسم المحاسب"
-                        className="h-10 sm:h-11"
-                      />
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* أسماء المسؤولين */}
+              {canEditOfficials && (
+                <Card className="border-0 shadow-sm overflow-hidden" dir="rtl">
+                  <CardHeader className="p-4 sm:p-6 pb-2">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Users className="h-5 w-5 text-primary" />
+                      أسماء المسؤولين
+                    </CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">
+                      أسماء القيادات والمسؤولين المعتمدين في إدارة الجمعية
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-6 space-y-6" dir="rtl">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="boardChairmanName" className="text-xs sm:text-sm font-bold text-muted-foreground">رئيس مجلس الإدارة</Label>
+                        <Input
+                          id="boardChairmanName"
+                          value={orgSettings.boardChairmanName}
+                          onChange={(e) => setOrgSettings({ ...orgSettings, boardChairmanName: e.target.value })}
+                          placeholder="اسم رئيس مجلس الإدارة"
+                          className="h-10 sm:h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="executiveDirectorName" className="text-xs sm:text-sm font-bold text-muted-foreground">المدير التنفيذي</Label>
+                        <Input
+                          id="executiveDirectorName"
+                          value={orgSettings.executiveDirectorName}
+                          onChange={(e) => setOrgSettings({ ...orgSettings, executiveDirectorName: e.target.value })}
+                          placeholder="اسم المدير التنفيذي"
+                          className="h-10 sm:h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="accountantName" className="text-xs sm:text-sm font-bold text-muted-foreground">المحاسب</Label>
+                        <Input
+                          id="accountantName"
+                          value={orgSettings.accountantName}
+                          onChange={(e) => setOrgSettings({ ...orgSettings, accountantName: e.target.value })}
+                          placeholder="اسم المحاسب"
+                          className="h-10 sm:h-11"
+                        />
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
           )}
 
@@ -1228,6 +1302,7 @@ export default function OrganizationSettings() {
                     <Input
                       id="bankName"
                       value={orgSettings.bankName}
+                      disabled={!canEditBanks}
                       onChange={(e) => setOrgSettings({ ...orgSettings, bankName: e.target.value })}
                       placeholder="اسم البنك"
                       className="h-10 sm:h-11"
@@ -1238,6 +1313,7 @@ export default function OrganizationSettings() {
                     <Input
                       id="bankAccountName"
                       value={orgSettings.bankAccountName}
+                      disabled={!canEditBanks}
                       onChange={(e) => setOrgSettings({ ...orgSettings, bankAccountName: e.target.value })}
                       placeholder="اسم صاحب الحساب"
                       className="h-10 sm:h-11"
@@ -1250,6 +1326,7 @@ export default function OrganizationSettings() {
                   <Input
                     id="iban"
                     value={orgSettings.iban}
+                    disabled={!canEditBanks}
                     onChange={(e) => {
                       let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
                       if (!value.startsWith("SA")) {
@@ -1292,6 +1369,7 @@ export default function OrganizationSettings() {
                   <Input
                     id="contractPrefix"
                     value={orgSettings.contractPrefix}
+                    disabled={!canEditContracts}
                     onChange={(e) => setOrgSettings({ ...orgSettings, contractPrefix: e.target.value })}
                     placeholder="CON"
                     className="max-w-xs h-10 sm:h-11 font-mono"
@@ -1306,6 +1384,7 @@ export default function OrganizationSettings() {
                   <Textarea
                     id="contractFooterText"
                     value={orgSettings.contractFooterText}
+                    disabled={!canEditContracts}
                     onChange={(e) => setOrgSettings({ ...orgSettings, contractFooterText: e.target.value })}
                     placeholder="النص الذي يظهر في نهاية كل عقد..."
                     rows={3}
@@ -1318,6 +1397,7 @@ export default function OrganizationSettings() {
                   <Textarea
                     id="contractTermsAndConditions"
                     value={orgSettings.contractTermsAndConditions}
+                    disabled={!canEditContracts}
                     onChange={(e) => setOrgSettings({ ...orgSettings, contractTermsAndConditions: e.target.value })}
                     placeholder="الشروط والأحكام الافتراضية للعقود..."
                     rows={8}
@@ -1329,6 +1409,7 @@ export default function OrganizationSettings() {
             </TabsContent>
           )}
         </Tabs>
+        )}
       </div>
     </DashboardLayout>
   );

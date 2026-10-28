@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,17 @@ import {
 
 export default function FormsCustomizationEscalation() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const userPermissions: string[] = (user as any)?.permissions ?? [];
+  const hasPerm = (p: string) =>
+    isAdmin ||
+    userPermissions.includes("*") ||
+    userPermissions.includes(p);
+
+  const canEditDurations = hasPerm("settings_escalation.edit_durations") || hasPerm("settings_escalation.edit") || hasPerm("settings.edit");
+  const canEditBeneficiarySla = hasPerm("settings_escalation.edit_beneficiary_sla") || hasPerm("settings_escalation.edit") || hasPerm("settings.edit");
+  const canSave = hasPerm("settings_escalation.save") || hasPerm("settings_escalation.edit") || hasPerm("settings.edit");
 
   // جلب إعدادات التصعيد الحالية من الخادم
   const { data: slaData, isLoading, refetch } = trpc.escalation.getSettings.useQuery();
@@ -78,6 +90,10 @@ export default function FormsCustomizationEscalation() {
   });
 
   const handleSave = () => {
+    if (!canSave) {
+      toast.error("ليس لديك صلاحية حفظ وتطبيق إعدادات التأخير");
+      return;
+    }
     updateSettingsMutation.mutate({
       stages: draftStages,
       beneficiaryDays: draftBeneficiaryDays,
@@ -126,25 +142,27 @@ export default function FormsCustomizationEscalation() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              type="button"
-              onClick={handleSave}
-              disabled={updateSettingsMutation.isPending || !hasChanges}
-              className={`text-xs font-semibold px-5 h-10 rounded-xl shadow-xs gap-2 transition-all ${
-                hasChanges
-                  ? "gradient-primary text-white shadow-md cursor-pointer"
-                  : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed shadow-none"
-              }`}
-            >
-              {updateSettingsMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              <span>حفظ التغييرات</span>
-            </Button>
-          </div>
+          {canSave && (
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                type="button"
+                onClick={handleSave}
+                disabled={updateSettingsMutation.isPending || !hasChanges}
+                className={`text-xs font-semibold px-5 h-10 rounded-xl shadow-xs gap-2 transition-all ${
+                  hasChanges
+                    ? "gradient-primary text-white shadow-md cursor-pointer"
+                    : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed shadow-none"
+                }`}
+              >
+                {updateSettingsMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                <span>حفظ التغييرات</span>
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* 3. شريط الإحصائيات السريع */}
@@ -189,8 +207,9 @@ export default function FormsCustomizationEscalation() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => setDraftBeneficiaryDays(prev => Math.max(1, prev - 1))}
-                    className="h-8 w-8 p-0 rounded-lg hover:bg-background"
+                    disabled={!canEditBeneficiarySla}
+                    onClick={() => canEditBeneficiarySla && setDraftBeneficiaryDays(prev => Math.max(1, prev - 1))}
+                    className={`h-8 w-8 p-0 rounded-lg hover:bg-background ${!canEditBeneficiarySla ? "opacity-40 cursor-not-allowed" : ""}`}
                   >
                     <Minus className="w-4 h-4" />
                   </Button>
@@ -199,17 +218,19 @@ export default function FormsCustomizationEscalation() {
                     type="number"
                     min={1}
                     max={60}
+                    disabled={!canEditBeneficiarySla}
                     value={draftBeneficiaryDays}
-                    onChange={(e) => setDraftBeneficiaryDays(parseInt(e.target.value) || 1)}
-                    className="w-12 text-center font-bold text-sm h-8 bg-background border border-border/80 focus-visible:ring-1 focus-visible:ring-primary p-0"
+                    onChange={(e) => canEditBeneficiarySla && setDraftBeneficiaryDays(parseInt(e.target.value) || 1)}
+                    className={`w-12 text-center font-bold text-sm h-8 bg-background border border-border/80 focus-visible:ring-1 focus-visible:ring-primary p-0 ${!canEditBeneficiarySla ? "opacity-60 cursor-not-allowed" : ""}`}
                   />
 
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => setDraftBeneficiaryDays(prev => Math.min(60, prev + 1))}
-                    className="h-8 w-8 p-0 rounded-lg hover:bg-background"
+                    disabled={!canEditBeneficiarySla}
+                    onClick={() => canEditBeneficiarySla && setDraftBeneficiaryDays(prev => Math.min(60, prev + 1))}
+                    className={`h-8 w-8 p-0 rounded-lg hover:bg-background ${!canEditBeneficiarySla ? "opacity-40 cursor-not-allowed" : ""}`}
                   >
                     <Plus className="w-4 h-4" />
                   </Button>
@@ -263,12 +284,14 @@ export default function FormsCustomizationEscalation() {
                               type="button"
                               variant="ghost"
                               size="sm"
+                              disabled={!canEditDurations}
                               onClick={() => {
+                                if (!canEditDurations) return;
                                 setDraftStages(prev => prev.map((item, idx) => 
                                   idx === index ? { ...item, durationDays: Math.max(1, (Number(item.durationDays) || 30) - 1) } : item
                                 ));
                               }}
-                              className="h-8 w-8 p-0 rounded-lg hover:bg-background"
+                              className={`h-8 w-8 p-0 rounded-lg hover:bg-background ${!canEditDurations ? "opacity-40 cursor-not-allowed" : ""}`}
                             >
                               <Minus className="w-4 h-4 text-amber-700 dark:text-amber-400" />
                             </Button>
@@ -277,25 +300,29 @@ export default function FormsCustomizationEscalation() {
                               type="number"
                               min={1}
                               max={365}
+                              disabled={!canEditDurations}
                               value={stg.durationDays ?? 30}
                               onChange={(e) => {
+                                if (!canEditDurations) return;
                                 const parsed = parseInt(e.target.value);
                                 const val = isNaN(parsed) ? 0 : parsed;
                                 setDraftStages(prev => prev.map((item, idx) => idx === index ? { ...item, durationDays: val } : item));
                               }}
-                              className="w-14 text-center font-bold text-sm h-8 bg-background border border-amber-300/80 dark:border-amber-700/80 focus-visible:ring-1 focus-visible:ring-amber-500 p-0"
+                              className={`w-14 text-center font-bold text-sm h-8 bg-background border border-amber-300/80 dark:border-amber-700/80 focus-visible:ring-1 focus-visible:ring-amber-500 p-0 ${!canEditDurations ? "opacity-60 cursor-not-allowed" : ""}`}
                             />
 
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
+                              disabled={!canEditDurations}
                               onClick={() => {
+                                if (!canEditDurations) return;
                                 setDraftStages(prev => prev.map((item, idx) => 
                                   idx === index ? { ...item, durationDays: Math.min(365, (Number(item.durationDays) || 30) + 1) } : item
                                 ));
                               }}
-                              className="h-8 w-8 p-0 rounded-lg hover:bg-background"
+                              className={`h-8 w-8 p-0 rounded-lg hover:bg-background ${!canEditDurations ? "opacity-40 cursor-not-allowed" : ""}`}
                             >
                               <Plus className="w-4 h-4 text-amber-700 dark:text-amber-400" />
                             </Button>
@@ -309,12 +336,14 @@ export default function FormsCustomizationEscalation() {
                             type="button"
                             variant="ghost"
                             size="sm"
+                            disabled={!canEditDurations}
                             onClick={() => {
+                              if (!canEditDurations) return;
                               setDraftStages(prev => prev.map((item, idx) => 
                                 idx === index ? { ...item, durationDays: Math.max(0, item.durationDays - 1) } : item
                               ));
                             }}
-                            className="h-8 w-8 p-0 rounded-lg hover:bg-background"
+                            className={`h-8 w-8 p-0 rounded-lg hover:bg-background ${!canEditDurations ? "opacity-40 cursor-not-allowed" : ""}`}
                           >
                             <Minus className="w-4 h-4" />
                           </Button>
@@ -323,24 +352,28 @@ export default function FormsCustomizationEscalation() {
                             type="number"
                             min={0}
                             max={180}
+                            disabled={!canEditDurations}
                             value={stg.durationDays}
                             onChange={(e) => {
+                              if (!canEditDurations) return;
                               const val = parseInt(e.target.value) || 0;
                               setDraftStages(prev => prev.map((item, idx) => idx === index ? { ...item, durationDays: val } : item));
                             }}
-                            className="w-12 text-center font-bold text-sm h-8 bg-background border border-border/80 focus-visible:ring-1 focus-visible:ring-primary p-0"
+                            className={`w-12 text-center font-bold text-sm h-8 bg-background border border-border/80 focus-visible:ring-1 focus-visible:ring-primary p-0 ${!canEditDurations ? "opacity-60 cursor-not-allowed" : ""}`}
                           />
 
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
+                            disabled={!canEditDurations}
                             onClick={() => {
+                              if (!canEditDurations) return;
                               setDraftStages(prev => prev.map((item, idx) => 
                                 idx === index ? { ...item, durationDays: Math.min(180, item.durationDays + 1) } : item
                               ));
                             }}
-                            className="h-8 w-8 p-0 rounded-lg hover:bg-background"
+                            className={`h-8 w-8 p-0 rounded-lg hover:bg-background ${!canEditDurations ? "opacity-40 cursor-not-allowed" : ""}`}
                           >
                             <Plus className="w-4 h-4" />
                           </Button>
@@ -357,7 +390,7 @@ export default function FormsCustomizationEscalation() {
         </div>
 
         {/* زر الحفظ العائم في الأسفل عند وجود تعديلات */}
-        {hasChanges && (
+        {canSave && hasChanges && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-card border border-border shadow-xl rounded-2xl p-3 px-6 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-3">
             <div className="flex items-center gap-2 text-xs">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />

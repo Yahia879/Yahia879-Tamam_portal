@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useState, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 // دالة مساعدة لتطبيق الألوان على متغيرات CSS
 function applyColorsToDOM(colors: {
@@ -34,6 +35,18 @@ function applyColorsToDOM(colors: {
 }
 
 export default function Branding() {
+  const { user } = useAuth();
+  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const userPermissions: string[] = (user as any)?.permissions ?? [];
+  const hasPerm = (p: string) =>
+    isAdmin ||
+    userPermissions.includes("*") ||
+    userPermissions.includes(p);
+
+  const canEditColors = hasPerm("settings_branding.edit_colors") || hasPerm("settings_branding.edit") || hasPerm("settings.edit");
+  const canUploadLogos = hasPerm("settings_branding.upload_logos") || hasPerm("settings_branding.edit") || hasPerm("settings.edit");
+  const canDeleteLogos = hasPerm("settings_branding.delete_logos") || hasPerm("settings_branding.edit") || hasPerm("settings.edit");
+
   // الألوان الرئيسية (2) والثانوية (5)
   const [colorPrimary1, setColorPrimary1] = useState("#09707e");
   const [colorPrimary2, setColorPrimary2] = useState("#0891b2");
@@ -94,6 +107,10 @@ export default function Branding() {
   // دالة حفظ الألوان
   const handleSaveColors = async () => {
     if (!orgSettings) return;
+    if (!canEditColors) {
+      toast.error("ليس لديك صلاحية تعديل وحفظ الألوان والمظهر العام");
+      return;
+    }
     setIsSaving(true);
     try {
       await updateSettingsMutation.mutateAsync({
@@ -129,6 +146,10 @@ export default function Branding() {
     type: "logo" | "secondaryLogo" | "stamp",
     setLogo: (url: string | null) => void
   ) => {
+    if (!canUploadLogos) {
+      toast.error("ليس لديك صلاحية رفع وتحديث الشعارات والختم الرسمي");
+      return;
+    }
     const allowedImageMimes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
     const allowedImageExtensions = ["jpg", "jpeg", "png", "webp"];
     const extension = file.name.split(".").pop()?.toLowerCase() || "";
@@ -178,6 +199,10 @@ export default function Branding() {
     type: string,
     setLogo: (url: string | null) => void
   ) => {
+    if (!canDeleteLogos) {
+      toast.error("ليس لديك صلاحية حذف الشعارات والأختام المرفوعة");
+      return;
+    }
     setLogo(null);
     toast.success("تم حذف الشعار");
   };
@@ -220,10 +245,12 @@ export default function Branding() {
               <p className="text-sm text-muted-foreground">تخصيص الألوان والشعارات للبوابة</p>
             </div>
           </div>
-          <Button className="gradient-primary text-white w-full sm:w-auto order-first sm:order-last" onClick={handleSaveColors} disabled={isSaving}>
-            {isSaving ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <Save className="w-4 h-4 ml-2" />}
-            حفظ التغييرات
-          </Button>
+          {canEditColors && (
+            <Button className="gradient-primary text-white w-full sm:w-auto order-first sm:order-last" onClick={handleSaveColors} disabled={isSaving}>
+              {isSaving ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <Save className="w-4 h-4 ml-2" />}
+              حفظ التغييرات
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -307,20 +334,22 @@ export default function Branding() {
                 {mainLogo ? (
                   <div className="border-2 border-primary/20 rounded-2xl p-6 sm:p-10 relative bg-white shadow-inner group">
                     <img src={mainLogo} alt="الشعار الرئيسي" className="max-h-24 sm:max-h-32 mx-auto object-contain transition-transform group-hover:scale-105" />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-3 left-3 h-8 w-8 rounded-full shadow-lg"
-                      onClick={() => handleRemoveLogo("logo", setMainLogo)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                    {canDeleteLogos && (
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-3 left-3 h-8 w-8 rounded-full shadow-lg"
+                        onClick={() => handleRemoveLogo("logo", setMainLogo)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                     <p className="text-center text-[10px] sm:text-xs text-muted-foreground mt-4 font-medium">الشعار الرئيسي الملون</p>
                   </div>
                 ) : (
                   <div
-                    className="border-2 border-dashed border-primary/30 rounded-2xl p-8 sm:p-12 text-center hover:border-primary hover:bg-primary/5 transition-all cursor-pointer bg-white group"
-                    onClick={() => mainLogoRef.current?.click()}
+                    className={`border-2 border-dashed border-primary/30 rounded-2xl p-8 sm:p-12 text-center transition-all bg-white group ${canUploadLogos ? "hover:border-primary hover:bg-primary/5 cursor-pointer" : "opacity-60 cursor-not-allowed"}`}
+                    onClick={() => canUploadLogos ? mainLogoRef.current?.click() : toast.warning("ليس لديك صلاحية رفع وتحديث الشعارات")}
                   >
                     {uploading === "logo" ? (
                       <>
@@ -361,21 +390,23 @@ export default function Branding() {
                 {whiteLogo ? (
                   <div className="border-2 border-white/10 rounded-2xl p-6 sm:p-10 relative shadow-inner group" style={{ backgroundColor: colorPrimary1 }}>
                     <img src={whiteLogo} alt="الشعار الأبيض" className="max-h-24 sm:max-h-32 mx-auto object-contain transition-transform group-hover:scale-105" />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-3 left-3 h-8 w-8 rounded-full shadow-lg"
-                      onClick={() => handleRemoveLogo("secondaryLogo", setWhiteLogo)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                    {canDeleteLogos && (
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-3 left-3 h-8 w-8 rounded-full shadow-lg"
+                        onClick={() => handleRemoveLogo("secondaryLogo", setWhiteLogo)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                     <p className="text-center text-[10px] sm:text-xs text-white/70 mt-4 font-medium">الشعار الأبيض للخلفيات الداكنة</p>
                   </div>
                 ) : (
                   <div
-                    className="border-2 border-dashed border-gray-400 rounded-2xl p-8 sm:p-12 text-center hover:border-gray-600 transition-all cursor-pointer group"
+                    className={`border-2 border-dashed border-gray-400 rounded-2xl p-8 sm:p-12 text-center transition-all group ${canUploadLogos ? "hover:border-gray-600 cursor-pointer" : "opacity-60 cursor-not-allowed"}`}
                     style={{ backgroundColor: colorPrimary1 + "15" }}
-                    onClick={() => whiteLogoRef.current?.click()}
+                    onClick={() => canUploadLogos ? whiteLogoRef.current?.click() : toast.warning("ليس لديك صلاحية رفع وتحديث الشعارات")}
                   >
                     {uploading === "secondaryLogo" ? (
                       <>
@@ -415,20 +446,22 @@ export default function Branding() {
                 {darkLogo ? (
                   <div className="border-2 border-amber-300/30 rounded-2xl p-6 sm:p-10 relative bg-white shadow-inner group">
                     <img src={darkLogo} alt="الختم" className="max-h-24 sm:max-h-32 mx-auto object-contain transition-transform group-hover:scale-105" />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-3 left-3 h-8 w-8 rounded-full shadow-lg"
-                      onClick={() => handleRemoveLogo("stamp", setDarkLogo)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                    {canDeleteLogos && (
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-3 left-3 h-8 w-8 rounded-full shadow-lg"
+                        onClick={() => handleRemoveLogo("stamp", setDarkLogo)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                     <p className="text-center text-[10px] sm:text-xs text-muted-foreground mt-4 font-medium">الختم الرسمي للوثائق</p>
                   </div>
                 ) : (
                   <div
-                     className="border-2 border-dashed border-amber-300 rounded-2xl p-8 sm:p-12 text-center hover:border-amber-500 hover:bg-amber-50/50 transition-all cursor-pointer bg-white group"
-                    onClick={() => darkLogoRef.current?.click()}
+                     className={`border-2 border-dashed border-amber-300 rounded-2xl p-8 sm:p-12 text-center transition-all bg-white group ${canUploadLogos ? "hover:border-amber-500 hover:bg-amber-50/50 cursor-pointer" : "opacity-60 cursor-not-allowed"}`}
+                    onClick={() => canUploadLogos ? darkLogoRef.current?.click() : toast.warning("ليس لديك صلاحية رفع وتحديث الشعارات")}
                   >
                     {uploading === "stamp" ? (
                       <>
@@ -468,20 +501,22 @@ export default function Branding() {
                 {technicalLogo ? (
                   <div className="border-2 border-indigo-300/30 rounded-2xl p-6 sm:p-10 relative bg-white shadow-inner group">
                     <img src={technicalLogo} alt="جهة الإشراف الفني" className="max-h-24 sm:max-h-32 mx-auto object-contain transition-transform group-hover:scale-105" />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-3 left-3 h-8 w-8 rounded-full shadow-lg"
-                      onClick={() => handleRemoveLogo("technical_supervision", setTechnicalLogo)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                    {canDeleteLogos && (
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-3 left-3 h-8 w-8 rounded-full shadow-lg"
+                        onClick={() => handleRemoveLogo("technical_supervision", setTechnicalLogo)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                     <p className="text-center text-[10px] sm:text-xs text-muted-foreground mt-4 font-medium">شعار جهة الإشراف الفني للتقارير</p>
                   </div>
                 ) : (
                   <div
-                    className="border-2 border-dashed border-indigo-300 rounded-2xl p-8 sm:p-12 text-center hover:border-indigo-500 hover:bg-indigo-50/50 transition-all cursor-pointer bg-white group"
-                    onClick={() => technicalLogoRef.current?.click()}
+                    className={`border-2 border-dashed border-indigo-300 rounded-2xl p-8 sm:p-12 text-center transition-all bg-white group ${canUploadLogos ? "hover:border-indigo-500 hover:bg-indigo-50/50 cursor-pointer" : "opacity-60 cursor-not-allowed"}`}
+                    onClick={() => canUploadLogos ? technicalLogoRef.current?.click() : toast.warning("ليس لديك صلاحية رفع وتحديث الشعارات")}
                   >
                     {uploading === "technical_supervision" ? (
                       <>
@@ -521,20 +556,22 @@ export default function Branding() {
                 {adminLogo ? (
                   <div className="border-2 border-sky-300/30 rounded-2xl p-6 sm:p-10 relative bg-white shadow-inner group">
                     <img src={adminLogo} alt="جهة الإشراف الإداري" className="max-h-24 sm:max-h-32 mx-auto object-contain transition-transform group-hover:scale-105" />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-3 left-3 h-8 w-8 rounded-full shadow-lg"
-                      onClick={() => handleRemoveLogo("admin_supervision", setAdminLogo)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                    {canDeleteLogos && (
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-3 left-3 h-8 w-8 rounded-full shadow-lg"
+                        onClick={() => handleRemoveLogo("admin_supervision", setAdminLogo)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                     <p className="text-center text-[10px] sm:text-xs text-muted-foreground mt-4 font-medium">شعار جهة الإشراف الإداري للتقارير</p>
                   </div>
                 ) : (
                   <div
-                    className="border-2 border-dashed border-sky-300 rounded-2xl p-8 sm:p-12 text-center hover:border-sky-500 hover:bg-sky-50/50 transition-all cursor-pointer bg-white group"
-                    onClick={() => adminLogoRef.current?.click()}
+                    className={`border-2 border-dashed border-sky-300 rounded-2xl p-8 sm:p-12 text-center transition-all bg-white group ${canUploadLogos ? "hover:border-sky-500 hover:bg-sky-50/50 cursor-pointer" : "opacity-60 cursor-not-allowed"}`}
+                    onClick={() => canUploadLogos ? adminLogoRef.current?.click() : toast.warning("ليس لديك صلاحية رفع وتحديث الشعارات")}
                   >
                     {uploading === "admin_supervision" ? (
                       <>

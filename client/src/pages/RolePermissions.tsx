@@ -49,6 +49,7 @@ import {
   ShoppingBag,
   Sparkles,
   Send,
+  CreditCard,
   Gift,
   MessageSquareQuote,
   Boxes,
@@ -371,6 +372,62 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية لمفوضي التوقيع إذا كانت صلاحية عرض القائمة معطلة
+    if (permId.startsWith("settings_org.signers_") && permId !== "settings_org.signers_view") {
+      if (!selectedPerms.includes("settings_org.signers_view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض قائمة مفوضي التوقيع' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية للهوية البصرية إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("settings_branding.") && permId !== "settings_branding.view") {
+      if (!selectedPerms.includes("settings_branding.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض إعدادات الهوية والشعارات' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية لإدارة التصنيفات إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("settings_categories.") && permId !== "settings_categories.view") {
+      if (!selectedPerms.includes("settings_categories.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض وتصفح التصنيفات' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية لتخصيص النماذج إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("forms_customization.") && permId !== "forms_customization.view") {
+      if (!selectedPerms.includes("forms_customization.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض وتصفح النماذج والحقول' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية لمدد المراحل وأوقات التأخير إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("settings_escalation.") && permId !== "settings_escalation.view") {
+      if (!selectedPerms.includes("settings_escalation.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض مدد المراحل وأوقات التأخير' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية لتخصيص الإشعارات إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("staff_notifications.") && permId !== "staff_notifications.view") {
+      if (!selectedPerms.includes("staff_notifications.view")) {
+        toast.warning("يجب تفعيل صلاحية 'استعراض إعدادات وقوالب الإشعارات' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية لمركز الإشعارات إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("notification_center.") && permId !== "notification_center.view") {
+      if (!selectedPerms.includes("notification_center.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض واستعراض مركز الإشعارات' أولاً");
+        return;
+      }
+    }
+
 
 
     setSelectedPerms(prev => {
@@ -507,6 +564,39 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض مركز الاعتماد المالي'، نقوم تلقائياً بإلغاء تفعيل إرسال التذكير
         if (permId === "board_chairman") {
           next = next.filter(id => id !== "board_leadership.remind");
+        }
+
+        // عند إلغاء تفعيل صلاحية عرض إعدادات الجمعية
+        if (permId === "settings_org.view") {
+          next = next.filter(id => !id.startsWith("settings_org."));
+        }
+        // عند إلغاء تفعيل صلاحية عرض قائمة مفوضي التوقيع
+        if (permId === "settings_org.signers_view") {
+          next = next.filter(id => !id.startsWith("settings_org.signers_"));
+        }
+        // عند إلغاء تفعيل صلاحية عرض الهوية والشعارات
+        if (permId === "settings_branding.view") {
+          next = next.filter(id => !id.startsWith("settings_branding."));
+        }
+        // عند إلغاء تفعيل صلاحية عرض التصنيفات
+        if (permId === "settings_categories.view") {
+          next = next.filter(id => !id.startsWith("settings_categories."));
+        }
+        // عند إلغاء تفعيل صلاحية عرض النماذج والحقول
+        if (permId === "forms_customization.view") {
+          next = next.filter(id => !id.startsWith("forms_customization."));
+        }
+        // عند إلغاء تفعيل صلاحية عرض مدد المراحل وأوقات التأخير
+        if (permId === "settings_escalation.view") {
+          next = next.filter(id => !id.startsWith("settings_escalation."));
+        }
+        // عند إلغاء تفعيل صلاحية عرض إعدادات الإشعارات
+        if (permId === "staff_notifications.view") {
+          next = next.filter(id => !id.startsWith("staff_notifications."));
+        }
+        // عند إلغاء تفعيل صلاحية عرض مركز الإشعارات
+        if (permId === "notification_center.view") {
+          next = next.filter(id => !id.startsWith("notification_center."));
         }
 
 
@@ -1281,14 +1371,37 @@ export default function RolePermissions() {
       ]
     },
     {
-      title: "الإعدادات",
+      title: "إعدادات الجمعية",
       modules: [
         {
-          id: "settings_org",
-          nameAr: "إعدادات الجمعية",
+          id: "settings_org_basic",
+          nameAr: "معلومات الجمعية الأساسية",
           icon: Building2,
-          perms: ["view", "edit_basic", "edit_signers", "edit_banks", "edit_contracts"]
+          perms: ["edit_basic", "edit_supervision", "edit_officials"]
         },
+        {
+          id: "settings_org_signers",
+          nameAr: "مفوضو التوقيع",
+          icon: Users,
+          perms: ["signers_view", "signers_add", "signers_edit", "signers_set_default", "signers_delete"]
+        },
+        {
+          id: "settings_org_banks",
+          nameAr: "البيانات البنكية",
+          icon: CreditCard,
+          perms: ["edit_banks"]
+        },
+        {
+          id: "settings_org_contracts",
+          nameAr: "إعدادات العقود",
+          icon: FileText,
+          perms: ["edit_contracts"]
+        }
+      ]
+    },
+    {
+      title: "الإعدادات",
+      modules: [
         { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["view", "edit"] },
         { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "edit"] },
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
@@ -1400,21 +1513,102 @@ export default function RolePermissions() {
       ]
     },
     {
+      title: "إعدادات الجمعية",
+      modules: [
+        { 
+          id: "settings_org_basic", 
+          nameAr: "معلومات الجمعية الأساسية", 
+          icon: Building2, 
+          perms: [
+            "edit_basic", 
+            "edit_supervision", 
+            "edit_officials",
+          ] 
+        },
+        { 
+          id: "settings_org_signers", 
+          nameAr: "مفوضو التوقيع", 
+          icon: Users, 
+          perms: [
+            "signers_view",
+            "signers_add",
+            "signers_edit",
+            "signers_set_default",
+            "signers_delete",
+          ] 
+        },
+        { 
+          id: "settings_org_banks", 
+          nameAr: "البيانات البنكية", 
+          icon: CreditCard, 
+          perms: [
+            "edit_banks",
+          ] 
+        },
+        { 
+          id: "settings_org_contracts", 
+          nameAr: "إعدادات العقود", 
+          icon: FileText, 
+          perms: [
+            "edit_contracts",
+          ] 
+        },
+      ]
+    },
+    {
       title: "الإعدادات",
       modules: [
-        {
-          id: "settings_org",
-          nameAr: "إعدادات الجمعية",
-          icon: Building2,
-          perms: ["view", "edit_basic", "edit_signers", "edit_banks", "edit_contracts"]
+        { 
+          id: "settings_branding", 
+          nameAr: "الهوية البصرية", 
+          icon: Palette, 
+          perms: ["view", "edit_colors", "upload_logos", "delete_logos"] 
         },
-        { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["edit"] },
-        { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "add", "edit", "delete"] },
-        { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
-        { id: "forms_customization", nameAr: "تخصيص النماذج", icon: SlidersHorizontal, perms: ["evaluation", "services", "registration", "analytics"] },
-        { id: "settings_escalation", nameAr: "تعيين وقت التأخير ومدد المراحل", icon: ShieldAlert, perms: ["view"] },
-        { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["by_role", "edit_message_formats", "by_person", "beneficiary"] },
-        { id: "notification_center", nameAr: "مركز الإشعارات", icon: Send, perms: ["direct_send", "send_logs"] },
+        { 
+          id: "settings_categories", 
+          nameAr: "إدارة التصنيفات", 
+          icon: Tag, 
+          perms: ["view", "add", "edit", "reorder", "delete"] 
+        },
+        { 
+          id: "services", 
+          nameAr: "البرامج والخدمات", 
+          icon: LayoutGrid, 
+          perms: ["view", "add", "edit", "toggle_status", "reorder", "delete"] 
+        },
+        { 
+          id: "forms_customization", 
+          nameAr: "تخصيص النماذج", 
+          icon: SlidersHorizontal, 
+          perms: [
+            "view",
+            "evaluation", 
+            "services_view",
+            "services_add", 
+            "services_edit",
+            "services_delete", 
+            "registration", 
+            "analytics"
+          ] 
+        },
+        { 
+          id: "settings_escalation", 
+          nameAr: "تعيين وقت التأخير ومدد المراحل", 
+          icon: ShieldAlert, 
+          perms: ["view", "edit_durations", "edit_beneficiary_sla", "save"] 
+        },
+        { 
+          id: "staff_notifications", 
+          nameAr: "تخصيص الإشعارات", 
+          icon: Bell, 
+          perms: ["view", "by_role", "by_person", "beneficiary", "edit_message_formats"] 
+        },
+        { 
+          id: "notification_center", 
+          nameAr: "مركز الإشعارات", 
+          icon: Send, 
+          perms: ["view", "direct_send", "send_logs"] 
+        },
       ]
     },
     {
@@ -1445,13 +1639,22 @@ export default function RolePermissions() {
         view: "عرض لوحة المعلومات",
       },
       forms_customization: {
-        evaluation: "استمارة تقييم رضا المستفيد",
-        services: "نماذج طلبات الخدمات",
-        registration: "نماذج التسجيل والتبرع",
-        analytics: "لوحة الإحصائيات المخصصة",
+        view: "عرض وتصفح النماذج والحقول",
+        evaluation: "تخصيص استمارة تقييم رضا المستفيد",
+        services: "تخصيص نماذج طلبات الخدمات",
+        services_view: "استعراض حقول نماذج الخدمات",
+        services_add: "إضافة حقول لنماذج الخدمات",
+        services_edit: "تعديل حقول نماذج الخدمات",
+        services_delete: "حذف حقول نماذج الخدمات",
+        registration: "تخصيص نماذج التسجيل والتبرع",
+        analytics: "لوحة تحليلات وإحصائيات النماذج"
       },
       settings_escalation: {
-        view: "تعيين وقت التأخير ومدد المراحل",
+        view: "عرض مدد المراحل وأوقات التأخير",
+        edit_durations: "تعديل مدد المراحل الرئيسية",
+        edit_beneficiary_sla: "تعديل مهلة تجاوب وقبول المستفيد",
+        save: "حفظ وتطبيق إعدادات التأخير",
+        edit: "تعديل إعدادات أوقات التأخير"
       },
       analytics_hub: {
         custom: "اللوحة المخصصة",
@@ -1715,16 +1918,17 @@ export default function RolePermissions() {
         send_whatsapp: "إرسال WhatsApp",
       },
       staff_notifications: {
-        by_role: "تخصيص الإشعارات حسب الدور",
-        edit_message_formats: "تعديل صيغ الرسائل",
-        by_person: "تخصيص حسب الأشخاص",
-        beneficiary: "إشعارات المستفيد",
+        view: "استعراض إعدادات وقوالب الإشعارات",
+        by_role: "تخصيص الإشعارات حسب الدور الوظيفي",
+        by_person: "تخصيص الإشعارات حسب الموظفين",
+        beneficiary: "تخصيص إشعارات المستفيدين",
+        edit_message_formats: "تعديل صياغة وقوالب رسائل الإشعارات",
         edit: "تعديل تخصيص الإشعارات"
       },
       notification_center: {
-        direct_send: "إرسال إشعار مباشر",
-        send_logs: "سجل إرسال الإشعارات",
-        view: "عرض مركز الإشعارات"
+        view: "عرض واستعراض مركز الإشعارات",
+        direct_send: "إرسال إشعار مباشر وفوري",
+        send_logs: "استعراض سجل وحالات إرسال الإشعارات"
       },
       roles: {
         view: "عرض قائمة الأدوار",
@@ -1738,12 +1942,41 @@ export default function RolePermissions() {
       },
       settings_org: {
         view: "عرض إعدادات الجمعية",
-        edit_basic: "تعديل معلومات أساسية",
-        edit_signers: "تعديل مفوضي التوقيع",
-        edit_banks: "تعديل البيانات البنكية",
-        edit_contracts: "تعديل إعدادات العقود"
+        edit_basic: "تعديل معلومات الجمعية الأساسية",
+        edit_supervision: "تعديل جهات الإشراف",
+        edit_officials: "تعديل أسماء المسؤولين",
+        signers_view: "عرض قائمة مفوضي التوقيع",
+        signers_add: "إضافة مفوض توقيع جديد",
+        signers_edit: "تعديل بيانات المفوض والتوقيع الرقمي",
+        signers_set_default: "تعيين مفوض التوقيع كافتراضي",
+        signers_delete: "حذف مفوض التوقيع",
+        edit_banks: "تعديل البيانات والحسابات البنكية",
+        edit_contracts: "تعديل إعدادات وصياغة العقود الرسمية",
+        edit_signers: "تعديل المفوضين بالتوقيع"
+      },
+      settings_org_basic: {
+        edit_basic: "تعديل معلومات الجمعية الأساسية",
+        edit_supervision: "تعديل جهات الإشراف",
+        edit_officials: "تعديل أسماء المسؤولين",
+      },
+      settings_org_signers: {
+        signers_view: "عرض قائمة مفوضي التوقيع",
+        signers_add: "إضافة مفوض توقيع جديد",
+        signers_edit: "تعديل بيانات المفوض والتوقيع الرقمي",
+        signers_set_default: "تعيين مفوض التوقيع كافتراضي",
+        signers_delete: "حذف مفوض التوقيع",
+      },
+      settings_org_banks: {
+        edit_banks: "تعديل البيانات والحسابات البنكية",
+      },
+      settings_org_contracts: {
+        edit_contracts: "تعديل إعدادات وصياغة العقود الرسمية",
       },
       settings_branding: {
+        view: "عرض إعدادات الهوية والشعارات",
+        edit_colors: "تعديل وحفظ الألوان والمظهر العام",
+        upload_logos: "رفع وتحديث الشعارات والختم الرسمي",
+        delete_logos: "حذف الشعارات والأختام المرفوعة",
         edit: "تعديل الهوية البصرية للمنصة"
       },
       settings_contracts: {
@@ -1751,16 +1984,19 @@ export default function RolePermissions() {
         edit: "تعديل قوالب العقود"
       },
       settings_categories: {
-        view: "عرض التصنيفات",
+        view: "عرض وتصفح التصنيفات",
         add: "إضافة تصنيف جديد",
-        edit: "تعديل التصنيفات",
+        edit: "تعديل مسميات وبيانات التصنيف",
+        reorder: "إعادة ترتيب وتسلسل التصنيفات",
         delete: "حذف التصنيفات"
       },
       services: {
-        view: "عرض البرامج",
-        add: "اضافة برامج",
-        edit: "تعديل برامج",
-        delete: "حذف برامج"
+        view: "عرض واستعراض البرامج والخدمات",
+        add: "إضافة برنامج أو خدمة جديدة",
+        edit: "تعديل مواصفات وبيانات البرامج",
+        toggle_status: "تفعيل أو تعطيل حالة البرامج",
+        reorder: "إعادة ترتيب وتسلسل البرامج",
+        delete: "حذف البرامج والخدمات"
       },
       mosque_map: {
         view: "عرض الخريطة التفاعلية"
@@ -1854,6 +2090,9 @@ export default function RolePermissions() {
         icon: m.icon,
         permissions: perms.map(p => {
           let id = `${m.id}.${p}`;
+          if (m.id.startsWith("settings_org")) {
+            id = `settings_org.${p}`;
+          }
           if (m.id === "board_leadership") {
             const boardIds: Record<string, string> = {
               board_chairman: "board_chairman",
@@ -2083,7 +2322,14 @@ export default function RolePermissions() {
                                 (perm.id.startsWith("requester_inquiries.") && perm.id !== "requester_inquiries.view" && !selectedPerms.includes("requester_inquiries.view")) ||
                                 (perm.id.startsWith("requester_sedana.") && perm.id !== "requester_sedana.view" && !selectedPerms.includes("requester_sedana.view")) ||
                                 (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !selectedPerms.includes("reports.view_stats")) ||
-                                (perm.id.startsWith("beneficiary_evaluations.") && perm.id !== "beneficiary_evaluations.view" && !selectedPerms.includes("beneficiary_evaluations.view"));
+                                (perm.id.startsWith("beneficiary_evaluations.") && perm.id !== "beneficiary_evaluations.view" && !selectedPerms.includes("beneficiary_evaluations.view")) ||
+                                (perm.id.startsWith("settings_org.signers_") && perm.id !== "settings_org.signers_view" && !selectedPerms.includes("settings_org.signers_view")) ||
+                                (perm.id.startsWith("settings_branding.") && perm.id !== "settings_branding.view" && !selectedPerms.includes("settings_branding.view")) ||
+                                (perm.id.startsWith("settings_categories.") && perm.id !== "settings_categories.view" && !selectedPerms.includes("settings_categories.view")) ||
+                                (perm.id.startsWith("forms_customization.") && perm.id !== "forms_customization.view" && !selectedPerms.includes("forms_customization.view")) ||
+                                (perm.id.startsWith("settings_escalation.") && perm.id !== "settings_escalation.view" && !selectedPerms.includes("settings_escalation.view")) ||
+                                (perm.id.startsWith("staff_notifications.") && perm.id !== "staff_notifications.view" && !selectedPerms.includes("staff_notifications.view")) ||
+                                (perm.id.startsWith("notification_center.") && perm.id !== "notification_center.view" && !selectedPerms.includes("notification_center.view"));
                               return (
                                 <div
                                   key={perm.id}

@@ -222,72 +222,87 @@ export const organizationRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق من صلاحية المستخدم (مدير النظام أو المدير العام أو مكتب المشاريع أو من لديه صلاحية التعديل)
-      const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office", "corporate_comm"];
-      if (!allowedRoles.includes(ctx.user.role)) {
-        const { calculateUserPermissions } = await import("../permissions");
-        const userPermissions = await calculateUserPermissions(ctx.user.id);
-        const hasEditPerm = 
-          userPermissions.includes("settings.edit") ||
-          userPermissions.includes("settings_org.edit_basic") ||
-          userPermissions.includes("settings_org.edit_signers") ||
-          userPermissions.includes("settings_org.edit_banks") ||
-          userPermissions.includes("settings_org.edit_contracts") ||
-          userPermissions.includes("settings_branding.edit");
-        if (!hasEditPerm) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل إعدادات الجمعية" });
-        }
+      // التحقق من صلاحية المستخدم بحسب الصلاحيات الدقيقة الفعلية
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const canEditBasic = userPermissions.includes("settings_org.edit_basic") || userPermissions.includes("*");
+      const canEditSupervision = userPermissions.includes("settings_org.edit_supervision") || userPermissions.includes("*");
+      const canEditOfficials = userPermissions.includes("settings_org.edit_officials") || userPermissions.includes("*");
+      const canEditBanks = userPermissions.includes("settings_org.edit_banks") || userPermissions.includes("*");
+      const canEditContracts = userPermissions.includes("settings_org.edit_contracts") || userPermissions.includes("*");
+      const canEditBranding = userPermissions.includes("settings_branding.edit") || userPermissions.includes("settings_branding.edit_colors") || userPermissions.includes("*");
+
+      const hasAnyEditPerm = canEditBasic || canEditSupervision || canEditOfficials || canEditBanks || canEditContracts || canEditBranding;
+      if (!hasAnyEditPerm) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل إعدادات الجمعية" });
       }
 
       // التحقق من وجود إعدادات سابقة
       const existingSettings = await db.select().from(organizationSettings).limit(1);
-
-      // الحفاظ على الشعارات الموجودة إذا لم تُمرر قيمة جديدة
       const existing = existingSettings[0];
-      const settingsData = {
-        organizationName: input.organizationName,
-        organizationNameShort: input.organizationNameShort || null,
-        officialReportsName: input.officialReportsName || null,
-        licenseNumber: input.licenseNumber || null,
-        administrativeSupervisor: input.administrativeSupervisor || null,
-        technicalSupervisor: input.technicalSupervisor || null,
-        boardChairmanName: input.boardChairmanName || null,
-        executiveDirectorName: input.executiveDirectorName || null,
-        accountantName: input.accountantName || null,
-        pmoManagerName: input.pmoManagerName || null,
-        csrManagerName: input.csrManagerName || null,
-        aboutOrganization: input.aboutOrganization || null,
-        address: input.address || null,
-        city: input.city || null,
-        phone: input.phone || null,
-        email: input.email || null,
-        website: input.website || null,
-        // الحفاظ على الشعارات الموجودة إذا لم تُمرر قيمة جديدة
-        logoUrl: input.logoUrl !== undefined ? (input.logoUrl || null) : (existing?.logoUrl || null),
-        stampUrl: input.stampUrl !== undefined ? (input.stampUrl || null) : (existing?.stampUrl || null),
-        secondaryLogoUrl: input.secondaryLogoUrl !== undefined ? (input.secondaryLogoUrl || null) : (existing?.secondaryLogoUrl || null),
-        technicalSupervisorLogoUrl: input.technicalSupervisorLogoUrl !== undefined ? (input.technicalSupervisorLogoUrl || null) : (existing?.technicalSupervisorLogoUrl || null),
-        administrativeSupervisorLogoUrl: input.administrativeSupervisorLogoUrl !== undefined ? (input.administrativeSupervisorLogoUrl || null) : (existing?.administrativeSupervisorLogoUrl || null),
-        bankName: input.bankName || null,
-        bankAccountName: input.bankAccountName || null,
-        iban: input.iban || null,
-        contractPrefix: input.contractPrefix || "CON",
-        contractFooterText: input.contractFooterText || null,
-        contractTermsAndConditions: input.contractTermsAndConditions || null,
-        colorPrimary1: input.colorPrimary1 || "#09707e",
-        colorPrimary2: input.colorPrimary2 || "#0891b2",
-        colorSecondary1: input.colorSecondary1 || "#6366f1",
-        colorSecondary2: input.colorSecondary2 || "#f59e0b",
-        colorSecondary3: input.colorSecondary3 || "#ef4444",
-        colorSecondary4: input.colorSecondary4 || "#8b5cf6",
-        colorSecondary5: input.colorSecondary5 || "#10b981",
-        metaTitle: input.metaTitle !== undefined ? (input.metaTitle || null) : (existing?.metaTitle || null),
-        authorizedSignatory: input.authorizedSignatory || null,
-        signatoryTitle: input.signatoryTitle || null,
-        signatoryPhone: input.signatoryPhone || null,
-        signatoryEmail: input.signatoryEmail || null,
+
+      // بناء كائن التحديث بدقة بحسب الصلاحيات الممنوحة فقط
+      const settingsData: any = {
         updatedBy: ctx.user.id,
       };
+
+      if (canEditBasic) {
+        settingsData.organizationName = input.organizationName !== undefined ? input.organizationName : (existing?.organizationName || "جمعية تمام للعناية بالمساجد");
+        settingsData.organizationNameShort = input.organizationNameShort !== undefined ? (input.organizationNameShort || null) : (existing?.organizationNameShort || null);
+        settingsData.officialReportsName = input.officialReportsName !== undefined ? (input.officialReportsName || null) : (existing?.officialReportsName || null);
+        settingsData.licenseNumber = input.licenseNumber !== undefined ? (input.licenseNumber || null) : (existing?.licenseNumber || null);
+        settingsData.aboutOrganization = input.aboutOrganization !== undefined ? (input.aboutOrganization || null) : (existing?.aboutOrganization || null);
+        settingsData.address = input.address !== undefined ? (input.address || null) : (existing?.address || null);
+        settingsData.city = input.city !== undefined ? (input.city || null) : (existing?.city || null);
+        settingsData.phone = input.phone !== undefined ? (input.phone || null) : (existing?.phone || null);
+        settingsData.email = input.email !== undefined ? (input.email || null) : (existing?.email || null);
+        settingsData.website = input.website !== undefined ? (input.website || null) : (existing?.website || null);
+        settingsData.metaTitle = input.metaTitle !== undefined ? (input.metaTitle || null) : (existing?.metaTitle || null);
+      }
+
+      if (canEditSupervision) {
+        settingsData.administrativeSupervisor = input.administrativeSupervisor !== undefined ? (input.administrativeSupervisor || null) : (existing?.administrativeSupervisor || null);
+        settingsData.technicalSupervisor = input.technicalSupervisor !== undefined ? (input.technicalSupervisor || null) : (existing?.technicalSupervisor || null);
+      }
+
+      if (canEditOfficials) {
+        settingsData.boardChairmanName = input.boardChairmanName !== undefined ? (input.boardChairmanName || null) : (existing?.boardChairmanName || null);
+        settingsData.executiveDirectorName = input.executiveDirectorName !== undefined ? (input.executiveDirectorName || null) : (existing?.executiveDirectorName || null);
+        settingsData.accountantName = input.accountantName !== undefined ? (input.accountantName || null) : (existing?.accountantName || null);
+        settingsData.pmoManagerName = input.pmoManagerName !== undefined ? (input.pmoManagerName || null) : (existing?.pmoManagerName || null);
+        settingsData.csrManagerName = input.csrManagerName !== undefined ? (input.csrManagerName || null) : (existing?.csrManagerName || null);
+        settingsData.authorizedSignatory = input.authorizedSignatory !== undefined ? (input.authorizedSignatory || null) : (existing?.authorizedSignatory || null);
+        settingsData.signatoryTitle = input.signatoryTitle !== undefined ? (input.signatoryTitle || null) : (existing?.signatoryTitle || null);
+        settingsData.signatoryPhone = input.signatoryPhone !== undefined ? (input.signatoryPhone || null) : (existing?.signatoryPhone || null);
+        settingsData.signatoryEmail = input.signatoryEmail !== undefined ? (input.signatoryEmail || null) : (existing?.signatoryEmail || null);
+      }
+
+      if (canEditBanks) {
+        settingsData.bankName = input.bankName !== undefined ? (input.bankName || null) : (existing?.bankName || null);
+        settingsData.bankAccountName = input.bankAccountName !== undefined ? (input.bankAccountName || null) : (existing?.bankAccountName || null);
+        settingsData.iban = input.iban !== undefined ? (input.iban || null) : (existing?.iban || null);
+      }
+
+      if (canEditContracts) {
+        settingsData.contractPrefix = input.contractPrefix !== undefined ? (input.contractPrefix || "CON") : (existing?.contractPrefix || "CON");
+        settingsData.contractFooterText = input.contractFooterText !== undefined ? (input.contractFooterText || null) : (existing?.contractFooterText || null);
+        settingsData.contractTermsAndConditions = input.contractTermsAndConditions !== undefined ? (input.contractTermsAndConditions || null) : (existing?.contractTermsAndConditions || null);
+      }
+
+      if (canEditBranding) {
+        settingsData.logoUrl = input.logoUrl !== undefined ? (input.logoUrl || null) : (existing?.logoUrl || null);
+        settingsData.stampUrl = input.stampUrl !== undefined ? (input.stampUrl || null) : (existing?.stampUrl || null);
+        settingsData.secondaryLogoUrl = input.secondaryLogoUrl !== undefined ? (input.secondaryLogoUrl || null) : (existing?.secondaryLogoUrl || null);
+        settingsData.technicalSupervisorLogoUrl = input.technicalSupervisorLogoUrl !== undefined ? (input.technicalSupervisorLogoUrl || null) : (existing?.technicalSupervisorLogoUrl || null);
+        settingsData.administrativeSupervisorLogoUrl = input.administrativeSupervisorLogoUrl !== undefined ? (input.administrativeSupervisorLogoUrl || null) : (existing?.administrativeSupervisorLogoUrl || null);
+        settingsData.colorPrimary1 = input.colorPrimary1 || existing?.colorPrimary1 || "#09707e";
+        settingsData.colorPrimary2 = input.colorPrimary2 || existing?.colorPrimary2 || "#0891b2";
+        settingsData.colorSecondary1 = input.colorSecondary1 || existing?.colorSecondary1 || "#6366f1";
+        settingsData.colorSecondary2 = input.colorSecondary2 || existing?.colorSecondary2 || "#f59e0b";
+        settingsData.colorSecondary3 = input.colorSecondary3 || existing?.colorSecondary3 || "#ef4444";
+        settingsData.colorSecondary4 = input.colorSecondary4 || existing?.colorSecondary4 || "#8b5cf6";
+        settingsData.colorSecondary5 = input.colorSecondary5 || existing?.colorSecondary5 || "#10b981";
+      }
 
       if (existingSettings.length === 0) {
         // إنشاء إعدادات جديدة
@@ -374,10 +389,13 @@ export const organizationRouter = router({
         const hasEditPerm = 
           userPermissions.includes("settings.edit") ||
           userPermissions.includes("settings_org.edit_basic") ||
+          userPermissions.includes("settings_org.edit_supervision") ||
+          userPermissions.includes("settings_org.edit_officials") ||
           userPermissions.includes("settings_org.edit_signers") ||
           userPermissions.includes("settings_org.edit_banks") ||
           userPermissions.includes("settings_org.edit_contracts") ||
-          userPermissions.includes("settings_branding.edit");
+          userPermissions.includes("settings_branding.edit") ||
+          userPermissions.includes("settings_branding.edit_colors");
         if (!hasEditPerm) {
           throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية رفع الشعارات" });
         }
@@ -538,7 +556,8 @@ export const organizationRouter = router({
         const userPermissions = await calculateUserPermissions(ctx.user.id);
         const hasSignersPerm = 
           userPermissions.includes("settings.edit") ||
-          userPermissions.includes("settings_org.edit_signers");
+          userPermissions.includes("settings_org.edit_signers") ||
+          userPermissions.includes("settings_org.signers_add");
         if (!hasSignersPerm) {
           throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل صلاحيات التوقيع" });
         }
@@ -751,16 +770,13 @@ export const organizationRouter = router({
 
       await ensureSignatoriesUserIdColumn(db);
 
-      // التحقق من الصلاحية
-      const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office", "corporate_comm"];
-      if (!allowedRoles.includes(ctx.user.role)) {
-        const userPermissions = await calculateUserPermissions(ctx.user.id);
-        const hasSignersPerm = 
-          userPermissions.includes("settings.edit") ||
-          userPermissions.includes("settings_org.edit_signers");
-        if (!hasSignersPerm) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إضافة مفوضين" });
-        }
+      // التحقق من الصلاحية الدقيقة
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const hasSignersPerm = 
+        userPermissions.includes("settings_org.signers_add") ||
+        userPermissions.includes("*");
+      if (!hasSignersPerm) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إضافة مفوض توقيع" });
       }
 
       // إذا كان المفوض الجديد افتراضي، ألغِ الافتراضي من الآخرين
@@ -823,16 +839,13 @@ export const organizationRouter = router({
 
       await ensureSignatoriesUserIdColumn(db);
 
-      // التحقق من الصلاحية
-      const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office", "corporate_comm"];
-      if (!allowedRoles.includes(ctx.user.role)) {
-        const userPermissions = await calculateUserPermissions(ctx.user.id);
-        const hasSignersPerm = 
-          userPermissions.includes("settings.edit") ||
-          userPermissions.includes("settings_org.edit_signers");
-        if (!hasSignersPerm) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل المفوضين" });
-        }
+      // التحقق من الصلاحية الدقيقة
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const hasSignersPerm = 
+        userPermissions.includes("settings_org.signers_edit") ||
+        userPermissions.includes("*");
+      if (!hasSignersPerm) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل بيانات المفوض" });
       }
 
       // إذا كان المفوض افتراضي، ألغِ الافتراضي من الآخرين
@@ -877,16 +890,13 @@ export const organizationRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق من الصلاحية
-      const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office", "corporate_comm"];
-      if (!allowedRoles.includes(ctx.user.role)) {
-        const userPermissions = await calculateUserPermissions(ctx.user.id);
-        const hasSignersPerm = 
-          userPermissions.includes("settings.edit") ||
-          userPermissions.includes("settings_org.edit_signers");
-        if (!hasSignersPerm) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية حذف المفوضين" });
-        }
+      // التحقق من الصلاحية الدقيقة
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const hasSignersPerm = 
+        userPermissions.includes("settings_org.signers_delete") ||
+        userPermissions.includes("*");
+      if (!hasSignersPerm) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية حذف مفوض التوقيع" });
       }
 
       // تعطيل بدلاً من الحذف
@@ -904,16 +914,13 @@ export const organizationRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق من الصلاحية
-      const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office", "corporate_comm"];
-      if (!allowedRoles.includes(ctx.user.role)) {
-        const userPermissions = await calculateUserPermissions(ctx.user.id);
-        const hasSignersPerm = 
-          userPermissions.includes("settings.edit") ||
-          userPermissions.includes("settings_org.edit_signers");
-        if (!hasSignersPerm) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعيين المفوض الافتراضي" });
-        }
+      // التحقق من الصلاحية الدقيقة
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const hasSignersPerm = 
+        userPermissions.includes("settings_org.signers_set_default") ||
+        userPermissions.includes("*");
+      if (!hasSignersPerm) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعيين مفوض التوقيع كافتراضي" });
       }
 
       // إلغاء الافتراضي من الجميع

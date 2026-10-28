@@ -48,6 +48,8 @@ export default function ProgramCustomization() {
   const canAdd = usePermission("services.add");
   const canEdit = usePermission("services.edit");
   const canDelete = usePermission("services.delete");
+  const canToggleStatus = usePermission("services.toggle_status") || canEdit;
+  const canReorder = usePermission("services.reorder") || canEdit;
 
   const utils = trpc.useUtils();
   const { data: programs = [], isLoading } = trpc.programs.getAll.useQuery();
@@ -193,6 +195,10 @@ export default function ProgramCustomization() {
   };
 
   const toggleActive = async (id: string, currentActive: boolean) => {
+    if (!canToggleStatus) {
+      toast.error("ليس لديك صلاحية تفعيل أو تعطيل حالة البرامج");
+      return;
+    }
     await updateMutation.mutateAsync({
       id,
       isActive: !currentActive,
@@ -436,12 +442,12 @@ export default function ProgramCustomization() {
               return (
                 <Card 
                   key={program.id} 
-                  draggable={canEdit && editingId !== program.id}
+                  draggable={canReorder && editingId !== program.id}
                   onDragStart={(e) => handleDragStart(e, index)}
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
                   className={`transition-all overflow-hidden ${
-                    canEdit && editingId !== program.id ? 'cursor-grab' : ''
+                    canReorder && editingId !== program.id ? 'cursor-grab' : ''
                   } ${
                     isDragging ? 'opacity-40 border-dashed border-2 border-primary' : ''
                   } ${
@@ -579,7 +585,7 @@ export default function ProgramCustomization() {
                       // وضع العرض
                       <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                         <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
-                          {canEdit && (
+                          {canReorder && (
                             <div className="text-muted-foreground/40 hover:text-foreground cursor-grab active:cursor-grabbing self-center p-1">
                               <GripVertical className="w-5 h-5" />
                             </div>
@@ -677,12 +683,12 @@ export default function ProgramCustomization() {
                         </Link>
 
                         <div className="flex items-center gap-3 bg-muted/50 p-1 rounded-lg">
-                          <label className={`flex items-center gap-2 px-2 ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
+                          <label className={`flex items-center gap-2 px-2 ${canToggleStatus ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
                             <input
                               type="checkbox"
                               checked={program.isActive}
-                              disabled={!canEdit}
-                              onChange={() => canEdit && toggleActive(program.id, program.isActive)}
+                              disabled={!canToggleStatus}
+                              onChange={() => canToggleStatus && toggleActive(program.id, program.isActive)}
                               className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
                             />
                             <span className="text-xs font-medium text-foreground whitespace-nowrap">فعّال</span>

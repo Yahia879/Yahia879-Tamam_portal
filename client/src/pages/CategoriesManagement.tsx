@@ -43,9 +43,11 @@ export default function CategoriesManagement() {
   const { user } = useAuth();
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
   const userPermissions = (user as any)?.permissions ?? [];
-  const canAdd = isAdmin || userPermissions.includes("settings_categories.add");
-  const canEdit = isAdmin || userPermissions.includes("settings_categories.edit");
-  const canDelete = isAdmin || userPermissions.includes("settings_categories.delete");
+  const hasPerm = (p: string) => isAdmin || userPermissions.includes("*") || userPermissions.includes(p);
+  const canAdd = hasPerm("settings_categories.add") || hasPerm("settings.edit");
+  const canEdit = hasPerm("settings_categories.edit") || hasPerm("settings.edit");
+  const canDelete = hasPerm("settings_categories.delete") || hasPerm("settings.edit");
+  const canReorder = hasPerm("settings_categories.reorder") || canEdit;
 
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [isAddValueOpen, setIsAddValueOpen] = useState(false);
@@ -81,7 +83,7 @@ export default function CategoriesManagement() {
   });
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
-    if (!canEdit) return;
+    if (!canReorder) return;
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = "move";
   };
@@ -636,7 +638,7 @@ export default function CategoriesManagement() {
                         <Table>
                           <TableHeader className="bg-slate-50/80 dark:bg-slate-900/60">
                             <TableRow className="border-b border-border/80">
-                              {canEdit && <TableHead className="w-12 text-center py-3.5"></TableHead>}
+                              {canReorder && <TableHead className="w-12 text-center py-3.5"></TableHead>}
                               <TableHead className="text-right w-12 py-3.5 font-bold text-xs">#</TableHead>
                               <TableHead className="text-right py-3.5 font-bold text-xs min-w-[180px]">
                                 {selectedType === "sadad_billers" ? "اسم المفوتر" : selectedType === "sedana_items" ? "اسم الصنف" : "القيمة بالعربية"}
@@ -658,13 +660,13 @@ export default function CategoriesManagement() {
                             {filteredValues.map((value: Category, index: number) => (
                               <TableRow 
                                 key={value.id}
-                                draggable={canEdit}
+                                draggable={canReorder}
                                 onDragStart={(e) => handleDragStart(e, index)}
                                 onDragOver={handleDragOver}
                                 onDrop={(e) => handleDrop(e, index)}
-                                className={canEdit ? "cursor-grab active:cursor-grabbing hover:bg-slate-50 transition-colors" : ""}
+                                className={canReorder ? "cursor-grab active:cursor-grabbing hover:bg-slate-50 transition-colors" : ""}
                               >
-                                {canEdit && (
+                                {canReorder && (
                                   <TableCell className="text-center cursor-grab text-gray-400 hover:text-gray-600 w-12">
                                     <GripVertical className="w-4 h-4 mx-auto" />
                                   </TableCell>
@@ -746,15 +748,15 @@ export default function CategoriesManagement() {
                         {filteredValues.map((value: Category, index: number) => (
                           <div 
                             key={value.id} 
-                            draggable={canEdit}
+                            draggable={canReorder}
                             onDragStart={(e) => handleDragStart(e, index)}
                             onDragOver={handleDragOver}
                             onDrop={(e) => handleDrop(e, index)}
-                            className={`p-4 space-y-2 ${canEdit ? "cursor-grab active:cursor-grabbing hover:bg-slate-50 transition-colors" : ""}`}
+                            className={`p-4 space-y-2 ${canReorder ? "cursor-grab active:cursor-grabbing hover:bg-slate-50 transition-colors" : ""}`}
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-1.5">
-                                {canEdit && <GripVertical className="w-4 h-4 text-gray-400" />}
+                                {canReorder && <GripVertical className="w-4 h-4 text-gray-400" />}
                                 <span className="text-[10px] text-gray-400 font-mono">#{index + 1}</span>
                               </div>
                               <div className="flex items-center gap-2">

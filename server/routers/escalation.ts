@@ -152,7 +152,12 @@ const escalationProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 
 const delaySettingsProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   const { checkPermission } = await import("../permissions");
-  const hasPerm = (await checkPermission(ctx.user.id, "settings_escalation.view")) || (await checkPermission(ctx.user.id, "escalation.view"));
+  const hasPerm =
+    (await checkPermission(ctx.user.id, "settings_escalation.view")) ||
+    (await checkPermission(ctx.user.id, "settings_escalation.save")) ||
+    (await checkPermission(ctx.user.id, "settings_escalation.edit_durations")) ||
+    (await checkPermission(ctx.user.id, "settings_escalation.edit_beneficiary_sla")) ||
+    (await checkPermission(ctx.user.id, "escalation.view"));
   if (!hasPerm) {
     throw new TRPCError({
       code: "FORBIDDEN",

@@ -55,7 +55,7 @@ const settingCards: SettingCard[] = [
     color: "text-purple-600",
     bgColor: "bg-purple-50 dark:bg-purple-950/30",
     group: "الجمعية",
-    permission: "settings_branding.edit",
+    permission: "settings_branding.view",
   },
   // مجموعة: إدارة البيانات
   {
@@ -107,7 +107,7 @@ const settingCards: SettingCard[] = [
     color: "text-indigo-600",
     bgColor: "bg-indigo-50 dark:bg-indigo-950/30",
     group: "المستخدمون",
-    permission: "staff_notifications.edit",
+    permission: "staff_notifications.view",
   },
   {
     icon: Send,
@@ -152,52 +152,62 @@ export default function Settings() {
     return Array.from(set);
   }, [user, directPerms, userPermissions]);
 
-  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-
   const hasPermission = (perm?: string) => {
     if (!perm) return true;
-    if (perm === "forms_customization") {
+    if (effectivePermissions.includes("*")) return true;
+
+    if (perm === "settings_org.view") {
+      const orgPerms = [
+        "settings_org.edit_basic",
+        "settings_org.edit_supervision",
+        "settings_org.edit_officials",
+        "settings_org.signers_view",
+        "settings_org.signers_add",
+        "settings_org.signers_edit",
+        "settings_org.signers_set_default",
+        "settings_org.signers_delete",
+        "settings_org.edit_banks",
+        "settings_org.edit_contracts",
+        "settings_org.view"
+      ];
+      return orgPerms.some(p => effectivePermissions.includes(p));
+    }
+    if (perm === "settings_branding.view" || perm === "settings_branding.edit") {
       return (
-        effectivePermissions.includes("forms_customization.evaluation") ||
-        effectivePermissions.includes("forms_customization.services") ||
-        effectivePermissions.includes("forms_customization.registration")
+        effectivePermissions.some(p => p.startsWith("settings_branding.")) ||
+        effectivePermissions.includes("settings_branding.edit") ||
+        effectivePermissions.includes("settings.edit") ||
+        effectivePermissions.includes("settings.view")
       );
+    }
+    if (perm === "settings_categories.view") {
+      return (
+        effectivePermissions.some(p => p.startsWith("settings_categories.")) ||
+        effectivePermissions.includes("settings.view") ||
+        effectivePermissions.includes("settings.edit")
+      );
+    }
+    if (perm === "services.view") {
+      return effectivePermissions.some(p => p.startsWith("services."));
+    }
+    if (perm === "forms_customization") {
+      return effectivePermissions.some(p => p.startsWith("forms_customization."));
     }
     if (perm === "settings_escalation.view") {
       return (
-        effectivePermissions.includes("settings_escalation.view") ||
-        effectivePermissions.includes("settings_escalation")
+        effectivePermissions.some(p => p.startsWith("settings_escalation.")) ||
+        effectivePermissions.includes("escalation") ||
+        effectivePermissions.includes("escalation.view")
       );
     }
-    if (perm === "staff_notifications.edit") {
-      return (
-        effectivePermissions.includes("staff_notifications.edit") ||
-        effectivePermissions.includes("staff_notifications.by_role") ||
-        effectivePermissions.includes("staff_notifications.edit_message_formats") ||
-        effectivePermissions.includes("staff_notifications.by_person") ||
-        effectivePermissions.includes("staff_notifications.beneficiary")
-      );
+    if (perm === "staff_notifications.view" || perm === "staff_notifications.edit") {
+      return effectivePermissions.some(p => p.startsWith("staff_notifications."));
     }
     if (perm === "notification_center") {
-      const hasWildcard = effectivePermissions.includes("*");
-      return (
-        hasWildcard ||
-        effectivePermissions.includes("notification_center") ||
-        effectivePermissions.includes("notification_center.view") ||
-        effectivePermissions.includes("notification_center.direct_send") ||
-        effectivePermissions.includes("notification_center.send_logs")
-      );
+      return effectivePermissions.some(p => p.startsWith("notification_center."));
     }
-    if (isAdmin) return true;
-    if (perm === "settings_categories.view") {
-      return (
-        userPermissions.includes("settings_categories.view") ||
-        userPermissions.includes("settings_categories.add") ||
-        userPermissions.includes("settings_categories.edit") ||
-        userPermissions.includes("settings_categories.delete")
-      );
-    }
-    return userPermissions.includes(perm);
+
+    return effectivePermissions.includes(perm);
   };
 
   const filteredCards = settingCards.filter(card => hasPermission(card.permission));
