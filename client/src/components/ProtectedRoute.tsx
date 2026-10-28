@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
+import { isDashboardViewerUser } from "@/lib/dashboardViewer";
 import { useEffect } from "react";
 import RequesterNotesResponseScreen from "./RequesterNotesResponseScreen";
 import RequesterPendingScreen from "./RequesterPendingScreen";
@@ -22,7 +23,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
         if (user.role === "service_requester") {
           navigate("/requester");
         } else {
-          navigate("/dashboard");
+          navigate(isDashboardViewerUser(user) ? "/information-dashboard" : "/dashboard");
         }
       }
     }

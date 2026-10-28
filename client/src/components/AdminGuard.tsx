@@ -25,7 +25,7 @@ export default function AdminGuard({ children, allowedRoles }: AdminGuardProps) 
       }
       // إذا تم تحديد أدوار معينة وليس المستخدم منها
       else if (allowedRoles && !allowedRoles.includes(user.role)) {
-        navigate("/dashboard");
+        navigate(isDashboardViewerUser(user) ? "/information-dashboard" : "/dashboard");
       }
     }
   }, [user, loading, navigate, allowedRoles]);

@@ -5079,7 +5079,7 @@ export const disbursementsRouter = router({
     }),
 
   // إحصائيات طلبات الصرف
-  getStats: permissionProcedure("disbursements.view").query(async () => {
+  getStats: permissionProcedure(["disbursements.view", "information_dashboard.view", "information_dashboard"]).query(async () => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 

@@ -63,8 +63,8 @@ export default function InformationDashboard() {
     permissions,
     isDashboardViewer ? "dashboard_viewer" : user?.role || "",
     false,
-    user?.customRole?.nameAr,
-    user?.customRole?.nameEn
+    (user as any)?.customRole?.nameAr,
+    (user as any)?.customRole?.nameEn
   ).flatMap(group => group.items.map(item => item.path));
   const returnRoute = getInformationDashboardReturnRoute(user, permissions, sidebarPaths);
   const returnToSidebar = () => {
@@ -494,7 +494,7 @@ export default function InformationDashboard() {
           <p className="text-sm text-muted-foreground">
             عذراً، لا تمتلك الصلاحية الكافية لعرض لوحة المعلومات. يرجى مراجعة مدير النظام للحصول على الصلاحية.
           </p>
-          <Button onClick={() => navigate("/dashboard")} className="mt-2 rounded-xl">
+          <Button onClick={() => navigate(returnRoute || (isDashboardViewer ? "/login" : "/dashboard"))} className="mt-2 rounded-xl">
             العودة للرئيسية
           </Button>
         </div>
