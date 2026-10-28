@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { isDashboardViewerUser } from "@/lib/dashboardViewer";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -108,7 +109,7 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
 
   // الرئيسية
   const mainItems: MenuItem[] = [];
-  if (["super_admin", "system_admin"].includes(role) || isExecDirector || role !== "service_requester") {
+  if (role !== "dashboard_viewer" && (["super_admin", "system_admin"].includes(role) || isExecDirector || role !== "service_requester")) {
     mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
   }
   if (role === "board_chairman") {
@@ -278,7 +279,7 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
 
 // بناء قائمة التنقل للمستخدمين ذوي الأدوار المخصصة بناءً على صلاحياتهم الفعلية
 // معرّفات الصلاحيات مطابقة لـ PERMISSIONS_STRUCTURE في RoleEdit.tsx
-const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?: boolean, customRoleNameAr?: string, customRoleNameEn?: string): MenuGroup[] => {
+export const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?: boolean, customRoleNameAr?: string, customRoleNameEn?: string): MenuGroup[] => {
   const has = (p: string) => permissions.includes(p);
   const groups: MenuGroup[] = [];
 
@@ -298,7 +299,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     ? (has("dashboard") || has("dashboard.view") || has("*"))
     : (["super_admin", "system_admin"].includes(role) || isExecDirector || has("dashboard") || has("dashboard.view") || role !== "service_requester");
 
-  if (canSeeDashboard) {
+  if (role !== "dashboard_viewer" && canSeeDashboard) {
     mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
   }
   if (has("information_dashboard") || has("information_dashboard.view") || has("*")) {
@@ -641,7 +642,7 @@ export default function DashboardLayout({
 
   // إعادة توجيه طالب الخدمة إلى لوحة تحكمه الخاصة إذا حاول الوصول لصفحة إدارية
   // نسمح له بالوصول لصفحات مشتركة مثل الإشعارات والملف الشخصي وتفاصيل المساجد
-  if (user.role === "service_requester") {
+  if (user.role === "service_requester" && !isDashboardViewerUser(user)) {
     const isSharedPage = 
       window.location.pathname === "/notifications" || 
       window.location.pathname === "/profile" ||
@@ -862,15 +863,16 @@ function DashboardLayoutContent({
   const userPermissions: string[] = directPermissions ?? (user as any)?.permissions ?? [];
   const hasCustomRole = !!(user as any)?.customRole;
   const isSuperOrSystemAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const isServiceRequester = user?.role === "service_requester";
+  const isServiceRequester = user?.role === "service_requester" && !isDashboardViewerUser(user);
   const hasDynamicPermissions = !isServiceRequester;
  
   const customRoleNameAr = (user as any)?.customRole?.nameAr;
   const customRoleNameEn = (user as any)?.customRole?.nameEn;
+  const menuRole = isDashboardViewerUser(user) ? "dashboard_viewer" : user?.role || "";
 
   const menuGroups = (hasDynamicPermissions
-    ? getMenuGroupsFromPermissions(userPermissions, user?.role || "", isEn, customRoleNameAr, customRoleNameEn)
-    : getMenuGroups(user?.role || "", isEn, customRoleNameAr, customRoleNameEn)
+    ? getMenuGroupsFromPermissions(userPermissions, menuRole, isEn, customRoleNameAr, customRoleNameEn)
+    : getMenuGroups(menuRole, isEn, customRoleNameAr, customRoleNameEn)
   ).filter(group => group.items && group.items.length > 0);
   const menuItems = menuGroups.flatMap(g => g.items);
   const activeMenuItem = menuItems.find(item => isItemActive(item.path, location, menuItems));
@@ -1009,7 +1011,7 @@ function DashboardLayoutContent({
             {/* وضع القائمة الموسعة: الشعار + الاسم + زر طي السايد بار المخصص */}
             <div className="flex items-center justify-between gap-2 w-full min-w-0 group-data-[collapsible=icon]:hidden">
               <Link
-                href="/dashboard"
+                href={isDashboardViewerUser(user) ? "/information-dashboard" : "/dashboard"}
                 onClick={() => {
                   saveScrollPosition(0);
                   if (isMobile) {

@@ -471,7 +471,6 @@ export const DETAILED_DASHBOARD_CATEGORIES = [
   { id: "request_section", name: "قسم الطلبات وبرامج الخدمات" },
   { id: "procurement_section", name: "قسم المشاريع والعقود وشبكة الموردين" },
   { id: "financial_section", name: "قسم المالية والصرف والتدفقات" },
-  { id: "general_section", name: "تنبيهات وإشعارات عامة" },
 ];
 
 export const DETAILED_DASHBOARD_ELEMENT_DEFINITIONS = [
@@ -512,7 +511,6 @@ export const DETAILED_DASHBOARD_ELEMENT_DEFINITIONS = [
   { id: "financial_charts", title: "المخططات والتحليلات المالية الشاملة", category: "financial_section", categoryName: "قسم المالية والصرف والتدفقات", description: "الرسوم البيانية للتدفقات النقدية والمصروفات ومشاريع الدعم والتغطية", defaultEnabled: true },
 
   // 5. عام
-  { id: "section_pending_users", title: "تنبيه المستخدمين بانتظار الاعتماد", category: "general_section", categoryName: "تنبيهات وإشعارات عامة", description: "بطاقة التنبيه السفلية لمراجعة واعتماد حسابات المستخدمين الجدد", defaultEnabled: true },
 ];
 
 export const DEFAULT_ENABLED_DETAILED_DASHBOARD_IDS = DETAILED_DASHBOARD_ELEMENT_DEFINITIONS.filter(e => e.defaultEnabled).map(e => e.id);

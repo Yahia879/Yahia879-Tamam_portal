@@ -54,7 +54,6 @@ import {
   FileCheck2,
   XCircle,
   Undo2,
-  ArrowUpRight,
   ShieldCheck,
   BarChart3,
   Users,
@@ -205,7 +204,6 @@ export default function FormsCustomizationDashboard() {
   const { data: boardStats } = trpc.board.getExecutiveStats.useQuery();
   const { data: financialReportData } = trpc.disbursements.getFinancialReport.useQuery();
   const { data: allReceiptVouchersData = [] } = trpc.projects.getAllReceiptVouchers.useQuery();
-  const { data: pendingUsers = [] } = trpc.auth.getPendingUsers.useQuery();
 
   // حفظ التخصيص للهدف المحدد
   const saveMutation = trpc.forms.saveDetailedDashboardCustomizationConfig.useMutation({
@@ -1416,46 +1414,6 @@ export default function FormsCustomizationDashboard() {
               </div>
             )}
 
-            {/* ========================================================================= */}
-            {/* 5. تنبيه المستخدمين بانتظار الاعتماد */}
-            {/* ========================================================================= */}
-            {isDetailedElementEnabled("section_pending_users") && pendingUsers && pendingUsers.length > 0 && (
-              <div className="relative group/alert pt-4 border-t border-border/60">
-                <Card className="border-0 shadow-sm border-r-4 border-r-rose-500 rounded-2xl bg-card">
-                  <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-200/80 dark:border-rose-800/80">
-                        <AlertTriangle className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="text-xs sm:text-sm font-bold text-foreground">
-                          يوجد <span className="text-rose-600 font-black">{pendingUsers.length}</span> مستخدم بانتظار المراجعة والاعتماد
-                        </p>
-                        <p className="text-[11px] text-muted-foreground">يتطلب اتخاذ إجراء إداري لتفعيل الحسابات</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs font-bold hover:border-rose-300 hover:text-rose-600 gap-1 rounded-xl"
-                      >
-                        <span>مراجعة الطلبات</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </Button>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveElement("section_pending_users", "تنبيه المستخدمين المعلقين")}
-                        className="w-7 h-7 rounded-full bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-                        title="إخفاء هذا التنبيه من اللوحة"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
           </div>
         )}
 

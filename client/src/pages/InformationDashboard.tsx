@@ -1,12 +1,14 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { Link, useLocation } from "wouter";
-// DashboardLayout removed to support native full screen view
+import { useLocation } from "wouter";
+import { getMenuGroupsFromPermissions } from "@/components/DashboardLayout";
+import { getInformationDashboardReturnRoute } from "@/lib/routePermissions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { ROLE_LABELS } from "@shared/constants";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { usePermission } from "@/hooks/usePermission";
+import { isDashboardViewerUser } from "@/lib/dashboardViewer";
+import { useAnyPermission } from "@/hooks/usePermission";
 import { trpc } from "@/lib/trpc";
 import {
   LogOut,
@@ -31,7 +33,6 @@ import {
   FileCheck2,
   XCircle,
   AlertTriangle,
-  ArrowUpRight,
   TrendingUp,
   Layers,
   ArrowRight,
@@ -50,9 +51,29 @@ export default function InformationDashboard() {
 
   const isSuperAdmin = user?.role === "super_admin";
   const isSystemAdmin = user?.role === "system_admin";
-  const isDashboardViewer = user?.role === "dashboard_viewer";
-  const hasInfoPerm = usePermission("information_dashboard.view") || usePermission("information_dashboard") || isDashboardViewer;
+  const isDashboardViewer = isDashboardViewerUser(user);
+  const hasInfoPerm = useAnyPermission(["information_dashboard.view", "information_dashboard"]);
   const canView = isSuperAdmin || isSystemAdmin || isDashboardViewer || hasInfoPerm;
+  const { data: directPermissions } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user, staleTime: 5000, refetchOnWindowFocus: true, refetchOnMount: true }
+  );
+  const permissions = directPermissions ?? user?.permissions ?? [];
+  const sidebarPaths = getMenuGroupsFromPermissions(
+    permissions,
+    isDashboardViewer ? "dashboard_viewer" : user?.role || "",
+    false,
+    user?.customRole?.nameAr,
+    user?.customRole?.nameEn
+  ).flatMap(group => group.items.map(item => item.path));
+  const returnRoute = getInformationDashboardReturnRoute(user, permissions, sidebarPaths);
+  const returnToSidebar = () => {
+    if (!returnRoute) return;
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+    navigate(returnRoute);
+  };
 
   type SectionTab = "all" | "mosques" | "requests" | "procurement" | "financial";
   const [activeTab, setActiveTab] = useState<SectionTab>(() => {
@@ -142,7 +163,6 @@ export default function InformationDashboard() {
   const { data: boardStats } = trpc.board.getExecutiveStats.useQuery({ page: 1, pageSize: 1 }, { enabled: canView });
   const { data: financialReportData } = trpc.disbursements.getFinancialReport.useQuery({}, { enabled: canView });
   const { data: allReceiptVouchersData = [] } = trpc.projects.getAllReceiptVouchers.useQuery(undefined, { enabled: canView });
-  const { data: pendingUsers } = trpc.auth.getPendingUsers.useQuery(undefined, { enabled: canView });
 
   const completionRate = requestStats?.total 
     ? Math.round(((requestStats?.byStatus?.completed || 0) / requestStats.total) * 100) 
@@ -489,12 +509,12 @@ export default function InformationDashboard() {
         <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           {/* اليمين: زر العودة + الشعار والعنوان */}
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-            {user?.role !== "dashboard_viewer" && (
+            {returnRoute && (
               <>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => navigate("/dashboard")}
+                  onClick={returnToSidebar}
                   className="gap-2 rounded-xl text-xs font-bold border-border/80 hover:bg-primary/5 hover:text-primary transition-all shrink-0 cursor-pointer shadow-xs"
                   title="العودة للرئيسية والمنظومة"
                 >
@@ -810,32 +830,6 @@ export default function InformationDashboard() {
         )}
 
 
-        {/* ========================================================================= */}
-        {isDetailedElementEnabled("section_pending_users") && pendingUsers && pendingUsers.length > 0 && (
-          <div className="pt-4 border-t border-border/60">
-            <Card className="border-0 shadow-sm border-r-4 border-r-rose-500 rounded-2xl bg-card">
-              <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-200/80 dark:border-rose-800/80">
-                    <AlertTriangle className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm font-bold text-foreground">
-                      يوجد <span className="text-rose-600 font-black">{pendingUsers.length}</span> مستخدم بانتظار المراجعة والاعتماد
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">يتطلب اتخاذ إجراء إداري لتفعيل الحسابات</p>
-                  </div>
-                </div>
-                <Link href="/requester-approvals">
-                  <Button size="sm" variant="outline" className="text-xs font-bold hover:border-rose-300 hover:text-rose-600 gap-1 rounded-xl">
-                    <span>مراجعة الطلبات</span>
-                    <ArrowUpRight className="w-3.5 h-3.5" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
-        )}
             </main>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { isDashboardViewerUser } from "@/lib/dashboardViewer";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
@@ -18,7 +19,7 @@ export default function GuestGuard({ children }: GuestGuardProps) {
 
   useEffect(() => {
     if (!loading && isAuthenticated && user) {
-      const path = user.role === "service_requester" ? "/requester" : "/dashboard";
+      const path = isDashboardViewerUser(user) ? "/information-dashboard" : user.role === "service_requester" ? "/requester" : "/dashboard";
       navigate(path, { replace: true });
     }
   }, [isAuthenticated, user, loading, navigate]);

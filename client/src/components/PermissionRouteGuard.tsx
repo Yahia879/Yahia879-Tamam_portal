@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { isDashboardViewerUser } from "@/lib/dashboardViewer";
 import { useLocation } from "wouter";
 import { useEffect, useMemo } from "react";
 import { hasRouteAccess, EXEMPT_ROUTES, REQUESTER_ROUTES } from "@/lib/routePermissions";
@@ -67,7 +68,8 @@ export default function PermissionRouteGuard({ children }: PermissionRouteGuardP
     const isBaseRole = ["super_admin", "system_admin", "board_chairman", "board_member", "general_manager", "executive_director", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager", "corporate_comm", "service_requester", "procurement_officer", "dashboard_viewer"].includes(user.role);
     const hasCustom = !!(user as any)?.customRole || !isBaseRole;
 
-    const allowed = hasRouteAccess(location, user.role, userPerms, hasCustom);
+    const routeRole = isDashboardViewerUser(user) ? "dashboard_viewer" : user.role;
+    const allowed = hasRouteAccess(location, routeRole, userPerms, hasCustom);
     return { allowed, reason: allowed ? "permission-ok" : "permission-denied", pending: false };
   }, [user, loading, location]);
 
@@ -78,9 +80,12 @@ export default function PermissionRouteGuard({ children }: PermissionRouteGuardP
       console.warn(
         `[PermissionRouteGuard] Access denied for route "${location}" — reason: ${accessResult.reason}, role: ${user?.role}`
       );
-      navigate("/403", { replace: true });
+      const target = isDashboardViewerUser(user) && (location === "/dashboard" || location === "/dashboard/")
+        ? "/information-dashboard"
+        : "/403";
+      navigate(target, { replace: true });
     }
-  }, [accessResult.allowed, accessResult.reason, accessResult.pending, location, navigate, user?.role]);
+  }, [accessResult.allowed, accessResult.reason, accessResult.pending, location, navigate, user]);
 
   // أثناء التحميل، لا نعرض المحتوى (تجنب الوميض)
   if (loading) return null;

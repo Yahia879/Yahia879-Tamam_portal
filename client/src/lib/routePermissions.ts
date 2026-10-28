@@ -1,3 +1,5 @@
+import { isDashboardViewerUser } from "./dashboardViewer";
+
 /**
  * خريطة صلاحيات المسارات (Route-Permission Map)
  * 
@@ -581,6 +583,9 @@ export function hasRouteAccess(
   userPermissions: string[],
   hasCustomRole: boolean,
 ): boolean {
+  if ((pathname === "/dashboard" || pathname === "/dashboard/") && userRole === "dashboard_viewer") {
+    return false;
+  }
   // مسار مالية سدانة متاح افتراضياً للإدارة المالية أو لمن يملك إحدى صلاحيات مالية سدانة
   const isOrdersAndLettersRoute =
     pathname === "/orders-and-letters" ||
@@ -697,8 +702,20 @@ export function hasRouteAccess(
 /**
  * تحديد الصفحة الرئيسية المناسبة للمستخدم بناءً على دوره وصلاحياته المتاحة فعلياً
  */
+export function getInformationDashboardReturnRoute(user: any, permissions: string[], sidebarPaths: string[]): string | null {
+  if (!user) return null;
+  if (!isDashboardViewerUser(user)) return "/dashboard";
+
+  return sidebarPaths.find(path =>
+    path !== "/dashboard" &&
+    path !== "/information-dashboard" &&
+    hasRouteAccess(path, "dashboard_viewer", permissions, !!user.customRole)
+  ) ?? null;
+}
+
 export function getUserHomeRoute(user: any): string {
   if (!user) return "/login";
+  if (isDashboardViewerUser(user)) return "/information-dashboard";
   if (user.role === "service_requester") return "/requester";
 
   const userPerms: string[] = (user as any)?.permissions ?? [];

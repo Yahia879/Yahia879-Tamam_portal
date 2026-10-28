@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { isDashboardViewerUser } from "@/lib/dashboardViewer";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 
@@ -19,7 +20,7 @@ export default function AdminGuard({ children, allowedRoles }: AdminGuardProps) 
   useEffect(() => {
     if (!loading && user) {
       // إذا كان طالب خدمة، أعد توجيهه
-      if (user.role === "service_requester") {
+      if (user.role === "service_requester" && !isDashboardViewerUser(user)) {
         navigate("/requester");
       }
       // إذا تم تحديد أدوار معينة وليس المستخدم منها
@@ -41,7 +42,7 @@ export default function AdminGuard({ children, allowedRoles }: AdminGuardProps) 
   }
 
   // إذا كان طالب خدمة، لا تعرض المحتوى
-  if (user?.role === "service_requester") {
+  if (user?.role === "service_requester" && !isDashboardViewerUser(user)) {
     return null;
   }
 

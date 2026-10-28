@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { isDashboardViewerUser } from "@/lib/dashboardViewer";
 import { useUserPermissions } from "@/hooks/usePermission";
 import { getUserHomeRoute } from "@/lib/routePermissions";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -222,7 +223,7 @@ export default function Dashboard() {
       navigate("/requester", { replace: true });
       return;
     }
-    if (user.role === "dashboard_viewer") {
+    if (isDashboardViewerUser(user)) {
       navigate("/information-dashboard", { replace: true });
       return;
     }
