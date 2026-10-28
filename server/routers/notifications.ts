@@ -2402,7 +2402,15 @@ export const notificationsRouter = router({
     }),
 
   // جلب المستفيدين لإرسال إشعار مباشر
-  getBeneficiaryRecipients: adminProcedure.query(async () => {
+  getBeneficiaryRecipients: protectedProcedure.query(async ({ ctx }) => {
+    const userPerms = await calculateUserPermissions(ctx.user.id);
+    const hasWildcard = userPerms.includes("*");
+    const hasBeneficiaryPerm = userPerms.includes("notification_center.direct_send_beneficiary");
+    const canBeneficiary = hasBeneficiaryPerm || (hasWildcard && !userPerms.some(p => p.startsWith("notification_center.")) && !userPerms.includes("!notification_center.direct_send_beneficiary"));
+    if (!canBeneficiary) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية استعراض المستفيدين للإرسال المباشر" });
+    }
+
     const db = await getDb();
     if (!db) {
       throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
@@ -2450,7 +2458,13 @@ export const notificationsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const userPerms = await calculateUserPermissions(ctx.user.id);
       const hasWildcard = userPerms.includes("*");
-      if (!hasWildcard && !userPerms.includes("notification_center.direct_send") && !userPerms.includes("notification_center")) {
+      const hasStaffPerm = userPerms.includes("notification_center.direct_send_staff");
+      const hasBeneficiaryPerm = userPerms.includes("notification_center.direct_send_beneficiary");
+
+      const canSendStaff = hasStaffPerm || (hasWildcard && !hasBeneficiaryPerm && !userPerms.some(p => p.startsWith("notification_center.")));
+      const canSendBeneficiary = hasBeneficiaryPerm || (hasWildcard && !hasStaffPerm && !userPerms.some(p => p.startsWith("notification_center.")));
+
+      if (!canSendStaff && !canSendBeneficiary) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إرسال الإشعارات المباشرة" });
       }
 
@@ -2481,12 +2495,23 @@ export const notificationsRouter = router({
           name: users.name,
           email: users.email,
           phone: users.phone,
+          role: users.role,
         })
         .from(users)
         .where(and(inArray(users.id, targetIds), isNull(users.deletedAt)));
 
       if (targetUsers.length === 0) {
         throw new TRPCError({ code: "NOT_FOUND", message: "المستخدمون المحددون غير موجودين أو تم حذفهم" });
+      }
+
+      const hasBeneficiaries = targetUsers.some((u) => u.role === "service_requester");
+      const hasStaff = targetUsers.some((u) => u.role !== "service_requester");
+
+      if (hasBeneficiaries && !canSendBeneficiary) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إرسال إشعار مباشر لطالبي الخدمة (المستفيدين)" });
+      }
+      if (hasStaff && !canSendStaff) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إرسال إشعار مباشر للمسؤولين والموظفين" });
       }
 
       const effectiveTitle = input.title?.trim() || "إشعار من إدارة البوابة";
@@ -2580,7 +2605,12 @@ export const notificationsRouter = router({
     .query(async ({ ctx, input }) => {
       const userPerms = await calculateUserPermissions(ctx.user.id);
       const hasWildcard = userPerms.includes("*");
-      if (!hasWildcard && !userPerms.includes("notification_center.send_logs") && !userPerms.includes("notification_center")) {
+      if (
+        !hasWildcard &&
+        !userPerms.includes("notification_center.view") &&
+        !userPerms.includes("notification_center.send_logs") &&
+        !userPerms.includes("notification_center")
+      ) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض سجلات الإشعارات" });
       }
 
@@ -2718,8 +2748,11 @@ export const notificationsRouter = router({
       const hasWildcard = userPerms.includes("*");
       if (
         !hasWildcard &&
+        !userPerms.includes("notification_center.view") &&
         !userPerms.includes("notification_center.send_logs") &&
         !userPerms.includes("notification_center.direct_send") &&
+        !userPerms.includes("notification_center.direct_send_staff") &&
+        !userPerms.includes("notification_center.direct_send_beneficiary") &&
         !userPerms.includes("notification_center")
       ) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إعادة إرسال الإشعارات" });
@@ -2856,9 +2889,10 @@ export const notificationsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const userPerms = await calculateUserPermissions(ctx.user.id);
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role as any);
-      const hasAccess = isAdmin || userPerms.includes("staff_notifications.edit") ||
-        (input.roleId === "service_requester" ? userPerms.includes("staff_notifications.beneficiary") : userPerms.includes("staff_notifications.by_role"));
+      const hasAccess = userPerms.includes("*") || userPerms.includes("staff_notifications.edit") ||
+        (input.roleId === "service_requester" 
+          ? userPerms.includes("staff_notifications.beneficiary") 
+          : (userPerms.includes("staff_notifications.by_role") || userPerms.includes("staff_notifications.by_department")));
       if (!hasAccess) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل قنوات الإشعار" });
       }
@@ -2950,8 +2984,12 @@ export const notificationsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const userPerms = await calculateUserPermissions(ctx.user.id);
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role as any);
-      if (!isAdmin && !userPerms.includes("staff_notifications.edit") && !userPerms.includes("staff_notifications.edit_message_formats")) {
+      const isBeneficiaryTrigger = input.triggerId.startsWith("beneficiary_") || input.triggerId.includes("requester");
+      const hasPerm = userPerms.includes("*") || userPerms.includes("staff_notifications.edit") ||
+        (isBeneficiaryTrigger
+          ? userPerms.includes("staff_notifications.beneficiary_message_formats")
+          : userPerms.includes("staff_notifications.edit_message_formats"));
+      if (!hasPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل صيغ الرسائل" });
       }
 

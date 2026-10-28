@@ -569,7 +569,22 @@ export default function FormsCustomizationServiceDetail() {
   const IconComponent = ICON_MAP[currentProgram?.icon || "Package"] || Package;
 
   const userPermissions = useUserPermissions();
-  const hasPermission = userPermissions.includes("forms_customization.services");
+  const hasWildcard = userPermissions.includes("*");
+  const canAnyServices =
+    hasWildcard ||
+    userPermissions.some(
+      (p) =>
+        p.startsWith("forms_customization.services")
+    );
+
+  const canAddField = hasWildcard || userPermissions.includes("forms_customization.services_add_field");
+  const canDuplicate = hasWildcard || userPermissions.includes("forms_customization.services_duplicate");
+  const canPlaceholder = hasWildcard || userPermissions.includes("forms_customization.services_placeholder");
+  const canDescription = hasWildcard || userPermissions.includes("forms_customization.services_description");
+  const canChangeType = hasWildcard || userPermissions.includes("forms_customization.services_change_type");
+  const canRequired = hasWildcard || userPermissions.includes("forms_customization.services_required");
+  const canToggleActive = hasWildcard || userPermissions.includes("forms_customization.services_toggle_active");
+  const canReorder = hasWildcard || userPermissions.includes("forms_customization.services_reorder");
 
   const getFieldTypeBadge = (type: ServiceFieldType) => {
     switch (type) {
@@ -595,7 +610,7 @@ export default function FormsCustomizationServiceDetail() {
     }
   };
 
-  if (!hasPermission) {
+  if (!canAnyServices) {
     return (
       <DashboardLayout>
         <div className="max-w-md mx-auto my-16 p-8 rounded-2xl border border-border bg-card text-center space-y-3 shadow-sm">
@@ -760,6 +775,7 @@ export default function FormsCustomizationServiceDetail() {
 
           <div className="flex items-center gap-2">
             {/* القائمة السريعة لإضافة حقل حسب النوع */}
+            {canAddField && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -798,6 +814,7 @@ export default function FormsCustomizationServiceDetail() {
                 })}
               </DropdownMenuContent>
             </DropdownMenu>
+          )}
 
             <Button
               type="button"
@@ -926,7 +943,7 @@ export default function FormsCustomizationServiceDetail() {
               return (
                 <React.Fragment key={field.id}>
                   <div
-                    draggable={isDragEnabled}
+                    draggable={canReorder && isDragEnabled}
                     onDragStart={(e) => handleDragStart(e, actualIndex)}
                   onDragOver={(e) => handleDragOver(e, actualIndex)}
                   onDragEnd={handleDragEnd}
@@ -942,38 +959,42 @@ export default function FormsCustomizationServiceDetail() {
                     {/* مقبض السحب والإفلات + أزرار الترتيب السريع + رقم الترتيب */}
                     <div className="flex items-center gap-1.5 shrink-0 select-none">
                       {/* مقبض السحب */}
-                      <div
-                        onMouseDown={() => setDragEnabledIndex(actualIndex)}
-                        onMouseUp={() => setDragEnabledIndex(null)}
-                        onTouchStart={() => setDragEnabledIndex(actualIndex)}
-                        onTouchEnd={() => setDragEnabledIndex(null)}
-                        className="p-1 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-muted cursor-grab active:cursor-grabbing transition-colors"
-                        title="اسحب لترتيب الحقل"
-                      >
-                        <GripVertical className="w-4 h-4 pointer-events-none" />
-                      </div>
+                      {canReorder && (
+                        <div
+                          onMouseDown={() => setDragEnabledIndex(actualIndex)}
+                          onMouseUp={() => setDragEnabledIndex(null)}
+                          onTouchStart={() => setDragEnabledIndex(actualIndex)}
+                          onTouchEnd={() => setDragEnabledIndex(null)}
+                          className="p-1 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-muted cursor-grab active:cursor-grabbing transition-colors"
+                          title="اسحب لترتيب الحقل"
+                        >
+                          <GripVertical className="w-4 h-4 pointer-events-none" />
+                        </div>
+                      )}
 
                       {/* أزرار التحريك السريع (Up/Down) */}
-                      <div className="flex flex-col gap-0.5">
-                        <button
-                          type="button"
-                          disabled={actualIndex === 0}
-                          onClick={() => handleMoveField(actualIndex, "up")}
-                          className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
-                          title="تحريك لأعلى"
-                        >
-                          <ChevronUp className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          disabled={actualIndex === fields.length - 1}
-                          onClick={() => handleMoveField(actualIndex, "down")}
-                          className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
-                          title="تحريك لأسفل"
-                        >
-                          <ChevronDown className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      {canReorder && (
+                        <div className="flex flex-col gap-0.5">
+                          <button
+                            type="button"
+                            disabled={actualIndex === 0}
+                            onClick={() => handleMoveField(actualIndex, "up")}
+                            className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                            title="تحريك لأعلى"
+                          >
+                            <ChevronUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={actualIndex === fields.length - 1}
+                            onClick={() => handleMoveField(actualIndex, "down")}
+                            className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                            title="تحريك لأسفل"
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
 
                       {/* رقم الترتيب */}
                       <div className="w-7 h-7 rounded-xl bg-muted/60 text-muted-foreground font-black text-xs flex items-center justify-center border border-border/80 shrink-0">
@@ -1012,7 +1033,7 @@ export default function FormsCustomizationServiceDetail() {
                                 : field.options,
                           })
                         }
-                        disabled={isSystemField}
+                        disabled={isSystemField || !canChangeType}
                       >
                         <SelectTrigger className="h-10 text-xs font-semibold text-right rounded-xl border-border/80 bg-background">
                           <SelectValue />
@@ -1035,7 +1056,7 @@ export default function FormsCustomizationServiceDetail() {
                         <Switch
                           checked={isMosqueField ? true : field.required}
                           onCheckedChange={(c) => !isMosqueField && handleUpdateField(field.id, { required: c })}
-                          disabled={isMosqueField}
+                          disabled={isMosqueField || !canRequired}
                         />
                       </div>
 
@@ -1045,7 +1066,7 @@ export default function FormsCustomizationServiceDetail() {
                         <Switch
                           checked={field.isActive}
                           onCheckedChange={(c) => handleUpdateField(field.id, { isActive: c })}
-                          disabled={isMosqueField}
+                          disabled={isMosqueField || !canToggleActive}
                         />
                       </div>
                     </div>
@@ -1065,6 +1086,7 @@ export default function FormsCustomizationServiceDetail() {
                         <Settings2 className="w-4 h-4" />
                       </Button>
 
+                      {canDuplicate && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -1076,6 +1098,7 @@ export default function FormsCustomizationServiceDetail() {
                       >
                         <Copy className="w-4 h-4" />
                       </Button>
+                      )}
 
                       <Button
                         type="button"
@@ -1125,6 +1148,7 @@ export default function FormsCustomizationServiceDetail() {
                             value={field.placeholder || ""}
                             onChange={(e) => handleUpdateField(field.id, { placeholder: e.target.value })}
                             placeholder="مثال: اكتب التفاصيل هنا..."
+                            disabled={!canPlaceholder}
                             className="h-9 text-xs bg-background rounded-xl text-right border-border/80"
                           />
                         </div>
@@ -1139,6 +1163,7 @@ export default function FormsCustomizationServiceDetail() {
                             value={field.helpText || ""}
                             onChange={(e) => handleUpdateField(field.id, { helpText: e.target.value })}
                             placeholder="يظهر بخط أصغر أسفل الحقل لإرشاد مقدم الطلب..."
+                            disabled={!canDescription}
                             className="h-9 text-xs bg-background rounded-xl text-right border-border/80"
                           />
                         </div>
@@ -1233,6 +1258,7 @@ export default function FormsCustomizationServiceDetail() {
         )}
 
         {/* زر إضافة حقل جديد في الأسفل */}
+        {canAddField && (
         <div className="pt-2">
           <Button
             type="button"
@@ -1244,6 +1270,7 @@ export default function FormsCustomizationServiceDetail() {
             <span>إضافة حقل / سؤال جديد لهذا النموذج</span>
           </Button>
         </div>
+        )}
 
         {/* شريط الإجراءات العائم السفلي عند وجود تعديلات غير محفوظة */}
         {hasChanges && (

@@ -14,8 +14,10 @@ import {
   SlidersHorizontal,
   Loader2,
   HeartHandshake,
+  AlertCircle,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useUserPermissions } from "@/hooks/usePermission";
 
 const ICON_MAP: Record<string, any> = {
   LandPlot,
@@ -28,7 +30,34 @@ const ICON_MAP: Record<string, any> = {
 
 export default function FormsCustomizationRegistration() {
   const [, navigate] = useLocation();
+  const userPermissions = useUserPermissions();
+  const hasWildcard = userPermissions.includes("*");
+  const canAnyRegistration =
+    hasWildcard ||
+    userPermissions.some((p) => p.startsWith("forms_customization.registration"));
+
   const { data: formsList = [], isLoading } = trpc.forms.getRegistrationFormsList.useQuery();
+
+  if (!canAnyRegistration) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-md mx-auto my-16 p-8 rounded-2xl border border-border bg-card text-center space-y-3 shadow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-foreground">غير مصرح بالوصول</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            لا تملك الصلاحية اللازمة لتخصيص نماذج التسجيل والتبرع.
+          </p>
+          <Link href="/forms-customization">
+            <Button variant="outline" size="sm" className="mt-2 text-xs font-semibold">
+              العودة لقائمة النماذج
+            </Button>
+          </Link>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

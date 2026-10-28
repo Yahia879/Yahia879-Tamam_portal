@@ -151,23 +151,36 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/job-positions": "staff_management",
   "/requester-approvals": ["staff_management", "requester_accounts.view", "requester_exceptions.view", "requester_donations.view", "requester_inquiries.view", "requester_sedana.view"],
   "/notifications/customization": [
-    "staff_notifications.edit",
     "staff_notifications.by_role",
+    "staff_notifications.by_department",
     "staff_notifications.edit_message_formats",
     "staff_notifications.by_person",
-    "staff_notifications.beneficiary"
+    "staff_notifications.beneficiary",
+    "staff_notifications.beneficiary_message_formats"
+  ],
+  "/notification-customization": [
+    "staff_notifications.by_role",
+    "staff_notifications.by_department",
+    "staff_notifications.edit_message_formats",
+    "staff_notifications.by_person",
+    "staff_notifications.beneficiary",
+    "staff_notifications.beneficiary_message_formats"
   ],
   "/notifications/center": [
     "notification_center",
     "notification_center.view",
     "notification_center.direct_send",
-    "notification_center.send_logs"
+    "notification_center.send_logs",
+    "notification_center.direct_send_staff",
+    "notification_center.direct_send_beneficiary"
   ],
   "/notification-center": [
     "notification_center",
     "notification_center.view",
     "notification_center.direct_send",
-    "notification_center.send_logs"
+    "notification_center.send_logs",
+    "notification_center.direct_send_staff",
+    "notification_center.direct_send_beneficiary"
   ],
 
   // ── الموردون ──
@@ -323,7 +336,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "settings.actions_view"
   ],
   "/branding": [
-    "settings_center",
     "settings_branding.view",
     "settings_branding.edit",
     "settings_branding.edit_colors",

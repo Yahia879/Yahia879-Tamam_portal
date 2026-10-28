@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   Handshake,
   Palette,
+  Star,
   FileText,
   AlertCircle,
   AlertTriangle,
@@ -396,14 +397,6 @@ export default function RolePermissions() {
       }
     }
 
-    // منع تفعيل أي صلاحية فرعية لتخصيص النماذج إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("forms_customization.") && permId !== "forms_customization.view") {
-      if (!selectedPerms.includes("forms_customization.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض وتصفح النماذج والحقول' أولاً");
-        return;
-      }
-    }
-
     // منع تفعيل أي صلاحية فرعية لمدد المراحل وأوقات التأخير إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("settings_escalation.") && permId !== "settings_escalation.view") {
       if (!selectedPerms.includes("settings_escalation.view")) {
@@ -412,21 +405,7 @@ export default function RolePermissions() {
       }
     }
 
-    // منع تفعيل أي صلاحية فرعية لتخصيص الإشعارات إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("staff_notifications.") && permId !== "staff_notifications.view") {
-      if (!selectedPerms.includes("staff_notifications.view")) {
-        toast.warning("يجب تفعيل صلاحية 'استعراض إعدادات وقوالب الإشعارات' أولاً");
-        return;
-      }
-    }
 
-    // منع تفعيل أي صلاحية فرعية لمركز الإشعارات إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("notification_center.") && permId !== "notification_center.view") {
-      if (!selectedPerms.includes("notification_center.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض واستعراض مركز الإشعارات' أولاً");
-        return;
-      }
-    }
 
 
 
@@ -586,6 +565,14 @@ export default function RolePermissions() {
         if (permId === "forms_customization.view") {
           next = next.filter(id => !id.startsWith("forms_customization."));
         }
+        if (permId.startsWith("forms_customization.")) {
+          const remainingFormsCustom = next.filter(id => 
+            id.startsWith("forms_customization.") && id !== "forms_customization.view" && id !== "forms_customization"
+          );
+          if (remainingFormsCustom.length === 0) {
+            next = next.filter(id => !id.startsWith("forms_customization"));
+          }
+        }
         // عند إلغاء تفعيل صلاحية عرض مدد المراحل وأوقات التأخير
         if (permId === "settings_escalation.view") {
           next = next.filter(id => !id.startsWith("settings_escalation."));
@@ -594,15 +581,34 @@ export default function RolePermissions() {
         if (permId === "staff_notifications.view") {
           next = next.filter(id => !id.startsWith("staff_notifications."));
         }
-        // عند إلغاء تفعيل صلاحية عرض مركز الإشعارات
-        if (permId === "notification_center.view") {
-          next = next.filter(id => !id.startsWith("notification_center."));
+        if (permId.startsWith("staff_notifications.")) {
+          const remainingStaffNotifs = next.filter(id => 
+            id.startsWith("staff_notifications.") && id !== "staff_notifications.view" && id !== "staff_notifications" && id !== "staff_notifications.edit"
+          );
+          if (remainingStaffNotifs.length === 0) {
+            next = next.filter(id => !id.startsWith("staff_notifications"));
+          }
+        }
+        // عند إلغاء تفعيل صلاحية في مركز الإشعارات
+        if (permId.startsWith("notification_center.")) {
+          const remainingNotifCenter = next.filter(id => 
+            id.startsWith("notification_center.") && id !== "notification_center"
+          );
+          if (remainingNotifCenter.length === 0) {
+            next = next.filter(id => !id.startsWith("notification_center"));
+          }
         }
 
 
         return next;
       } else {
         let next = [...prev, permId];
+        if (permId.startsWith("staff_notifications.") && !next.includes("staff_notifications.view")) {
+          next.push("staff_notifications.view");
+        }
+        if (permId.startsWith("forms_customization.") && !next.includes("forms_customization.view")) {
+          next.push("forms_customization.view");
+        }
         if (permId === "appointments.view_all") {
           next = next.filter(id => id !== "appointments.view_own");
         } else if (permId === "appointments.view_own") {
@@ -1366,8 +1372,30 @@ export default function RolePermissions() {
         { id: "staff_users", nameAr: "المستخدمين", icon: Users, perms: ["view", "add", "edit", "suspend", "delete"] },
         { id: "staff_roles", nameAr: "الأدوار والصلاحيات", icon: Shield, perms: ["view", "customize", "suspend"] },
         { id: "staff_custom_roles", nameAr: "الأدوار المخصصة", icon: Briefcase, perms: ["view", "add", "edit", "delete"] },
-        { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["by_role", "edit_message_formats", "by_person", "beneficiary"] },
-        { id: "notification_center", nameAr: "مركز الإشعارات", icon: Send, perms: ["direct_send", "send_logs"] }
+        { id: "notification_center", nameAr: "مركز الإشعارات", icon: Send, perms: ["view", "direct_send_staff", "direct_send_beneficiary"] }
+      ]
+    },
+    {
+      title: "تخصيص الإشعارات",
+      modules: [
+        {
+          id: "staff_notifications_by_role",
+          nameAr: "تخصيص حسب الأدوار",
+          icon: Shield,
+          perms: ["by_role", "by_department", "edit_message_formats"]
+        },
+        {
+          id: "staff_notifications_by_person",
+          nameAr: "تخصيص حسب الأشخاص",
+          icon: Users,
+          perms: ["by_person"]
+        },
+        {
+          id: "staff_notifications_beneficiary",
+          nameAr: "إشعارات المستفيد",
+          icon: HeartHandshake,
+          perms: ["beneficiary", "beneficiary_message_formats"]
+        }
       ]
     },
     {
@@ -1400,13 +1428,72 @@ export default function RolePermissions() {
       ]
     },
     {
+      title: "تخصيص النماذج",
+      modules: [
+        { 
+          id: "forms_customization_dashboard", 
+          nameAr: "تخصيص لوحة المعلومات", 
+          icon: LayoutDashboard, 
+          perms: [
+            "dashboard_global", 
+            "dashboard_role", 
+            "dashboard_user"
+          ] 
+        },
+        { 
+          id: "forms_customization_evaluation", 
+          nameAr: "تخصيص استمارة تقييم رضا المستفيد", 
+          icon: Star, 
+          perms: [
+            "evaluation_add_field", 
+            "evaluation_duplicate", 
+            "evaluation_placeholder", 
+            "evaluation_description", 
+            "evaluation_change_type", 
+            "evaluation_required", 
+            "evaluation_toggle_active", 
+            "evaluation_reorder"
+          ] 
+        },
+        { 
+          id: "forms_customization_services", 
+          nameAr: "تخصيص نماذج طلبات الخدمات", 
+          icon: FileText, 
+          perms: [
+            "services_add_field", 
+            "services_duplicate", 
+            "services_placeholder", 
+            "services_description", 
+            "services_change_type", 
+            "services_required", 
+            "services_toggle_active", 
+            "services_reorder"
+          ] 
+        },
+        { 
+          id: "forms_customization_registration", 
+          nameAr: "تخصيص نماذج التسجيل والتبرع", 
+          icon: HeartHandshake, 
+          perms: [
+            "registration_add_field", 
+            "registration_duplicate", 
+            "registration_placeholder", 
+            "registration_description", 
+            "registration_change_type", 
+            "registration_required", 
+            "registration_toggle_active", 
+            "registration_reorder"
+          ] 
+        },
+      ]
+    },
+    {
       title: "الإعدادات",
       modules: [
         { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["view", "edit"] },
         { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "edit"] },
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
-        { id: "forms_customization", nameAr: "تخصيص النماذج", icon: SlidersHorizontal, perms: ["evaluation", "services", "registration"] },
-        { id: "settings_escalation", nameAr: "تعيين وقت التأخير ومدد المراحل", icon: ShieldAlert, perms: ["view"] },
+        { id: "settings_escalation", nameAr: "تعيين وقت التأخير ومدد المراحل", icon: ShieldAlert, perms: ["view", "edit_durations", "edit_beneficiary_sla"] },
       ]
     }
   ];
@@ -1556,6 +1643,98 @@ export default function RolePermissions() {
       ]
     },
     {
+      title: "تخصيص الإشعارات",
+      modules: [
+        { 
+          id: "staff_notifications_by_role", 
+          nameAr: "تخصيص حسب الأدوار", 
+          icon: Shield, 
+          perms: [
+            "by_role",
+            "by_department",
+            "edit_message_formats"
+          ] 
+        },
+        { 
+          id: "staff_notifications_by_person", 
+          nameAr: "تخصيص حسب الأشخاص", 
+          icon: Users, 
+          perms: [
+            "by_person"
+          ] 
+        },
+        { 
+          id: "staff_notifications_beneficiary", 
+          nameAr: "إشعارات المستفيد", 
+          icon: HeartHandshake, 
+          perms: [
+            "beneficiary",
+            "beneficiary_message_formats"
+          ] 
+        },
+      ]
+    },
+    {
+      title: "تخصيص النماذج",
+      modules: [
+        { 
+          id: "forms_customization_dashboard", 
+          nameAr: "تخصيص لوحة المعلومات", 
+          icon: LayoutDashboard, 
+          perms: [
+            "dashboard_global", 
+            "dashboard_role", 
+            "dashboard_user"
+          ] 
+        },
+        { 
+          id: "forms_customization_evaluation", 
+          nameAr: "تخصيص استمارة تقييم رضا المستفيد", 
+          icon: Star, 
+          perms: [
+            "evaluation_add_field", 
+            "evaluation_duplicate", 
+            "evaluation_placeholder", 
+            "evaluation_description", 
+            "evaluation_change_type", 
+            "evaluation_required", 
+            "evaluation_toggle_active", 
+            "evaluation_reorder"
+          ] 
+        },
+        { 
+          id: "forms_customization_services", 
+          nameAr: "تخصيص نماذج طلبات الخدمات", 
+          icon: FileText, 
+          perms: [
+            "services_add_field", 
+            "services_duplicate", 
+            "services_placeholder", 
+            "services_description", 
+            "services_change_type", 
+            "services_required", 
+            "services_toggle_active", 
+            "services_reorder"
+          ] 
+        },
+        { 
+          id: "forms_customization_registration", 
+          nameAr: "تخصيص نماذج التسجيل والتبرع", 
+          icon: HeartHandshake, 
+          perms: [
+            "registration_add_field", 
+            "registration_duplicate", 
+            "registration_placeholder", 
+            "registration_description", 
+            "registration_change_type", 
+            "registration_required", 
+            "registration_toggle_active", 
+            "registration_reorder"
+          ] 
+        },
+      ]
+    },
+    {
       title: "الإعدادات",
       modules: [
         { 
@@ -1577,37 +1756,16 @@ export default function RolePermissions() {
           perms: ["view", "add", "edit", "toggle_status", "reorder", "delete"] 
         },
         { 
-          id: "forms_customization", 
-          nameAr: "تخصيص النماذج", 
-          icon: SlidersHorizontal, 
-          perms: [
-            "view",
-            "evaluation", 
-            "services_view",
-            "services_add", 
-            "services_edit",
-            "services_delete", 
-            "registration", 
-            "analytics"
-          ] 
-        },
-        { 
           id: "settings_escalation", 
           nameAr: "تعيين وقت التأخير ومدد المراحل", 
           icon: ShieldAlert, 
-          perms: ["view", "edit_durations", "edit_beneficiary_sla", "save"] 
-        },
-        { 
-          id: "staff_notifications", 
-          nameAr: "تخصيص الإشعارات", 
-          icon: Bell, 
-          perms: ["view", "by_role", "by_person", "beneficiary", "edit_message_formats"] 
+          perms: ["view", "edit_durations", "edit_beneficiary_sla"] 
         },
         { 
           id: "notification_center", 
           nameAr: "مركز الإشعارات", 
           icon: Send, 
-          perms: ["view", "direct_send", "send_logs"] 
+          perms: ["view", "direct_send_staff", "direct_send_beneficiary"] 
         },
       ]
     },
@@ -1640,14 +1798,71 @@ export default function RolePermissions() {
       },
       forms_customization: {
         view: "عرض وتصفح النماذج والحقول",
+        dashboard_global: "تخصيص الصفحة للجميع",
+        dashboard_role: "تخصيص الصفحة حسب الدور",
+        dashboard_user: "تخصيص الصفحة حسب المستخدم",
+        evaluation_add_field: "إضافة حقل جديد",
+        evaluation_duplicate: "تكرار حقل",
+        evaluation_placeholder: "إضافة وتعديل نص التلميح",
+        evaluation_description: "إضافة وتعديل الوصف الإرشادي",
+        evaluation_change_type: "تغيير نوع الحقل",
+        evaluation_required: "تحديد الحقل كإجباري أو اختياري",
+        evaluation_toggle_active: "تفعيل أو تعطيل الحقل",
+        evaluation_reorder: "تبديل أماكن وترتيب الحقول",
+        services_add_field: "إضافة حقل جديد",
+        services_duplicate: "تكرار حقل",
+        services_placeholder: "إضافة وتعديل نص التلميح",
+        services_description: "إضافة وتعديل الوصف الإرشادي",
+        services_change_type: "تغيير نوع الحقل",
+        services_required: "تحديد الحقل كإجباري أو اختياري",
+        services_toggle_active: "تفعيل أو تعطيل الحقل",
+        services_reorder: "تبديل أماكن وترتيب الحقول",
+        registration_add_field: "إضافة حقل جديد",
+        registration_duplicate: "تكرار حقل",
+        registration_placeholder: "إضافة وتعديل نص التلميح",
+        registration_description: "إضافة وتعديل الوصف الإرشادي",
+        registration_change_type: "تغيير نوع الحقل",
+        registration_required: "تحديد الحقل كإجباري أو اختياري",
+        registration_toggle_active: "تفعيل أو تعطيل الحقل",
+        registration_reorder: "تبديل أماكن وترتيب الحقول",
         evaluation: "تخصيص استمارة تقييم رضا المستفيد",
         services: "تخصيص نماذج طلبات الخدمات",
-        services_view: "استعراض حقول نماذج الخدمات",
-        services_add: "إضافة حقول لنماذج الخدمات",
-        services_edit: "تعديل حقول نماذج الخدمات",
-        services_delete: "حذف حقول نماذج الخدمات",
         registration: "تخصيص نماذج التسجيل والتبرع",
-        analytics: "لوحة تحليلات وإحصائيات النماذج"
+      },
+      forms_customization_dashboard: {
+        dashboard_global: "تخصيص الصفحة للجميع",
+        dashboard_role: "تخصيص الصفحة حسب الدور",
+        dashboard_user: "تخصيص الصفحة حسب المستخدم",
+      },
+      forms_customization_evaluation: {
+        evaluation_add_field: "إضافة حقل جديد",
+        evaluation_duplicate: "تكرار حقل",
+        evaluation_placeholder: "إضافة وتعديل نص التلميح",
+        evaluation_description: "إضافة وتعديل الوصف الإرشادي",
+        evaluation_change_type: "تغيير نوع الحقل",
+        evaluation_required: "تحديد الحقل كإجباري أو اختياري",
+        evaluation_toggle_active: "تفعيل أو تعطيل الحقل",
+        evaluation_reorder: "تبديل أماكن وترتيب الحقول",
+      },
+      forms_customization_services: {
+        services_add_field: "إضافة حقل جديد",
+        services_duplicate: "تكرار حقل",
+        services_placeholder: "إضافة وتعديل نص التلميح",
+        services_description: "إضافة وتعديل الوصف الإرشادي",
+        services_change_type: "تغيير نوع الحقل",
+        services_required: "تحديد الحقل كإجباري أو اختياري",
+        services_toggle_active: "تفعيل أو تعطيل الحقل",
+        services_reorder: "تبديل أماكن وترتيب الحقول",
+      },
+      forms_customization_registration: {
+        registration_add_field: "إضافة حقل جديد",
+        registration_duplicate: "تكرار حقل",
+        registration_placeholder: "إضافة وتعديل نص التلميح",
+        registration_description: "إضافة وتعديل الوصف الإرشادي",
+        registration_change_type: "تغيير نوع الحقل",
+        registration_required: "تحديد الحقل كإجباري أو اختياري",
+        registration_toggle_active: "تفعيل أو تعطيل الحقل",
+        registration_reorder: "تبديل أماكن وترتيب الحقول",
       },
       settings_escalation: {
         view: "عرض مدد المراحل وأوقات التأخير",
@@ -1919,14 +2134,30 @@ export default function RolePermissions() {
       },
       staff_notifications: {
         view: "استعراض إعدادات وقوالب الإشعارات",
-        by_role: "تخصيص الإشعارات حسب الدور الوظيفي",
-        by_person: "تخصيص الإشعارات حسب الموظفين",
-        beneficiary: "تخصيص إشعارات المستفيدين",
-        edit_message_formats: "تعديل صياغة وقوالب رسائل الإشعارات",
+        by_role: "تخصيص الإشعارات حسب الدور",
+        by_department: "تخصيص الإشعارات حسب القسم",
+        edit_message_formats: "تعديل صياغة رسائل الإشعارات",
+        by_person: "تخصيص الإشعارات حسب الشخص",
+        beneficiary: "تخصيص إشعارات المستفيد",
+        beneficiary_message_formats: "تعديل صياغة رسائل المستفيد",
         edit: "تعديل تخصيص الإشعارات"
       },
+      staff_notifications_by_role: {
+        by_role: "تخصيص الإشعارات حسب الدور",
+        by_department: "تخصيص الإشعارات حسب القسم",
+        edit_message_formats: "تعديل صياغة رسائل الإشعارات",
+      },
+      staff_notifications_by_person: {
+        by_person: "تخصيص الإشعارات حسب الشخص",
+      },
+      staff_notifications_beneficiary: {
+        beneficiary: "تخصيص إشعارات المستفيد",
+        beneficiary_message_formats: "تعديل صياغة رسائل المستفيد",
+      },
       notification_center: {
-        view: "عرض واستعراض مركز الإشعارات",
+        view: "عرض واستعراض مركز الإشعارات (سجل الإرسال)",
+        direct_send_staff: "إرسال إشعار مباشر لمسؤول",
+        direct_send_beneficiary: "إرسال إشعار مباشر لمستفيد",
         direct_send: "إرسال إشعار مباشر وفوري",
         send_logs: "استعراض سجل وحالات إرسال الإشعارات"
       },
@@ -2092,6 +2323,12 @@ export default function RolePermissions() {
           let id = `${m.id}.${p}`;
           if (m.id.startsWith("settings_org")) {
             id = `settings_org.${p}`;
+          }
+          if (m.id.startsWith("staff_notifications")) {
+            id = `staff_notifications.${p}`;
+          }
+          if (m.id.startsWith("forms_customization")) {
+            id = `forms_customization.${p}`;
           }
           if (m.id === "board_leadership") {
             const boardIds: Record<string, string> = {
@@ -2326,10 +2563,7 @@ export default function RolePermissions() {
                                 (perm.id.startsWith("settings_org.signers_") && perm.id !== "settings_org.signers_view" && !selectedPerms.includes("settings_org.signers_view")) ||
                                 (perm.id.startsWith("settings_branding.") && perm.id !== "settings_branding.view" && !selectedPerms.includes("settings_branding.view")) ||
                                 (perm.id.startsWith("settings_categories.") && perm.id !== "settings_categories.view" && !selectedPerms.includes("settings_categories.view")) ||
-                                (perm.id.startsWith("forms_customization.") && perm.id !== "forms_customization.view" && !selectedPerms.includes("forms_customization.view")) ||
-                                (perm.id.startsWith("settings_escalation.") && perm.id !== "settings_escalation.view" && !selectedPerms.includes("settings_escalation.view")) ||
-                                (perm.id.startsWith("staff_notifications.") && perm.id !== "staff_notifications.view" && !selectedPerms.includes("staff_notifications.view")) ||
-                                (perm.id.startsWith("notification_center.") && perm.id !== "notification_center.view" && !selectedPerms.includes("notification_center.view"));
+                                (perm.id.startsWith("settings_escalation.") && perm.id !== "settings_escalation.view" && !selectedPerms.includes("settings_escalation.view"));
                               return (
                                 <div
                                   key={perm.id}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,12 +37,34 @@ interface RecipientItem {
 }
 
 export default function DirectNotificationTab({
-  dbRoles
+  dbRoles,
+  canSendStaff = true,
+  canSendBeneficiary = true,
 }: {
   dbRoles?: Array<{ id: string; nameAr: string; isSystem?: boolean }>;
+  canSendStaff?: boolean;
+  canSendBeneficiary?: boolean;
 }) {
   // فئة المستقبل (المستفيدين أو المسؤولين)
-  const [activeCategory, setActiveCategory] = useState<"beneficiary" | "staff">("beneficiary");
+  const [activeCategory, setActiveCategory] = useState<"beneficiary" | "staff">(() => {
+    if (!canSendBeneficiary && canSendStaff) return "staff";
+    return "beneficiary";
+  });
+
+  const effectiveCategory = !canSendBeneficiary && canSendStaff
+    ? "staff"
+    : !canSendStaff && canSendBeneficiary
+    ? "beneficiary"
+    : activeCategory;
+
+  // مزامنة الفئة النشطة مع الصلاحيات المتاحة
+  useEffect(() => {
+    if (!canSendBeneficiary && canSendStaff) {
+      setActiveCategory("staff");
+    } else if (!canSendStaff && canSendBeneficiary) {
+      setActiveCategory("beneficiary");
+    }
+  }, [canSendBeneficiary, canSendStaff]);
 
   // المستقبلون المحددون (خريطة id -> RecipientItem) لتحديد شخص أو أكثر
   const [selectedRecipients, setSelectedRecipients] = useState<Map<number, RecipientItem>>(new Map());
@@ -77,17 +99,21 @@ export default function DirectNotificationTab({
   const [title, setTitle] = useState("إشعار من إدارة البوابة");
   const [message, setMessage] = useState("");
 
-  // جلب بيانات المستفيدين
+  // جلب بيانات المستفيدين (فقط إذا كانت الصلاحية مفعلة)
   const {
     data: beneficiaries,
     isLoading: isLoadingBeneficiaries
-  } = trpc.notifications.getBeneficiaryRecipients.useQuery();
+  } = trpc.notifications.getBeneficiaryRecipients.useQuery(undefined, {
+    enabled: canSendBeneficiary,
+  });
 
-  // جلب بيانات الموظفين والمسؤولين
+  // جلب بيانات الموظفين والمسؤولين (فقط إذا كانت الصلاحية مفعلة)
   const {
     data: staffUsers,
     isLoading: isLoadingStaff
-  } = trpc.users.getStaffUsers.useQuery();
+  } = trpc.users.getStaffUsers.useQuery(undefined, {
+    enabled: canSendStaff,
+  });
 
   // إجراء إرسال الإشعار
   const sendMutation = trpc.notifications.sendCustomNotification.useMutation({
@@ -159,7 +185,7 @@ export default function DirectNotificationTab({
   }, [staffUsers, dbRoles]);
 
   // تصفية القائمة الحالية بناءً على البحث
-  const activeList = activeCategory === "beneficiary" ? formattedBeneficiaries : formattedStaff;
+  const activeList = effectiveCategory === "beneficiary" ? formattedBeneficiaries : formattedStaff;
 
   const filteredRecipients = useMemo(() => {
     if (!searchTerm.trim()) return activeList;
@@ -180,6 +206,8 @@ export default function DirectNotificationTab({
   }, [filteredRecipients, page, itemsPerPage]);
 
   const handleCategorySwitch = (cat: "beneficiary" | "staff") => {
+    if (cat === "beneficiary" && !canSendBeneficiary) return;
+    if (cat === "staff" && !canSendStaff) return;
     setActiveCategory(cat);
     setSearchTerm("");
     setPage(1);
@@ -274,7 +302,7 @@ export default function DirectNotificationTab({
     });
   };
 
-  const isLoading = activeCategory === "beneficiary" ? isLoadingBeneficiaries : isLoadingStaff;
+  const isLoading = effectiveCategory === "beneficiary" ? isLoadingBeneficiaries : isLoadingStaff;
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -383,34 +411,40 @@ export default function DirectNotificationTab({
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-              {/* تبديل الفئتين */}
-              <div className="flex p-1 bg-muted/80 dark:bg-slate-800/80 rounded-xl border border-border/60">
-                <button
-                  type="button"
-                  onClick={() => handleCategorySwitch("beneficiary")}
-                  className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    activeCategory === "beneficiary"
-                      ? "bg-white dark:bg-slate-950 text-teal-600 dark:text-teal-400 shadow-xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <HeartHandshake className="w-3.5 h-3.5" />
-                  <span>المستفيدين ({formattedBeneficiaries.length})</span>
-                </button>
+              {/* تبديل الفئتين كـ Tabs */}
+              {(canSendBeneficiary || canSendStaff) && (
+                <div className="flex p-1 bg-muted/80 dark:bg-slate-800/80 rounded-xl border border-border/60">
+                  {canSendBeneficiary && (
+                    <button
+                      type="button"
+                      onClick={() => handleCategorySwitch("beneficiary")}
+                      className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        effectiveCategory === "beneficiary"
+                          ? "bg-white dark:bg-slate-950 text-teal-600 dark:text-teal-400 shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <HeartHandshake className="w-3.5 h-3.5" />
+                      <span>طالبو الخدمة (المستفيدين) ({formattedBeneficiaries.length})</span>
+                    </button>
+                  )}
 
-                <button
-                  type="button"
-                  onClick={() => handleCategorySwitch("staff")}
-                  className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    activeCategory === "staff"
-                      ? "bg-white dark:bg-slate-950 text-teal-600 dark:text-teal-400 shadow-xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Shield className="w-3.5 h-3.5" />
-                  <span>المسؤولين ({formattedStaff.length})</span>
-                </button>
-              </div>
+                  {canSendStaff && (
+                    <button
+                      type="button"
+                      onClick={() => handleCategorySwitch("staff")}
+                      className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        effectiveCategory === "staff"
+                          ? "bg-white dark:bg-slate-950 text-teal-600 dark:text-teal-400 shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Shield className="w-3.5 h-3.5" />
+                      <span>المسؤولون والموظفون ({formattedStaff.length})</span>
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* شريط البحث */}
               <div className="relative w-full sm:w-56">
@@ -533,7 +567,7 @@ export default function DirectNotificationTab({
                         الاسم
                       </TableHead>
                       <TableHead className="text-right font-bold py-3 px-4 text-xs sm:text-sm text-foreground">
-                        {activeCategory === "beneficiary" ? "الصفة / الحساب" : "الدور الوظيفي"}
+                        {effectiveCategory === "beneficiary" ? "الصفة / الحساب" : "الدور الوظيفي"}
                       </TableHead>
                       <TableHead className="text-right font-bold py-3 px-5 text-xs sm:text-sm text-foreground min-w-[140px]">
                         رقم الجوال

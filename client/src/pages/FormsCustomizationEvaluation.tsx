@@ -78,6 +78,7 @@ import {
   Download,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 
 export type EvaluationFieldType =
@@ -212,6 +213,24 @@ export default function FormsCustomizationEvaluation() {
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
   const mainLogoSrc = orgSettings?.logoUrl || "/logo.svg";
+
+  const { user } = useAuth();
+  const { data: userPerms } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id || 0 },
+    { enabled: !!user?.id }
+  );
+
+  const permissionsList = (userPerms as string[]) || [];
+  const hasWildcard = permissionsList.includes("*");
+
+  const canAddField = hasWildcard || permissionsList.includes("forms_customization.evaluation_add_field");
+  const canDuplicate = hasWildcard || permissionsList.includes("forms_customization.evaluation_duplicate");
+  const canPlaceholder = hasWildcard || permissionsList.includes("forms_customization.evaluation_placeholder");
+  const canDescription = hasWildcard || permissionsList.includes("forms_customization.evaluation_description");
+  const canChangeType = hasWildcard || permissionsList.includes("forms_customization.evaluation_change_type");
+  const canRequired = hasWildcard || permissionsList.includes("forms_customization.evaluation_required");
+  const canToggleActive = hasWildcard || permissionsList.includes("forms_customization.evaluation_toggle_active");
+  const canReorder = hasWildcard || permissionsList.includes("forms_customization.evaluation_reorder");
 
   const [formConfig, setFormConfig] = useState<EvaluationFormSettings>({
     title: "قياس رضا المستفيدين من خدمات الجمعية",
@@ -722,6 +741,7 @@ export default function FormsCustomizationEvaluation() {
 
           <div className="flex items-center gap-2">
             {/* القائمة السريعة لإضافة حقل حسب النوع */}
+            {canAddField && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -760,6 +780,7 @@ export default function FormsCustomizationEvaluation() {
                 })}
               </DropdownMenuContent>
             </DropdownMenu>
+          )}
 
             <Button
               type="button"
@@ -889,7 +910,7 @@ export default function FormsCustomizationEvaluation() {
               return (
                 <Fragment key={field.id}>
                   <div
-                    draggable={isDragEnabled}
+                    draggable={canReorder && isDragEnabled}
                     onDragStart={(e) => handleDragStart(e, actualIndex)}
                     onDragOver={(e) => handleDragOver(e, actualIndex)}
                     onDragEnd={handleDragEnd}
@@ -905,38 +926,42 @@ export default function FormsCustomizationEvaluation() {
                       {/* مقبض السحب والإفلات + أزرار الترتيب السريع + رقم الترتيب */}
                       <div className="flex items-center gap-1.5 shrink-0 select-none">
                         {/* مقبض السحب */}
-                        <div
-                          onMouseDown={() => setDragEnabledIndex(actualIndex)}
-                          onMouseUp={() => setDragEnabledIndex(null)}
-                          onTouchStart={() => setDragEnabledIndex(actualIndex)}
-                          onTouchEnd={() => setDragEnabledIndex(null)}
-                          className="p-1 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-muted cursor-grab active:cursor-grabbing transition-colors"
-                          title="اسحب لترتيب الحقل"
-                        >
-                          <GripVertical className="w-4 h-4 pointer-events-none" />
-                        </div>
+                        {canReorder && (
+                          <div
+                            onMouseDown={() => setDragEnabledIndex(actualIndex)}
+                            onMouseUp={() => setDragEnabledIndex(null)}
+                            onTouchStart={() => setDragEnabledIndex(actualIndex)}
+                            onTouchEnd={() => setDragEnabledIndex(null)}
+                            className="p-1 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-muted cursor-grab active:cursor-grabbing transition-colors"
+                            title="اسحب لترتيب الحقل"
+                          >
+                            <GripVertical className="w-4 h-4 pointer-events-none" />
+                          </div>
+                        )}
 
                         {/* أزرار التحريك السريع (Up/Down) */}
-                        <div className="flex flex-col gap-0.5">
-                          <button
-                            type="button"
-                            disabled={actualIndex === 0}
-                            onClick={() => handleMoveField(actualIndex, "up")}
-                            className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
-                            title="تحريك لأعلى"
-                          >
-                            <ChevronUp className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            disabled={actualIndex === formConfig.fields.length - 1}
-                            onClick={() => handleMoveField(actualIndex, "down")}
-                            className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
-                            title="تحريك لأسفل"
-                          >
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        {canReorder && (
+                          <div className="flex flex-col gap-0.5">
+                            <button
+                              type="button"
+                              disabled={actualIndex === 0}
+                              onClick={() => handleMoveField(actualIndex, "up")}
+                              className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                              title="تحريك لأعلى"
+                            >
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={actualIndex === formConfig.fields.length - 1}
+                              onClick={() => handleMoveField(actualIndex, "down")}
+                              className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                              title="تحريك لأسفل"
+                            >
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
 
                         {/* رقم الترتيب */}
                         <div className="w-7 h-7 rounded-xl bg-muted/60 text-muted-foreground font-black text-xs flex items-center justify-center border border-border/80 shrink-0">
@@ -962,6 +987,7 @@ export default function FormsCustomizationEvaluation() {
                       {/* نوع الحقل */}
                       <div className="w-full sm:w-40 shrink-0">
                         <Select
+                          disabled={!canChangeType}
                           value={field.type}
                           onValueChange={(val: EvaluationFieldType) =>
                             handleUpdateField(field.id, {
@@ -997,6 +1023,7 @@ export default function FormsCustomizationEvaluation() {
                         <div className="flex items-center gap-1.5 bg-muted/40 px-2.5 py-1.5 rounded-xl border border-border/60">
                           <span className="text-[11px] text-muted-foreground font-semibold">إجباري:</span>
                           <Switch
+                            disabled={!canRequired}
                             checked={field.required}
                             onCheckedChange={(c) => handleUpdateField(field.id, { required: c })}
                           />
@@ -1006,6 +1033,7 @@ export default function FormsCustomizationEvaluation() {
                         <div className="flex items-center gap-1.5 bg-muted/40 px-2.5 py-1.5 rounded-xl border border-border/60">
                           <span className="text-[11px] text-muted-foreground font-semibold">مفعل:</span>
                           <Switch
+                            disabled={!canToggleActive}
                             checked={field.isActive}
                             onCheckedChange={(c) => handleUpdateField(field.id, { isActive: c })}
                           />
@@ -1027,6 +1055,7 @@ export default function FormsCustomizationEvaluation() {
                           <Settings2 className="w-4 h-4" />
                         </Button>
 
+                        {canDuplicate && (
                         <Button
                           type="button"
                           variant="ghost"
@@ -1037,6 +1066,7 @@ export default function FormsCustomizationEvaluation() {
                         >
                           <Copy className="w-4 h-4" />
                         </Button>
+                      )}
 
                         <Button
                           type="button"
@@ -1066,6 +1096,7 @@ export default function FormsCustomizationEvaluation() {
                                 value={field.placeholder || ""}
                                 onChange={(e) => handleUpdateField(field.id, { placeholder: e.target.value })}
                                 placeholder="مثال: اكتب التفاصيل هنا..."
+                                disabled={!canPlaceholder}
                                 className="h-9 text-xs bg-background rounded-xl text-right border-border/80"
                               />
                             </div>
@@ -1081,6 +1112,7 @@ export default function FormsCustomizationEvaluation() {
                               value={field.helpText || ""}
                               onChange={(e) => handleUpdateField(field.id, { helpText: e.target.value })}
                               placeholder="يظهر بخط أصغر أسفل الحقل لإرشاد مقدم الطلب..."
+                                disabled={!canDescription}
                               className="h-9 text-xs bg-background rounded-xl text-right border-border/80"
                             />
                           </div>
@@ -1199,6 +1231,7 @@ export default function FormsCustomizationEvaluation() {
         {/* ========================================================================= */}
         {/* زر إضافة حقل جديد أسفل القائمة (مطابق لبنيان) */}
         {/* ========================================================================= */}
+        {canAddField && (
         <div className="pt-2">
           <Button
             type="button"
@@ -1210,6 +1243,7 @@ export default function FormsCustomizationEvaluation() {
             <span>إضافة حقل جديد للاستمارة</span>
           </Button>
         </div>
+        )}
       </div>
 
       {/* ========================================================================= */}

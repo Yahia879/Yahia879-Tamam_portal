@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
+import { calculateUserPermissions } from "../permissions";
 import { brandSettings, programs, evaluationTokens, mosqueRequests, mosques, users, roles, rolePermissions, userRoleAssignments, userPermissions } from "../../drizzle/schema";
 import { eq, like, inArray, and, or, isNull, isNotNull, ne, gt } from "drizzle-orm";
 import { randomBytes } from "crypto";
@@ -1261,9 +1262,20 @@ export const formsRouter = router({
   saveDetailedDashboardCustomizationConfig: protectedProcedure
     .input(detailedDashboardCustomizationSchema)
     .mutation(async ({ input, ctx }) => {
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      if (!isAdmin) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "هذا الإجراء متاح فقط لمديري النظام" });
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const hasWildcard = userPerms.includes("*");
+      if (input.targetType === "global") {
+        if (!hasWildcard && !userPerms.includes("forms_customization.dashboard_global")) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تخصيص لوحة المعلومات للجميع" });
+        }
+      } else if (input.targetType === "role") {
+        if (!hasWildcard && !userPerms.includes("forms_customization.dashboard_role")) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تخصيص لوحة المعلومات حسب الدور" });
+        }
+      } else if (input.targetType === "user") {
+        if (!hasWildcard && !userPerms.includes("forms_customization.dashboard_user")) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تخصيص لوحة المعلومات حسب المستخدم" });
+        }
       }
 
       const db = await getDb();
@@ -1327,9 +1339,21 @@ export const formsRouter = router({
       }).optional()
     )
     .mutation(async ({ input, ctx }) => {
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      if (!isAdmin) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "هذا الإجراء متاح فقط لمديري النظام" });
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const hasWildcard = userPerms.includes("*");
+      const tType = input?.targetType || "global";
+      if (tType === "global") {
+        if (!hasWildcard && !userPerms.includes("forms_customization.dashboard_global")) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تخصيص لوحة المعلومات للجميع" });
+        }
+      } else if (tType === "role") {
+        if (!hasWildcard && !userPerms.includes("forms_customization.dashboard_role")) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تخصيص لوحة المعلومات حسب الدور" });
+        }
+      } else if (tType === "user") {
+        if (!hasWildcard && !userPerms.includes("forms_customization.dashboard_user")) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تخصيص لوحة المعلومات حسب المستخدم" });
+        }
       }
 
       const db = await getDb();

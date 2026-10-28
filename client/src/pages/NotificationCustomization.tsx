@@ -245,13 +245,15 @@ export default function NotificationCustomization() {
   };
 
   const canByRole = hasPerm("staff_notifications.by_role");
+  const canByDepartment = hasPerm("staff_notifications.by_department") || canByRole;
   const canEditMessageFormats = hasPerm("staff_notifications.edit_message_formats");
   const canByPerson = hasPerm("staff_notifications.by_person");
   const canBeneficiary = hasPerm("staff_notifications.beneficiary");
+  const canEditBeneficiaryFormats = hasPerm("staff_notifications.beneficiary_message_formats");
 
-  const canShowRolesTab = canByRole || canEditMessageFormats;
+  const canShowRolesTab = canByRole || canByDepartment || canEditMessageFormats;
   const canShowUsersTab = canByPerson;
-  const canShowBeneficiaryTab = canBeneficiary || canEditMessageFormats;
+  const canShowBeneficiaryTab = canBeneficiary || canEditBeneficiaryFormats;
 
   const availableTabs = [
     ...(canShowRolesTab ? [{ value: "roles", label: "تخصيص حسب الأدوار", icon: Shield }] : []),
@@ -259,7 +261,12 @@ export default function NotificationCustomization() {
     ...(canShowBeneficiaryTab ? [{ value: "beneficiary", label: "إشعارات المستفيد", icon: HeartHandshake }] : []),
   ];
 
-  const [activeTab, setActiveTab] = useState<string>("roles");
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (canShowRolesTab) return "roles";
+    if (canShowUsersTab) return "users";
+    if (canShowBeneficiaryTab) return "beneficiary";
+    return "roles";
+  });
 
   useEffect(() => {
     if (availableTabs.length > 0 && !availableTabs.some(t => t.value === activeTab)) {
@@ -1854,7 +1861,9 @@ export default function NotificationCustomization() {
   };
 
   const handleOpenEditTemplateModal = (trigger: any) => {
-    if (!canEditMessageFormats) {
+    const isBeneficiaryTrigger = BENEFICIARY_NOTIFICATION_TRIGGERS.some(b => b.id === trigger.id);
+    const hasPermToEdit = isBeneficiaryTrigger ? canEditBeneficiaryFormats : canEditMessageFormats;
+    if (!hasPermToEdit) {
       toast.error("ليس لديك صلاحية تعديل صيغ الرسائل");
       return;
     }
@@ -2362,7 +2371,7 @@ export default function NotificationCustomization() {
                                 whatsapp={whatsappState.enabled}
                                 sms={smsState.enabled}
                                 email={emailState.enabled}
-                                disabled={!canByRole}
+                                disabled={!canByDepartment}
                                 onToggle={(channel, val) => handleToggleTriggerSetting(trig.id, channel, val)}
                                 inherited={{
                                   inApp: inAppState.isInherited,
@@ -2422,7 +2431,7 @@ export default function NotificationCustomization() {
                                 whatsapp={whatsappState.enabled}
                                 sms={smsState.enabled}
                                 email={emailState.enabled}
-                                disabled={!canByRole}
+                                disabled={!canByDepartment}
                                 onToggle={(channel, val) => handleToggleTriggerSetting(trig.id, channel, val)}
                                 inherited={{
                                   inApp: inAppState.isInherited,
@@ -2482,7 +2491,7 @@ export default function NotificationCustomization() {
                                 whatsapp={whatsappState.enabled}
                                 sms={smsState.enabled}
                                 email={emailState.enabled}
-                                disabled={!canByRole}
+                                disabled={!canByDepartment}
                                 onToggle={(channel, val) => handleToggleTriggerSetting(trig.id, channel, val)}
                                 inherited={{
                                   inApp: inAppState.isInherited,
@@ -2647,7 +2656,7 @@ export default function NotificationCustomization() {
                               <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pr-4 sm:pr-6">
                                 الحدث / المشغل
                               </TableHead>
-                              {canEditMessageFormats && (
+                              {canEditBeneficiaryFormats && (
                                 <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">
                                   تعديل الصياغة
                                 </TableHead>
@@ -2662,7 +2671,7 @@ export default function NotificationCustomization() {
                               <React.Fragment key={section.title}>
                                 <TableRow className="bg-slate-50/50 dark:bg-slate-900/30 hover:bg-transparent">
                                   <TableCell 
-                                    colSpan={canEditMessageFormats ? 3 : 2} 
+                                    colSpan={canEditBeneficiaryFormats ? 3 : 2} 
                                     className={`py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40 ${sIdx > 0 ? "border-t" : ""}`}
                                   >
                                     {section.title}
@@ -2680,7 +2689,7 @@ export default function NotificationCustomization() {
                                         <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
                                         {renderTruncatedPreview(trig.id)}
                                       </TableCell>
-                                      {canEditMessageFormats && (
+                                      {canEditBeneficiaryFormats && (
                                         <TableCell className="text-center py-3 sm:py-4">
                                           <TooltipProvider delayDuration={200}>
                                             <Tooltip>

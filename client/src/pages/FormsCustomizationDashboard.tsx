@@ -116,7 +116,18 @@ type TargetType = "global" | "role" | "user";
 export default function FormsCustomizationDashboard() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
-  const isSuperAdmin = user?.role === "super_admin";
+  const { data: userPermsData } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user }
+  );
+  const effectivePerms = useMemo(() => {
+    return Array.isArray(userPermsData) ? userPermsData : [];
+  }, [userPermsData]);
+
+  const canGlobal = effectivePerms.includes("forms_customization.dashboard_global") || effectivePerms.includes("*");
+  const canRole = effectivePerms.includes("forms_customization.dashboard_role") || effectivePerms.includes("*");
+  const canUser = effectivePerms.includes("forms_customization.dashboard_user") || effectivePerms.includes("*");
+  const canAnyDashboard = canGlobal || canRole || canUser;
 
   const utils = trpc.useUtils();
 
@@ -172,6 +183,19 @@ export default function FormsCustomizationDashboard() {
     }
   }, [targetType, selectedUserId, eligibleUsers]);
 
+  // التبديل التلقائي للهدف المسموح به وفق الصلاحيات
+  useEffect(() => {
+    if (!canGlobal && targetType === "global") {
+      if (canRole) setTargetType("role");
+      else if (canUser) setTargetType("user");
+    } else if (!canRole && targetType === "role") {
+      if (canGlobal) setTargetType("global");
+      else if (canUser) setTargetType("user");
+    } else if (!canUser && targetType === "user") {
+      if (canGlobal) setTargetType("global");
+      else if (canRole) setTargetType("role");
+    }
+  }, [canGlobal, canRole, canUser, targetType]);
   // استعلام الإعدادات للهدف الحالي
   const {
     data: configData,
@@ -239,6 +263,7 @@ export default function FormsCustomizationDashboard() {
   }, [allElements, enabledIds]);
 
   // هل يوجد تعديلات غير محفوظة للهدف الحالي؟
+  const canEditCurrentTarget = (targetType === "global" && canGlobal) || (targetType === "role" && canRole) || (targetType === "user" && canUser);
   const hasChanges = useMemo(() => {
     if (!isInitialized) return false;
     if (enabledIds.length !== initialIds.length) return true;
@@ -725,7 +750,7 @@ export default function FormsCustomizationDashboard() {
   }, [targetType, selectedRoleId, selectedUserId, customizedTargets]);
 
   // التحقق من صلاحية مدير النظام الشامل
-  if (!isSuperAdmin) {
+  if (!canAnyDashboard) {
     return (
       <DashboardLayout>
         <div className="max-w-2xl mx-auto py-12 px-4 text-center space-y-4" dir="rtl">
@@ -807,7 +832,7 @@ export default function FormsCustomizationDashboard() {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowResetDialog(true)}
-                disabled={resetMutation.isPending || !currentTargetHasOverride}
+                disabled={resetMutation.isPending || !currentTargetHasOverride || !canEditCurrentTarget}
                 className="gap-1.5 rounded-xl text-xs font-bold text-destructive hover:bg-destructive/10 border-destructive/30"
                 title="استعادة الحالة الافتراضية"
               >
@@ -825,7 +850,7 @@ export default function FormsCustomizationDashboard() {
                     enabledElementIds: enabledIds,
                   })
                 }
-                disabled={saveMutation.isPending || !hasChanges}
+                disabled={saveMutation.isPending || !hasChanges || !canEditCurrentTarget}
                 className={`gap-1.5 rounded-xl text-xs font-bold px-4 shadow-sm transition-all ${
                   hasChanges
                     ? "bg-primary hover:bg-primary/90 text-white animate-pulse"
@@ -850,59 +875,65 @@ export default function FormsCustomizationDashboard() {
           {/* تبويبات اختيار الهدف (عام / بالدور / بالمستخدم) */}
           <div className="pt-2 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-xl border border-border/60 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setTargetType("global")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  targetType === "global"
-                    ? "bg-background text-foreground shadow-xs border border-border/80"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Globe className="w-3.5 h-3.5 text-blue-500" />
-                <span>افتراضي عام للجميع</span>
-                {customizedTargets?.hasGlobal && (
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" title="مخصص" />
-                )}
-              </button>
+              {canGlobal && (
+                <button
+                  type="button"
+                  onClick={() => setTargetType("global")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    targetType === "global"
+                      ? "bg-background text-foreground shadow-xs border border-border/80"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Globe className="w-3.5 h-3.5 text-blue-500" />
+                  <span>افتراضي عام للجميع</span>
+                  {customizedTargets?.hasGlobal && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" title="مخصص" />
+                  )}
+                </button>
+              )}
 
-              <button
-                type="button"
-                onClick={() => setTargetType("role")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  targetType === "role"
-                    ? "bg-background text-foreground shadow-xs border border-border/80"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Users className="w-3.5 h-3.5 text-amber-500" />
-                <span>تخصيص حسب الدور</span>
-                <span className="text-[10px] text-muted-foreground font-normal">({eligibleRoles.length})</span>
-                {customizedTargets?.roles?.length ? (
-                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 font-mono font-bold bg-amber-500/10 text-amber-600 border-amber-300">
-                    {customizedTargets.roles.length} مخصص
-                  </Badge>
-                ) : null}
-              </button>
+              {canRole && (
+                <button
+                  type="button"
+                  onClick={() => setTargetType("role")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    targetType === "role"
+                      ? "bg-background text-foreground shadow-xs border border-border/80"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5 text-amber-500" />
+                  <span>تخصيص حسب الدور</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">({eligibleRoles.length})</span>
+                  {customizedTargets?.roles?.length ? (
+                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 font-mono font-bold bg-amber-500/10 text-amber-600 border-amber-300">
+                      {customizedTargets.roles.length} مخصص
+                    </Badge>
+                  ) : null}
+                </button>
+              )}
 
-              <button
-                type="button"
-                onClick={() => setTargetType("user")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  targetType === "user"
-                    ? "bg-background text-foreground shadow-xs border border-border/80"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <User className="w-3.5 h-3.5 text-purple-500" />
-                <span>تخصيص لمستخدم محدد</span>
-                <span className="text-[10px] text-muted-foreground font-normal">({eligibleUsers.length})</span>
-                {customizedTargets?.userIds?.length ? (
-                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 font-mono font-bold bg-purple-500/10 text-purple-600 border-purple-300">
-                    {customizedTargets.userIds.length} مخصص
-                  </Badge>
-                ) : null}
-              </button>
+              {canUser && (
+                <button
+                  type="button"
+                  onClick={() => setTargetType("user")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    targetType === "user"
+                      ? "bg-background text-foreground shadow-xs border border-border/80"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <User className="w-3.5 h-3.5 text-purple-500" />
+                  <span>تخصيص لمستخدم محدد</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">({eligibleUsers.length})</span>
+                  {customizedTargets?.userIds?.length ? (
+                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 font-mono font-bold bg-purple-500/10 text-purple-600 border-purple-300">
+                      {customizedTargets.userIds.length} مخصص
+                    </Badge>
+                  ) : null}
+                </button>
+              )}
             </div>
 
             {/* محدد الدور عند اختيار التخصيص حسب الدور */}

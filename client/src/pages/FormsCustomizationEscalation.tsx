@@ -18,21 +18,36 @@ import {
   Minus,
   Calendar,
   Lock,
+  AlertCircle,
 } from "lucide-react";
 
 export default function FormsCustomizationEscalation() {
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
-  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const userPermissions: string[] = (user as any)?.permissions ?? [];
-  const hasPerm = (p: string) =>
-    isAdmin ||
-    userPermissions.includes("*") ||
-    userPermissions.includes(p);
+  const { user, loading: authLoading } = useAuth();
 
-  const canEditDurations = hasPerm("settings_escalation.edit_durations") || hasPerm("settings_escalation.edit") || hasPerm("settings.edit");
-  const canEditBeneficiarySla = hasPerm("settings_escalation.edit_beneficiary_sla") || hasPerm("settings_escalation.edit") || hasPerm("settings.edit");
-  const canSave = hasPerm("settings_escalation.save") || hasPerm("settings_escalation.edit") || hasPerm("settings.edit");
+  // جلب صلاحيات المستخدم بشكل فوري ومباشر لضمان التزامن اللحظي مع أي سحب أو تعديل للصلاحيات
+  const { data: directPerms, isLoading: permsLoading } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user, staleTime: 0 }
+  );
+
+  const isAuthOrPermsLoading = authLoading || (!!user && permsLoading);
+
+  const userPerms: string[] = useMemo(() => {
+    const set = new Set<string>();
+    if (Array.isArray(directPerms)) {
+      directPerms.forEach((p: string) => set.add(p));
+    } else if (Array.isArray((user as any)?.permissions)) {
+      (user as any).permissions.forEach((p: string) => set.add(p));
+    }
+    return Array.from(set);
+  }, [user, directPerms]);
+
+  const hasWildcard = userPerms.includes("*");
+  const canView = hasWildcard || userPerms.includes("settings_escalation.view") || userPerms.includes("settings_escalation");
+  const canEditDurations = hasWildcard || userPerms.includes("settings_escalation.edit_durations");
+  const canEditBeneficiarySla = hasWildcard || userPerms.includes("settings_escalation.edit_beneficiary_sla");
+  const canSave = canEditDurations || canEditBeneficiarySla;
 
   // جلب إعدادات التصعيد الحالية من الخادم
   const { data: slaData, isLoading, refetch } = trpc.escalation.getSettings.useQuery();
@@ -100,7 +115,7 @@ export default function FormsCustomizationEscalation() {
     });
   };
 
-  if (isLoading) {
+  if (isLoading || isAuthOrPermsLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[400px]">
@@ -108,6 +123,24 @@ export default function FormsCustomizationEscalation() {
             <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
             <p className="text-sm font-semibold text-foreground">جاري تحميل إعدادات التصعيد...</p>
           </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // إذا لم يملك المستخدم أي صلاحية من صلاحيات القسم، يتم حجب الصفحة
+  if (!canView && !canEditDurations && !canEditBeneficiarySla) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center py-20 text-center space-y-4" dir="rtl">
+          <AlertCircle className="h-14 w-14 text-rose-500" />
+          <h2 className="text-xl font-bold">عذراً، الوصول غير مصرح به</h2>
+          <p className="text-muted-foreground max-w-md">
+            ليس لديك صلاحية عرض أو تعديل إعدادات مدد المراحل وأوقات التأخير.
+          </p>
+          <Button onClick={() => setLocation("/settings")} variant="outline" className="mt-2">
+            العودة للإعدادات
+          </Button>
         </div>
       </DashboardLayout>
     );
@@ -203,37 +236,44 @@ export default function FormsCustomizationEscalation() {
                 </div>
 
                 <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-xl border border-border shrink-0">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    disabled={!canEditBeneficiarySla}
-                    onClick={() => canEditBeneficiarySla && setDraftBeneficiaryDays(prev => Math.max(1, prev - 1))}
-                    className={`h-8 w-8 p-0 rounded-lg hover:bg-background ${!canEditBeneficiarySla ? "opacity-40 cursor-not-allowed" : ""}`}
-                  >
-                    <Minus className="w-4 h-4" />
-                  </Button>
+                  {canEditBeneficiarySla && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDraftBeneficiaryDays(prev => Math.max(1, prev - 1))}
+                      className="h-8 w-8 p-0 rounded-lg hover:bg-background cursor-pointer"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </Button>
+                  )}
 
-                  <Input
-                    type="number"
-                    min={1}
-                    max={60}
-                    disabled={!canEditBeneficiarySla}
-                    value={draftBeneficiaryDays}
-                    onChange={(e) => canEditBeneficiarySla && setDraftBeneficiaryDays(parseInt(e.target.value) || 1)}
-                    className={`w-12 text-center font-bold text-sm h-8 bg-background border border-border/80 focus-visible:ring-1 focus-visible:ring-primary p-0 ${!canEditBeneficiarySla ? "opacity-60 cursor-not-allowed" : ""}`}
-                  />
+                  {canEditBeneficiarySla ? (
+                    <Input
+                      type="number"
+                      min={1}
+                      max={60}
+                      value={draftBeneficiaryDays}
+                      onChange={(e) => setDraftBeneficiaryDays(parseInt(e.target.value) || 1)}
+                      className="w-12 text-center font-bold text-sm h-8 bg-background border border-border/80 focus-visible:ring-1 focus-visible:ring-primary p-0"
+                    />
+                  ) : (
+                    <span className="font-bold text-sm text-foreground px-2.5">
+                      {draftBeneficiaryDays}
+                    </span>
+                  )}
 
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    disabled={!canEditBeneficiarySla}
-                    onClick={() => canEditBeneficiarySla && setDraftBeneficiaryDays(prev => Math.min(60, prev + 1))}
-                    className={`h-8 w-8 p-0 rounded-lg hover:bg-background ${!canEditBeneficiarySla ? "opacity-40 cursor-not-allowed" : ""}`}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
+                  {canEditBeneficiarySla && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDraftBeneficiaryDays(prev => Math.min(60, prev + 1))}
+                      className="h-8 w-8 p-0 rounded-lg hover:bg-background cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  )}
 
                   <span className="text-xs font-medium text-muted-foreground px-2">أيام</span>
                 </div>
@@ -280,103 +320,111 @@ export default function FormsCustomizationEscalation() {
                               فرص التبرع (بعد طلب الصرف):
                             </span>
 
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              disabled={!canEditDurations}
-                              onClick={() => {
-                                if (!canEditDurations) return;
-                                setDraftStages(prev => prev.map((item, idx) => 
-                                  idx === index ? { ...item, durationDays: Math.max(1, (Number(item.durationDays) || 30) - 1) } : item
-                                ));
-                              }}
-                              className={`h-8 w-8 p-0 rounded-lg hover:bg-background ${!canEditDurations ? "opacity-40 cursor-not-allowed" : ""}`}
-                            >
-                              <Minus className="w-4 h-4 text-amber-700 dark:text-amber-400" />
-                            </Button>
+                            {canEditDurations && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setDraftStages(prev => prev.map((item, idx) => 
+                                    idx === index ? { ...item, durationDays: Math.max(1, (Number(item.durationDays) || 30) - 1) } : item
+                                  ));
+                                }}
+                                className="h-8 w-8 p-0 rounded-lg hover:bg-background cursor-pointer"
+                              >
+                                <Minus className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+                              </Button>
+                            )}
 
-                            <Input
-                              type="number"
-                              min={1}
-                              max={365}
-                              disabled={!canEditDurations}
-                              value={stg.durationDays ?? 30}
-                              onChange={(e) => {
-                                if (!canEditDurations) return;
-                                const parsed = parseInt(e.target.value);
-                                const val = isNaN(parsed) ? 0 : parsed;
-                                setDraftStages(prev => prev.map((item, idx) => idx === index ? { ...item, durationDays: val } : item));
-                              }}
-                              className={`w-14 text-center font-bold text-sm h-8 bg-background border border-amber-300/80 dark:border-amber-700/80 focus-visible:ring-1 focus-visible:ring-amber-500 p-0 ${!canEditDurations ? "opacity-60 cursor-not-allowed" : ""}`}
-                            />
+                            {canEditDurations ? (
+                              <Input
+                                type="number"
+                                min={1}
+                                max={365}
+                                value={stg.durationDays ?? 30}
+                                onChange={(e) => {
+                                  const parsed = parseInt(e.target.value);
+                                  const val = isNaN(parsed) ? 0 : parsed;
+                                  setDraftStages(prev => prev.map((item, idx) => idx === index ? { ...item, durationDays: val } : item));
+                                }}
+                                className="w-14 text-center font-bold text-sm h-8 bg-background border border-amber-300/80 dark:border-amber-700/80 focus-visible:ring-1 focus-visible:ring-amber-500 p-0"
+                              />
+                            ) : (
+                              <span className="font-bold text-sm text-amber-900 dark:text-amber-300 px-2">
+                                {stg.durationDays ?? 30}
+                              </span>
+                            )}
 
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              disabled={!canEditDurations}
-                              onClick={() => {
-                                if (!canEditDurations) return;
-                                setDraftStages(prev => prev.map((item, idx) => 
-                                  idx === index ? { ...item, durationDays: Math.min(365, (Number(item.durationDays) || 30) + 1) } : item
-                                ));
-                              }}
-                              className={`h-8 w-8 p-0 rounded-lg hover:bg-background ${!canEditDurations ? "opacity-40 cursor-not-allowed" : ""}`}
-                            >
-                              <Plus className="w-4 h-4 text-amber-700 dark:text-amber-400" />
-                            </Button>
+                            {canEditDurations && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setDraftStages(prev => prev.map((item, idx) => 
+                                    idx === index ? { ...item, durationDays: Math.min(365, (Number(item.durationDays) || 30) + 1) } : item
+                                  ));
+                                }}
+                                className="h-8 w-8 p-0 rounded-lg hover:bg-background cursor-pointer"
+                              >
+                                <Plus className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+                              </Button>
+                            )}
 
                             <span className="text-xs font-semibold text-amber-800 dark:text-amber-300 px-1">يوم</span>
                           </div>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-xl border border-border shrink-0">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            disabled={!canEditDurations}
-                            onClick={() => {
-                              if (!canEditDurations) return;
-                              setDraftStages(prev => prev.map((item, idx) => 
-                                idx === index ? { ...item, durationDays: Math.max(0, item.durationDays - 1) } : item
-                              ));
-                            }}
-                            className={`h-8 w-8 p-0 rounded-lg hover:bg-background ${!canEditDurations ? "opacity-40 cursor-not-allowed" : ""}`}
-                          >
-                            <Minus className="w-4 h-4" />
-                          </Button>
+                          {canEditDurations && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setDraftStages(prev => prev.map((item, idx) => 
+                                  idx === index ? { ...item, durationDays: Math.max(0, item.durationDays - 1) } : item
+                                ));
+                              }}
+                              className="h-8 w-8 p-0 rounded-lg hover:bg-background cursor-pointer"
+                            >
+                              <Minus className="w-4 h-4" />
+                            </Button>
+                          )}
 
-                          <Input
-                            type="number"
-                            min={0}
-                            max={180}
-                            disabled={!canEditDurations}
-                            value={stg.durationDays}
-                            onChange={(e) => {
-                              if (!canEditDurations) return;
-                              const val = parseInt(e.target.value) || 0;
-                              setDraftStages(prev => prev.map((item, idx) => idx === index ? { ...item, durationDays: val } : item));
-                            }}
-                            className={`w-12 text-center font-bold text-sm h-8 bg-background border border-border/80 focus-visible:ring-1 focus-visible:ring-primary p-0 ${!canEditDurations ? "opacity-60 cursor-not-allowed" : ""}`}
-                          />
+                          {canEditDurations ? (
+                            <Input
+                              type="number"
+                              min={0}
+                              max={180}
+                              value={stg.durationDays}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value) || 0;
+                                setDraftStages(prev => prev.map((item, idx) => idx === index ? { ...item, durationDays: val } : item));
+                              }}
+                              className="w-12 text-center font-bold text-sm h-8 bg-background border border-border/80 focus-visible:ring-1 focus-visible:ring-primary p-0"
+                            />
+                          ) : (
+                            <span className="font-bold text-sm text-foreground px-2">
+                              {stg.durationDays}
+                            </span>
+                          )}
 
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            disabled={!canEditDurations}
-                            onClick={() => {
-                              if (!canEditDurations) return;
-                              setDraftStages(prev => prev.map((item, idx) => 
-                                idx === index ? { ...item, durationDays: Math.min(180, item.durationDays + 1) } : item
-                              ));
-                            }}
-                            className={`h-8 w-8 p-0 rounded-lg hover:bg-background ${!canEditDurations ? "opacity-40 cursor-not-allowed" : ""}`}
-                          >
-                            <Plus className="w-4 h-4" />
-                          </Button>
+                          {canEditDurations && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setDraftStages(prev => prev.map((item, idx) => 
+                                  idx === index ? { ...item, durationDays: Math.min(180, item.durationDays + 1) } : item
+                                ));
+                              }}
+                              className="h-8 w-8 p-0 rounded-lg hover:bg-background cursor-pointer"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          )}
 
                           <span className="text-xs font-medium text-muted-foreground px-2">يوم</span>
                         </div>

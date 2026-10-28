@@ -175,9 +175,7 @@ export default function Settings() {
     if (perm === "settings_branding.view" || perm === "settings_branding.edit") {
       return (
         effectivePermissions.some(p => p.startsWith("settings_branding.")) ||
-        effectivePermissions.includes("settings_branding.edit") ||
-        effectivePermissions.includes("settings.edit") ||
-        effectivePermissions.includes("settings.view")
+        effectivePermissions.includes("settings_branding")
       );
     }
     if (perm === "settings_categories.view") {
@@ -190,7 +188,36 @@ export default function Settings() {
       return effectivePermissions.some(p => p.startsWith("services."));
     }
     if (perm === "forms_customization") {
-      return effectivePermissions.some(p => p.startsWith("forms_customization."));
+      const validSubPerms = [
+        "forms_customization.dashboard_global",
+        "forms_customization.dashboard_role",
+        "forms_customization.dashboard_user",
+        "forms_customization.evaluation_add_field",
+        "forms_customization.evaluation_duplicate",
+        "forms_customization.evaluation_placeholder",
+        "forms_customization.evaluation_description",
+        "forms_customization.evaluation_change_type",
+        "forms_customization.evaluation_required",
+        "forms_customization.evaluation_toggle_active",
+        "forms_customization.evaluation_reorder",
+        "forms_customization.services_add_field",
+        "forms_customization.services_duplicate",
+        "forms_customization.services_placeholder",
+        "forms_customization.services_description",
+        "forms_customization.services_change_type",
+        "forms_customization.services_required",
+        "forms_customization.services_toggle_active",
+        "forms_customization.services_reorder",
+        "forms_customization.registration_add_field",
+        "forms_customization.registration_duplicate",
+        "forms_customization.registration_placeholder",
+        "forms_customization.registration_description",
+        "forms_customization.registration_change_type",
+        "forms_customization.registration_required",
+        "forms_customization.registration_toggle_active",
+        "forms_customization.registration_reorder",
+      ];
+      return effectivePermissions.some(p => validSubPerms.includes(p));
     }
     if (perm === "settings_escalation.view") {
       return (
@@ -200,7 +227,15 @@ export default function Settings() {
       );
     }
     if (perm === "staff_notifications.view" || perm === "staff_notifications.edit") {
-      return effectivePermissions.some(p => p.startsWith("staff_notifications."));
+      const validSubPerms = [
+        "staff_notifications.by_role",
+        "staff_notifications.by_department",
+        "staff_notifications.edit_message_formats",
+        "staff_notifications.by_person",
+        "staff_notifications.beneficiary",
+        "staff_notifications.beneficiary_message_formats"
+      ];
+      return validSubPerms.some(p => effectivePermissions.includes(p));
     }
     if (perm === "notification_center") {
       return effectivePermissions.some(p => p.startsWith("notification_center."));

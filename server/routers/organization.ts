@@ -190,11 +190,11 @@ export const organizationRouter = router({
       email: z.string().email("البريد الإلكتروني غير صحيح").optional().or(z.literal("")),
       website: z.string().optional(),
       // الشعارات والأختام
-      logoUrl: z.string().optional(),
-      stampUrl: z.string().optional(),
-      secondaryLogoUrl: z.string().optional(),
-      technicalSupervisorLogoUrl: z.string().optional(),
-      administrativeSupervisorLogoUrl: z.string().optional(),
+      logoUrl: z.string().nullable().optional(),
+      stampUrl: z.string().nullable().optional(),
+      secondaryLogoUrl: z.string().nullable().optional(),
+      technicalSupervisorLogoUrl: z.string().nullable().optional(),
+      administrativeSupervisorLogoUrl: z.string().nullable().optional(),
       // البيانات البنكية
       bankName: z.string().optional(),
       bankAccountName: z.string().optional(),
@@ -230,9 +230,10 @@ export const organizationRouter = router({
       const canEditOfficials = userPermissions.includes("settings_org.edit_officials") || userPermissions.includes("*");
       const canEditBanks = userPermissions.includes("settings_org.edit_banks") || userPermissions.includes("*");
       const canEditContracts = userPermissions.includes("settings_org.edit_contracts") || userPermissions.includes("*");
-      const canEditBranding = userPermissions.includes("settings_branding.edit") || userPermissions.includes("settings_branding.edit_colors") || userPermissions.includes("*");
+      const canEditBrandingColors = userPermissions.includes("settings_branding.edit_colors") || userPermissions.includes("settings_branding.edit") || userPermissions.includes("*");
+      const canEditBrandingLogos = userPermissions.includes("settings_branding.upload_logos") || userPermissions.includes("settings_branding.delete_logos") || userPermissions.includes("settings_branding.edit") || userPermissions.includes("*");
 
-      const hasAnyEditPerm = canEditBasic || canEditSupervision || canEditOfficials || canEditBanks || canEditContracts || canEditBranding;
+      const hasAnyEditPerm = canEditBasic || canEditSupervision || canEditOfficials || canEditBanks || canEditContracts || canEditBrandingColors || canEditBrandingLogos;
       if (!hasAnyEditPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل إعدادات الجمعية" });
       }
@@ -289,12 +290,7 @@ export const organizationRouter = router({
         settingsData.contractTermsAndConditions = input.contractTermsAndConditions !== undefined ? (input.contractTermsAndConditions || null) : (existing?.contractTermsAndConditions || null);
       }
 
-      if (canEditBranding) {
-        settingsData.logoUrl = input.logoUrl !== undefined ? (input.logoUrl || null) : (existing?.logoUrl || null);
-        settingsData.stampUrl = input.stampUrl !== undefined ? (input.stampUrl || null) : (existing?.stampUrl || null);
-        settingsData.secondaryLogoUrl = input.secondaryLogoUrl !== undefined ? (input.secondaryLogoUrl || null) : (existing?.secondaryLogoUrl || null);
-        settingsData.technicalSupervisorLogoUrl = input.technicalSupervisorLogoUrl !== undefined ? (input.technicalSupervisorLogoUrl || null) : (existing?.technicalSupervisorLogoUrl || null);
-        settingsData.administrativeSupervisorLogoUrl = input.administrativeSupervisorLogoUrl !== undefined ? (input.administrativeSupervisorLogoUrl || null) : (existing?.administrativeSupervisorLogoUrl || null);
+      if (canEditBrandingColors) {
         settingsData.colorPrimary1 = input.colorPrimary1 || existing?.colorPrimary1 || "#09707e";
         settingsData.colorPrimary2 = input.colorPrimary2 || existing?.colorPrimary2 || "#0891b2";
         settingsData.colorSecondary1 = input.colorSecondary1 || existing?.colorSecondary1 || "#6366f1";
@@ -302,6 +298,30 @@ export const organizationRouter = router({
         settingsData.colorSecondary3 = input.colorSecondary3 || existing?.colorSecondary3 || "#ef4444";
         settingsData.colorSecondary4 = input.colorSecondary4 || existing?.colorSecondary4 || "#8b5cf6";
         settingsData.colorSecondary5 = input.colorSecondary5 || existing?.colorSecondary5 || "#10b981";
+        if (input.metaTitle !== undefined) {
+          settingsData.metaTitle = input.metaTitle || null;
+        }
+      }
+
+      if (canEditBrandingLogos) {
+        if (input.logoUrl !== undefined) {
+          settingsData.logoUrl = input.logoUrl || null;
+        }
+        if (input.stampUrl !== undefined) {
+          settingsData.stampUrl = input.stampUrl || null;
+        }
+        if (input.secondaryLogoUrl !== undefined) {
+          settingsData.secondaryLogoUrl = input.secondaryLogoUrl || null;
+        }
+      }
+
+      if (canEditSupervision || canEditBrandingLogos) {
+        if (input.technicalSupervisorLogoUrl !== undefined) {
+          settingsData.technicalSupervisorLogoUrl = input.technicalSupervisorLogoUrl || null;
+        }
+        if (input.administrativeSupervisorLogoUrl !== undefined) {
+          settingsData.administrativeSupervisorLogoUrl = input.administrativeSupervisorLogoUrl || null;
+        }
       }
 
       if (existingSettings.length === 0) {
@@ -381,24 +401,25 @@ export const organizationRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق من صلاحية المستخدم
-      const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office", "corporate_comm"];
-      if (!allowedRoles.includes(ctx.user.role)) {
-        const { calculateUserPermissions } = await import("../permissions");
-        const userPermissions = await calculateUserPermissions(ctx.user.id);
-        const hasEditPerm = 
-          userPermissions.includes("settings.edit") ||
-          userPermissions.includes("settings_org.edit_basic") ||
-          userPermissions.includes("settings_org.edit_supervision") ||
-          userPermissions.includes("settings_org.edit_officials") ||
-          userPermissions.includes("settings_org.edit_signers") ||
-          userPermissions.includes("settings_org.edit_banks") ||
-          userPermissions.includes("settings_org.edit_contracts") ||
-          userPermissions.includes("settings_branding.edit") ||
-          userPermissions.includes("settings_branding.edit_colors");
-        if (!hasEditPerm) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية رفع الشعارات" });
-        }
+      // التحقق من صلاحية المستخدم بحسب الصلاحيات الفعلية الدقيقة دون تجاوز
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+
+      const canUploadBranding = 
+        userPermissions.includes("*") ||
+        userPermissions.includes("settings_branding.upload_logos") ||
+        userPermissions.includes("settings_branding.edit");
+
+      const canUploadSupervision =
+        userPermissions.includes("*") ||
+        userPermissions.includes("settings_org.edit_supervision") ||
+        canUploadBranding;
+
+      const isSupervisionLogo = input.type === "technical_supervision" || input.type === "admin_supervision";
+      const hasUploadPerm = isSupervisionLogo ? canUploadSupervision : canUploadBranding;
+
+      if (!hasUploadPerm) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية رفع أو تحديث الشعارات" });
       }
 
       // استيراد دالة التخزين

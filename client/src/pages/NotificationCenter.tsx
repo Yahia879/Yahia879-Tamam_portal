@@ -35,8 +35,13 @@ export default function NotificationCenter() {
 
   const hasWildcard = userPerms.includes("*");
 
-  const canDirectSend = hasWildcard || userPerms.includes("notification_center.direct_send");
-  const canSendLogs = hasWildcard || userPerms.includes("notification_center.send_logs");
+  const hasStaffPerm = userPerms.includes("notification_center.direct_send_staff");
+  const hasBeneficiaryPerm = userPerms.includes("notification_center.direct_send_beneficiary");
+
+  const canSendStaff = hasStaffPerm || (hasWildcard && !hasBeneficiaryPerm && !userPerms.some(p => p.startsWith("notification_center.")));
+  const canSendBeneficiary = hasBeneficiaryPerm || (hasWildcard && !hasStaffPerm && !userPerms.some(p => p.startsWith("notification_center.")));
+  const canDirectSend = canSendStaff || canSendBeneficiary;
+  const canSendLogs = hasWildcard || userPerms.includes("notification_center.view") || userPerms.includes("notification_center.send_logs");
 
   const availableTabs = [
     ...(canDirectSend ? [{ value: "direct_send", label: "إرسال إشعار مباشر", icon: Send }] : []),
@@ -134,7 +139,11 @@ export default function NotificationCenter() {
 
           {canDirectSend && (
             <TabsContent value="direct_send" className="space-y-6 focus-visible:outline-none mt-0">
-              <DirectNotificationTab dbRoles={dbRoles} />
+              <DirectNotificationTab 
+                dbRoles={dbRoles} 
+                canSendStaff={canSendStaff}
+                canSendBeneficiary={canSendBeneficiary}
+              />
             </TabsContent>
           )}
 

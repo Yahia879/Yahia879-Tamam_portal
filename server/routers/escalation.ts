@@ -151,13 +151,15 @@ const escalationProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 });
 
 const delaySettingsProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-  const { checkPermission } = await import("../permissions");
+  const { calculateUserPermissions } = await import("../permissions");
+  const userPerms = await calculateUserPermissions(ctx.user.id);
+  const hasWildcard = userPerms.includes("*");
   const hasPerm =
-    (await checkPermission(ctx.user.id, "settings_escalation.view")) ||
-    (await checkPermission(ctx.user.id, "settings_escalation.save")) ||
-    (await checkPermission(ctx.user.id, "settings_escalation.edit_durations")) ||
-    (await checkPermission(ctx.user.id, "settings_escalation.edit_beneficiary_sla")) ||
-    (await checkPermission(ctx.user.id, "escalation.view"));
+    hasWildcard ||
+    userPerms.includes("settings_escalation.view") ||
+    userPerms.includes("settings_escalation.edit_durations") ||
+    userPerms.includes("settings_escalation.edit_beneficiary_sla") ||
+    userPerms.includes("settings_escalation");
   if (!hasPerm) {
     throw new TRPCError({
       code: "FORBIDDEN",
@@ -207,7 +209,7 @@ export const escalationRouter = router({
   }),
 
   // تحديث إعدادات مدد المراحل ومهلة المستفيدين
-  updateSettings: delaySettingsProcedure
+  updateSettings: protectedProcedure
     .input(z.object({
       stages: z.array(z.object({
         stageCode: z.string(),
@@ -219,89 +221,106 @@ export const escalationRouter = router({
       beneficiaryDays: z.number().min(0),
       beneficiaryWarningDays: z.number().min(0).optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const hasWildcard = userPerms.includes("*");
+      const canEditDurations = hasWildcard || userPerms.includes("settings_escalation.edit_durations") || userPerms.includes("settings_escalation.edit");
+      const canEditBeneficiarySla = hasWildcard || userPerms.includes("settings_escalation.edit_beneficiary_sla") || userPerms.includes("settings_escalation.edit");
+
+      if (!canEditDurations && !canEditBeneficiarySla) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ليس لديك صلاحية تعديل وقت التأخير ومدد المراحل",
+        });
+      }
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const now = new Date();
 
-      // تحديث أو إدخال كل مرحلة
-      for (const s of input.stages) {
-        if (s.stageCode === "execution") {
-          // مرحلة التنفيذ: للمشاريع محكومة تلقائياً بمدة العقد المعتمد، ولفرص التبرع تُحسب بعد إنشاء طلب الصرف
-          const existing = await db.select().from(stageSettings).where(eq(stageSettings.stageCode, "execution")).limit(1);
+      // تحديث أو إدخال كل مرحلة في حال امتلاك صلاحية تعديل مدد المراحل الرئيسية
+      if (canEditDurations) {
+        for (const s of input.stages) {
+          if (s.stageCode === "execution") {
+            // مرحلة التنفيذ: للمشاريع محكومة تلقائياً بمدة العقد المعتمد، ولفرص التبرع تُحسب بعد إنشاء طلب الصرف
+            const existing = await db.select().from(stageSettings).where(eq(stageSettings.stageCode, "execution")).limit(1);
+            if (existing.length > 0) {
+              await db.update(stageSettings)
+                .set({
+                  durationDays: s.durationDays,
+                  description: "مدة التنفيذ للمشاريع تُحدد وفق العقد المعتمد، ولفرص التبرع تُحسب بعد إنشاء طلب الصرف",
+                  updatedAt: now,
+                })
+                .where(eq(stageSettings.stageCode, "execution"));
+            } else {
+              await db.insert(stageSettings).values({
+                stageCode: "execution",
+                stageName: "التنفيذ",
+                stageOrder: 8,
+                durationDays: s.durationDays,
+                warningDays: 1,
+                description: "مدة التنفيذ للمشاريع تُحدد وفق العقد المعتمد، ولفرص التبرع تُحسب بعد إنشاء طلب الصرف",
+                isActive: true,
+                createdAt: now,
+                updatedAt: now,
+              });
+            }
+            continue;
+          }
+
+          const existing = await db.select().from(stageSettings).where(eq(stageSettings.stageCode, s.stageCode)).limit(1);
           if (existing.length > 0) {
             await db.update(stageSettings)
               .set({
                 durationDays: s.durationDays,
-                description: "مدة التنفيذ للمشاريع تُحدد وفق العقد المعتمد، ولفرص التبرع تُحسب بعد إنشاء طلب الصرف",
+                warningDays: s.warningDays ?? 1,
+                description: s.description || existing[0].description,
                 updatedAt: now,
               })
-              .where(eq(stageSettings.stageCode, "execution"));
+              .where(eq(stageSettings.stageCode, s.stageCode));
           } else {
+            const def = DEFAULT_STAGE_SLAS.find(d => d.stageCode === s.stageCode);
             await db.insert(stageSettings).values({
-              stageCode: "execution",
-              stageName: "التنفيذ",
-              stageOrder: 8,
+              stageCode: s.stageCode,
+              stageName: s.stageName || def?.stageName || s.stageCode,
+              stageOrder: def?.stageOrder || 99,
               durationDays: s.durationDays,
-              warningDays: 1,
-              description: "مدة التنفيذ للمشاريع تُحدد وفق العقد المعتمد، ولفرص التبرع تُحسب بعد إنشاء طلب الصرف",
+              warningDays: s.warningDays ?? 1,
+              description: s.description || def?.description || "",
               isActive: true,
               createdAt: now,
               updatedAt: now,
             });
           }
-          continue;
         }
+      }
 
-        const existing = await db.select().from(stageSettings).where(eq(stageSettings.stageCode, s.stageCode)).limit(1);
-        if (existing.length > 0) {
+      // تحديث أو إدخال مهلة قبول المستفيد في حال امتلاك صلاحية تعديل مهلة تجاوب وقبول المستفيد
+      if (canEditBeneficiarySla) {
+        const existingBen = await db.select().from(stageSettings).where(eq(stageSettings.stageCode, "beneficiary_approval")).limit(1);
+        if (existingBen.length > 0) {
           await db.update(stageSettings)
             .set({
-              durationDays: s.durationDays,
-              warningDays: s.warningDays ?? 1,
-              description: s.description || existing[0].description,
+              durationDays: input.beneficiaryDays,
+              warningDays: input.beneficiaryWarningDays ?? 1,
               updatedAt: now,
             })
-            .where(eq(stageSettings.stageCode, s.stageCode));
+            .where(eq(stageSettings.stageCode, "beneficiary_approval"));
         } else {
-          const def = DEFAULT_STAGE_SLAS.find(d => d.stageCode === s.stageCode);
           await db.insert(stageSettings).values({
-            stageCode: s.stageCode,
-            stageName: s.stageName || def?.stageName || s.stageCode,
-            stageOrder: def?.stageOrder || 99,
-            durationDays: s.durationDays,
-            warningDays: s.warningDays ?? 1,
-            description: s.description || def?.description || "",
+            stageCode: "beneficiary_approval",
+            stageName: DEFAULT_BENEFICIARY_SLA.stageName,
+            stageOrder: 0,
+            durationDays: input.beneficiaryDays,
+            warningDays: input.beneficiaryWarningDays ?? 1,
+            description: DEFAULT_BENEFICIARY_SLA.description,
             isActive: true,
             createdAt: now,
             updatedAt: now,
           });
         }
-      }
-
-      // تحديث أو إدخال مهلة قبول المستفيد
-      const existingBen = await db.select().from(stageSettings).where(eq(stageSettings.stageCode, "beneficiary_approval")).limit(1);
-      if (existingBen.length > 0) {
-        await db.update(stageSettings)
-          .set({
-            durationDays: input.beneficiaryDays,
-            warningDays: input.beneficiaryWarningDays ?? 1,
-            updatedAt: now,
-          })
-          .where(eq(stageSettings.stageCode, "beneficiary_approval"));
-      } else {
-        await db.insert(stageSettings).values({
-          stageCode: "beneficiary_approval",
-          stageName: DEFAULT_BENEFICIARY_SLA.stageName,
-          stageOrder: 0,
-          durationDays: input.beneficiaryDays,
-          warningDays: input.beneficiaryWarningDays ?? 1,
-          description: DEFAULT_BENEFICIARY_SLA.description,
-          isActive: true,
-          createdAt: now,
-          updatedAt: now,
-        });
       }
 
       return { success: true, message: "تم حفظ إعدادات مدة التصعيد بنجاح" };

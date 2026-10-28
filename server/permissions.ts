@@ -151,9 +151,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
     "settings_categories.view", 
     "services.view", 
     "forms_customization.view", 
-    "settings_escalation.view", 
-    "staff_notifications.view", 
-    "notification_center.view"
+    "settings_escalation.view"
   ],
   programs_services: [
     "settings.view",
@@ -167,18 +165,16 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   settings_escalation: [
     "settings_escalation.view",
     "settings_escalation.edit_durations",
-    "settings_escalation.edit_beneficiary_sla",
-    "settings_escalation.save"
+    "settings_escalation.edit_beneficiary_sla"
   ],
   "settings_escalation.view": ["settings_escalation.view", "settings.view", "escalation.view"],
   "settings_escalation.edit_durations": ["settings_escalation.edit_durations", "settings_escalation.view", "settings.view", "settings.edit"],
   "settings_escalation.edit_beneficiary_sla": ["settings_escalation.edit_beneficiary_sla", "settings_escalation.view", "settings.view", "settings.edit"],
-  "settings_escalation.save": ["settings_escalation.save", "settings_escalation.view", "settings.view", "settings.edit"],
+  "settings_escalation.save": ["settings_escalation.edit_durations", "settings_escalation.edit_beneficiary_sla", "settings_escalation.view", "settings.view", "settings.edit"],
   "settings_escalation.edit": [
     "settings_escalation.view",
     "settings_escalation.edit_durations",
     "settings_escalation.edit_beneficiary_sla",
-    "settings_escalation.save",
     "settings.view",
     "settings.edit"
   ],
@@ -241,6 +237,33 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   forms_customization: [
     "forms_customization.view",
+    "forms_customization.dashboard_global",
+    "forms_customization.dashboard_role",
+    "forms_customization.dashboard_user",
+    "forms_customization.evaluation_add_field",
+    "forms_customization.evaluation_duplicate",
+    "forms_customization.evaluation_placeholder",
+    "forms_customization.evaluation_description",
+    "forms_customization.evaluation_change_type",
+    "forms_customization.evaluation_required",
+    "forms_customization.evaluation_toggle_active",
+    "forms_customization.evaluation_reorder",
+    "forms_customization.services_add_field",
+    "forms_customization.services_duplicate",
+    "forms_customization.services_placeholder",
+    "forms_customization.services_description",
+    "forms_customization.services_change_type",
+    "forms_customization.services_required",
+    "forms_customization.services_toggle_active",
+    "forms_customization.services_reorder",
+    "forms_customization.registration_add_field",
+    "forms_customization.registration_duplicate",
+    "forms_customization.registration_placeholder",
+    "forms_customization.registration_description",
+    "forms_customization.registration_change_type",
+    "forms_customization.registration_required",
+    "forms_customization.registration_toggle_active",
+    "forms_customization.registration_reorder",
     "forms_customization.evaluation",
     "forms_customization.services",
     "forms_customization.registration",
@@ -248,12 +271,71 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
     "settings.edit"
   ],
   "forms_customization.view": ["forms_customization.view", "settings.view"],
-  "forms_customization.evaluation": ["forms_customization.evaluation", "forms_customization.view", "settings.view", "settings.edit"],
+
+  // تخصيص لوحة المعلومات
+  "forms_customization.dashboard_global": ["forms_customization.dashboard_global", "forms_customization.view", "settings.view"],
+  "forms_customization.dashboard_role": ["forms_customization.dashboard_role", "forms_customization.view", "settings.view"],
+  "forms_customization.dashboard_user": ["forms_customization.dashboard_user", "forms_customization.view", "settings.view"],
+
+  // استمارة تقييم رضا المستفيد
+  "forms_customization.evaluation_add_field": ["forms_customization.evaluation_add_field", "forms_customization.view", "settings.view"],
+  "forms_customization.evaluation_duplicate": ["forms_customization.evaluation_duplicate", "forms_customization.view", "settings.view"],
+  "forms_customization.evaluation_placeholder": ["forms_customization.evaluation_placeholder", "forms_customization.view", "settings.view"],
+  "forms_customization.evaluation_description": ["forms_customization.evaluation_description", "forms_customization.view", "settings.view"],
+  "forms_customization.evaluation_change_type": ["forms_customization.evaluation_change_type", "forms_customization.view", "settings.view"],
+  "forms_customization.evaluation_required": ["forms_customization.evaluation_required", "forms_customization.view", "settings.view"],
+  "forms_customization.evaluation_toggle_active": ["forms_customization.evaluation_toggle_active", "forms_customization.view", "settings.view"],
+  "forms_customization.evaluation_reorder": ["forms_customization.evaluation_reorder", "forms_customization.view", "settings.view"],
+
+  // نماذج طلبات الخدمات
+  "forms_customization.services_add_field": ["forms_customization.services_add_field", "forms_customization.view", "settings.view"],
+  "forms_customization.services_duplicate": ["forms_customization.services_duplicate", "forms_customization.view", "settings.view"],
+  "forms_customization.services_placeholder": ["forms_customization.services_placeholder", "forms_customization.view", "settings.view"],
+  "forms_customization.services_description": ["forms_customization.services_description", "forms_customization.view", "settings.view"],
+  "forms_customization.services_change_type": ["forms_customization.services_change_type", "forms_customization.view", "settings.view"],
+  "forms_customization.services_required": ["forms_customization.services_required", "forms_customization.view", "settings.view"],
+  "forms_customization.services_toggle_active": ["forms_customization.services_toggle_active", "forms_customization.view", "settings.view"],
+  "forms_customization.services_reorder": ["forms_customization.services_reorder", "forms_customization.view", "settings.view"],
+
+  // نماذج التسجيل والتبرع
+  "forms_customization.registration_add_field": ["forms_customization.registration_add_field", "forms_customization.view", "settings.view"],
+  "forms_customization.registration_duplicate": ["forms_customization.registration_duplicate", "forms_customization.view", "settings.view"],
+  "forms_customization.registration_placeholder": ["forms_customization.registration_placeholder", "forms_customization.view", "settings.view"],
+  "forms_customization.registration_description": ["forms_customization.registration_description", "forms_customization.view", "settings.view"],
+  "forms_customization.registration_change_type": ["forms_customization.registration_change_type", "forms_customization.view", "settings.view"],
+  "forms_customization.registration_required": ["forms_customization.registration_required", "forms_customization.view", "settings.view"],
+  "forms_customization.registration_toggle_active": ["forms_customization.registration_toggle_active", "forms_customization.view", "settings.view"],
+  "forms_customization.registration_reorder": ["forms_customization.registration_reorder", "forms_customization.view", "settings.view"],
+
+  // توافق مع المفاتيح القديمة
+  "forms_customization.evaluation": [
+    "forms_customization.evaluation",
+    "forms_customization.evaluation_add_field",
+    "forms_customization.evaluation_duplicate",
+    "forms_customization.evaluation_placeholder",
+    "forms_customization.evaluation_description",
+    "forms_customization.evaluation_change_type",
+    "forms_customization.evaluation_required",
+    "forms_customization.evaluation_toggle_active",
+    "forms_customization.evaluation_reorder",
+    "forms_customization.view",
+    "settings.view",
+    "settings.edit"
+  ],
   "forms_customization.services_view": ["forms_customization.services_view", "forms_customization.view", "settings.view"],
   "forms_customization.services_add": ["forms_customization.services_add", "forms_customization.services_view", "forms_customization.view", "settings.view", "settings.edit"],
   "forms_customization.services_edit": ["forms_customization.services_edit", "forms_customization.services_view", "forms_customization.view", "settings.view", "settings.edit"],
   "forms_customization.services_delete": ["forms_customization.services_delete", "forms_customization.services_view", "forms_customization.view", "settings.view", "settings.edit"],
   "forms_customization.services": [
+    "forms_customization.services",
+    "forms_customization.services_add_field",
+    "forms_customization.services_duplicate",
+    "forms_customization.services_placeholder",
+    "forms_customization.services_description",
+    "forms_customization.services_change_type",
+    "forms_customization.services_required",
+    "forms_customization.services_toggle_active",
+    "forms_customization.services_reorder",
     "forms_customization.services_view",
     "forms_customization.services_add",
     "forms_customization.services_edit",
@@ -262,16 +344,33 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
     "settings.view",
     "settings.edit"
   ],
-  "forms_customization.registration": ["forms_customization.registration", "forms_customization.view", "settings.view", "settings.edit"],
+  "forms_customization.registration": [
+    "forms_customization.registration",
+    "forms_customization.registration_add_field",
+    "forms_customization.registration_duplicate",
+    "forms_customization.registration_placeholder",
+    "forms_customization.registration_description",
+    "forms_customization.registration_change_type",
+    "forms_customization.registration_required",
+    "forms_customization.registration_toggle_active",
+    "forms_customization.registration_reorder",
+    "forms_customization.view",
+    "settings.view",
+    "settings.edit"
+  ],
 
   "staff_notifications.view": ["staff_notifications.view", "settings.view"],
   "staff_notifications.by_role": ["staff_notifications.by_role", "staff_notifications.view", "settings.view", "settings.edit"],
+  "staff_notifications.by_department": ["staff_notifications.by_department", "staff_notifications.view", "settings.view", "settings.edit"],
   "staff_notifications.by_person": ["staff_notifications.by_person", "staff_notifications.view", "settings.view", "settings.edit"],
   "staff_notifications.beneficiary": ["staff_notifications.beneficiary", "staff_notifications.view", "settings.view", "settings.edit"],
+  "staff_notifications.beneficiary_message_formats": ["staff_notifications.beneficiary_message_formats", "staff_notifications.view", "settings.view", "settings.edit"],
   "staff_notifications.edit_message_formats": ["staff_notifications.edit_message_formats", "staff_notifications.view", "settings.view", "settings.edit"],
 
-  "notification_center.view": ["notification_center.view", "settings.view"],
-  "notification_center.direct_send": ["notification_center.direct_send", "notification_center.view", "settings.view", "settings.edit"],
+  "notification_center.view": ["notification_center.view", "notification_center.send_logs", "settings.view"],
+  "notification_center.direct_send_staff": ["notification_center.direct_send_staff", "settings.view", "settings.edit"],
+  "notification_center.direct_send_beneficiary": ["notification_center.direct_send_beneficiary", "settings.view", "settings.edit"],
+  "notification_center.direct_send": ["notification_center.direct_send", "settings.view", "settings.edit"],
   "notification_center.send_logs": ["notification_center.send_logs", "notification_center.view", "settings.view"],
   corporate_comm: ["requests.view", "reports.view", "settings.view", "requests.upload_final_report"],
   "requests.upload_final_report": ["requests.view", "requests.upload_final_report"],
@@ -357,19 +456,24 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
     "settings.view",
     "settings.edit",
     "staff_notifications.by_role",
+    "staff_notifications.by_department",
     "staff_notifications.edit_message_formats",
     "staff_notifications.by_person",
-    "staff_notifications.beneficiary"
+    "staff_notifications.beneficiary",
+    "staff_notifications.beneficiary_message_formats"
   ],
   staff_notifications: [
     "staff_notifications.by_role",
+    "staff_notifications.by_department",
     "staff_notifications.edit_message_formats",
     "staff_notifications.by_person",
-    "staff_notifications.beneficiary"
+    "staff_notifications.beneficiary",
+    "staff_notifications.beneficiary_message_formats"
   ],
   notification_center: [
     "notification_center.view",
-    "notification_center.direct_send",
+    "notification_center.direct_send_staff",
+    "notification_center.direct_send_beneficiary",
     "notification_center.send_logs"
   ],
 
@@ -1365,10 +1469,14 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "staff_notifications.view", moduleId: "permissions", action: "view", nameAr: "استعراض إعدادات وقوالب الإشعارات", nameEn: "View Notification Settings" },
       { id: "staff_notifications.edit", moduleId: "permissions", action: "edit", nameAr: "تعديل تخصيص الإشعارات (شامل)", nameEn: "Edit Notification Customization" },
       { id: "staff_notifications.by_role", moduleId: "permissions", action: "by_role", nameAr: "تخصيص الإشعارات حسب الدور", nameEn: "Customize Notifications by Role" },
-      { id: "staff_notifications.edit_message_formats", moduleId: "permissions", action: "edit_message_formats", nameAr: "تعديل صيغ الرسائل", nameEn: "Edit Message Formats" },
-      { id: "staff_notifications.by_person", moduleId: "permissions", action: "by_person", nameAr: "تخصيص حسب الأشخاص", nameEn: "Customize Notifications by Person" },
-      { id: "staff_notifications.beneficiary", moduleId: "permissions", action: "beneficiary", nameAr: "إشعارات المستفيد", nameEn: "Beneficiary Notifications" },
-      { id: "notification_center.view", moduleId: "permissions", action: "view", nameAr: "عرض مركز الإشعارات", nameEn: "View Notification Center" },
+      { id: "staff_notifications.by_department", moduleId: "permissions", action: "by_department", nameAr: "تخصيص الإشعارات حسب القسم", nameEn: "Customize Notifications by Department" },
+      { id: "staff_notifications.edit_message_formats", moduleId: "permissions", action: "edit_message_formats", nameAr: "تعديل صياغة رسائل الإشعارات", nameEn: "Edit Message Formats" },
+      { id: "staff_notifications.by_person", moduleId: "permissions", action: "by_person", nameAr: "تخصيص الإشعارات حسب الشخص", nameEn: "Customize Notifications by Person" },
+      { id: "staff_notifications.beneficiary", moduleId: "permissions", action: "beneficiary", nameAr: "تخصيص إشعارات المستفيد", nameEn: "Beneficiary Notifications" },
+      { id: "staff_notifications.beneficiary_message_formats", moduleId: "permissions", action: "beneficiary_message_formats", nameAr: "تعديل صياغة رسائل المستفيد", nameEn: "Edit Beneficiary Message Formats" },
+      { id: "notification_center.view", moduleId: "permissions", action: "view", nameAr: "عرض واستعراض مركز الإشعارات", nameEn: "View Notification Center (Logs)" },
+      { id: "notification_center.direct_send_staff", moduleId: "permissions", action: "direct_send_staff", nameAr: "إرسال إشعار مباشر لمسؤول", nameEn: "Send Direct Notification to Staff" },
+      { id: "notification_center.direct_send_beneficiary", moduleId: "permissions", action: "direct_send_beneficiary", nameAr: "إرسال إشعار مباشر لمستفيد", nameEn: "Send Direct Notification to Beneficiary" },
       { id: "notification_center.direct_send", moduleId: "permissions", action: "direct_send", nameAr: "إرسال إشعار مباشر", nameEn: "Send Direct Notification" },
       { id: "notification_center.send_logs", moduleId: "permissions", action: "send_logs", nameAr: "سجل إرسال الإشعارات", nameEn: "Notification Send Log" },
 
@@ -1408,10 +1516,47 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "services.reorder", moduleId: "settings", action: "reorder", nameAr: "إعادة ترتيب وتسلسل البرامج والخدمات", nameEn: "Reorder Services" },
       { id: "services.delete", moduleId: "settings", action: "delete", nameAr: "حذف برنامج أو خدمة", nameEn: "Delete Service" },
 
-      // --- تخصيص النماذج (تفصيل كامل) ---
+      // --- تخصيص النماذج (الأقسام الأربعة بالتفصيل الكامل) ---
       { id: "forms_customization.view", moduleId: "settings", action: "view", nameAr: "عرض وتصفح النماذج والحقول المخصصة", nameEn: "View Custom Forms" },
+
+      // 1. تخصيص لوحة المعلومات
+      { id: "forms_customization.dashboard_global", moduleId: "settings", action: "dashboard_global", nameAr: "تخصيص الصفحة للجميع", nameEn: "Customize Dashboard for All" },
+      { id: "forms_customization.dashboard_role", moduleId: "settings", action: "dashboard_role", nameAr: "تخصيص الصفحة حسب الدور", nameEn: "Customize Dashboard by Role" },
+      { id: "forms_customization.dashboard_user", moduleId: "settings", action: "dashboard_user", nameAr: "تخصيص الصفحة حسب المستخدم", nameEn: "Customize Dashboard by User" },
+
+      // 2. تخصيص استمارة تقييم رضا المستفيد
+      { id: "forms_customization.evaluation_add_field", moduleId: "settings", action: "evaluation_add_field", nameAr: "إضافة حقل جديد", nameEn: "Evaluation Add Field" },
+      { id: "forms_customization.evaluation_duplicate", moduleId: "settings", action: "evaluation_duplicate", nameAr: "تكرار حقل", nameEn: "Evaluation Duplicate Field" },
+      { id: "forms_customization.evaluation_placeholder", moduleId: "settings", action: "evaluation_placeholder", nameAr: "إضافة وتعديل نص التلميح", nameEn: "Evaluation Placeholder" },
+      { id: "forms_customization.evaluation_description", moduleId: "settings", action: "evaluation_description", nameAr: "إضافة وتعديل الوصف الإرشادي", nameEn: "Evaluation Description" },
+      { id: "forms_customization.evaluation_change_type", moduleId: "settings", action: "evaluation_change_type", nameAr: "تغيير نوع الحقل", nameEn: "Evaluation Change Type" },
+      { id: "forms_customization.evaluation_required", moduleId: "settings", action: "evaluation_required", nameAr: "تحديد الحقل كإجباري أو اختياري", nameEn: "Evaluation Required" },
+      { id: "forms_customization.evaluation_toggle_active", moduleId: "settings", action: "evaluation_toggle_active", nameAr: "تفعيل أو تعطيل الحقل", nameEn: "Evaluation Toggle Active" },
+      { id: "forms_customization.evaluation_reorder", moduleId: "settings", action: "evaluation_reorder", nameAr: "تبديل أماكن وترتيب الحقول", nameEn: "Evaluation Reorder Fields" },
+
+      // 3. تخصيص نماذج طلبات الخدمات
+      { id: "forms_customization.services_add_field", moduleId: "settings", action: "services_add_field", nameAr: "إضافة حقل جديد", nameEn: "Services Add Field" },
+      { id: "forms_customization.services_duplicate", moduleId: "settings", action: "services_duplicate", nameAr: "تكرار حقل", nameEn: "Services Duplicate Field" },
+      { id: "forms_customization.services_placeholder", moduleId: "settings", action: "services_placeholder", nameAr: "إضافة وتعديل نص التلميح", nameEn: "Services Placeholder" },
+      { id: "forms_customization.services_description", moduleId: "settings", action: "services_description", nameAr: "إضافة وتعديل الوصف الإرشادي", nameEn: "Services Description" },
+      { id: "forms_customization.services_change_type", moduleId: "settings", action: "services_change_type", nameAr: "تغيير نوع الحقل", nameEn: "Services Change Type" },
+      { id: "forms_customization.services_required", moduleId: "settings", action: "services_required", nameAr: "تحديد الحقل كإجباري أو اختياري", nameEn: "Services Required" },
+      { id: "forms_customization.services_toggle_active", moduleId: "settings", action: "services_toggle_active", nameAr: "تفعيل أو تعطيل الحقل", nameEn: "Services Toggle Active" },
+      { id: "forms_customization.services_reorder", moduleId: "settings", action: "services_reorder", nameAr: "تبديل أماكن وترتيب الحقول", nameEn: "Services Reorder Fields" },
+
+      // 4. تخصيص نماذج التسجيل والتبرع
+      { id: "forms_customization.registration_add_field", moduleId: "settings", action: "registration_add_field", nameAr: "إضافة حقل جديد", nameEn: "Registration Add Field" },
+      { id: "forms_customization.registration_duplicate", moduleId: "settings", action: "registration_duplicate", nameAr: "تكرار حقل", nameEn: "Registration Duplicate Field" },
+      { id: "forms_customization.registration_placeholder", moduleId: "settings", action: "registration_placeholder", nameAr: "إضافة وتعديل نص التلميح", nameEn: "Registration Placeholder" },
+      { id: "forms_customization.registration_description", moduleId: "settings", action: "registration_description", nameAr: "إضافة وتعديل الوصف الإرشادي", nameEn: "Registration Description" },
+      { id: "forms_customization.registration_change_type", moduleId: "settings", action: "registration_change_type", nameAr: "تغيير نوع الحقل", nameEn: "Registration Change Type" },
+      { id: "forms_customization.registration_required", moduleId: "settings", action: "registration_required", nameAr: "تحديد الحقل كإجباري أو اختياري", nameEn: "Registration Required" },
+      { id: "forms_customization.registration_toggle_active", moduleId: "settings", action: "registration_toggle_active", nameAr: "تفعيل أو تعطيل الحقل", nameEn: "Registration Toggle Active" },
+      { id: "forms_customization.registration_reorder", moduleId: "settings", action: "registration_reorder", nameAr: "تبديل أماكن وترتيب الحقول", nameEn: "Registration Reorder Fields" },
+
+      // مفاتيح التوافق القديمة
       { id: "forms_customization.evaluation", moduleId: "settings", action: "evaluation", nameAr: "تخصيص استمارة التقييم", nameEn: "Customize Evaluation Form" },
-      { id: "forms_customization.services", moduleId: "settings", action: "services", nameAr: "تخصيص نماذج طلبات الخدمات (شامل)", nameEn: "Customize Service Request Forms" },
+      { id: "forms_customization.services", moduleId: "settings", action: "services", nameAr: "تخصيص نماذج طلبات الخدمات", nameEn: "Customize Service Request Forms" },
       { id: "forms_customization.services_view", moduleId: "settings", action: "services_view", nameAr: "استعراض حقول نماذج طلبات الخدمات", nameEn: "View Service Request Form Fields" },
       { id: "forms_customization.services_add", moduleId: "settings", action: "services_add", nameAr: "إضافة حقول لنماذج الخدمات", nameEn: "Add Service Request Form Fields" },
       { id: "forms_customization.services_edit", moduleId: "settings", action: "services_edit", nameAr: "تعديل حقول نماذج الخدمات", nameEn: "Edit Service Request Form Fields" },
@@ -1421,10 +1566,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       // --- تعيين وقت التأخير ومدد المراحل (تفصيل كامل) ---
       { id: "settings_escalation.view", moduleId: "settings", action: "view", nameAr: "عرض مدد المراحل وأوقات التأخير", nameEn: "View Delay Times & Stage Durations" },
-      { id: "settings_escalation.edit_durations", moduleId: "settings", action: "edit_durations", nameAr: "تعديل مدد المراحل الرئيسية", nameEn: "Edit Stage Durations" },
+      { id: "settings_escalation.edit_durations", moduleId: "settings", action: "edit_durations", nameAr: "تعديل مدد المراحل الرئيسية", nameEn: "Edit Main Stage Durations" },
       { id: "settings_escalation.edit_beneficiary_sla", moduleId: "settings", action: "edit_beneficiary_sla", nameAr: "تعديل مهلة تجاوب وقبول المستفيد", nameEn: "Edit Beneficiary Acceptance SLA" },
-      { id: "settings_escalation.save", moduleId: "settings", action: "save", nameAr: "حفظ وتطبيق إعدادات أوقات التأخير والتصعيد", nameEn: "Save Escalation & Delay Settings" },
-      { id: "settings_escalation.edit", moduleId: "settings", action: "edit", nameAr: "تعديل إعدادات أوقات التأخير (شامل)", nameEn: "Edit Delay Settings" },
       { id: "requests.upload_final_report", moduleId: "requests", action: "upload_final_report", nameAr: "رفع التقرير الختامي", nameEn: "Upload Final Report" },
       { id: "boq.view", moduleId: "boq", action: "view", nameAr: "عرض جداول الكميات", nameEn: "View BOQ" },
       { id: "boq.add", moduleId: "boq", action: "add", nameAr: "إضافة بند جديد", nameEn: "Add BOQ Item" },
@@ -1809,30 +1952,51 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
   let rolePermissionsData: string[] = [];
 
-  // إذا كان المستخدم super_admin أو system_admin، نمنحه جميع الصلاحيات افتراضياً كبداية
+  // إذا كان المستخدم super_admin أو system_admin، نمنحه جميع الصلاحيات افتراضياً كبداية (أو نلتزم بما تم تخصيصه في الدور إذا وُجد)
   if (userData?.role === 'super_admin' || userData?.role === 'system_admin') {
     const isSuperAdmin = userData?.role === 'super_admin';
     const excludedAdminPerms = isSuperAdmin
       ? EXCLUDED_ADMIN_PERMISSIONS.filter(p => !p.startsWith('orders_and_letters'))
       : EXCLUDED_ADMIN_PERMISSIONS;
-    const allPerms = await db.select({ id: permissions.id }).from(permissions);
-    // يحصلان أيضاً على جميع الصلاحيات الموسعة (باستثناء appointments.view_own والصلاحيات المستبعدة)
-    const expandedSet = new Set(
-      allPerms
-        .map(p => p.id)
-        .filter(id => id !== "appointments.view_own" && !excludedAdminPerms.includes(id))
-    );
-    Object.keys(PERMISSION_EXPANSION).forEach(k => {
-      if (k !== "appointments.view_own" && !excludedAdminPerms.includes(k)) {
-        expandedSet.add(k);
-      }
-    });
-    Object.values(PERMISSION_EXPANSION).forEach(subs => subs.forEach(s => {
-      if (!excludedAdminPerms.includes(s)) {
-        expandedSet.add(s);
-      }
-    }));
-    rolePermissionsData.push(...Array.from(expandedSet));
+
+    const [adminRoleRecord] = await db
+      .select({ description: roles.description })
+      .from(roles)
+      .where(eq(roles.id, userData.role))
+      .limit(1);
+
+    let customAdminPerms: string[] | null = null;
+    if (adminRoleRecord?.description) {
+      try {
+        const parsed = JSON.parse(adminRoleRecord.description);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          customAdminPerms = parsed;
+        }
+      } catch {}
+    }
+
+    if (customAdminPerms) {
+      rolePermissionsData.push(...customAdminPerms);
+    } else {
+      const allPerms = await db.select({ id: permissions.id }).from(permissions);
+      // يحصلان أيضاً على جميع الصلاحيات الموسعة (باستثناء appointments.view_own والصلاحيات المستبعدة)
+      const expandedSet = new Set(
+        allPerms
+          .map(p => p.id)
+          .filter(id => id !== "appointments.view_own" && !excludedAdminPerms.includes(id))
+      );
+      Object.keys(PERMISSION_EXPANSION).forEach(k => {
+        if (k !== "appointments.view_own" && !excludedAdminPerms.includes(k)) {
+          expandedSet.add(k);
+        }
+      });
+      Object.values(PERMISSION_EXPANSION).forEach(subs => subs.forEach(s => {
+        if (!excludedAdminPerms.includes(s)) {
+          expandedSet.add(s);
+        }
+      }));
+      rolePermissionsData.push(...Array.from(expandedSet));
+    }
   }
 
   // 2. جمع صلاحيات جميع الأدوار المسندة للمستخدم (الدور الأساسي + الأدوار الإضافية)
@@ -1994,7 +2158,9 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
         parentKey === "disbursements.create_donation" ||
         parentKey === "staff_notifications.edit" ||
         parentKey === "notification_center" ||
-        parentKey === "suppliers"
+        parentKey === "suppliers" ||
+        parentKey === "settings_branding.edit" ||
+        parentKey === "forms_customization"
       ) {
         continue;
       }
@@ -2103,6 +2269,41 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.delete("programs_services");
   }
 
+  // تنظيف مفاتيح الهوية البصرية عند سحب أي من الصلاحيات التابعة
+  const allBrandingSubPerms = [
+    "settings_branding.view",
+    "settings_branding.edit_colors",
+    "settings_branding.upload_logos",
+    "settings_branding.delete_logos"
+  ];
+
+  // إذا تم سحب عرض إعدادات الهوية والشعارات، تسحب جميع إجراءات الهوية البصرية تلقائياً
+  if (revokedPermissions.has("settings_branding.view") || revokedPermissions.has("settings_branding")) {
+    allBrandingSubPerms.forEach(p => allPermissions.delete(p));
+    allPermissions.delete("settings_branding");
+    allPermissions.delete("settings_branding.edit");
+  }
+
+  // إذا سحبت أي من صلاحيات التعديل، تسحب الصلاحية الشاملة settings_branding.edit
+  if (
+    revokedPermissions.has("settings_branding.edit_colors") ||
+    revokedPermissions.has("settings_branding.upload_logos") ||
+    revokedPermissions.has("settings_branding.delete_logos") ||
+    revokedPermissions.has("settings_branding.edit")
+  ) {
+    allPermissions.delete("settings_branding.edit");
+  }
+
+  // إذا تم سحب كافة صلاحيات الهوية البصرية (أو لم يتبق أي منها)، يتم حذف المفتاح العام settings_branding
+  const hasRemainingBrandingPerms = allBrandingSubPerms.some(
+    p => allPermissions.has(p) && !revokedPermissions.has(p)
+  );
+  if (!hasRemainingBrandingPerms) {
+    allBrandingSubPerms.forEach(p => allPermissions.delete(p));
+    allPermissions.delete("settings_branding");
+    allPermissions.delete("settings_branding.edit");
+  }
+
   // 7. إضافة مفاتيح الصلاحيات البسيطة تلقائياً لتوافق الواجهة الجانبية والتحقق من المسارات
   if (allPermissions.has("mosques.view")) {
     allPermissions.add("mosques");
@@ -2163,12 +2364,47 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.delete("escalation.view");
   }
 
+  // التحقق من صلاحيات تعيين وقت التأخير ومدد المراحل
+  const escalationSubPerms = [
+    "settings_escalation.edit_durations",
+    "settings_escalation.edit_beneficiary_sla"
+  ];
+
   if (revokedPermissions.has("settings_escalation.view") || revokedPermissions.has("settings_escalation")) {
     allPermissions.delete("settings_escalation");
     allPermissions.delete("settings_escalation.view");
-  } else if (allPermissions.has("settings_escalation.view") || allPermissions.has("settings_escalation")) {
+    allPermissions.delete("settings_escalation.edit");
+    allPermissions.delete("settings_escalation.save");
+    allPermissions.delete("escalation");
+    allPermissions.delete("escalation.view");
+    escalationSubPerms.forEach(p => allPermissions.delete(p));
+  } else if (allPermissions.has("settings_escalation.view")) {
     allPermissions.add("settings_escalation");
     allPermissions.add("settings_escalation.view");
+  }
+
+  if (revokedPermissions.has("settings_escalation.edit_durations")) {
+    allPermissions.delete("settings_escalation.edit_durations");
+  }
+  if (revokedPermissions.has("settings_escalation.edit_beneficiary_sla")) {
+    allPermissions.delete("settings_escalation.edit_beneficiary_sla");
+  }
+  if (
+    revokedPermissions.has("settings_escalation.edit_durations") ||
+    revokedPermissions.has("settings_escalation.edit_beneficiary_sla") ||
+    revokedPermissions.has("settings_escalation.save")
+  ) {
+    allPermissions.delete("settings_escalation.edit");
+    allPermissions.delete("settings_escalation.save");
+  }
+
+  const hasAnyEscalation = allPermissions.has("settings_escalation.view") && !revokedPermissions.has("settings_escalation.view");
+  if (!hasAnyEscalation) {
+    allPermissions.delete("settings_escalation");
+    allPermissions.delete("settings_escalation.view");
+    allPermissions.delete("settings_escalation.edit");
+    allPermissions.delete("settings_escalation.save");
+    escalationSubPerms.forEach(p => allPermissions.delete(p));
   }
 
   if (revokedPermissions.has("beneficiary_evaluations.view") || revokedPermissions.has("beneficiary_evaluations") || revokedPermissions.has("beneficiary_satisfaction")) {
@@ -2456,20 +2692,102 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.delete("services");
     allPermissions.delete("programs_services");
   }
-  if (
-    allPermissions.has("forms_customization.view") ||
-    allPermissions.has("forms_customization.evaluation") ||
-    allPermissions.has("forms_customization.services") ||
-    allPermissions.has("forms_customization.services_view") ||
-    allPermissions.has("forms_customization.services_add") ||
-    allPermissions.has("forms_customization.services_edit") ||
-    allPermissions.has("forms_customization.services_delete") ||
-    allPermissions.has("forms_customization.registration") ||
-    allPermissions.has("forms_customization.analytics")
-  ) {
+  // التحقق من صلاحيات تخصيص النماذج (الأقسام الأربعة)
+  const formsDashboardSubPerms = [
+    "forms_customization.dashboard_global",
+    "forms_customization.dashboard_role",
+    "forms_customization.dashboard_user"
+  ];
+  const formsEvaluationSubPerms = [
+    "forms_customization.evaluation_add_field",
+    "forms_customization.evaluation_duplicate",
+    "forms_customization.evaluation_placeholder",
+    "forms_customization.evaluation_description",
+    "forms_customization.evaluation_change_type",
+    "forms_customization.evaluation_required",
+    "forms_customization.evaluation_toggle_active",
+    "forms_customization.evaluation_reorder"
+  ];
+  const formsServicesSubPerms = [
+    "forms_customization.services_add_field",
+    "forms_customization.services_duplicate",
+    "forms_customization.services_placeholder",
+    "forms_customization.services_description",
+    "forms_customization.services_change_type",
+    "forms_customization.services_required",
+    "forms_customization.services_toggle_active",
+    "forms_customization.services_reorder"
+  ];
+  const formsRegistrationSubPerms = [
+    "forms_customization.registration_add_field",
+    "forms_customization.registration_duplicate",
+    "forms_customization.registration_placeholder",
+    "forms_customization.registration_description",
+    "forms_customization.registration_change_type",
+    "forms_customization.registration_required",
+    "forms_customization.registration_toggle_active",
+    "forms_customization.registration_reorder"
+  ];
+  const allFormsCustomizationSubPerms = [
+    ...formsDashboardSubPerms,
+    ...formsEvaluationSubPerms,
+    ...formsServicesSubPerms,
+    ...formsRegistrationSubPerms
+  ];
+
+  // إزالة أي صلاحية فرعية مسحوبة
+  allFormsCustomizationSubPerms.forEach(p => {
+    if (revokedPermissions.has(p)) {
+      allPermissions.delete(p);
+    }
+  });
+
+  const hasAnyDashboard = formsDashboardSubPerms.some(p => allPermissions.has(p) && !revokedPermissions.has(p));
+  const hasAnyEvaluation = formsEvaluationSubPerms.some(p => allPermissions.has(p) && !revokedPermissions.has(p));
+  const hasAnyServices = formsServicesSubPerms.some(p => allPermissions.has(p) && !revokedPermissions.has(p));
+  const hasAnyRegistration = formsRegistrationSubPerms.some(p => allPermissions.has(p) && !revokedPermissions.has(p));
+
+  if (hasAnyDashboard) {
+    allPermissions.add("forms_customization.dashboard");
+  } else {
+    allPermissions.delete("forms_customization.dashboard");
+    formsDashboardSubPerms.forEach(p => allPermissions.delete(p));
+  }
+
+  if (hasAnyEvaluation) {
+    allPermissions.add("forms_customization.evaluation");
+  } else {
+    allPermissions.delete("forms_customization.evaluation");
+    formsEvaluationSubPerms.forEach(p => allPermissions.delete(p));
+  }
+
+  if (hasAnyServices) {
+    allPermissions.add("forms_customization.services");
+  } else {
+    allPermissions.delete("forms_customization.services");
+    allPermissions.delete("forms_customization.services_view");
+    allPermissions.delete("forms_customization.services_add");
+    allPermissions.delete("forms_customization.services_edit");
+    allPermissions.delete("forms_customization.services_delete");
+    formsServicesSubPerms.forEach(p => allPermissions.delete(p));
+  }
+
+  if (hasAnyRegistration) {
+    allPermissions.add("forms_customization.registration");
+  } else {
+    allPermissions.delete("forms_customization.registration");
+    formsRegistrationSubPerms.forEach(p => allPermissions.delete(p));
+  }
+
+  const hasAnyFormsPerm = hasAnyDashboard || hasAnyEvaluation || hasAnyServices || hasAnyRegistration;
+
+  if (hasAnyFormsPerm && !revokedPermissions.has("forms_customization.view") && !revokedPermissions.has("forms_customization")) {
     allPermissions.add("forms_customization");
+    allPermissions.add("forms_customization.view");
   } else {
     allPermissions.delete("forms_customization");
+    allPermissions.delete("forms_customization.view");
+    allPermissions.delete("forms_customization.analytics");
   }
 
   if (
@@ -2486,9 +2804,11 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   // التحقق من صلاحيات تخصيص الإشعارات: إذا لم يملك المستخدم كافة الصلاحيات الفرعية أو تم سحب أي منها، نحذف staff_notifications و staff_notifications.edit
   const notifSubPerms = [
     "staff_notifications.by_role",
+    "staff_notifications.by_department",
     "staff_notifications.edit_message_formats",
     "staff_notifications.by_person",
-    "staff_notifications.beneficiary"
+    "staff_notifications.beneficiary",
+    "staff_notifications.beneficiary_message_formats"
   ];
   const hasAllNotifSub = notifSubPerms.every(p => allPermissions.has(p) && !revokedPermissions.has(p));
   if (!hasAllNotifSub || revokedPermissions.has("staff_notifications.edit") || revokedPermissions.has("staff_notifications")) {
@@ -2499,26 +2819,64 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     }
   }
 
+  notifSubPerms.forEach(p => {
+    if (revokedPermissions.has(p)) {
+      allPermissions.delete(p);
+    }
+  });
+
+  const hasRemainingNotifPerms = notifSubPerms.some(
+    p => allPermissions.has(p) && !revokedPermissions.has(p)
+  );
+  if (!hasRemainingNotifPerms) {
+    allPermissions.delete("staff_notifications.view");
+    allPermissions.delete("staff_notifications");
+    allPermissions.delete("staff_notifications.edit");
+    allPermissions.delete("staff_notifications.by_role");
+    allPermissions.delete("staff_notifications.by_department");
+    allPermissions.delete("staff_notifications.edit_message_formats");
+    allPermissions.delete("staff_notifications.by_person");
+    allPermissions.delete("staff_notifications.beneficiary");
+    allPermissions.delete("staff_notifications.beneficiary_message_formats");
+    allPermissions.delete("staff_notifications.direct_send");
+    allPermissions.delete("staff_notifications.send_logs");
+  }
+
   // التحقق من صلاحيات مركز الإشعارات
   const notifCenterSubPerms = [
-    "notification_center.direct_send",
-    "notification_center.send_logs"
+    "notification_center.view",
+    "notification_center.direct_send_staff",
+    "notification_center.direct_send_beneficiary"
   ];
   const hasAllNotifCenterSub = notifCenterSubPerms.every(p => allPermissions.has(p) && !revokedPermissions.has(p));
   if (!hasAllNotifCenterSub || revokedPermissions.has("notification_center")) {
     allPermissions.delete("notification_center");
     if (revokedPermissions.has("notification_center")) {
       notifCenterSubPerms.forEach(p => allPermissions.delete(p));
+      allPermissions.delete("notification_center.direct_send");
+      allPermissions.delete("notification_center.send_logs");
     }
   }
 
-  if (revokedPermissions.has("notification_center.direct_send") || revokedPermissions.has("notification_center")) {
-    allPermissions.delete("notification_center.direct_send");
-    allPermissions.delete("staff_notifications.direct_send");
-  }
-  if (revokedPermissions.has("notification_center.send_logs") || revokedPermissions.has("notification_center")) {
+  if (revokedPermissions.has("notification_center.view")) {
+    allPermissions.delete("notification_center.view");
     allPermissions.delete("notification_center.send_logs");
     allPermissions.delete("staff_notifications.send_logs");
+  }
+  if (revokedPermissions.has("notification_center.direct_send_staff")) {
+    allPermissions.delete("notification_center.direct_send_staff");
+  }
+  if (revokedPermissions.has("notification_center.direct_send_beneficiary")) {
+    allPermissions.delete("notification_center.direct_send_beneficiary");
+  }
+  if (
+    !allPermissions.has("notification_center.direct_send_staff") ||
+    !allPermissions.has("notification_center.direct_send_beneficiary") ||
+    revokedPermissions.has("notification_center.direct_send_staff") ||
+    revokedPermissions.has("notification_center.direct_send_beneficiary")
+  ) {
+    allPermissions.delete("notification_center.direct_send");
+    allPermissions.delete("staff_notifications.direct_send");
   }
 
   const hasAnyNotifCenterPerm = notifCenterSubPerms.some(p => allPermissions.has(p) && !revokedPermissions.has(p));
@@ -2527,6 +2885,8 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.delete("notification_center.view");
     allPermissions.delete("notification_center.direct_send");
     allPermissions.delete("notification_center.send_logs");
+    allPermissions.delete("notification_center.direct_send_staff");
+    allPermissions.delete("notification_center.direct_send_beneficiary");
     allPermissions.delete("staff_notifications.direct_send");
     allPermissions.delete("staff_notifications.send_logs");
   }

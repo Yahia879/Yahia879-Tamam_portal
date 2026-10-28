@@ -87,6 +87,7 @@ import {
   Truck,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useUserPermissions } from "@/hooks/usePermission";
 import { toast } from "sonner";
 
 export type ServiceFieldType =
@@ -272,6 +273,24 @@ export default function FormsCustomizationRegistrationDetail() {
     { enabled: !!formId }
   );
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
+
+  const userPermissions = useUserPermissions();
+  const hasWildcard = userPermissions.includes("*");
+  const canAnyRegistration =
+    hasWildcard ||
+    userPermissions.some(
+      (p) =>
+        p.startsWith("forms_customization.registration")
+    );
+
+  const canAddField = hasWildcard || userPermissions.includes("forms_customization.registration_add_field");
+  const canDuplicate = hasWildcard || userPermissions.includes("forms_customization.registration_duplicate");
+  const canPlaceholder = hasWildcard || userPermissions.includes("forms_customization.registration_placeholder");
+  const canDescription = hasWildcard || userPermissions.includes("forms_customization.registration_description");
+  const canChangeType = hasWildcard || userPermissions.includes("forms_customization.registration_change_type");
+  const canRequired = hasWildcard || userPermissions.includes("forms_customization.registration_required");
+  const canToggleActive = hasWildcard || userPermissions.includes("forms_customization.registration_toggle_active");
+  const canReorder = hasWildcard || userPermissions.includes("forms_customization.registration_reorder");
 
   const [fields, setFields] = useState<ServiceField[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
@@ -801,6 +820,27 @@ export default function FormsCustomizationRegistrationDetail() {
     );
   };
 
+  if (!canAnyRegistration) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-md mx-auto my-16 p-8 rounded-2xl border border-border bg-card text-center space-y-3 shadow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-foreground">غير مصرح بالوصول</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            لا تملك الصلاحية اللازمة لتخصيص نماذج التسجيل والتبرع.
+          </p>
+          <Link href="/forms-customization/registration">
+            <Button variant="outline" size="sm" className="mt-2 text-xs font-semibold">
+              العودة لقائمة النماذج
+            </Button>
+          </Link>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -948,6 +988,7 @@ export default function FormsCustomizationRegistrationDetail() {
 
           <div className="flex items-center gap-2">
             {/* القائمة السريعة لإضافة حقل حسب النوع */}
+            {canAddField && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -986,6 +1027,7 @@ export default function FormsCustomizationRegistrationDetail() {
                 })}
               </DropdownMenuContent>
             </DropdownMenu>
+            )}
 
             <Button
               type="button"
@@ -1111,7 +1153,7 @@ export default function FormsCustomizationRegistrationDetail() {
               return (
                 <Fragment key={field.id}>
                   <div
-                    draggable={isDragEnabled}
+                    draggable={canReorder && isDragEnabled}
                     onDragStart={(e) => handleDragStart(e, actualIndex)}
                     onDragOver={(e) => handleDragOver(e, actualIndex)}
                     onDragEnd={handleDragEnd}
@@ -1126,38 +1168,42 @@ export default function FormsCustomizationRegistrationDetail() {
                       {/* مقبض السحب والإفلات + أزرار الترتيب السريع + رقم الترتيب */}
                       <div className="flex items-center gap-1.5 shrink-0 select-none">
                         {/* مقبض السحب */}
-                        <div
-                          onMouseDown={() => setDragEnabledIndex(actualIndex)}
-                          onMouseUp={() => setDragEnabledIndex(null)}
-                          onTouchStart={() => setDragEnabledIndex(actualIndex)}
-                          onTouchEnd={() => setDragEnabledIndex(null)}
-                          className="p-1 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-muted cursor-grab active:cursor-grabbing transition-colors"
-                          title="اسحب لترتيب الحقل"
-                        >
-                          <GripVertical className="w-4 h-4 pointer-events-none" />
-                        </div>
+                        {canReorder && (
+                          <div
+                            onMouseDown={() => setDragEnabledIndex(actualIndex)}
+                            onMouseUp={() => setDragEnabledIndex(null)}
+                            onTouchStart={() => setDragEnabledIndex(actualIndex)}
+                            onTouchEnd={() => setDragEnabledIndex(null)}
+                            className="p-1 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-muted cursor-grab active:cursor-grabbing transition-colors"
+                            title="اسحب لترتيب الحقل"
+                          >
+                            <GripVertical className="w-4 h-4 pointer-events-none" />
+                          </div>
+                        )}
 
                         {/* أزرار التحريك السريع (Up/Down) */}
-                        <div className="flex flex-col gap-0.5">
-                          <button
-                            type="button"
-                            disabled={actualIndex === 0}
-                            onClick={() => handleMoveField(actualIndex, "up")}
-                            className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
-                            title="تحريك لأعلى"
-                          >
-                            <ChevronUp className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            disabled={actualIndex === fields.length - 1}
-                            onClick={() => handleMoveField(actualIndex, "down")}
-                            className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
-                            title="تحريك لأسفل"
-                          >
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        {canReorder && (
+                          <div className="flex flex-col gap-0.5">
+                            <button
+                              type="button"
+                              disabled={actualIndex === 0}
+                              onClick={() => handleMoveField(actualIndex, "up")}
+                              className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                              title="تحريك لأعلى"
+                            >
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={actualIndex === fields.length - 1}
+                              onClick={() => handleMoveField(actualIndex, "down")}
+                              className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                              title="تحريك لأسفل"
+                            >
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
 
                         {/* رقم الترتيب */}
                         <div className="w-7 h-7 rounded-xl bg-muted/60 text-muted-foreground font-black text-xs flex items-center justify-center border border-border/80 shrink-0">
@@ -1183,6 +1229,7 @@ export default function FormsCustomizationRegistrationDetail() {
                       {/* نوع الحقل */}
                       <div className="w-full sm:w-40 shrink-0">
                         <Select
+                          disabled={!canChangeType}
                           value={field.type}
                           onValueChange={(val: ServiceFieldType) =>
                             handleUpdateField(field.id, {
@@ -1216,6 +1263,7 @@ export default function FormsCustomizationRegistrationDetail() {
                         <div className="flex items-center gap-1.5 bg-muted/40 px-2.5 py-1.5 rounded-xl border border-border/60">
                           <span className="text-[11px] text-muted-foreground font-semibold">إجباري:</span>
                           <Switch
+                            disabled={!canRequired}
                             checked={field.required}
                             onCheckedChange={(c) => handleUpdateField(field.id, { required: c })}
                           />
@@ -1225,6 +1273,7 @@ export default function FormsCustomizationRegistrationDetail() {
                         <div className="flex items-center gap-1.5 bg-muted/40 px-2.5 py-1.5 rounded-xl border border-border/60">
                           <span className="text-[11px] text-muted-foreground font-semibold">مفعل:</span>
                           <Switch
+                            disabled={!canToggleActive}
                             checked={field.isActive}
                             onCheckedChange={(c) => handleUpdateField(field.id, { isActive: c })}
                           />
@@ -1245,6 +1294,7 @@ export default function FormsCustomizationRegistrationDetail() {
                           <Settings2 className="w-4 h-4" />
                         </Button>
 
+                        {canDuplicate && (
                         <Button
                           type="button"
                           variant="ghost"
@@ -1255,6 +1305,7 @@ export default function FormsCustomizationRegistrationDetail() {
                         >
                           <Copy className="w-4 h-4" />
                         </Button>
+                        )}
 
                         <Button
                           type="button"
@@ -1283,6 +1334,7 @@ export default function FormsCustomizationRegistrationDetail() {
                               value={field.placeholder || ""}
                               onChange={(e) => handleUpdateField(field.id, { placeholder: e.target.value })}
                               placeholder="مثال: اكتب التفاصيل هنا..."
+                              disabled={!canPlaceholder}
                               className="h-9 text-xs bg-background rounded-xl text-right border-border/80"
                             />
                           </div>
@@ -1297,6 +1349,7 @@ export default function FormsCustomizationRegistrationDetail() {
                               value={field.helpText || ""}
                               onChange={(e) => handleUpdateField(field.id, { helpText: e.target.value })}
                               placeholder="يظهر بخط أصغر أسفل الحقل لإرشاد مقدم الطلب..."
+                              disabled={!canDescription}
                               className="h-9 text-xs bg-background rounded-xl text-right border-border/80"
                             />
                           </div>
@@ -1391,6 +1444,7 @@ export default function FormsCustomizationRegistrationDetail() {
         )}
 
         {/* زر إضافة حقل جديد في الأسفل */}
+        {canAddField && (
         <div className="pt-2">
           <Button
             type="button"
@@ -1402,6 +1456,7 @@ export default function FormsCustomizationRegistrationDetail() {
             <span>إضافة حقل / سؤال جديد لهذا النموذج</span>
           </Button>
         </div>
+        )}
 
         {/* شريط الإجراءات العائم السفلي عند وجود تعديلات غير محفوظة */}
         {hasChanges && (

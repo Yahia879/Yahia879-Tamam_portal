@@ -11,6 +11,7 @@ import { AlertCircle, Plus, Trash2, Edit2, Save, X, CheckCircle, Loader2, Shield
 import { usePermission } from "@/hooks/usePermission";
 import { PermissionGuard } from "@/components/PermissionGuard";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { toast } from "sonner";
 
 interface ProgramCustomization {
   id: string;
@@ -53,7 +54,6 @@ export default function ProgramCustomization() {
   const canDelete = hasPerm("services.delete");
   const canToggleStatus = hasPerm("services.toggle_status");
   const canReorder = hasPerm("services.reorder");
-  const canCustomizeForm = hasPerm("forms_customization.services") || hasPerm("forms_customization");
   const canAccessPrograms = canView || canAdd || canEdit || canDelete || canToggleStatus || canReorder;
 
   const utils = trpc.useUtils();
@@ -698,20 +698,6 @@ export default function ProgramCustomization() {
                       </div>
 
                       <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-center flex-wrap">
-                        {canCustomizeForm && (
-                          <Link href={`/forms-customization/services/${program.id}`}>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-8 px-2.5 sm:px-3 text-xs font-bold text-cyan-700 dark:text-cyan-400 border-cyan-300 dark:border-cyan-800 bg-cyan-50/70 dark:bg-cyan-950/30 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 hover:text-cyan-900 dark:hover:text-cyan-200 transition-all gap-1.5 rounded-lg shadow-2xs"
-                              title="تخصيص وترتيب حقول استمارة تقديم هذا البرنامج"
-                            >
-                              <SlidersHorizontal className="w-3.5 h-3.5" />
-                              <span>تخصيص الفورم</span>
-                            </Button>
-                          </Link>
-                        )}
 
                         <div className="flex items-center gap-3 bg-muted/50 p-1 rounded-lg">
                           {canToggleStatus ? (

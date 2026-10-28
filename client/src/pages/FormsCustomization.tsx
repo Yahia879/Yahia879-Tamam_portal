@@ -3,6 +3,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/usePermission";
+import { trpc } from "@/lib/trpc";
 import {
   ArrowRight,
   Star,
@@ -17,7 +18,63 @@ import {
 export default function FormsCustomization() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
-  const isSuperAdmin = user?.role === "super_admin";
+  const { data: userPermsData } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user }
+  );
+  const effectivePerms = Array.isArray(userPermsData) ? userPermsData : [];
+
+  const dashboardSubPerms = [
+    "forms_customization.dashboard_global",
+    "forms_customization.dashboard_role",
+    "forms_customization.dashboard_user"
+  ];
+  const evaluationSubPerms = [
+    "forms_customization.evaluation_add_field",
+    "forms_customization.evaluation_duplicate",
+    "forms_customization.evaluation_placeholder",
+    "forms_customization.evaluation_description",
+    "forms_customization.evaluation_change_type",
+    "forms_customization.evaluation_required",
+    "forms_customization.evaluation_toggle_active",
+    "forms_customization.evaluation_reorder"
+  ];
+  const servicesSubPerms = [
+    "forms_customization.services_add_field",
+    "forms_customization.services_duplicate",
+    "forms_customization.services_placeholder",
+    "forms_customization.services_description",
+    "forms_customization.services_change_type",
+    "forms_customization.services_required",
+    "forms_customization.services_toggle_active",
+    "forms_customization.services_reorder"
+  ];
+  const registrationSubPerms = [
+    "forms_customization.registration_add_field",
+    "forms_customization.registration_duplicate",
+    "forms_customization.registration_placeholder",
+    "forms_customization.registration_description",
+    "forms_customization.registration_change_type",
+    "forms_customization.registration_required",
+    "forms_customization.registration_toggle_active",
+    "forms_customization.registration_reorder"
+  ];
+
+  const hasDashboardPerm = effectivePerms.some(
+    (p) => dashboardSubPerms.includes(p) || p === "*"
+  );
+
+  const hasEvaluationPerm = effectivePerms.some(
+    (p) => evaluationSubPerms.includes(p) || p === "*"
+  );
+
+  const hasServicesPerm = effectivePerms.some(
+    (p) => servicesSubPerms.includes(p) || p === "*"
+  );
+
+  const hasRegistrationPerm = effectivePerms.some(
+    (p) => registrationSubPerms.includes(p) || p === "*"
+  );
   const userPermissions = useUserPermissions();
 
   const allOptions = [
@@ -28,7 +85,7 @@ export default function FormsCustomization() {
       path: "/forms-customization/dashboard",
       icon: LayoutDashboard,
       iconColor: "text-purple-600 bg-purple-50 dark:bg-purple-950/40",
-      visible: isSuperAdmin,
+      visible: hasDashboardPerm,
       optionBadge: "حصري لمدير النظام الشامل",
     },
     {
@@ -38,7 +95,7 @@ export default function FormsCustomization() {
       path: "/forms-customization/evaluation",
       icon: Star,
       iconColor: "text-amber-500 bg-amber-50 dark:bg-amber-950/40",
-      visible: userPermissions.includes("forms_customization.evaluation"),
+      visible: hasEvaluationPerm,
       optionBadge: "الخيار الأول",
     },
     {
@@ -48,7 +105,7 @@ export default function FormsCustomization() {
       path: "/forms-customization/services",
       icon: FileText,
       iconColor: "text-cyan-500 bg-cyan-50 dark:bg-cyan-950/40",
-      visible: userPermissions.includes("forms_customization.services"),
+      visible: hasServicesPerm,
       optionBadge: "الخيار الثاني",
     },
     {
@@ -58,7 +115,7 @@ export default function FormsCustomization() {
       path: "/forms-customization/registration",
       icon: HeartHandshake,
       iconColor: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40",
-      visible: userPermissions.includes("forms_customization.registration"),
+      visible: hasRegistrationPerm,
       optionBadge: "الخيار الثالث",
     },
   ];

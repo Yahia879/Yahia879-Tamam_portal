@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Palette, Upload, Eye, Save, X, Loader2, FileText, Building2, Star, ArrowRight, Globe } from "lucide-react";
+import { Palette, Upload, Eye, Save, X, Loader2, FileText, Building2, Star, ArrowRight, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
@@ -21,8 +21,6 @@ function applyColorsToDOM(colors: {
   colorSecondary5: string;
 }) {
   const root = document.documentElement;
-  // تحويل hex إلى oklch تقريبي (نستخدم CSS color-mix كبديل)
-  // نضع الألوان مباشرة كـ hex في متغيرات مخصصة
   root.style.setProperty("--brand-primary-1", colors.colorPrimary1);
   root.style.setProperty("--brand-primary-2", colors.colorPrimary2);
   root.style.setProperty("--brand-secondary-1", colors.colorSecondary1);
@@ -30,22 +28,29 @@ function applyColorsToDOM(colors: {
   root.style.setProperty("--brand-secondary-3", colors.colorSecondary3);
   root.style.setProperty("--brand-secondary-4", colors.colorSecondary4);
   root.style.setProperty("--brand-secondary-5", colors.colorSecondary5);
-  // تطبيق اللون الرئيسي الأول على --primary
   root.style.setProperty("--sidebar-primary", colors.colorPrimary1);
 }
 
 export default function Branding() {
   const { user } = useAuth();
-  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const userPermissions: string[] = (user as any)?.permissions ?? [];
-  const hasPerm = (p: string) =>
-    isAdmin ||
-    userPermissions.includes("*") ||
-    userPermissions.includes(p);
+  // جلب الصلاحيات الفعلية المحدثة لحظياً
+  const { data: userPermsData } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user }
+  );
+  const effectivePermissions: string[] = Array.isArray(userPermsData)
+    ? userPermsData
+    : ((user as any)?.permissions ?? []);
 
-  const canEditColors = hasPerm("settings_branding.edit_colors") || hasPerm("settings_branding.edit") || hasPerm("settings.edit");
-  const canUploadLogos = hasPerm("settings_branding.upload_logos") || hasPerm("settings_branding.edit") || hasPerm("settings.edit");
-  const canDeleteLogos = hasPerm("settings_branding.delete_logos") || hasPerm("settings_branding.edit") || hasPerm("settings.edit");
+  const hasPerm = (p: string) =>
+    effectivePermissions.includes("*") || effectivePermissions.includes(p);
+
+  const canView = hasPerm("settings_branding.view");
+  const canEditColors = hasPerm("settings_branding.edit_colors") || hasPerm("settings_branding.edit");
+  const canUploadLogos = hasPerm("settings_branding.upload_logos") || hasPerm("settings_branding.edit");
+  const canDeleteLogos = hasPerm("settings_branding.delete_logos") || hasPerm("settings_branding.edit");
+
+  const canAccessBranding = canView || canEditColors || canUploadLogos || canDeleteLogos;
 
   // الألوان الرئيسية (2) والثانوية (5)
   const [colorPrimary1, setColorPrimary1] = useState("#09707e");
@@ -115,12 +120,6 @@ export default function Branding() {
     try {
       await updateSettingsMutation.mutateAsync({
         organizationName: orgSettings.organizationName || "الجمعية",
-        // الحفاظ على الشعارات الموجودة عند حفظ الألوان
-        logoUrl: mainLogo || orgSettings.logoUrl || undefined,
-        secondaryLogoUrl: whiteLogo || orgSettings.secondaryLogoUrl || undefined,
-        stampUrl: darkLogo || orgSettings.stampUrl || undefined,
-        technicalSupervisorLogoUrl: technicalLogo || (orgSettings as any).technicalSupervisorLogoUrl || undefined,
-        administrativeSupervisorLogoUrl: adminLogo || (orgSettings as any).administrativeSupervisorLogoUrl || undefined,
         colorPrimary1,
         colorPrimary2,
         colorSecondary1,
@@ -130,7 +129,7 @@ export default function Branding() {
         colorSecondary5,
         metaTitle,
       });
-      toast.success("تم حفظ إعدادات الهوية وعنوان الموقع بنجاح");
+      toast.success("تم حفظ إعدادات الهوية والألوان بنجاح");
       refetch();
       utils.organization.getSettings.invalidate();
     } catch (error) {
@@ -143,7 +142,7 @@ export default function Branding() {
   // دالة رفع الشعار
   const handleLogoUpload = async (
     file: File,
-    type: "logo" | "secondaryLogo" | "stamp",
+    type: "logo" | "secondaryLogo" | "stamp" | "technical_supervision" | "admin_supervision",
     setLogo: (url: string | null) => void
   ) => {
     if (!canUploadLogos) {
@@ -154,7 +153,7 @@ export default function Branding() {
     const allowedImageExtensions = ["jpg", "jpeg", "png", "webp"];
     const extension = file.name.split(".").pop()?.toLowerCase() || "";
 
-    if (!allowedImageMimes.includes(file.type) || !allowedImageExtensions.includes(extension)) {
+    if (!allowedImageMimes.includes(file.type) && !allowedImageExtensions.includes(extension)) {
       toast.error("الملف المرفوع ليس صورة صالحة. يسمح فقط بـ JPG, JPEG, PNG, WEBP.");
       return;
     }
@@ -178,16 +177,17 @@ export default function Branding() {
         type,
         fileData: base64,
         fileName: file.name,
-        mimeType: file.type,
+        mimeType: file.type || "image/png",
       });
       if (result.success && result.url) {
         setLogo(result.url);
         toast.success("تم رفع الشعار بنجاح");
         refetch();
+        utils.organization.getSettings.invalidate();
       }
     } catch (error: any) {
-      console.error('[uploadLogo] Error:', error);
-      const msg = error?.message || error?.data?.message || JSON.stringify(error);
+      console.error("[uploadLogo] Error:", error);
+      const msg = error?.message || error?.data?.message || "حدث خطأ أثناء رفع الشعار";
       toast.error(`فشل في رفع الشعار: ${msg}`);
     } finally {
       setUploading(null);
@@ -195,34 +195,96 @@ export default function Branding() {
   };
 
   // دالة حذف الشعار
-  const handleRemoveLogo = (
-    type: string,
+  const handleRemoveLogo = async (
+    type: "logo" | "secondaryLogo" | "stamp" | "technical_supervision" | "admin_supervision",
     setLogo: (url: string | null) => void
   ) => {
-    if (!canDeleteLogos) {
+    if (!canDeleteLogos && !canUploadLogos) {
       toast.error("ليس لديك صلاحية حذف الشعارات والأختام المرفوعة");
       return;
     }
+
+    const previousUrl =
+      type === "logo" ? mainLogo :
+      type === "secondaryLogo" ? whiteLogo :
+      type === "stamp" ? darkLogo :
+      type === "technical_supervision" ? technicalLogo : adminLogo;
+
     setLogo(null);
-    toast.success("تم حذف الشعار");
+    try {
+      const payload: any = {
+        organizationName: orgSettings?.organizationName || "الجمعية",
+      };
+      if (type === "logo") payload.logoUrl = null;
+      if (type === "secondaryLogo") payload.secondaryLogoUrl = null;
+      if (type === "stamp") payload.stampUrl = null;
+      if (type === "technical_supervision") payload.technicalSupervisorLogoUrl = null;
+      if (type === "admin_supervision") payload.administrativeSupervisorLogoUrl = null;
+
+      await updateSettingsMutation.mutateAsync(payload);
+      toast.success("تم حذف الشعار بنجاح");
+      refetch();
+      utils.organization.getSettings.invalidate();
+    } catch (error: any) {
+      setLogo(previousUrl);
+      console.error("[handleRemoveLogo] Error:", error);
+      toast.error("فشل في حذف الشعار من الخادم");
+    }
   };
 
+  // شاشة حجب الوصول في حال عدم توفر أي صلاحية من صلاحيات الهوية البصرية
+  if (!canAccessBranding) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
+          <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 mb-4">
+            <ShieldAlert className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold mb-2">غير مصرح لك بالوصول</h2>
+          <p className="text-muted-foreground text-sm max-w-md mb-6">
+            تم إلغاء صلاحيات الوصول إلى إعدادات الهوية البصرية من حسابك. يرجى التواصل مع إدارة النظام إذا كنت تعتقد أن هذا خطأ.
+          </p>
+          <Link href="/settings">
+            <Button variant="outline">
+              <ArrowRight className="w-4 h-4 ml-2" />
+              العودة إلى الإعدادات
+            </Button>
+          </Link>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   // مكوّن حقل اللون
-  const ColorField = ({ label, value, onChange, description }: { label: string; value: string; onChange: (v: string) => void; description?: string }) => (
+  const ColorField = ({
+    label,
+    value,
+    onChange,
+    description,
+    disabled = false,
+  }: {
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    description?: string;
+    disabled?: boolean;
+  }) => (
     <div className="space-y-1.5">
-      <Label className="text-sm font-medium">{label}</Label>
+      <Label className={`text-sm font-medium ${disabled ? "text-muted-foreground" : ""}`}>{label}</Label>
       {description && <p className="text-xs text-muted-foreground">{description}</p>}
       <div className="flex items-center gap-2">
         <input
           type="color"
           value={value}
+          disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
-          className="w-10 h-10 rounded-lg border cursor-pointer p-0.5 bg-transparent"
+          className={`w-10 h-10 rounded-lg border p-0.5 bg-transparent ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
         />
         <Input
           value={value}
+          disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
-          className="flex-1 font-mono text-sm"
+          className={`flex-1 font-mono text-sm ${disabled ? "bg-muted cursor-not-allowed text-muted-foreground opacity-80" : ""}`}
           maxLength={7}
         />
         <div className="w-10 h-10 rounded-lg border shadow-sm flex-shrink-0" style={{ backgroundColor: value }} />
@@ -246,7 +308,11 @@ export default function Branding() {
             </div>
           </div>
           {canEditColors && (
-            <Button className="gradient-primary text-white w-full sm:w-auto order-first sm:order-last" onClick={handleSaveColors} disabled={isSaving}>
+            <Button
+              className="gradient-primary text-white w-full sm:w-auto order-first sm:order-last"
+              onClick={handleSaveColors}
+              disabled={isSaving}
+            >
               {isSaving ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <Save className="w-4 h-4 ml-2" />}
               حفظ التغييرات
             </Button>
@@ -271,8 +337,20 @@ export default function Branding() {
                   <p className="text-sm font-semibold text-foreground">الألوان الرئيسية</p>
                 </div>
                 <div className="grid grid-cols-1 gap-4">
-                  <ColorField label="اللون الرئيسي الأول" value={colorPrimary1} onChange={setColorPrimary1} description="يُستخدم في القائمة الجانبية والعناصر الأساسية" />
-                  <ColorField label="اللون الرئيسي الثاني" value={colorPrimary2} onChange={setColorPrimary2} description="يُستخدم في التدرجات والعناصر التكميلية" />
+                  <ColorField
+                    label="اللون الرئيسي الأول"
+                    value={colorPrimary1}
+                    onChange={setColorPrimary1}
+                    description="يُستخدم في القائمة الجانبية والعناصر الأساسية"
+                    disabled={!canEditColors}
+                  />
+                  <ColorField
+                    label="اللون الرئيسي الثاني"
+                    value={colorPrimary2}
+                    onChange={setColorPrimary2}
+                    description="يُستخدم في التدرجات والعناصر التكميلية"
+                    disabled={!canEditColors}
+                  />
                 </div>
               </div>
 
@@ -283,11 +361,11 @@ export default function Branding() {
                   <p className="text-sm font-semibold text-foreground">الألوان الثانوية</p>
                 </div>
                 <div className="grid grid-cols-1 gap-4">
-                  <ColorField label="اللون الثانوي 1" value={colorSecondary1} onChange={setColorSecondary1} />
-                  <ColorField label="اللون الثانوي 2" value={colorSecondary2} onChange={setColorSecondary2} />
-                  <ColorField label="اللون الثانوي 3" value={colorSecondary3} onChange={setColorSecondary3} />
-                  <ColorField label="اللون الثانوي 4" value={colorSecondary4} onChange={setColorSecondary4} />
-                  <ColorField label="اللون الثانوي 5" value={colorSecondary5} onChange={setColorSecondary5} />
+                  <ColorField label="اللون الثانوي 1" value={colorSecondary1} onChange={setColorSecondary1} disabled={!canEditColors} />
+                  <ColorField label="اللون الثانوي 2" value={colorSecondary2} onChange={setColorSecondary2} disabled={!canEditColors} />
+                  <ColorField label="اللون الثانوي 3" value={colorSecondary3} onChange={setColorSecondary3} disabled={!canEditColors} />
+                  <ColorField label="اللون الثانوي 4" value={colorSecondary4} onChange={setColorSecondary4} disabled={!canEditColors} />
+                  <ColorField label="اللون الثانوي 5" value={colorSecondary5} onChange={setColorSecondary5} disabled={!canEditColors} />
                 </div>
               </div>
 
@@ -319,12 +397,12 @@ export default function Branding() {
             <CardHeader className="p-4 sm:p-6 pb-2">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Upload className="w-5 h-5 text-primary" />
-                الشعارات
+                الشعارات والأختام الرسمية
               </CardTitle>
-              <CardDescription className="text-xs sm:text-sm">رفع شعارين: شعار رئيسي (ملون) وشعار أبيض (أيقونة)</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">إدارة الشعار الملون، الشعار الأبيض، والختم الرسمي</CardDescription>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 space-y-6 sm:space-y-8">
-              {/* الشعار الرئيسي */}
+              {/* 1. الشعار الرئيسي */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-primary" />
@@ -334,53 +412,79 @@ export default function Branding() {
                 {mainLogo ? (
                   <div className="border-2 border-primary/20 rounded-2xl p-6 sm:p-10 relative bg-white shadow-inner group">
                     <img src={mainLogo} alt="الشعار الرئيسي" className="max-h-24 sm:max-h-32 mx-auto object-contain transition-transform group-hover:scale-105" />
-                    {canDeleteLogos && (
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-3 left-3 h-8 w-8 rounded-full shadow-lg"
-                        onClick={() => handleRemoveLogo("logo", setMainLogo)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                      {canUploadLogos && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="h-8 px-2.5 text-xs rounded-full shadow-md bg-white/95 hover:bg-white text-gray-700 border flex items-center gap-1"
+                          onClick={() => mainLogoRef.current?.click()}
+                          title="تغيير / رفع بديل"
+                        >
+                          <Upload className="h-3.5 w-3.5" />
+                          <span>تغيير / رفع بديل</span>
+                        </Button>
+                      )}
+                      {(canDeleteLogos || canUploadLogos) && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="h-8 w-8 rounded-full shadow-lg"
+                          onClick={() => handleRemoveLogo("logo", setMainLogo)}
+                          title="حذف الشعار"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                     <p className="text-center text-[10px] sm:text-xs text-muted-foreground mt-4 font-medium">الشعار الرئيسي الملون</p>
                   </div>
                 ) : (
                   <div
-                    className={`border-2 border-dashed border-primary/30 rounded-2xl p-8 sm:p-12 text-center transition-all bg-white group ${canUploadLogos ? "hover:border-primary hover:bg-primary/5 cursor-pointer" : "opacity-60 cursor-not-allowed"}`}
-                    onClick={() => canUploadLogos ? mainLogoRef.current?.click() : toast.warning("ليس لديك صلاحية رفع وتحديث الشعارات")}
+                    className={`border-2 border-dashed border-primary/30 rounded-2xl p-8 sm:p-12 text-center transition-all bg-white group ${canUploadLogos ? "hover:border-primary hover:bg-primary/5 cursor-pointer" : "opacity-60 cursor-not-allowed bg-muted/20"}`}
+                    onClick={() => canUploadLogos ? mainLogoRef.current?.click() : undefined}
                   >
                     {uploading === "logo" ? (
                       <>
                         <Loader2 className="w-10 h-10 text-primary mx-auto mb-3 animate-spin" />
                         <p className="text-sm font-bold text-primary">جاري رفع الشعار...</p>
                       </>
-                    ) : (
+                    ) : canUploadLogos ? (
                       <>
                         <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                           <Upload className="w-8 h-8 text-primary" />
                         </div>
                         <p className="text-sm font-bold text-foreground">انقر لرفع الشعار الرئيسي</p>
-                        <p className="text-xs text-muted-foreground mt-2">PNG, SVG (حد أقصى 2MB)</p>
+                        <p className="text-xs text-muted-foreground mt-2">PNG, SVG, JPG (حد أقصى 2MB)</p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+                          <Upload className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm font-semibold text-muted-foreground">لا يوجد شعار رئيسي مرفوع</p>
+                        <p className="text-xs text-muted-foreground mt-1">لا تملك صلاحية رفع أو تحديث الشعارات</p>
                       </>
                     )}
-                    <input
-                      ref={mainLogoRef}
-                      type="file"
-                      accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleLogoUpload(file, "logo", setMainLogo);
-                        e.target.value = "";
-                      }}
-                    />
                   </div>
                 )}
+                <input
+                  ref={mainLogoRef}
+                  type="file"
+                  accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
+                  className="hidden"
+                  disabled={!canUploadLogos}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleLogoUpload(file, "logo", setMainLogo);
+                    e.target.value = "";
+                  }}
+                />
               </div>
 
-              {/* الشعار الأبيض (أيقونة) */}
+              {/* 2. الشعار الأبيض (أيقونة) */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-gray-700" />
@@ -390,30 +494,47 @@ export default function Branding() {
                 {whiteLogo ? (
                   <div className="border-2 border-white/10 rounded-2xl p-6 sm:p-10 relative shadow-inner group" style={{ backgroundColor: colorPrimary1 }}>
                     <img src={whiteLogo} alt="الشعار الأبيض" className="max-h-24 sm:max-h-32 mx-auto object-contain transition-transform group-hover:scale-105" />
-                    {canDeleteLogos && (
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-3 left-3 h-8 w-8 rounded-full shadow-lg"
-                        onClick={() => handleRemoveLogo("secondaryLogo", setWhiteLogo)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                      {canUploadLogos && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="h-8 px-2.5 text-xs rounded-full shadow-md bg-white/95 hover:bg-white text-gray-700 border flex items-center gap-1"
+                          onClick={() => whiteLogoRef.current?.click()}
+                          title="تغيير / رفع بديل"
+                        >
+                          <Upload className="h-3.5 w-3.5" />
+                          <span>تغيير / رفع بديل</span>
+                        </Button>
+                      )}
+                      {(canDeleteLogos || canUploadLogos) && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="h-8 w-8 rounded-full shadow-lg"
+                          onClick={() => handleRemoveLogo("secondaryLogo", setWhiteLogo)}
+                          title="حذف الشعار"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                     <p className="text-center text-[10px] sm:text-xs text-white/70 mt-4 font-medium">الشعار الأبيض للخلفيات الداكنة</p>
                   </div>
                 ) : (
                   <div
-                    className={`border-2 border-dashed border-gray-400 rounded-2xl p-8 sm:p-12 text-center transition-all group ${canUploadLogos ? "hover:border-gray-600 cursor-pointer" : "opacity-60 cursor-not-allowed"}`}
+                    className={`border-2 border-dashed border-gray-400 rounded-2xl p-8 sm:p-12 text-center transition-all group ${canUploadLogos ? "hover:border-gray-600 cursor-pointer" : "opacity-60 cursor-not-allowed bg-muted/20"}`}
                     style={{ backgroundColor: colorPrimary1 + "15" }}
-                    onClick={() => canUploadLogos ? whiteLogoRef.current?.click() : toast.warning("ليس لديك صلاحية رفع وتحديث الشعارات")}
+                    onClick={() => canUploadLogos ? whiteLogoRef.current?.click() : undefined}
                   >
                     {uploading === "secondaryLogo" ? (
                       <>
                         <Loader2 className="w-10 h-10 text-gray-600 mx-auto mb-3 animate-spin" />
                         <p className="text-sm font-bold text-gray-600">جاري رفع الشعار...</p>
                       </>
-                    ) : (
+                    ) : canUploadLogos ? (
                       <>
                         <div className="w-16 h-16 rounded-2xl bg-gray-800/10 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                           <Upload className="w-8 h-8 text-gray-500" />
@@ -421,23 +542,32 @@ export default function Branding() {
                         <p className="text-sm font-bold text-foreground">انقر لرفع الشعار الأبيض</p>
                         <p className="text-xs text-muted-foreground mt-2">يفضل PNG بخلفية شفافة</p>
                       </>
+                    ) : (
+                      <>
+                        <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+                          <Upload className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm font-semibold text-muted-foreground">لا يوجد شعار أبيض مرفوع</p>
+                        <p className="text-xs text-muted-foreground mt-1">لا تملك صلاحية رفع وتحديث الشعارات</p>
+                      </>
                     )}
-                    <input
-                      ref={whiteLogoRef}
-                      type="file"
-                      accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleLogoUpload(file, "secondaryLogo", setWhiteLogo);
-                        e.target.value = "";
-                      }}
-                    />
                   </div>
                 )}
+                <input
+                  ref={whiteLogoRef}
+                  type="file"
+                  accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
+                  className="hidden"
+                  disabled={!canUploadLogos}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleLogoUpload(file, "secondaryLogo", setWhiteLogo);
+                    e.target.value = "";
+                  }}
+                />
               </div>
 
-              {/* الختم / الطابع */}
+              {/* 3. الختم / الطابع الرسمي */}
               <div className="space-y-3 pt-2">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-amber-600" />
@@ -446,29 +576,46 @@ export default function Branding() {
                 {darkLogo ? (
                   <div className="border-2 border-amber-300/30 rounded-2xl p-6 sm:p-10 relative bg-white shadow-inner group">
                     <img src={darkLogo} alt="الختم" className="max-h-24 sm:max-h-32 mx-auto object-contain transition-transform group-hover:scale-105" />
-                    {canDeleteLogos && (
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-3 left-3 h-8 w-8 rounded-full shadow-lg"
-                        onClick={() => handleRemoveLogo("stamp", setDarkLogo)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                      {canUploadLogos && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="h-8 px-2.5 text-xs rounded-full shadow-md bg-white/95 hover:bg-white text-gray-700 border flex items-center gap-1"
+                          onClick={() => darkLogoRef.current?.click()}
+                          title="تغيير / رفع بديل"
+                        >
+                          <Upload className="h-3.5 w-3.5" />
+                          <span>تغيير / رفع بديل</span>
+                        </Button>
+                      )}
+                      {(canDeleteLogos || canUploadLogos) && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="h-8 w-8 rounded-full shadow-lg"
+                          onClick={() => handleRemoveLogo("stamp", setDarkLogo)}
+                          title="حذف الختم"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                     <p className="text-center text-[10px] sm:text-xs text-muted-foreground mt-4 font-medium">الختم الرسمي للوثائق</p>
                   </div>
                 ) : (
                   <div
-                     className={`border-2 border-dashed border-amber-300 rounded-2xl p-8 sm:p-12 text-center transition-all bg-white group ${canUploadLogos ? "hover:border-amber-500 hover:bg-amber-50/50 cursor-pointer" : "opacity-60 cursor-not-allowed"}`}
-                    onClick={() => canUploadLogos ? darkLogoRef.current?.click() : toast.warning("ليس لديك صلاحية رفع وتحديث الشعارات")}
+                    className={`border-2 border-dashed border-amber-300 rounded-2xl p-8 sm:p-12 text-center transition-all bg-white group ${canUploadLogos ? "hover:border-amber-500 hover:bg-amber-50/50 cursor-pointer" : "opacity-60 cursor-not-allowed bg-muted/20"}`}
+                    onClick={() => canUploadLogos ? darkLogoRef.current?.click() : undefined}
                   >
                     {uploading === "stamp" ? (
                       <>
                         <Loader2 className="w-10 h-10 text-amber-600 mx-auto mb-3 animate-spin" />
                         <p className="text-sm font-bold text-amber-600">جاري رفع الختم...</p>
                       </>
-                    ) : (
+                    ) : canUploadLogos ? (
                       <>
                         <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                           <Upload className="w-8 h-8 text-amber-500" />
@@ -476,23 +623,32 @@ export default function Branding() {
                         <p className="text-sm font-bold text-foreground">انقر لرفع الختم الرسمي</p>
                         <p className="text-xs text-muted-foreground mt-2">PNG بخلفية شفافة</p>
                       </>
+                    ) : (
+                      <>
+                        <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+                          <Upload className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm font-semibold text-muted-foreground">لا يوجد ختم رسمي مرفوع</p>
+                        <p className="text-xs text-muted-foreground mt-1">لا تملك صلاحية رفع وتحديث الأختام</p>
+                      </>
                     )}
-                    <input
-                      ref={darkLogoRef}
-                      type="file"
-                      accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleLogoUpload(file, "stamp", setDarkLogo);
-                        e.target.value = "";
-                      }}
-                    />
                   </div>
                 )}
+                <input
+                  ref={darkLogoRef}
+                  type="file"
+                  accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
+                  className="hidden"
+                  disabled={!canUploadLogos}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleLogoUpload(file, "stamp", setDarkLogo);
+                    e.target.value = "";
+                  }}
+                />
               </div>
 
-              {/* جهة الإشراف الفني */}
+              {/* 4. جهة الإشراف الفني */}
               <div className="space-y-3 pt-2">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-indigo-600" />
@@ -501,29 +657,46 @@ export default function Branding() {
                 {technicalLogo ? (
                   <div className="border-2 border-indigo-300/30 rounded-2xl p-6 sm:p-10 relative bg-white shadow-inner group">
                     <img src={technicalLogo} alt="جهة الإشراف الفني" className="max-h-24 sm:max-h-32 mx-auto object-contain transition-transform group-hover:scale-105" />
-                    {canDeleteLogos && (
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-3 left-3 h-8 w-8 rounded-full shadow-lg"
-                        onClick={() => handleRemoveLogo("technical_supervision", setTechnicalLogo)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                      {canUploadLogos && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="h-8 px-2.5 text-xs rounded-full shadow-md bg-white/95 hover:bg-white text-gray-700 border flex items-center gap-1"
+                          onClick={() => technicalLogoRef.current?.click()}
+                          title="تغيير / رفع بديل"
+                        >
+                          <Upload className="h-3.5 w-3.5" />
+                          <span>تغيير / رفع بديل</span>
+                        </Button>
+                      )}
+                      {(canDeleteLogos || canUploadLogos) && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="h-8 w-8 rounded-full shadow-lg"
+                          onClick={() => handleRemoveLogo("technical_supervision", setTechnicalLogo)}
+                          title="حذف الشعار"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                     <p className="text-center text-[10px] sm:text-xs text-muted-foreground mt-4 font-medium">شعار جهة الإشراف الفني للتقارير</p>
                   </div>
                 ) : (
                   <div
-                    className={`border-2 border-dashed border-indigo-300 rounded-2xl p-8 sm:p-12 text-center transition-all bg-white group ${canUploadLogos ? "hover:border-indigo-500 hover:bg-indigo-50/50 cursor-pointer" : "opacity-60 cursor-not-allowed"}`}
-                    onClick={() => canUploadLogos ? technicalLogoRef.current?.click() : toast.warning("ليس لديك صلاحية رفع وتحديث الشعارات")}
+                    className={`border-2 border-dashed border-indigo-300 rounded-2xl p-8 sm:p-12 text-center transition-all bg-white group ${canUploadLogos ? "hover:border-indigo-500 hover:bg-indigo-50/50 cursor-pointer" : "opacity-60 cursor-not-allowed bg-muted/20"}`}
+                    onClick={() => canUploadLogos ? technicalLogoRef.current?.click() : undefined}
                   >
                     {uploading === "technical_supervision" ? (
                       <>
                         <Loader2 className="w-10 h-10 text-indigo-600 mx-auto mb-3 animate-spin" />
                         <p className="text-sm font-bold text-indigo-600">جاري رفع الشعار...</p>
                       </>
-                    ) : (
+                    ) : canUploadLogos ? (
                       <>
                         <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                           <Upload className="w-8 h-8 text-indigo-500" />
@@ -531,23 +704,32 @@ export default function Branding() {
                         <p className="text-sm font-bold text-foreground">انقر لرفع شعار الإشراف الفني</p>
                         <p className="text-xs text-muted-foreground mt-2">PNG أو JPG بأبعاد مناسبة</p>
                       </>
+                    ) : (
+                      <>
+                        <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+                          <Upload className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm font-semibold text-muted-foreground">لا يوجد شعار للإشراف الفني</p>
+                        <p className="text-xs text-muted-foreground mt-1">لا تملك صلاحية رفع وتحديث الشعارات</p>
+                      </>
                     )}
-                    <input
-                      ref={technicalLogoRef}
-                      type="file"
-                      accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleLogoUpload(file, "technical_supervision" as any, setTechnicalLogo);
-                        e.target.value = "";
-                      }}
-                    />
                   </div>
                 )}
+                <input
+                  ref={technicalLogoRef}
+                  type="file"
+                  accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
+                  className="hidden"
+                  disabled={!canUploadLogos}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleLogoUpload(file, "technical_supervision", setTechnicalLogo);
+                    e.target.value = "";
+                  }}
+                />
               </div>
 
-              {/* جهة الإشراف الإداري */}
+              {/* 5. جهة الإشراف الإداري */}
               <div className="space-y-3 pt-2">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-sky-600" />
@@ -556,29 +738,46 @@ export default function Branding() {
                 {adminLogo ? (
                   <div className="border-2 border-sky-300/30 rounded-2xl p-6 sm:p-10 relative bg-white shadow-inner group">
                     <img src={adminLogo} alt="جهة الإشراف الإداري" className="max-h-24 sm:max-h-32 mx-auto object-contain transition-transform group-hover:scale-105" />
-                    {canDeleteLogos && (
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-3 left-3 h-8 w-8 rounded-full shadow-lg"
-                        onClick={() => handleRemoveLogo("admin_supervision", setAdminLogo)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                      {canUploadLogos && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="h-8 px-2.5 text-xs rounded-full shadow-md bg-white/95 hover:bg-white text-gray-700 border flex items-center gap-1"
+                          onClick={() => adminLogoRef.current?.click()}
+                          title="تغيير / رفع بديل"
+                        >
+                          <Upload className="h-3.5 w-3.5" />
+                          <span>تغيير / رفع بديل</span>
+                        </Button>
+                      )}
+                      {(canDeleteLogos || canUploadLogos) && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="h-8 w-8 rounded-full shadow-lg"
+                          onClick={() => handleRemoveLogo("admin_supervision", setAdminLogo)}
+                          title="حذف الشعار"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                     <p className="text-center text-[10px] sm:text-xs text-muted-foreground mt-4 font-medium">شعار جهة الإشراف الإداري للتقارير</p>
                   </div>
                 ) : (
                   <div
-                    className={`border-2 border-dashed border-sky-300 rounded-2xl p-8 sm:p-12 text-center transition-all bg-white group ${canUploadLogos ? "hover:border-sky-500 hover:bg-sky-50/50 cursor-pointer" : "opacity-60 cursor-not-allowed"}`}
-                    onClick={() => canUploadLogos ? adminLogoRef.current?.click() : toast.warning("ليس لديك صلاحية رفع وتحديث الشعارات")}
+                    className={`border-2 border-dashed border-sky-300 rounded-2xl p-8 sm:p-12 text-center transition-all bg-white group ${canUploadLogos ? "hover:border-sky-500 hover:bg-sky-50/50 cursor-pointer" : "opacity-60 cursor-not-allowed bg-muted/20"}`}
+                    onClick={() => canUploadLogos ? adminLogoRef.current?.click() : undefined}
                   >
                     {uploading === "admin_supervision" ? (
                       <>
                         <Loader2 className="w-10 h-10 text-sky-600 mx-auto mb-3 animate-spin" />
                         <p className="text-sm font-bold text-sky-600">جاري رفع الشعار...</p>
                       </>
-                    ) : (
+                    ) : canUploadLogos ? (
                       <>
                         <div className="w-16 h-16 rounded-2xl bg-sky-50 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                           <Upload className="w-8 h-8 text-sky-500" />
@@ -586,26 +785,35 @@ export default function Branding() {
                         <p className="text-sm font-bold text-foreground">انقر لرفع شعار الإشراف الإداري</p>
                         <p className="text-xs text-muted-foreground mt-2">PNG أو JPG بأبعاد مناسبة</p>
                       </>
+                    ) : (
+                      <>
+                        <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+                          <Upload className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm font-semibold text-muted-foreground">لا يوجد شعار للإشراف الإداري</p>
+                        <p className="text-xs text-muted-foreground mt-1">لا تملك صلاحية رفع وتحديث الشعارات</p>
+                      </>
                     )}
-                    <input
-                      ref={adminLogoRef}
-                      type="file"
-                      accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleLogoUpload(file, "admin_supervision" as any, setAdminLogo);
-                        e.target.value = "";
-                      }}
-                    />
                   </div>
                 )}
+                <input
+                  ref={adminLogoRef}
+                  type="file"
+                  accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
+                  className="hidden"
+                  disabled={!canUploadLogos}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleLogoUpload(file, "admin_supervision", setAdminLogo);
+                    e.target.value = "";
+                  }}
+                />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* معاينة */}
+        {/* معاينة الهوية البصرية */}
         <Card className="border-0 shadow-sm overflow-hidden">
           <CardHeader className="p-4 sm:p-6 pb-2">
             <CardTitle className="flex items-center gap-2 text-lg">
