@@ -242,6 +242,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/fund/movements": ["fund.view", "fund.transfer"],
   "/fund/transfers/new": ["fund.transfer"],
   "/receipt-vouchers": ["receipt_vouchers", "receipt_vouchers.view", "receipt_vouchers.add", "receipt_vouchers.edit", "receipt_vouchers.exception_approve"],
+  "/receipt-vouchers/new": ["receipt_vouchers", "receipt_vouchers.add", "receipt_vouchers.edit"],
   "/custody-requests": ["custody_requests", "custody_requests.view", "custody_requests.create"],
   "/custody-requests/new": ["custody_requests.create"],
 
