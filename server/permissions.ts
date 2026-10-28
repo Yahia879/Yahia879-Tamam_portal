@@ -2052,6 +2052,57 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.delete("settings_org.edit_signers");
   }
 
+  // تنظيف مفاتيح إدارة التصنيفات عند سحب أي من الصلاحيات التابعة
+  const allCategorySubPerms = [
+    "settings_categories.view",
+    "settings_categories.add",
+    "settings_categories.edit",
+    "settings_categories.reorder",
+    "settings_categories.delete"
+  ];
+
+  // إذا تم سحب عرض وتصفح التصنيفات، تسحب جميع إجراءات التصنيفات تلقائياً
+  if (revokedPermissions.has("settings_categories.view") || revokedPermissions.has("settings_categories")) {
+    allCategorySubPerms.forEach(p => allPermissions.delete(p));
+    allPermissions.delete("settings_categories");
+  }
+
+  // إذا تم سحب كافة صلاحيات التصنيفات (أو لم يتبق أي منها)، يتم حذف المفتاح العام settings_categories
+  const hasRemainingCategoryPerms = allCategorySubPerms.some(
+    p => allPermissions.has(p) && !revokedPermissions.has(p)
+  );
+  if (!hasRemainingCategoryPerms) {
+    allCategorySubPerms.forEach(p => allPermissions.delete(p));
+    allPermissions.delete("settings_categories");
+  }
+
+  // تنظيف مفاتيح البرامج والخدمات عند سحب أي من الصلاحيات التابعة
+  const allServicesSubPerms = [
+    "services.view",
+    "services.add",
+    "services.edit",
+    "services.toggle_status",
+    "services.reorder",
+    "services.delete"
+  ];
+
+  // إذا تم سحب عرض البرامج والخدمات، تسحب جميع إجراءات البرامج والخدمات تلقائياً
+  if (revokedPermissions.has("services.view") || revokedPermissions.has("services")) {
+    allServicesSubPerms.forEach(p => allPermissions.delete(p));
+    allPermissions.delete("services");
+    allPermissions.delete("programs_services");
+  }
+
+  // إذا تم سحب كافة صلاحيات البرامج والخدمات (أو لم يتبق أي منها)، يتم حذف المفتاح العام services
+  const hasRemainingServicesPerms = allServicesSubPerms.some(
+    p => allPermissions.has(p) && !revokedPermissions.has(p)
+  );
+  if (!hasRemainingServicesPerms) {
+    allServicesSubPerms.forEach(p => allPermissions.delete(p));
+    allPermissions.delete("services");
+    allPermissions.delete("programs_services");
+  }
+
   // 7. إضافة مفاتيح الصلاحيات البسيطة تلقائياً لتوافق الواجهة الجانبية والتحقق من المسارات
   if (allPermissions.has("mosques.view")) {
     allPermissions.add("mosques");
@@ -2389,8 +2440,21 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   ) {
     allPermissions.add("settings");
     allPermissions.add("settings_center");
+  }
+
+  if (
+    allPermissions.has("services.view") ||
+    allPermissions.has("services.add") ||
+    allPermissions.has("services.edit") ||
+    allPermissions.has("services.toggle_status") ||
+    allPermissions.has("services.reorder") ||
+    allPermissions.has("services.delete")
+  ) {
     allPermissions.add("services");
     allPermissions.add("programs_services");
+  } else {
+    allPermissions.delete("services");
+    allPermissions.delete("programs_services");
   }
   if (
     allPermissions.has("forms_customization.view") ||

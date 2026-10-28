@@ -346,7 +346,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/stage-settings": ["settings_center", "settings.stages_view"],
   "/action-settings": ["settings_center", "settings.actions_view"],
   "/categories": [
-    "settings_center",
     "settings_categories.view",
     "settings_categories.add",
     "settings_categories.edit",
@@ -355,7 +354,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   ],
   "/contract-templates": ["settings_center", "settings_contracts.view", "contracts"],
   "/program-customization": [
-    "programs_services",
     "services.view",
     "services.add",
     "services.edit",

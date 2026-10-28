@@ -39,17 +39,22 @@ const parseConditions = (conditions: any): string[] => {
 
 export default function ProgramCustomization() {
   const { user } = useAuth();
-  const { isLoading: permissionsLoading } = trpc.permissions.getUserPermissions.useQuery(
+  const { data: userPermissions = [], isLoading: permissionsLoading } = trpc.permissions.getUserPermissions.useQuery(
     { userId: user?.id ?? 0 },
-    { enabled: !!user, staleTime: 5 * 60 * 1000 }
+    { enabled: !!user }
   );
+  const hasPerm = (p: string) => 
+    userPermissions.includes("*") || 
+    userPermissions.includes(p);
 
-  const canView = usePermission("services.view");
-  const canAdd = usePermission("services.add");
-  const canEdit = usePermission("services.edit");
-  const canDelete = usePermission("services.delete");
-  const canToggleStatus = usePermission("services.toggle_status") || canEdit;
-  const canReorder = usePermission("services.reorder") || canEdit;
+  const canView = hasPerm("services.view");
+  const canAdd = hasPerm("services.add");
+  const canEdit = hasPerm("services.edit");
+  const canDelete = hasPerm("services.delete");
+  const canToggleStatus = hasPerm("services.toggle_status");
+  const canReorder = hasPerm("services.reorder");
+  const canCustomizeForm = hasPerm("forms_customization.services") || hasPerm("forms_customization");
+  const canAccessPrograms = canView || canAdd || canEdit || canDelete || canToggleStatus || canReorder;
 
   const utils = trpc.useUtils();
   const { data: programs = [], isLoading } = trpc.programs.getAll.useQuery();
@@ -97,13 +102,14 @@ export default function ProgramCustomization() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
+    if (!canReorder) return;
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = 'move';
   };
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
+    if (!canReorder || draggedIndex === null || draggedIndex === index) return;
 
     const items = [...localPrograms];
     const draggedItem = items[draggedIndex];
@@ -115,6 +121,7 @@ export default function ProgramCustomization() {
   };
 
   const handleDragEnd = async () => {
+    if (!canReorder) return;
     setDraggedIndex(null);
     const orders = localPrograms.map((p, idx) => ({
       id: p.id,
@@ -228,12 +235,34 @@ export default function ProgramCustomization() {
     );
   }
 
-  if (!canView) {
+  if (!canAccessPrograms) {
     return (
       <DashboardLayout>
-        <div className="container py-20 text-center flex flex-col items-center justify-center">
-          <Shield className="w-16 h-16 text-destructive mb-4" />
-          <h2 className="text-2xl font-bold text-destructive">عذراً، لا تملك صلاحية لعرض البرامج</h2>
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Link href="/settings">
+              <Button variant="ghost" size="icon" type="button">
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">البرامج والخدمات</h1>
+              <p className="text-sm sm:text-base text-muted-foreground mt-1">
+                إدارة برامج الجمعية وأنواع الخدمات المقدمة في البوابة
+              </p>
+            </div>
+          </div>
+          <Card className="border border-red-200/60 dark:border-red-900/30 bg-red-50/20 dark:bg-red-900/10 p-8 rounded-2xl text-center">
+            <div className="max-w-md mx-auto space-y-3">
+              <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full w-fit mx-auto">
+                <Shield className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">تم حجب صلاحيات البرامج والخدمات</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                تم إلغاء أو سحب صلاحيات قسم البرامج والخدمات عن حسابك، لا يمكنك استعراض أو تعديل البرامج حالياً.
+              </p>
+            </div>
+          </Card>
         </div>
       </DashboardLayout>
     );
@@ -257,7 +286,7 @@ export default function ProgramCustomization() {
               </p>
             </div>
           </div>
-          <PermissionGuard permission="services.add">
+          {canAdd && (
             <Button
               onClick={() => setShowAddNew(true)}
               className="gradient-primary text-white w-full sm:w-auto h-10"
@@ -265,7 +294,7 @@ export default function ProgramCustomization() {
               <Plus className="w-4 h-4 ml-2" />
               إضافة برنامج جديد
             </Button>
-          </PermissionGuard>
+          )}
         </div>
 
         {/* تنبيه */}
@@ -669,53 +698,72 @@ export default function ProgramCustomization() {
                       </div>
 
                       <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-center flex-wrap">
-                        <Link href={`/forms-customization/services/${program.id}`}>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-8 px-2.5 sm:px-3 text-xs font-bold text-cyan-700 dark:text-cyan-400 border-cyan-300 dark:border-cyan-800 bg-cyan-50/70 dark:bg-cyan-950/30 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 hover:text-cyan-900 dark:hover:text-cyan-200 transition-all gap-1.5 rounded-lg shadow-2xs"
-                            title="تخصيص وترتيب حقول استمارة تقديم هذا البرنامج"
-                          >
-                            <SlidersHorizontal className="w-3.5 h-3.5" />
-                            <span>تخصيص الفورم</span>
-                          </Button>
-                        </Link>
+                        {canCustomizeForm && (
+                          <Link href={`/forms-customization/services/${program.id}`}>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-2.5 sm:px-3 text-xs font-bold text-cyan-700 dark:text-cyan-400 border-cyan-300 dark:border-cyan-800 bg-cyan-50/70 dark:bg-cyan-950/30 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 hover:text-cyan-900 dark:hover:text-cyan-200 transition-all gap-1.5 rounded-lg shadow-2xs"
+                              title="تخصيص وترتيب حقول استمارة تقديم هذا البرنامج"
+                            >
+                              <SlidersHorizontal className="w-3.5 h-3.5" />
+                              <span>تخصيص الفورم</span>
+                            </Button>
+                          </Link>
+                        )}
 
                         <div className="flex items-center gap-3 bg-muted/50 p-1 rounded-lg">
-                          <label className={`flex items-center gap-2 px-2 ${canToggleStatus ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
-                            <input
-                              type="checkbox"
-                              checked={program.isActive}
-                              disabled={!canToggleStatus}
-                              onChange={() => canToggleStatus && toggleActive(program.id, program.isActive)}
-                              className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-                            />
-                            <span className="text-xs font-medium text-foreground whitespace-nowrap">فعّال</span>
-                          </label>
+                          {canToggleStatus ? (
+                            <label className="flex items-center gap-2 px-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={program.isActive}
+                                onChange={() => toggleActive(program.id, program.isActive)}
+                                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                              />
+                              <span className="text-xs font-medium text-foreground whitespace-nowrap">فعّال</span>
+                            </label>
+                          ) : (
+                            <div className="px-2">
+                              {program.isActive ? (
+                                <Badge variant="outline" className="text-[10px] sm:text-xs text-emerald-600 border-emerald-300 bg-emerald-50/50">
+                                  فعّال
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px] sm:text-xs text-gray-500 border-gray-300">
+                                  معطّل
+                                </Badge>
+                              )}
+                            </div>
+                          )}
                           {(canEdit || canDelete) && <div className="w-[1px] h-6 bg-border mx-1 hidden sm:block" />}
-                          <div className="flex items-center">
-                            <PermissionGuard permission="services.edit">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEdit(program)}
-                                className="h-8 w-8 text-blue-600 hover:bg-blue-50"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </Button>
-                            </PermissionGuard>
-                            <PermissionGuard permission="services.delete">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDelete(program.id)}
-                                className="h-8 w-8 text-red-500 hover:bg-red-50"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </PermissionGuard>
-                          </div>
+                          {(canEdit || canDelete) && (
+                            <div className="flex items-center">
+                              {canEdit && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEdit(program)}
+                                  className="h-8 w-8 text-blue-600 hover:bg-blue-50"
+                                  title="تعديل مواصفات وبيانات البرنامج"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </Button>
+                              )}
+                              {canDelete && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDelete(program.id)}
+                                  className="h-8 w-8 text-red-500 hover:bg-red-50"
+                                  title="حذف البرنامج"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -183,8 +183,7 @@ export default function Settings() {
     if (perm === "settings_categories.view") {
       return (
         effectivePermissions.some(p => p.startsWith("settings_categories.")) ||
-        effectivePermissions.includes("settings.view") ||
-        effectivePermissions.includes("settings.edit")
+        effectivePermissions.includes("settings_categories")
       );
     }
     if (perm === "services.view") {

@@ -4,6 +4,15 @@ import { getDb } from "../db";
 import { categories } from "../../drizzle/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { calculateUserPermissions } from "../permissions";
+
+async function checkCatPerm(userId: number, perm: string, message: string) {
+  const userPermissions = await calculateUserPermissions(userId);
+  if (userPermissions.includes("*") || userPermissions.includes(perm)) {
+    return;
+  }
+  throw new TRPCError({ code: "FORBIDDEN", message });
+}
 
 export const categoriesRouter = router({
   // الحصول على جميع التصنيفات الرئيسية
@@ -185,15 +194,7 @@ export const categoriesRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const allowedRoles = ["super_admin", "system_admin", "projects_office"];
-      if (!allowedRoles.includes(ctx.user.role)) {
-        const { calculateUserPermissions } = await import("../permissions");
-        const userPermissions = await calculateUserPermissions(ctx.user.id);
-        const hasAddPerm = userPermissions.includes("settings_categories.add");
-        if (!hasAddPerm) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-      }
+      await checkCatPerm(ctx.user.id, "settings_categories.add", "ليس لديك صلاحية إضافة تصنيف");
       await db.insert(categories).values({
         name: input.name,
         nameAr: input.nameAr,
@@ -219,15 +220,7 @@ export const categoriesRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-      // التحقق من الصلاحيات
-      if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
-        const { calculateUserPermissions } = await import("../permissions");
-        const userPermissions = await calculateUserPermissions(ctx.user.id);
-        const hasAddPerm = userPermissions.includes("settings_categories.add");
-        if (!hasAddPerm) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-      }
+      await checkCatPerm(ctx.user.id, "settings_categories.add", "ليس لديك صلاحية إضافة تصنيف جديد");
 
       const metadataStr = input.metadata ? (typeof input.metadata === "string" ? input.metadata : JSON.stringify(input.metadata)) : null;
 
@@ -269,15 +262,7 @@ export const categoriesRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-      // التحقق من الصلاحيات
-      if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
-        const { calculateUserPermissions } = await import("../permissions");
-        const userPermissions = await calculateUserPermissions(ctx.user.id);
-        const hasEditPerm = userPermissions.includes("settings_categories.edit") || userPermissions.includes("settings_categories.reorder");
-        if (!hasEditPerm) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-      }
+      await checkCatPerm(ctx.user.id, "settings_categories.edit", "ليس لديك صلاحية تعديل بيانات ومسميات التصنيف");
 
       const { id, metadata, ...data } = input;
       const updateData: any = { ...data };
@@ -297,15 +282,7 @@ export const categoriesRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-      // التحقق من الصلاحيات
-      if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
-        const { calculateUserPermissions } = await import("../permissions");
-        const userPermissions = await calculateUserPermissions(ctx.user.id);
-        const hasDeletePerm = userPermissions.includes("settings_categories.delete");
-        if (!hasDeletePerm) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-      }
+      await checkCatPerm(ctx.user.id, "settings_categories.delete", "ليس لديك صلاحية حذف التصنيف");
 
       // حذف ناعم (تعطيل التصنيف)
       await db
@@ -330,15 +307,7 @@ export const categoriesRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-      // التحقق من الصلاحيات
-      if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
-        const { calculateUserPermissions } = await import("../permissions");
-        const userPermissions = await calculateUserPermissions(ctx.user.id);
-        const hasAddPerm = userPermissions.includes("settings_categories.add");
-        if (!hasAddPerm) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-      }
+      await checkCatPerm(ctx.user.id, "settings_categories.add", "ليس لديك صلاحية إضافة تصنيف جديد");
 
       const parentCategory = await db
         .select()
@@ -374,15 +343,7 @@ export const categoriesRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-      // التحقق من الصلاحيات
-      if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
-        const { calculateUserPermissions } = await import("../permissions");
-        const userPermissions = await calculateUserPermissions(ctx.user.id);
-        const hasEditPerm = userPermissions.includes("settings_categories.edit") || userPermissions.includes("settings_categories.reorder");
-        if (!hasEditPerm) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-      }
+      await checkCatPerm(ctx.user.id, "settings_categories.edit", "ليس لديك صلاحية تعديل بيانات ومسميات التصنيف");
 
       const { id, value, valueAr, ...data } = input;
       const updateData: any = { ...data };
@@ -401,15 +362,7 @@ export const categoriesRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-      // التحقق من الصلاحيات
-      if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
-        const { calculateUserPermissions } = await import("../permissions");
-        const userPermissions = await calculateUserPermissions(ctx.user.id);
-        const hasDeletePerm = userPermissions.includes("settings_categories.delete");
-        if (!hasDeletePerm) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-      }
+      await checkCatPerm(ctx.user.id, "settings_categories.delete", "ليس لديك صلاحية حذف التصنيف");
 
       await db
         .update(categories)
@@ -433,15 +386,7 @@ export const categoriesRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-      // التحقق من الصلاحيات
-      if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
-        const { calculateUserPermissions } = await import("../permissions");
-        const userPermissions = await calculateUserPermissions(ctx.user.id);
-        const hasEditPerm = userPermissions.includes("settings_categories.edit") || userPermissions.includes("settings_categories.reorder");
-        if (!hasEditPerm) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-      }
+      await checkCatPerm(ctx.user.id, "settings_categories.reorder", "ليس لديك صلاحية إعادة ترتيب وتسلسل التصنيفات");
 
       // تحديث كل عنصر بترتيبه الجديد
       for (const item of input) {

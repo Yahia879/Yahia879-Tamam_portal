@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, Edit2, Trash2, ChevronRight, FolderOpen, Tag, ArrowRight, Search, Settings2, GripVertical } from "lucide-react";
+import { Plus, Edit2, Trash2, ChevronRight, FolderOpen, Tag, ArrowRight, Search, Settings2, GripVertical, Lock } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -41,13 +41,20 @@ import { useAuth } from "@/_core/hooks/useAuth";
 
 export default function CategoriesManagement() {
   const { user } = useAuth();
-  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const userPermissions = (user as any)?.permissions ?? [];
-  const hasPerm = (p: string) => isAdmin || userPermissions.includes("*") || userPermissions.includes(p);
-  const canAdd = hasPerm("settings_categories.add") || hasPerm("settings.edit");
-  const canEdit = hasPerm("settings_categories.edit") || hasPerm("settings.edit");
-  const canDelete = hasPerm("settings_categories.delete") || hasPerm("settings.edit");
-  const canReorder = hasPerm("settings_categories.reorder") || canEdit;
+  const { data: userPermissions = [] } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user }
+  );
+  const hasPerm = (p: string) => 
+    userPermissions.includes("*") || 
+    userPermissions.includes(p);
+
+  const canView = hasPerm("settings_categories.view");
+  const canAdd = hasPerm("settings_categories.add");
+  const canEdit = hasPerm("settings_categories.edit");
+  const canReorder = hasPerm("settings_categories.reorder");
+  const canDelete = hasPerm("settings_categories.delete");
+  const canAccessCategories = canView || canAdd || canEdit || canReorder || canDelete;
 
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [isAddValueOpen, setIsAddValueOpen] = useState(false);
@@ -367,18 +374,32 @@ export default function CategoriesManagement() {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative w-full sm:max-w-md">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            placeholder={selectedType ? "بحث في القيم..." : "بحث في التصنيفات..."}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pr-10 h-9 text-sm w-full"
-          />
-        </div>
+        {!canAccessCategories ? (
+          <Card className="border border-red-200/60 dark:border-red-900/30 bg-red-50/20 dark:bg-red-900/10 p-8 rounded-2xl text-center">
+            <div className="max-w-md mx-auto space-y-3">
+              <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full w-fit mx-auto">
+                <Lock className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">تم حجب صلاحيات إدارة التصنيفات</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                تم إلغاء أو سحب صلاحيات قسم إدارة التصنيفات عن حسابك، لا يمكنك استعراض أو تعديل التصنيفات حالياً.
+              </p>
+            </div>
+          </Card>
+        ) : (
+          <>
+            {/* Search */}
+            <div className="relative w-full sm:max-w-md">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                placeholder={selectedType ? "بحث في القيم..." : "بحث في التصنيفات..."}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pr-10 h-9 text-sm w-full"
+              />
+            </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Categories Types List */}
           <div className={`lg:col-span-1 ${selectedType ? "hidden lg:block" : "block"}`}>
             <Card className="border-0 shadow-sm">
@@ -653,7 +674,9 @@ export default function CategoriesManagement() {
                                   <TableHead className="text-center py-3.5 font-bold text-xs min-w-[260px]">حدود التوريد</TableHead>
                                 </>
                               )}
-                              <TableHead className="w-24 text-center py-3.5 font-bold text-xs">الإجراءات</TableHead>
+                              {(canEdit || canDelete) && (
+                                <TableHead className="w-24 text-center py-3.5 font-bold text-xs">الإجراءات</TableHead>
+                              )}
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -708,35 +731,37 @@ export default function CategoriesManagement() {
                                     </TableCell>
                                   </>
                                 )}
-                                <TableCell>
-                                  <div className="flex items-center justify-center gap-1">
-                                    {canEdit && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => openEditValue(value)}
-                                        className="h-8 w-8 p-0"
-                                      >
-                                        <Edit2 className="w-4 h-4 text-blue-500" />
-                                      </Button>
-                                    )}
-                                    {canDelete && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                          if (confirm("هل أنت متأكد من حذف هذه القيمة؟")) {
-                                            deleteCategoryMutation.mutate({ id: value.id });
-                                          }
-                                        }}
-                                        disabled={deleteCategoryMutation.isPending}
-                                        className="h-8 w-8 p-0"
-                                      >
-                                        <Trash2 className="w-4 h-4 text-red-500" />
-                                      </Button>
-                                    )}
-                                  </div>
-                                </TableCell>
+                                {(canEdit || canDelete) && (
+                                  <TableCell>
+                                    <div className="flex items-center justify-center gap-1">
+                                      {canEdit && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => openEditValue(value)}
+                                          className="h-8 w-8 p-0"
+                                        >
+                                          <Edit2 className="w-4 h-4 text-blue-500" />
+                                        </Button>
+                                      )}
+                                      {canDelete && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => {
+                                            if (confirm("هل أنت متأكد من حذف هذه القيمة؟")) {
+                                              deleteCategoryMutation.mutate({ id: value.id });
+                                            }
+                                          }}
+                                          disabled={deleteCategoryMutation.isPending}
+                                          className="h-8 w-8 p-0"
+                                        >
+                                          <Trash2 className="w-4 h-4 text-red-500" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                )}
                               </TableRow>
                             ))}
                           </TableBody>
@@ -759,33 +784,35 @@ export default function CategoriesManagement() {
                                 {canReorder && <GripVertical className="w-4 h-4 text-gray-400" />}
                                 <span className="text-[10px] text-gray-400 font-mono">#{index + 1}</span>
                               </div>
-                              <div className="flex items-center gap-2">
-                                {canEdit && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => openEditValue(value)}
-                                    className="h-8 w-8 p-0"
-                                  >
-                                    <Edit2 className="w-4 h-4 text-blue-500" />
-                                  </Button>
-                                )}
-                                {canDelete && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      if (confirm("هل أنت متأكد من حذف هذه القيمة؟")) {
-                                        deleteCategoryMutation.mutate({ id: value.id });
-                                      }
-                                    }}
-                                    disabled={deleteCategoryMutation.isPending}
-                                    className="h-8 w-8 p-0 border-red-100 hover:bg-red-50"
-                                  >
-                                    <Trash2 className="w-4 h-4 text-red-500" />
-                                  </Button>
-                                )}
-                              </div>
+                              {(canEdit || canDelete) && (
+                                <div className="flex items-center gap-2">
+                                  {canEdit && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => openEditValue(value)}
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <Edit2 className="w-4 h-4 text-blue-500" />
+                                    </Button>
+                                  )}
+                                  {canDelete && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        if (confirm("هل أنت متأكد من حذف هذه القيمة؟")) {
+                                          deleteCategoryMutation.mutate({ id: value.id });
+                                        }
+                                      }}
+                                      disabled={deleteCategoryMutation.isPending}
+                                      className="h-8 w-8 p-0 border-red-100 hover:bg-red-50"
+                                    >
+                                      <Trash2 className="w-4 h-4 text-red-500" />
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
                             </div>
                             <div>
                               <p className="text-[10px] text-gray-500 mb-0.5">
@@ -1010,6 +1037,8 @@ export default function CategoriesManagement() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </>
+        )}
       </div>
     </DashboardLayout>
   );
