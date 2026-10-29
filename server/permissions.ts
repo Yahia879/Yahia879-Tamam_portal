@@ -1855,19 +1855,16 @@ async function ensureAllCustomPermissionsExist(db: any) {
         "sedana_quotations.add",
         "sedana_quotations.recommend",
         "sedana_quotations.approve",
-        "quotations.view_sedana",
       ],
       procurement_officer: [
         "sedana_quotations.view",
         "sedana_quotations.export_pdf",
         "sedana_quotations.add",
         "sedana_quotations.recommend",
-        "quotations.view_sedana",
       ],
       executive_director: [
         "sedana_quotations.view",
         "sedana_quotations.approve",
-        "quotations.view_sedana",
       ],
     };
 
@@ -1908,6 +1905,11 @@ async function ensureAllCustomPermissionsExist(db: any) {
           "sedana_quotations.export_pdf",
         ])
       )
+    ).catch(() => {});
+
+    // تنظيف الصلاحية القديمة quotations.view_sedana من role_permissions لجميع الأدوار
+    await db.delete(rolePermissions).where(
+      eq(rolePermissions.permissionId, "quotations.view_sedana")
     ).catch(() => {});
 
     // تنظيف صلاحيات إدارة المخزون للأدوار غير المصرح لها
@@ -2614,8 +2616,10 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   ) {
     allPermissions.delete("sedana_quotations");
     allPermissions.delete("sedana_quotations.view");
+    allPermissions.delete("quotations.view_sedana");
   } else if (allPermissions.has("sedana_quotations.view")) {
     allPermissions.add("sedana_quotations");
+    allPermissions.add("quotations.view_sedana");
   }
 
   // مالية سدانة
