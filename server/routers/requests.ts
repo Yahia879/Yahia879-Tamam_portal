@@ -970,7 +970,7 @@ export const requestsRouter = router({
       const hasGeneralRequestsView = userPermissions.includes("requests.view") || userPermissions.includes("requests.view_details") || userPermissions.includes("*");
 
       if (input.currentStage === "financial_eval_and_approval") {
-        const canViewSedanaInQuotations = userPermissions.includes("quotations.view_sedana") || userPermissions.includes("*");
+        const canViewSedanaInQuotations = userPermissions.includes("sedana_quotations.view") || userPermissions.includes("quotations.view_sedana") || userPermissions.includes("*");
         if (!canViewSedanaInQuotations) {
           conditions.push(
             sql`(${mosqueRequests.programType} IS NULL OR ${mosqueRequests.programType} != 'sedana')`
