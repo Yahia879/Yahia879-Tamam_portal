@@ -1022,19 +1022,27 @@ export default function RequestDetailsNew() {
       utils.requests.search.invalidate();
       utils.fieldVisits.getVisit.invalidate({ requestId });
       utils.fieldVisits.getBusySlots.invalidate();
+      utils.disbursements.checkRequestDisbursementStatus.invalidate({ requestId });
+      utils.disbursements.getActiveDonations.invalidate();
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء الرجوع للمرحلة السابقة");
     },
   });
 
-  // المراحل التي يُسمح فيها بالرجوع (قبل التعاقد) — يظهر لأي شخص يملك صلاحية تحريك المراحل
+  // المراحل التي يُسمح فيها بالرجوع (قبل التعاقد) — محصورة بالمدير العام فقط (super_admin)
   const canRevertStage = useMemo(() => {
-    if (!request) return false;
+    if (!request || user?.role !== 'super_admin') return false;
     const isQuickResponseExecution = request.requestTrack === 'quick_response' && request.currentStage === 'execution';
-    const nonRevertableStages = ['submitted', 'contracting', ...(isQuickResponseExecution ? [] : ['execution']), 'handover', 'closed'];
+    const isDonationExecutionRevertable =
+      request.technicalEvalDecision === 'convert_to_donation' &&
+      request.currentStage === 'execution' &&
+      !disbursementStatus?.hasDisbursementRequest;
+
+    const isExecutionRevertable = isQuickResponseExecution || isDonationExecutionRevertable;
+    const nonRevertableStages = ['submitted', 'contracting', ...(isExecutionRevertable ? [] : ['execution']), 'handover', 'closed'];
     return !nonRevertableStages.includes(request.currentStage);
-  }, [request]);
+  }, [request, user?.role, disbursementStatus?.hasDisbursementRequest]);
 
   // ====== إدارة الزيارة الميدانية وتعديل الجدولة وحذف التقرير ======
   const [showDeleteReportConfirm, setShowDeleteReportConfirm] = useState(false);
@@ -2126,7 +2134,7 @@ export default function RequestDetailsNew() {
                 variant: 'outline' as const,
               } : undefined}
               revertButton={
-                canRevertStage && !isPendingClosure && !isFieldTeam && !isQuickResponseUser
+                canRevertStage && user?.role === 'super_admin' && !isPendingClosure
                   ? {
                       label: "الرجوع للمرحلة السابقة",
                       onClick: () => setShowRevertStageModal(true),
@@ -2505,12 +2513,14 @@ export default function RequestDetailsNew() {
                           : [])
                       ]}
                       revertButton={
-                        canRevertStage && (translatedAction.canPerformAction || canTransitionStage(user?.role || '', request.currentStage) || isAdmin || (request.programType === 'sedana' && canManageSedana)) && !isPendingClosure && !isFieldTeam && !isQuickResponseUser
+                        canRevertStage && user?.role === 'super_admin' && !isPendingClosure
                           ? {
                               label: "الرجوع للمرحلة السابقة",
                               onClick: () => setShowRevertStageModal(true),
                               disabled: revertStageMutation.isPending,
-                              title: "الرجوع للمرحلة السابقة لتعديل البيانات",
+                              title: request.technicalEvalDecision === 'convert_to_donation' && request.currentStage === 'execution'
+                                ? "الرجوع لمرحلة التقييم الفني"
+                                : "الرجوع للمرحلة السابقة لتعديل البيانات",
                             }
                           : undefined
                       }

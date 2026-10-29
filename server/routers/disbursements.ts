@@ -1177,11 +1177,17 @@ export const disbursementsRouter = router({
     }),
 
   // التحقق من حالة صرف فرصة التبرع للطلب
-  checkRequestDisbursementStatus: permissionProcedure("disbursements.view")
+  checkRequestDisbursementStatus: protectedProcedure
     .input(z.object({ requestId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const opp = await db
+        .select({ id: donationOpportunities.id })
+        .from(donationOpportunities)
+        .where(eq(donationOpportunities.requestId, input.requestId))
+        .limit(1);
 
       const requests = await db
         .select({
@@ -1208,7 +1214,9 @@ export const disbursementsRouter = router({
             const metadataObj = attachments.find((a: any) => a.name === 'custom_supplier_info' && a.type === 'metadata');
             if (metadataObj && metadataObj.url) {
               const meta = JSON.parse(metadataObj.url);
-              if (meta.mosqueRequestId === input.requestId) {
+              const isMatch = meta.mosqueRequestId === input.requestId ||
+                (opp.length > 0 && Number(meta.donationOpportunityId) === opp[0].id);
+              if (isMatch) {
                 hasDisbursementRequest = true;
                 disbursementRequestId = req.id;
                 orderStatus = req.orderStatus || null;
