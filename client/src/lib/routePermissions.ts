@@ -56,7 +56,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   financial: [
     "dashboard", "suppliers", "quotations", "financial_approval",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers", "financial_report",
-    "contracts", "custody_requests", "orders_and_letters",
+    "contracts", "custody_requests",
   ],
 
   financial_manager: [
@@ -214,22 +214,16 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "orders_and_letters.disbursement_orders",
     "orders_and_letters.csr_letters",
     "orders_and_letters.purchase_orders",
-    "orders_and_letters.view",
-    "orders_and_letters",
   ],
   "/financial-officer": [
     "orders_and_letters.disbursement_orders",
     "orders_and_letters.csr_letters",
     "orders_and_letters.purchase_orders",
-    "orders_and_letters.view",
-    "orders_and_letters",
   ],
   "/financial-tasks": [
     "orders_and_letters.disbursement_orders",
     "orders_and_letters.csr_letters",
     "orders_and_letters.purchase_orders",
-    "orders_and_letters.view",
-    "orders_and_letters",
   ],
   "/contracts": "contracts",
   "/contracts/new": "contracts",
@@ -414,8 +408,6 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
       "orders_and_letters.disbursement_orders",
       "orders_and_letters.csr_letters",
       "orders_and_letters.purchase_orders",
-      "orders_and_letters.view",
-      "orders_and_letters",
     ],
   },
 
@@ -666,21 +658,17 @@ export function hasRouteAccess(
   if ((pathname === "/dashboard" || pathname === "/dashboard/") && userRole === "dashboard_viewer") {
     return false;
   }
-  // مسار مالية سدانة متاح افتراضياً للإدارة المالية أو لمن يملك إحدى صلاحيات مالية سدانة
+  // مسار مالية سدانة متاح لمن يملك إحدى صلاحيات مالية سدانة الثلاث
   const isOrdersAndLettersRoute =
     pathname === "/orders-and-letters" ||
     pathname.startsWith("/orders-and-letters/") ||
     pathname === "/financial-officer" ||
     pathname === "/financial-tasks";
   if (isOrdersAndLettersRoute) {
-    if (userPermissions.includes("*")) return true;
     return (
-      userPermissions.includes("orders_and_letters") ||
-      userPermissions.includes("orders_and_letters.view") ||
       userPermissions.includes("orders_and_letters.disbursement_orders") ||
       userPermissions.includes("orders_and_letters.csr_letters") ||
-      userPermissions.includes("orders_and_letters.purchase_orders") ||
-      (userRole === "financial" && userPermissions.length === 0)
+      userPermissions.includes("orders_and_letters.purchase_orders")
     );
   }
 
