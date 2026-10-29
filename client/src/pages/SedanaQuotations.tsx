@@ -53,9 +53,7 @@ export default function SedanaQuotations() {
   );
 
   const canViewSedanaQuotations =
-    (userPermissions as string[]).includes("sedana_quotations") ||
-    (userPermissions as string[]).includes("sedana_quotations.view") ||
-    (userPermissions as string[]).includes("quotations.view_sedana");
+    (userPermissions as string[]).includes("sedana_quotations.view");
 
   // مزامنة حالة الرابط عند التنقل عبر أزرار المتصفح
   useEffect(() => {
