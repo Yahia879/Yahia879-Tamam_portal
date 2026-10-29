@@ -683,9 +683,39 @@ export function hasRouteAccess(
   }
 
   // super_admin و system_admin لهما كل الصلاحيات دائماً إلا إذا سُحبت صلاحية معينة صراحةً
+  // ولكن لمسارات وصلاحيات إدارة المخزون، يجب التحقق الصارم من الصلاحية الفعلية
   if (userRole === "super_admin" || userRole === "system_admin") {
-    if (userPermissions.includes("*") || userPermissions.length === 0) return true;
     const required = getRequiredPermission(pathname);
+    const isInventoryPerm = (p: string) => (
+      p.startsWith("sedana_quotations") ||
+      p.startsWith("orders_and_letters") ||
+      p.startsWith("purchase_orders") ||
+      p.startsWith("csr_letters") ||
+      p.startsWith("sedana_warehouse")
+    );
+    const isInventoryRoute = (
+      pathname === "/sedana-quotations" || pathname.startsWith("/sedana-quotations/") ||
+      pathname === "/orders-and-letters" || pathname.startsWith("/orders-and-letters/") ||
+      pathname === "/purchase-orders" || pathname.startsWith("/purchase-orders/") ||
+      pathname === "/csr-letters" || pathname.startsWith("/csr-letters/") ||
+      pathname === "/sedana-warehouse" || pathname.startsWith("/sedana-warehouse/") ||
+      pathname === "/sedana-execution" || pathname.startsWith("/sedana-execution/") ||
+      /^\/requests\/\d+\/(sedana-po|sedana-csr|sedana-execution|sedana-inward|sedana-outbound|sedana-delivery|delivery-order)/.test(pathname) ||
+      (Array.isArray(required) ? required.some(p => isInventoryPerm(p)) : (typeof required === "string" && isInventoryPerm(required)))
+    );
+
+    if (isInventoryRoute) {
+      if (required !== null && required !== "__unknown_route__") {
+        if (Array.isArray(required)) {
+          if (required.every(p => !userPermissions.includes(p))) return false;
+        } else {
+          if (!userPermissions.includes(required)) return false;
+        }
+      }
+      return true;
+    }
+
+    if (userPermissions.includes("*") || userPermissions.length === 0) return true;
     if (required !== null && required !== "__unknown_route__") {
       if (Array.isArray(required)) {
         if (required.every(p => !userPermissions.includes(p))) return false;
