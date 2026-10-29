@@ -417,10 +417,7 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
 
   // 4. إدارة المخزون
   const inventoryItems: MenuItem[] = [];
-  const canSeeSedanaQuotations =
-    has("sedana_quotations.view") ||
-    has("sedana_quotations") ||
-    has("quotations.view_sedana");
+  const canSeeSedanaQuotations = has("sedana_quotations.view");
 
   if (canSeeSedanaQuotations) {
     inventoryItems.push({ icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" });
