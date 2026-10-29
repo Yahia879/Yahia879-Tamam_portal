@@ -169,15 +169,12 @@ export function QuotationsView({
     isSuperOrSystemAdmin ||
     (userPermissions as string[]).includes("sedana_quotations.recommend");
 
-  const canViewSedanaInQuotations = (userPermissions as string[]).includes("quotations.view_sedana") || (userPermissions as string[]).includes("*");
-  const canApproveSedanaQuotations = (userPermissions as string[]).includes("sedana_quotations.approve") || (userPermissions as string[]).includes("*");
+  const canViewSedanaInQuotations = isSuperOrSystemAdmin || (userPermissions as string[]).includes("quotations.view_sedana");
+  const canApproveSedanaQuotations = isSuperOrSystemAdmin || (userPermissions as string[]).includes("sedana_quotations.approve");
   const canViewSedanaQuotations =
     canViewSedanaInQuotations ||
     (userPermissions as string[]).includes("sedana_quotations.view") ||
-    (userPermissions as string[]).includes("sedana_quotations.export_pdf") ||
-    (userPermissions as string[]).includes("sedana_quotations.add") ||
-    (userPermissions as string[]).includes("sedana_quotations.recommend") ||
-    (userPermissions as string[]).includes("sedana_quotations.approve");
+    (userPermissions as string[]).includes("sedana_quotations");
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showAddLinkDialog, setShowAddLinkDialog] = useState(false);
@@ -2036,15 +2033,17 @@ export function QuotationsView({
             {selectedRequestId && (
               <div className="mt-4 flex justify-end gap-3">
                 {(!isSedanaProgram || canAddSedanaQuotation) && (
-                  <Button onClick={() => setShowAddDialog(true)}>
-                    <Plus className="h-4 w-4 ml-2" />
-                    إضافة عرض سعر للطلب المحدد
-                  </Button>
+                  <>
+                    <Button onClick={() => setShowAddDialog(true)}>
+                      <Plus className="h-4 w-4 ml-2" />
+                      إضافة عرض سعر للطلب المحدد
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowAddLinkDialog(true)}>
+                      <Link2 className="h-4 w-4 ml-2" />
+                      إضافة رابط
+                    </Button>
+                  </>
                 )}
-                <Button variant="outline" onClick={() => setShowAddLinkDialog(true)}>
-                  <Link2 className="h-4 w-4 ml-2" />
-                  إضافة رابط
-                </Button>
               </div>
             )}
           </CardContent>
@@ -2469,7 +2468,7 @@ export function QuotationsView({
                                                     ? "bg-sky-50/50 dark:bg-sky-950/20 border-sky-300 dark:border-sky-800/60 hover:border-sky-400 hover:shadow-2xs"
                                                     : "bg-background border-border hover:border-slate-400 dark:hover:border-slate-600"
                                               )}
-                                              title={isSuppliersReadOnly ? (isSelected ? "المورد المعتمد لهذا البند" : "") : (isSelected ? "انقر لإلغاء الترسية" : "انقر لاختيار هذا المورد لهذا البند")}
+                                              title={isAwardingReadOnly ? (isSelected ? "المورد المعتمد لهذا البند" : "") : (isSelected ? "انقر لإلغاء الترسية" : "انقر لاختيار هذا المورد لهذا البند")}
                                             >
                                               <div className="flex items-center justify-between gap-1 mb-1">
                                                 {isLowest ? (
@@ -2483,7 +2482,7 @@ export function QuotationsView({
                                                     <Check className="w-2.5 h-2.5" />
                                                     معتمد
                                                   </Badge>
-                                                ) : !isSuppliersReadOnly ? (
+                                                ) : !isAwardingReadOnly ? (
                                                   <span className="text-[10px] text-muted-foreground/60 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     اختر
                                                   </span>
