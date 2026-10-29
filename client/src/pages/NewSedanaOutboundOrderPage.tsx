@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +20,7 @@ import {
 import {
   ArrowRight,
   Boxes,
+  Lock,
   Building2,
   Calendar,
   User,
@@ -45,6 +47,7 @@ export default function NewSedanaOutboundOrderPage() {
   const params = useParams<{ id?: string }>();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const canOutbound = usePermission("sedana_warehouse.outbound");
 
   // جلب قائمة طلبات سدانة للاختيار
   const { data: sedanaRequests = [] } = trpc.sedanaExecution.listSedanaRequests.useQuery();
@@ -216,6 +219,25 @@ export default function NewSedanaOutboundOrderPage() {
       items,
     });
   };
+
+  if (user && !canOutbound) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-md mx-auto my-20 p-8 bg-card border border-border rounded-2xl shadow-sm text-center space-y-4 font-sans" dir="rtl">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center mx-auto">
+            <Lock className="w-7 h-7" />
+          </div>
+          <h2 className="text-lg font-bold text-foreground">غير مصرح لك بإنشاء أوامر إخراج</h2>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            حسابك لا يمتلك صلاحية إنشاء أمر إخراج ومسوغ صرف. يرجى التواصل مع إدارة النظام لتفعيل الصلاحية لك.
+          </p>
+          <Button onClick={() => setLocation("/sedana-warehouse")} variant="outline" className="text-xs font-bold mt-2">
+            العودة للمستودع الافتراضي
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (isLoading) {
     return (
