@@ -527,6 +527,25 @@ export default function NewSedanaInwardOrderPage() {
     }
   };
 
+  if (user && !canInward) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-md mx-auto my-20 p-8 bg-card border border-border rounded-2xl shadow-sm text-center space-y-4 font-sans" dir="rtl">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center mx-auto">
+            <Lock className="w-7 h-7" />
+          </div>
+          <h2 className="text-lg font-bold text-foreground">غير مصرح لك بتسجيل أوامر إدخال</h2>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            حسابك لا يمتلك صلاحية تسجيل أمر إدخال بالمستودع. يرجى التواصل مع إدارة النظام لتفعيل الصلاحية لك.
+          </p>
+          <Button onClick={() => setLocation("/sedana-warehouse")} variant="outline" className="text-xs font-bold mt-2">
+            العودة للمستودع الافتراضي
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   if (isLoading) {
     return (
       <DashboardLayout>
