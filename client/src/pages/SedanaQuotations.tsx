@@ -58,10 +58,7 @@ export default function SedanaQuotations() {
     isSuperOrSystemAdmin ||
     (userPermissions as string[]).includes("sedana_quotations") ||
     (userPermissions as string[]).includes("sedana_quotations.view") ||
-    (userPermissions as string[]).includes("sedana_quotations.export_pdf") ||
-    (userPermissions as string[]).includes("sedana_quotations.add") ||
-    (userPermissions as string[]).includes("sedana_quotations.recommend") ||
-    (userPermissions as string[]).includes("sedana_quotations.approve");
+    (userPermissions as string[]).includes("quotations.view_sedana");
 
   // مزامنة حالة الرابط عند التنقل عبر أزرار المتصفح
   useEffect(() => {
