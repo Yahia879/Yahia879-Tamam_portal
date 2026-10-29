@@ -2396,7 +2396,10 @@ export default function RolePermissions() {
     const excludedAdminPerms = [
       'requests.manage_as_field_team',
       'requests.manage_as_quick_response',
-      'requests.upload_final_report'
+      'requests.upload_final_report',
+      'orders_and_letters.disbursement_orders',
+      'orders_and_letters.csr_letters',
+      'orders_and_letters.purchase_orders',
     ];
     if (isSuperAdmin && !excludedAdminPerms.includes(permId)) return true;
     return selectedPerms.includes(permId);
