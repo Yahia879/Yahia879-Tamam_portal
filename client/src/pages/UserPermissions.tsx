@@ -724,18 +724,7 @@ export default function UserPermissions() {
         if (permId === "fund.view") {
           cascadeRevoke("fund.");
         }
-        if (permId.startsWith("sedana_quotations.")) {
-          const allSedanaKeys = ["sedana_quotations.export_pdf", "sedana_quotations.add", "sedana_quotations.recommend", "sedana_quotations.approve"];
-          const hasRemaining = allSedanaKeys.some(k => k !== permId && isChecked(k));
-          if (!hasRemaining) {
-            const defVal = rolePermissions?.includes("sedana_quotations.view") || false;
-            if (defVal) {
-              updated["sedana_quotations.view"] = false;
-            } else {
-              delete updated["sedana_quotations.view"];
-            }
-          }
-        }
+
         if (permId === "board_chairman") {
           const defVal = rolePermissions?.includes("board_leadership.remind") || false;
           if (defVal) {
@@ -1448,7 +1437,7 @@ export default function UserPermissions() {
     {
       title: "إدارة المخزون",
       modules: [
-        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["export_pdf", "add", "recommend", "approve"] },
+        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view", "export_pdf", "add", "recommend", "approve"] },
         { id: "orders_and_letters", nameAr: "مالية سدانة", icon: ShoppingBag, perms: ["disbursement_orders", "csr_letters", "purchase_orders"] },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "create_disbursement"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add"] },
