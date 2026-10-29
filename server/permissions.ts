@@ -2600,23 +2600,19 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   }
 
   // عروض أسعار سدانة
-  const hasSedanaQuoAction =
-    (!revokedPermissions.has("sedana_quotations.export_pdf") && allPermissions.has("sedana_quotations.export_pdf")) ||
-    (!revokedPermissions.has("sedana_quotations.add") && allPermissions.has("sedana_quotations.add")) ||
-    (!revokedPermissions.has("sedana_quotations.recommend") && allPermissions.has("sedana_quotations.recommend")) ||
-    (!revokedPermissions.has("sedana_quotations.approve") && allPermissions.has("sedana_quotations.approve"));
-
-  const allSedanaQuoRevoked =
-    revokedPermissions.has("sedana_quotations") ||
+  if (
     revokedPermissions.has("sedana_quotations.view") ||
-    (
-      revokedPermissions.has("sedana_quotations.export_pdf") &&
-      revokedPermissions.has("sedana_quotations.add") &&
-      revokedPermissions.has("sedana_quotations.recommend") &&
-      revokedPermissions.has("sedana_quotations.approve")
-    );
-
-  if (hasSedanaQuoAction && !allSedanaQuoRevoked) {
+    revokedPermissions.has("sedana_quotations")
+  ) {
+    allPermissions.delete("sedana_quotations");
+    allPermissions.delete("sedana_quotations.view");
+  } else if (
+    allPermissions.has("sedana_quotations.view") ||
+    allPermissions.has("sedana_quotations.export_pdf") ||
+    allPermissions.has("sedana_quotations.add") ||
+    allPermissions.has("sedana_quotations.recommend") ||
+    allPermissions.has("sedana_quotations.approve")
+  ) {
     allPermissions.add("sedana_quotations");
     allPermissions.add("sedana_quotations.view");
   } else {
