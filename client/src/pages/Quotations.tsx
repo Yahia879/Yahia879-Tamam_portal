@@ -164,12 +164,10 @@ export function QuotationsView({
   const canRecommendSedana =
     (userPermissions as string[]).includes("sedana_quotations.recommend");
 
-  const canViewSedanaInQuotations = (userPermissions as string[]).includes("quotations.view_sedana");
+  const canViewSedanaInQuotations = (userPermissions as string[]).includes("sedana_quotations.view");
   const canApproveSedanaQuotations = (userPermissions as string[]).includes("sedana_quotations.approve");
   const canViewSedanaQuotations =
-    canViewSedanaInQuotations ||
-    (userPermissions as string[]).includes("sedana_quotations.view") ||
-    (userPermissions as string[]).includes("sedana_quotations");
+    (userPermissions as string[]).includes("sedana_quotations.view");
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showAddLinkDialog, setShowAddLinkDialog] = useState(false);
