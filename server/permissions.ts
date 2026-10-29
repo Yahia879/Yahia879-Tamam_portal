@@ -1971,9 +1971,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   // إذا كان المستخدم super_admin أو system_admin، نمنحه جميع الصلاحيات افتراضياً كبداية (أو نلتزم بما تم تخصيصه في الدور إذا وُجد)
   if (userData?.role === 'super_admin' || userData?.role === 'system_admin') {
     const isSuperAdmin = userData?.role === 'super_admin';
-    const excludedAdminPerms = isSuperAdmin
-      ? EXCLUDED_ADMIN_PERMISSIONS.filter(p => !p.startsWith('orders_and_letters'))
-      : EXCLUDED_ADMIN_PERMISSIONS;
+    const excludedAdminPerms = EXCLUDED_ADMIN_PERMISSIONS;
 
     const [adminRoleRecord] = await db
       .select({ description: roles.description })
@@ -2105,10 +2103,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   // إضافة الصلاحيات المجمعة من كل المصادر
   rolePermissionsData.forEach(p => allPermissions.add(p));
 
-  const isSuperAdminUser = userData?.role === 'super_admin';
-  const effectiveExcludedAdminPerms = isSuperAdminUser
-    ? EXCLUDED_ADMIN_PERMISSIONS.filter(p => !p.startsWith('orders_and_letters'))
-    : EXCLUDED_ADMIN_PERMISSIONS;
+  const effectiveExcludedAdminPerms = EXCLUDED_ADMIN_PERMISSIONS;
 
   // دعم الـ Wildcard (إذا وجد '*')
   if (allPermissions.has("*")) {
@@ -2621,16 +2616,23 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   }
 
   // مالية سدانة
-  if (
-    allPermissions.has("orders_and_letters.disbursement_orders") ||
-    allPermissions.has("orders_and_letters.csr_letters") ||
-    allPermissions.has("orders_and_letters.purchase_orders") ||
-    allPermissions.has("orders_and_letters.view") ||
-    allPermissions.has("orders_and_letters.create") ||
-    allPermissions.has("orders_and_letters.export")
-  ) {
+  const hasOrdersAndLettersAction = [
+    "orders_and_letters.disbursement_orders",
+    "orders_and_letters.csr_letters",
+    "orders_and_letters.purchase_orders",
+  ].some(p => allPermissions.has(p) && !revokedPermissions.has(p));
+
+  if (hasOrdersAndLettersAction) {
     allPermissions.add("orders_and_letters");
     allPermissions.add("orders_and_letters.view");
+  } else {
+    allPermissions.delete("orders_and_letters");
+    allPermissions.delete("orders_and_letters.view");
+    allPermissions.delete("orders_and_letters.create");
+    allPermissions.delete("orders_and_letters.export");
+    allPermissions.delete("orders_and_letters.disbursement_orders");
+    allPermissions.delete("orders_and_letters.csr_letters");
+    allPermissions.delete("orders_and_letters.purchase_orders");
   }
   if (allPermissions.has("orders_and_letters.purchase_orders")) {
     allPermissions.add("orders_and_letters.create");
