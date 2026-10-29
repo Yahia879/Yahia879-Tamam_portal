@@ -111,7 +111,7 @@ export function CsrLettersView({ requestId, projectId, isEmbedded = false }: Csr
   const canAddCsrPerm = usePermission("csr_letters.add");
   const canOrdersAndLettersCSR = usePermission("orders_and_letters.csr_letters");
   const canViewCsrPerm = usePermission("csr_letters.view");
-  const canAdd = isSuperAdmin || canAddCsrPerm || (isEmbedded && canOrdersAndLettersCSR);
+  const canAdd = canAddCsrPerm || (isEmbedded && canOrdersAndLettersCSR);
   const canExport = isSuperAdmin || canViewCsrPerm || (isEmbedded && canOrdersAndLettersCSR);
 
   const [searchTerm, setSearchTerm] = useState("");
