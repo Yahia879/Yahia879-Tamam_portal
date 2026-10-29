@@ -2,6 +2,20 @@ import { trpc } from "../lib/trpc";
 import { useAuth } from "../_core/hooks/useAuth";
 
 /**
+ * التحقق مما إذا كانت الصلاحية تابعة لقسم إدارة المخزون
+ * لقسم إدارة المخزون، يُمنع التجاوز التلقائي بالـ Wildcard (*) للمدراء ويجب مطابقة الصلاحية صراحةً
+ */
+export function isInventoryPermission(permission: string): boolean {
+  return (
+    permission.startsWith("sedana_quotations") ||
+    permission.startsWith("orders_and_letters") ||
+    permission.startsWith("purchase_orders") ||
+    permission.startsWith("csr_letters") ||
+    permission.startsWith("sedana_warehouse")
+  );
+}
+
+/**
  * Hook للتحقق من صلاحية واحدة
  * @param permission - معرف الصلاحية (مثل: requests.view)
  * @returns true إذا كان المستخدم يملك الصلاحية، false إذا لم يملكها
@@ -24,11 +38,19 @@ export function usePermission(permission: string): boolean {
     return false;
   }
 
+  const isInv = isInventoryPermission(permission);
+
   if (permissions !== undefined) {
+    if (isInv) {
+      return permissions.includes(permission);
+    }
     return permissions.includes(permission) || permissions.includes("*");
   }
 
   const userPerms: string[] = (user as any)?.permissions ?? [];
+  if (isInv) {
+    return userPerms.includes(permission);
+  }
   return userPerms.includes(permission) || userPerms.includes("*");
 }
 
@@ -54,11 +76,23 @@ export function usePermissions(requiredPermissions: string[]): boolean {
     return false;
   }
 
+  const hasInventory = requiredPermissions.some(isInventoryPermission);
+
   if (permissions !== undefined) {
+    if (hasInventory) {
+      return requiredPermissions.every(p =>
+        isInventoryPermission(p) ? permissions.includes(p) : (permissions.includes(p) || permissions.includes("*"))
+      );
+    }
     return permissions.includes("*") || requiredPermissions.every(p => permissions.includes(p));
   }
 
   const userPerms: string[] = (user as any)?.permissions ?? [];
+  if (hasInventory) {
+    return requiredPermissions.every(p =>
+      isInventoryPermission(p) ? userPerms.includes(p) : (userPerms.includes(p) || userPerms.includes("*"))
+    );
+  }
   return userPerms.includes("*") || requiredPermissions.every(p => userPerms.includes(p));
 }
 
@@ -85,11 +119,15 @@ export function useAnyPermission(permissionsList: string[]): boolean {
   }
 
   if (permissions !== undefined) {
-    return permissions.includes("*") || permissionsList.some(p => permissions.includes(p));
+    return permissionsList.some(p =>
+      isInventoryPermission(p) ? permissions.includes(p) : (permissions.includes(p) || permissions.includes("*"))
+    );
   }
 
   const userPerms: string[] = (user as any)?.permissions ?? [];
-  return userPerms.includes("*") || permissionsList.some(p => userPerms.includes(p));
+  return permissionsList.some(p =>
+    isInventoryPermission(p) ? userPerms.includes(p) : (userPerms.includes(p) || userPerms.includes("*"))
+  );
 }
 
 /**
