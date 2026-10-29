@@ -155,22 +155,17 @@ export function QuotationsView({
     user?.id ? { userId: user.id } : ({} as any)
   );
 
-  const isSuperOrSystemAdmin = ["super_admin", "system_admin"].includes(user?.role || "") || (userPermissions as string[]).includes("*");
-
   const canExportSedanaPdf =
-    isSuperOrSystemAdmin ||
     (userPermissions as string[]).includes("sedana_quotations.export_pdf");
 
   const canAddSedanaQuotation =
-    isSuperOrSystemAdmin ||
     (userPermissions as string[]).includes("sedana_quotations.add");
 
   const canRecommendSedana =
-    isSuperOrSystemAdmin ||
     (userPermissions as string[]).includes("sedana_quotations.recommend");
 
-  const canViewSedanaInQuotations = isSuperOrSystemAdmin || (userPermissions as string[]).includes("quotations.view_sedana");
-  const canApproveSedanaQuotations = isSuperOrSystemAdmin || (userPermissions as string[]).includes("sedana_quotations.approve");
+  const canViewSedanaInQuotations = (userPermissions as string[]).includes("quotations.view_sedana");
+  const canApproveSedanaQuotations = (userPermissions as string[]).includes("sedana_quotations.approve");
   const canViewSedanaQuotations =
     canViewSedanaInQuotations ||
     (userPermissions as string[]).includes("sedana_quotations.view") ||
