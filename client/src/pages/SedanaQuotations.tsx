@@ -52,10 +52,7 @@ export default function SedanaQuotations() {
     currentUser?.id ? { userId: currentUser.id } : ({} as any)
   );
 
-  const isSuperOrSystemAdmin = ["super_admin", "system_admin"].includes(currentUser?.role || "") || (userPermissions as string[]).includes("*");
-
   const canViewSedanaQuotations =
-    isSuperOrSystemAdmin ||
     (userPermissions as string[]).includes("sedana_quotations") ||
     (userPermissions as string[]).includes("sedana_quotations.view") ||
     (userPermissions as string[]).includes("quotations.view_sedana");
