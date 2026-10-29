@@ -2393,6 +2393,14 @@ export default function RolePermissions() {
 
   // منطق التحقق من الصلاحية
   const isPermissionGranted = (permId: string) => {
+    const isInventory =
+      permId.startsWith("sedana_quotations") ||
+      permId.startsWith("orders_and_letters") ||
+      permId.startsWith("purchase_orders") ||
+      permId.startsWith("csr_letters") ||
+      permId.startsWith("sedana_warehouse");
+    if (isInventory) return selectedPerms.includes(permId);
+
     const excludedAdminPerms = [
       'requests.manage_as_field_team',
       'requests.manage_as_quick_response',
@@ -2428,53 +2436,51 @@ export default function RolePermissions() {
             </div>
           </div>
 
-          {!isSuperAdmin && (
-            <div className="flex flex-wrap lg:flex-nowrap items-center justify-end gap-2.5 sm:gap-3 w-full lg:w-auto">
-              {hasChanges && (
-                <span className="text-xs text-amber-600 dark:text-amber-400 font-bold animate-pulse w-full lg:w-auto text-left lg:text-right mb-1 lg:mb-0">
-                  توجد تغييرات غير محفوظة *
-                </span>
-              )}
-              {role?.isSystem && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    if (confirm("هل أنت متأكد من رغبتك في إعادة الصلاحيات الافتراضية لهذا الدور؟ سيتم إلغاء أي تخصيص قمت به.")) {
-                      restoreDefaultMutation.mutate({ roleId: roleId || "" });
-                    }
-                  }}
-                  disabled={restoreDefaultMutation.isPending}
-                  className="w-full sm:w-auto text-xs sm:text-sm px-4 sm:px-5 font-bold rounded-xl border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 h-10 sm:h-11 text-slate-700 dark:text-slate-200 shrink-0"
-                >
-                  {restoreDefaultMutation.isPending ? (
-                    <>
-                      <Loader2 className="ml-2 h-4 w-4 animate-spin animate-fade-in" />
-                      جاري الاستعادة...
-                    </>
-                  ) : (
-                    "إعادة الصلاحيات الافتراضية"
-                  )}
-                </Button>
-              )}
+          <div className="flex flex-wrap lg:flex-nowrap items-center justify-end gap-2.5 sm:gap-3 w-full lg:w-auto">
+            {hasChanges && (
+              <span className="text-xs text-amber-600 dark:text-amber-400 font-bold animate-pulse w-full lg:w-auto text-left lg:text-right mb-1 lg:mb-0">
+                توجد تغييرات غير محفوظة *
+              </span>
+            )}
+            {role?.isSystem && (
               <Button
-                onClick={handleSaveChanges}
-                disabled={updateRoleMutation.isPending || !hasChanges}
-                className={`w-full sm:w-auto text-xs sm:text-sm px-5 sm:px-6 font-bold rounded-xl shadow-md h-10 sm:h-11 transition-all ${hasChanges
-                    ? "gradient-primary text-white scale-102 hover:scale-105"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 cursor-not-allowed"
-                  }`}
+                variant="outline"
+                onClick={() => {
+                  if (confirm("هل أنت متأكد من رغبتك في إعادة الصلاحيات الافتراضية لهذا الدور؟ سيتم إلغاء أي تخصيص قمت به.")) {
+                    restoreDefaultMutation.mutate({ roleId: roleId || "" });
+                  }
+                }}
+                disabled={restoreDefaultMutation.isPending}
+                className="w-full sm:w-auto text-xs sm:text-sm px-4 sm:px-5 font-bold rounded-xl border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 h-10 sm:h-11 text-slate-700 dark:text-slate-200 shrink-0"
               >
-                {updateRoleMutation.isPending ? (
+                {restoreDefaultMutation.isPending ? (
                   <>
-                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                    جاري الحفظ...
+                    <Loader2 className="ml-2 h-4 w-4 animate-spin animate-fade-in" />
+                    جاري الاستعادة...
                   </>
                 ) : (
-                  "حفظ التغييرات"
+                  "إعادة الصلاحيات الافتراضية"
                 )}
               </Button>
-            </div>
-          )}
+            )}
+            <Button
+              onClick={handleSaveChanges}
+              disabled={updateRoleMutation.isPending || !hasChanges}
+              className={`w-full sm:w-auto text-xs sm:text-sm px-5 sm:px-6 font-bold rounded-xl shadow-md h-10 sm:h-11 transition-all ${hasChanges
+                  ? "gradient-primary text-white scale-102 hover:scale-105"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 cursor-not-allowed"
+                }`}
+            >
+              {updateRoleMutation.isPending ? (
+                <>
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  جاري الحفظ...
+                </>
+              ) : (
+                "حفظ التغييرات"
+              )}
+            </Button>
+          </div>
         </div>
 
         <div className="border rounded-2xl p-5 mb-10 flex items-start gap-4 shadow-sm bg-primary/5 border-primary/10">
@@ -2518,10 +2524,21 @@ export default function RolePermissions() {
                     });
                     const activePerms = isSuperAdmin
                       ? modulePerms.filter((p: any) => {
+                        const isInventory =
+                          p.id.startsWith("sedana_quotations") ||
+                          p.id.startsWith("orders_and_letters") ||
+                          p.id.startsWith("purchase_orders") ||
+                          p.id.startsWith("csr_letters") ||
+                          p.id.startsWith("sedana_warehouse");
+                        if (isInventory) return selectedPerms.includes(p.id);
+
                         const excludedAdminPerms = [
                           'requests.manage_as_field_team',
                           'requests.manage_as_quick_response',
-                          'requests.upload_final_report'
+                          'requests.upload_final_report',
+                          'orders_and_letters.disbursement_orders',
+                          'orders_and_letters.csr_letters',
+                          'orders_and_letters.purchase_orders'
                         ];
                         return !excludedAdminPerms.includes(p.id);
                       })
@@ -2539,7 +2556,7 @@ export default function RolePermissions() {
                               <CardTitle className="text-lg sm:text-xl font-bold truncate">{module.nameAr}</CardTitle>
                             </div>
                             <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-1 sm:mt-0">
-                              {!isSuperAdmin && modulePerms.length > 0 && (
+                              {modulePerms.length > 0 && (!isSuperAdmin || group.title === "إدارة المخزون") && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
