@@ -34,7 +34,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
     "contracts", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
     "progress_reports", "progress_invoices", "financial_report", "reports", "staff_management", "settings_center", "custody_requests",
-    "sedana_quotations",
+    "sedana_quotations", "sedana_quotations.view",
   ],
 
   projects_office: [
@@ -87,7 +87,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   service_requester: [], // طالب الخدمة لا يملك صلاحيات إدارية
 
   procurement_officer: [
-    "quotations", "quotations.view", "quotations.add", "sedana_quotations", "custody_requests",
+    "quotations", "quotations.view", "quotations.add", "sedana_quotations", "sedana_quotations.view", "custody_requests",
   ],
 
   dashboard_viewer: [
@@ -190,12 +190,9 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   // ── عروض الأسعار ──
   "/quotations": "quotations",
   "/sedana-quotations": [
-    "sedana_quotations",
     "sedana_quotations.view",
-    "sedana_quotations.export_pdf",
-    "sedana_quotations.add",
-    "sedana_quotations.recommend",
-    "sedana_quotations.approve"
+    "sedana_quotations",
+    "quotations.view_sedana"
   ],
 
   // ── الاعتمادات ──
@@ -512,12 +509,9 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
     ],
   },
   { pattern: /^\/sedana-quotations\/[^/]+$/, permission: [
-    "sedana_quotations",
     "sedana_quotations.view",
-    "sedana_quotations.export_pdf",
-    "sedana_quotations.add",
-    "sedana_quotations.recommend",
-    "sedana_quotations.approve"
+    "sedana_quotations",
+    "quotations.view_sedana"
   ] },
 
   // طلبات الصرف
