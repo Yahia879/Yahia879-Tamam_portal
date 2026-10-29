@@ -285,7 +285,7 @@ export default function CreatePurchaseOrderPage() {
     });
   };
 
-  if (user && !canAddOrder && user.role !== "super_admin" && user.role !== "system_admin") {
+  if (user && !canAddOrder) {
     return (
       <DashboardLayout>
         <div className="max-w-md mx-auto my-20 p-8 bg-card border border-border rounded-2xl shadow-sm text-center space-y-4 font-sans" dir="rtl">
