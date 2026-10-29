@@ -540,6 +540,11 @@ export default function RolePermissions() {
           next = next.filter(id => !id.startsWith("sedana_requests."));
         }
 
+        // عند إلغاء تفعيل صلاحية 'عرض عروض أسعار سدانة'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات عروض أسعار سدانة الأخرى
+        if (permId === "sedana_quotations.view") {
+          next = next.filter(id => !id.startsWith("sedana_quotations."));
+        }
+
         // عند إلغاء تفعيل صلاحية 'عرض مركز الاعتماد المالي'، نقوم تلقائياً بإلغاء تفعيل إرسال التذكير
         if (permId === "board_chairman") {
           next = next.filter(id => id !== "board_leadership.remind");
@@ -666,6 +671,11 @@ export default function RolePermissions() {
         if (permId.startsWith("sedana_warehouse.") && permId !== "sedana_warehouse.view") {
           if (!next.includes("sedana_warehouse.view")) {
             next.push("sedana_warehouse.view");
+          }
+        }
+        if (permId.startsWith("sedana_quotations.") && permId !== "sedana_quotations.view") {
+          if (!next.includes("sedana_quotations.view")) {
+            next.push("sedana_quotations.view");
           }
         }
         if (permId === "purchase_orders.create_disbursement") {
@@ -1247,6 +1257,7 @@ export default function RolePermissions() {
           nameAr: "عروض أسعار سدانة",
           icon: Receipt,
           permissions: [
+            { id: "sedana_quotations.view", nameAr: "عرض عروض أسعار سدانة" },
             { id: "sedana_quotations.export_pdf", nameAr: "تصدير ملف pdf للبنود" },
             { id: "sedana_quotations.add", nameAr: "إضافة عروض الأسعار" },
             { id: "sedana_quotations.recommend", nameAr: "التوصية" },
@@ -1359,7 +1370,7 @@ export default function RolePermissions() {
     {
       title: "إدارة المخزون",
       modules: [
-        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["export_pdf", "add", "recommend", "approve"] },
+        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view", "export_pdf", "add", "recommend", "approve"] },
         { id: "orders_and_letters", nameAr: "مالية سدانة", icon: ShoppingBag, perms: ["disbursement_orders", "csr_letters", "purchase_orders"] },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "create_disbursement"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add"] },
@@ -1574,7 +1585,7 @@ export default function RolePermissions() {
     {
       title: "إدارة المخزون",
       modules: [
-        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["export_pdf", "add", "recommend", "approve"] },
+        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view", "export_pdf", "add", "recommend", "approve"] },
         { id: "orders_and_letters", nameAr: "مالية سدانة", icon: ShoppingBag, perms: ["disbursement_orders", "csr_letters", "purchase_orders"] },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "create_disbursement"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add"] },
