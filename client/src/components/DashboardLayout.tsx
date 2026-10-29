@@ -418,7 +418,6 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   // 4. إدارة المخزون
   const inventoryItems: MenuItem[] = [];
   const canSeeSedanaQuotations =
-    has("*") ||
     has("sedana_quotations.view") ||
     has("sedana_quotations") ||
     has("quotations.view_sedana");
@@ -434,13 +433,13 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   if (canSeeOrdersAndLetters) {
     inventoryItems.push({ icon: ShoppingBag, label: isEn ? "Sedana Finance" : "مالية سدانة", path: "/orders-and-letters" });
   }
-  if (has("purchase_orders") || has("purchase_orders.view")) {
+  if (has("purchase_orders.view") || has("purchase_orders")) {
     inventoryItems.push({ icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" });
   }
-  if (has("csr_letters") || has("csr_letters.view")) {
+  if (has("csr_letters.view") || has("csr_letters")) {
     inventoryItems.push({ icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" });
   }
-  if (has("sedana_warehouse") || has("sedana_warehouse.view")) {
+  if (has("sedana_warehouse.view") || has("sedana_warehouse")) {
     inventoryItems.push({ icon: Boxes, label: "المستودع الافتراضي", path: "/sedana-warehouse" });
   }
   if (inventoryItems.length > 0) {
