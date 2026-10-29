@@ -426,13 +426,12 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   if (canSeeSedanaQuotations) {
     inventoryItems.push({ icon: Receipt, label: isEn ? "Sedana Quotations" : "عروض أسعار سدانة", path: "/sedana-quotations" });
   }
-  if (
-    has("orders_and_letters") ||
-    has("orders_and_letters.view") ||
+  const canSeeOrdersAndLetters =
     has("orders_and_letters.disbursement_orders") ||
     has("orders_and_letters.csr_letters") ||
-    has("orders_and_letters.purchase_orders")
-  ) {
+    has("orders_and_letters.purchase_orders");
+
+  if (canSeeOrdersAndLetters) {
     inventoryItems.push({ icon: ShoppingBag, label: isEn ? "Sedana Finance" : "مالية سدانة", path: "/orders-and-letters" });
   }
   if (has("purchase_orders") || has("purchase_orders.view")) {
