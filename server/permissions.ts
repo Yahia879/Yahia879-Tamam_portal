@@ -2109,7 +2109,15 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (allPermissions.has("*")) {
     const allAvailablePerms = await db.select({ id: permissions.id }).from(permissions);
     allAvailablePerms.forEach(p => {
-      if (!effectiveExcludedAdminPerms.includes(p.id)) {
+      // الصلاحيات المستبعدة وصلاحيات إدارة المخزون لا تُمنح تلقائياً بالـ Wildcard
+      const isInv = (
+        p.id.startsWith("sedana_quotations") ||
+        p.id.startsWith("orders_and_letters") ||
+        p.id.startsWith("purchase_orders") ||
+        p.id.startsWith("csr_letters") ||
+        p.id.startsWith("sedana_warehouse")
+      );
+      if (!effectiveExcludedAdminPerms.includes(p.id) && !isInv) {
         allPermissions.add(p.id);
       }
     });
@@ -2559,34 +2567,38 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   }
   // أوامر الشراء
   if (
-    allPermissions.has("purchase_orders.view") ||
-    allPermissions.has("purchase_orders.add") ||
-    allPermissions.has("purchase_orders.create_disbursement")
+    revokedPermissions.has("purchase_orders.view") ||
+    revokedPermissions.has("purchase_orders") ||
+    !allPermissions.has("purchase_orders.view")
   ) {
-    allPermissions.add("purchase_orders");
-  } else {
     allPermissions.delete("purchase_orders");
+    allPermissions.delete("purchase_orders.view");
+  } else if (allPermissions.has("purchase_orders.view")) {
+    allPermissions.add("purchase_orders");
   }
 
   // خطابات المسؤولية المجتمعية
   if (
-    allPermissions.has("csr_letters.view") ||
-    allPermissions.has("csr_letters.add")
+    revokedPermissions.has("csr_letters.view") ||
+    revokedPermissions.has("csr_letters") ||
+    !allPermissions.has("csr_letters.view")
   ) {
-    allPermissions.add("csr_letters");
-  } else {
     allPermissions.delete("csr_letters");
+    allPermissions.delete("csr_letters.view");
+  } else if (allPermissions.has("csr_letters.view")) {
+    allPermissions.add("csr_letters");
   }
 
   // المستودع الافتراضي
   if (
-    allPermissions.has("sedana_warehouse.view") ||
-    allPermissions.has("sedana_warehouse.inward") ||
-    allPermissions.has("sedana_warehouse.outbound")
+    revokedPermissions.has("sedana_warehouse.view") ||
+    revokedPermissions.has("sedana_warehouse") ||
+    !allPermissions.has("sedana_warehouse.view")
   ) {
-    allPermissions.add("sedana_warehouse");
-  } else {
     allPermissions.delete("sedana_warehouse");
+    allPermissions.delete("sedana_warehouse.view");
+  } else if (allPermissions.has("sedana_warehouse.view")) {
+    allPermissions.add("sedana_warehouse");
   }
 
   // العهدة المالية
@@ -2597,22 +2609,13 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   // عروض أسعار سدانة
   if (
     revokedPermissions.has("sedana_quotations.view") ||
-    revokedPermissions.has("sedana_quotations")
+    revokedPermissions.has("sedana_quotations") ||
+    !allPermissions.has("sedana_quotations.view")
   ) {
     allPermissions.delete("sedana_quotations");
     allPermissions.delete("sedana_quotations.view");
-  } else if (
-    allPermissions.has("sedana_quotations.view") ||
-    allPermissions.has("sedana_quotations.export_pdf") ||
-    allPermissions.has("sedana_quotations.add") ||
-    allPermissions.has("sedana_quotations.recommend") ||
-    allPermissions.has("sedana_quotations.approve")
-  ) {
+  } else if (allPermissions.has("sedana_quotations.view")) {
     allPermissions.add("sedana_quotations");
-    allPermissions.add("sedana_quotations.view");
-  } else {
-    allPermissions.delete("sedana_quotations");
-    allPermissions.delete("sedana_quotations.view");
   }
 
   // مالية سدانة
