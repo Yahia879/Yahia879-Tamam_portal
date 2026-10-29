@@ -1209,16 +1209,18 @@ export default function SedanaExecutionPage() {
                     وفقاً لوثيقة سدانة، يمثل أمر الإخراج مسوغ صرف محاسبي رسمي لخروج المواد من المستودع الافتراضي
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-2 self-start sm:self-auto">
-                  <Button
-                    size="sm"
-                    onClick={handleOpenOutboundModal}
-                    className="text-xs font-bold gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xs"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>إضافة أمر إخراج</span>
-                  </Button>
-                </div>
+                {canOutbound && (
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <Button
+                      size="sm"
+                      onClick={handleOpenOutboundModal}
+                      className="text-xs font-bold gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xs"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>إضافة أمر إخراج</span>
+                    </Button>
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="p-0">
                 {outboundOrders.length === 0 ? (
@@ -1228,14 +1230,16 @@ export default function SedanaExecutionPage() {
                     <p className="text-xs max-w-sm mx-auto">
                       يمكنك إصدار أمر إخراج للبنود المتوفرة بالمستودع في أي وقت وتحديد الكميات المراد إخراجها.
                     </p>
-                    <Button
-                      size="sm"
-                      onClick={handleOpenOutboundModal}
-                      className="text-xs font-bold gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xs mx-auto"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>إضافة أمر إخراج الآن</span>
-                    </Button>
+                    {canOutbound && (
+                      <Button
+                        size="sm"
+                        onClick={handleOpenOutboundModal}
+                        className="text-xs font-bold gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xs mx-auto"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>إضافة أمر إخراج الآن</span>
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <div className="overflow-x-auto" dir="rtl">
@@ -1394,14 +1398,16 @@ export default function SedanaExecutionPage() {
                     توثيق خروج المواد المصروفة للمسجد ومسوغات الصرف وإثباتات الاستلام
                   </CardDescription>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={handleOpenOutboundModal}
-                  className="text-xs font-bold gap-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>إضافة أمر إخراج</span>
-                </Button>
+                {canOutbound && (
+                  <Button
+                    size="sm"
+                    onClick={handleOpenOutboundModal}
+                    className="text-xs font-bold gap-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>إضافة أمر إخراج</span>
+                  </Button>
+                )}
               </CardHeader>
               <CardContent className="p-0">
                 {outboundOrders.length === 0 ? (
