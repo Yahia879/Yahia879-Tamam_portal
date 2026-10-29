@@ -189,11 +189,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
 
   // ── عروض الأسعار ──
   "/quotations": "quotations",
-  "/sedana-quotations": [
-    "sedana_quotations.view",
-    "sedana_quotations",
-    "quotations.view_sedana"
-  ],
+  "/sedana-quotations": "sedana_quotations.view",
 
   // ── الاعتمادات ──
   "/financial-approval": [
@@ -500,11 +496,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
       "requests.view",
     ],
   },
-  { pattern: /^\/sedana-quotations\/[^/]+$/, permission: [
-    "sedana_quotations.view",
-    "sedana_quotations",
-    "quotations.view_sedana"
-  ] },
+  { pattern: /^\/sedana-quotations\/[^/]+$/, permission: "sedana_quotations.view" },
 
   // طلبات الصرف
   { pattern: /^\/disbursements\/new$/, permission: "disbursement_requests" },
