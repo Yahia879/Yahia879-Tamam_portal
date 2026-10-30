@@ -57,6 +57,14 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
     if (!colNames.includes("notesCount")) {
       await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN notesCount INT DEFAULT 0");
     }
+    if (!colNames.includes("creatorSignatureName")) await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN creatorSignatureName TEXT DEFAULT NULL");
+    if (!colNames.includes("creatorSignatureDepartment")) await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN creatorSignatureDepartment TEXT DEFAULT NULL");
+    if (!colNames.includes("creatorSignatureUrl")) await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN creatorSignatureUrl TEXT DEFAULT NULL");
+    if (!colNames.includes("executiveDirectorSignatureName")) await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN executiveDirectorSignatureName TEXT DEFAULT NULL");
+    if (!colNames.includes("executiveDirectorSignatureDepartment")) await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN executiveDirectorSignatureDepartment TEXT DEFAULT NULL");
+    if (!colNames.includes("executiveDirectorSignatureUrl")) await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN executiveDirectorSignatureUrl TEXT DEFAULT NULL");
+    if (!colNames.includes("showCreatorSignature")) await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN showCreatorSignature TINYINT(1) NOT NULL DEFAULT 1");
+    if (!colNames.includes("showExecutiveDirectorSignature")) await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN showExecutiveDirectorSignature TINYINT(1) NOT NULL DEFAULT 1");
 
     // إنشاء جدول الملاحظات والردود غير المحدودة إذا لم يكن موجوداً
     await promisePool.query(`
@@ -79,6 +87,10 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
     if (!voucherFields.has("category")) await promisePool.query("ALTER TABLE receipt_vouchers ADD COLUMN category ENUM('project_linked','restricted','unrestricted') NOT NULL DEFAULT 'project_linked'");
     if (!voucherFields.has("donationPurposeId")) await promisePool.query("ALTER TABLE receipt_vouchers ADD COLUMN donationPurposeId INT NULL");
     if (!voucherFields.has("donationPurposeName")) await promisePool.query("ALTER TABLE receipt_vouchers ADD COLUMN donationPurposeName VARCHAR(255) NULL");
+    if (!voucherFields.has("signatureName")) await promisePool.query("ALTER TABLE receipt_vouchers ADD COLUMN signatureName VARCHAR(255) DEFAULT NULL");
+    if (!voucherFields.has("signatureDepartment")) await promisePool.query("ALTER TABLE receipt_vouchers ADD COLUMN signatureDepartment VARCHAR(255) DEFAULT NULL");
+    if (!voucherFields.has("signatureUrl")) await promisePool.query("ALTER TABLE receipt_vouchers ADD COLUMN signatureUrl TEXT DEFAULT NULL");
+    if (!voucherFields.has("showSignatureInDocuments")) await promisePool.query("ALTER TABLE receipt_vouchers ADD COLUMN showSignatureInDocuments TINYINT(1) NOT NULL DEFAULT 1");
 
     const [requestCols] = await promisePool.query("SHOW COLUMNS FROM disbursement_requests") as any[];
     const requestFields = new Set((requestCols as any[]).map((c: any) => c.Field));
@@ -86,6 +98,14 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
     if (!requestFields.has("fundPurposeId")) await promisePool.query("ALTER TABLE disbursement_requests ADD COLUMN fundPurposeId INT NULL");
     if (!requestFields.has("fundPurposeName")) await promisePool.query("ALTER TABLE disbursement_requests ADD COLUMN fundPurposeName VARCHAR(255) NULL");
     if (!requestFields.has("fundRestrictedProjectId")) await promisePool.query("ALTER TABLE disbursement_requests ADD COLUMN fundRestrictedProjectId INT NULL");
+    if (!requestFields.has("creatorSignatureName")) await promisePool.query("ALTER TABLE disbursement_requests ADD COLUMN creatorSignatureName TEXT DEFAULT NULL");
+    if (!requestFields.has("creatorSignatureDepartment")) await promisePool.query("ALTER TABLE disbursement_requests ADD COLUMN creatorSignatureDepartment TEXT DEFAULT NULL");
+    if (!requestFields.has("creatorSignatureUrl")) await promisePool.query("ALTER TABLE disbursement_requests ADD COLUMN creatorSignatureUrl TEXT DEFAULT NULL");
+    if (!requestFields.has("executiveDirectorSignatureName")) await promisePool.query("ALTER TABLE disbursement_requests ADD COLUMN executiveDirectorSignatureName TEXT DEFAULT NULL");
+    if (!requestFields.has("executiveDirectorSignatureDepartment")) await promisePool.query("ALTER TABLE disbursement_requests ADD COLUMN executiveDirectorSignatureDepartment TEXT DEFAULT NULL");
+    if (!requestFields.has("executiveDirectorSignatureUrl")) await promisePool.query("ALTER TABLE disbursement_requests ADD COLUMN executiveDirectorSignatureUrl TEXT DEFAULT NULL");
+    if (!requestFields.has("showCreatorSignature")) await promisePool.query("ALTER TABLE disbursement_requests ADD COLUMN showCreatorSignature TINYINT(1) NOT NULL DEFAULT 1");
+    if (!requestFields.has("showExecutiveDirectorSignature")) await promisePool.query("ALTER TABLE disbursement_requests ADD COLUMN showExecutiveDirectorSignature TINYINT(1) NOT NULL DEFAULT 1");
 
     await promisePool.query(`CREATE TABLE IF NOT EXISTS fund_movements (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -222,6 +242,20 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
     }
     if (!reqColNames.includes("closureRejectionReason")) {
       await promisePool.query("ALTER TABLE mosque_requests ADD COLUMN closureRejectionReason TEXT DEFAULT NULL");
+    }
+
+    // أعمدة لقطة التوقيع الرقمي في جدول mosque_requests
+    if (!reqColNames.includes("signatureName")) {
+      await promisePool.query("ALTER TABLE mosque_requests ADD COLUMN signatureName VARCHAR(255) DEFAULT NULL");
+    }
+    if (!reqColNames.includes("signatureDepartment")) {
+      await promisePool.query("ALTER TABLE mosque_requests ADD COLUMN signatureDepartment VARCHAR(255) DEFAULT NULL");
+    }
+    if (!reqColNames.includes("signatureUrl")) {
+      await promisePool.query("ALTER TABLE mosque_requests ADD COLUMN signatureUrl TEXT DEFAULT NULL");
+    }
+    if (!reqColNames.includes("showSignatureInDocuments")) {
+      await promisePool.query("ALTER TABLE mosque_requests ADD COLUMN showSignatureInDocuments TINYINT(1) NOT NULL DEFAULT 1");
     }
 
     // تحديث enum role في جدول users ليشمل مسؤول المشتريات (procurement_officer)
@@ -371,6 +405,23 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
         INDEX idx_ce_status (status)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    // أعمدة توثيق التوقيع في جدول contracts_enhanced
+    try {
+      const [contractCols] = await promisePool.query("SHOW COLUMNS FROM contracts_enhanced") as any[];
+      const contractColNames = Array.isArray(contractCols) ? contractCols.map((c: any) => c.Field) : [];
+      if (!contractColNames.includes("firstPartySignatoryName")) {
+        await promisePool.query("ALTER TABLE contracts_enhanced ADD COLUMN firstPartySignatoryName VARCHAR(255) DEFAULT NULL");
+      }
+      if (!contractColNames.includes("firstPartySignatoryTitle")) {
+        await promisePool.query("ALTER TABLE contracts_enhanced ADD COLUMN firstPartySignatoryTitle VARCHAR(255) DEFAULT NULL");
+      }
+      if (!contractColNames.includes("firstPartySignatureUrl")) {
+        await promisePool.query("ALTER TABLE contracts_enhanced ADD COLUMN firstPartySignatureUrl TEXT DEFAULT NULL");
+      }
+    } catch (contractErr) {
+      console.warn("[Database] contracts_enhanced column check warning:", contractErr);
+    }
 
     // ملاحظة: طلبات سدانة تُدار بشكل مستقل ولا يتم إنشاء مشاريع لها في جدول projects
   } catch (err) {

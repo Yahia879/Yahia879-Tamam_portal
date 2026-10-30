@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -14,7 +14,21 @@ import {
   Tag,
   Building2,
   ArrowRightLeft,
+  Loader2,
+  CheckCircle2,
+  Sparkles,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
 const format = (value: number) =>
@@ -53,6 +67,64 @@ export default function FundPage() {
   }, [navigate, query]);
 
   const { data: summary, isLoading } = trpc.fund.summary.useQuery();
+  const utils = trpc.useUtils();
+  const { data: surplusProjects = [], isLoading: isLoadingSurplus } =
+    trpc.fund.transferableProjects.useQuery({ source: "surplus" });
+
+  const [selectedProjectForTransfer, setSelectedProjectForTransfer] = useState<any>(null);
+  const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
+  const [transferAmount, setTransferAmount] = useState("");
+  const [transferDestination, setTransferDestination] = useState<"project" | "general">("project");
+  const [transferReason, setTransferReason] = useState("");
+
+  const transferMutation = trpc.fund.transferFromProject.useMutation({
+    onSuccess: async () => {
+      toast.success("تم تحويل الفائض إلى الصندوق بنجاح!");
+      setIsTransferDialogOpen(false);
+      setSelectedProjectForTransfer(null);
+      await Promise.all([
+        utils.fund.summary.invalidate(),
+        utils.fund.movements.invalidate(),
+        utils.fund.projectAvailability.invalidate(),
+        utils.fund.transferableProjects.invalidate(),
+        utils.projects.getAll.invalidate(),
+      ]);
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const handleOpenTransferDialog = (proj: any) => {
+    setSelectedProjectForTransfer(proj);
+    setTransferAmount(proj.available?.toString() || "");
+    setTransferDestination("project");
+    setTransferReason(`تحويل فائض المشروع ${proj.projectNumber} إلى الصندوق`);
+    setIsTransferDialogOpen(true);
+  };
+
+  const handleConfirmTransfer = () => {
+    if (!selectedProjectForTransfer) return;
+    const numAmount = Number(transferAmount);
+    if (!numAmount || numAmount <= 0) {
+      toast.error("يرجى إدخال مبلغ صحيح للتحويل");
+      return;
+    }
+    if (numAmount > selectedProjectForTransfer.available) {
+      toast.error("المبلغ المدخل يتجاوز الفائض المتاح");
+      return;
+    }
+
+    transferMutation.mutate({
+      projectId: selectedProjectForTransfer.id,
+      source: "surplus",
+      amount: numAmount,
+      destination: {
+        restrictionType: transferDestination === "general" ? "general" : "project",
+        restrictedProjectId: transferDestination === "general" ? undefined : selectedProjectForTransfer.id,
+      },
+      releaseRestriction: transferDestination === "general",
+      reason: transferReason.trim() || undefined,
+    });
+  };
   const { data: movements = [], isLoading: isLoadingMovements } = trpc.fund.movements.useQuery({
     limit: 6,
     all: showAllMovements,
@@ -286,6 +358,116 @@ export default function FundPage() {
           </div>
         </div>
 
+        {/* ========================================================================= */}
+        {/* قسم المشاريع التي بها فائض مالي متاح للتحويل إلى الصندوق */}
+        {/* ========================================================================= */}
+        <Card className="shadow-xs border-emerald-200/90 bg-gradient-to-b from-emerald-50/20 to-card overflow-hidden">
+          <CardHeader className="border-b border-emerald-100/80 bg-transparent pb-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Coins className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <CardTitle className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
+                      مشاريع الجمعية التي بها فائض مالي متاح للتحويل
+                    </CardTitle>
+                    <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-xs font-bold">
+                      {surplusProjects.length} {surplusProjects.length === 1 ? "مشروع به فائض" : "مشاريع بها فائض"}
+                    </Badge>
+                  </div>
+                  <CardDescription className="text-xs mt-0.5">
+                    المشاريع التي تجاوزت مبالغ سندات قبضها التكلفة المعتمدة، مع إمكانية تحويل الفائض مباشرة إلى الصندوق
+                  </CardDescription>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {isLoadingSurplus ? (
+              <div className="py-8 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                <span>جاري فحص وتحديث فوائض المشاريع...</span>
+              </div>
+            ) : surplusProjects.length === 0 ? (
+              <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-dashed border-slate-200 dark:border-slate-800 text-center space-y-1.5">
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">لا توجد مشاريع بها فائض مالي متاح للتحويل حالياً</p>
+                <p className="text-xs text-muted-foreground">
+                  عند تجاوز المقبوضات الفعلية لأي مشروع تكلفته المعتمدة، سيظهر تلقائياً هنا مع زر التحويل المباشر للصندوق.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {surplusProjects.map((proj: any) => (
+                  <div
+                    key={proj.id}
+                    className="p-4 rounded-xl border border-emerald-200/70 bg-card hover:border-emerald-300 transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-2xs"
+                  >
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Button
+                          variant="link"
+                          onClick={() => navigate(`/projects/${proj.id}`)}
+                          className="p-0 h-auto font-black text-sm sm:text-base text-foreground hover:text-emerald-700 hover:underline cursor-pointer"
+                        >
+                          {proj.name}
+                        </Button>
+                        <Badge variant="outline" className="text-[10px] font-bold border-slate-300 bg-slate-50 dark:bg-slate-900">
+                          {proj.projectNumber}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap pt-0.5">
+                        {proj.received !== undefined && (
+                          <span className="inline-flex items-center gap-1">
+                            المقبوضات المحصلة: <strong className="text-foreground font-sans font-bold">{format(proj.received)}</strong> <SaudiRiyal className="w-3 h-3" />
+                          </span>
+                        )}
+                        {proj.projectCost !== undefined && (
+                          <>
+                            <span>•</span>
+                            <span className="inline-flex items-center gap-1">
+                              التكلفة المعتمدة: <strong className="text-foreground font-sans font-bold">{format(proj.projectCost)}</strong> <SaudiRiyal className="w-3 h-3" />
+                            </span>
+                          </>
+                        )}
+                        {proj.surplusTransferred > 0 && (
+                          <>
+                            <span>•</span>
+                            <span className="inline-flex items-center gap-1 text-slate-500">
+                              تم تحويله سابقاً: <span className="font-sans font-semibold">{format(proj.surplusTransferred)}</span> <SaudiRiyal className="w-2.5 h-2.5" />
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between lg:justify-end gap-4 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                      <div className="text-right">
+                        <span className="text-[10px] block font-semibold text-muted-foreground">الفائض المتاح للتحويل</span>
+                        <span className="font-sans text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1">
+                          +{format(proj.available)} <SaudiRiyal className="w-3.5 h-3.5" />
+                        </span>
+                      </div>
+
+                      {canTransferToFund && (
+                        <Button
+                          onClick={() => handleOpenTransferDialog(proj)}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4 rounded-xl shadow-xs gap-1.5 cursor-pointer shrink-0"
+                        >
+                          <ArrowRightLeft className="w-4 h-4" />
+                          <span>تحويل المبلغ للصندوق</span>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Card className="shadow-xs border-slate-200 bg-slate-50">
           <CardHeader className="border-b border-slate-200 bg-transparent pb-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -342,6 +524,132 @@ export default function FundPage() {
         </Card>
 
         {movementHistoryCard}
+        {/* نافذة تأكيد وتحويل الفائض للصندوق */}
+        <Dialog open={isTransferDialogOpen} onOpenChange={setIsTransferDialogOpen}>
+          <DialogContent className="max-w-lg font-sans" dir="rtl">
+            <DialogHeader className="text-right border-b pb-3">
+              <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
+                <ArrowRightLeft className="w-5 h-5 text-emerald-600" />
+                تحويل فائض المشروع إلى الصندوق
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-1">
+                {selectedProjectForTransfer?.name} ({selectedProjectForTransfer?.projectNumber})
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-3">
+              {/* بطاقة معلومات الفائض */}
+              <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200/80 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">إجمالي الفائض المتاح للتحويل:</span>
+                  <span className="font-bold text-emerald-700 font-sans text-sm inline-flex items-center gap-1">
+                    {selectedProjectForTransfer ? format(selectedProjectForTransfer.available) : "0.00"} <SaudiRiyal className="w-3 h-3" />
+                  </span>
+                </div>
+              </div>
+
+              {/* حقل إدخال المبلغ */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">المبلغ المراد تحويله (ريال):</Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    max={selectedProjectForTransfer?.available || undefined}
+                    value={transferAmount}
+                    onChange={(e) => setTransferAmount(e.target.value)}
+                    className="font-sans font-bold text-base h-10 pr-3 pl-10 rounded-xl"
+                    placeholder="0.00"
+                  />
+                  <SaudiRiyal className="w-4 h-4 absolute left-3 top-3 text-muted-foreground pointer-events-none" />
+                </div>
+                <div className="flex justify-between items-center text-[11px] text-muted-foreground pt-0.5">
+                  <span>يمكنك تحويل كامل المبلغ أو جزء منه</span>
+                  <button
+                    type="button"
+                    onClick={() => setTransferAmount(selectedProjectForTransfer?.available?.toString() || "")}
+                    className="text-emerald-600 font-bold hover:underline cursor-pointer"
+                  >
+                    تحويل كامل الفائض
+                  </button>
+                </div>
+              </div>
+
+              {/* تحديد وجهة التحويل في الصندوق */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">وجهة قيد الرصيد في الصندوق:</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div
+                    onClick={() => setTransferDestination("project")}
+                    className={`p-3 rounded-xl border text-xs cursor-pointer transition-all ${
+                      transferDestination === "project"
+                        ? "border-emerald-600 bg-emerald-50/50 font-bold text-emerald-950 ring-1 ring-emerald-600"
+                        : "border-slate-200 hover:border-slate-300 text-slate-700"
+                    }`}
+                  >
+                    <p className="font-bold">قيد بحساب المشروع</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">يبقى مقيداً للاستخدام بنفس المشروع</p>
+                  </div>
+
+                  <div
+                    onClick={() => setTransferDestination("general")}
+                    className={`p-3 rounded-xl border text-xs cursor-pointer transition-all ${
+                      transferDestination === "general"
+                        ? "border-emerald-600 bg-emerald-50/50 font-bold text-emerald-950 ring-1 ring-emerald-600"
+                        : "border-slate-200 hover:border-slate-300 text-slate-700"
+                    }`}
+                  >
+                    <p className="font-bold">الحساب العام للصندوق</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">تحرير القيد واستخدامه عموماً</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* سبب التحويل / ملاحظات */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">بيان / سبب التحويل (اختياري):</Label>
+                <Input
+                  value={transferReason}
+                  onChange={(e) => setTransferReason(e.target.value)}
+                  placeholder="تحويل فائض المشروع إلى الصندوق"
+                  className="text-xs h-9 rounded-xl"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0 border-t pt-3 flex-row-reverse justify-start">
+              <Button
+                type="button"
+                disabled={transferMutation.isPending || !Number(transferAmount) || Number(transferAmount) <= 0 || Number(transferAmount) > (selectedProjectForTransfer?.available || 0)}
+                onClick={handleConfirmTransfer}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 rounded-xl gap-1.5 cursor-pointer"
+              >
+                {transferMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>جاري التحويل...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>تأكيد تحويل المبلغ للصندوق</span>
+                  </>
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsTransferDialogOpen(false)}
+                className="text-xs h-9 rounded-xl cursor-pointer"
+              >
+                إلغاء
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
       </div>
     </DashboardLayout>
   );

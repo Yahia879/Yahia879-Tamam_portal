@@ -134,7 +134,7 @@ export const fundRouter = router({
   transferableProjects: protectedProcedure.input(z.object({
     source: z.enum(["surplus", "administrative", "operational"]).default("surplus"),
   })).query(async ({ input, ctx }) => {
-    await authorize(ctx, "transfer");
+    await authorize(ctx, "view");
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
     const candidates = await db.select({
@@ -154,7 +154,7 @@ export const fundRouter = router({
       }
       const amount = input.source === "surplus" ? available.surplusAvailable
         : input.source === "administrative" ? available.administrativeAvailable : available.operationalAvailable;
-      if (amount > 0) eligible.push({ ...project, available: amount });
+      if (amount > 0) eligible.push({ ...project, available: amount, received: available.received, projectCost: available.projectCost, surplusTransferred: available.surplusTransferred });
     }
     return eligible;
   }),
