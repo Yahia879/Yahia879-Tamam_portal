@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +29,7 @@ export default function NewFundTransferPage() {
   const [projectId, setProjectId] = useState(params.get("projectId") || "");
   const source: Source = initialSource === "administrative" || initialSource === "operational"
     ? initialSource : "surplus";
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(params.get("amount") || "");
   const [reason, setReason] = useState("");
 
   const utils = trpc.useUtils();
@@ -38,6 +38,22 @@ export default function NewFundTransferPage() {
   const availableSource = selectedProject?.available || 0;
   const numericAmount = Number(amount);
   const isAmountValid = Number.isFinite(numericAmount) && numericAmount > 0 && numericAmount <= availableSource;
+
+  useEffect(() => {
+    const urlProjectId = params.get("projectId");
+    if (urlProjectId && projectId !== urlProjectId) {
+      setProjectId(urlProjectId);
+    }
+  }, []);
+
+  useEffect(() => {
+    const urlAmount = params.get("amount");
+    if (urlAmount && !amount) {
+      setAmount(urlAmount);
+    } else if (!amount && selectedProject && selectedProject.available > 0 && params.get("projectId")) {
+      setAmount(selectedProject.available.toFixed(2));
+    }
+  }, [selectedProject]);
 
   const transferMutation = trpc.fund.transferFromProject.useMutation({
     onSuccess: async (result) => {
