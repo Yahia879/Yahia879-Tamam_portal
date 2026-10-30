@@ -425,7 +425,8 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   const canSeeOrdersAndLetters =
     has("orders_and_letters.disbursement_orders") ||
     has("orders_and_letters.csr_letters") ||
-    has("orders_and_letters.purchase_orders");
+    has("orders_and_letters.purchase_orders") ||
+    permissions.some(p => p.startsWith("orders_and_letters."));
 
   if (canSeeOrdersAndLetters) {
     inventoryItems.push({ icon: ShoppingBag, label: isEn ? "Sedana Finance" : "مالية سدانة", path: "/orders-and-letters" });
