@@ -436,7 +436,7 @@ export default function ReceiptVoucherPrint() {
 
           {/* Bottom Section: Signatures & Stamp */}
           <div className="grid grid-cols-12 items-end pt-2 mb-2 relative z-20">
-            <div className="col-span-6 flex justify-start items-center min-h-[100px] relative z-30">
+            <div className="col-span-6 flex justify-start items-center min-h-[75px] relative z-30">
               {officialStampUrl && (
                 <div className="relative select-none pr-4 sm:pr-8 opacity-95 pointer-events-none">
                   <img
@@ -452,15 +452,15 @@ export default function ReceiptVoucherPrint() {
               <span className="text-sm sm:text-base font-bold text-[#978457]">
                 {(voucher as any)?.signatureDepartment || signerUser?.signatureDepartment || ((voucher as any)?.isException ? "معتمد الاستثناء" : "الإدارة المالية")}
               </span>
-              <div className="w-56 sm:w-72 h-24 sm:h-28 flex items-center justify-center relative my-1">
+              <div className="w-40 sm:w-48 h-14 sm:h-16 flex items-center justify-center relative my-1">
                 {signatureUrl ? (
                   <img
                     src={signatureUrl}
                     alt={(voucher as any)?.isException ? "توقيع معتمد الاستثناء" : "توقيع الإدارة المالية"}
-                    className="max-h-24 sm:max-h-28 max-w-full object-contain"
+                    className="max-h-14 sm:max-h-16 max-w-full object-contain"
                   />
                 ) : (
-                  <div className="w-52 h-24"></div>
+                  <div className="w-36 h-14"></div>
                 )}
               </div>
               {signerUser?.name && (

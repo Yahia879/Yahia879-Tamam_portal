@@ -61,6 +61,7 @@ import {
   Globe,
   Search,
   LayoutGrid,
+  Tv,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -79,6 +80,12 @@ const CATEGORY_META: Record<
     badgeColor: string;
   }
 > = {
+  digital_screen_section: {
+    icon: Tv,
+    accentColor: "text-violet-600 dark:text-violet-400",
+    iconBg: "bg-violet-500/10 border-violet-200/60 dark:bg-violet-950/40 dark:border-violet-800/40",
+    badgeColor: "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/60 dark:text-violet-300",
+  },
   mosque_section: {
     icon: Building2,
     accentColor: "text-emerald-600 dark:text-emerald-400",
@@ -228,6 +235,7 @@ export default function FormsCustomizationDashboard() {
   const { data: boardStats } = trpc.board.getExecutiveStats.useQuery();
   const { data: financialReportData } = trpc.disbursements.getFinancialReport.useQuery();
   const { data: allReceiptVouchersData = [] } = trpc.projects.getAllReceiptVouchers.useQuery();
+  const { data: growthStats } = trpc.analytics.getMonthlyGrowth.useQuery();
 
   // حفظ التخصيص للهدف المحدد
   const saveMutation = trpc.forms.saveDetailedDashboardCustomizationConfig.useMutation({
@@ -343,6 +351,95 @@ export default function FormsCustomizationDashboard() {
       </button>
     </div>
   );
+
+  const completionRate = requestStats?.total
+    ? Math.round(((requestStats?.byStatus?.completed || 0) / requestStats.total) * 100)
+    : 0;
+
+  // 0. كروت المؤشرات الرقمية الرئيسية
+  const mainOverviewCardDefs = [
+    {
+      id: "main_total_requests",
+      title: "إجمالي الطلبات",
+      value: (requestStats?.total || 0).toLocaleString("en-US"),
+      icon: FileText,
+      gradient: "from-blue-500 to-blue-600",
+      bgLight: "bg-blue-50 dark:bg-blue-950/40",
+      change: (growthStats as any)?.totalRequests?.percentage,
+      subtext: "طلب مسجل بالبوابة",
+    },
+    {
+      id: "main_registered_mosques",
+      title: "المساجد المسجلة",
+      value: (mosqueStats?.total || 0).toLocaleString("en-US"),
+      icon: Building2,
+      gradient: "from-emerald-500 to-emerald-600",
+      bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
+      change: (growthStats as any)?.registeredMosques?.percentage,
+      subtext: "مسجد وجامع معتمد",
+    },
+    {
+      id: "main_in_progress_requests",
+      title: "قيد التنفيذ",
+      value: (requestStats?.byStatus?.in_progress || 0).toLocaleString("en-US"),
+      icon: Clock,
+      gradient: "from-amber-500 to-amber-600",
+      bgLight: "bg-amber-50 dark:bg-amber-950/40",
+      change: (growthStats as any)?.inProgressRequests?.percentage,
+      subtext: "بمختلف المراحل النشطة",
+    },
+    {
+      id: "main_completed_requests",
+      title: "مكتملة",
+      value: (requestStats?.byStatus?.completed || 0).toLocaleString("en-US"),
+      icon: CheckCircle2,
+      gradient: "from-green-500 to-green-600",
+      bgLight: "bg-green-50 dark:bg-green-950/40",
+      change: (growthStats as any)?.completedRequests?.percentage,
+      subtext: `نسبة الإنجاز: ${completionRate}%`,
+    },
+    {
+      id: "main_approved_contracts",
+      title: "العقود المعتمدة",
+      value: ((disbursementStats as any)?.approvedContractsAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }),
+      isCurrency: true,
+      icon: Briefcase,
+      gradient: "from-indigo-500 to-indigo-600",
+      bgLight: "bg-indigo-50 dark:bg-indigo-950/40",
+      subtext: `${(disbursementStats as any)?.approvedContractsCount || 0} عقود نشطة`,
+    },
+    {
+      id: "main_paid_amounts",
+      title: "المبالغ المصروفة",
+      value: ((disbursementStats as any)?.totalPaid || (disbursementStats as any)?.approvedOrdersAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }),
+      isCurrency: true,
+      icon: Receipt,
+      gradient: "from-rose-500 to-rose-600",
+      bgLight: "bg-rose-50 dark:bg-rose-950/40",
+      subtext: `${(disbursementStats as any)?.executedOrders || 0} أمر صرف منفذ`,
+    },
+    {
+      id: "main_receipt_vouchers",
+      title: "سندات القبض",
+      value: ((disbursementStats as any)?.approvedReceiptVouchersAmount || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }),
+      isCurrency: true,
+      icon: Wallet,
+      gradient: "from-teal-500 to-teal-600",
+      bgLight: "bg-teal-50 dark:bg-teal-950/40",
+      subtext: `${(disbursementStats as any)?.approvedReceiptVouchersCount || 0} سند معتمد`,
+    },
+    {
+      id: "main_active_projects",
+      title: "المشاريع النشطة",
+      value: ((projectStats as any)?.active || projectStats?.total || 0).toLocaleString("en-US"),
+      icon: FolderKanban,
+      gradient: "from-violet-500 to-violet-600",
+      bgLight: "bg-violet-50 dark:bg-violet-950/40",
+      subtext: `الميزانية: ${(parseFloat(projectStats?.totalBudget || "0")).toLocaleString("en-US", { maximumFractionDigits: 0 })} ر.س`,
+    },
+  ];
+
+  const visibleMainOverviewCards = mainOverviewCardDefs.filter((c) => isDetailedElementEnabled(c.id));
 
   // 1. كروت تبويب المساجد
   const boardMosquesTotal = boardStats?.mosques?.total ?? mosqueStats?.total ?? 0;
@@ -584,23 +681,69 @@ export default function FormsCustomizationDashboard() {
 
   const visibleFinancialCards = financialCardDefs.filter((c) => isDetailedElementEnabled(c.id));
 
+  // 6. كروت مؤشرات مجلس الإدارة في الشاشة الرقمية
+  const boardScreenCardDefs = [
+    {
+      id: "board_mosques_total",
+      title: "إجمالي المساجد المسجلة",
+      value: boardMosquesTotal.toLocaleString("en-US"),
+      subtext: "مسجلة رسمياً بالبوابة",
+      icon: Building2,
+      gradient: "from-emerald-500 to-emerald-600",
+      bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
+    },
+    {
+      id: "board_mosques_active",
+      title: "المساجد النشطة",
+      value: boardMosquesActive.toLocaleString("en-US"),
+      subtext: "تتلقى الخدمات والزيارات",
+      icon: Activity,
+      gradient: "from-blue-500 to-cyan-600",
+      bgLight: "bg-blue-50 dark:bg-blue-950/40",
+    },
+    {
+      id: "board_mosques_recent",
+      title: "المسجلة خلال آخر 30 يوماً",
+      value: `+${boardMosquesRecent.toLocaleString("en-US")}`,
+      subtext: "نمو مستمر",
+      icon: Clock,
+      gradient: "from-amber-500 to-orange-600",
+      bgLight: "bg-amber-50 dark:bg-amber-950/40",
+    },
+    {
+      id: "board_mosques_coverage",
+      title: "نسبة التغطية الكلية",
+      value: `${boardMosqueCoverage}%`,
+      subtext: "مساجد مفعّلة بالخدمات",
+      icon: LayoutGrid,
+      gradient: "from-purple-500 to-violet-600",
+      bgLight: "bg-purple-50 dark:bg-purple-950/40",
+    },
+  ];
+
+  const visibleBoardScreenCards = boardScreenCardDefs.filter((c) => isDetailedElementEnabled(c.id));
+
   // خريطة لكافة كروت الإحصائيات للوصول لخصائصها البصرية
   const allCardDefsMap = useMemo(() => {
     const map = new Map<string, any>();
     [
+      ...mainOverviewCardDefs,
       ...mosqueCardDefs,
       ...requestCardDefs,
       ...procurementCardDefs,
       ...projectAndVoucherCardDefs,
       ...financialCardDefs,
+      ...boardScreenCardDefs,
     ].forEach((card) => map.set(card.id, card));
     return map;
   }, [
+    mainOverviewCardDefs,
     mosqueCardDefs,
     requestCardDefs,
     procurementCardDefs,
     projectAndVoucherCardDefs,
     financialCardDefs,
+    boardScreenCardDefs,
   ]);
 
   // دالة لرسم العنصر المستبعد بصرياً طبق الأصل في صندوق الاستعادة
@@ -1033,6 +1176,7 @@ export default function FormsCustomizationDashboard() {
                 </span>
                 {[
                   { id: "all", label: "عرض شامل", icon: LayoutGrid, color: "text-primary" },
+                  { id: "digital_screen", label: "الشاشة الرقمية", icon: Tv, color: "text-violet-600", sectionId: "section_digital_screen" },
                   { id: "mosques", label: "المساجد والتغطية", icon: Building2, color: "text-emerald-600", sectionId: "section_mosques" },
                   { id: "requests", label: "الطلبات والبرامج", icon: FileText, color: "text-blue-600", sectionId: "section_requests" },
                   { id: "procurement", label: "المشاريع والعقود", icon: Briefcase, color: "text-amber-600", sectionId: "section_procurement" },
@@ -1062,6 +1206,144 @@ export default function FormsCustomizationDashboard() {
                 })}
               </div>
             </div>
+
+            {/* ========================================================================= */}
+            {/* 0. تبويب الشاشة الرقمية بالمعاينة والتخصيص */}
+            {/* ========================================================================= */}
+            {previewTab === "digital_screen" && (
+              <div className="space-y-8 pt-2">
+                {/* شريط التحكم بالقسم ككل */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-violet-500/10 border border-violet-500/20">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center font-bold text-xs">
+                      <Tv className="w-4.5 h-4.5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-foreground">الشاشة الرقمية والمؤشرات الإحصائية المباشرة</h3>
+                      <p className="text-xs text-muted-foreground">عرض رقمي مباشر لكافة كروت المنظومة بدون أي مخططات</p>
+                    </div>
+                  </div>
+                  {isDetailedElementEnabled("section_digital_screen") && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleRemoveElement("section_digital_screen", "تبويب الشاشة الرقمية بالكامل")}
+                      className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 gap-1.5 h-8 rounded-xl font-bold cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      إخفاء تبويب الشاشة الرقمية بالكامل
+                    </Button>
+                  )}
+                </div>
+
+                {/* 1. بطاقات المؤشرات الرقمية الرئيسية */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 pb-1">
+                    <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+                    <h3 className="text-base sm:text-lg font-bold text-foreground">
+                      المؤشرات الرقمية والبطاقات الرئيسية
+                    </h3>
+                    <span className="text-xs text-muted-foreground mr-1">
+                      (الملخص الإجمالي للطلبات، المساجد، العقود، والمصروفات)
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                    {visibleMainOverviewCards.map((stat) => renderCard(stat))}
+                  </div>
+                </div>
+
+                {/* 2. إحصائيات المساجد */}
+                {visibleMosqueCards.length > 0 && (
+                  <div className="space-y-2.5 pt-4 border-t border-border/60">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-emerald-600" />
+                      <h4 className="text-sm font-bold text-foreground">إحصائيات المساجد</h4>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                      {visibleMosqueCards.map((stat) => renderCard(stat))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. إحصائيات الطلبات */}
+                {visibleRequestCards.length > 0 && (
+                  <div className="space-y-2.5 pt-4 border-t border-border/60">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      <h4 className="text-sm font-bold text-foreground">إحصائيات الطلبات</h4>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                      {visibleRequestCards.map((stat) => renderCard(stat))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. المشتريات والعقود */}
+                {visibleProcurementCards.length > 0 && (
+                  <div className="space-y-2.5 pt-4 border-t border-border/60">
+                    <div className="flex items-center gap-2">
+                      <Store className="w-4 h-4 text-orange-600" />
+                      <h4 className="text-sm font-bold text-foreground">المشتريات والعقود</h4>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                      {visibleProcurementCards.map((stat) => renderCard(stat))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 5. المالية وأوامر الصرف */}
+                {visibleFinancialCards.length > 0 && (
+                  <div className="space-y-2.5 pt-4 border-t border-border/60">
+                    <div className="flex items-center gap-2">
+                      <Banknote className="w-4 h-4 text-indigo-600" />
+                      <h4 className="text-sm font-bold text-foreground">المالية وأوامر الصرف</h4>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                      {visibleFinancialCards.map((stat) => renderCard(stat))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 6. التقرير المالي والمشاريع */}
+                {visibleProjectCards.length > 0 && (
+                  <div className="space-y-2.5 pt-4 border-t border-border/60">
+                    <div className="flex items-center gap-2">
+                      <SaudiRiyal className="w-4 h-4 text-teal-600" />
+                      <h4 className="text-sm font-bold text-foreground">التقرير المالي والمشاريع</h4>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                      {visibleProjectCards.map((stat) => renderCard(stat))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 7. مخططات وتحليلات مجلس الإدارة والمؤشرات الإستراتيجية (الكروت فقط) */}
+                {visibleBoardScreenCards.length > 0 && (
+                  <div className="space-y-4 pt-6 border-t-2 border-border/80">
+                    <div className="flex items-center justify-between pb-3 border-b border-border/70">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-sm border border-blue-500/20">
+                          <Briefcase className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h2 className="text-base sm:text-lg font-bold text-foreground">
+                            مخططات وتحليلات مجلس الإدارة والمؤشرات الإستراتيجية
+                          </h2>
+                          <p className="text-xs text-muted-foreground">
+                            مخططات المساجد، توزيع عقود المشاريع، مؤشرات أوامر الصرف، ومصفوفة الأداء الإستراتيجي
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                      {visibleBoardScreenCards.map((stat) => renderCard(stat))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* ========================================================================= */}
             {/* 1. قسم المساجد والزيارات الميدانية */}

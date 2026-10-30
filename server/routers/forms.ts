@@ -468,6 +468,7 @@ export const DETAILED_DASHBOARD_SETTING_KEY = "detailed_dashboard_customization"
 
 export const DETAILED_DASHBOARD_CATEGORIES = [
   { id: "all", name: "كافة العناصر والأقسام" },
+  { id: "digital_screen_section", name: "قسم الشاشة الرقمية والمؤشرات الإجمالية" },
   { id: "mosque_section", name: "قسم المساجد والتغطية" },
   { id: "request_section", name: "قسم الطلبات وبرامج الخدمات" },
   { id: "procurement_section", name: "قسم المشاريع والعقود وشبكة الموردين" },
@@ -475,7 +476,22 @@ export const DETAILED_DASHBOARD_CATEGORIES = [
 ];
 
 export const DETAILED_DASHBOARD_ELEMENT_DEFINITIONS = [
-  // 1. قسم المساجد والتغطية
+  // 1. قسم الشاشة الرقمية والمؤشرات الإجمالية
+  { id: "section_digital_screen", title: "قسم الشاشة الرقمية بالكامل (والتبويب)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "إظهار أو إخفاء تبويب وقسم الشاشة الرقمية بالكامل من شريط التنقل", defaultEnabled: true },
+  { id: "main_total_requests", title: "إجمالي الطلبات (الشاشة الرقمية)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة إجمالي الطلبات المسجلة ونسبة التغير الشهري", defaultEnabled: true },
+  { id: "main_registered_mosques", title: "المساجد المسجلة (الشاشة الرقمية)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة المساجد المعتمدة ونسبة التغير", defaultEnabled: true },
+  { id: "main_in_progress_requests", title: "الطلبات قيد التنفيذ (الشاشة الرقمية)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة الطلبات الجارية بمختلف المراحل النشطة", defaultEnabled: true },
+  { id: "main_completed_requests", title: "الطلبات المكتملة (الشاشة الرقمية)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة الطلبات المنجزة ونسبة الإنجاز الكلية", defaultEnabled: true },
+  { id: "main_approved_contracts", title: "العقود المعتمدة (الشاشة الرقمية)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة العقود المعتمدة والمبالغ السارية", defaultEnabled: true },
+  { id: "main_paid_amounts", title: "المبالغ المصروفة (الشاشة الرقمية)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة المبالغ المصروفة من أوامر الصرف المنفذة", defaultEnabled: true },
+  { id: "main_receipt_vouchers", title: "سندات القبض (الشاشة الرقمية)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة سندات القبض ومبالغ التحصيل", defaultEnabled: true },
+  { id: "main_active_projects", title: "المشاريع النشطة (الشاشة الرقمية)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة المشاريع النشطة والميزانية الكلية المعتمدة", defaultEnabled: true },
+  { id: "board_mosques_total", title: "إجمالي المساجد المسجلة (مؤشرات الإدارة)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة إجمالي المساجد المسجلة رسمياً بالبوابة", defaultEnabled: true },
+  { id: "board_mosques_active", title: "المساجد النشطة (مؤشرات الإدارة)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة المساجد النشطة المتلقية للخدمات والزيارات", defaultEnabled: true },
+  { id: "board_mosques_recent", title: "المسجلة خلال آخر 30 يوماً (مؤشرات الإدارة)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة نمو تسجيل المساجد الجديدة خلال آخر شهر", defaultEnabled: true },
+  { id: "board_mosques_coverage", title: "نسبة التغطية الكلية (مؤشرات الإدارة)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة نسبة المساجد المفعّلة بالخدمات", defaultEnabled: true },
+
+  // 2. قسم المساجد والتغطية
   { id: "section_mosques", title: "قسم المساجد بالكامل (والتبويب)", category: "mosque_section", categoryName: "قسم المساجد والتغطية", description: "إظهار أو إخفاء قسم المساجد بالكامل مع تبويبه من شريط التنقل", defaultEnabled: true },
   { id: "mosque_total", title: "المساجد المسجلة", category: "mosque_section", categoryName: "قسم المساجد والتغطية", description: "بطاقة إجمالي المساجد المسجلة رسمياً بالبوابة", defaultEnabled: true },
   { id: "mosque_active", title: "المساجد النشطة", category: "mosque_section", categoryName: "قسم المساجد والتغطية", description: "بطاقة المساجد النشطة المستفيدة من الخدمات والزيارات", defaultEnabled: true },

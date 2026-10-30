@@ -1196,7 +1196,7 @@ export default function ContractPreview() {
                               <img
                                 src={executiveDirectorSignatureUrl}
                                 alt="توقيع الطرف الأول"
-                                className="absolute -top-8 right-6 h-24 sm:h-28 max-w-[220px] sm:max-w-[260px] object-contain pointer-events-none"
+                                className="absolute -top-5 right-8 h-16 sm:h-18 max-w-[160px] sm:max-w-[180px] object-contain pointer-events-none"
                               />
                             )}
                           </div>
