@@ -47,12 +47,11 @@ export default function CreatePurchaseOrderPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const canAddOrderPerm = usePermission("purchase_orders.add");
-  const canOrdersAndLettersCreate = usePermission("orders_and_letters.create");
-  const canOrdersAndLettersPO = usePermission("orders_and_letters.purchase_orders");
+  const canAddSedanaPO = usePermission("orders_and_letters.purchase_orders_add");
   const params = useParams<{ id?: string }>();
   const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
   const isFromOrdersAndLetters = searchParams.get("from") === "orders-and-letters" || Boolean(searchParams.get("returnUrl")?.includes("orders-and-letters"));
-  const canAddOrder = canAddOrderPerm || (isFromOrdersAndLetters && (canOrdersAndLettersCreate || canOrdersAndLettersPO));
+  const canAddOrder = isFromOrdersAndLetters ? canAddSedanaPO : canAddOrderPerm;
   const initialRequestId = params.id ? parseInt(params.id, 10) : (searchParams.get("requestId") ? parseInt(searchParams.get("requestId")!, 10) : null);
   const projectId = searchParams.get("projectId") ? parseInt(searchParams.get("projectId")!, 10) : null;
 
