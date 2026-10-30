@@ -241,7 +241,10 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "disbursement_orders",
     "disbursement_orders.create_direct",
     "orders_and_letters.disbursement_orders_create_direct",
-    "orders_and_letters"
+    "orders_and_letters",
+    "purchase_orders.create_disbursement",
+    "orders_and_letters.purchase_orders_create_disbursement",
+    "csr_letters.create_disbursement"
   ],
   "/fund": ["fund.view", "fund.transfer"],
   "/fund/movements": ["fund.view", "fund.transfer"],

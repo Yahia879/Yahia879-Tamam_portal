@@ -3458,11 +3458,14 @@ export const disbursementsRouter = router({
       const hasCreateDirectPerm = await checkPermission(ctx.user.id, "disbursement_orders.create_direct");
       const hasCreateCustomPerm = await checkPermission(ctx.user.id, "disbursements.create_custom");
       const hasSedanaDirectPerm = await checkPermission(ctx.user.id, "orders_and_letters.disbursement_orders_create_direct");
+      const hasPoDisbursementPerm = await checkPermission(ctx.user.id, "purchase_orders.create_disbursement");
+      const hasCsrDisbursementPerm = await checkPermission(ctx.user.id, "csr_letters.create_disbursement");
+      const hasOrdersAndLettersPoDisbursementPerm = await checkPermission(ctx.user.id, "orders_and_letters.purchase_orders_create_disbursement");
 
-      if (!hasCreatePerm && !hasCreateDirectPerm && !hasCreateCustomPerm && !hasSedanaDirectPerm) {
+      if (!hasCreatePerm && !hasCreateDirectPerm && !hasCreateCustomPerm && !hasSedanaDirectPerm && !hasPoDisbursementPerm && !hasCsrDisbursementPerm && !hasOrdersAndLettersPoDisbursementPerm) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "ليس لديك صلاحية لإنشاء أمر صرف مباشر (يتطلب صلاحية disbursements.create أو disbursement_orders.create_direct أو disbursements.create_custom)",
+          message: "ليس لديك صلاحية لإنشاء أمر صرف مباشر",
         });
       }
 

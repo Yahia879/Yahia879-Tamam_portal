@@ -568,15 +568,6 @@ export default function UserPermissions() {
           toast.info("تم منح كافة صلاحيات قسمي 'الطلبات' و'إدارة المستفيدين' تلقائياً مع تفعيل التصعيد الإداري", {
             duration: 4500,
           });
-        } else if (permId === "purchase_orders.create_disbursement" || permId === "csr_letters.create_disbursement") {
-          ["disbursement_orders.view", "disbursement_orders.create_direct"].forEach(targetId => {
-            const defVal = rolePermissions?.includes(targetId) || false;
-            if (defVal) {
-              delete updated[targetId];
-            } else {
-              updated[targetId] = true;
-            }
-          });
         } else if (permId.startsWith("purchase_orders.") && permId !== "purchase_orders.view") {
           const defVal = rolePermissions?.includes("purchase_orders.view") || false;
           if (defVal) {
@@ -878,19 +869,6 @@ export default function UserPermissions() {
           });
         }
 
-        if (
-          permIds.includes("purchase_orders.create_disbursement") ||
-          permIds.includes("csr_letters.create_disbursement")
-        ) {
-          ["disbursement_orders.view", "disbursement_orders.create_direct"].forEach(targetId => {
-            const defVal = rolePermissions?.includes(targetId) || false;
-            if (defVal) {
-              delete updated[targetId];
-            } else {
-              updated[targetId] = true;
-            }
-          });
-        }
       }
       return updated;
     });

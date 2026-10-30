@@ -542,7 +542,7 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
                                   onClick={() => {
                                     const returnUrlParam = isEmbedded && requestId
                                       ? `&returnUrl=${encodeURIComponent(`/orders-and-letters?tab=disbursement_orders&requestId=${requestId}`)}`
-                                      : "";
+                                      : `&returnUrl=${encodeURIComponent("/purchase-orders")}`;
                                     navigate(`/disbursement-orders/new-direct?po=${encodeURIComponent(order.orderNumber)}${returnUrlParam}`);
                                   }}
                                   className="h-7 text-[11px] px-2 gap-1 text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 border-amber-300 dark:border-amber-800 font-bold shadow-2xs"
