@@ -76,7 +76,8 @@ export default function OrdersAndLettersReview() {
   const hasAnyFinancialPermission =
     canDisbursementOrders ||
     canCsrLetters ||
-    canPurchaseOrders;
+    canPurchaseOrders ||
+    userPermissions.some(p => p.startsWith("orders_and_letters."));
 
   const isFinancialOfficer =
     isSuperAdmin ||
@@ -783,6 +784,22 @@ export default function OrdersAndLettersReview() {
                     إدارة ومراجعة المعاملات المالية لبرنامج سدانة (أوامر الصرف، خطابات المسؤولية المجتمعية، وأوامر الشراء)
                   </p>
                 </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {userPermissions.includes("orders_and_letters.disbursement_orders_create_direct") && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const returnUrl = encodeURIComponent("/orders-and-letters");
+                      navigate(`/disbursement-orders/new-direct?returnUrl=${returnUrl}`);
+                    }}
+                    className="text-xs font-bold gap-1.5 gradient-primary text-white shadow-xs cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>إنشاء أمر صرف مخصص</span>
+                  </Button>
+                )}
               </div>
             </div>
 
