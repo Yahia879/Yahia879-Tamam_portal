@@ -460,6 +460,33 @@ export default function UserPermissions() {
       }
     }
 
+    if (permId.startsWith("sedana_quotations.") && permId !== "sedana_quotations.view") {
+      if (!isChecked("sedana_quotations.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض عروض أسعار سدانة' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية في مالية سدانة إذا كانت صلاحية عرض القسم معطلة
+    if (permId.startsWith("orders_and_letters.disbursement_orders_")) {
+      if (!isChecked("orders_and_letters.disbursement_orders")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض أوامر الصرف' أولاً");
+        return;
+      }
+    }
+    if (permId.startsWith("orders_and_letters.csr_letters_")) {
+      if (!isChecked("orders_and_letters.csr_letters")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض الخطاب المجتمعي' أولاً");
+        return;
+      }
+    }
+    if (permId.startsWith("orders_and_letters.purchase_orders_")) {
+      if (!isChecked("orders_and_letters.purchase_orders")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض أوامر الشراء' أولاً");
+        return;
+      }
+    }
+
 
 
 
@@ -570,6 +597,27 @@ export default function UserPermissions() {
             delete updated["sedana_quotations.view"];
           } else {
             updated["sedana_quotations.view"] = true;
+          }
+        } else if (permId.startsWith("orders_and_letters.disbursement_orders_")) {
+          const defVal = rolePermissions?.includes("orders_and_letters.disbursement_orders") || false;
+          if (defVal) {
+            delete updated["orders_and_letters.disbursement_orders"];
+          } else {
+            updated["orders_and_letters.disbursement_orders"] = true;
+          }
+        } else if (permId.startsWith("orders_and_letters.csr_letters_")) {
+          const defVal = rolePermissions?.includes("orders_and_letters.csr_letters") || false;
+          if (defVal) {
+            delete updated["orders_and_letters.csr_letters"];
+          } else {
+            updated["orders_and_letters.csr_letters"] = true;
+          }
+        } else if (permId.startsWith("orders_and_letters.purchase_orders_")) {
+          const defVal = rolePermissions?.includes("orders_and_letters.purchase_orders") || false;
+          if (defVal) {
+            delete updated["orders_and_letters.purchase_orders"];
+          } else {
+            updated["orders_and_letters.purchase_orders"] = true;
           }
         } else if (permId.startsWith("sedana_warehouse.") && permId !== "sedana_warehouse.view") {
           const defVal = rolePermissions?.includes("sedana_warehouse.view") || false;
@@ -717,6 +765,15 @@ export default function UserPermissions() {
         }
         if (permId === "sedana_quotations.view") {
           cascadeRevoke("sedana_quotations.");
+        }
+        if (permId === "orders_and_letters.disbursement_orders") {
+          cascadeRevoke("orders_and_letters.disbursement_orders_");
+        }
+        if (permId === "orders_and_letters.csr_letters") {
+          cascadeRevoke("orders_and_letters.csr_letters_");
+        }
+        if (permId === "orders_and_letters.purchase_orders") {
+          cascadeRevoke("orders_and_letters.purchase_orders_");
         }
         if (permId === "contracts.view") {
           cascadeRevoke("contracts.");
@@ -1063,9 +1120,16 @@ export default function UserPermissions() {
         clause_add: "إضافة بند للعقد"
       },
       orders_and_letters: {
-        disbursement_orders: "أوامر الصرف",
-        csr_letters: "الخطاب المجتمعي",
-        purchase_orders: "أوامر الشراء",
+        disbursement_orders: "عرض أوامر الصرف",
+        disbursement_orders_create_direct: "انشاء امر صرف مخصص",
+        disbursement_orders_exception_approve: "استثناء اعتماد مُعد الأمر",
+        disbursement_orders_remind: "إرسال تذكير بالاعتماد",
+        disbursement_orders_cancel_executed: "الغاء اعتماد أوامر الصرف المنفذة",
+        csr_letters: "عرض الخطاب المجتمعي",
+        csr_letters_add: "إنشاء خطاب مجتمعي جديد",
+        purchase_orders: "عرض أوامر الشراء",
+        purchase_orders_add: "إنشاء أمر شراء جديد",
+        purchase_orders_create_disbursement: "إنشاء أمر صرف لأمر الشراء",
       },
       purchase_orders: {
         view: "عرض أوامر الشراء",
@@ -1438,7 +1502,23 @@ export default function UserPermissions() {
       title: "إدارة المخزون",
       modules: [
         { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view", "export_pdf", "add", "recommend", "approve"] },
-        { id: "orders_and_letters", nameAr: "مالية سدانة", icon: ShoppingBag, perms: ["disbursement_orders", "csr_letters", "purchase_orders"] },
+        {
+          id: "orders_and_letters",
+          nameAr: "مالية سدانة",
+          icon: ShoppingBag,
+          perms: [
+            "disbursement_orders",
+            "disbursement_orders_create_direct",
+            "disbursement_orders_exception_approve",
+            "disbursement_orders_remind",
+            "disbursement_orders_cancel_executed",
+            "csr_letters",
+            "csr_letters_add",
+            "purchase_orders",
+            "purchase_orders_add",
+            "purchase_orders_create_disbursement",
+          ],
+        },
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "create_disbursement"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add"] },
         { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound"] },
@@ -1915,7 +1995,11 @@ export default function UserPermissions() {
                               (perm.id.startsWith("requester_inquiries.") && perm.id !== "requester_inquiries.view" && !isChecked("requester_inquiries.view")) ||
                               (perm.id.startsWith("requester_sedana.") && perm.id !== "requester_sedana.view" && !isChecked("requester_sedana.view")) ||
                               (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !isChecked("reports.view_stats")) ||
-                              (perm.id.startsWith("beneficiary_evaluations.") && perm.id !== "beneficiary_evaluations.view" && !isChecked("beneficiary_evaluations.view"));
+                              (perm.id.startsWith("beneficiary_evaluations.") && perm.id !== "beneficiary_evaluations.view" && !isChecked("beneficiary_evaluations.view")) ||
+                              (perm.id.startsWith("sedana_quotations.") && perm.id !== "sedana_quotations.view" && !isChecked("sedana_quotations.view")) ||
+                              (perm.id.startsWith("orders_and_letters.disbursement_orders_") && !isChecked("orders_and_letters.disbursement_orders")) ||
+                              (perm.id.startsWith("orders_and_letters.csr_letters_") && !isChecked("orders_and_letters.csr_letters")) ||
+                              (perm.id.startsWith("orders_and_letters.purchase_orders_") && !isChecked("orders_and_letters.purchase_orders"));
 
                             // تحديد نمط البطاقة بناءً على نوع حالة الصلاحية (موروثة، ممنوحة، مسحوبة)
                             let cardClass = "border-slate-200 dark:border-slate-800 bg-background hover:bg-slate-50 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400 cursor-pointer";
