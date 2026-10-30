@@ -1,3 +1,4 @@
+import { DisbursementPermConfirmationModal } from "@/components/permissions/DisbursementPermConfirmationModal";
 import { useState, useEffect, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import { trpc } from "../lib/trpc";
@@ -99,6 +100,8 @@ export default function UserPermissions() {
 
   const utils = trpc.useUtils();
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  const [showDisbursementModal, setShowDisbursementModal] = useState(false);
+  const [pendingDisbursementAction, setPendingDisbursementAction] = useState<(() => void) | null>(null);
 
   // جلب بيانات المستخدم الأساسية
   const { data: userData, isLoading: userDataLoading } = trpc.users.getById.useQuery(
@@ -499,6 +502,30 @@ export default function UserPermissions() {
     const defaultState = rolePermissions?.includes(permId) || false;
     const currentState = isChecked(permId);
     const newState = !currentState;
+    if (
+      (permId === "purchase_orders.create_disbursement" || permId === "orders_and_letters.purchase_orders_create_disbursement") &&
+      newState
+    ) {
+      const needsApproval = !isChecked("disbursement_orders.view") || !isChecked("disbursement_orders.create_direct");
+      if (needsApproval) {
+        setPendingDisbursementAction(() => () => {
+          setOverrides(prev => {
+            const updated = { ...prev };
+            [permId, "disbursement_orders.view", "disbursement_orders.create_direct"].forEach(pId => {
+              const defVal = rolePermissions?.includes(pId) || false;
+              if (defVal) {
+                delete updated[pId];
+              } else {
+                updated[pId] = true;
+              }
+            });
+            return updated;
+          });
+        });
+        setShowDisbursementModal(true);
+        return;
+      }
+    }
 
     setOverrides(prev => {
       let updated = { ...prev };
@@ -793,6 +820,29 @@ export default function UserPermissions() {
   const handleToggleModuleAll = (modulePerms: any[]) => {
     const permIds = modulePerms.map(p => p.id);
     const allSelected = permIds.every(id => isChecked(id));
+
+    if (!allSelected) {
+      const hasPoDisbursement = permIds.includes("purchase_orders.create_disbursement") || permIds.includes("orders_and_letters.purchase_orders_create_disbursement");
+      const needsApproval = hasPoDisbursement && (!isChecked("disbursement_orders.view") || !isChecked("disbursement_orders.create_direct"));
+      if (needsApproval) {
+        setPendingDisbursementAction(() => () => {
+          setOverrides(prev => {
+            const updated = { ...prev };
+            [...permIds, "disbursement_orders.view", "disbursement_orders.create_direct"].forEach(pId => {
+              const defVal = rolePermissions?.includes(pId) || false;
+              if (defVal) {
+                delete updated[pId];
+              } else {
+                updated[pId] = true;
+              }
+            });
+            return updated;
+          });
+        });
+        setShowDisbursementModal(true);
+        return;
+      }
+    }
     
     setOverrides(prev => {
       let updated = { ...prev };

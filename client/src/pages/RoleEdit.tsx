@@ -1,3 +1,4 @@
+import { DisbursementPermConfirmationModal } from "@/components/permissions/DisbursementPermConfirmationModal";
 import { useState, useEffect, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import { trpc } from "../lib/trpc";
@@ -873,6 +874,8 @@ export default function RoleEdit() {
 
   const [nameAr, setNameAr] = useState("");
   const [selectedPerms, setSelectedPerms] = useState<string[]>([]);
+  const [showDisbursementModal, setShowDisbursementModal] = useState(false);
+  const [pendingDisbursementAction, setPendingDisbursementAction] = useState<(() => void) | null>(null);
 
   // جلب بيانات الدور (الاسم والصلاحيات)
   const { data: roleData, isLoading: roleLoading } = trpc.permissions.getRole.useQuery(
@@ -959,6 +962,27 @@ export default function RoleEdit() {
   };
 
   const handleTogglePermission = (permId: string) => {
+    // التحقق من صلاحية إنشاء أمر صرف لأمر الشراء وتأكيد تفعيل صلاحيات أوامر الصرف
+    if (
+      (permId === "purchase_orders.create_disbursement" || permId === "orders_and_letters.purchase_orders_create_disbursement") &&
+      !selectedPerms.includes(permId)
+    ) {
+      const needsApproval = !selectedPerms.includes("disbursement_orders.view") || !selectedPerms.includes("disbursement_orders.create_direct");
+      if (needsApproval) {
+        setPendingDisbursementAction(() => () => {
+          setSelectedPerms(prev => {
+            const next = prev.includes(permId) ? prev : [...prev, permId];
+            if (!next.includes("disbursement_orders.view")) next.push("disbursement_orders.view");
+            if (!next.includes("disbursement_orders.create_direct")) next.push("disbursement_orders.create_direct");
+            if (permId.startsWith("purchase_orders.") && !next.includes("purchase_orders.view")) next.push("purchase_orders.view");
+            if (permId.startsWith("orders_and_letters.purchase_orders_") && !next.includes("orders_and_letters.purchase_orders")) next.push("orders_and_letters.purchase_orders");
+            return next;
+          });
+        });
+        setShowDisbursementModal(true);
+        return;
+      }
+    }
 
     // منع تفعيل أي صلاحية فرعية للمساجد إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("mosques.") && permId !== "mosques.view") {
@@ -1531,6 +1555,21 @@ export default function RoleEdit() {
     if (allSelected) {
       setSelectedPerms(prev => prev.filter(id => !permIds.includes(id)));
     } else {
+      const hasPoDisbursement = permIds.includes("purchase_orders.create_disbursement") || permIds.includes("orders_and_letters.purchase_orders_create_disbursement");
+      const needsApproval = hasPoDisbursement && (!selectedPerms.includes("disbursement_orders.view") || !selectedPerms.includes("disbursement_orders.create_direct"));
+      if (needsApproval) {
+        setPendingDisbursementAction(() => () => {
+          setSelectedPerms(prev => {
+            let added = permIds.filter(id => !prev.includes(id));
+            let next = [...prev, ...added];
+            if (!next.includes("disbursement_orders.view")) next.push("disbursement_orders.view");
+            if (!next.includes("disbursement_orders.create_direct")) next.push("disbursement_orders.create_direct");
+            return next;
+          });
+        });
+        setShowDisbursementModal(true);
+        return;
+      }
       setSelectedPerms(prev => {
         let added = permIds.filter(id => !prev.includes(id));
         if (added.includes("appointments.view_all") && added.includes("appointments.view_own")) {
