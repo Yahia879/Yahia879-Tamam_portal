@@ -472,25 +472,25 @@ export default function DisbursementOrderPrint() {
 
   const isExceptionApproved = Boolean(order?.isException);
 
-  // 1. الخانة الأولى: الإدارة المالية / مُعد الأمر (عند الاستثناء تظهر بيانات المعتمِد المستثنِي)
+  // 1. الخانة الأولى: الإدارة المالية / مُعد الأمر (الأولوية لـ Snapshot التوقيع المحفوظ في السجل)
   const creatorName = isExceptionApproved
-    ? (((order as any)?.liveExceptionApproverName || (order as any)?.creatorSignatureName || "مُعد الأمر").replace(/\s*\(استثناء اعتماد\)/g, ""))
-    : (financialUser?.signatureName || financialUser?.name || "الإدارة المالية");
+    ? (((order as any)?.creatorSignatureName || (order as any)?.liveExceptionApproverName || "مُعد الأمر").replace(/\s*\(استثناء اعتماد\)/g, ""))
+    : ((order as any)?.creatorSignatureName || financialUser?.signatureName || financialUser?.name || "الإدارة المالية");
 
   const creatorDepartment = isExceptionApproved
-    ? (((order as any)?.liveExceptionApproverDepartment || (order as any)?.creatorSignatureDepartment || "الإدارة المالية").replace(/\s*\(استثناء اعتماد\)/g, ""))
-    : (financialUser?.signatureDepartment || "الإدارة المالية");
+    ? (((order as any)?.creatorSignatureDepartment || (order as any)?.liveExceptionApproverDepartment || "الإدارة المالية").replace(/\s*\(استثناء اعتماد\)/g, ""))
+    : ((order as any)?.creatorSignatureDepartment || financialUser?.signatureDepartment || "الإدارة المالية");
 
   const creatorSignatureUrl = isOrderStage1Approved 
-    ? (isExceptionApproved ? ((order as any)?.liveExceptionApproverSignatureUrl || (order as any)?.creatorSignatureUrl || null) : (financialUser?.signatureUrl || null)) 
+    ? ((order as any)?.creatorSignatureUrl || (isExceptionApproved ? (order as any)?.liveExceptionApproverSignatureUrl : financialUser?.signatureUrl) || null) 
     : null;
 
   const creatorDate = isOrderStage1Approved ? formatGregorianDate((order as any)?.financialApprovedAt || order?.updatedAt || order?.createdAt) : "—";
 
-  // 2. الخانة الثانية: المدير التنفيذي (يظهر تاريخ الاعتماد الميلادي عند اعتماد المرحلة الثانية والنهائية)
-  const executiveDirectorName = executiveDirectorUser?.signatureName || executiveDirectorUser?.name || "المدير التنفيذي";
-  const executiveDirectorDepartment = executiveDirectorUser?.signatureDepartment || "المدير التنفيذي";
-  const executiveDirectorSignatureUrl = isOrderStage2Approved ? (executiveDirectorUser?.signatureUrl || null) : null;
+  // 2. الخانة الثانية: المدير التنفيذي (الأولوية لـ Snapshot التوقيع المحفوظ في السجل)
+  const executiveDirectorName = (order as any)?.executiveDirectorSignatureName || executiveDirectorUser?.signatureName || executiveDirectorUser?.name || "المدير التنفيذي";
+  const executiveDirectorDepartment = (order as any)?.executiveDirectorSignatureDepartment || executiveDirectorUser?.signatureDepartment || "المدير التنفيذي";
+  const executiveDirectorSignatureUrl = isOrderStage2Approved ? ((order as any)?.executiveDirectorSignatureUrl || executiveDirectorUser?.signatureUrl || null) : null;
   const executiveDirectorDate = isOrderStage2Approved ? formatGregorianDate(order?.approvedAt) : "—";
 
   const isCreator = currentUser?.id === order?.createdBy;

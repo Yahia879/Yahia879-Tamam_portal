@@ -450,7 +450,7 @@ export default function ReceiptVoucherPrint() {
 
             <div className="col-span-6 flex flex-col items-center justify-end space-y-0.5">
               <span className="text-sm sm:text-base font-bold text-[#978457]">
-                {(voucher as any)?.isException ? "معتمد الاستثناء" : "الإدارة المالية"}
+                {(voucher as any)?.signatureDepartment || signerUser?.signatureDepartment || ((voucher as any)?.isException ? "معتمد الاستثناء" : "الإدارة المالية")}
               </span>
               <div className="w-56 sm:w-72 h-24 sm:h-28 flex items-center justify-center relative my-1">
                 {signatureUrl ? (

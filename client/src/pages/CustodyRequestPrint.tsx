@@ -208,16 +208,16 @@ export default function CustodyRequestPrint() {
     procurement_officer: "مسؤول المشتريات",
   };
 
-  // 1. بيانات مقدم الطلب الحية والمستندة إلى الملف الشخصي (/profile) بدون أي قيم نصية ثابتة
+  // 1. بيانات مقدم الطلب: الأولوية دائماً لـ Snapshot التوقيع المحفوظ في السجل
   const applicantSignatureName = 
-    (request as any).applicantLiveSignatureName?.trim() ||
     request.applicantSignatureName?.trim() ||
+    (request as any).applicantLiveSignatureName?.trim() ||
     request.applicantName?.trim() ||
     "";
 
-  const applicantSignatureDepartment =
-    (request as any).applicantLiveSignatureDepartment?.trim() ||
+  const applicantSignatureDepartment = 
     request.applicantSignatureDepartment?.trim() ||
+    (request as any).applicantLiveSignatureDepartment?.trim() ||
     (request.applicantRole ? (ROLE_NAMES[request.applicantRole] || request.applicantRole) : "") ||
     "";
 
@@ -226,7 +226,7 @@ export default function CustodyRequestPrint() {
     (request as any).applicantShowSignatureInDocuments !== 0;
 
   const applicantSignatureUrl = showApplicantSig
-    ? ((request as any).applicantLiveSignatureUrl || request.applicantSignatureUrl || null)
+    ? (request.applicantSignatureUrl || (request as any).applicantLiveSignatureUrl || null)
     : null;
 
   const applicantRoleName = (request.applicantRole && ROLE_NAMES[request.applicantRole]) || request.applicantRole || "—";

@@ -4887,8 +4887,32 @@ export const projectsRouter = router({
         if (!currentVoucher || currentVoucher.status === "approval_revoked") {
           throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن اعتماد سند أُلغي اعتماده" });
         }
+        const [appUser] = await tx.select({
+          name: users.name,
+          signatureName: users.signatureName,
+          signatureDepartment: users.signatureDepartment,
+          signatureUrl: users.signatureUrl,
+          showSignatureInDocuments: users.showSignatureInDocuments,
+        }).from(users).where(eq(users.id, ctx.user.id)).limit(1);
+
+        const appName = appUser?.signatureName || appUser?.name || ctx.user.name;
+        const appDept = appUser?.signatureDepartment || "الإدارة المالية";
+        const appSigUrl = appUser?.showSignatureInDocuments !== false && (appUser?.showSignatureInDocuments as any) !== 0
+          ? (appUser?.signatureUrl || null)
+          : null;
+
         await tx.update(receiptVouchers)
-          .set({ status: "approved", rejectionReason: null, approvedBy: ctx.user.id, approvedAt: new Date(), updatedAt: new Date() })
+          .set({ 
+            status: "approved", 
+            rejectionReason: null, 
+            approvedBy: ctx.user.id, 
+            approvedAt: new Date(), 
+            updatedAt: new Date(),
+            signatureName: appName,
+            signatureDepartment: appDept,
+            signatureUrl: appSigUrl,
+            showSignatureInDocuments: appUser?.showSignatureInDocuments !== false && (appUser?.showSignatureInDocuments as any) !== 0,
+          })
           .where(eq(receiptVouchers.id, input.id));
         await postVoucherDeposit(tx, { ...currentVoucher, status: "approved" }, ctx.user.id);
       });
@@ -5014,11 +5038,29 @@ export const projectsRouter = router({
         if (!currentVoucher || currentVoucher.status === "approved") {
           throw new TRPCError({ code: "BAD_REQUEST", message: "سند القبض معتمد بالفعل أو غير موجود" });
         }
+        const [excUser] = await tx.select({
+          name: users.name,
+          signatureName: users.signatureName,
+          signatureDepartment: users.signatureDepartment,
+          signatureUrl: users.signatureUrl,
+          showSignatureInDocuments: users.showSignatureInDocuments,
+        }).from(users).where(eq(users.id, ctx.user.id)).limit(1);
+
+        const excName = excUser?.signatureName || excUser?.name || ctx.user.name;
+        const excDept = excUser?.signatureDepartment || "معتمد الاستثناء";
+        const excSigUrl = excUser?.showSignatureInDocuments !== false && (excUser?.showSignatureInDocuments as any) !== 0
+          ? (excUser?.signatureUrl || null)
+          : null;
+
         await tx.update(receiptVouchers)
           .set({
             status: "approved", isException: 1, exceptionApprovedBy: ctx.user.id,
             exceptionApprovedAt: new Date(), exceptionReason: input.reason.trim(),
             approvedBy: ctx.user.id, approvedAt: new Date(), rejectionReason: null, updatedAt: new Date(),
+            signatureName: excName,
+            signatureDepartment: excDept,
+            signatureUrl: excSigUrl,
+            showSignatureInDocuments: excUser?.showSignatureInDocuments !== false && (excUser?.showSignatureInDocuments as any) !== 0,
           })
           .where(eq(receiptVouchers.id, input.id));
         await postVoucherDeposit(tx, { ...currentVoucher, status: "approved" }, ctx.user.id);
@@ -5060,6 +5102,10 @@ export const projectsRouter = router({
           exceptionReason: receiptVouchers.exceptionReason,
           approvedBy: receiptVouchers.approvedBy,
           approvedAt: receiptVouchers.approvedAt,
+          signatureName: receiptVouchers.signatureName,
+          signatureDepartment: receiptVouchers.signatureDepartment,
+          signatureUrl: receiptVouchers.signatureUrl,
+          showSignatureInDocuments: receiptVouchers.showSignatureInDocuments,
           createdAt: receiptVouchers.createdAt,
           createdById: receiptVouchers.createdById,
         })
@@ -5086,7 +5132,17 @@ export const projectsRouter = router({
       // التوقيع يظهر بالتقرير فقط وحصرياً إذا كان السند معتمداً (status === 'approved')
       let signerUser = null;
       if (voucher.status === "approved") {
-        if (voucher.isException && voucher.exceptionApprovedBy) {
+        // الأولوية دائماً لـ Snapshot التوقيع المحفوظ في السجل
+        if (voucher.signatureName || voucher.signatureUrl) {
+          signerUser = {
+            id: voucher.approvedBy || voucher.exceptionApprovedBy || 0,
+            name: voucher.signatureName,
+            signatureName: voucher.signatureName,
+            signatureDepartment: voucher.signatureDepartment || (voucher.isException ? "معتمد الاستثناء" : "الإدارة المالية"),
+            signatureUrl: voucher.showSignatureInDocuments !== false && (voucher.showSignatureInDocuments as any) !== 0 ? voucher.signatureUrl : null,
+            showSignatureInDocuments: voucher.showSignatureInDocuments,
+          };
+        } else if (voucher.isException && voucher.exceptionApprovedBy) {
           const approverList = await db
             .select({
               id: users.id,

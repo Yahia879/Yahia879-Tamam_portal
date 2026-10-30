@@ -759,6 +759,9 @@ export const disbursementsRouter = router({
           creatorSignatureName: disbursementRequests.creatorSignatureName,
           creatorSignatureDepartment: disbursementRequests.creatorSignatureDepartment,
           creatorSignatureUrl: disbursementRequests.creatorSignatureUrl,
+          executiveDirectorSignatureName: disbursementRequests.executiveDirectorSignatureName,
+          executiveDirectorSignatureDepartment: disbursementRequests.executiveDirectorSignatureDepartment,
+          executiveDirectorSignatureUrl: disbursementRequests.executiveDirectorSignatureUrl,
           isException: disbursementRequests.isException,
           exceptionApprovedBy: disbursementRequests.exceptionApprovedBy,
           showCreatorSignature: disbursementRequests.showCreatorSignature,
@@ -914,9 +917,11 @@ export const disbursementsRouter = router({
       const resolvedSupplierIban = request.supplierIban || contract?.secondPartyIban || null;
       const resolvedSupplierAccountName = request.supplierAccountName || contract?.secondPartyAccountName || contract?.secondPartyName || null;
 
-      let resolvedSignatureName = request.requestedBySignatureName || request.creatorSignatureName || request.requestedByName;
-      let resolvedSignatureDepartment = request.requestedBySignatureDepartment || request.creatorSignatureDepartment;
-      let resolvedSignatureUrl = request.requestedByShowSignature === false ? null : request.requestedBySignatureUrl;
+      let resolvedSignatureName = request.creatorSignatureName || request.requestedBySignatureName || request.requestedByName;
+      let resolvedSignatureDepartment = request.creatorSignatureDepartment || request.requestedBySignatureDepartment;
+      let resolvedSignatureUrl = (request.creatorSignatureUrl !== null && request.creatorSignatureUrl !== undefined)
+        ? request.creatorSignatureUrl
+        : (request.requestedByShowSignature === false ? null : request.requestedBySignatureUrl);
 
       const hasSignInfo = !!(resolvedSignatureName && resolvedSignatureDepartment);
 
@@ -1038,7 +1043,12 @@ export const disbursementsRouter = router({
         }
       }
 
-      if (execDirector) {
+      // إذا كان طلب الصرف يحتوي على Snapshot محفوظ لتوقيع المدير التنفيذي نستخدمه فوراً دون الرجوع لبيانات الحساب الحية
+      if ((request as any).executiveDirectorSignatureName || (request as any).executiveDirectorSignatureUrl) {
+        executiveDirectorName = (request as any).executiveDirectorSignatureName;
+        executiveDirectorSignatureDepartment = (request as any).executiveDirectorSignatureDepartment || "المدير التنفيذي";
+        executiveDirectorSignatureUrl = (request as any).executiveDirectorSignatureUrl;
+      } else if (execDirector) {
         executiveDirectorName = execDirector.signatureName || execDirector.name;
         executiveDirectorSignatureDepartment = execDirector.signatureDepartment || "المدير التنفيذي";
         const isShowSig = 
@@ -1356,17 +1366,24 @@ export const disbursementsRouter = router({
       const userHasSignPermission = await checkPermission(ctx.user.id, "disbursements.sign");
       let creatorSignatureName: string | null = null;
       let creatorSignatureDepartment: string | null = null;
+      let creatorSignatureUrl: string | null = null;
       if (userHasSignPermission) {
         const [userSignData] = await db
           .select({
+            name: users.name,
             signatureName: users.signatureName,
             signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+            showSignatureInDocuments: users.showSignatureInDocuments,
           })
           .from(users)
           .where(eq(users.id, ctx.user.id));
         if (userSignData) {
-          creatorSignatureName = userSignData.signatureName;
+          creatorSignatureName = userSignData.signatureName || userSignData.name;
           creatorSignatureDepartment = userSignData.signatureDepartment;
+          if (userSignData.showSignatureInDocuments !== false && (userSignData.showSignatureInDocuments as any) !== 0) {
+            creatorSignatureUrl = userSignData.signatureUrl || null;
+          }
         }
       }
 
@@ -1391,6 +1408,7 @@ export const disbursementsRouter = router({
         requestedBy: ctx.user.id,
         creatorSignatureName,
         creatorSignatureDepartment,
+        creatorSignatureUrl,
       });
 
       // مزامنة المستخلص في جدول مستخلصات العقد paymentScheduleJson إن وجد (فقط عند إنشاء مستخلص تعاقدي جديد وليس عند رفع طلب صرف لتقرير إنجاز)
@@ -1717,10 +1735,31 @@ export const disbursementsRouter = router({
           });
         }
 
+        // توثيق وحفظ توقيع وبيانات مُعد الطلب (Snapshot)
+        const [preparerUser] = await db
+          .select({
+            name: users.name,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+            showSignatureInDocuments: users.showSignatureInDocuments,
+          })
+          .from(users)
+          .where(eq(users.id, ctx.user.id));
+
+        const pName = preparerUser?.signatureName || preparerUser?.name || request.creatorSignatureName;
+        const pDept = preparerUser?.signatureDepartment || request.creatorSignatureDepartment || "مُعدّ الطلب";
+        const pSigUrl = preparerUser?.showSignatureInDocuments !== false && (preparerUser?.showSignatureInDocuments as any) !== 0
+          ? (preparerUser?.signatureUrl || request.creatorSignatureUrl)
+          : null;
+
         await db
           .update(disbursementRequests)
           .set({
             status: "pending_executive",
+            creatorSignatureName: pName,
+            creatorSignatureDepartment: pDept,
+            creatorSignatureUrl: pSigUrl,
             approvalNotes: input.notes || request.approvalNotes,
             updatedAt: new Date(),
           })
@@ -1764,6 +1803,24 @@ export const disbursementsRouter = router({
           });
         }
 
+        // توثيق وحفظ توقيع وبيانات المدير التنفيذي (Snapshot) لضمان عدم تغيرها عند تعديل البروفايل لاحقاً
+        const [execUserSign] = await db
+          .select({
+            name: users.name,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+            showSignatureInDocuments: users.showSignatureInDocuments,
+          })
+          .from(users)
+          .where(eq(users.id, ctx.user.id));
+
+        const exName = execUserSign?.signatureName || execUserSign?.name || "م. عبدالهادي آل فائق";
+        const exDept = execUserSign?.signatureDepartment || "المدير التنفيذي";
+        const exSigUrl = execUserSign?.showSignatureInDocuments !== false && (execUserSign?.showSignatureInDocuments as any) !== 0
+          ? (execUserSign?.signatureUrl || null)
+          : null;
+
         await db
           .update(disbursementRequests)
           .set({
@@ -1771,6 +1828,9 @@ export const disbursementsRouter = router({
             approvedBy: ctx.user.id,
             approvedAt: new Date(),
             approvalNotes: input.notes || request.approvalNotes,
+            executiveDirectorSignatureName: exName,
+            executiveDirectorSignatureDepartment: exDept,
+            executiveDirectorSignatureUrl: exSigUrl,
             updatedAt: new Date(),
           })
           .where(eq(disbursementRequests.id, input.id));
@@ -2799,8 +2859,27 @@ export const disbursementsRouter = router({
 
       const linkedProgressReport = await resolveLinkedProgressReport(db, request);
 
+      // بناء كائنات التوقيع المستندة إلى الـ Snapshot المخزن في السجل
+      const resolvedCreatorName = order.creatorSignatureName || financialUser?.signatureName || financialUser?.name || "مُعد الأمر";
+      const resolvedCreatorDept = order.creatorSignatureDepartment || financialUser?.signatureDepartment || "الإدارة المالية";
+      const resolvedCreatorSigUrl = (order.creatorSignatureUrl !== null && order.creatorSignatureUrl !== undefined)
+        ? order.creatorSignatureUrl
+        : (financialUser?.signatureUrl || null);
+
+      const resolvedExecName = (order as any).executiveDirectorSignatureName || executiveDirectorUser?.signatureName || executiveDirectorUser?.name || "م. عبدالهادي آل فائق";
+      const resolvedExecDept = (order as any).executiveDirectorSignatureDepartment || executiveDirectorUser?.signatureDepartment || "المدير التنفيذي";
+      const resolvedExecSigUrl = ((order as any).executiveDirectorSignatureUrl !== null && (order as any).executiveDirectorSignatureUrl !== undefined)
+        ? (order as any).executiveDirectorSignatureUrl
+        : (executiveDirectorUser?.signatureUrl || null);
+
       return {
         ...order,
+        creatorSignatureName: resolvedCreatorName,
+        creatorSignatureDepartment: resolvedCreatorDept,
+        creatorSignatureUrl: resolvedCreatorSigUrl,
+        executiveDirectorSignatureName: resolvedExecName,
+        executiveDirectorSignatureDepartment: resolvedExecDept,
+        executiveDirectorSignatureUrl: resolvedExecSigUrl,
         beneficiaryName: resolvedBeneficiaryName,
         beneficiaryAccountName: resolvedBeneficiaryAccountName,
         beneficiaryBank: resolvedBeneficiaryBank,
@@ -2815,7 +2894,7 @@ export const disbursementsRouter = router({
         executiveDirectorUser: executiveDirectorUser || null,
         repliedByUser,
         executiveNotesRepliedByName: repliedByUser?.name || null,
-        // بيانات مُنفذ الاستثناء الحية
+        // بيانات مُنفذ الاستثناء
         liveExceptionApproverName: liveExceptionApproverData
           ? (liveExceptionApproverData.signatureName || liveExceptionApproverData.name || null)
           : null,
@@ -2990,6 +3069,9 @@ export const disbursementsRouter = router({
         requestId: linkedRequestId,
         status: "pending",
         createdBy: ctx.user.id,
+        creatorSignatureName: (ctx.user as any)?.signatureName || ctx.user.name,
+        creatorSignatureDepartment: (ctx.user as any)?.signatureDepartment || "الإدارة المالية",
+        creatorSignatureUrl: (ctx.user as any)?.showSignatureInDocuments !== false && ((ctx.user as any)?.showSignatureInDocuments as any) !== 0 ? ((ctx.user as any)?.signatureUrl || null) : null,
       });
 
       await notifyDisbursementOrderCreation(
@@ -3579,6 +3661,23 @@ export const disbursementsRouter = router({
           });
         }
 
+        const [finUser] = await db
+          .select({
+            name: users.name,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+            showSignatureInDocuments: users.showSignatureInDocuments,
+          })
+          .from(users)
+          .where(eq(users.id, ctx.user.id));
+
+        const fName = finUser?.signatureName || finUser?.name || "سليمان عليان العلياني";
+        const fDept = finUser?.signatureDepartment || "الإدارة المالية";
+        const fSigUrl = finUser?.showSignatureInDocuments !== false && (finUser?.showSignatureInDocuments as any) !== 0
+          ? (finUser?.signatureUrl || null)
+          : null;
+
         await db
           .update(disbursementOrders)
           .set({
@@ -3586,6 +3685,9 @@ export const disbursementsRouter = router({
             createdBy: ctx.user.id,
             financialApprovedAt: new Date(),
             approvalNotes: input.notes,
+            creatorSignatureName: fName,
+            creatorSignatureDepartment: fDept,
+            creatorSignatureUrl: fSigUrl,
             updatedAt: new Date(),
           })
           .where(eq(disbursementOrders.id, input.id));
@@ -3607,6 +3709,23 @@ export const disbursementsRouter = router({
           });
         }
 
+        const [execUser] = await db
+          .select({
+            name: users.name,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+            showSignatureInDocuments: users.showSignatureInDocuments,
+          })
+          .from(users)
+          .where(eq(users.id, ctx.user.id));
+
+        const exOrderName = execUser?.signatureName || execUser?.name || "م. عبدالهادي آل فائق";
+        const exOrderDept = execUser?.signatureDepartment || "المدير التنفيذي";
+        const exOrderSigUrl = execUser?.showSignatureInDocuments !== false && (execUser?.showSignatureInDocuments as any) !== 0
+          ? (execUser?.signatureUrl || null)
+          : null;
+
         await db
           .update(disbursementOrders)
           .set({
@@ -3614,6 +3733,9 @@ export const disbursementsRouter = router({
             approvedBy: ctx.user.id,
             approvedAt: new Date(),
             approvalNotes: input.notes,
+            executiveDirectorSignatureName: exOrderName,
+            executiveDirectorSignatureDepartment: exOrderDept,
+            executiveDirectorSignatureUrl: exOrderSigUrl,
             updatedAt: new Date(),
           })
           .where(eq(disbursementOrders.id, input.id));

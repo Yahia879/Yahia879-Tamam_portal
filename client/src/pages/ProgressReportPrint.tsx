@@ -401,20 +401,20 @@ export default function ProgressReportPrint() {
     rawCreatorName = rawCreatorName.replace(/^\[استثناء\]:\s*/, "");
   }
 
-  // 1. الخانة الأولى: مُعِد التقرير (مدير المشروع / معتمد الاستثناء) - تنعكس من Profile: الاسم الذي يظهر في المستند واسم الإدارة
+  // 1. الخانة الأولى: مُعِد التقرير (مدير المشروع / معتمد الاستثناء) - الأولوية لـ Snapshot التوقيع المحفوظ في السجل
   const resolvedSignatureName = isExceptionApproved
-    ? ((report as any)?.exceptionApprovedBySignatureName || (report as any)?.exceptionApprovedByName || rawCreatorName || "معتمد الاستثناء")
-    : ((report as any)?.managerApprovedBySignatureName || (report as any)?.projectManagerSignatureName || (report as any)?.creatorUserSignatureName || rawCreatorName || (report as any)?.managerApprovedByName || report?.projectManagerName || (report as any)?.createdByName || project?.managerName || "—");
+    ? (report?.creatorSignatureName || (report as any)?.exceptionApprovedBySignatureName || (report as any)?.exceptionApprovedByName || rawCreatorName || "معتمد الاستثناء")
+    : (report?.creatorSignatureName || (report as any)?.managerApprovedBySignatureName || (report as any)?.projectManagerSignatureName || (report as any)?.creatorUserSignatureName || rawCreatorName || (report as any)?.managerApprovedByName || report?.projectManagerName || (report as any)?.createdByName || project?.managerName || "—");
 
   const resolvedSignatureDepartment = isExceptionApproved
-    ? ((report as any)?.exceptionApprovedBySignatureDepartment || report?.creatorSignatureDepartment || "إدارة النظام")
-    : ((report as any)?.managerApprovedBySignatureDepartment || (report as any)?.projectManagerSignatureDepartment || (report as any)?.creatorUserSignatureDepartment || report?.creatorSignatureDepartment || "مدير المشروع");
+    ? (report?.creatorSignatureDepartment || (report as any)?.exceptionApprovedBySignatureDepartment || "إدارة النظام")
+    : (report?.creatorSignatureDepartment || (report as any)?.managerApprovedBySignatureDepartment || (report as any)?.projectManagerSignatureDepartment || (report as any)?.creatorUserSignatureDepartment || "مدير المشروع");
 
   const resolvedSignatureUrl = isExceptionApproved
-    ? ((report as any)?.exceptionApprovedBySignatureUrl || report?.creatorSignatureUrl || null)
-    : ((report as any)?.managerApprovedBySignatureUrl || (report as any)?.projectManagerSignatureUrl || (report as any)?.creatorUserSignatureUrl || report?.creatorSignatureUrl || null);
+    ? (report?.creatorSignatureUrl || (report as any)?.exceptionApprovedBySignatureUrl || null)
+    : (report?.creatorSignatureUrl || (report as any)?.managerApprovedBySignatureUrl || (report as any)?.projectManagerSignatureUrl || (report as any)?.creatorUserSignatureUrl || null);
 
-  // 2. الخانة الثانية: يُعتمد (المدير التنفيذي) - تنعكس من Profile: الاسم الذي يظهر في المستند واسم الإدارة
+  // 2. الخانة الثانية: يُعتمد (المدير التنفيذي) - الأولوية لـ Snapshot التوقيع المحفوظ في السجل
   const executiveDirectorUser = (report as any)?.approvedBy
     ? {
         signatureName: (report as any)?.approvedBySignatureName,
@@ -425,20 +425,23 @@ export default function ProgressReportPrint() {
     : ((report as any)?.defaultExecutiveDirectorUser || null);
 
   const executiveDirectorName = 
+    report?.approvedBySignatureName ||
+    (report as any)?.approvedBySignatureName || 
     executiveDirectorUser?.signatureName || 
     executiveDirectorUser?.name || 
-    (report as any)?.approvedBySignatureName || 
     report?.approvedByName || 
     orgSettings?.authorizedSignatory || 
     orgSettings?.executiveDirectorName || 
     "م. عبدالهادي آل فائق";
 
   const executiveDirectorDepartment = 
-    executiveDirectorUser?.signatureDepartment || 
+    report?.approvedBySignatureDepartment ||
     (report as any)?.approvedBySignatureDepartment || 
+    executiveDirectorUser?.signatureDepartment || 
     "المدير التنفيذي";
 
   const executiveDirectorSignatureUrl = 
+    report?.approvedBySignatureUrl ||
     (report as any)?.approvedBySignatureUrl || 
     executiveDirectorUser?.signatureUrl || 
     (isExecutiveDirectorRole ? (currentUser as any)?.signatureUrl : null);

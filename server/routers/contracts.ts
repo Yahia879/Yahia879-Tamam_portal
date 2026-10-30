@@ -451,13 +451,13 @@ export const contractsRouter = router({
         : true;
 
       let firstPartySignatureUrl: string | null =
-        signatory?.signatureUrl ||
         (contract as any).firstPartySignatureUrl ||
+        signatory?.signatureUrl ||
         (showSigInDocs ? targetUser?.signatureUrl : null) ||
         null;
 
-      let firstPartySignatoryName: string | null = signatory?.name || targetUser?.signatureName || targetUser?.name || null;
-      let firstPartySignatoryTitle: string | null = signatory?.title || targetUser?.signatureDepartment || "المدير التنفيذي";
+      let firstPartySignatoryName: string | null = (contract as any).firstPartySignatoryName || signatory?.name || targetUser?.signatureName || targetUser?.name || null;
+      let firstPartySignatoryTitle: string | null = (contract as any).firstPartySignatoryTitle || signatory?.title || targetUser?.signatureDepartment || "المدير التنفيذي";
 
       if (signatory && !signatory.signatureUrl && firstPartySignatureUrl) {
         signatory.signatureUrl = firstPartySignatureUrl;
@@ -1672,12 +1672,54 @@ export const contractsRouter = router({
         }
       }
       
+      // توثيق وحفظ توقيع الطرف الأول كـ Snapshot
+      let fName = (contract as any).firstPartySignatoryName || "م. عبدالهادي آل فائق";
+      let fTitle = (contract as any).firstPartySignatoryTitle || "المدير التنفيذي";
+      let fUrl: string | null = (contract as any).firstPartySignatureUrl || null;
+
+      if (contract.signatoryId) {
+        const [sig] = await db
+          .select()
+          .from(signatories)
+          .where(eq(signatories.id, contract.signatoryId))
+          .limit(1);
+        if (sig) {
+          fName = sig.name;
+          fTitle = sig.title || "المدير التنفيذي";
+          if (sig.signatureUrl) fUrl = sig.signatureUrl;
+        }
+      }
+
+      if (!fUrl) {
+        const [appUser] = await db
+          .select({
+            name: users.name,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+            showSignatureInDocuments: users.showSignatureInDocuments,
+          })
+          .from(users)
+          .where(eq(users.id, ctx.user.id))
+          .limit(1);
+        if (appUser) {
+          fName = appUser.signatureName || appUser.name || fName;
+          fTitle = appUser.signatureDepartment || fTitle;
+          if (appUser.showSignatureInDocuments !== false && (appUser.showSignatureInDocuments as any) !== 0) {
+            fUrl = appUser.signatureUrl || null;
+          }
+        }
+      }
+
       await db
         .update(contractsEnhanced)
         .set({
           status: "approved",
           approvedBy: ctx.user.id,
           approvedAt: new Date(),
+          firstPartySignatoryName: fName,
+          firstPartySignatoryTitle: fTitle,
+          firstPartySignatureUrl: fUrl,
         })
         .where(eq(contractsEnhanced.id, input.id));
 

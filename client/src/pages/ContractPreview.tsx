@@ -627,10 +627,10 @@ export default function ContractPreview() {
   const resolvedProjectName = (data as any)?.projectName || (contract as any)?.projectName || (contract as any)?.contractTitle || "";
 
   const executiveDirectorSignatureUrl = 
-    (data as any)?.firstPartySignatureUrl ||
     (contract as any)?.firstPartySignatureUrl ||
-    (data as any)?.signatory?.signatureUrl ||
+    (data as any)?.firstPartySignatureUrl ||
     (contract as any)?.signatory?.signatureUrl ||
+    (data as any)?.signatory?.signatureUrl ||
     null;
 
   const contractDate = contract.contractDate 
@@ -1187,8 +1187,8 @@ export default function ContractPreview() {
                       <div className="text-center sm:border-l sm:pl-4 pb-8 sm:pb-0">
                         <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الأول</h4>
                         <p className="font-medium text-xs sm:text-sm">{orgSettings?.officialReportsName || ""}</p>
-                        <p className="text-xs sm:text-sm">{(contract.firstPartySignatoryName || contract.signatory?.name || orgSettings?.authorizedSignatory || "المدير التنفيذي")}</p>
-                        <p className="text-xs sm:text-xs text-gray-600">{(contract.firstPartySignatoryTitle || contract.signatory?.title || orgSettings?.signatoryTitle || "المدير التنفيذي")}</p>
+                        <p className="text-xs sm:text-sm">{(contract.firstPartySignatoryName || (data as any)?.firstPartySignatoryName || contract.signatory?.name || orgSettings?.authorizedSignatory || "المدير التنفيذي")}</p>
+                        <p className="text-xs sm:text-xs text-gray-600">{(contract.firstPartySignatoryTitle || (data as any)?.firstPartySignatoryTitle || contract.signatory?.title || orgSettings?.signatoryTitle || "المدير التنفيذي")}</p>
                         <div className="mt-8 space-y-4 text-xs sm:text-sm">
                           <div className="relative inline-flex items-center justify-center">
                             <p>التوقيع: ...................................</p>

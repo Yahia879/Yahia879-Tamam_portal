@@ -386,9 +386,12 @@ export const progressReportsRouter = router({
           approvedAt: progressReports.approvedAt,
           approvalNotes: progressReports.approvalNotes,
           approvedByName: appUsers.name,
-          approvedBySignatureName: appUsers.signatureName,
-          approvedBySignatureDepartment: appUsers.signatureDepartment,
-          approvedBySignatureUrl: appUsers.signatureUrl,
+          approvedBySignatureName: progressReports.approvedBySignatureName,
+          approvedBySignatureDepartment: progressReports.approvedBySignatureDepartment,
+          approvedBySignatureUrl: progressReports.approvedBySignatureUrl,
+          liveApprovedBySignatureName: appUsers.signatureName,
+          liveApprovedBySignatureDepartment: appUsers.signatureDepartment,
+          liveApprovedBySignatureUrl: appUsers.signatureUrl,
 
           rejectedBy: progressReports.rejectedBy,
           rejectedAt: progressReports.rejectedAt,
@@ -556,6 +559,11 @@ export const progressReportsRouter = router({
 
       return {
         ...report,
+        approvedBySignatureName: report.approvedBySignatureName || (report as any).liveApprovedBySignatureName,
+        approvedBySignatureDepartment: report.approvedBySignatureDepartment || (report as any).liveApprovedBySignatureDepartment,
+        approvedBySignatureUrl: (report.approvedBySignatureUrl !== null && report.approvedBySignatureUrl !== undefined)
+          ? report.approvedBySignatureUrl
+          : (report as any).liveApprovedBySignatureUrl,
         defaultExecutiveDirectorUser: defaultExecUser || null,
       };
     }),

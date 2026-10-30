@@ -117,17 +117,20 @@ export default function DisbursementRequestPrint() {
 
   const isExceptionApproved = Boolean((request as any)?.isException);
 
+  // الأولوية دائماً لـ Snapshot التوقيع المحفوظ في سجل طلب الصرف لضمان عدم تغيره عند تعديل الملف الشخصي لاحقاً
   const resolvedSignatureName = isExceptionApproved
-    ? (((request as any)?.liveExceptionApproverName || (request as any)?.creatorSignatureName || (request as any)?.requestedBySignatureName || (request as any)?.requestedByName || "").replace(/\s*\(استثناء اعتماد\)/g, ""))
-    : ((request as any)?.requestedBySignatureName || (request as any)?.requestedByName);
+    ? (((request as any)?.creatorSignatureName || (request as any)?.liveExceptionApproverName || (request as any)?.requestedBySignatureName || (request as any)?.requestedByName || "").replace(/\s*\(استثناء اعتماد\)/g, ""))
+    : ((request as any)?.creatorSignatureName || (request as any)?.requestedBySignatureName || (request as any)?.requestedByName);
 
   const resolvedSignatureDepartment = isExceptionApproved
-    ? (((request as any)?.liveExceptionApproverDepartment || (request as any)?.creatorSignatureDepartment || (request as any)?.requestedBySignatureDepartment || "مُعدّ الطلب").replace(/\s*\(استثناء اعتماد\)/g, ""))
-    : ((request as any)?.requestedBySignatureDepartment || "مُعدّ الطلب");
+    ? (((request as any)?.creatorSignatureDepartment || (request as any)?.liveExceptionApproverDepartment || (request as any)?.requestedBySignatureDepartment || "مُعدّ الطلب").replace(/\s*\(استثناء اعتماد\)/g, ""))
+    : ((request as any)?.creatorSignatureDepartment || (request as any)?.requestedBySignatureDepartment || "مُعدّ الطلب");
 
   const resolvedSignatureUrl = isExceptionApproved
-    ? ((request as any)?.liveExceptionApproverSignatureUrl || (request as any)?.creatorSignatureUrl)
-    : ((request as any)?.requestedByShowSignature === false ? null : (request as any)?.requestedBySignatureUrl);
+    ? ((request as any)?.creatorSignatureUrl || (request as any)?.liveExceptionApproverSignatureUrl)
+    : ((request as any)?.creatorSignatureUrl !== undefined && (request as any)?.creatorSignatureUrl !== null
+        ? (request as any)?.creatorSignatureUrl
+        : ((request as any)?.requestedByShowSignature === false ? null : (request as any)?.requestedBySignatureUrl));
 
   const executiveDirectorDepartment = 
     (request as any)?.executiveDirectorSignatureDepartment || 
@@ -135,6 +138,7 @@ export default function DisbursementRequestPrint() {
     "المدير التنفيذي";
 
   const executiveDirectorName = 
+    (request as any)?.executiveDirectorSignatureName ||
     (request as any)?.executiveDirectorName || 
     (hasUserSignPerm && isExecutiveDirectorRole ? ((currentUser as any)?.signatureName || currentUser?.name) : null) || 
     orgSettings?.executiveDirectorName || 

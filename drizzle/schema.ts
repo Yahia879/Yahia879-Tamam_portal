@@ -300,6 +300,10 @@ export const mosqueRequests = mysqlTable("mosque_requests", {
   submittedAt: timestamp("submittedAt").defaultNow().notNull(),
   reviewedAt: datetime("reviewedAt"),
   approvedAt: datetime("approvedAt"),
+  signatureName: varchar("signatureName", { length: 255 }),
+  signatureDepartment: varchar("signatureDepartment", { length: 255 }),
+  signatureUrl: text("signatureUrl"),
+  showSignatureInDocuments: boolean("showSignatureInDocuments").default(true),
   completedAt: datetime("completedAt"),
   
   // تقييم رضا المستفيد النهائي
@@ -1076,6 +1080,9 @@ export const contractsEnhanced = mysqlTable("contracts_enhanced", {
   // الملفات
   documentUrl: varchar("documentUrl", { length: 500 }),
   signedDocumentUrl: varchar("signedDocumentUrl", { length: 500 }),
+  firstPartySignatoryName: varchar("firstPartySignatoryName", { length: 255 }),
+  firstPartySignatoryTitle: varchar("firstPartySignatoryTitle", { length: 255 }),
+  firstPartySignatureUrl: text("firstPartySignatureUrl"),
   
   // الاعتماد
   financialApprovedAt: datetime("financialApprovedAt"),
@@ -1175,6 +1182,9 @@ export const disbursementRequests = mysqlTable("disbursement_requests", {
   creatorSignatureName: text("creatorSignatureName"),
   creatorSignatureDepartment: text("creatorSignatureDepartment"),
   creatorSignatureUrl: text("creatorSignatureUrl"),
+  executiveDirectorSignatureName: text("executiveDirectorSignatureName"),
+  executiveDirectorSignatureDepartment: text("executiveDirectorSignatureDepartment"),
+  executiveDirectorSignatureUrl: text("executiveDirectorSignatureUrl"),
   showCreatorSignature: boolean("showCreatorSignature").default(true),
   showExecutiveDirectorSignature: boolean("showExecutiveDirectorSignature").default(true),
   
@@ -1249,6 +1259,9 @@ export const disbursementOrders = mysqlTable("disbursement_orders", {
   creatorSignatureName: text("creatorSignatureName"),
   creatorSignatureDepartment: text("creatorSignatureDepartment"),
   creatorSignatureUrl: text("creatorSignatureUrl"),
+  executiveDirectorSignatureName: text("executiveDirectorSignatureName"),
+  executiveDirectorSignatureDepartment: text("executiveDirectorSignatureDepartment"),
+  executiveDirectorSignatureUrl: text("executiveDirectorSignatureUrl"),
   
   showCreatorSignature: boolean("showCreatorSignature").default(true).notNull(),
   showExecutiveDirectorSignature: boolean("showExecutiveDirectorSignature").default(true).notNull(),
@@ -2210,6 +2223,10 @@ export const receiptVouchers = mysqlTable("receipt_vouchers", {
   exceptionReason: text("exceptionReason"),
   approvedBy: int("approvedBy").references(() => users.id, { onDelete: "set null" }),
   approvedAt: datetime("approvedAt"),
+  signatureName: varchar("signatureName", { length: 255 }),
+  signatureDepartment: varchar("signatureDepartment", { length: 255 }),
+  signatureUrl: text("signatureUrl"),
+  showSignatureInDocuments: boolean("showSignatureInDocuments").default(true),
   createdById: int("createdById").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
