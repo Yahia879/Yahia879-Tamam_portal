@@ -547,47 +547,6 @@ export default function InformationDashboard() {
   const projectAndVoucherCards = projectAndVoucherCardDefs.filter(c => isDetailedElementEnabled(c.id));
 
 
-  // 7. كروت مؤشرات مجلس الإدارة في الشاشة الرقمية
-  const boardScreenCardDefs = [
-    {
-      id: "board_mosques_total",
-      title: "إجمالي المساجد المسجلة",
-      value: boardMosquesTotal.toLocaleString("en-US"),
-      subtext: "مسجلة رسمياً بالبوابة",
-      icon: Building2,
-      gradient: "from-emerald-500 to-emerald-600",
-      bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
-    },
-    {
-      id: "board_mosques_active",
-      title: "المساجد النشطة",
-      value: boardMosquesActive.toLocaleString("en-US"),
-      subtext: "تتلقى الخدمات والزيارات",
-      icon: Activity,
-      gradient: "from-blue-500 to-cyan-600",
-      bgLight: "bg-blue-50 dark:bg-blue-950/40",
-    },
-    {
-      id: "board_mosques_recent",
-      title: "المسجلة خلال آخر 30 يوماً",
-      value: `+${boardMosquesRecent.toLocaleString("en-US")}`,
-      subtext: "نمو مستمر",
-      icon: Clock,
-      gradient: "from-amber-500 to-orange-600",
-      bgLight: "bg-amber-50 dark:bg-amber-950/40",
-    },
-    {
-      id: "board_mosques_coverage",
-      title: "نسبة التغطية الكلية",
-      value: `${boardMosqueCoverage}%`,
-      subtext: "مساجد مفعّلة بالخدمات",
-      icon: LayoutGrid,
-      gradient: "from-purple-500 to-violet-600",
-      bgLight: "bg-purple-50 dark:bg-purple-950/40",
-    },
-  ];
-
-  const boardScreenCards = boardScreenCardDefs.filter(c => isDetailedElementEnabled(c.id));
 
   // تحديد التبويبات المتاحة حسب التخصيص
   const availableTabs = useMemo(() => {
@@ -751,8 +710,8 @@ export default function InformationDashboard() {
         {/* ========================================================================= */}
         {/* 0. تبويب الشاشة الرقمية (فقط كروت رقمية بدون أي مخططات أو جداول) */}
         {/* ========================================================================= */}
-        {isDetailedElementEnabled("section_digital_screen") && activeTab === "digital_screen" && (
-          <div className="space-y-8 animate-in fade-in-50 duration-200">
+        {isDetailedElementEnabled("section_digital_screen") && (activeTab === "all" || activeTab === "digital_screen") && (
+          <section id="section-digital-screen" className="space-y-8 animate-in fade-in-50 duration-200 scroll-mt-36">
             {/* هيدر الشاشة الرقمية */}
             <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-gradient-to-r from-violet-500/15 via-purple-500/10 to-transparent border border-violet-500/25 shadow-xs">
               <div className="w-10 h-10 rounded-xl bg-violet-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
@@ -857,38 +816,14 @@ export default function InformationDashboard() {
               </div>
             )}
 
-            {/* 7. مخططات وتحليلات مجلس الإدارة والمؤشرات الإستراتيجية (الكروت فقط) */}
-            {boardScreenCards.length > 0 && (
-              <div className="space-y-4 pt-6 border-t-2 border-border/80">
-                <div className="flex items-center justify-between pb-3 border-b border-border/70">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-sm border border-blue-500/20">
-                      <Briefcase className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h2 className="text-base sm:text-lg font-bold text-foreground">
-                        مخططات وتحليلات مجلس الإدارة والمؤشرات الإستراتيجية
-                      </h2>
-                      <p className="text-xs text-muted-foreground">
-                        مخططات المساجد، توزيع عقود المشاريع، مؤشرات أوامر الصرف، ومصفوفة الأداء الإستراتيجي
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                  {boardScreenCards.map((stat, idx) => renderCard(stat, `board-${idx}`))}
-                </div>
-              </div>
-            )}
-          </div>
+          </section>
         )}
 
         {/* ========================================================================= */}
         {/* 1. قسم المساجد والزيارات الميدانية */}
         {/* ========================================================================= */}
         {isDetailedElementEnabled("section_mosques") && (activeTab === "all" || activeTab === "mosques") && (
-          <section id="section-mosques" className="space-y-6 pt-2 scroll-mt-36">
+          <section id="section-mosques" className={`space-y-6 scroll-mt-36 ${activeTab === "all" && isDetailedElementEnabled("section_digital_screen") ? "pt-6 border-t-2 border-border/80" : "pt-2"}`}>
             {/* هيدر قسم المساجد */}
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 shadow-xs">
               <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">

@@ -486,10 +486,6 @@ export const DETAILED_DASHBOARD_ELEMENT_DEFINITIONS = [
   { id: "main_paid_amounts", title: "المبالغ المصروفة (الشاشة الرقمية)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة المبالغ المصروفة من أوامر الصرف المنفذة", defaultEnabled: true },
   { id: "main_receipt_vouchers", title: "سندات القبض (الشاشة الرقمية)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة سندات القبض ومبالغ التحصيل", defaultEnabled: true },
   { id: "main_active_projects", title: "المشاريع النشطة (الشاشة الرقمية)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة المشاريع النشطة والميزانية الكلية المعتمدة", defaultEnabled: true },
-  { id: "board_mosques_total", title: "إجمالي المساجد المسجلة (مؤشرات الإدارة)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة إجمالي المساجد المسجلة رسمياً بالبوابة", defaultEnabled: true },
-  { id: "board_mosques_active", title: "المساجد النشطة (مؤشرات الإدارة)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة المساجد النشطة المتلقية للخدمات والزيارات", defaultEnabled: true },
-  { id: "board_mosques_recent", title: "المسجلة خلال آخر 30 يوماً (مؤشرات الإدارة)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة نمو تسجيل المساجد الجديدة خلال آخر شهر", defaultEnabled: true },
-  { id: "board_mosques_coverage", title: "نسبة التغطية الكلية (مؤشرات الإدارة)", category: "digital_screen_section", categoryName: "قسم الشاشة الرقمية والمؤشرات الإجمالية", description: "بطاقة نسبة المساجد المفعّلة بالخدمات", defaultEnabled: true },
 
   // 2. قسم المساجد والتغطية
   { id: "section_mosques", title: "قسم المساجد بالكامل (والتبويب)", category: "mosque_section", categoryName: "قسم المساجد والتغطية", description: "إظهار أو إخفاء قسم المساجد بالكامل مع تبويبه من شريط التنقل", defaultEnabled: true },

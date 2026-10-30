@@ -681,47 +681,6 @@ export default function FormsCustomizationDashboard() {
 
   const visibleFinancialCards = financialCardDefs.filter((c) => isDetailedElementEnabled(c.id));
 
-  // 6. كروت مؤشرات مجلس الإدارة في الشاشة الرقمية
-  const boardScreenCardDefs = [
-    {
-      id: "board_mosques_total",
-      title: "إجمالي المساجد المسجلة",
-      value: boardMosquesTotal.toLocaleString("en-US"),
-      subtext: "مسجلة رسمياً بالبوابة",
-      icon: Building2,
-      gradient: "from-emerald-500 to-emerald-600",
-      bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
-    },
-    {
-      id: "board_mosques_active",
-      title: "المساجد النشطة",
-      value: boardMosquesActive.toLocaleString("en-US"),
-      subtext: "تتلقى الخدمات والزيارات",
-      icon: Activity,
-      gradient: "from-blue-500 to-cyan-600",
-      bgLight: "bg-blue-50 dark:bg-blue-950/40",
-    },
-    {
-      id: "board_mosques_recent",
-      title: "المسجلة خلال آخر 30 يوماً",
-      value: `+${boardMosquesRecent.toLocaleString("en-US")}`,
-      subtext: "نمو مستمر",
-      icon: Clock,
-      gradient: "from-amber-500 to-orange-600",
-      bgLight: "bg-amber-50 dark:bg-amber-950/40",
-    },
-    {
-      id: "board_mosques_coverage",
-      title: "نسبة التغطية الكلية",
-      value: `${boardMosqueCoverage}%`,
-      subtext: "مساجد مفعّلة بالخدمات",
-      icon: LayoutGrid,
-      gradient: "from-purple-500 to-violet-600",
-      bgLight: "bg-purple-50 dark:bg-purple-950/40",
-    },
-  ];
-
-  const visibleBoardScreenCards = boardScreenCardDefs.filter((c) => isDetailedElementEnabled(c.id));
 
   // خريطة لكافة كروت الإحصائيات للوصول لخصائصها البصرية
   const allCardDefsMap = useMemo(() => {
@@ -733,7 +692,6 @@ export default function FormsCustomizationDashboard() {
       ...procurementCardDefs,
       ...projectAndVoucherCardDefs,
       ...financialCardDefs,
-      ...boardScreenCardDefs,
     ].forEach((card) => map.set(card.id, card));
     return map;
   }, [
@@ -743,7 +701,6 @@ export default function FormsCustomizationDashboard() {
     procurementCardDefs,
     projectAndVoucherCardDefs,
     financialCardDefs,
-    boardScreenCardDefs,
   ]);
 
   // دالة لرسم العنصر المستبعد بصرياً طبق الأصل في صندوق الاستعادة
@@ -1210,31 +1167,31 @@ export default function FormsCustomizationDashboard() {
             {/* ========================================================================= */}
             {/* 0. تبويب الشاشة الرقمية بالمعاينة والتخصيص */}
             {/* ========================================================================= */}
-            {previewTab === "digital_screen" && (
+            {(previewTab === "all" || previewTab === "digital_screen") && (
               <div className="space-y-8 pt-2">
-                {/* شريط التحكم بالقسم ككل */}
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-violet-500/10 border border-violet-500/20">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center font-bold text-xs">
-                      <Tv className="w-4.5 h-4.5" />
+                {isDetailedElementEnabled("section_digital_screen") ? (
+                  <section id="section-digital-screen" className="space-y-8">
+                    {/* شريط التحكم بالقسم ككل */}
+                    <div className="flex items-center justify-between p-3.5 rounded-2xl bg-violet-500/10 border border-violet-500/20">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center font-bold text-xs">
+                          <Tv className="w-4.5 h-4.5" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-foreground">الشاشة الرقمية والمؤشرات الإحصائية المباشرة</h3>
+                          <p className="text-xs text-muted-foreground">عرض رقمي مباشر لكافة كروت المنظومة بدون أي مخططات</p>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleRemoveElement("section_digital_screen", "تبويب الشاشة الرقمية بالكامل")}
+                        className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 gap-1.5 h-8 rounded-xl font-bold cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        إخفاء تبويب الشاشة الرقمية بالكامل
+                      </Button>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-foreground">الشاشة الرقمية والمؤشرات الإحصائية المباشرة</h3>
-                      <p className="text-xs text-muted-foreground">عرض رقمي مباشر لكافة كروت المنظومة بدون أي مخططات</p>
-                    </div>
-                  </div>
-                  {isDetailedElementEnabled("section_digital_screen") && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleRemoveElement("section_digital_screen", "تبويب الشاشة الرقمية بالكامل")}
-                      className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 gap-1.5 h-8 rounded-xl font-bold cursor-pointer"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                      إخفاء تبويب الشاشة الرقمية بالكامل
-                    </Button>
-                  )}
-                </div>
 
                 {/* 1. بطاقات المؤشرات الرقمية الرئيسية */}
                 <div className="space-y-4">
@@ -1318,29 +1275,24 @@ export default function FormsCustomizationDashboard() {
                   </div>
                 )}
 
-                {/* 7. مخططات وتحليلات مجلس الإدارة والمؤشرات الإستراتيجية (الكروت فقط) */}
-                {visibleBoardScreenCards.length > 0 && (
-                  <div className="space-y-4 pt-6 border-t-2 border-border/80">
-                    <div className="flex items-center justify-between pb-3 border-b border-border/70">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-sm border border-blue-500/20">
-                          <Briefcase className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <h2 className="text-base sm:text-lg font-bold text-foreground">
-                            مخططات وتحليلات مجلس الإدارة والمؤشرات الإستراتيجية
-                          </h2>
-                          <p className="text-xs text-muted-foreground">
-                            مخططات المساجد، توزيع عقود المشاريع، مؤشرات أوامر الصرف، ومصفوفة الأداء الإستراتيجي
-                          </p>
-                        </div>
-                      </div>
+                  </section>
+                ) : (
+                  previewTab === "digital_screen" && (
+                    <div className="p-8 text-center rounded-2xl border border-dashed border-rose-300 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-950/20 space-y-3">
+                      <p className="text-sm font-bold text-rose-700 dark:text-rose-400">
+                        تم إخفاء تبويب وقسم الشاشة الرقمية بالكامل
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleRestoreElement("section_digital_screen", "تبويب الشاشة الرقمية بالكامل")}
+                        className="text-xs gap-1.5 border-rose-300 text-rose-700 hover:bg-rose-100 cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        إعادة إظهار تبويب الشاشة الرقمية
+                      </Button>
                     </div>
-
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                      {visibleBoardScreenCards.map((stat) => renderCard(stat))}
-                    </div>
-                  </div>
+                  )
                 )}
               </div>
             )}
@@ -1349,7 +1301,7 @@ export default function FormsCustomizationDashboard() {
             {/* 1. قسم المساجد والزيارات الميدانية */}
             {/* ========================================================================= */}
             {(previewTab === "all" || previewTab === "mosques") && (
-              <div className="space-y-6 pt-2">
+              <div className={`space-y-6 ${previewTab === "all" && isDetailedElementEnabled("section_digital_screen") ? "pt-6 border-t-2 border-border/80" : "pt-2"}`}>
                 {isDetailedElementEnabled("section_mosques") ? (
                   <section id="section-mosques" className="space-y-6 pt-2">
                     {/* هيدر قسم المساجد مع زر إخفاء القسم */}
