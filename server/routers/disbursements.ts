@@ -2077,7 +2077,9 @@ export const disbursementsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // التحقق من صلاحية استثناء اعتماد مُعد الأمر
-      const hasExceptionPerm = await checkPermission(ctx.user.id, "disbursement_orders.exception_approve");
+      const hasExceptionPerm =
+        (await checkPermission(ctx.user.id, "disbursement_orders.exception_approve")) ||
+        (await checkPermission(ctx.user.id, "orders_and_letters.disbursement_orders_exception_approve"));
 
       if (!hasExceptionPerm) {
         throw new TRPCError({
@@ -2195,7 +2197,10 @@ export const disbursementsRouter = router({
       const isFinancial = ["financial", "financial_manager", "general_manager", "executive_director", "board_chairman"].includes(ctx.user.role);
       const hasViewRequests = await checkPermission(ctx.user.id, "disbursements.view");
       const hasViewOrders = await checkPermission(ctx.user.id, "disbursement_orders.view");
-      const hasOrdersAndLetters = await checkPermission(ctx.user.id, "orders_and_letters") || await checkPermission(ctx.user.id, "orders_and_letters.view");
+      const hasOrdersAndLetters =
+        (await checkPermission(ctx.user.id, "orders_and_letters")) ||
+        (await checkPermission(ctx.user.id, "orders_and_letters.view")) ||
+        (await checkPermission(ctx.user.id, "orders_and_letters.disbursement_orders"));
 
       if (!isAdmin && !isFinancial && !hasViewRequests && !hasViewOrders && !hasOrdersAndLetters) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض سجل أوامر الصرف" });
@@ -3362,8 +3367,9 @@ export const disbursementsRouter = router({
       const hasCreatePerm = await checkPermission(ctx.user.id, "disbursements.create");
       const hasCreateDirectPerm = await checkPermission(ctx.user.id, "disbursement_orders.create_direct");
       const hasCreateCustomPerm = await checkPermission(ctx.user.id, "disbursements.create_custom");
+      const hasSedanaDirectPerm = await checkPermission(ctx.user.id, "orders_and_letters.disbursement_orders_create_direct");
 
-      if (!hasCreatePerm && !hasCreateDirectPerm && !hasCreateCustomPerm) {
+      if (!hasCreatePerm && !hasCreateDirectPerm && !hasCreateCustomPerm && !hasSedanaDirectPerm) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "ليس لديك صلاحية لإنشاء أمر صرف مباشر (يتطلب صلاحية disbursements.create أو disbursement_orders.create_direct أو disbursements.create_custom)",
@@ -4363,7 +4369,9 @@ export const disbursementsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const hasPerm = await checkPermission(ctx.user.id, "disbursement_orders.cancel_executed");
+      const hasPerm =
+        (await checkPermission(ctx.user.id, "disbursement_orders.cancel_executed")) ||
+        (await checkPermission(ctx.user.id, "orders_and_letters.disbursement_orders_cancel_executed"));
       if (!hasPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إلغاء اعتماد أوامر الصرف المنفذة" });
       }
@@ -5426,6 +5434,7 @@ export const disbursementsRouter = router({
 
       if (!isAdmin && !isFinancialUser) {
         const hasOrderRemind =
+          (await checkPermission(ctx.user.id, "orders_and_letters.disbursement_orders_remind")) ||
           (await checkPermission(ctx.user.id, "disbursement_orders.remind")) ||
           (await checkPermission(ctx.user.id, "disbursement_orders.view")) ||
           (await checkPermission(ctx.user.id, "disbursement_orders.approve"));
