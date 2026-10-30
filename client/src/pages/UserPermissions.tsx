@@ -506,32 +506,29 @@ export default function UserPermissions() {
       (permId === "purchase_orders.create_disbursement" || permId === "orders_and_letters.purchase_orders_create_disbursement") &&
       newState
     ) {
-      const needsApproval = !isChecked("disbursement_orders.view") || !isChecked("disbursement_orders.create_direct");
-      if (needsApproval) {
-        setPendingDisbursementAction(() => () => {
-          setOverrides(prev => {
-            const updated = { ...prev };
-            const permsToEnable = [permId, "disbursement_orders.view", "disbursement_orders.create_direct"];
-            if (permId.startsWith("purchase_orders.") && !isChecked("purchase_orders.view")) {
-              permsToEnable.push("purchase_orders.view");
+      setPendingDisbursementAction(() => () => {
+        setOverrides(prev => {
+          const updated = { ...prev };
+          const permsToEnable = [permId, "disbursement_orders.view", "disbursement_orders.create_direct"];
+          if (permId.startsWith("purchase_orders.") && !isChecked("purchase_orders.view")) {
+            permsToEnable.push("purchase_orders.view");
+          }
+          if (permId.startsWith("orders_and_letters.purchase_orders_") && !isChecked("orders_and_letters.purchase_orders")) {
+            permsToEnable.push("orders_and_letters.purchase_orders");
+          }
+          permsToEnable.forEach(pId => {
+            const defVal = rolePermissions?.includes(pId) || false;
+            if (defVal) {
+              delete updated[pId];
+            } else {
+              updated[pId] = true;
             }
-            if (permId.startsWith("orders_and_letters.purchase_orders_") && !isChecked("orders_and_letters.purchase_orders")) {
-              permsToEnable.push("orders_and_letters.purchase_orders");
-            }
-            permsToEnable.forEach(pId => {
-              const defVal = rolePermissions?.includes(pId) || false;
-              if (defVal) {
-                delete updated[pId];
-              } else {
-                updated[pId] = true;
-              }
-            });
-            return updated;
           });
+          return updated;
         });
-        setShowDisbursementModal(true);
-        return;
-      }
+      });
+      setShowDisbursementModal(true);
+      return;
     }
 
     setOverrides(prev => {
@@ -1156,10 +1153,6 @@ export default function UserPermissions() {
       },
       orders_and_letters: {
         disbursement_orders: "عرض أوامر الصرف",
-        disbursement_orders_create_direct: "انشاء امر صرف مخصص",
-        disbursement_orders_exception_approve: "استثناء اعتماد مُعد الأمر",
-        disbursement_orders_remind: "إرسال تذكير بالاعتماد",
-        disbursement_orders_cancel_executed: "الغاء اعتماد أوامر الصرف المنفذة",
         csr_letters: "عرض الخطاب المجتمعي",
         csr_letters_add: "إنشاء خطاب مجتمعي جديد",
         purchase_orders: "عرض أوامر الشراء",
@@ -1543,10 +1536,6 @@ export default function UserPermissions() {
           icon: ShoppingBag,
           perms: [
             "disbursement_orders",
-            "disbursement_orders_create_direct",
-            "disbursement_orders_exception_approve",
-            "disbursement_orders_remind",
-            "disbursement_orders_cancel_executed",
             "csr_letters",
             "csr_letters_add",
             "purchase_orders",

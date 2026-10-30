@@ -143,21 +143,18 @@ export default function RolePermissions() {
       (permId === "purchase_orders.create_disbursement" || permId === "orders_and_letters.purchase_orders_create_disbursement") &&
       !selectedPerms.includes(permId)
     ) {
-      const needsApproval = !selectedPerms.includes("disbursement_orders.view") || !selectedPerms.includes("disbursement_orders.create_direct");
-      if (needsApproval) {
-        setPendingDisbursementAction(() => () => {
-          setSelectedPerms(prev => {
-            const next = prev.includes(permId) ? [...prev] : [...prev, permId];
-            if (!next.includes("disbursement_orders.view")) next.push("disbursement_orders.view");
-            if (!next.includes("disbursement_orders.create_direct")) next.push("disbursement_orders.create_direct");
-            if (permId.startsWith("purchase_orders.") && !next.includes("purchase_orders.view")) next.push("purchase_orders.view");
-            if (permId.startsWith("orders_and_letters.purchase_orders_") && !next.includes("orders_and_letters.purchase_orders")) next.push("orders_and_letters.purchase_orders");
-            return next;
-          });
+      setPendingDisbursementAction(() => () => {
+        setSelectedPerms(prev => {
+          const next = prev.includes(permId) ? [...prev] : [...prev, permId];
+          if (!next.includes("disbursement_orders.view")) next.push("disbursement_orders.view");
+          if (!next.includes("disbursement_orders.create_direct")) next.push("disbursement_orders.create_direct");
+          if (permId.startsWith("purchase_orders.") && !next.includes("purchase_orders.view")) next.push("purchase_orders.view");
+          if (permId.startsWith("orders_and_letters.purchase_orders_") && !next.includes("orders_and_letters.purchase_orders")) next.push("orders_and_letters.purchase_orders");
+          return next;
         });
-        setShowDisbursementModal(true);
-        return;
-      }
+      });
+      setShowDisbursementModal(true);
+      return;
     }
     // منع تفعيل أي صلاحية فرعية للمساجد إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("mosques.") && permId !== "mosques.view") {
@@ -1318,10 +1315,6 @@ export default function RolePermissions() {
           icon: ShoppingBag,
           permissions: [
             { id: "orders_and_letters.disbursement_orders", nameAr: "عرض أوامر الصرف" },
-            { id: "orders_and_letters.disbursement_orders_create_direct", nameAr: "انشاء امر صرف مخصص" },
-            { id: "orders_and_letters.disbursement_orders_exception_approve", nameAr: "استثناء اعتماد مُعد الأمر" },
-            { id: "orders_and_letters.disbursement_orders_remind", nameAr: "إرسال تذكير بالاعتماد" },
-            { id: "orders_and_letters.disbursement_orders_cancel_executed", nameAr: "الغاء اعتماد أوامر الصرف المنفذة" },
             { id: "orders_and_letters.csr_letters", nameAr: "عرض الخطاب المجتمعي" },
             { id: "orders_and_letters.csr_letters_add", nameAr: "إنشاء خطاب مجتمعي جديد" },
             { id: "orders_and_letters.purchase_orders", nameAr: "عرض أوامر الشراء" },
@@ -1432,10 +1425,6 @@ export default function RolePermissions() {
           icon: ShoppingBag,
           perms: [
             "disbursement_orders",
-            "disbursement_orders_create_direct",
-            "disbursement_orders_exception_approve",
-            "disbursement_orders_remind",
-            "disbursement_orders_cancel_executed",
             "csr_letters",
             "csr_letters_add",
             "purchase_orders",
@@ -1663,10 +1652,6 @@ export default function RolePermissions() {
           icon: ShoppingBag,
           perms: [
             "disbursement_orders",
-            "disbursement_orders_create_direct",
-            "disbursement_orders_exception_approve",
-            "disbursement_orders_remind",
-            "disbursement_orders_cancel_executed",
             "csr_letters",
             "csr_letters_add",
             "purchase_orders",
@@ -2107,10 +2092,6 @@ export default function RolePermissions() {
       },
       orders_and_letters: {
         disbursement_orders: "عرض أوامر الصرف",
-        disbursement_orders_create_direct: "انشاء امر صرف مخصص",
-        disbursement_orders_exception_approve: "استثناء اعتماد مُعد الأمر",
-        disbursement_orders_remind: "إرسال تذكير بالاعتماد",
-        disbursement_orders_cancel_executed: "الغاء اعتماد أوامر الصرف المنفذة",
         csr_letters: "عرض الخطاب المجتمعي",
         csr_letters_add: "إنشاء خطاب مجتمعي جديد",
         purchase_orders: "عرض أوامر الشراء",

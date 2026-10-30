@@ -342,10 +342,10 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
   const permDisbursementsSign = usePermission("disbursements.sign");
   const permOrdersReject = usePermission("disbursement_orders.reject");
   const permOrdersViewDetails = usePermission("disbursement_orders.view_details");
-  const permOrdersCreateDirect = usePermission(isEmbedded ? "orders_and_letters.disbursement_orders_create_direct" : "disbursement_orders.create_direct");
-  const permOrdersExceptionApprove = usePermission(isEmbedded ? "orders_and_letters.disbursement_orders_exception_approve" : "disbursement_orders.exception_approve");
-  const permOrdersRemind = usePermission(isEmbedded ? "orders_and_letters.disbursement_orders_remind" : "disbursement_orders.remind");
-  const permOrdersCancelExecuted = usePermission(isEmbedded ? "orders_and_letters.disbursement_orders_cancel_executed" : "disbursement_orders.cancel_executed");
+  const permOrdersCreateDirect = usePermission("orders_and_letters.disbursement_orders_create_direct") || usePermission("disbursement_orders.create_direct");
+  const permOrdersExceptionApprove = usePermission("orders_and_letters.disbursement_orders_exception_approve") || usePermission("disbursement_orders.exception_approve");
+  const permOrdersRemind = usePermission("orders_and_letters.disbursement_orders_remind") || usePermission("disbursement_orders.remind");
+  const permOrdersCancelExecuted = usePermission("orders_and_letters.disbursement_orders_cancel_executed") || usePermission("disbursement_orders.cancel_executed");
 
   const canApproveOrder = permOrdersApprove || permOrdersSign || permDisbursementsApprove || permDisbursementsSign;
   const canRejectOrder = permOrdersReject;
