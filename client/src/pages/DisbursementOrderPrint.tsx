@@ -925,20 +925,20 @@ export default function DisbursementOrderPrint() {
                 </thead>
                 <tbody>
                   {/* الخانة الأولى: مُعد/منشئ أمر الصرف */}
-                  <tr className="border-b border-slate-300 h-12 sm:h-16">
+                  <tr className="border-b border-slate-300 h-20 sm:h-28">
                     <td className="p-1.5 sm:p-2 border-l border-slate-300 font-bold text-slate-700">{creatorDepartment}</td>
                     <td className="p-1.5 sm:p-2 border-l border-slate-300 font-bold text-slate-900">{creatorName}</td>
                     <td className="p-1 sm:p-2 border-l border-slate-300">
                       {(showCreatorSignature && creatorSignatureUrl && (order.status === "pending_executive" || order.status === "approved" || order.status === "executed" || !!order.approvedAt)) ? (
-                        <div className="h-9 sm:h-12 flex items-center justify-center mx-auto overflow-hidden">
+                        <div className="h-16 sm:h-24 flex items-center justify-center mx-auto overflow-hidden">
                           <img 
                             src={creatorSignatureUrl} 
                             alt="توقيع مُعد أمر الصرف" 
-                            className="max-h-9 sm:max-h-12 max-w-[90px] sm:max-w-[140px] object-contain" 
+                            className="max-h-16 sm:max-h-24 max-w-[160px] sm:max-w-[240px] object-contain" 
                           />
                         </div>
                       ) : (
-                        <div className="h-8 sm:h-10 border-b border-dashed border-gray-300 mx-auto w-20 sm:w-32"></div>
+                        <div className="h-14 sm:h-20 border-b border-dashed border-gray-300 mx-auto w-32 sm:w-48"></div>
                       )}
                     </td>
                     <td className="p-1.5 sm:p-2 text-slate-600 font-medium text-[10px] sm:text-xs">
@@ -947,20 +947,20 @@ export default function DisbursementOrderPrint() {
                   </tr>
 
                   {/* الخانة الثانية: المدير التنفيذي */}
-                  <tr className="h-12 sm:h-16">
+                  <tr className="h-20 sm:h-28">
                     <td className="p-1.5 sm:p-2 border-l border-slate-300 font-bold text-slate-700">{executiveDirectorDepartment}</td>
                     <td className="p-1.5 sm:p-2 border-l border-slate-300 font-bold text-slate-900">{executiveDirectorName}</td>
                     <td className="p-1 sm:p-2 border-l border-slate-300">
                       {(showExecutiveDirectorSignature && executiveDirectorSignatureUrl && (order.status === "approved" || order.status === "executed" || !!order.approvedAt)) ? (
-                        <div className="h-9 sm:h-12 flex items-center justify-center mx-auto overflow-hidden">
+                        <div className="h-16 sm:h-24 flex items-center justify-center mx-auto overflow-hidden">
                           <img 
                             src={executiveDirectorSignatureUrl} 
                             alt="توقيع المدير التنفيذي" 
-                            className="max-h-9 sm:max-h-12 max-w-[90px] sm:max-w-[140px] object-contain" 
+                            className="max-h-16 sm:max-h-24 max-w-[160px] sm:max-w-[240px] object-contain" 
                           />
                         </div>
                       ) : (
-                        <div className="h-8 sm:h-10 border-b border-dashed border-gray-300 mx-auto w-20 sm:w-32"></div>
+                        <div className="h-14 sm:h-20 border-b border-dashed border-gray-300 mx-auto w-32 sm:w-48"></div>
                       )}
                     </td>
                     <td className="p-1.5 sm:p-2 text-slate-600 font-medium text-[10px] sm:text-xs">

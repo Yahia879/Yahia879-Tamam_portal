@@ -418,7 +418,7 @@ export default function FormsCustomizationRegistrationDetail() {
 
     setFields((prev) => [...prev, newField]);
     setHasChanges(true);
-    if (canPlaceholder || canDescription || ["select", "radio"].includes(type)) {
+    if (canPlaceholder && (canDescription || ["select", "radio"].includes(type))) {
       setExpandedFields((prev) => ({ ...prev, [newField.id]: true }));
     }
     toast.success("تمت إضافة حقل جديد للنموذج");
@@ -1307,17 +1307,19 @@ export default function FormsCustomizationRegistrationDetail() {
 
                       {/* أزرار الإجراءات الإضافية (توسيع، نسخ، حذف) */}
                       <div className="flex items-center gap-1 shrink-0">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => toggleFieldExpand(field.id)}
-                          className={`h-9 w-9 rounded-xl transition-colors ${isExpanded ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
-                            }`}
-                          title="إعدادات وتفاصيل إضافية"
-                        >
-                          <Settings2 className="w-4 h-4" />
-                        </Button>
+                        {canPlaceholder && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => toggleFieldExpand(field.id)}
+                            className={`h-9 w-9 rounded-xl transition-colors ${isExpanded ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
+                              }`}
+                            title="إعدادات وتفاصيل إضافية"
+                          >
+                            <Settings2 className="w-4 h-4" />
+                          </Button>
+                        )}
 
                         {canDuplicate && (
                         <Button
@@ -1348,7 +1350,7 @@ export default function FormsCustomizationRegistrationDetail() {
                     </div>
 
                     {/* لوحة الإعدادات الموسعة والتفصيلية للحقل */}
-                    {isExpanded && (
+                    {isExpanded && canPlaceholder && (
                       <div className="p-4 pt-3 border-t border-border/70 bg-muted/15 space-y-4 animate-in fade-in duration-200">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {/* النص التلميحي (Placeholder) */}

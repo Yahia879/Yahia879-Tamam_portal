@@ -532,15 +532,15 @@ export default function CustodyRequestPrint() {
                     </div>
                     <div className="space-y-1 text-xs flex flex-col items-center justify-center">
                       {applicantSignatureUrl ? (
-                        <div className="h-9 sm:h-12 flex items-center justify-center mx-auto w-24 sm:w-36 overflow-hidden my-0.5 sm:my-1">
+                        <div className="h-16 sm:h-24 flex items-center justify-center mx-auto w-40 sm:w-60 overflow-hidden my-1">
                           <img 
                             src={applicantSignatureUrl} 
                             alt="توقيع مقدم الطلب" 
-                            className="max-h-9 sm:max-h-12 max-w-full object-contain" 
+                            className="max-h-16 sm:max-h-24 max-w-full object-contain" 
                           />
                         </div>
                       ) : (
-                        <div className="h-8 sm:h-10 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-36"></div>
+                        <div className="h-14 sm:h-20 border-b border-dashed border-gray-300 mx-auto w-40 sm:w-60"></div>
                       )}
                       <div className="text-gray-900 font-bold text-[10px] sm:text-xs min-h-[1rem]">
                         {applicantSignatureName}
@@ -556,20 +556,20 @@ export default function CustodyRequestPrint() {
                   </div>
                   <div className="space-y-1 text-xs flex flex-col items-center justify-center">
                     {effectiveApprovalSigUrl ? (
-                      <div className="h-9 sm:h-12 flex items-center justify-center mx-auto w-24 sm:w-36 overflow-hidden my-0.5 sm:my-1">
+                      <div className="h-16 sm:h-24 flex items-center justify-center mx-auto w-40 sm:w-60 overflow-hidden my-1">
                         <img
                           src={effectiveApprovalSigUrl}
                           alt="توقيع الاعتماد"
-                          className="max-h-9 sm:max-h-12 max-w-full object-contain"
+                          className="max-h-16 sm:max-h-24 max-w-full object-contain"
                         />
                       </div>
                     ) : isExecutiveApproved ? (
-                      <div className="h-9 sm:h-12 flex items-center justify-center mx-auto w-24 sm:w-36 overflow-hidden my-0.5 sm:my-1 text-emerald-700 font-bold text-[11px]">
-                        <ShieldCheck className="w-4 h-4 ml-1 inline text-emerald-600" />
+                      <div className="h-16 sm:h-24 flex items-center justify-center mx-auto w-40 sm:w-60 overflow-hidden my-1 text-emerald-700 font-bold text-[12px] sm:text-sm">
+                        <ShieldCheck className="w-5 h-5 ml-1 inline text-emerald-600" />
                         معتمد نظامياً
                       </div>
                     ) : (
-                      <div className="h-8 sm:h-10 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-36"></div>
+                      <div className="h-14 sm:h-20 border-b border-dashed border-gray-300 mx-auto w-40 sm:w-60"></div>
                     )}
                     <div className="text-gray-900 font-bold text-[10px] sm:text-xs min-h-[1rem]">
                       {effectiveApprovalName}

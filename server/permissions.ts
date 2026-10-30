@@ -2791,22 +2791,17 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.add("financial_reports");
     allPermissions.add("financial_report");
   }
-  if (
-    allPermissions.has("settings.view") ||
-    allPermissions.has("settings_org.view") ||
-    allPermissions.has("settings_branding.view") ||
-    allPermissions.has("settings_categories.view") ||
-    allPermissions.has("services.view") ||
-    allPermissions.has("services.add") ||
-    allPermissions.has("services.edit") ||
-    allPermissions.has("services.delete") ||
-    allPermissions.has("forms_customization.view") ||
-    allPermissions.has("settings_escalation.view") ||
-    allPermissions.has("staff_notifications.view") ||
-    allPermissions.has("notification_center.view")
-  ) {
+  const hasOrgForCenter = allPermissions.has("settings_org.view") || Array.from(allPermissions).some(p => p.startsWith("settings_org."));
+  const hasNotifForCenter = allPermissions.has("staff_notifications.view") || Array.from(allPermissions).some(p => p.startsWith("staff_notifications."));
+  const hasFormsForCenter = allPermissions.has("forms_customization.view") || Array.from(allPermissions).some(p => p.startsWith("forms_customization."));
+
+  if (hasOrgForCenter || hasNotifForCenter || hasFormsForCenter) {
     allPermissions.add("settings");
     allPermissions.add("settings_center");
+  } else {
+    allPermissions.delete("settings");
+    allPermissions.delete("settings_center");
+    allPermissions.delete("settings.view");
   }
 
   if (
@@ -3055,6 +3050,18 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   revokedPermissions.forEach(p => {
     allPermissions.delete(p);
   });
+
+  // التحقق النهائي الصارم: إذا لم يملك المستخدم أي صلاحية من أقسام: تخصيص النماذج، تخصيص الإشعارات، إعدادات الجمعية
+  // يجب حجب مركز الإعدادات تماماً
+  const finalHasOrg = Array.from(allPermissions).some(p => p.startsWith("settings_org"));
+  const finalHasNotif = Array.from(allPermissions).some(p => p.startsWith("staff_notifications"));
+  const finalHasForms = Array.from(allPermissions).some(p => p.startsWith("forms_customization"));
+
+  if (!finalHasOrg && !finalHasNotif && !finalHasForms) {
+    allPermissions.delete("settings");
+    allPermissions.delete("settings_center");
+    allPermissions.delete("settings.view");
+  }
 
   return Array.from(allPermissions);
 }
@@ -4140,3 +4147,14 @@ export const permissionsRouter = router({
       return await query.limit(input.limit).orderBy(sql`${permissionsAuditLog.createdAt} DESC`);
     }),
 });
+
+
+/**
+ * دالة لتحديث ومزامنة كافة الوحدات والصلاحيات والأدوار في قاعدة البيانات
+ */
+export async function syncAllPermissionsToDatabase(customDb?: any) {
+  const db = customDb || (await getDb());
+  if (!db) throw new Error("Database not available");
+  await ensureRequestsPermissionsExist(db);
+  return { success: true };
+}

@@ -935,11 +935,11 @@ export default function ProgressReportPrint() {
                       <div className="pt-2 flex items-center gap-2">
                         <span className="font-semibold text-gray-600">التوقيع : </span>
                         {(showCreatorSignature && resolvedSignatureUrl && (report.status === "pending_executive" || report.status === "approved")) ? (
-                          <div className="h-10 flex items-center justify-start overflow-hidden">
+                          <div className="h-18 sm:h-22 min-h-[60px] flex items-center justify-start overflow-hidden my-1">
                             <img 
                               src={resolvedSignatureUrl} 
                               alt="توقيع مدير المشروع" 
-                              className="max-h-10 max-w-[160px] object-contain" 
+                              className="max-h-18 sm:max-h-22 max-w-[220px] sm:max-w-[260px] object-contain" 
                             />
                           </div>
                         ) : (
@@ -966,11 +966,11 @@ export default function ProgressReportPrint() {
                       <div className="pt-2 flex items-center gap-2">
                         <span className="font-semibold text-gray-600">التوقيع : </span>
                         {(showExecutiveDirectorSignature && executiveDirectorSignatureUrl && (report.status === "approved")) ? (
-                          <div className="h-10 flex items-center justify-start overflow-hidden">
+                          <div className="h-18 sm:h-22 min-h-[60px] flex items-center justify-start overflow-hidden my-1">
                             <img
                               src={executiveDirectorSignatureUrl}
                               alt="توقيع المدير التنفيذي"
-                              className="max-h-10 max-w-[160px] object-contain"
+                              className="max-h-18 sm:max-h-22 max-w-[220px] sm:max-w-[260px] object-contain"
                             />
                           </div>
                         ) : (

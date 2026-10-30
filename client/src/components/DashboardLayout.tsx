@@ -487,60 +487,15 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
 
   // 6. الإعدادات
   const settingsItems: MenuItem[] = [];
-  const canViewSettingsCenter = 
-    has("settings_center") ||
-    has("settings_org.view") || 
-    has("settings_org.edit_basic") || 
-    has("settings_org.edit_supervision") || 
-    has("settings_org.edit_officials") || 
-    has("settings_org.edit_signers") || 
-    has("settings_org.signers_view") || 
-    has("settings_org.signers_add") || 
-    has("settings_org.signers_edit") || 
-    has("settings_org.signers_set_default") || 
-    has("settings_org.signers_delete") || 
-    has("settings_org.edit_banks") || 
-    has("settings_org.edit_contracts") || 
-    has("settings_branding.view") || 
-    has("settings_branding.edit") || 
-    has("settings_branding.edit_colors") || 
-    has("settings_branding.upload_logos") || 
-    has("settings_branding.delete_logos") || 
-    has("settings_contracts.view") ||  
-    has("settings_contracts.edit") || 
-    has("settings_categories.view") || 
-    has("settings_categories.add") || 
-    has("settings_categories.edit") || 
-    has("settings_categories.delete") || 
-    has("settings_categories.reorder") || 
-    has("settings.stages_view") || 
-    has("settings.actions_view") ||
-    has("services.view") || 
-    has("services.add") || 
-    has("services.edit") || 
-    has("services.delete") ||
-    has("services.toggle_status") ||
-    has("services.reorder") ||
-    has("forms_customization.view") ||
-    has("forms_customization.evaluation") ||
-    has("forms_customization.services") ||
-    has("forms_customization.registration") ||
-    has("forms_customization.analytics") ||
-    has("settings_escalation") ||
-    has("settings_escalation.view") ||
-    has("settings_escalation.edit_durations") ||
-    has("settings_escalation.edit_beneficiary_sla") ||
-    has("settings_escalation.save") ||
-    has("staff_notifications.view") ||
-    has("staff_notifications.edit") ||
-    has("staff_notifications.by_role") ||
-    has("staff_notifications.edit_message_formats") ||
-    has("staff_notifications.by_person") ||
-    has("staff_notifications.beneficiary") ||
-    has("notification_center") ||
-    has("notification_center.view") ||
-    has("notification_center.direct_send") ||
-    has("notification_center.send_logs");
+  const hasFormsPerm = has("*") || permissions.some((p) => p.startsWith("forms_customization"));
+  const hasNotifPerm = has("*") || permissions.some((p) => p.startsWith("staff_notifications"));
+  const hasOrgPerm = has("*") || permissions.some((p) => p.startsWith("settings_org"));
+
+  // لا يظهر قسم مركز الإعدادات إلا إذا كان الشخص أو الدور يملك صلاحية واحدة على الأقل من أقسام:
+  // 1. تخصيص النماذج (forms_customization)
+  // 2. تخصيص الإشعارات (staff_notifications)
+  // 3. إعدادات الجمعية (settings_org)
+  const canViewSettingsCenter = hasFormsPerm || hasNotifPerm || hasOrgPerm;
 
   if (canViewSettingsCenter) {
     settingsItems.push({ icon: Settings, label: "مركز الإعدادات", path: "/settings" });
