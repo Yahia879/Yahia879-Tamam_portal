@@ -132,7 +132,23 @@ const superAdminGroups = [
     title: "إدارة المخزون",
     modules: [
       { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view", "export_pdf", "add", "recommend", "approve"] },
-      { id: "orders_and_letters", nameAr: "مالية سدانة", icon: ShoppingBag, perms: ["disbursement_orders", "csr_letters", "purchase_orders"] },
+      {
+        id: "orders_and_letters",
+        nameAr: "مالية سدانة",
+        icon: ShoppingBag,
+        perms: [
+          "disbursement_orders",
+          "disbursement_orders_create_direct",
+          "disbursement_orders_exception_approve",
+          "disbursement_orders_remind",
+          "disbursement_orders_cancel_executed",
+          "csr_letters",
+          "csr_letters_add",
+          "purchase_orders",
+          "purchase_orders_add",
+          "purchase_orders_create_disbursement",
+        ],
+      },
       { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "create_disbursement"] },
       { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add"] },
       { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound"] },
@@ -502,9 +518,16 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       clause_add: "إضافة بند للعقد"
     },
     orders_and_letters: {
-      disbursement_orders: "أوامر الصرف",
-      csr_letters: "الخطاب المجتمعي",
-      purchase_orders: "أوامر الشراء",
+      disbursement_orders: "عرض أوامر الصرف",
+      disbursement_orders_create_direct: "انشاء امر صرف مخصص",
+      disbursement_orders_exception_approve: "استثناء اعتماد مُعد الأمر",
+      disbursement_orders_remind: "إرسال تذكير بالاعتماد",
+      disbursement_orders_cancel_executed: "الغاء اعتماد أوامر الصرف المنفذة",
+      csr_letters: "عرض الخطاب المجتمعي",
+      csr_letters_add: "إنشاء خطاب مجتمعي جديد",
+      purchase_orders: "عرض أوامر الشراء",
+      purchase_orders_add: "إنشاء أمر شراء جديد",
+      purchase_orders_create_disbursement: "إنشاء أمر صرف لأمر الشراء",
     },
     purchase_orders: {
       view: "عرض أوامر الشراء",
@@ -1338,6 +1361,17 @@ export default function RoleEdit() {
           next = next.filter(id => !id.startsWith("sedana_quotations."));
         }
 
+        // عند إلغاء تفعيل صلاحية عرض قسم في مالية سدانة، نقوم تلقائياً بإلغاء تفعيل صلاحياته الفرعية
+        if (permId === "orders_and_letters.disbursement_orders") {
+          next = next.filter(id => !id.startsWith("orders_and_letters.disbursement_orders_"));
+        }
+        if (permId === "orders_and_letters.csr_letters") {
+          next = next.filter(id => !id.startsWith("orders_and_letters.csr_letters_"));
+        }
+        if (permId === "orders_and_letters.purchase_orders") {
+          next = next.filter(id => !id.startsWith("orders_and_letters.purchase_orders_"));
+        }
+
         // عند إلغاء تفعيل صلاحية 'عرض مركز الاعتماد المالي'، نقوم تلقائياً بإلغاء تفعيل إرسال التذكير
         if (permId === "board_chairman") {
           next = next.filter(id => id !== "board_leadership.remind");
@@ -1469,6 +1503,21 @@ export default function RoleEdit() {
         if (permId.startsWith("sedana_quotations.") && permId !== "sedana_quotations.view") {
           if (!next.includes("sedana_quotations.view")) {
             next.push("sedana_quotations.view");
+          }
+        }
+        if (permId.startsWith("orders_and_letters.disbursement_orders_")) {
+          if (!next.includes("orders_and_letters.disbursement_orders")) {
+            next.push("orders_and_letters.disbursement_orders");
+          }
+        }
+        if (permId.startsWith("orders_and_letters.csr_letters_")) {
+          if (!next.includes("orders_and_letters.csr_letters")) {
+            next.push("orders_and_letters.csr_letters");
+          }
+        }
+        if (permId.startsWith("orders_and_letters.purchase_orders_")) {
+          if (!next.includes("orders_and_letters.purchase_orders")) {
+            next.push("orders_and_letters.purchase_orders");
           }
         }
         if (permId === "purchase_orders.create_disbursement") {
@@ -1768,7 +1817,11 @@ export default function RoleEdit() {
                               (perm.id.startsWith("settings_org.signers_") && perm.id !== "settings_org.signers_view" && !selectedPerms.includes("settings_org.signers_view")) ||
                               (perm.id.startsWith("settings_branding.") && perm.id !== "settings_branding.view" && !selectedPerms.includes("settings_branding.view")) ||
                               (perm.id.startsWith("settings_categories.") && perm.id !== "settings_categories.view" && !selectedPerms.includes("settings_categories.view")) ||
-                              (perm.id.startsWith("settings_escalation.") && perm.id !== "settings_escalation.view" && !selectedPerms.includes("settings_escalation.view"));
+                              (perm.id.startsWith("settings_escalation.") && perm.id !== "settings_escalation.view" && !selectedPerms.includes("settings_escalation.view")) ||
+                              (perm.id.startsWith("sedana_quotations.") && perm.id !== "sedana_quotations.view" && !selectedPerms.includes("sedana_quotations.view")) ||
+                              (perm.id.startsWith("orders_and_letters.disbursement_orders_") && !selectedPerms.includes("orders_and_letters.disbursement_orders")) ||
+                              (perm.id.startsWith("orders_and_letters.csr_letters_") && !selectedPerms.includes("orders_and_letters.csr_letters")) ||
+                              (perm.id.startsWith("orders_and_letters.purchase_orders_") && !selectedPerms.includes("orders_and_letters.purchase_orders"));
                             return (
                               <div 
                                 key={perm.id} 
