@@ -33,6 +33,7 @@ import {
   payments,
   requestExceptions,
   donationOpportunities,
+  donations,
   publicSubmissions,
   receiptVouchers,
   notificationTemplates,
@@ -4984,14 +4985,53 @@ export const requestsRouter = router({
 
       const currentStage = request[0].currentStage;
 
-      if (!canTransitionStage(ctx.user.role, currentStage)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية الرجوع للمرحلة السابقة" });
+      if (ctx.user.role !== 'super_admin') {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية الرجوع للمرحلة السابقة، هذه العملية محصورة بالمدير العام (super_admin) فقط" });
       }
 
       
       // المراحل التي لا يمكن الرجوع منها (بعد بلوغ مرحلة التعاقد يتوقف زر السابق نهائياً)
       const isQuickResponseExecution = request[0].requestTrack === 'quick_response' && currentStage === 'execution';
-      const nonRevertableStages = ['submitted', 'contracting', ...(isQuickResponseExecution ? [] : ['execution']), 'handover', 'closed'];
+      const isDonationExecution = request[0].technicalEvalDecision === 'convert_to_donation' && currentStage === 'execution';
+
+      let isDonationRevertable = false;
+      if (isDonationExecution) {
+        // التحقق مما إذا كان قد تم إنشاء طلب صرف لفرصة التبرع هذه
+        const [opp] = await db
+          .select({ id: donationOpportunities.id })
+          .from(donationOpportunities)
+          .where(eq(donationOpportunities.requestId, input.requestId))
+          .limit(1);
+
+        const allDisbursementReqs = await db
+          .select({ id: disbursementRequests.id, attachmentsJson: disbursementRequests.attachmentsJson })
+          .from(disbursementRequests);
+
+        const hasDisbursementReq = allDisbursementReqs.some(dr => {
+          if (!dr.attachmentsJson) return false;
+          try {
+            const atts = typeof dr.attachmentsJson === 'string' ? JSON.parse(dr.attachmentsJson) : dr.attachmentsJson;
+            if (Array.isArray(atts)) {
+              const metaObj = atts.find((a: any) => a.name === 'custom_supplier_info' && a.type === 'metadata');
+              if (metaObj && metaObj.url) {
+                const meta = JSON.parse(metaObj.url);
+                return meta.mosqueRequestId === input.requestId || (opp && Number(meta.donationOpportunityId) === opp.id);
+              }
+            }
+          } catch {}
+          return false;
+        });
+
+        if (hasDisbursementReq) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "لا يمكن الرجوع من مرحلة التنفيذ بعد إنشاء طلب صرف لفرصة التبرع",
+          });
+        }
+        isDonationRevertable = true;
+      }
+
+      const nonRevertableStages = ['submitted', 'contracting', ...(isQuickResponseExecution || isDonationRevertable ? [] : ['execution']), 'handover', 'closed'];
       if (nonRevertableStages.includes(currentStage)) {
         throw new TRPCError({ 
           code: "BAD_REQUEST", 
@@ -5027,6 +5067,7 @@ export const requestsRouter = router({
         .limit(1);
 
       let isRevertingToQuickResponse = false;
+      let isRevertingFromDonation = false;
       // التحقق من حالة التحويل إلى مشروع من مرحلة الاستجابة السريعة (execution)
       if (
         currentStage === 'boq_preparation' &&
@@ -5036,6 +5077,10 @@ export const requestsRouter = router({
       ) {
         previousStage = 'execution';
         isRevertingToQuickResponse = true;
+      } else if (isDonationExecution) {
+        // فرصة التبرع ترجع إلى مرحلة التقييم الفني
+        previousStage = (history.length > 0 && history[0].fromStage) ? history[0].fromStage as any : 'technical_eval';
+        isRevertingFromDonation = true;
       } else if (history.length > 0 && history[0].fromStage) {
         const fromIndex = workflow.findIndex((s) => s.id === history[0].fromStage);
         if (fromIndex !== -1 && fromIndex < currentIndex) {
@@ -5058,7 +5103,7 @@ export const requestsRouter = router({
           updatedAt: new Date(),
         }).where(eq(quickResponseReports.requestId, input.requestId));
       }
-      if (previousStage === 'technical_eval') {
+      if (isRevertingFromDonation || previousStage === 'technical_eval') {
         updateData.technicalEvalDecision = null;
         updateData.technicalEvalJustification = null;
         updateData.requestTrack = 'standard';
@@ -5068,6 +5113,19 @@ export const requestsRouter = router({
           status: 'draft',
           updatedAt: new Date(),
         }).where(eq(quickResponseReports.requestId, input.requestId));
+
+        // في حال الرجوع من فرصة تبرع، تنظيف فرصة التبرع المرتبطة طالما لم يتم إنشاء طلب صرف لها
+        if (isRevertingFromDonation || request[0].technicalEvalDecision === 'convert_to_donation') {
+          const opps = await db.select({ id: donationOpportunities.id }).from(donationOpportunities).where(eq(donationOpportunities.requestId, input.requestId));
+          for (const opp of opps) {
+            const [existingDonation] = await db.select({ id: donations.id }).from(donations).where(eq(donations.opportunityId, opp.id)).limit(1);
+            if (existingDonation) {
+              await db.update(donationOpportunities).set({ status: 'closed' }).where(eq(donationOpportunities.id, opp.id));
+            } else {
+              await db.delete(donationOpportunities).where(eq(donationOpportunities.id, opp.id));
+            }
+          }
+        }
       }
       if (previousStage === 'field_visit' || currentStage === 'field_visit') {
         if (previousStage === 'field_visit') {
