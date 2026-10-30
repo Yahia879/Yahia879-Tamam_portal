@@ -42,12 +42,11 @@ export default function CreateCsrLetterPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const canAddLetterPerm = usePermission("csr_letters.add");
-  const canOrdersAndLettersCreate = usePermission("orders_and_letters.create");
-  const canOrdersAndLettersCSR = usePermission("orders_and_letters.csr_letters");
+  const canAddSedanaCSR = usePermission("orders_and_letters.csr_letters_add");
   const params = useParams<{ id?: string }>();
   const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
   const isFromOrdersAndLetters = searchParams.get("from") === "orders-and-letters" || Boolean(searchParams.get("returnUrl")?.includes("orders-and-letters"));
-  const canAddLetter = canAddLetterPerm || (isFromOrdersAndLetters && (canOrdersAndLettersCreate || canOrdersAndLettersCSR));
+  const canAddLetter = isFromOrdersAndLetters ? canAddSedanaCSR : canAddLetterPerm;
   const initialRequestId = params.id ? parseInt(params.id, 10) : (searchParams.get("requestId") ? parseInt(searchParams.get("requestId")!, 10) : null);
   const projectId = searchParams.get("projectId") ? parseInt(searchParams.get("projectId")!, 10) : null;
 
