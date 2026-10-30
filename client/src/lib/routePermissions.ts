@@ -237,7 +237,12 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/disbursements": "disbursement_requests",
   "/disbursement-requests": "disbursement_requests",
   "/disbursement-orders": "disbursement_orders",
-  "/disbursement-orders/new-direct": "disbursement_orders",
+  "/disbursement-orders/new-direct": [
+    "disbursement_orders",
+    "disbursement_orders.create_direct",
+    "orders_and_letters.disbursement_orders_create_direct",
+    "orders_and_letters"
+  ],
   "/fund": ["fund.view", "fund.transfer"],
   "/fund/movements": ["fund.view", "fund.transfer"],
   "/fund/transfers/new": ["fund.transfer"],
@@ -660,7 +665,8 @@ export function hasRouteAccess(
     return (
       userPermissions.includes("orders_and_letters.disbursement_orders") ||
       userPermissions.includes("orders_and_letters.csr_letters") ||
-      userPermissions.includes("orders_and_letters.purchase_orders")
+      userPermissions.includes("orders_and_letters.purchase_orders") ||
+      userPermissions.some(p => p.startsWith("orders_and_letters."))
     );
   }
 
