@@ -582,7 +582,32 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
     "orders_and_letters.disbursement_orders",
     "orders_and_letters.view",
   ],
+  "orders_and_letters.disbursement_orders_create_direct": [
+    "orders_and_letters.disbursement_orders_create_direct",
+    "orders_and_letters.disbursement_orders",
+    "orders_and_letters.view",
+  ],
+  "orders_and_letters.disbursement_orders_exception_approve": [
+    "orders_and_letters.disbursement_orders_exception_approve",
+    "orders_and_letters.disbursement_orders",
+    "orders_and_letters.view",
+  ],
+  "orders_and_letters.disbursement_orders_remind": [
+    "orders_and_letters.disbursement_orders_remind",
+    "orders_and_letters.disbursement_orders",
+    "orders_and_letters.view",
+  ],
+  "orders_and_letters.disbursement_orders_cancel_executed": [
+    "orders_and_letters.disbursement_orders_cancel_executed",
+    "orders_and_letters.disbursement_orders",
+    "orders_and_letters.view",
+  ],
   "orders_and_letters.csr_letters": [
+    "orders_and_letters.csr_letters",
+    "orders_and_letters.view",
+  ],
+  "orders_and_letters.csr_letters_add": [
+    "orders_and_letters.csr_letters_add",
     "orders_and_letters.csr_letters",
     "orders_and_letters.view",
     "orders_and_letters.create",
@@ -590,7 +615,17 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "orders_and_letters.purchase_orders": [
     "orders_and_letters.purchase_orders",
     "orders_and_letters.view",
+  ],
+  "orders_and_letters.purchase_orders_add": [
+    "orders_and_letters.purchase_orders_add",
+    "orders_and_letters.purchase_orders",
+    "orders_and_letters.view",
     "orders_and_letters.create",
+  ],
+  "orders_and_letters.purchase_orders_create_disbursement": [
+    "orders_and_letters.purchase_orders_create_disbursement",
+    "orders_and_letters.purchase_orders",
+    "orders_and_letters.view",
   ],
 };
 
@@ -610,8 +645,15 @@ export const EXCLUDED_ADMIN_PERMISSIONS: string[] = [
   'disbursement_orders.exception_approve',
   'orders_and_letters',
   'orders_and_letters.disbursement_orders',
+  'orders_and_letters.disbursement_orders_create_direct',
+  'orders_and_letters.disbursement_orders_exception_approve',
+  'orders_and_letters.disbursement_orders_remind',
+  'orders_and_letters.disbursement_orders_cancel_executed',
   'orders_and_letters.csr_letters',
+  'orders_and_letters.csr_letters_add',
   'orders_and_letters.purchase_orders',
+  'orders_and_letters.purchase_orders_add',
+  'orders_and_letters.purchase_orders_create_disbursement',
   'orders_and_letters.view',
   'orders_and_letters.create',
   'orders_and_letters.export',
@@ -1616,9 +1658,16 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "fund.transfer", moduleId: "disbursements", action: "fund_transfer", nameAr: "تحويل فائض من المشروع إلى الصندوق", nameEn: "Transfer Project Surplus to Fund" },
       { id: "disbursements.create_from_fund", moduleId: "disbursements", action: "create_from_fund", nameAr: "إضافة طلب صرف من صندوق الجمعية", nameEn: "Create Disbursement Request from Association Fund" },
       { id: "requests.create_quick_request", moduleId: "requests", action: "create_quick_request", nameAr: "إنشاء طلب سريع", nameEn: "Create Quick Request" },
-      { id: "orders_and_letters.disbursement_orders", moduleId: "orders_and_letters", action: "disbursement_orders", nameAr: "أوامر الصرف", nameEn: "Payment Orders" },
-      { id: "orders_and_letters.csr_letters", moduleId: "orders_and_letters", action: "csr_letters", nameAr: "الخطاب المجتمعي", nameEn: "Community Letters" },
-      { id: "orders_and_letters.purchase_orders", moduleId: "orders_and_letters", action: "purchase_orders", nameAr: "أوامر الشراء", nameEn: "Purchase Orders" },
+      { id: "orders_and_letters.disbursement_orders", moduleId: "orders_and_letters", action: "disbursement_orders", nameAr: "عرض أوامر الصرف", nameEn: "View Disbursement Orders" },
+      { id: "orders_and_letters.disbursement_orders_create_direct", moduleId: "orders_and_letters", action: "disbursement_orders_create_direct", nameAr: "انشاء امر صرف مخصص", nameEn: "Create Direct Disbursement Order" },
+      { id: "orders_and_letters.disbursement_orders_exception_approve", moduleId: "orders_and_letters", action: "disbursement_orders_exception_approve", nameAr: "استثناء اعتماد مُعد الأمر", nameEn: "Exception Approve Disbursement Order" },
+      { id: "orders_and_letters.disbursement_orders_remind", moduleId: "orders_and_letters", action: "disbursement_orders_remind", nameAr: "إرسال تذكير بالاعتماد", nameEn: "Send Approval Reminder" },
+      { id: "orders_and_letters.disbursement_orders_cancel_executed", moduleId: "orders_and_letters", action: "disbursement_orders_cancel_executed", nameAr: "الغاء اعتماد أوامر الصرف المنفذة", nameEn: "Cancel Executed Disbursement Orders" },
+      { id: "orders_and_letters.csr_letters", moduleId: "orders_and_letters", action: "csr_letters", nameAr: "عرض الخطاب المجتمعي", nameEn: "View Community Letters" },
+      { id: "orders_and_letters.csr_letters_add", moduleId: "orders_and_letters", action: "csr_letters_add", nameAr: "إنشاء خطاب مجتمعي جديد", nameEn: "Create Community Letter" },
+      { id: "orders_and_letters.purchase_orders", moduleId: "orders_and_letters", action: "purchase_orders", nameAr: "عرض أوامر الشراء", nameEn: "View Purchase Orders" },
+      { id: "orders_and_letters.purchase_orders_add", moduleId: "orders_and_letters", action: "purchase_orders_add", nameAr: "إنشاء أمر شراء جديد", nameEn: "Create Purchase Order" },
+      { id: "orders_and_letters.purchase_orders_create_disbursement", moduleId: "orders_and_letters", action: "purchase_orders_create_disbursement", nameAr: "إنشاء أمر صرف لأمر الشراء", nameEn: "Create Disbursement for Purchase Order" },
       { id: "purchase_orders.view", moduleId: "purchase_orders", action: "view", nameAr: "عرض أوامر الشراء", nameEn: "View Purchase Orders" },
       { id: "purchase_orders.add", moduleId: "purchase_orders", action: "add", nameAr: "إنشاء أمر شراء جديد", nameEn: "Create Purchase Order" },
       { id: "purchase_orders.approve", moduleId: "purchase_orders", action: "approve", nameAr: "اعتماد أوامر الشراء", nameEn: "Approve Purchase Orders" },
@@ -1752,25 +1801,36 @@ async function ensureAllCustomPermissionsExist(db: any) {
     ).catch(() => {});
 
     // تنظيف أي صلاحيات قديمة متبقية لـ orders_and_letters من جدول صلاحيات الأدوار والمستخدمين
+    const validOrdersLettersPerms = [
+      "orders_and_letters.disbursement_orders",
+      "orders_and_letters.disbursement_orders_create_direct",
+      "orders_and_letters.disbursement_orders_exception_approve",
+      "orders_and_letters.disbursement_orders_remind",
+      "orders_and_letters.disbursement_orders_cancel_executed",
+      "orders_and_letters.csr_letters",
+      "orders_and_letters.csr_letters_add",
+      "orders_and_letters.purchase_orders",
+      "orders_and_letters.purchase_orders_add",
+      "orders_and_letters.purchase_orders_create_disbursement",
+    ];
     await db.delete(rolePermissions).where(
       and(
         sql`${rolePermissions.permissionId} LIKE 'orders_and_letters%'`,
-        notInArray(rolePermissions.permissionId, [
-          "orders_and_letters.disbursement_orders",
-          "orders_and_letters.csr_letters",
-          "orders_and_letters.purchase_orders",
-        ])
+        notInArray(rolePermissions.permissionId, validOrdersLettersPerms)
       )
     ).catch(() => {});
 
     await db.delete(userPermissions).where(
       and(
         sql`${userPermissions.permissionId} LIKE 'orders_and_letters%'`,
-        notInArray(userPermissions.permissionId, [
-          "orders_and_letters.disbursement_orders",
-          "orders_and_letters.csr_letters",
-          "orders_and_letters.purchase_orders",
-        ])
+        notInArray(userPermissions.permissionId, validOrdersLettersPerms)
+      )
+    ).catch(() => {});
+
+    await db.delete(permissions).where(
+      and(
+        sql`${permissions.id} LIKE 'orders_and_letters%'`,
+        notInArray(permissions.id, validOrdersLettersPerms)
       )
     ).catch(() => {});
 
@@ -1778,13 +1838,27 @@ async function ensureAllCustomPermissionsExist(db: any) {
     const ordersAndLettersDefaultRolePerms: Record<string, string[]> = {
       super_admin: [
         "orders_and_letters.disbursement_orders",
+        "orders_and_letters.disbursement_orders_create_direct",
+        "orders_and_letters.disbursement_orders_exception_approve",
+        "orders_and_letters.disbursement_orders_remind",
+        "orders_and_letters.disbursement_orders_cancel_executed",
         "orders_and_letters.csr_letters",
+        "orders_and_letters.csr_letters_add",
         "orders_and_letters.purchase_orders",
+        "orders_and_letters.purchase_orders_add",
+        "orders_and_letters.purchase_orders_create_disbursement",
       ],
       financial: [
         "orders_and_letters.disbursement_orders",
+        "orders_and_letters.disbursement_orders_create_direct",
+        "orders_and_letters.disbursement_orders_exception_approve",
+        "orders_and_letters.disbursement_orders_remind",
+        "orders_and_letters.disbursement_orders_cancel_executed",
         "orders_and_letters.csr_letters",
+        "orders_and_letters.csr_letters_add",
         "orders_and_letters.purchase_orders",
+        "orders_and_letters.purchase_orders_add",
+        "orders_and_letters.purchase_orders_create_disbursement",
       ],
     };
 
@@ -1999,15 +2073,21 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
       const expandedSet = new Set(
         allPerms
           .map(p => p.id)
-          .filter(id => id !== "appointments.view_own" && !excludedAdminPerms.includes(id))
+          .filter(id => {
+            if (id === "appointments.view_own" || excludedAdminPerms.includes(id)) return false;
+            if (userData.role === 'system_admin' && id.startsWith("orders_and_letters")) return false;
+            return true;
+          })
       );
       Object.keys(PERMISSION_EXPANSION).forEach(k => {
         if (k !== "appointments.view_own" && !excludedAdminPerms.includes(k)) {
+          if (userData.role === 'system_admin' && k.startsWith("orders_and_letters")) return;
           expandedSet.add(k);
         }
       });
       Object.values(PERMISSION_EXPANSION).forEach(subs => subs.forEach(s => {
         if (!excludedAdminPerms.includes(s)) {
+          if (userData.role === 'system_admin' && s.startsWith("orders_and_letters")) return;
           expandedSet.add(s);
         }
       }));
@@ -2623,29 +2703,59 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   }
 
   // مالية سدانة
-  const hasOrdersAndLettersAction = [
-    "orders_and_letters.disbursement_orders",
-    "orders_and_letters.csr_letters",
-    "orders_and_letters.purchase_orders",
-  ].some(p => allPermissions.has(p) && !revokedPermissions.has(p));
+  if (
+    revokedPermissions.has("orders_and_letters.disbursement_orders") ||
+    !allPermissions.has("orders_and_letters.disbursement_orders")
+  ) {
+    allPermissions.delete("orders_and_letters.disbursement_orders");
+    allPermissions.delete("orders_and_letters.disbursement_orders_create_direct");
+    allPermissions.delete("orders_and_letters.disbursement_orders_exception_approve");
+    allPermissions.delete("orders_and_letters.disbursement_orders_remind");
+    allPermissions.delete("orders_and_letters.disbursement_orders_cancel_executed");
+  }
 
-  if (hasOrdersAndLettersAction) {
+  if (
+    revokedPermissions.has("orders_and_letters.csr_letters") ||
+    !allPermissions.has("orders_and_letters.csr_letters")
+  ) {
+    allPermissions.delete("orders_and_letters.csr_letters");
+    allPermissions.delete("orders_and_letters.csr_letters_add");
+  }
+
+  if (
+    revokedPermissions.has("orders_and_letters.purchase_orders") ||
+    !allPermissions.has("orders_and_letters.purchase_orders")
+  ) {
+    allPermissions.delete("orders_and_letters.purchase_orders");
+    allPermissions.delete("orders_and_letters.purchase_orders_add");
+    allPermissions.delete("orders_and_letters.purchase_orders_create_disbursement");
+  }
+
+  const validSedanaFinancePerms = [
+    "orders_and_letters.disbursement_orders",
+    "orders_and_letters.disbursement_orders_create_direct",
+    "orders_and_letters.disbursement_orders_exception_approve",
+    "orders_and_letters.disbursement_orders_remind",
+    "orders_and_letters.disbursement_orders_cancel_executed",
+    "orders_and_letters.csr_letters",
+    "orders_and_letters.csr_letters_add",
+    "orders_and_letters.purchase_orders",
+    "orders_and_letters.purchase_orders_add",
+    "orders_and_letters.purchase_orders_create_disbursement",
+  ];
+  const hasAnyOrdersAndLetters = validSedanaFinancePerms.some(p => allPermissions.has(p));
+  if (hasAnyOrdersAndLetters) {
     allPermissions.add("orders_and_letters");
     allPermissions.add("orders_and_letters.view");
+    if (allPermissions.has("orders_and_letters.purchase_orders_add") || allPermissions.has("orders_and_letters.csr_letters_add")) {
+      allPermissions.add("orders_and_letters.create");
+    }
   } else {
-    allPermissions.delete("orders_and_letters");
-    allPermissions.delete("orders_and_letters.view");
-    allPermissions.delete("orders_and_letters.create");
-    allPermissions.delete("orders_and_letters.export");
-    allPermissions.delete("orders_and_letters.disbursement_orders");
-    allPermissions.delete("orders_and_letters.csr_letters");
-    allPermissions.delete("orders_and_letters.purchase_orders");
-  }
-  if (allPermissions.has("orders_and_letters.purchase_orders")) {
-    allPermissions.add("orders_and_letters.create");
-  }
-  if (allPermissions.has("orders_and_letters.csr_letters")) {
-    allPermissions.add("orders_and_letters.create");
+    Array.from(allPermissions).forEach(p => {
+      if (p.startsWith("orders_and_letters")) {
+        allPermissions.delete(p);
+      }
+    });
   }
   if (
     allPermissions.has("progress_reports.view") ||
