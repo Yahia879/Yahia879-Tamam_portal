@@ -483,7 +483,7 @@ export default function UserPermissions() {
         return;
       }
     }
-    if (permId.startsWith("orders_and_letters.purchase_orders_")) {
+    if (permId.startsWith("orders_and_letters.purchase_orders_") && permId !== "orders_and_letters.purchase_orders_create_disbursement") {
       if (!isChecked("orders_and_letters.purchase_orders")) {
         toast.warning("يجب تفعيل صلاحية 'عرض أوامر الشراء' أولاً");
         return;
@@ -511,7 +511,14 @@ export default function UserPermissions() {
         setPendingDisbursementAction(() => () => {
           setOverrides(prev => {
             const updated = { ...prev };
-            [permId, "disbursement_orders.view", "disbursement_orders.create_direct"].forEach(pId => {
+            const permsToEnable = [permId, "disbursement_orders.view", "disbursement_orders.create_direct"];
+            if (permId.startsWith("purchase_orders.") && !isChecked("purchase_orders.view")) {
+              permsToEnable.push("purchase_orders.view");
+            }
+            if (permId.startsWith("orders_and_letters.purchase_orders_") && !isChecked("orders_and_letters.purchase_orders")) {
+              permsToEnable.push("orders_and_letters.purchase_orders");
+            }
+            permsToEnable.forEach(pId => {
               const defVal = rolePermissions?.includes(pId) || false;
               if (defVal) {
                 delete updated[pId];
@@ -2027,7 +2034,7 @@ export default function UserPermissions() {
                               (perm.id.startsWith("sedana_quotations.") && perm.id !== "sedana_quotations.view" && !isChecked("sedana_quotations.view")) ||
                               (perm.id.startsWith("orders_and_letters.disbursement_orders_") && !isChecked("orders_and_letters.disbursement_orders")) ||
                               (perm.id.startsWith("orders_and_letters.csr_letters_") && !isChecked("orders_and_letters.csr_letters")) ||
-                              (perm.id.startsWith("orders_and_letters.purchase_orders_") && !isChecked("orders_and_letters.purchase_orders"));
+                              (perm.id.startsWith("orders_and_letters.purchase_orders_") && perm.id !== "orders_and_letters.purchase_orders_create_disbursement" && !isChecked("orders_and_letters.purchase_orders"));
 
                             // تحديد نمط البطاقة بناءً على نوع حالة الصلاحية (موروثة، ممنوحة، مسحوبة)
                             let cardClass = "border-slate-200 dark:border-slate-800 bg-background hover:bg-slate-50 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400 cursor-pointer";
@@ -2110,6 +2117,20 @@ export default function UserPermissions() {
           </Button>
         </div>
       </div>
+
+      <DisbursementPermConfirmationModal
+        open={showDisbursementModal}
+        onOpenChange={setShowDisbursementModal}
+        onConfirm={() => {
+          if (pendingDisbursementAction) {
+            pendingDisbursementAction();
+            setPendingDisbursementAction(null);
+          }
+        }}
+        onCancel={() => {
+          setPendingDisbursementAction(null);
+        }}
+      />
     </DashboardLayout>
   );
 }

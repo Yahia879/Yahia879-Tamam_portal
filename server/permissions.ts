@@ -2627,6 +2627,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   }
   if (
     allPermissions.has("purchase_orders.create_disbursement") ||
+    allPermissions.has("orders_and_letters.purchase_orders_create_disbursement") ||
     allPermissions.has("csr_letters.create_disbursement")
   ) {
     allPermissions.add("disbursement_orders.view");

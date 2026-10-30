@@ -971,7 +971,7 @@ export default function RoleEdit() {
       if (needsApproval) {
         setPendingDisbursementAction(() => () => {
           setSelectedPerms(prev => {
-            const next = prev.includes(permId) ? prev : [...prev, permId];
+            const next = prev.includes(permId) ? [...prev] : [...prev, permId];
             if (!next.includes("disbursement_orders.view")) next.push("disbursement_orders.view");
             if (!next.includes("disbursement_orders.create_direct")) next.push("disbursement_orders.create_direct");
             if (permId.startsWith("purchase_orders.") && !next.includes("purchase_orders.view")) next.push("purchase_orders.view");
@@ -1843,7 +1843,7 @@ export default function RoleEdit() {
                               (perm.id.startsWith("sedana_quotations.") && perm.id !== "sedana_quotations.view" && !selectedPerms.includes("sedana_quotations.view")) ||
                               (perm.id.startsWith("orders_and_letters.disbursement_orders_") && !selectedPerms.includes("orders_and_letters.disbursement_orders")) ||
                               (perm.id.startsWith("orders_and_letters.csr_letters_") && !selectedPerms.includes("orders_and_letters.csr_letters")) ||
-                              (perm.id.startsWith("orders_and_letters.purchase_orders_") && !selectedPerms.includes("orders_and_letters.purchase_orders"));
+                              (perm.id.startsWith("orders_and_letters.purchase_orders_") && perm.id !== "orders_and_letters.purchase_orders_create_disbursement" && !selectedPerms.includes("orders_and_letters.purchase_orders"));
                             return (
                               <div 
                                 key={perm.id} 
@@ -1909,6 +1909,20 @@ export default function RoleEdit() {
           </Button>
         </div>
       </div>
+
+      <DisbursementPermConfirmationModal
+        open={showDisbursementModal}
+        onOpenChange={setShowDisbursementModal}
+        onConfirm={() => {
+          if (pendingDisbursementAction) {
+            pendingDisbursementAction();
+            setPendingDisbursementAction(null);
+          }
+        }}
+        onCancel={() => {
+          setPendingDisbursementAction(null);
+        }}
+      />
     </DashboardLayout>
   );
 }
