@@ -125,16 +125,14 @@ export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }:
   const isExec = isExecutiveDirectorCeo;
 
   // صلاحيات أوامر الشراء
-  const canAddOrderPerm = usePermission("purchase_orders.add");
-  const canOrdersAndLettersPO = usePermission("orders_and_letters.purchase_orders");
-  const hasPoDisbursementPerm = usePermission("purchase_orders.create_disbursement");
-  const hasOrdersDisbursementPerm = usePermission("orders_and_letters.disbursement_orders");
-  const hasPoViewPerm = usePermission("purchase_orders.view");
+  const canAddOrderPerm = usePermission(isEmbedded ? "orders_and_letters.purchase_orders_add" : "purchase_orders.add");
+  const hasPoDisbursementPerm = usePermission(isEmbedded ? "orders_and_letters.purchase_orders_create_disbursement" : "purchase_orders.create_disbursement");
+  const hasPoViewPerm = usePermission(isEmbedded ? "orders_and_letters.purchase_orders" : "purchase_orders.view");
   const hasPoExportPerm = usePermission("purchase_orders.export");
 
-  const canAddOrder = canAddOrderPerm || (isEmbedded && canOrdersAndLettersPO);
-  const canCreateDisbursement = hasPoDisbursementPerm || (isEmbedded && hasOrdersDisbursementPerm);
-  const canExport = hasPoViewPerm || (isEmbedded && canOrdersAndLettersPO) || hasPoExportPerm;
+  const canAddOrder = canAddOrderPerm;
+  const canCreateDisbursement = hasPoDisbursementPerm;
+  const canExport = isEmbedded ? hasPoViewPerm : (hasPoViewPerm || hasPoExportPerm);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
