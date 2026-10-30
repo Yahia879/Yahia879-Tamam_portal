@@ -342,17 +342,17 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
   const permDisbursementsSign = usePermission("disbursements.sign");
   const permOrdersReject = usePermission("disbursement_orders.reject");
   const permOrdersViewDetails = usePermission("disbursement_orders.view_details");
-  const permOrdersCreateDirect = usePermission("disbursement_orders.create_direct");
-  const permOrdersExceptionApprove = usePermission("disbursement_orders.exception_approve");
-  const permOrdersRemind = usePermission("disbursement_orders.remind");
-  const permOrdersCancelExecuted = usePermission("disbursement_orders.cancel_executed");
+  const permOrdersCreateDirect = usePermission(isEmbedded ? "orders_and_letters.disbursement_orders_create_direct" : "disbursement_orders.create_direct");
+  const permOrdersExceptionApprove = usePermission(isEmbedded ? "orders_and_letters.disbursement_orders_exception_approve" : "disbursement_orders.exception_approve");
+  const permOrdersRemind = usePermission(isEmbedded ? "orders_and_letters.disbursement_orders_remind" : "disbursement_orders.remind");
+  const permOrdersCancelExecuted = usePermission(isEmbedded ? "orders_and_letters.disbursement_orders_cancel_executed" : "disbursement_orders.cancel_executed");
 
   const canApproveOrder = permOrdersApprove || permOrdersSign || permDisbursementsApprove || permDisbursementsSign;
   const canRejectOrder = permOrdersReject;
   const canViewDetails = permOrdersViewDetails;
   const canCreateDirectOrder = permOrdersCreateDirect;
-  const canExceptionApproveOrder = user?.role === "super_admin" || permOrdersExceptionApprove;
-  const canRemind = user?.role === "super_admin" || user?.role === "system_admin" || permOrdersRemind;
+  const canExceptionApproveOrder = isEmbedded ? permOrdersExceptionApprove : (user?.role === "super_admin" || permOrdersExceptionApprove);
+  const canRemind = isEmbedded ? permOrdersRemind : (user?.role === "super_admin" || user?.role === "system_admin" || permOrdersRemind);
   const canCancelExecuted = permOrdersCancelExecuted;
 
   // نافذة إرسال تذكير بالاعتماد
@@ -429,7 +429,6 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
 
   // التحقق الحصري للمدير التنفيذي فقط دون المدير العام (super_admin) أو أي دور آخر
   const isExecutiveDirectorStrict = 
-    !isEmbedded &&
     !["super_admin", "system_admin"].includes(user?.role || "") &&
     (
       user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa" ||
@@ -501,6 +500,21 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
               متابعة حالة أوامر الصرف الناتجة عن أوامر الشراء المعتمدة لهذا الطلب واعتمادها كمسؤول مالي
             </p>
           </div>
+          {canCreateDirectOrder && (
+            <div className="w-full md:w-auto flex justify-end shrink-0">
+              <Button 
+                size="sm"
+                onClick={() => {
+                  const returnUrl = encodeURIComponent(`/orders-and-letters?tab=disbursement_orders${requestId ? `&requestId=${requestId}` : ""}`);
+                  navigate(`/disbursement-orders/new-direct${requestId ? `?requestId=${requestId}&returnUrl=${returnUrl}` : `?returnUrl=${returnUrl}`}`);
+                }} 
+                className="w-full sm:w-auto text-xs font-bold gap-1.5 gradient-primary text-white shadow-xs cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span>إنشاء أمر صرف مخصص</span>
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -857,9 +871,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                     const isStage1Pending = order.status === "pending" || order.status === "draft" || order.status === "edited";
                                     const isStage2Pending = order.status === "pending_executive";
                                     const canApproveStage1 = isStage1Pending && isSolayani;
-                                    const canApproveStage2 = !isEmbedded && isStage2Pending && user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa";
-                                    const canShowExceptionOption = !isEmbedded && isStage1Pending && canExceptionApproveOrder && !isSolayani;
-                                    const canReject = (isStage1Pending && isSolayani) || (!isEmbedded && isStage2Pending && user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa");
+                                    const canApproveStage2 = isStage2Pending && user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa";
+                                    const canShowExceptionOption = isStage1Pending && canExceptionApproveOrder && !isSolayani;
+                                    const canReject = (isStage1Pending && isSolayani) || (isStage2Pending && user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa");
 
                                     return (
                                       <>
@@ -946,7 +960,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                         )}
 
 
-                                       {order.status === "approved" && (
+                                       {canRemind && order.status === "approved" && (
                                          <DropdownMenuItem
                                            onClick={() => {
                                              const defMsg = `نود تذكيركم بوجود أمر صرف رقم "${order.orderNumber}" بمبلغ ${Number(order.amount || 0).toLocaleString("ar-SA")} ريال بانتظار اعتمادكم الكريم.`;
@@ -970,7 +984,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                        )}
 
                                         {/* خيار إلغاء الاعتماد لأوامر الصرف المنفذة */}
-                                        {!isEmbedded && order.status === "executed" && (
+                                        {order.status === "executed" && (
                                           <>
                                             {order.cancellationRequested ? (
                                               isExecutiveDirectorStrict ? (
@@ -1240,9 +1254,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                   const isStage1Pending = order.status === "pending" || order.status === "draft" || order.status === "edited";
                                   const isStage2Pending = order.status === "pending_executive";
                                   const canApproveStage1 = isStage1Pending && isSolayani;
-                                  const canApproveStage2 = !isEmbedded && isStage2Pending && user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa";
-                                  const canShowExceptionOption = !isEmbedded && isStage1Pending && canExceptionApproveOrder && !isSolayani;
-                                  const canReject = (isStage1Pending && isSolayani) || (!isEmbedded && isStage2Pending && user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa");
+                                  const canApproveStage2 = isStage2Pending && user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa";
+                                  const canShowExceptionOption = isStage1Pending && canExceptionApproveOrder && !isSolayani;
+                                  const canReject = (isStage1Pending && isSolayani) || (isStage2Pending && user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa");
 
                                   return (
                                     <>
@@ -1300,7 +1314,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                       )}
 
 
-                                      {order.status === "approved" && (
+                                      {canRemind && order.status === "approved" && (
                                         <DropdownMenuItem
                                           onClick={() => {
                                             const defMsg = `نود تذكيركم بوجود أمر صرف رقم "${order.orderNumber}" بمبلغ ${Number(order.amount || 0).toLocaleString("ar-SA")} ريال بانتظار اعتمادكم الكريم.`;
@@ -1324,7 +1338,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                       )}
 
                                       {/* خيار إلغاء الاعتماد لأوامر الصرف المنفذة */}
-                                      {!isEmbedded && order.status === "executed" && (
+                                      {order.status === "executed" && (
                                         <>
                                           {order.cancellationRequested ? (
                                             isExecutiveDirectorStrict ? (
