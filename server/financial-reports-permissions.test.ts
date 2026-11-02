@@ -90,4 +90,42 @@ describe("Financial Reports Permissions Refactor", () => {
   it("should allow /disbursement-orders/new-direct when user has disbursement_orders.create_direct", () => {
     expect(hasRouteAccess("/disbursement-orders/new-direct", "custom", ["disbursement_orders.create_direct"], false)).toBe(true);
   });
+
+  it("should have correct PERMISSION_EXPANSION for contracts with 15 sub-permissions and no delete", () => {
+    const expanded = PERMISSION_EXPANSION["contracts"];
+    expect(expanded).toContain("contracts.view");
+    expect(expanded).toContain("contracts.create");
+    expect(expanded).toContain("contracts.edit");
+    expect(expanded).toContain("contracts.approve");
+    expect(expanded).toContain("contracts.edit_approved");
+    expect(expanded).toContain("contracts.export");
+    expect(expanded).toContain("contracts.template_view");
+    expect(expanded).toContain("contracts.template_add");
+    expect(expanded).toContain("contracts.template_edit");
+    expect(expanded).toContain("contracts.template_delete");
+    expect(expanded).toContain("contracts.preamble_add");
+    expect(expanded).toContain("contracts.preamble_edit");
+    expect(expanded).toContain("contracts.clause_add");
+    expect(expanded).toContain("contracts.clause_edit");
+    expect(expanded).toContain("contracts.clause_delete");
+
+    expect(expanded).not.toContain("contracts.delete");
+  });
+
+  it("should allow /contracts route when user has contracts.view or contracts.template_view", () => {
+    expect(hasRouteAccess("/contracts", "custom", ["contracts.view"], false)).toBe(true);
+    expect(hasRouteAccess("/contracts", "custom", ["contracts.template_view"], false)).toBe(true);
+    expect(hasRouteAccess("/contracts", "custom", ["projects.view"], false)).toBe(false);
+  });
+
+  it("should block /contracts/new when user only has contracts.view and allow when user has contracts.create", () => {
+    expect(hasRouteAccess("/contracts/new", "custom", ["contracts.view"], false)).toBe(false);
+    expect(hasRouteAccess("/contracts/new", "custom", ["contracts.create"], false)).toBe(true);
+  });
+
+  it("should not allow access to contracts for super_admin via wildcard * if contracts permissions are removed", () => {
+    expect(hasRouteAccess("/contracts", "super_admin", ["*"], false)).toBe(false);
+    expect(hasRouteAccess("/contracts", "super_admin", ["contracts.view"], false)).toBe(true);
+    expect(hasRouteAccess("/contracts", "super_admin", ["contracts.template_view"], false)).toBe(true);
+  });
 });

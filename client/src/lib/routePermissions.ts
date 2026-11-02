@@ -221,8 +221,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "orders_and_letters.csr_letters",
     "orders_and_letters.purchase_orders",
   ],
-  "/contracts": ["contracts", "contracts.view"],
-  "/contracts/new": ["contracts", "contracts.create", "contracts.view"],
+  "/contracts": ["contracts", "contracts.view", "contracts.template_view"],
+  "/contracts/new": ["contracts.create"],
   "/purchase-orders": ["purchase_orders.view", "purchase_orders", "orders_and_letters.purchase_orders"],
   "/purchase-orders/new": ["purchase_orders.add", "purchase_orders", "orders_and_letters.create", "orders_and_letters.purchase_orders"],
   "/csr-letters": ["csr_letters.view", "csr_letters", "orders_and_letters.csr_letters"],
@@ -485,16 +485,16 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/roles\/[^/]+$/, permission: "staff_management" },
 
   // العقود
-  { pattern: /^\/contracts\/new\/\d+$/, permission: ["contracts", "contracts.create"] },
-  { pattern: /^\/contracts\/new\/request\/\d+$/, permission: ["contracts", "contracts.create"] },
+  { pattern: /^\/contracts\/new\/\d+$/, permission: ["contracts.create"] },
+  { pattern: /^\/contracts\/new\/request\/\d+$/, permission: ["contracts.create"] },
   { pattern: /^\/contracts\/\d+\/preview$/, permission: ["contracts", "contracts.view", "contracts.view_details"] },
-  { pattern: /^\/contracts\/\d+\/print$/, permission: ["contracts", "contracts.view", "contracts.view_details"] },
-  { pattern: /^\/contracts\/\d+\/edit$/, permission: ["contracts", "contracts.edit"] },
+  { pattern: /^\/contracts\/\d+\/print$/, permission: ["contracts.export"] },
+  { pattern: /^\/contracts\/\d+\/edit$/, permission: ["contracts.edit", "contracts.edit_approved"] },
   { pattern: /^\/contracts\/\d+$/, permission: ["contracts", "contracts.view", "contracts.view_details"] },
 
   // قوالب العقود
-  { pattern: /^\/contract-templates\/\d+\/preview$/, permission: ["settings_center", "settings_contracts.view", "contracts"] },
-  { pattern: /^\/contract-templates\/\d+\/print$/, permission: ["settings_center", "settings_contracts.view", "contracts"] },
+  { pattern: /^\/contract-templates\/\d+\/preview$/, permission: ["contracts.template_view", "settings_contracts.view", "contracts"] },
+  { pattern: /^\/contract-templates\/\d+\/print$/, permission: ["contracts.template_view", "contracts.export", "settings_contracts.view", "contracts"] },
 
   // BOQ
   {

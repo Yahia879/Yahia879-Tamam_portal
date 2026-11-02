@@ -35,7 +35,7 @@ import {
   Calendar,
   ClipboardCheck,
   Building2,
-  FileSignature,
+  FileSignature, LayoutTemplate,
   Settings,
   Briefcase,
   Layers,
@@ -121,7 +121,7 @@ const superAdminGroups = [
           "approve"
         ] 
       },
-      { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit", "delete", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add", "export"] },
+      
       { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "create_project_linked", "create_from_fund", "create_donation", "create_tamam_platform", "create_custom", "edit", "approve", "exception_approve", "export"] },
       { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "create_project", "create_restricted", "create_unrestricted", "edit", "print", "exception_approve"] },
       { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "transfer", "export"] },
@@ -130,7 +130,41 @@ const superAdminGroups = [
       { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create", "edit", "delete", "approve", "settle", "print"] },
     ]
   },
-  {
+      {
+      title: "العقود",
+      modules: [
+        {
+          id: "contracts",
+          nameAr: "قسم العقود",
+          icon: FileSignature,
+          perms: [
+            "view",
+            "create",
+            "edit",
+            "approve",
+            "edit_approved",
+            "export"
+          ]
+        },
+        {
+          id: "contract_templates",
+          nameAr: "قوالب العقود",
+          icon: LayoutTemplate,
+          perms: [
+            "template_view",
+            "template_add",
+            "template_edit",
+            "template_delete",
+            "preamble_add",
+            "preamble_edit",
+            "clause_add",
+            "clause_edit",
+            "clause_delete"
+          ]
+        }
+      ]
+    },
+    {
     title: "إدارة المخزون",
     modules: [
       { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view", "export_pdf", "add", "recommend", "approve"] },
@@ -509,18 +543,24 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       approve: "اتخاذ إجراء الاعتماد أو الرفض"
     },
     contracts: {
-      view: "عرض العقود وقوالب العقود",
-      create: "إنشاء عقد جديد",
-      edit: "تعديل العقد",
-      delete: "حذف العقد",
-      approve: "اعتماد العقود",
-      edit_approved: "تعديل العقود المعتمدة",
-      template_add: "إضافة قالب للعقود",
-      template_edit: "تعديل قالب العقد",
-      template_delete: "حذف قالب العقد",
-      clause_add: "إضافة بند للعقد",
-      export: "تصدير العقود"
-    },
+        view: "عرض قسم العقود",
+        create: "إنشاء عقد جديد",
+        edit: "تعديل بيانات العقد",
+        approve: "اعتماد العقد",
+        edit_approved: "تعديل العقود المعتمدة",
+        export: "تصدير وطباعة العقود"
+      },
+      contract_templates: {
+        template_view: "عرض قوالب العقود",
+        template_add: "إضافة قالب جديد",
+        template_edit: "تعديل القالب",
+        template_delete: "حذف القالب",
+        preamble_add: "اضافة تمهيد",
+        preamble_edit: "تعديل التمهيد",
+        clause_add: "إضافة بند جديد للقالب",
+        clause_edit: "تعديل بنود القالب",
+        clause_delete: "حذف بنود القالب"
+      },
     orders_and_letters: {
       disbursement_orders: "عرض أوامر الصرف",
       csr_letters: "عرض الخطاب المجتمعي",
@@ -1136,9 +1176,19 @@ export default function RoleEdit() {
 
 
     // منع تفعيل أي صلاحية فرعية للعقود إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("contracts.") && permId !== "contracts.view") {
+    const contractsSectionSubPerms = ["contracts.create", "contracts.edit", "contracts.approve", "contracts.edit_approved", "contracts.export"];
+    const templatesSectionSubPerms = ["contracts.template_add", "contracts.template_edit", "contracts.template_delete", "contracts.preamble_add", "contracts.preamble_edit", "contracts.clause_add", "contracts.clause_edit", "contracts.clause_delete"];
+
+    if (contractsSectionSubPerms.includes(permId)) {
       if (!selectedPerms.includes("contracts.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض العقود وقالب العقود' أولاً");
+        toast.warning("يجب تفعيل صلاحية 'عرض قسم العقود' أولاً");
+        return;
+      }
+    }
+
+    if (templatesSectionSubPerms.includes(permId)) {
+      if (!selectedPerms.includes("contracts.template_view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض قوالب العقود' أولاً");
         return;
       }
     }
@@ -1363,7 +1413,13 @@ export default function RoleEdit() {
 
         // عند إلغاء تفعيل صلاحية 'عرض العقود وقالب العقود'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات العقود الأخرى
         if (permId === "contracts.view") {
-          next = next.filter(id => !id.startsWith("contracts."));
+          const contractsSectionSubPerms = ["contracts.create", "contracts.edit", "contracts.approve", "contracts.edit_approved", "contracts.export"];
+          next = next.filter(id => !contractsSectionSubPerms.includes(id));
+        }
+
+        if (permId === "contracts.template_view") {
+          const templatesSectionSubPerms = ["contracts.template_add", "contracts.template_edit", "contracts.template_delete", "contracts.preamble_add", "contracts.preamble_edit", "contracts.clause_add", "contracts.clause_edit", "contracts.clause_delete"];
+          next = next.filter(id => !templatesSectionSubPerms.includes(id));
         }
 
         // عند إلغاء تفعيل صلاحية 'عرض إحصائيات وسجلات الصندوق'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات الصندوق الأخرى
@@ -1666,6 +1722,9 @@ export default function RoleEdit() {
         icon: m.icon,
         permissions: m.perms.map(p => {
           let id = `${m.id}.${p}`;
+          if (m.id === "contract_templates") {
+            id = `contracts.${p}`;
+          }
           if (m.id.startsWith("settings_org")) {
             id = `settings_org.${p}`;
           }
@@ -1839,7 +1898,7 @@ export default function RoleEdit() {
                               (perm.id.startsWith("custody_requests.") && perm.id !== "custody_requests.view" && !selectedPerms.includes("custody_requests.view")) ||
                               (perm.id.startsWith("receipt_vouchers.") && perm.id !== "receipt_vouchers.view" && !selectedPerms.includes("receipt_vouchers.view")) ||
                               (perm.id.startsWith("fund.") && perm.id !== "fund.view" && !selectedPerms.includes("fund.view")) ||
-                              (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !selectedPerms.includes("contracts.view")) ||
+                              (perm.id.startsWith("contracts.") && ["contracts.create", "contracts.edit", "contracts.approve", "contracts.edit_approved", "contracts.export"].includes(perm.id) && !selectedPerms.includes("contracts.view")) || (perm.id.startsWith("contracts.") && ["contracts.template_add", "contracts.template_edit", "contracts.template_delete", "contracts.preamble_add", "contracts.preamble_edit", "contracts.clause_add", "contracts.clause_edit", "contracts.clause_delete"].includes(perm.id) && !selectedPerms.includes("contracts.template_view")) ||
                               (perm.id.startsWith("disbursements.") && perm.id !== "disbursements.view" && perm.id !== "disbursements.sign" && !selectedPerms.includes("disbursements.view")) ||
                               (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && perm.id !== "disbursement_orders.sign" && !selectedPerms.includes("disbursement_orders.view")) ||
                               (perm.id === "board_leadership.remind" && !selectedPerms.includes("board_chairman")) ||

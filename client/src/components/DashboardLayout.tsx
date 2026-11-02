@@ -392,7 +392,7 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   if (permissions.some(p => VALID_APPROVAL_PERMS.includes(p))) {
     finItems.push({ icon: CheckSquare, label: isEn ? "Approvals" : "الاعتمادات", path: "/financial-approval" });
   }
-  if (has("contracts") || has("contracts.view")) {
+  if (has("contracts") || has("contracts.view") || has("contracts.template_view")) {
     finItems.push({ icon: FileText, label: "العقود", path: "/contracts" });
   }
   if (has("disbursements") || has("disbursements.view") || has("disbursement_requests")) {

@@ -150,7 +150,7 @@ import {
 
 
 
-  FileSignature,
+  FileSignature, LayoutTemplate,
 
 
 
@@ -1270,26 +1270,21 @@ export default function UserPermissions() {
 
 
 
-    if (permId.startsWith("contracts.") && permId !== "contracts.view") {
+    const contractsSectionSubPerms = ["contracts.create", "contracts.edit", "contracts.approve", "contracts.edit_approved", "contracts.export"];
+    const templatesSectionSubPerms = ["contracts.template_add", "contracts.template_edit", "contracts.template_delete", "contracts.preamble_add", "contracts.preamble_edit", "contracts.clause_add", "contracts.clause_edit", "contracts.clause_delete"];
 
-
-
+    if (contractsSectionSubPerms.includes(permId)) {
       if (!isChecked("contracts.view")) {
-
-
-
-        toast.warning("يجب تفعيل صلاحية 'عرض العقود وقالب العقود' أولاً");
-
-
-
+        toast.warning("يجب تفعيل صلاحية 'عرض قسم العقود' أولاً");
         return;
-
-
-
       }
+    }
 
-
-
+    if (templatesSectionSubPerms.includes(permId)) {
+      if (!isChecked("contracts.template_view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض قوالب العقود' أولاً");
+        return;
+      }
     }
 
 
@@ -3167,14 +3162,23 @@ export default function UserPermissions() {
 
 
 
+        const cascadeRevokeList = (permIds: string[]) => {
+          permIds.forEach(id => {
+            const defVal = rolePermissions?.includes(id) || false;
+            if (defVal) {
+              updated[id] = false;
+            } else {
+              delete updated[id];
+            }
+          });
+        };
+
         if (permId === "contracts.view") {
+          cascadeRevokeList(["contracts.create", "contracts.edit", "contracts.approve", "contracts.edit_approved", "contracts.export"]);
+        }
 
-
-
-          cascadeRevoke("contracts.");
-
-
-
+        if (permId === "contracts.template_view") {
+          cascadeRevokeList(["contracts.template_add", "contracts.template_edit", "contracts.template_delete", "contracts.preamble_add", "contracts.preamble_edit", "contracts.clause_add", "contracts.clause_edit", "contracts.clause_delete"]);
         }
 
 
@@ -4520,29 +4524,23 @@ export default function UserPermissions() {
       },
 
       contracts: {
-
-        view: "عرض العقود وقوالب العقود",
-
+        view: "عرض قسم العقود",
         create: "إنشاء عقد جديد",
-
         edit: "تعديل بيانات العقد",
-
-        delete: "حذف عقد",
-
         approve: "اعتماد العقد",
-
         edit_approved: "تعديل العقود المعتمدة",
-
-        template_add: "إضافة قالب عقد جديد",
-
-        template_edit: "تعديل قالب عقد",
-
-        template_delete: "حذف قالب عقد",
-
-        clause_add: "إضافة بند جديد للقالب",
-
         export: "تصدير وطباعة العقود"
-
+      },
+      contract_templates: {
+        template_view: "عرض قوالب العقود",
+        template_add: "إضافة قالب جديد",
+        template_edit: "تعديل القالب",
+        template_delete: "حذف القالب",
+        preamble_add: "اضافة تمهيد",
+        preamble_edit: "تعديل التمهيد",
+        clause_add: "إضافة بند جديد للقالب",
+        clause_edit: "تعديل بنود القالب",
+        clause_delete: "حذف بنود القالب"
       },
 
 
@@ -5951,7 +5949,7 @@ export default function UserPermissions() {
 
 
 
-        { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit", "delete", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add", "export"] },
+        
 
 
 
@@ -5987,6 +5985,40 @@ export default function UserPermissions() {
 
 
 
+        {
+      title: "العقود",
+      modules: [
+        {
+          id: "contracts",
+          nameAr: "قسم العقود",
+          icon: FileSignature,
+          perms: [
+            "view",
+            "create",
+            "edit",
+            "approve",
+            "edit_approved",
+            "export"
+          ]
+        },
+        {
+          id: "contract_templates",
+          nameAr: "قوالب العقود",
+          icon: LayoutTemplate,
+          perms: [
+            "template_view",
+            "template_add",
+            "template_edit",
+            "template_delete",
+            "preamble_add",
+            "preamble_edit",
+            "clause_add",
+            "clause_edit",
+            "clause_delete"
+          ]
+        }
+      ]
+    },
     {
 
 
@@ -7528,6 +7560,9 @@ export default function UserPermissions() {
 
 
                     let id = `${module.id}.${p}`;
+                    if (module.id === "contract_templates") {
+                      id = `contracts.${p}`;
+                    }
 
 
 
@@ -7843,7 +7878,7 @@ export default function UserPermissions() {
 
                               (perm.id.startsWith("fund.") && perm.id !== "fund.view" && !isChecked("fund.view")) ||
 
-                              (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !isChecked("contracts.view")) ||
+                              (perm.id.startsWith("contracts.") && ["contracts.create", "contracts.edit", "contracts.approve", "contracts.edit_approved", "contracts.export"].includes(perm.id) && !isChecked("contracts.view")) || (perm.id.startsWith("contracts.") && ["contracts.template_add", "contracts.template_edit", "contracts.template_delete", "contracts.preamble_add", "contracts.preamble_edit", "contracts.clause_add", "contracts.clause_edit", "contracts.clause_delete"].includes(perm.id) && !isChecked("contracts.template_view")) ||
 
                               (perm.id.startsWith("disbursements.") && perm.id !== "disbursements.view" && perm.id !== "disbursements.sign" && !isChecked("disbursements.view")) ||
 

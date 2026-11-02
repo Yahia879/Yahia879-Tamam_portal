@@ -257,6 +257,8 @@ export default function ContractPreview() {
 
   const canEditApprovedContract = usePermission("contracts.edit_approved");
   const canApproveContract = usePermission("contracts.approve");
+  const canEditContract = usePermission("contracts.edit");
+  const canExportContract = usePermission("contracts.export");
   const hasContractSignPermission = usePermission("contracts.sign");
   const { user: currentUser } = useAuth();
 
@@ -793,7 +795,7 @@ export default function ContractPreview() {
               </Button>
             )}
 
-            {(contract.status === "draft" || contract.status === "pending_approval" || (contract.status === "approved" && canEditApprovedContract)) && canApproveContract && (
+            {((contract.status !== "approved" && canEditContract) || (contract.status === "approved" && canEditApprovedContract)) && (
               <Button
                 variant="outline"
                 disabled={isRequestClosed}
@@ -814,23 +816,25 @@ export default function ContractPreview() {
               </Button>
             )}
 
-            <Button 
-              onClick={handlePrint} 
-              disabled={isPreparingPrint}
-              className="flex-1 sm:flex-none bg-green-700 hover:bg-green-800 text-white font-medium disabled:opacity-70 transition-all"
-            >
-              {isPreparingPrint ? (
-                <>
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                  جاري تحميل العقد...
-                </>
-              ) : (
-                <>
-                  <Printer className="h-4 w-4 ml-2" />
-                  طباعة العقد
-                </>
-              )}
-            </Button>
+            {canExportContract && (
+              <Button 
+                onClick={handlePrint} 
+                disabled={isPreparingPrint}
+                className="flex-1 sm:flex-none bg-green-700 hover:bg-green-800 text-white font-medium disabled:opacity-70 transition-all"
+              >
+                {isPreparingPrint ? (
+                  <>
+                    <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                    جاري تحميل العقد...
+                  </>
+                ) : (
+                  <>
+                    <Printer className="h-4 w-4 ml-2" />
+                    طباعة العقد
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </div>
 

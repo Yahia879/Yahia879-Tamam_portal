@@ -1635,7 +1635,7 @@ export const contractsRouter = router({
     }),
   
   // اعتماد العقد
-  approve: permissionProcedure("contracts.edit")
+  approve: permissionProcedure(["contracts.approve", "contracts.edit"])
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -2060,7 +2060,7 @@ export const contractsRouter = router({
   // ==================== قوالب العقود ====================
 
   // الحصول على جميع قوالب العقود
-  getTemplates: permissionProcedure("contracts.view").query(async () => {
+  getTemplates: permissionProcedure(["contracts.view", "contracts.template_view"]).query(async () => {
     const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
     const templates = await db
@@ -2081,7 +2081,7 @@ export const contractsRouter = router({
   }),
 
   // الحصول على قالب واحد مع بنوده
-  getTemplate: permissionProcedure("contracts.view")
+  getTemplate: permissionProcedure(["contracts.view", "contracts.template_view"])
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -2106,7 +2106,7 @@ export const contractsRouter = router({
     }),
 
   // إنشاء قالب جديد
-  createTemplate: permissionProcedure("contracts.create")
+  createTemplate: permissionProcedure(["contracts.template_add", "contracts.create"])
     .input(
       z.object({
         name: z.string().min(1),
@@ -2142,7 +2142,7 @@ export const contractsRouter = router({
     }),
 
   // تحديث قالب
-  updateTemplate: permissionProcedure("contracts.edit")
+  updateTemplate: permissionProcedure(["contracts.template_edit", "contracts.preamble_add", "contracts.preamble_edit", "contracts.edit"])
     .input(
       z.object({
         id: z.number(),
@@ -2188,7 +2188,7 @@ export const contractsRouter = router({
     }),
 
   // حذف قالب
-  deleteTemplate: permissionProcedure("contracts.delete")
+  deleteTemplate: permissionProcedure(["contracts.template_delete", "contracts.delete"])
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -2231,7 +2231,7 @@ export const contractsRouter = router({
   // ==================== بنود العقود ====================
 
   // الحصول على بنود قالب معين
-  getTemplateClauses: permissionProcedure("contracts.view")
+  getTemplateClauses: permissionProcedure(["contracts.view", "contracts.template_view"])
     .input(z.object({ templateId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -2245,7 +2245,7 @@ export const contractsRouter = router({
     }),
 
   // الحصول على البنود العامة (غير مرتبطة بقالب)
-  getGlobalClauses: permissionProcedure("contracts.view").query(async () => {
+  getGlobalClauses: permissionProcedure(["contracts.view", "contracts.template_view"]).query(async () => {
     const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
     const clauses = await db
@@ -2257,7 +2257,7 @@ export const contractsRouter = router({
   }),
 
   // إضافة بند جديد
-  createClause: permissionProcedure("contracts.create")
+  createClause: permissionProcedure(["contracts.clause_add", "contracts.create"])
     .input(
       z.object({
         templateId: z.number().optional(),
@@ -2290,7 +2290,7 @@ export const contractsRouter = router({
     }),
 
   // تحديث بند
-  updateClause: permissionProcedure("contracts.edit")
+  updateClause: permissionProcedure(["contracts.clause_edit", "contracts.edit"])
     .input(
       z.object({
         id: z.number(),
@@ -2327,7 +2327,7 @@ export const contractsRouter = router({
     }),
 
   // حذف بند
-  deleteClause: permissionProcedure("contracts.delete")
+  deleteClause: permissionProcedure(["contracts.clause_delete", "contracts.delete"])
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -2357,7 +2357,7 @@ export const contractsRouter = router({
     }),
 
   // إعادة ترتيب البنود
-  reorderClauses: permissionProcedure("contracts.edit")
+  reorderClauses: permissionProcedure(["contracts.clause_edit", "contracts.edit", "contracts.template_edit"])
     .input(
       z.object({
         templateId: z.number(),

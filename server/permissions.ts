@@ -249,36 +249,39 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
 
   contracts: [
-
-    "contracts.view", "contracts.create", "contracts.edit", "contracts.delete", 
-
-    "contracts.approve", "contracts.edit_approved", 
-
-    "contracts.template_add", "contracts.template_edit", "contracts.template_delete", "contracts.clause_add", "contracts.export"
-
+    "contracts.view",
+    "contracts.create",
+    "contracts.edit",
+    "contracts.approve",
+    "contracts.edit_approved",
+    "contracts.export",
+    "contracts.template_view",
+    "contracts.template_add",
+    "contracts.template_edit",
+    "contracts.template_delete",
+    "contracts.preamble_add",
+    "contracts.preamble_edit",
+    "contracts.clause_add",
+    "contracts.clause_edit",
+    "contracts.clause_delete"
   ],
 
   "contracts.view": ["contracts.view"],
-
   "contracts.create": ["contracts.create", "contracts.view"],
-
   "contracts.edit": ["contracts.edit", "contracts.view"],
-
-  "contracts.delete": ["contracts.delete", "contracts.view"],
-
   "contracts.approve": ["contracts.approve", "contracts.view"],
-
   "contracts.edit_approved": ["contracts.edit_approved", "contracts.edit", "contracts.view"],
-
-  "contracts.template_add": ["contracts.template_add", "contracts.create", "contracts.view"],
-
-  "contracts.template_edit": ["contracts.template_edit", "contracts.edit", "contracts.view"],
-
-  "contracts.template_delete": ["contracts.template_delete", "contracts.delete", "contracts.view"],
-
-  "contracts.clause_add": ["contracts.clause_add", "contracts.create", "contracts.view"],
-
   "contracts.export": ["contracts.export", "contracts.view"],
+
+  "contracts.template_view": ["contracts.template_view"],
+  "contracts.template_add": ["contracts.template_add", "contracts.template_view"],
+  "contracts.template_edit": ["contracts.template_edit", "contracts.template_view"],
+  "contracts.template_delete": ["contracts.template_delete", "contracts.template_view"],
+  "contracts.preamble_add": ["contracts.preamble_add", "contracts.template_view"],
+  "contracts.preamble_edit": ["contracts.preamble_edit", "contracts.template_view"],
+  "contracts.clause_add": ["contracts.clause_add", "contracts.template_view"],
+  "contracts.clause_edit": ["contracts.clause_edit", "contracts.template_view"],
+  "contracts.clause_delete": ["contracts.clause_delete", "contracts.template_view"],
 
 
 
@@ -5550,48 +5553,57 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
 
   // 4. العقود
-
-  const contractSubPerms = [
-
+  const contractsSectionSubPerms = [
     "contracts.view",
-
     "contracts.create",
-
     "contracts.edit",
-
-    "contracts.delete",
-
     "contracts.approve",
-
     "contracts.edit_approved",
-
-    "contracts.template_add",
-
-    "contracts.template_edit",
-
-    "contracts.template_delete",
-
-    "contracts.clause_add",
-
     "contracts.export"
-
   ];
+  const templatesSectionSubPerms = [
+    "contracts.template_view",
+    "contracts.template_add",
+    "contracts.template_edit",
+    "contracts.template_delete",
+    "contracts.preamble_add",
+    "contracts.preamble_edit",
+    "contracts.clause_add",
+    "contracts.clause_edit",
+    "contracts.clause_delete"
+  ];
+  const allContractsSubPerms = [...contractsSectionSubPerms, ...templatesSectionSubPerms];
 
-  if (revokedPermissions.has("contracts") || revokedPermissions.has("contracts.view") || !allPermissions.has("contracts.view")) {
-
+  if (revokedPermissions.has("contracts")) {
     allPermissions.delete("contracts");
-
-    if (revokedPermissions.has("contracts") || revokedPermissions.has("contracts.view")) {
-
-      contractSubPerms.forEach(p => allPermissions.delete(p));
-
+    allContractsSubPerms.forEach(p => allPermissions.delete(p));
+  } else {
+    if (revokedPermissions.has("contracts.view") || !allPermissions.has("contracts.view")) {
+      if (revokedPermissions.has("contracts.view")) {
+        contractsSectionSubPerms.forEach(p => allPermissions.delete(p));
+      }
+    }
+    if (revokedPermissions.has("contracts.template_view") || !allPermissions.has("contracts.template_view")) {
+      if (revokedPermissions.has("contracts.template_view")) {
+        templatesSectionSubPerms.forEach(p => allPermissions.delete(p));
+      }
     }
 
-  } else if (allPermissions.has("contracts.view")) {
-
-    allPermissions.add("contracts");
-
+    const hasAnyContractPerm = allContractsSubPerms.some(p => allPermissions.has(p) && !revokedPermissions.has(p));
+    if (hasAnyContractPerm) {
+      allPermissions.add("contracts");
+    } else {
+      allPermissions.delete("contracts");
+    }
   }
+
+  allContractsSubPerms.forEach(p => {
+    if (revokedPermissions.has(p)) {
+      allPermissions.delete(p);
+    }
+  });
+
+  allPermissions.delete("contracts.delete");
 
 
 
