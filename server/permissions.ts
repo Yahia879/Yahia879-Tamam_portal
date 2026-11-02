@@ -4193,16 +4193,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
 
 
-    // تنظيف الصلاحية القديمة quotations.view_sedana من role_permissions لجميع الأدوار
-
-    await db.delete(rolePermissions).where(
-
-      eq(rolePermissions.permissionId, "quotations.view_sedana")
-
-    ).catch(() => {});
-
-
-
     // تنظيف صلاحيات إدارة المخزون للأدوار غير المصرح لها
 
     await db.delete(rolePermissions).where(
@@ -4221,9 +4211,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
           sql`${rolePermissions.permissionId} LIKE 'csr_letters%'`,
 
-          sql`${rolePermissions.permissionId} LIKE 'sedana_warehouse%'`,
-
-          eq(rolePermissions.permissionId, "quotations.view_sedana")
+          sql`${rolePermissions.permissionId} LIKE 'sedana_warehouse%'`
 
         )
 
@@ -5869,14 +5857,19 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
     allPermissions.delete("sedana_quotations.view");
 
-    allPermissions.delete("quotations.view_sedana");
-
   } else if (allPermissions.has("sedana_quotations.view")) {
 
     allPermissions.add("sedana_quotations");
 
-    allPermissions.add("quotations.view_sedana");
+  }
 
+  // صلاحية عرض سدانة داخل صفحة عروض الأسعار مستقلة تماماً عن صلاحية صفحة عروض أسعار سدانة
+  if (
+    revokedPermissions.has("quotations.view_sedana") ||
+    revokedPermissions.has("quotations.view") ||
+    !allPermissions.has("quotations.view")
+  ) {
+    allPermissions.delete("quotations.view_sedana");
   }
 
 

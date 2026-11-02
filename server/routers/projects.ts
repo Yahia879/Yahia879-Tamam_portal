@@ -3336,13 +3336,14 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // اعتماد أو رفض عروض الأسعار يظل من اختصاص المدير التنفيذي فقط دون مسؤول المشتريات
+      // اعتماد أو رفض عروض الأسعار مرتبط بصلاحية "اعتماد أو رفض عروض الأسعار"
       if (input.status === "accepted" || input.status === "rejected") {
-        const isExecOrAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role);
-        if (!isExecOrAdmin || ctx.user.role === "procurement_officer") {
+        const { calculateUserPermissions } = await import("../permissions");
+        const approverPerms = await calculateUserPermissions(ctx.user.id);
+        if (!approverPerms.includes("quotations.approve") && !approverPerms.includes("*")) {
           throw new TRPCError({
             code: "FORBIDDEN",
-            message: "اعتماد أو رفض عروض الأسعار من اختصاص المدير التنفيذي فقط دون مسؤول المشتريات"
+            message: "ليس لديك صلاحية اعتماد أو رفض عروض الأسعار"
           });
         }
       }
@@ -3433,12 +3434,13 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // اعتماد عروض الأسعار يظل من اختصاص المدير التنفيذي فقط دون مسؤول المشتريات
-      const isExecOrAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role);
-      if (!isExecOrAdmin || ctx.user.role === "procurement_officer") {
+      // اعتماد عروض الأسعار مرتبط بصلاحية "اعتماد أو رفض عروض الأسعار"
+      const { calculateUserPermissions: calcPermsForApproval } = await import("../permissions");
+      const approverPerms = await calcPermsForApproval(ctx.user.id);
+      if (!approverPerms.includes("quotations.approve") && !approverPerms.includes("*")) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "اعتماد عروض الأسعار من اختصاص المدير التنفيذي فقط دون مسؤول المشتريات"
+          message: "ليس لديك صلاحية اعتماد عروض الأسعار"
         });
       }
 
@@ -3510,7 +3512,7 @@ export const projectsRouter = router({
       const hasApprovePerm =
         userPerms.includes("sedana_quotations.approve") ||
         userPerms.includes("*") ||
-        (["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role) && ctx.user.role !== "procurement_officer");
+        (userPerms.includes("quotations.approve") && userPerms.includes("quotations.view_sedana"));
       if (!hasApprovePerm) {
         throw new TRPCError({
           code: "FORBIDDEN",

@@ -152,23 +152,43 @@ export function QuotationsView({
     user?.id ? { userId: user.id } : ({} as any)
   );
 
-  const hasQuotationsApprove = (userPermissions as string[]).includes("quotations.approve");
-  const canApproveQuotations = !isProcurementOfficer && (isExecDirector || hasQuotationsApprove);
-  const canViewQuotations = (userPermissions as string[]).includes("quotations.view") || (userPermissions as string[]).includes("quotations");
+  const perms = userPermissions as string[];
+  // صفحة عروض أسعار سدانة المستقلة (مسار /sedana-quotations أو الوضع المضمن) مقابل صفحة عروض الأسعار العامة
+  const isSedanaPage = isEmbedded || (typeof window !== "undefined" && window.location.pathname.includes("sedana-quotations"));
 
-  const canExportSedanaPdf =
-    (userPermissions as string[]).includes("sedana_quotations.export_pdf");
+  const canApproveQuotations = perms.includes("quotations.approve");
+  const canViewQuotations = perms.includes("quotations.view") || perms.includes("quotations");
+  const canAddQuotation = perms.includes("quotations.add") || perms.includes("quotations.create");
+  const canEditQuotation = perms.includes("quotations.edit");
+  const canDeleteQuotation = perms.includes("quotations.delete");
+  const canExportQuotations = perms.includes("quotations.export");
+  const canAddBoq = perms.includes("boq.add");
+  const canEditBoq = perms.includes("boq.edit");
+  const canDeleteBoq = perms.includes("boq.delete");
 
-  const canAddSedanaQuotation =
-    (userPermissions as string[]).includes("sedana_quotations.add");
+  // داخل صفحة /quotations: عروض سدانة تتبع صلاحية "عرض عروض أسعار سدانة" مع صلاحيات عروض الأسعار الفرعية
+  const hasViewSedanaInQuotations = perms.includes("quotations.view_sedana");
 
-  const canRecommendSedana =
-    (userPermissions as string[]).includes("sedana_quotations.recommend");
+  const canExportSedanaPdf = isSedanaPage
+    ? perms.includes("sedana_quotations.export_pdf")
+    : (hasViewSedanaInQuotations && canExportQuotations);
 
-  const canViewSedanaInQuotations = (userPermissions as string[]).includes("sedana_quotations.view");
-  const canApproveSedanaQuotations = (userPermissions as string[]).includes("sedana_quotations.approve");
-  const canViewSedanaQuotations =
-    (userPermissions as string[]).includes("sedana_quotations.view");
+  const canAddSedanaQuotation = isSedanaPage
+    ? perms.includes("sedana_quotations.add")
+    : (hasViewSedanaInQuotations && canAddQuotation);
+
+  const canRecommendSedana = isSedanaPage
+    ? perms.includes("sedana_quotations.recommend")
+    : (hasViewSedanaInQuotations && canEditQuotation);
+
+  const canViewSedanaInQuotations = isSedanaPage
+    ? perms.includes("sedana_quotations.view")
+    : hasViewSedanaInQuotations;
+  const canApproveSedanaQuotations = isSedanaPage
+    ? perms.includes("sedana_quotations.approve")
+    : (hasViewSedanaInQuotations && canApproveQuotations);
+  const canViewSedanaQuotations = canViewSedanaInQuotations;
+  const canGoToSedanaPage = perms.includes("sedana_quotations.view");
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showAddLinkDialog, setShowAddLinkDialog] = useState(false);
@@ -399,6 +419,7 @@ export function QuotationsView({
     return allQuotations.some((q: any) => q.status === "accepted" || q.status === "approved") ||
       Boolean((singleRequestData as any)?.hasAcceptedQuotation || (singleRequestData as any)?.request?.hasAcceptedQuotation);
   }, [allQuotations, singleRequestData, isSedanaProgram]);
+  const showBoqActions = !hasAcceptedQuotation && !(isSedanaProgram && isSuppliersReadOnly) && (canEditBoq || canDeleteBoq);
 
   // جلب جدول الكميات للطلب المحدد
   const { data: boqData, isLoading: boqLoading, refetch: refetchBOQ } = trpc.projects.getBOQ.useQuery(
@@ -1939,6 +1960,7 @@ export function QuotationsView({
                   <Button 
                     variant="outline" 
                     size="sm" 
+                    hidden={!(isSedanaProgram && canGoToSedanaPage)}
                     className="h-7 text-xs gap-1.5 px-3 bg-background hover:bg-muted text-gray-700 border-gray-200 rounded-md font-medium shadow-2xs"
                     onClick={() => {
                       navigate("/sedana-quotations");
@@ -2026,7 +2048,7 @@ export function QuotationsView({
             )}
             {selectedRequestId && (
               <div className="mt-4 flex justify-end gap-3">
-                {(!isSedanaProgram || canAddSedanaQuotation) && (
+                {(isSedanaProgram ? canAddSedanaQuotation : canAddQuotation) && (
                   <>
                     <Button onClick={() => setShowAddDialog(true)}>
                       <Plus className="h-4 w-4 ml-2" />
@@ -2102,7 +2124,7 @@ export function QuotationsView({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="gap-1.5"
+                        className="gap-1.5" hidden={!canAddBoq}
                         onClick={() => {
                           setEditingBoqItem(null);
                           setShowBoqDialog(true);
@@ -2310,6 +2332,7 @@ export function QuotationsView({
                           variant="outline"
                           size="sm"
                           onClick={handleResetAllSelections}
+ hidden={isAwardingReadOnly}
                           className="h-8 text-xs px-2.5 text-muted-foreground hover:text-red-600 hover:border-red-300 gap-1.5"
                           title="إلغاء كافة الاختيارات وإعادة ضبط الجدول"
                         >
@@ -2560,7 +2583,7 @@ export function QuotationsView({
                               <TableHead className="font-bold min-w-[280px]">المورد وعرض السعر المعتمد</TableHead>
                               <TableHead className="text-center font-bold">سعر الوحدة</TableHead>
                               <TableHead className="text-center font-bold">الإجمالي</TableHead>
-                              {!hasAcceptedQuotation && (
+                              {showBoqActions && (
                                 <TableHead className="text-center font-bold w-20">الإجراءات</TableHead>
                               )}
                             </TableRow>
@@ -2694,7 +2717,7 @@ export function QuotationsView({
                                       </span>
                                     ) : "-"}
                                   </TableCell>
-                                  {!hasAcceptedQuotation && (
+                                  {showBoqActions && (
                                     <TableCell className="text-center">
                                       <div className="flex items-center justify-center gap-1">
                                         <Button
@@ -2702,6 +2725,7 @@ export function QuotationsView({
                                           size="icon"
                                           className="h-7 w-7 text-cyan-600 hover:text-cyan-700 hover:bg-cyan-50"
                                           title="تعديل البند"
+ hidden={!canEditBoq}
                                           onClick={() => {
                                             setEditingBoqItem(item);
                                             setShowBoqDialog(true);
@@ -2714,6 +2738,7 @@ export function QuotationsView({
                                           size="icon"
                                           className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
                                           title="حذف البند"
+ hidden={!canDeleteBoq}
                                           onClick={() => handleDeleteBoqItem(item.id)}
                                         >
                                           <Trash2 className="h-3.5 w-3.5" />
@@ -2794,7 +2819,7 @@ export function QuotationsView({
                           <TableHead className="text-center font-bold">الكمية</TableHead>
                           <TableHead className="text-center font-bold">سعر الوحدة</TableHead>
                           <TableHead className="text-center font-bold">الإجمالي</TableHead>
-                          {!hasAcceptedQuotation && (
+                          {showBoqActions && (
                             <TableHead className="text-center font-bold w-24">الإجراءات</TableHead>
                           )}
                         </TableRow>
@@ -2833,7 +2858,7 @@ export function QuotationsView({
                                   </span>
                                 ) : "-"}
                               </TableCell>
-                              {!hasAcceptedQuotation && (
+                              {showBoqActions && (
                                 <TableCell className="text-center">
                                   <div className="flex items-center justify-center gap-1">
                                     <Button
@@ -2841,6 +2866,7 @@ export function QuotationsView({
                                       size="icon"
                                       className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                                       title="تعديل البند"
+ hidden={!canEditBoq}
                                       onClick={() => {
                                         setEditingBoqItem(item);
                                         setShowBoqDialog(true);
@@ -2853,6 +2879,7 @@ export function QuotationsView({
                                       size="icon"
                                       className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
                                       title="حذف البند"
+ hidden={!canDeleteBoq}
                                       onClick={() => handleDeleteBoqItem(item.id)}
                                     >
                                       <Trash2 className="h-4 w-4" />
@@ -2886,7 +2913,7 @@ export function QuotationsView({
                   {!hasAcceptedQuotation && (
                     <Button
                       variant="outline"
-                      className="mt-4 gap-1.5"
+                      className="mt-4 gap-1.5" hidden={!canAddBoq}
                       onClick={() => {
                         setEditingBoqItem(null);
                         setShowBoqDialog(true);
@@ -2934,6 +2961,7 @@ export function QuotationsView({
                 />
                 <Button
                   onClick={downloadBulkQuotationTemplate}
+ hidden={!(canExportQuotations || canAddQuotation)}
                   variant="outline"
                   className="border-green-600 text-green-600 hover:bg-green-50 text-xs sm:text-sm"
                   size="sm"
@@ -2943,6 +2971,7 @@ export function QuotationsView({
                 </Button>
                 <Button
                   onClick={() => document.getElementById("bulk-quotation-excel-upload")?.click()}
+ hidden={!canAddQuotation}
                   variant="outline"
                   className="border-green-600 text-green-600 hover:bg-green-50 text-xs sm:text-sm"
                   size="sm"
@@ -3142,7 +3171,7 @@ export function QuotationsView({
                         <h3 className="text-lg font-semibold mb-2">لا توجد عروض أسعار مسجلة</h3>
                         <p className="text-muted-foreground mb-6">يرجى إضافة عروض الأسعار أو مراجعة روابط عروض الأسعار الخارجية المرفقة أعلاه.</p>
                           <div className="flex gap-3 justify-center">
-                            {(!isSedanaProgram || canAddSedanaQuotation) && (
+                            {(isSedanaProgram ? canAddSedanaQuotation : canAddQuotation) && (
                               <Button onClick={() => setShowAddDialog(true)}>
                                 <Plus className="h-4 w-4 ml-2" />
                                 إضافة أول عرض سعر
