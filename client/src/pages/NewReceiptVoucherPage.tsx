@@ -17,6 +17,7 @@ import {
 import { ProjectSearchSelect } from "@/components/ProjectSearchSelect";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import { numberToArabicText as baseNumberToArabicText } from "@shared/tafqeet";
 import {
   Coins,
@@ -50,20 +51,19 @@ function numberToArabicText(num: number): string {
 export default function NewReceiptVoucherPage() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
-  const { data: userPermsList } = trpc.permissions.getUserPermissions.useQuery(
-    { userId: user?.id ?? 0 },
-    { enabled: !!user?.id, staleTime: 10000, refetchOnMount: true }
-  );
-  const permissions: string[] = userPermsList ?? (user as any)?.permissions ?? [];
-
-  const canCreateProject = permissions.includes("receipt_vouchers.create_project") || permissions.includes("receipt_vouchers");
-  const canCreateRestricted = permissions.includes("receipt_vouchers.create_restricted") || permissions.includes("receipt_vouchers");
-  const canCreateUnrestricted = permissions.includes("receipt_vouchers.create_unrestricted") || permissions.includes("receipt_vouchers");
-  const canCreate = canCreateProject || canCreateRestricted || canCreateUnrestricted || permissions.includes("receipt_vouchers.create");
+  const canCreateProject = usePermission("receipt_vouchers.create_project");
+  const canCreateRestricted = usePermission("receipt_vouchers.create_restricted");
+  const canCreateUnrestricted = usePermission("receipt_vouchers.create_unrestricted");
+  const canCreate = canCreateProject || canCreateRestricted || canCreateUnrestricted;
 
   // Step state
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [category, setCategory] = useState<"project_linked" | "restricted" | "unrestricted">("project_linked");
+  const [category, setCategory] = useState<"project_linked" | "restricted" | "unrestricted">(() => {
+    if (canCreateProject) return "project_linked";
+    if (canCreateRestricted) return "restricted";
+    if (canCreateUnrestricted) return "unrestricted";
+    return "project_linked";
+  });
 
   useEffect(() => {
     if (category === "project_linked" && !canCreateProject) {

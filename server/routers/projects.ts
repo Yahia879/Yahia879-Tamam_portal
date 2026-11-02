@@ -4751,10 +4751,9 @@ export const projectsRouter = router({
       }
 
       const hasCategoryPerm =
-        userPermissions.includes("receipt_vouchers") ||
-        (category === "project_linked" && (userPermissions.includes("receipt_vouchers.create_project") || userPermissions.includes("receipt_vouchers.create") || userPermissions.includes("projects.add_receipt_voucher"))) ||
-        (category === "restricted" && (userPermissions.includes("receipt_vouchers.create_restricted") || userPermissions.includes("receipt_vouchers.create"))) ||
-        (category === "unrestricted" && (userPermissions.includes("receipt_vouchers.create_unrestricted") || userPermissions.includes("receipt_vouchers.create")));
+        (category === "project_linked" && (userPermissions.includes("receipt_vouchers.create_project") || userPermissions.includes("projects.add_receipt_voucher"))) ||
+        (category === "restricted" && userPermissions.includes("receipt_vouchers.create_restricted")) ||
+        (category === "unrestricted" && userPermissions.includes("receipt_vouchers.create_unrestricted"));
 
       if (!hasCategoryPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتسجيل سند قبض من هذا النوع" });

@@ -59,4 +59,14 @@ describe("Financial Reports Permissions Refactor", () => {
     expect(hasRouteAccess("/financial-approval", "custom", ["financial_approval.receipt_vouchers"], false)).toBe(true);
     expect(hasRouteAccess("/financial-approval", "custom", ["financial_approval.contracts"], false)).toBe(true);
   });
+
+  it("should block /receipt-vouchers/new when user only has receipt_vouchers.view", () => {
+    expect(hasRouteAccess("/receipt-vouchers/new", "custom", ["receipt_vouchers.view"], false)).toBe(false);
+  });
+
+  it("should allow /receipt-vouchers/new when user has any of the 3 create permissions", () => {
+    expect(hasRouteAccess("/receipt-vouchers/new", "custom", ["receipt_vouchers.create_unrestricted"], false)).toBe(true);
+    expect(hasRouteAccess("/receipt-vouchers/new", "custom", ["receipt_vouchers.create_restricted"], false)).toBe(true);
+    expect(hasRouteAccess("/receipt-vouchers/new", "custom", ["receipt_vouchers.create_project"], false)).toBe(true);
+  });
 });

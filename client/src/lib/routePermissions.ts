@@ -250,7 +250,12 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/fund/movements": ["fund.view", "fund.transfer"],
   "/fund/transfers/new": ["fund.transfer"],
   "/receipt-vouchers": ["receipt_vouchers", "receipt_vouchers.view", "receipt_vouchers.create_project", "receipt_vouchers.create_restricted", "receipt_vouchers.create_unrestricted", "receipt_vouchers.create", "receipt_vouchers.edit", "receipt_vouchers.print", "receipt_vouchers.exception_approve"],
-  "/receipt-vouchers/new": ["receipt_vouchers", "receipt_vouchers.create_project", "receipt_vouchers.create_restricted", "receipt_vouchers.create_unrestricted", "receipt_vouchers.create"],
+  "/receipt-vouchers/new": [
+    "receipt_vouchers.create_project",
+    "receipt_vouchers.create_restricted",
+    "receipt_vouchers.create_unrestricted",
+    "receipt_vouchers.create"
+  ],
   "/custody-requests": ["custody_requests", "custody_requests.view", "custody_requests.create"],
   "/custody-requests/new": ["custody_requests.create"],
 
