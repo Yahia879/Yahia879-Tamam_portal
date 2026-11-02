@@ -411,7 +411,16 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   if (has("custody_requests") || has("custody_requests.view")) {
     finItems.push({ icon: Wallet, label: isEn ? "Financial Custody" : "العهد المالية", path: "/custody-requests" });
   }
-  if (has("financial_reports") || has("financial_reports.view") || has("financial_report")) {
+  if (
+    has("financial_reports") ||
+    has("financial_report") ||
+    has("financial_reports.projects") ||
+    has("financial_reports.disbursements") ||
+    has("financial_reports.contracts") ||
+    has("financial_reports.disbursement_orders") ||
+    has("financial_reports.receipt_vouchers") ||
+    has("financial_reports.export")
+  ) {
     finItems.push({ icon: BarChart3, label: "التقرير المالي", path: "/financial-report" });
   }
   

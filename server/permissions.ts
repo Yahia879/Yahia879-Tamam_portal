@@ -42,7 +42,7 @@ import { z } from "zod";
 
  */
 
-const PERMISSION_EXPANSION: Record<string, string[]> = {
+export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   "information_dashboard.view": ["information_dashboard.view"],
 
@@ -381,15 +381,35 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
 
 
-  financial_reports: ["financial_reports.view", "financial_reports.export", "financial_reports.analytics"],
+  financial_reports: [
+    "financial_reports.projects",
+    "financial_reports.disbursements",
+    "financial_reports.contracts",
+    "financial_reports.disbursement_orders",
+    "financial_reports.receipt_vouchers",
+    "financial_reports.export"
+  ],
 
-  financial_report: ["financial_reports.view", "financial_reports.export", "financial_reports.analytics"],
+  financial_report: [
+    "financial_reports.projects",
+    "financial_reports.disbursements",
+    "financial_reports.contracts",
+    "financial_reports.disbursement_orders",
+    "financial_reports.receipt_vouchers",
+    "financial_reports.export"
+  ],
 
-  "financial_reports.view": ["financial_reports.view"],
+  "financial_reports.projects": ["financial_reports.projects"],
 
-  "financial_reports.export": ["financial_reports.export", "financial_reports.view"],
+  "financial_reports.disbursements": ["financial_reports.disbursements"],
 
-  "financial_reports.analytics": ["financial_reports.analytics", "financial_reports.view"],
+  "financial_reports.contracts": ["financial_reports.contracts"],
+
+  "financial_reports.disbursement_orders": ["financial_reports.disbursement_orders"],
+
+  "financial_reports.receipt_vouchers": ["financial_reports.receipt_vouchers"],
+
+  "financial_reports.export": ["financial_reports.export"],
 
 
 
@@ -497,7 +517,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   analytics_hub: [
 
-    "reports.view", "reports.view_stats", "financial_reports.view", "progress_reports.view"
+    "reports.view", "reports.view_stats", "financial_reports.projects", "progress_reports.view"
 
   ],
 
@@ -507,11 +527,11 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   "analytics_hub.technical": ["reports.view_stats", "reports.view", "reports.export_data"],
 
-  "analytics_hub.financial_report": ["financial_reports.view", "financial.view"],
+  "analytics_hub.financial_report": ["financial_reports.projects", "financial.view"],
 
-  "analytics_hub.financial_dash": ["financial_reports.view", "financial.view"],
+  "analytics_hub.financial_dash": ["financial_reports.projects", "financial.view"],
 
-  "analytics_hub.board": ["financial_reports.view", "reports.view"],
+  "analytics_hub.board": ["financial_reports.projects", "reports.view"],
 
   "analytics_hub.beneficiary": ["reports.view"],
 
@@ -3224,11 +3244,17 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       { id: "project_reports.create", moduleId: "reports", action: "create", nameAr: "إنشاء تقارير مشاريع", nameEn: "Create Project Reports" },
 
-      { id: "financial_reports.view", moduleId: "reports", action: "view", nameAr: "عرض تقرير المالية والإحصائيات", nameEn: "View Financial Reports" },
+      { id: "financial_reports.projects", moduleId: "reports", action: "projects", nameAr: "عرض تقارير المشاريع", nameEn: "View Projects Financial Reports" },
 
-      { id: "financial_reports.export", moduleId: "reports", action: "export", nameAr: "تصدير البيانات", nameEn: "Export Financial Reports" },
+      { id: "financial_reports.disbursements", moduleId: "reports", action: "disbursements", nameAr: "عرض تقارير طلبات الصرف", nameEn: "View Disbursement Requests Reports" },
 
-      { id: "financial_reports.analytics", moduleId: "reports", action: "analytics", nameAr: "تحليل مؤشرات الأداء", nameEn: "Analyze Financial Performance" },
+      { id: "financial_reports.contracts", moduleId: "reports", action: "contracts", nameAr: "عرض تقارير العقود", nameEn: "View Contracts Reports" },
+
+      { id: "financial_reports.disbursement_orders", moduleId: "reports", action: "disbursement_orders", nameAr: "عرض تقارير أوامر الصرف", nameEn: "View Disbursement Orders Reports" },
+
+      { id: "financial_reports.receipt_vouchers", moduleId: "reports", action: "receipt_vouchers", nameAr: "عرض تقارير سندات القبض", nameEn: "View Receipt Vouchers Reports" },
+
+      { id: "financial_reports.export", moduleId: "reports", action: "export", nameAr: "تصدير التقارير المالية Excel", nameEn: "Export Financial Reports to Excel" },
 
       { id: "reports.view_stats", moduleId: "reports", action: "view_stats", nameAr: "عرض احصائيات الطلبات", nameEn: "View Request Statistics" },
 
@@ -3669,6 +3695,34 @@ async function ensureAllCustomPermissionsExist(db: any) {
       await db.delete(permissions).where(eq(permissions.id, "financial_approval.view"));
     } catch (cleanErr) {
       console.warn("Could not clean old financial_approval.view permission:", cleanErr);
+    }
+
+    // Cleanup and migrate financial_reports permissions (remove financial_reports.view and financial_reports.analytics)
+    try {
+      const oldViewRolePerms = await db.select().from(rolePermissions).where(eq(rolePermissions.permissionId, "financial_reports.view"));
+      const newFinancialSubPerms = [
+        "financial_reports.projects",
+        "financial_reports.disbursements",
+        "financial_reports.contracts",
+        "financial_reports.disbursement_orders",
+        "financial_reports.receipt_vouchers",
+      ];
+      for (const rp of oldViewRolePerms) {
+        for (const newP of newFinancialSubPerms) {
+          await db.insert(rolePermissions).values({ roleId: rp.roleId, permissionId: newP }).onConflictDoNothing();
+        }
+      }
+      const oldViewUserPerms = await db.select().from(userPermissions).where(eq(userPermissions.permissionId, "financial_reports.view"));
+      for (const up of oldViewUserPerms) {
+        for (const newP of newFinancialSubPerms) {
+          await db.insert(userPermissions).values({ userId: up.userId, permissionId: newP }).onConflictDoNothing();
+        }
+      }
+      await db.delete(rolePermissions).where(inArray(rolePermissions.permissionId, ["financial_reports.view", "financial_reports.analytics"]));
+      await db.delete(userPermissions).where(inArray(userPermissions.permissionId, ["financial_reports.view", "financial_reports.analytics"]));
+      await db.delete(permissions).where(inArray(permissions.id, ["financial_reports.view", "financial_reports.analytics"]));
+    } catch (cleanErr) {
+      console.warn("Could not clean old financial_reports permissions:", cleanErr);
     }
 
     // Cleanup and migrate receipt_vouchers.add and receipt_vouchers.delete
@@ -4760,6 +4814,13 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
         parentKey === "receipt_vouchers.create_project" ||
         parentKey === "receipt_vouchers.create_restricted" ||
         parentKey === "receipt_vouchers.create_unrestricted" ||
+
+        parentKey === "financial_reports.projects" ||
+        parentKey === "financial_reports.disbursements" ||
+        parentKey === "financial_reports.contracts" ||
+        parentKey === "financial_reports.disbursement_orders" ||
+        parentKey === "financial_reports.receipt_vouchers" ||
+        parentKey === "financial_reports.export" ||
 
         parentKey === "staff_notifications.edit" ||
 
@@ -6050,44 +6111,40 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   }
 
   const financialReportsSubPerms = [
-
-    "financial_reports.view",
-
-    "financial_reports.export",
-
-    "financial_reports.analytics"
-
+    "financial_reports.projects",
+    "financial_reports.disbursements",
+    "financial_reports.contracts",
+    "financial_reports.disbursement_orders",
+    "financial_reports.receipt_vouchers",
+    "financial_reports.export"
   ];
 
   if (
-
     revokedPermissions.has("financial_reports") ||
-
-    revokedPermissions.has("financial_reports.view") ||
-
-    revokedPermissions.has("financial_report") ||
-
-    !allPermissions.has("financial_reports.view")
-
+    revokedPermissions.has("financial_report")
   ) {
-
     allPermissions.delete("financial_reports");
-
     allPermissions.delete("financial_report");
-
-    if (revokedPermissions.has("financial_reports") || revokedPermissions.has("financial_reports.view") || revokedPermissions.has("financial_report")) {
-
-      financialReportsSubPerms.forEach(p => allPermissions.delete(p));
-
+    financialReportsSubPerms.forEach(p => allPermissions.delete(p));
+  } else {
+    const hasAnySubPerm = financialReportsSubPerms.some(p => allPermissions.has(p) && !revokedPermissions.has(p));
+    if (hasAnySubPerm) {
+      allPermissions.add("financial_reports");
+      allPermissions.add("financial_report");
+    } else {
+      allPermissions.delete("financial_reports");
+      allPermissions.delete("financial_report");
     }
-
-  } else if (allPermissions.has("financial_reports.view")) {
-
-    allPermissions.add("financial_reports");
-
-    allPermissions.add("financial_report");
-
   }
+
+  financialReportsSubPerms.forEach(p => {
+    if (revokedPermissions.has(p)) {
+      allPermissions.delete(p);
+    }
+  });
+
+  allPermissions.delete("financial_reports.view");
+  allPermissions.delete("financial_reports.analytics");
 
   const hasOrgForCenter = allPermissions.has("settings_org.view") || Array.from(allPermissions).some(p => p.startsWith("settings_org."));
 

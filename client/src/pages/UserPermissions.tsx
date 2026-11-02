@@ -1258,31 +1258,7 @@ export default function UserPermissions() {
 
 
 
-    // منع تفعيل أي صلاحية فرعية للتقارير المالية إذا كانت صلاحية العرض معطلة
 
-
-
-    if (permId.startsWith("financial_reports.") && permId !== "financial_reports.view") {
-
-
-
-      if (!isChecked("financial_reports.view")) {
-
-
-
-        toast.warning("يجب تفعيل صلاحية 'عرض تقرير المالية والإحصائيات' أولاً");
-
-
-
-        return;
-
-
-
-      }
-
-
-
-    }
 
 
 
@@ -3040,9 +3016,6 @@ export default function UserPermissions() {
 
         if (permId === "requester_sedana.view") cascadeRevoke("requester_sedana.");
 
-
-
-        if (permId === "financial_reports.view") cascadeRevoke("financial_reports.");
 
 
 
@@ -4886,11 +4859,17 @@ export default function UserPermissions() {
 
       financial_reports: {
 
-        view: "عرض تقرير المالية والإحصائيات",
+        projects: "عرض تقارير المشاريع",
 
-        export: "تصدير التقارير المالية Excel",
+        disbursements: "عرض تقارير طلبات الصرف",
 
-        analytics: "عرض التحليلات المالية المتقدمة"
+        contracts: "عرض تقارير العقود",
+
+        disbursement_orders: "عرض تقارير أوامر الصرف",
+
+        receipt_vouchers: "عرض تقارير سندات القبض",
+
+        export: "تصدير التقارير المالية Excel"
 
       },
 
@@ -5996,7 +5975,7 @@ export default function UserPermissions() {
 
 
 
-        { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export", "analytics"] },
+        { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["projects", "disbursements", "contracts", "disbursement_orders", "receipt_vouchers", "export"] },
 
 
 
@@ -7874,8 +7853,6 @@ export default function UserPermissions() {
 
                               (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && perm.id !== "disbursement_orders.sign" && !isChecked("disbursement_orders.view")) ||
 
-
-                              (perm.id.startsWith("financial_reports.") && perm.id !== "financial_reports.view" && !isChecked("financial_reports.view")) ||
 
 (perm.id === "board_leadership.remind" && !isChecked("board_chairman")) ||
 

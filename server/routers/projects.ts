@@ -4658,7 +4658,10 @@ export const projectsRouter = router({
       const userPermissions = await calculateUserPermissions(ctx.user.id);
       if (
         !userPermissions.includes("receipt_vouchers.view") &&
-        !userPermissions.includes("receipt_vouchers")
+        !userPermissions.includes("receipt_vouchers") &&
+        !userPermissions.includes("financial_reports.receipt_vouchers") &&
+        !userPermissions.includes("financial_reports") &&
+        !userPermissions.includes("financial_report")
       ) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض سندات القبض" });
       }

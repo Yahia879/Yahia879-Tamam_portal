@@ -214,17 +214,31 @@ const CustomPieOrdersStatusTooltip = ({ active, payload }: any) => {
 export default function FinancialReport({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState(embedded ? "contracts" : "projects");
   const [receiptVoucherSearch, setReceiptVoucherSearch] = useState<string>("");
 
   const userPermissions: string[] = (user as any)?.permissions ?? [];
-  const canViewPerm = usePermission("financial_reports.view") || usePermission("financial_reports") || usePermission("financial_report");
-  const canExportPerm = usePermission("financial_reports.export");
+  const canViewProjects = usePermission("financial_reports.projects");
+  const canViewContracts = usePermission("financial_reports.contracts");
+  const canViewRequests = usePermission("financial_reports.disbursements");
+  const canViewOrders = usePermission("financial_reports.disbursement_orders");
+  const canViewReceiptVouchers = usePermission("financial_reports.receipt_vouchers");
+  const canExport = usePermission("financial_reports.export");
+
   const hasDashboardView = usePermission("information_dashboard") || 
                            usePermission("information_dashboard.view") || 
+                           usePermission("analytics_hub.financial_report") ||
                            user?.role === "dashboard_viewer";
-  const canView = canViewPerm || (embedded && hasDashboardView);
-  const canExport = canExportPerm;
+  const canView = canViewProjects || canViewContracts || canViewRequests || canViewOrders || canViewReceiptVouchers || canExport || (embedded && hasDashboardView);
+
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (embedded && canViewContracts) return "contracts";
+    if (canViewProjects) return "projects";
+    if (canViewContracts) return "contracts";
+    if (canViewRequests) return "requests";
+    if (canViewOrders) return "orders";
+    if (canViewReceiptVouchers) return "receipt_vouchers";
+    return "projects";
+  });
 
   useEffect(() => {
     if (!embedded && user && !canView) {
@@ -236,7 +250,9 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
   const { data: reportData, isLoading } = trpc.disbursements.getFinancialReport.useQuery({});
 
   // جلب كافة سندات القبض للتبويب الجديد
-  const { data: allReceiptVouchers = [] } = trpc.projects.getAllReceiptVouchers.useQuery();
+  const { data: allReceiptVouchers = [] } = trpc.projects.getAllReceiptVouchers.useQuery(undefined, {
+    enabled: canViewReceiptVouchers,
+  });
 
   // تنسيق المبالغ
   const formatAmount = (amount: number) => {
@@ -479,6 +495,20 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
     return embedded ? loadingContent : <DashboardLayout>{loadingContent}</DashboardLayout>;
   }
 
+  const availableTabs = useMemo(() => [
+    ...(!embedded && canViewProjects ? [{ id: "projects", label: "المشاريع", count: reportData?.byProject?.length || 0, icon: Folder, activeColor: "from-primary to-teal-600" }] : []),
+    ...(canViewContracts ? [{ id: "contracts", label: "العقود", count: summary?.totalContracts || 0, icon: ScrollText, activeColor: "from-primary to-teal-600" }] : []),
+    ...(canViewRequests ? [{ id: "requests", label: "طلبات الصرف", count: summary?.totalRequests || 0, icon: FileText, activeColor: "from-primary to-teal-600" }] : []),
+    ...(canViewOrders ? [{ id: "orders", label: "أوامر الصرف", count: summary?.totalOrders || 0, icon: Wallet, activeColor: "from-primary to-teal-600" }] : []),
+    ...(canViewReceiptVouchers ? [{ id: "receipt_vouchers", label: "سندات القبض", count: receiptVouchersSummary.totalCount, icon: Receipt, activeColor: "from-emerald-600 to-teal-600" }] : []),
+  ], [embedded, canViewProjects, canViewContracts, canViewRequests, canViewOrders, canViewReceiptVouchers, reportData?.byProject?.length, summary?.totalContracts, summary?.totalRequests, summary?.totalOrders, receiptVouchersSummary.totalCount]);
+
+  useEffect(() => {
+    if (availableTabs.length > 0 && !availableTabs.some(t => t.id === activeTab)) {
+      setActiveTab(availableTabs[0].id);
+    }
+  }, [availableTabs, activeTab]);
+
   const content = (
     <div className="space-y-6 print:space-y-4">
         {!embedded && (
@@ -575,15 +605,10 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
         )}
 
         {/* أسلوب التبويبات الفاخر المطور */}
+        {availableTabs.length > 0 && (
         <div className="flex justify-start mb-8 print:hidden">
           <div className="flex p-1.5 bg-slate-100/70 dark:bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-200/60 dark:border-slate-800/50 shadow-inner gap-1.5 max-w-full overflow-x-auto no-scrollbar">
-            {[
-              ...(!embedded ? [{ id: "projects", label: "المشاريع", count: reportData?.byProject?.length || 0, icon: Folder, activeColor: "from-primary to-teal-600" }] : []),
-              { id: "contracts", label: "العقود", count: summary?.totalContracts || 0, icon: ScrollText, activeColor: "from-primary to-teal-600" },
-              { id: "requests", label: "طلبات الصرف", count: summary?.totalRequests || 0, icon: FileText, activeColor: "from-primary to-teal-600" },
-              { id: "orders", label: "أوامر الصرف", count: summary?.totalOrders || 0, icon: Wallet, activeColor: "from-primary to-teal-600" },
-              { id: "receipt_vouchers", label: "سندات القبض", count: receiptVouchersSummary.totalCount, icon: Receipt, activeColor: "from-emerald-600 to-teal-600" },
-            ].map((tab) => {
+            {availableTabs.map((tab) => {
               const IsActive = activeTab === tab.id;
               const Icon = tab.icon;
               return (
@@ -621,10 +646,11 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
             })}
           </div>
         </div>
+        )}
 
         <Tabs dir="rtl" value={activeTab} onValueChange={setActiveTab} className="print:hidden">
           {/* تبويب المشاريع */}
-          {!embedded && (
+          {!embedded && canViewProjects && (
             <TabsContent value="projects" className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 15 }}
@@ -717,6 +743,7 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
           )}
 
           {/* تبويب العقود */}
+          {canViewContracts && (
           <TabsContent value="contracts" className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 15 }}
@@ -834,8 +861,10 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
               </div>
             </motion.div>
           </TabsContent>
+          )}
 
           {/* تبويب طلبات الصرف */}
+          {canViewRequests && (
           <TabsContent value="requests" className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 15 }}
@@ -953,8 +982,10 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
               </div>
             </motion.div>
           </TabsContent>
+          )}
 
           {/* تبويب أوامر الصرف */}
+          {canViewOrders && (
           <TabsContent value="orders" className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 15 }}
@@ -1072,8 +1103,10 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
               </div>
             </motion.div>
           </TabsContent>
+          )}
 
           {/* تبويب سندات القبض */}
+          {canViewReceiptVouchers && (
           <TabsContent value="receipt_vouchers" className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 15 }}
@@ -1191,6 +1224,7 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
               </div>
             </motion.div>
           </TabsContent>
+          )}
         </Tabs>
 
         {/* قسم الطباعة */}

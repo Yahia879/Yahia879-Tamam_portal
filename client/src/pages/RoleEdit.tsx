@@ -126,7 +126,7 @@ const superAdminGroups = [
       { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "create_project", "create_restricted", "create_unrestricted", "edit", "print", "exception_approve"] },
       { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "transfer", "export"] },
       { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "approve", "reject", "exception_approve", "remind", "cancel_executed", "export"] },
-      { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export", "analytics"] },
+      { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["projects", "disbursements", "contracts", "disbursement_orders", "receipt_vouchers", "export"] },
       { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create", "edit", "delete", "approve", "settle", "print"] },
     ]
   },
@@ -622,9 +622,12 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       create: "إنشاء تقارير مشاريع"
     },
     financial_reports: {
-      view: "عرض تقرير المالية والإحصائيات",
-      export: "تصدير البيانات المالية",
-      analytics: "تحليل مؤشرات الأداء المالي"
+      projects: "عرض تقارير المشاريع",
+      disbursements: "عرض تقارير طلبات الصرف",
+      contracts: "عرض تقارير العقود",
+      disbursement_orders: "عرض تقارير أوامر الصرف",
+      receipt_vouchers: "عرض تقارير سندات القبض",
+      export: "تصدير التقارير المالية Excel"
     },
     reports: {
       view_stats: "عرض احصائيات الطلبات",
@@ -1131,13 +1134,6 @@ export default function RoleEdit() {
       }
     }
 
-    // منع تفعيل أي صلاحية فرعية للتقارير المالية إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("financial_reports.") && permId !== "financial_reports.view") {
-      if (!selectedPerms.includes("financial_reports.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض تقرير المالية والإحصائيات' أولاً");
-        return;
-      }
-    }
 
     // منع تفعيل أي صلاحية فرعية للعقود إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("contracts.") && permId !== "contracts.view") {
@@ -1356,10 +1352,6 @@ export default function RoleEdit() {
         }
         if (permId === "requester_sedana.view") {
           next = next.filter(id => !id.startsWith("requester_sedana."));
-        }
-        // عند إلغاء تفعيل صلاحية 'عرض تقرير المالية والإحصائيات'، نقوم تلقائياً بإلغاء تفعيل تصدير البيانات المالية
-        if (permId === "financial_reports.view") {
-          next = next.filter(id => !id.startsWith("financial_reports."));
         }
         if (permId === "reports.view_stats") {
           next = next.filter(id => !id.startsWith("reports."));
@@ -1850,7 +1842,6 @@ export default function RoleEdit() {
                               (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !selectedPerms.includes("contracts.view")) ||
                               (perm.id.startsWith("disbursements.") && perm.id !== "disbursements.view" && perm.id !== "disbursements.sign" && !selectedPerms.includes("disbursements.view")) ||
                               (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && perm.id !== "disbursement_orders.sign" && !selectedPerms.includes("disbursement_orders.view")) ||
-                              (perm.id.startsWith("financial_reports.") && perm.id !== "financial_reports.view" && !selectedPerms.includes("financial_reports.view")) ||
                               (perm.id === "board_leadership.remind" && !selectedPerms.includes("board_chairman")) ||
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
                               (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||

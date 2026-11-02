@@ -283,8 +283,26 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "beneficiary_evaluations.dispatch_log",
     "beneficiary_evaluations.contacts",
   ],
-  "/financial-report": ["financial_report", "financial_reports", "financial_reports.view"],
-  "/financial-reports": ["financial_report", "financial_reports", "financial_reports.view"],
+  "/financial-report": [
+    "financial_report",
+    "financial_reports",
+    "financial_reports.projects",
+    "financial_reports.disbursements",
+    "financial_reports.contracts",
+    "financial_reports.disbursement_orders",
+    "financial_reports.receipt_vouchers",
+    "financial_reports.export"
+  ],
+  "/financial-reports": [
+    "financial_report",
+    "financial_reports",
+    "financial_reports.projects",
+    "financial_reports.disbursements",
+    "financial_reports.contracts",
+    "financial_reports.disbursement_orders",
+    "financial_reports.receipt_vouchers",
+    "financial_reports.export"
+  ],
 
   // ── الإعدادات ──
   "/settings": [
