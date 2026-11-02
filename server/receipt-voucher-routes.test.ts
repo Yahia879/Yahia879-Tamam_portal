@@ -6,7 +6,13 @@ describe("receipt voucher creation route", () => {
     expect(getRequiredPermission("/receipt-vouchers/new")).not.toBe("__unknown_route__");
   });
 
-  it.each(["receipt_vouchers.add", "receipt_vouchers.edit", "receipt_vouchers"])(
+  it.each([
+    "receipt_vouchers.create_project",
+    "receipt_vouchers.create_restricted",
+    "receipt_vouchers.create_unrestricted",
+    "receipt_vouchers.create",
+    "receipt_vouchers",
+  ])(
     "allows the same creation permission as the voucher button: %s",
     permission => {
       expect(hasRouteAccess("/receipt-vouchers/new", "financial", [permission], false)).toBe(true);
@@ -16,13 +22,14 @@ describe("receipt voucher creation route", () => {
 
   it("allows user 3's configured receipt voucher permissions", () => {
     expect(hasRouteAccess("/receipt-vouchers/new", "financial", [
-      "receipt_vouchers.view", "receipt_vouchers.edit", "receipt_vouchers",
+      "receipt_vouchers.view", "receipt_vouchers.create_project", "receipt_vouchers",
     ], false)).toBe(true);
   });
 
   it.each([
     { permissions: [] },
     { permissions: ["receipt_vouchers.view"] },
+    { permissions: ["receipt_vouchers.edit"] },
     { permissions: ["receipt_vouchers.exception_approve"] },
     { permissions: ["projects.view"] },
   ])(

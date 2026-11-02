@@ -80,11 +80,14 @@ export default function ReceiptVouchers() {
   const utils = trpc.useUtils();
   const userPermissions: string[] = (user as any)?.permissions ?? [];
   const canView = usePermission("receipt_vouchers.view") || usePermission("receipt_vouchers");
-  const canAdd = usePermission("receipt_vouchers.add");
+  const canCreateProject = usePermission("receipt_vouchers.create_project");
+  const canCreateRestricted = usePermission("receipt_vouchers.create_restricted");
+  const canCreateUnrestricted = usePermission("receipt_vouchers.create_unrestricted");
+  const canAdd = canCreateProject || canCreateRestricted || canCreateUnrestricted || usePermission("receipt_vouchers.create") || usePermission("receipt_vouchers");
   const canEdit = usePermission("receipt_vouchers.edit");
-  const canDelete = usePermission("receipt_vouchers.delete");
   const canPrint = usePermission("receipt_vouchers.print");
   const hasExceptionApprove = usePermission("receipt_vouchers.exception_approve");
+  const hasAnyRowAction = canPrint || canEdit || hasExceptionApprove || isFaaa8User;
 
   // الحصول على البارامترات من URL إن وجدت
   const urlParams = new URLSearchParams(window.location.search);
@@ -726,10 +729,12 @@ export default function ReceiptVouchers() {
               <div className="text-center py-12 space-y-3">
                 <Receipt className="h-10 w-10 mx-auto text-muted-foreground/30" />
                 <p className="text-sm font-semibold text-slate-700">لم يتم العثور على أي سندات قبض</p>
-                <Button onClick={openAddVoucherModal} size="sm" className="gap-1.5 font-bold text-xs gradient-primary text-white">
-                  <Plus className="h-4 w-4" />
-                  تسجيل أول سند قبض
-                </Button>
+                {canAdd && (
+                  <Button onClick={openAddVoucherModal} size="sm" className="gap-1.5 font-bold text-xs gradient-primary text-white">
+                    <Plus className="h-4 w-4" />
+                    تسجيل أول سند قبض
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="hidden md:block w-full overflow-x-auto">
@@ -742,7 +747,9 @@ export default function ReceiptVouchers() {
                       <TableHead className="py-3.5 px-4 text-right min-w-[130px] font-bold text-slate-700 dark:text-slate-200">المبلغ المقبوض</TableHead>
                       <TableHead className="py-3.5 px-4 text-right min-w-[120px] font-bold text-slate-700 dark:text-slate-200">تاريخ الإنشاء</TableHead>
                       <TableHead className="py-3.5 px-4 text-right min-w-[150px] font-bold text-slate-700 dark:text-slate-200">الحالة</TableHead>
-                      <TableHead className="py-3.5 px-4 text-center min-w-[140px] font-bold text-slate-700 dark:text-slate-200">الإجراءات</TableHead>
+                      {hasAnyRowAction && (
+                        <TableHead className="py-3.5 px-4 text-center min-w-[140px] font-bold text-slate-700 dark:text-slate-200">الإجراءات</TableHead>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -860,8 +867,9 @@ export default function ReceiptVouchers() {
                           </TableCell>
 
                           {/* الإجراءات */}
-                          <TableCell className="py-3.5 px-4 text-center">
-                            <DropdownMenu dir="rtl">
+                          {hasAnyRowAction && (
+                            <TableCell className="py-3.5 px-4 text-center">
+                              <DropdownMenu dir="rtl">
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted">
                                   <MoreVertical className="h-4 w-4 text-muted-foreground" />
@@ -951,7 +959,8 @@ export default function ReceiptVouchers() {
 
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          </TableCell>
+                            </TableCell>
+                          )}
                         </TableRow>
                       );
                     })}

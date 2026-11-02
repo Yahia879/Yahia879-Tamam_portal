@@ -4770,11 +4770,13 @@ export default function UserPermissions() {
 
         view: "عرض سندات القبض",
 
-        add: "تسجيل سند قبض جديد",
+        create_project: "تسجيل سند قبض مرتبط بمشروع موجود",
+
+        create_restricted: "تسجيل سند قبض مقيد",
+
+        create_unrestricted: "تسجيل سند قبض غير مقيد",
 
         edit: "تعديل سند القبض",
-
-        delete: "حذف سند قبض",
 
         print: "طباعة سند القبض",
 
@@ -5988,7 +5990,7 @@ export default function UserPermissions() {
 
 
 
-        { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "delete", "print", "exception_approve"] },
+        { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "create_project", "create_restricted", "create_unrestricted", "edit", "print", "exception_approve"] },
 
 
 

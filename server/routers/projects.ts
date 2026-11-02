@@ -346,7 +346,7 @@ export const projectsRouter = router({
         !userPermissions.includes("disbursements.view") &&
         !userPermissions.includes("receipt_vouchers") &&
         !userPermissions.includes("receipt_vouchers.view") &&
-        !userPermissions.includes("receipt_vouchers.add") &&
+        !userPermissions.includes("receipt_vouchers.create") &&
         !userPermissions.includes("financial_report") &&
         !userPermissions.includes("financial_approval") &&
         !userPermissions.includes("disbursement_requests") &&
@@ -4650,8 +4650,18 @@ export const projectsRouter = router({
       status: z.string().optional(),
       search: z.string().optional(),
     }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      if (
+        !userPermissions.includes("receipt_vouchers.view") &&
+        !userPermissions.includes("receipt_vouchers")
+      ) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض سندات القبض" });
+      }
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       await resequenceVoucherNumbers(db);
@@ -4731,23 +4741,23 @@ export const projectsRouter = router({
 
       const { calculateUserPermissions } = await import("../permissions");
       const userPermissions = await calculateUserPermissions(ctx.user.id);
-      const isAdmin = ["super_admin", "system_admin", "financial"].includes(ctx.user.role);
-      if (
-        !isAdmin &&
-        !userPermissions.includes("projects.add_receipt_voucher") &&
-        !userPermissions.includes("receipt_vouchers.add") &&
-        !userPermissions.includes("receipt_vouchers.edit") &&
-        !userPermissions.includes("receipt_vouchers")
-      ) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتسجيل سند قبض" });
-      }
-
-      const voucherNumber = await resequenceVoucherNumbers(db);
 
       const category = input.projectId ? "project_linked" : (input.category || "unrestricted");
       if ((category === "project_linked") !== Boolean(input.projectId)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "نوع السند لا يطابق ربط المشروع" });
       }
+
+      const hasCategoryPerm =
+        userPermissions.includes("receipt_vouchers") ||
+        (category === "project_linked" && (userPermissions.includes("receipt_vouchers.create_project") || userPermissions.includes("receipt_vouchers.create") || userPermissions.includes("projects.add_receipt_voucher"))) ||
+        (category === "restricted" && (userPermissions.includes("receipt_vouchers.create_restricted") || userPermissions.includes("receipt_vouchers.create"))) ||
+        (category === "unrestricted" && (userPermissions.includes("receipt_vouchers.create_unrestricted") || userPermissions.includes("receipt_vouchers.create")));
+
+      if (!hasCategoryPerm) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتسجيل سند قبض من هذا النوع" });
+      }
+
+      const voucherNumber = await resequenceVoucherNumbers(db);
       let purpose: typeof categories.$inferSelect | undefined;
       if (category === "restricted") {
         if (!input.donationPurposeId) throw new TRPCError({ code: "BAD_REQUEST", message: "مصرف التبرع مطلوب" });
@@ -4801,9 +4811,18 @@ export const projectsRouter = router({
       attachmentUrl: z.string().optional(),
       notes: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      if (
+        !userPermissions.includes("receipt_vouchers.edit") &&
+        !userPermissions.includes("receipt_vouchers")
+      ) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل سند القبض" });
+      }
 
       const [existingVoucher] = await db.select().from(receiptVouchers).where(eq(receiptVouchers.id, input.id));
       if (!existingVoucher) {

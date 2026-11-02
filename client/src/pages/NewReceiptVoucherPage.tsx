@@ -50,13 +50,33 @@ function numberToArabicText(num: number): string {
 export default function NewReceiptVoucherPage() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
-  const userPermissions: string[] = (user as any)?.permissions ?? [];
-  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "") || userPermissions.includes("*");
-  const canCreate = isAdmin || userPermissions.includes("receipt_vouchers.add") || userPermissions.includes("receipt_vouchers.edit") || userPermissions.includes("receipt_vouchers");
+  const { data: userPermsList } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user?.id, staleTime: 10000, refetchOnMount: true }
+  );
+  const permissions: string[] = userPermsList ?? (user as any)?.permissions ?? [];
+
+  const canCreateProject = permissions.includes("receipt_vouchers.create_project") || permissions.includes("receipt_vouchers");
+  const canCreateRestricted = permissions.includes("receipt_vouchers.create_restricted") || permissions.includes("receipt_vouchers");
+  const canCreateUnrestricted = permissions.includes("receipt_vouchers.create_unrestricted") || permissions.includes("receipt_vouchers");
+  const canCreate = canCreateProject || canCreateRestricted || canCreateUnrestricted || permissions.includes("receipt_vouchers.create");
 
   // Step state
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [category, setCategory] = useState<"project_linked" | "restricted" | "unrestricted">("project_linked");
+
+  useEffect(() => {
+    if (category === "project_linked" && !canCreateProject) {
+      if (canCreateRestricted) setCategory("restricted");
+      else if (canCreateUnrestricted) setCategory("unrestricted");
+    } else if (category === "restricted" && !canCreateRestricted) {
+      if (canCreateProject) setCategory("project_linked");
+      else if (canCreateUnrestricted) setCategory("unrestricted");
+    } else if (category === "unrestricted" && !canCreateUnrestricted) {
+      if (canCreateProject) setCategory("project_linked");
+      else if (canCreateRestricted) setCategory("restricted");
+    }
+  }, [canCreateProject, canCreateRestricted, canCreateUnrestricted, category]);
 
   // Form Fields
   const urlParams = new URLSearchParams(window.location.search);
@@ -428,85 +448,91 @@ export default function NewReceiptVoucherPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                     {/* 1. سند قبض مرتبط بمشروع موجود */}
-                    <button
-                      type="button"
-                      onClick={() => setCategory("project_linked")}
-                      className={`flex items-center gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
-                        category === "project_linked"
-                          ? "bg-teal-50/80 dark:bg-teal-950/30 border-teal-500/80 dark:border-teal-500/60 shadow-xs ring-2 ring-teal-500/20"
-                          : "bg-background border-border hover:border-teal-300 dark:hover:border-teal-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
-                      }`}
-                    >
-                      <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
-                        category === "project_linked"
-                          ? "bg-teal-600 text-white"
-                          : "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-400 group-hover:bg-teal-200"
-                      }`}>
-                        <FolderKanban className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0 flex-1 flex items-center justify-between">
-                        <span className={`text-xs sm:text-sm font-bold block ${category === "project_linked" ? "text-teal-900 dark:text-teal-200" : "text-foreground"}`}>
-                          سند قبض مرتبط بمشروع موجود
-                        </span>
-                        {category === "project_linked" && (
-                          <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse shrink-0 mr-2" />
-                        )}
-                      </div>
-                    </button>
+                    {canCreateProject && (
+                      <button
+                        type="button"
+                        onClick={() => setCategory("project_linked")}
+                        className={`flex items-center gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                          category === "project_linked"
+                            ? "bg-teal-50/80 dark:bg-teal-950/30 border-teal-500/80 dark:border-teal-500/60 shadow-xs ring-2 ring-teal-500/20"
+                            : "bg-background border-border hover:border-teal-300 dark:hover:border-teal-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
+                        }`}
+                      >
+                        <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
+                          category === "project_linked"
+                            ? "bg-teal-600 text-white"
+                            : "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-400 group-hover:bg-teal-200"
+                        }`}>
+                          <FolderKanban className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0 flex-1 flex items-center justify-between">
+                          <span className={`text-xs sm:text-sm font-bold block ${category === "project_linked" ? "text-teal-900 dark:text-teal-200" : "text-foreground"}`}>
+                            سند قبض مرتبط بمشروع موجود
+                          </span>
+                          {category === "project_linked" && (
+                            <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse shrink-0 mr-2" />
+                          )}
+                        </div>
+                      </button>
+                    )}
 
                     {/* 2. سند قبض مقيد */}
-                    <button
-                      type="button"
-                      onClick={() => setCategory("restricted")}
-                      className={`flex items-center gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
-                        category === "restricted"
-                          ? "bg-blue-50/80 dark:bg-blue-950/30 border-blue-500/80 dark:border-blue-500/60 shadow-xs ring-2 ring-blue-500/20"
-                          : "bg-background border-border hover:border-blue-300 dark:hover:border-blue-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
-                      }`}
-                    >
-                      <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
-                        category === "restricted"
-                          ? "bg-blue-600 text-white"
-                          : "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 group-hover:bg-blue-200"
-                      }`}>
-                        <FileCheck className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0 flex-1 flex items-center justify-between">
-                        <span className={`text-xs sm:text-sm font-bold block ${category === "restricted" ? "text-blue-900 dark:text-blue-200" : "text-foreground"}`}>
-                          سند قبض مقيد
-                        </span>
-                        {category === "restricted" && (
-                          <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0 mr-2" />
-                        )}
-                      </div>
-                    </button>
+                    {canCreateRestricted && (
+                      <button
+                        type="button"
+                        onClick={() => setCategory("restricted")}
+                        className={`flex items-center gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                          category === "restricted"
+                            ? "bg-blue-50/80 dark:bg-blue-950/30 border-blue-500/80 dark:border-blue-500/60 shadow-xs ring-2 ring-blue-500/20"
+                            : "bg-background border-border hover:border-blue-300 dark:hover:border-blue-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
+                        }`}
+                      >
+                        <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
+                          category === "restricted"
+                            ? "bg-blue-600 text-white"
+                            : "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 group-hover:bg-blue-200"
+                        }`}>
+                          <FileCheck className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0 flex-1 flex items-center justify-between">
+                          <span className={`text-xs sm:text-sm font-bold block ${category === "restricted" ? "text-blue-900 dark:text-blue-200" : "text-foreground"}`}>
+                            سند قبض مقيد
+                          </span>
+                          {category === "restricted" && (
+                            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0 mr-2" />
+                          )}
+                        </div>
+                      </button>
+                    )}
 
                     {/* 3. سند قبض غير مقيد */}
-                    <button
-                      type="button"
-                      onClick={() => setCategory("unrestricted")}
-                      className={`flex items-center gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
-                        category === "unrestricted"
-                          ? "bg-amber-50/80 dark:bg-amber-950/30 border-amber-500/80 dark:border-amber-500/60 shadow-xs ring-2 ring-amber-500/20"
-                          : "bg-background border-border hover:border-amber-300 dark:hover:border-amber-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
-                      }`}
-                    >
-                      <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
-                        category === "unrestricted"
-                          ? "bg-amber-600 text-white"
-                          : "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 group-hover:bg-amber-200"
-                      }`}>
-                        <Coins className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0 flex-1 flex items-center justify-between">
-                        <span className={`text-xs sm:text-sm font-bold block ${category === "unrestricted" ? "text-amber-900 dark:text-amber-200" : "text-foreground"}`}>
-                          سند قبض غير مقيد
-                        </span>
-                        {category === "unrestricted" && (
-                          <span className="w-2.5 h-2.5 rounded-full bg-amber-600 animate-pulse shrink-0 mr-2" />
-                        )}
-                      </div>
-                    </button>
+                    {canCreateUnrestricted && (
+                      <button
+                        type="button"
+                        onClick={() => setCategory("unrestricted")}
+                        className={`flex items-center gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                          category === "unrestricted"
+                            ? "bg-amber-50/80 dark:bg-amber-950/30 border-amber-500/80 dark:border-amber-500/60 shadow-xs ring-2 ring-amber-500/20"
+                            : "bg-background border-border hover:border-amber-300 dark:hover:border-amber-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
+                        }`}
+                      >
+                        <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
+                          category === "unrestricted"
+                            ? "bg-amber-600 text-white"
+                            : "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 group-hover:bg-amber-200"
+                        }`}>
+                          <Coins className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0 flex-1 flex items-center justify-between">
+                          <span className={`text-xs sm:text-sm font-bold block ${category === "unrestricted" ? "text-amber-900 dark:text-amber-200" : "text-foreground"}`}>
+                            سند قبض غير مقيد
+                          </span>
+                          {category === "unrestricted" && (
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-600 animate-pulse shrink-0 mr-2" />
+                          )}
+                        </div>
+                      </button>
+                    )}
                   </div>
                 </div>
               </CardContent>

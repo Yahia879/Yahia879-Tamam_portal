@@ -124,7 +124,7 @@ const superAdminGroups = [
       },
       { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit", "delete", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add", "export"] },
       { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "create_project_linked", "create_from_fund", "create_donation", "create_tamam_platform", "create_custom", "edit", "approve", "exception_approve", "export"] },
-      { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "delete", "print", "exception_approve"] },
+      { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "create_project", "create_restricted", "create_unrestricted", "edit", "print", "exception_approve"] },
       { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "transfer", "export"] },
       { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "approve", "reject", "exception_approve", "remind", "cancel_executed", "export"] },
       { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export", "analytics"] },
@@ -585,9 +585,10 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     },
     receipt_vouchers: {
       view: "عرض سندات القبض",
-      add: "تسجيل سند قبض جديد",
+      create_project: "تسجيل سند قبض مرتبط بمشروع موجود",
+      create_restricted: "تسجيل سند قبض مقيد",
+      create_unrestricted: "تسجيل سند قبض غير مقيد",
       edit: "تعديل سند القبض",
-      delete: "حذف سند القبض",
       print: "طباعة سند القبض",
       exception_approve: "استثناء اعتماد السند"
     },

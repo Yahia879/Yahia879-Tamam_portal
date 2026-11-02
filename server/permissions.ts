@@ -312,15 +312,34 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
 
 
-  receipt_vouchers: ["receipt_vouchers.view", "receipt_vouchers.add", "receipt_vouchers.edit", "receipt_vouchers.delete", "receipt_vouchers.print", "receipt_vouchers.exception_approve"],
+  receipt_vouchers: [
+    "receipt_vouchers.view",
+    "receipt_vouchers.create",
+    "receipt_vouchers.create_project",
+    "receipt_vouchers.create_restricted",
+    "receipt_vouchers.create_unrestricted",
+    "receipt_vouchers.edit",
+    "receipt_vouchers.print",
+    "receipt_vouchers.exception_approve",
+  ],
 
   "receipt_vouchers.view": ["receipt_vouchers.view"],
 
-  "receipt_vouchers.add": ["receipt_vouchers.add", "receipt_vouchers.view"],
+  "receipt_vouchers.create": [
+    "receipt_vouchers.create",
+    "receipt_vouchers.create_project",
+    "receipt_vouchers.create_restricted",
+    "receipt_vouchers.create_unrestricted",
+    "receipt_vouchers.view",
+  ],
+
+  "receipt_vouchers.create_project": ["receipt_vouchers.create_project", "receipt_vouchers.create", "receipt_vouchers.view"],
+
+  "receipt_vouchers.create_restricted": ["receipt_vouchers.create_restricted", "receipt_vouchers.create", "receipt_vouchers.view"],
+
+  "receipt_vouchers.create_unrestricted": ["receipt_vouchers.create_unrestricted", "receipt_vouchers.create", "receipt_vouchers.view"],
 
   "receipt_vouchers.edit": ["receipt_vouchers.edit", "receipt_vouchers.view"],
-
-  "receipt_vouchers.delete": ["receipt_vouchers.delete", "receipt_vouchers.view"],
 
   "receipt_vouchers.print": ["receipt_vouchers.print", "receipt_vouchers.view"],
 
@@ -3155,7 +3174,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "disbursements.exception_approve", moduleId: "disbursements", action: "exception_approve", nameAr: "استثناء اعتماد مُعد الطلب", nameEn: "Override Requester Approval" },
       { id: "disbursements.export", moduleId: "disbursements", action: "export", nameAr: "تصدير بيانات طلبات الصرف", nameEn: "Export Disbursement Requests" },
 
-      { id: "receipt_vouchers.delete", moduleId: "disbursements", action: "delete", nameAr: "حذف سند القبض", nameEn: "Delete Receipt Voucher" },
 
       { id: "receipt_vouchers.print", moduleId: "disbursements", action: "print", nameAr: "طباعة سند القبض", nameEn: "Print Receipt Voucher" },
 
@@ -3511,7 +3529,11 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       { id: "receipt_vouchers.view", moduleId: "disbursements", action: "view", nameAr: "عرض سندات القبض", nameEn: "View Receipt Vouchers" },
 
-      { id: "receipt_vouchers.add", moduleId: "disbursements", action: "add", nameAr: "تسجيل سند قبض جديد", nameEn: "Create Receipt Voucher" },
+      { id: "receipt_vouchers.create_project", moduleId: "disbursements", action: "create_project", nameAr: "تسجيل سند قبض مرتبط بمشروع موجود", nameEn: "Create Project-Linked Receipt Voucher" },
+
+      { id: "receipt_vouchers.create_restricted", moduleId: "disbursements", action: "create_restricted", nameAr: "تسجيل سند قبض مقيد", nameEn: "Create Restricted Receipt Voucher" },
+
+      { id: "receipt_vouchers.create_unrestricted", moduleId: "disbursements", action: "create_unrestricted", nameAr: "تسجيل سند قبض غير مقيد", nameEn: "Create Unrestricted Receipt Voucher" },
 
       { id: "receipt_vouchers.edit", moduleId: "disbursements", action: "edit", nameAr: "تعديل سند القبض", nameEn: "Edit Receipt Voucher" },
 
@@ -3643,6 +3665,27 @@ async function ensureAllCustomPermissionsExist(db: any) {
       await db.delete(permissions).where(inArray(permissions.id, ["disbursements.add", "disbursements.delete"]));
     } catch (cleanErr) {
       console.warn("Could not clean old disbursements permissions:", cleanErr);
+    }
+
+    // Cleanup and migrate receipt_vouchers.add and receipt_vouchers.delete
+    try {
+      const oldAddRolePerms = await db.select().from(rolePermissions).where(eq(rolePermissions.permissionId, "receipt_vouchers.add"));
+      for (const rp of oldAddRolePerms) {
+        for (const newP of ["receipt_vouchers.create_project", "receipt_vouchers.create_restricted", "receipt_vouchers.create_unrestricted"]) {
+          await db.insert(rolePermissions).values({ roleId: rp.roleId, permissionId: newP }).onConflictDoNothing();
+        }
+      }
+      const oldAddUserPerms = await db.select().from(userPermissions).where(eq(userPermissions.permissionId, "receipt_vouchers.add"));
+      for (const up of oldAddUserPerms) {
+        for (const newP of ["receipt_vouchers.create_project", "receipt_vouchers.create_restricted", "receipt_vouchers.create_unrestricted"]) {
+          await db.insert(userPermissions).values({ userId: up.userId, permissionId: newP }).onConflictDoNothing();
+        }
+      }
+      await db.delete(rolePermissions).where(inArray(rolePermissions.permissionId, ["receipt_vouchers.add", "receipt_vouchers.delete"]));
+      await db.delete(userPermissions).where(inArray(userPermissions.permissionId, ["receipt_vouchers.add", "receipt_vouchers.delete"]));
+      await db.delete(permissions).where(inArray(permissions.id, ["receipt_vouchers.add", "receipt_vouchers.delete"]));
+    } catch (cleanErr) {
+      console.warn("Could not clean old receipt_vouchers permissions:", cleanErr);
     }
 
 
@@ -4710,6 +4753,10 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
         parentKey === "disbursements.create_tamam_platform" ||
         parentKey === "disbursements.create_custom" ||
 
+        parentKey === "receipt_vouchers.create_project" ||
+        parentKey === "receipt_vouchers.create_restricted" ||
+        parentKey === "receipt_vouchers.create_unrestricted" ||
+
         parentKey === "staff_notifications.edit" ||
 
         parentKey === "notification_center" ||
@@ -5540,17 +5587,33 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
     "receipt_vouchers.view",
 
-    "receipt_vouchers.add",
+    "receipt_vouchers.create_project",
+
+    "receipt_vouchers.create_restricted",
+
+    "receipt_vouchers.create_unrestricted",
+
+    "receipt_vouchers.create",
 
     "receipt_vouchers.edit",
-
-    "receipt_vouchers.delete",
 
     "receipt_vouchers.print",
 
     "receipt_vouchers.exception_approve"
 
   ];
+
+  allPermissions.delete("receipt_vouchers.add");
+  allPermissions.delete("receipt_vouchers.delete");
+
+  if (
+    allPermissions.has("receipt_vouchers.create_project") ||
+    allPermissions.has("receipt_vouchers.create_restricted") ||
+    allPermissions.has("receipt_vouchers.create_unrestricted") ||
+    allPermissions.has("receipt_vouchers.create")
+  ) {
+    allPermissions.add("receipt_vouchers.create");
+  }
 
   if (revokedPermissions.has("receipt_vouchers") || revokedPermissions.has("receipt_vouchers.view") || !allPermissions.has("receipt_vouchers.view")) {
 

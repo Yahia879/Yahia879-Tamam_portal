@@ -1071,8 +1071,11 @@ export default function RolePermissions() {
           icon: Receipt,
           permissions: [
             { id: "receipt_vouchers.view", nameAr: "عرض سندات القبض" },
-            { id: "receipt_vouchers.add", nameAr: "تسجيل سند قبض جديد" },
+            { id: "receipt_vouchers.create_project", nameAr: "تسجيل سند قبض مرتبط بمشروع موجود" },
+            { id: "receipt_vouchers.create_restricted", nameAr: "تسجيل سند قبض مقيد" },
+            { id: "receipt_vouchers.create_unrestricted", nameAr: "تسجيل سند قبض غير مقيد" },
             { id: "receipt_vouchers.edit", nameAr: "تعديل سند القبض" },
+            { id: "receipt_vouchers.print", nameAr: "طباعة سند القبض" },
             { id: "receipt_vouchers.exception_approve", nameAr: "استثناء اعتماد السند" },
           ]
         },
@@ -1313,7 +1316,11 @@ export default function RolePermissions() {
           icon: Receipt,
           permissions: [
             { id: "receipt_vouchers.view", nameAr: "عرض سندات القبض" },
+            { id: "receipt_vouchers.create_project", nameAr: "تسجيل سند قبض مرتبط بمشروع موجود" },
+            { id: "receipt_vouchers.create_restricted", nameAr: "تسجيل سند قبض مقيد" },
+            { id: "receipt_vouchers.create_unrestricted", nameAr: "تسجيل سند قبض غير مقيد" },
             { id: "receipt_vouchers.edit", nameAr: "تعديل سند القبض" },
+            { id: "receipt_vouchers.print", nameAr: "طباعة سند القبض" },
             { id: "receipt_vouchers.exception_approve", nameAr: "استثناء اعتماد السند" },
           ]
         },
@@ -1453,7 +1460,7 @@ export default function RolePermissions() {
         },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "create_project_linked", "create_from_fund", "create_donation", "create_tamam_platform", "create_custom", "edit", "approve", "exception_approve", "export"] },
-        { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "exception_approve"] },
+        { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "create_project", "create_restricted", "create_unrestricted", "edit", "print", "exception_approve"] },
         { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "transfer"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind", "cancel_executed"] },
         { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create"] },
@@ -1681,7 +1688,7 @@ export default function RolePermissions() {
         },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit", "delete", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add", "export"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "create_project_linked", "create_from_fund", "create_donation", "create_tamam_platform", "create_custom", "edit", "approve", "exception_approve", "export"] },
-        { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "delete", "print", "exception_approve"] },
+        { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "create_project", "create_restricted", "create_unrestricted", "edit", "print", "exception_approve"] },
         { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "transfer", "export"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "approve", "reject", "exception_approve", "remind", "cancel_executed", "export"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export", "analytics"] },
@@ -2184,9 +2191,10 @@ export default function RolePermissions() {
       },
       receipt_vouchers: {
         view: "عرض سندات القبض",
-        add: "تسجيل سند قبض جديد",
+        create_project: "تسجيل سند قبض مرتبط بمشروع موجود",
+        create_restricted: "تسجيل سند قبض مقيد",
+        create_unrestricted: "تسجيل سند قبض غير مقيد",
         edit: "تعديل سند القبض",
-        delete: "حذف سند القبض",
         print: "طباعة سند القبض",
         exception_approve: "استثناء اعتماد السند"
       },
