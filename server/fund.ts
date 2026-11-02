@@ -158,7 +158,7 @@ export async function getProjectFundableAmounts(db: any, projectId: number) {
   const received = money(vouchers.reduce((sum: number, voucher: any) => sum + cents(voucher.amount), 0) / 100);
   const [financial] = await db.select().from(projectFinancialDetails)
     .where(eq(projectFinancialDetails.projectId, projectId)).limit(1);
-  const [contract] = await db.select().from(contractsEnhanced)
+  const [contract] = await db.select({ contractAmount: contractsEnhanced.contractAmount }).from(contractsEnhanced)
     .where(eq(contractsEnhanced.projectId, projectId)).orderBy(desc(contractsEnhanced.createdAt)).limit(1);
   let projectCost = money(contract?.contractAmount);
   if (!projectCost && financial?.approvedQuotationId) {

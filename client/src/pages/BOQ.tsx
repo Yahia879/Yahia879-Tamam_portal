@@ -33,6 +33,7 @@ import {
   Receipt,
 } from "lucide-react";
 import BoqTab from "@/components/BoqTab";
+import { usePermission } from "@/hooks/usePermission";
 import { PROGRAM_LABELS, STATUS_LABELS, getStageLabel, getStageOrder } from "@shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
 
@@ -83,27 +84,8 @@ export default function BOQ() {
   const [page, setPage, resetPage] = usePersistedPage("boq_page");
   const limit = 20;
 
-  const userPermissions = (user as any)?.permissions ?? [];
-  const canViewBOQ =
-    userPermissions.includes("*") ||
-    userPermissions.includes("boq.view") ||
-    userPermissions.includes("boq") ||
-    userPermissions.includes("boq.add") ||
-    userPermissions.includes("boq.edit") ||
-    userPermissions.includes("boq.delete") ||
-    userPermissions.includes("boq.import") ||
-    userPermissions.includes("boq.export") ||
-    userPermissions.includes("quotations") ||
-    userPermissions.includes("requests.view_details") ||
-    userPermissions.includes("requests.view") ||
-    ["super_admin", "system_admin", "projects_office", "financial", "general_manager", "executive_director"].includes(user?.role || "");
-
-  const canEditBOQ =
-    userPermissions.includes("*") ||
-    userPermissions.includes("boq.edit") ||
-    userPermissions.includes("boq.add") ||
-    userPermissions.includes("boq") ||
-    ["super_admin", "system_admin", "projects_office"].includes(user?.role || "");
+  const canViewBOQ = usePermission("boq.view") || usePermission("boq");
+  const canEditBOQ = usePermission("boq.edit");
   
   // تعيين requestId من URL أو معلمات البحث عند تغيير المسار
   useEffect(() => {

@@ -2,6 +2,7 @@ import { useState, useImperativeHandle, forwardRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Table,
@@ -48,13 +49,11 @@ export interface BoqTabHandle {
 const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
   ({ requestId, projectId, isLocked: externalIsLocked, hideAddButton }, ref) => {
     const { user } = useAuth();
-    const userPermissions = (user as any)?.permissions ?? [];
-    const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "") || userPermissions.includes("*");
-    const canAdd = isAdmin || userPermissions.includes("boq.add") || userPermissions.includes("boq");
-    const canEdit = isAdmin || userPermissions.includes("boq.edit") || userPermissions.includes("boq");
-    const canDelete = isAdmin || userPermissions.includes("boq.delete") || userPermissions.includes("boq");
-    const canImport = isAdmin || userPermissions.includes("boq.import") || userPermissions.includes("boq");
-    const canExport = isAdmin || userPermissions.includes("boq.export") || userPermissions.includes("boq");
+    const canAdd = usePermission("boq.add");
+    const canEdit = usePermission("boq.edit");
+    const canDelete = usePermission("boq.delete");
+    const canImport = usePermission("boq.import");
+    const canExport = usePermission("boq.export");
 
     const [showAddDialog, setShowAddDialog] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);

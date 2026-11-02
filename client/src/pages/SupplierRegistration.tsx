@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { FileUpload } from "@/components/FileUpload";
 import { LocationPicker } from "@/components/LocationPicker";
@@ -61,6 +62,8 @@ const WORK_FIELDS: { key: WorkFieldType; label: string }[] = [
 
 export default function SupplierRegistration() {
   const [, navigate] = useLocation();
+  const { user } = useAuth();
+  const isStaffOrAdmin = Boolean(user && user.role !== "service_requester");
   const [isSuccess, setIsSuccess] = useState(false);
 
   // جلب إعدادات الهوية والشعار
@@ -106,9 +109,14 @@ export default function SupplierRegistration() {
   // Mutation لتسجيل المورد
   const registerMutation = trpc.suppliers.register.useMutation({
     onSuccess: () => {
-      toast.success("تم استلام طلب التسجيل بنجاح - سيتم مراجعة طلبكم من قبل إدارة الجمعية");
-      setIsSuccess(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (isStaffOrAdmin) {
+        toast.success("تم تسجيل بيانات المورد بنجاح");
+        navigate("/suppliers");
+      } else {
+        toast.success("تم استلام طلب التسجيل بنجاح - سيتم مراجعة طلبكم من قبل إدارة الجمعية");
+        setIsSuccess(true);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     },
     onError: (error) => {
       // تنظيف رسالة الخطأ من بيانات Base64
@@ -229,7 +237,7 @@ export default function SupplierRegistration() {
   };
 
   // ==================== شاشة النجاح عند إتمام التسجيل ====================
-  if (isSuccess) {
+  if (isSuccess && !isStaffOrAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 sm:p-8 bg-slate-50/80" dir="rtl">
         <Card className="w-full max-w-lg border-0 shadow-2xl rounded-2xl sm:rounded-3xl overflow-hidden bg-white">
@@ -299,7 +307,7 @@ export default function SupplierRegistration() {
         {/* الترويسة والشعار */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 sm:mb-8 pb-4 border-b border-gray-200">
           <div className="flex items-center gap-3.5">
-            <Link href="/">
+            <Link href={isStaffOrAdmin ? "/suppliers" : "/"}>
               <Button
                 variant="outline"
                 size="icon"
@@ -324,9 +332,9 @@ export default function SupplierRegistration() {
               <p className="text-xs sm:text-sm text-gray-500 mt-0.5">انضمام إلى قائمة الموردين والمقاولين المعتمدين</p>
             </div>
           </div>
-          <Link href="/">
+          <Link href={isStaffOrAdmin ? "/suppliers" : "/"}>
             <Button variant="ghost" size="sm" className="text-xs text-gray-600 hover:text-gray-900">
-              العودة للصفحة الرئيسية ←
+              {isStaffOrAdmin ? "العودة لقائمة الموردين ←" : "العودة للصفحة الرئيسية ←"}
             </Button>
           </Link>
         </div>

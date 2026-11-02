@@ -79,10 +79,11 @@ export default function ReceiptVouchers() {
   const isFaaa8User = user?.email === "solayani@manarah.org.sa";
   const utils = trpc.useUtils();
   const userPermissions: string[] = (user as any)?.permissions ?? [];
-  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "") || userPermissions.includes("*");
-  const canView = isAdmin || userPermissions.includes("receipt_vouchers.view") || userPermissions.includes("receipt_vouchers.add") || userPermissions.includes("receipt_vouchers.edit") || userPermissions.some(p => p.startsWith("receipt_vouchers"));
-  const canAdd = isAdmin || userPermissions.includes("receipt_vouchers.add") || userPermissions.includes("receipt_vouchers.edit") || userPermissions.includes("receipt_vouchers");
-  const canEdit = userPermissions.includes("receipt_vouchers.edit");
+  const canView = usePermission("receipt_vouchers.view") || usePermission("receipt_vouchers");
+  const canAdd = usePermission("receipt_vouchers.add");
+  const canEdit = usePermission("receipt_vouchers.edit");
+  const canDelete = usePermission("receipt_vouchers.delete");
+  const canPrint = usePermission("receipt_vouchers.print");
   const hasExceptionApprove = usePermission("receipt_vouchers.exception_approve");
 
   // الحصول على البارامترات من URL إن وجدت
@@ -868,13 +869,15 @@ export default function ReceiptVouchers() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-56 text-right font-medium">
                                 {/* 1. عرض سند القبض والطباعة */}
-                                <DropdownMenuItem
-                                  onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
-                                  className="flex items-center gap-2 cursor-pointer text-[#1a5f4a] hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
-                                >
-                                  <Eye className="h-4 w-4 text-[#1a5f4a]" />
-                                  <span>عرض وسند القبض والطباعة</span>
-                                </DropdownMenuItem>
+                                {canPrint && (
+                                  <DropdownMenuItem
+                                    onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
+                                    className="flex items-center gap-2 cursor-pointer text-[#1a5f4a] hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
+                                  >
+                                    <Eye className="h-4 w-4 text-[#1a5f4a]" />
+                                    <span>عرض وسند القبض والطباعة</span>
+                                  </DropdownMenuItem>
+                                )}
 
                                 {/* 2. اعتماد سند القبض */}
                                 {isFaaa8User && voucher.status === "pending_approval" && (

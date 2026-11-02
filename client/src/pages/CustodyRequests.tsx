@@ -146,16 +146,19 @@ export default function CustodyRequests() {
     );
   }, [user, isSuperAdmin]);
 
+  const hasViewPerm = usePermission("custody_requests.view") || usePermission("custody_requests");
+  const hasCreatePerm = usePermission("custody_requests.create");
+  const hasApprovePerm = usePermission("custody_requests.approve");
+  const hasEditPerm = usePermission("custody_requests.edit");
+  const hasDeletePerm = usePermission("custody_requests.delete");
+  const hasSettlePerm = usePermission("custody_requests.settle");
+  const hasPrintPerm = usePermission("custody_requests.print");
+
   // فقط المدير التنفيذي والـ super_admin يرون تبويب طلبات الموظفين
   const canSeeStaffTab = isSuperAdmin || isExecutiveDirector;
   const canSeeAll = isSuperAdmin || isExecutiveDirector || isFinancialOfficer;
-  // فقط المدير التنفيذي هو من يعتمد طلبات العهدة
-  const canApprove = isExecutiveDirector;
-
-  const hasCreatePerm = usePermission("custody_requests.create");
-  const userPermissions: string[] = (user as any)?.permissions ?? [];
-
-  const canCreate = isSuperAdmin || isExecutiveDirector || hasCreatePerm || userPermissions.includes("custody_requests.create");
+  const canApprove = isExecutiveDirector || hasApprovePerm;
+  const canCreate = hasCreatePerm;
 
   // نطاق طلبات الاستثناء للـ super_admin: طلبات الموظفين أو طلباتي
   const [exceptionScope, setExceptionScope] = useState<"staff" | "my">("staff");
@@ -308,6 +311,23 @@ export default function CustodyRequests() {
         return <Badge variant="outline">{status}</Badge>;
     }
   };
+
+  if (!hasViewPerm) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4 font-sans" dir="rtl">
+          <div className="p-4 rounded-full bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/30 dark:border-rose-900">
+            <AlertCircle className="h-10 w-10 text-rose-600" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">عذراً، ليس لديك صلاحية لعرض صفحة العهد المالية</h2>
+          <p className="text-xs text-muted-foreground max-w-md">يرجى التواصل مع مسؤول النظام لمنحك صلاحية "عرض العهد المالية".</p>
+          <Button onClick={() => setLocation("/dashboard")} className="mt-2 bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold text-xs">
+            العودة للوحة التحكم
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

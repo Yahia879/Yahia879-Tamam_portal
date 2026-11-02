@@ -351,9 +351,10 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
   const canRejectOrder = permOrdersReject;
   const canViewDetails = permOrdersViewDetails;
   const canCreateDirectOrder = permOrdersCreateDirect;
-  const canExceptionApproveOrder = isEmbedded ? permOrdersExceptionApprove : (user?.role === "super_admin" || permOrdersExceptionApprove);
-  const canRemind = isEmbedded ? permOrdersRemind : (user?.role === "super_admin" || user?.role === "system_admin" || permOrdersRemind);
+  const canExceptionApproveOrder = permOrdersExceptionApprove;
+  const canRemind = permOrdersRemind;
   const canCancelExecuted = permOrdersCancelExecuted;
+  const canExport = usePermission("disbursement_orders.export");
 
   // نافذة إرسال تذكير بالاعتماد
   const [reminderModal, setReminderModal] = useState<{
@@ -640,19 +641,21 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                 </SelectContent>
               </Select>
 
-              <Button 
-                onClick={handleExportExcel} 
-                disabled={isExporting}
-                variant="outline"
-                className="w-full lg:w-auto h-10 border-[#1a5f4a]/30 text-[#1a5f4a] bg-transparent hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] font-bold rounded-lg shrink-0 flex items-center justify-center gap-1.5 transition-colors"
-              >
-                {isExporting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-                <span dir="rtl">تصدير إلى Excel</span>
-              </Button>
+              {canExport && (
+                <Button 
+                  onClick={handleExportExcel} 
+                  disabled={isExporting}
+                  variant="outline"
+                  className="w-full lg:w-auto h-10 border-[#1a5f4a]/30 text-[#1a5f4a] bg-transparent hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] font-bold rounded-lg shrink-0 flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  {isExporting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  <span dir="rtl">تصدير إلى Excel</span>
+                </Button>
+              )}
             </div>
 
             {isLoading ? (

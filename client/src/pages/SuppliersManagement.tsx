@@ -1,512 +1,531 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
-import DashboardLayout from "@/components/DashboardLayout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { toast } from "sonner";
-import { trpc } from "@/lib/trpc";
-import { useAuth } from "@/_core/hooks/useAuth";
-import { usePermission } from "@/hooks/usePermission";
-import { PermissionGuard } from "@/components/PermissionGuard";
-import {
-  Building2,
-  Search,
-  MoreHorizontal,
-  CheckCircle2,
-  XCircle,
-  Eye,
-  Clock,
-  Ban,
-  FileText,
-  Phone,
-  Mail,
-  MapPin,
-  CreditCard,
-  Loader2,
-  RefreshCw,
-  ExternalLink,
-  Plus,
-  Download,
-  Pencil,
-  Play,
-  Globe,
-  UserPlus,
-} from "lucide-react";
-
-// تسميات مجالات العمل
-const WORK_FIELD_LABELS: Record<string, string> = {
-  construction: "بناء وتشييد",
-  engineering_consulting: "استشارات هندسية",
-  electrical: "أعمال كهربائية",
-  plumbing: "أعمال سباكة",
-  hvac: "تكييف وتبريد",
-  finishing: "تشطيبات",
-  carpentry: "نجارة",
-  aluminum: "ألمنيوم",
-  painting: "دهانات",
-  flooring: "أرضيات",
-  landscaping: "تنسيق حدائق",
-  cleaning: "نظافة",
-  maintenance: "صيانة",
-  security_systems: "أنظمة أمنية",
-  sound_systems: "أنظمة صوتية",
-  solar_energy: "طاقة شمسية",
-  water_systems: "أنظمة مياه",
-  furniture: "أثاث",
-  carpets: "سجاد",
-  supplies: "توريدات",
-  other: "أخرى",
-};
-
-// ألوان حالات الاعتماد
-const STATUS_CONFIG = {
-  pending: { label: "قيد المراجعة", color: "bg-yellow-100 text-yellow-800", icon: Clock },
-  approved: { label: "معتمد", color: "bg-green-100 text-green-800", icon: CheckCircle2 },
-  rejected: { label: "مرفوض", color: "bg-red-100 text-red-800", icon: XCircle },
-  suspended: { label: "موقوف", color: "bg-gray-100 text-gray-800", icon: Ban },
-};
-
-export default function SuppliersManagement() {
-  const [, navigate] = useLocation();
-  const { user } = useAuth();
-  const hasApprovePermission = usePermission("suppliers.approve");
-  const hasEditPermission = usePermission("suppliers.edit");
-  const hasSuspendPermission = usePermission("suppliers.suspend");
-  const hasViewDetailsPermission = usePermission("suppliers.view_details");
-  const canSuspend = hasSuspendPermission;
-  const canViewDetails = hasViewDetailsPermission;
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("all");
-  // دالة مساعدة لتحويل مجالات العمل إلى مصفوفة بشكل آمن
-  const getWorkFieldsArray = (workFields: any): string[] => {
-    if (!workFields) return [];
-    if (Array.isArray(workFields)) return workFields;
-    if (typeof workFields === "string") {
-      try {
-        // محاولة التحليل كـ JSON
-        if (workFields.startsWith("[") && workFields.endsWith("]")) {
-          return JSON.parse(workFields);
-        }
-        // محاولة الفصل بالفواصل
-        if (workFields.includes(",")) {
-          return workFields.split(",").map(s => s.trim());
-        }
-        // قيمة واحدة نصية
-        return [workFields];
-      } catch (e) {
-        return [];
-      }
-    }
-    return [];
-  };
-
-  // جلب الموردين
-  const { data: suppliers, isLoading, refetch } = trpc.suppliers.list.useQuery({
-    approvalStatus: activeTab === "all" ? undefined : activeTab as any,
-    search: searchQuery || undefined,
-  });
-
-  const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
-  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
-
-  const approveMutation = trpc.suppliers.approve.useMutation({
-    onSuccess: () => {
-      toast.success("تم اعتماد المورد بنجاح");
-      refetch();
-    },
-    onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء اعتماد المورد");
-    },
-  });
-
-  const rejectMutation = trpc.suppliers.reject.useMutation({
-    onSuccess: () => {
-      toast.success("تم رفض المورد");
-      refetch();
-      setShowRejectDialog(false);
-      setRejectReason("");
-      setSelectedSupplier(null);
-    },
-    onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء رفض المورد");
-    },
-  });
-
-  const suspendMutation = trpc.suppliers.suspend.useMutation({
-    onSuccess: () => {
-      toast.success("تم إيقاف المورد");
-      refetch();
-    },
-    onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء إيقاف المورد");
-    },
-  });
-
-  // اعتماد المورد
-  const handleApprove = (supplierId: number) => {
-    approveMutation.mutate({ id: supplierId });
-  };
-
-  // رفض المورد
-  const handleReject = () => {
-    if (!selectedSupplier || !rejectReason.trim()) return;
-    rejectMutation.mutate({ id: selectedSupplier.id, reason: rejectReason });
-  };
-
-  // فتح تفاصيل المورد بالانتقال لصفحة التفاصيل المنفصلة
-  const openSupplierDetails = (supplier: any) => {
-    navigate(`/suppliers/${supplier.id}`);
-  };
-
-  // إيقاف المورد
-  const handleSuspend = (supplierId: number) => {
-    suspendMutation.mutate({ id: supplierId, reason: "تم الإيقاف بواسطة الإدارة" });
-  };
-
-
-
-  // تم نقل تعديل المورد إلى صفحة منفصلة لتعديل كافة الحقول والبيانات والمرفقات
-
-  // إحصائيات سريعة
-  const suppliersList = suppliers?.suppliers || [];
-  const stats = suppliers?.stats || {
-    total: 0,
-    pending: 0,
-    approved: 0,
-    rejected: 0,
-  };
-
-  return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        {/* العنوان */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold">إدارة الموردين</h1>
-            <p className="text-sm md:text-base text-muted-foreground">مراجعة واعتماد طلبات تسجيل الموردين</p>
-          </div>
-          <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
-            <PermissionGuard permission="suppliers.add">
-              <Button onClick={() => navigate("/supplier/register")} className="w-full sm:w-auto">
-                <Plus className="h-4 w-4 ml-2" />
-                إضافة مورد
-              </Button>
-            </PermissionGuard>
-            <Button variant="outline" onClick={() => refetch()} className="w-full sm:w-auto">
-              <RefreshCw className="h-4 w-4 ml-2" />
-              تحديث
-            </Button>
-          </div>
-        </div>
-
-        {/* الإحصائيات */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">إجمالي الموردين</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
-                </div>
-                <Building2 className="h-8 w-8 text-primary/20" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-yellow-200 bg-yellow-50/50">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-yellow-700">قيد المراجعة</p>
-                  <p className="text-2xl font-bold text-yellow-700">{stats.pending}</p>
-                </div>
-                <Clock className="h-8 w-8 text-yellow-300" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-green-200 bg-green-50/50">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-green-700">معتمدين</p>
-                  <p className="text-2xl font-bold text-green-700">{stats.approved}</p>
-                </div>
-                <CheckCircle2 className="h-8 w-8 text-green-300" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-red-200 bg-red-50/50">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-red-700">مرفوضين</p>
-                  <p className="text-2xl font-bold text-red-700">{stats.rejected}</p>
-                </div>
-                <XCircle className="h-8 w-8 text-red-300" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* البحث والتصفية */}
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="بحث باسم المورد أو السجل التجاري..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-10"
-                />
-              </div>
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
-                <TabsList className="grid w-full grid-cols-2 md:inline-flex h-auto md:w-auto gap-1 md:gap-0">
-                  <TabsTrigger value="all">الكل</TabsTrigger>
-                  <TabsTrigger value="pending">قيد المراجعة</TabsTrigger>
-                  <TabsTrigger value="approved">معتمدين</TabsTrigger>
-                  <TabsTrigger value="rejected">مرفوضين</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : suppliersList.length === 0 ? (
-              <div className="text-center py-12">
-                <Building2 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                <p className="text-muted-foreground">لا يوجد موردين</p>
-              </div>
-            ) : (
-              <Table className="not-italic">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-right">اسم الكيان</TableHead>
-                    <TableHead className="text-right">النوع</TableHead>
-                    <TableHead className="text-right">السجل التجاري</TableHead>
-                    <TableHead className="text-right">مجالات العمل</TableHead>
-                    <TableHead className="text-right">الحالة</TableHead>
-                    <TableHead className="text-right">طريقة التسجيل</TableHead>
-                    <TableHead className="text-right">تاريخ التسجيل</TableHead>
-                    <TableHead className="text-left">الإجراءات</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {suppliersList.map((supplier) => {
-                    const statusConfig = STATUS_CONFIG[supplier.approvalStatus as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending;
-                    const StatusIcon = statusConfig.icon;
-                    
-                    return (
-                      <TableRow key={supplier.id}>
-                        <TableCell className="font-bold text-slate-800 dark:text-slate-200 text-right">
-                          {canViewDetails ? (
-                            <button
-                              onClick={() => openSupplierDetails(supplier)}
-                              className="hover:text-teal-600 hover:underline text-right transition-colors"
-                            >
-                              {supplier.name}
-                            </button>
-                          ) : (
-                            <span>{supplier.name}</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {supplier.entityType === "company" ? "شركة" : "مؤسسة"}
-                        </TableCell>
-                        <TableCell className="text-right" dir="ltr">{supplier.commercialRegister}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex flex-wrap gap-1 justify-start">
-                            {getWorkFieldsArray(supplier.workFields).slice(0, 2).map((field) => (
-                              <Badge key={field} variant="secondary" className="text-xs">
-                                {WORK_FIELD_LABELS[field] || field}
-                              </Badge>
-                            ))}
-                            {getWorkFieldsArray(supplier.workFields).length > 2 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{getWorkFieldsArray(supplier.workFields).length - 2}
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge className={statusConfig.color}>
-                            <StatusIcon className="h-3 w-3 ml-1" />
-                            {statusConfig.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {supplier.registrationSource === "portal" ? (
-                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 gap-1.5 inline-flex items-center text-xs font-medium px-2 py-0.5">
-                              <Globe className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                              سجل بالمنصة
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 gap-1.5 inline-flex items-center text-xs font-medium px-2 py-0.5">
-                              <UserPlus className="h-3 w-3 text-slate-500 shrink-0" />
-                              إدخال يدوي
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {new Date(supplier.createdAt).toLocaleDateString("ar-SA")}
-                        </TableCell>
-                        <TableCell className="text-left">
-                          {(() => {
-                            const canApproveReject = supplier.approvalStatus === "pending" && hasApprovePermission;
-                            const canSuspendSupplier = supplier.approvalStatus === "approved" && canSuspend;
-                            const canReactivateSupplier = supplier.approvalStatus === "suspended" && canSuspend;
-                            const hasAnyMenuAction = canViewDetails || hasEditPermission || canApproveReject || canSuspendSupplier || canReactivateSupplier;
-
-                            if (!hasAnyMenuAction) {
-                              return <span className="text-muted-foreground text-xs">—</span>;
-                            }
-
-                            return (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  {canViewDetails && (
-                                    <DropdownMenuItem onClick={() => openSupplierDetails(supplier)}>
-                                      <Eye className="h-4 w-4 ml-2" />
-                                      عرض التفاصيل
-                                    </DropdownMenuItem>
-                                  )}
-                                  {hasEditPermission && (
-                                    <DropdownMenuItem onClick={() => navigate(`/suppliers/${supplier.id}/edit`)}>
-                                      <Pencil className="h-4 w-4 ml-2" />
-                                      تعديل البيانات
-                                    </DropdownMenuItem>
-                                  )}
-                                  {canApproveReject && (
-                                    <>
-                                      <DropdownMenuItem
-                                        onClick={() => handleApprove(supplier.id)}
-                                        className="text-green-600 font-bold"
-                                      >
-                                        <CheckCircle2 className="h-4.5 w-4.5 ml-2 text-green-600" />
-                                        اعتماد المورد
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setSelectedSupplier(supplier);
-                                          setShowRejectDialog(true);
-                                        }}
-                                        className="text-red-600 font-bold"
-                                      >
-                                        <XCircle className="h-4.5 w-4.5 ml-2 text-red-600" />
-                                        رفض المورد
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
-                                  {canSuspendSupplier && (
-                                    <DropdownMenuItem
-                                      onClick={() => handleSuspend(supplier.id)}
-                                      className="text-orange-600"
-                                    >
-                                      <Ban className="h-4 w-4 ml-2" />
-                                      إيقاف
-                                    </DropdownMenuItem>
-                                  )}
-                                  {canReactivateSupplier && (
-                                    <DropdownMenuItem
-                                      onClick={() => handleApprove(supplier.id)}
-                                      className="text-green-600 font-bold"
-                                    >
-                                      <Play className="h-4.5 w-4.5 ml-2 text-green-600" />
-                                      إعادة تنشيط
-                                    </DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            );
-                          })()}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* نافذة رفض المورد */}
-      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <DialogContent className="w-[90vw] max-w-md rounded-2xl p-6" dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="text-right text-lg font-bold">تأكيد رفض المورد</DialogTitle>
-            <DialogDescription className="text-right text-sm mt-2">
-              يرجى إدخال سبب رفض طلب تسجيل المورد "{selectedSupplier?.name}":
-            </DialogDescription>
-          </DialogHeader>
-          <div className="my-4">
-            <Textarea
-              placeholder="اكتب سبب الرفض هنا..."
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              className="w-full text-right"
-              rows={3}
-            />
-          </div>
-          <DialogFooter className="flex flex-col-reverse sm:flex-row-reverse gap-2 mt-6">
-            <Button
-              onClick={handleReject}
-              disabled={rejectMutation.isPending || !rejectReason.trim()}
-              className="bg-red-600 hover:bg-red-700 text-white font-bold"
-            >
-              {rejectMutation.isPending ? "جاري الرفض..." : "تأكيد الرفض"}
-            </Button>
-            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
-              إلغاء
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* تم نقل تعديل المورد إلى صفحة تعديل منفصلة */}
-    </DashboardLayout>
-  );
-}
+import { useState } from "react";
+import { useLocation } from "wouter";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
+import { PermissionGuard } from "@/components/PermissionGuard";
+import {
+  Building2,
+  Search,
+  MoreHorizontal,
+  CheckCircle2,
+  XCircle,
+  Eye,
+  Clock,
+  Ban,
+  FileText,
+  Phone,
+  Mail,
+  MapPin,
+  CreditCard,
+  Loader2,
+  RefreshCw,
+  ExternalLink,
+  Plus,
+  Download,
+  Pencil,
+  Play,
+  Globe,
+  UserPlus,
+  AlertCircle,
+} from "lucide-react";
+
+// تسميات مجالات العمل
+const WORK_FIELD_LABELS: Record<string, string> = {
+  construction: "بناء وتشييد",
+  engineering_consulting: "استشارات هندسية",
+  electrical: "أعمال كهربائية",
+  plumbing: "أعمال سباكة",
+  hvac: "تكييف وتبريد",
+  finishing: "تشطيبات",
+  carpentry: "نجارة",
+  aluminum: "ألمنيوم",
+  painting: "دهانات",
+  flooring: "أرضيات",
+  landscaping: "تنسيق حدائق",
+  cleaning: "نظافة",
+  maintenance: "صيانة",
+  security_systems: "أنظمة أمنية",
+  sound_systems: "أنظمة صوتية",
+  solar_energy: "طاقة شمسية",
+  water_systems: "أنظمة مياه",
+  furniture: "أثاث",
+  carpets: "سجاد",
+  supplies: "توريدات",
+  other: "أخرى",
+};
+
+// ألوان حالات الاعتماد
+const STATUS_CONFIG = {
+  pending: { label: "قيد المراجعة", color: "bg-yellow-100 text-yellow-800", icon: Clock },
+  approved: { label: "معتمد", color: "bg-green-100 text-green-800", icon: CheckCircle2 },
+  rejected: { label: "مرفوض", color: "bg-red-100 text-red-800", icon: XCircle },
+  suspended: { label: "موقوف", color: "bg-gray-100 text-gray-800", icon: Ban },
+};
+
+export default function SuppliersManagement() {
+  const [, navigate] = useLocation();
+  const { user } = useAuth();
+  const hasApprovePermission = usePermission("suppliers.approve");
+  const hasEditPermission = usePermission("suppliers.edit");
+  const hasSuspendPermission = usePermission("suppliers.suspend");
+  const hasViewDetailsPermission = usePermission("suppliers.view_details");
+  const hasViewPermission = usePermission("suppliers.view") || usePermission("suppliers");
+  const canSuspend = hasSuspendPermission;
+  const canViewDetails = hasViewDetailsPermission;
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
+  // دالة مساعدة لتحويل مجالات العمل إلى مصفوفة بشكل آمن
+  const getWorkFieldsArray = (workFields: any): string[] => {
+    if (!workFields) return [];
+    if (Array.isArray(workFields)) return workFields;
+    if (typeof workFields === "string") {
+      try {
+        // محاولة التحليل كـ JSON
+        if (workFields.startsWith("[") && workFields.endsWith("]")) {
+          return JSON.parse(workFields);
+        }
+        // محاولة الفصل بالفواصل
+        if (workFields.includes(",")) {
+          return workFields.split(",").map(s => s.trim());
+        }
+        // قيمة واحدة نصية
+        return [workFields];
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  // جلب الموردين
+  const { data: suppliers, isLoading, refetch } = trpc.suppliers.list.useQuery({
+    approvalStatus: activeTab === "all" ? undefined : activeTab as any,
+    search: searchQuery || undefined,
+  });
+
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+
+  const approveMutation = trpc.suppliers.approve.useMutation({
+    onSuccess: () => {
+      toast.success("تم اعتماد المورد بنجاح");
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء اعتماد المورد");
+    },
+  });
+
+  const rejectMutation = trpc.suppliers.reject.useMutation({
+    onSuccess: () => {
+      toast.success("تم رفض المورد");
+      refetch();
+      setShowRejectDialog(false);
+      setRejectReason("");
+      setSelectedSupplier(null);
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء رفض المورد");
+    },
+  });
+
+  const suspendMutation = trpc.suppliers.suspend.useMutation({
+    onSuccess: () => {
+      toast.success("تم إيقاف المورد");
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء إيقاف المورد");
+    },
+  });
+
+  // اعتماد المورد
+  const handleApprove = (supplierId: number) => {
+    approveMutation.mutate({ id: supplierId });
+  };
+
+  // رفض المورد
+  const handleReject = () => {
+    if (!selectedSupplier || !rejectReason.trim()) return;
+    rejectMutation.mutate({ id: selectedSupplier.id, reason: rejectReason });
+  };
+
+  // فتح تفاصيل المورد بالانتقال لصفحة التفاصيل المنفصلة
+  const openSupplierDetails = (supplier: any) => {
+    navigate(`/suppliers/${supplier.id}`);
+  };
+
+  // إيقاف المورد
+  const handleSuspend = (supplierId: number) => {
+    suspendMutation.mutate({ id: supplierId, reason: "تم الإيقاف بواسطة الإدارة" });
+  };
+
+
+
+  // تم نقل تعديل المورد إلى صفحة منفصلة لتعديل كافة الحقول والبيانات والمرفقات
+
+  // إحصائيات سريعة
+  const suppliersList = suppliers?.suppliers || [];
+  const stats = suppliers?.stats || {
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+  };
+
+  if (!hasViewPermission) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4 font-sans" dir="rtl">
+          <div className="p-4 rounded-full bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/30 dark:border-rose-900">
+            <AlertCircle className="h-10 w-10 text-rose-600" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">عذراً، ليس لديك صلاحية لعرض صفحة الموردين</h2>
+          <p className="text-xs text-muted-foreground max-w-md">يرجى التواصل مع مسؤول النظام لمنحك صلاحية "عرض الموردين".</p>
+          <Button onClick={() => navigate("/dashboard")} className="mt-2 bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold text-xs">
+            العودة للوحة التحكم
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* العنوان */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold">إدارة الموردين</h1>
+            <p className="text-sm md:text-base text-muted-foreground">مراجعة واعتماد طلبات تسجيل الموردين</p>
+          </div>
+          <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
+            <PermissionGuard permission="suppliers.add">
+              <Button onClick={() => navigate("/supplier/register")} className="w-full sm:w-auto">
+                <Plus className="h-4 w-4 ml-2" />
+                إضافة مورد
+              </Button>
+            </PermissionGuard>
+            <Button variant="outline" onClick={() => refetch()} className="w-full sm:w-auto">
+              <RefreshCw className="h-4 w-4 ml-2" />
+              تحديث
+            </Button>
+          </div>
+        </div>
+
+        {/* الإحصائيات */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">إجمالي الموردين</p>
+                  <p className="text-2xl font-bold">{stats.total}</p>
+                </div>
+                <Building2 className="h-8 w-8 text-primary/20" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-yellow-200 bg-yellow-50/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-yellow-700">قيد المراجعة</p>
+                  <p className="text-2xl font-bold text-yellow-700">{stats.pending}</p>
+                </div>
+                <Clock className="h-8 w-8 text-yellow-300" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-green-200 bg-green-50/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-green-700">معتمدين</p>
+                  <p className="text-2xl font-bold text-green-700">{stats.approved}</p>
+                </div>
+                <CheckCircle2 className="h-8 w-8 text-green-300" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-red-200 bg-red-50/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-red-700">مرفوضين</p>
+                  <p className="text-2xl font-bold text-red-700">{stats.rejected}</p>
+                </div>
+                <XCircle className="h-8 w-8 text-red-300" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* البحث والتصفية */}
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="بحث باسم المورد أو السجل التجاري..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pr-10"
+                />
+              </div>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
+                <TabsList className="grid w-full grid-cols-2 md:inline-flex h-auto md:w-auto gap-1 md:gap-0">
+                  <TabsTrigger value="all">الكل</TabsTrigger>
+                  <TabsTrigger value="pending">قيد المراجعة</TabsTrigger>
+                  <TabsTrigger value="approved">معتمدين</TabsTrigger>
+                  <TabsTrigger value="rejected">مرفوضين</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : suppliersList.length === 0 ? (
+              <div className="text-center py-12">
+                <Building2 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+                <p className="text-muted-foreground">لا يوجد موردين</p>
+              </div>
+            ) : (
+              <Table className="not-italic">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-right">اسم الكيان</TableHead>
+                    <TableHead className="text-right">النوع</TableHead>
+                    <TableHead className="text-right">السجل التجاري</TableHead>
+                    <TableHead className="text-right">مجالات العمل</TableHead>
+                    <TableHead className="text-right">الحالة</TableHead>
+                    <TableHead className="text-right">طريقة التسجيل</TableHead>
+                    <TableHead className="text-right">تاريخ التسجيل</TableHead>
+                    <TableHead className="text-left">الإجراءات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {suppliersList.map((supplier) => {
+                    const statusConfig = STATUS_CONFIG[supplier.approvalStatus as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending;
+                    const StatusIcon = statusConfig.icon;
+                    
+                    return (
+                      <TableRow key={supplier.id}>
+                        <TableCell className="font-bold text-slate-800 dark:text-slate-200 text-right">
+                          {canViewDetails ? (
+                            <button
+                              onClick={() => openSupplierDetails(supplier)}
+                              className="hover:text-teal-600 hover:underline text-right transition-colors"
+                            >
+                              {supplier.name}
+                            </button>
+                          ) : (
+                            <span>{supplier.name}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {supplier.entityType === "company" ? "شركة" : "مؤسسة"}
+                        </TableCell>
+                        <TableCell className="text-right" dir="ltr">{supplier.commercialRegister}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex flex-wrap gap-1 justify-start">
+                            {getWorkFieldsArray(supplier.workFields).slice(0, 2).map((field) => (
+                              <Badge key={field} variant="secondary" className="text-xs">
+                                {WORK_FIELD_LABELS[field] || field}
+                              </Badge>
+                            ))}
+                            {getWorkFieldsArray(supplier.workFields).length > 2 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{getWorkFieldsArray(supplier.workFields).length - 2}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge className={statusConfig.color}>
+                            <StatusIcon className="h-3 w-3 ml-1" />
+                            {statusConfig.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {supplier.registrationSource === "portal" ? (
+                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 gap-1.5 inline-flex items-center text-xs font-medium px-2 py-0.5">
+                              <Globe className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                              سجل بالمنصة
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 gap-1.5 inline-flex items-center text-xs font-medium px-2 py-0.5">
+                              <UserPlus className="h-3 w-3 text-slate-500 shrink-0" />
+                              إدخال يدوي
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {new Date(supplier.createdAt).toLocaleDateString("ar-SA")}
+                        </TableCell>
+                        <TableCell className="text-left">
+                          {(() => {
+                            const canApproveReject = supplier.approvalStatus === "pending" && hasApprovePermission;
+                            const canSuspendSupplier = supplier.approvalStatus === "approved" && canSuspend;
+                            const canReactivateSupplier = supplier.approvalStatus === "suspended" && canSuspend;
+                            const hasAnyMenuAction = canViewDetails || hasEditPermission || canApproveReject || canSuspendSupplier || canReactivateSupplier;
+
+                            if (!hasAnyMenuAction) {
+                              return <span className="text-muted-foreground text-xs">—</span>;
+                            }
+
+                            return (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {canViewDetails && (
+                                    <DropdownMenuItem onClick={() => openSupplierDetails(supplier)}>
+                                      <Eye className="h-4 w-4 ml-2" />
+                                      عرض التفاصيل
+                                    </DropdownMenuItem>
+                                  )}
+                                  {hasEditPermission && (
+                                    <DropdownMenuItem onClick={() => navigate(`/suppliers/${supplier.id}/edit`)}>
+                                      <Pencil className="h-4 w-4 ml-2" />
+                                      تعديل البيانات
+                                    </DropdownMenuItem>
+                                  )}
+                                  {canApproveReject && (
+                                    <>
+                                      <DropdownMenuItem
+                                        onClick={() => handleApprove(supplier.id)}
+                                        className="text-green-600 font-bold"
+                                      >
+                                        <CheckCircle2 className="h-4.5 w-4.5 ml-2 text-green-600" />
+                                        اعتماد المورد
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedSupplier(supplier);
+                                          setShowRejectDialog(true);
+                                        }}
+                                        className="text-red-600 font-bold"
+                                      >
+                                        <XCircle className="h-4.5 w-4.5 ml-2 text-red-600" />
+                                        رفض المورد
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                  {canSuspendSupplier && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleSuspend(supplier.id)}
+                                      className="text-orange-600"
+                                    >
+                                      <Ban className="h-4 w-4 ml-2" />
+                                      إيقاف
+                                    </DropdownMenuItem>
+                                  )}
+                                  {canReactivateSupplier && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleApprove(supplier.id)}
+                                      className="text-green-600 font-bold"
+                                    >
+                                      <Play className="h-4.5 w-4.5 ml-2 text-green-600" />
+                                      إعادة تنشيط
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            );
+                          })()}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* نافذة رفض المورد */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent className="w-[90vw] max-w-md rounded-2xl p-6" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-right text-lg font-bold">تأكيد رفض المورد</DialogTitle>
+            <DialogDescription className="text-right text-sm mt-2">
+              يرجى إدخال سبب رفض طلب تسجيل المورد "{selectedSupplier?.name}":
+            </DialogDescription>
+          </DialogHeader>
+          <div className="my-4">
+            <Textarea
+              placeholder="اكتب سبب الرفض هنا..."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              className="w-full text-right"
+              rows={3}
+            />
+          </div>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row-reverse gap-2 mt-6">
+            <Button
+              onClick={handleReject}
+              disabled={rejectMutation.isPending || !rejectReason.trim()}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold"
+            >
+              {rejectMutation.isPending ? "جاري الرفض..." : "تأكيد الرفض"}
+            </Button>
+            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+              إلغاء
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* تم نقل تعديل المورد إلى صفحة تعديل منفصلة */}
+    </DashboardLayout>
+  );
+}

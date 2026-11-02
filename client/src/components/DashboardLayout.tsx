@@ -372,11 +372,11 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
 
   // 3. المشتريات والمالية
   const finItems: MenuItem[] = [];
-  if (has("suppliers"))           finItems.push({ icon: Truck,       label: "الموردون",        path: "/suppliers" });
-  if (has("boq") || has("boq.view") || has("boq.add") || has("boq.edit") || has("boq.delete") || has("boq.import") || has("boq.export")) {
-    finItems.push({ icon: Calculator,    label: "إعداد جداول الكميات",   path: "/boq-preparations" });
+  if (has("suppliers") || has("suppliers.view")) finItems.push({ icon: Truck, label: "الموردون", path: "/suppliers" });
+  if (has("boq") || has("boq.view")) {
+    finItems.push({ icon: Calculator, label: "إعداد جداول الكميات", path: "/boq-preparations" });
   }
-  if (has("quotations")) {
+  if (has("quotations") || has("quotations.view")) {
     finItems.push({ icon: Receipt, label: "عروض الأسعار", path: "/quotations" });
   }
   const VALID_APPROVAL_PERMS = [
@@ -388,24 +388,31 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
     "financial_approval.contracts",
     "financial_approval.purchase_orders",
     "financial_approval.progress_reports",
+    "financial_approval.approve",
   ];
-  if (has("*") || permissions.some(p => VALID_APPROVAL_PERMS.includes(p))) {
+  if (has("financial_approval") || has("financial_approval.view") || permissions.some(p => VALID_APPROVAL_PERMS.includes(p))) {
     finItems.push({ icon: CheckSquare, label: isEn ? "Approvals" : "الاعتمادات", path: "/financial-approval" });
   }
   if (has("contracts") || has("contracts.view")) {
     finItems.push({ icon: FileText, label: "العقود", path: "/contracts" });
   }
-  if (has("disbursement_requests")) finItems.push({ icon: Banknote,  label: "طلبات الصرف",    path: "/disbursements" });
-  if (has("disbursement_orders")) finItems.push({ icon: FileText,    label: "أوامر الصرف",    path: "/disbursement-orders" });
-  if (has("receipt_vouchers") || has("receipt_vouchers.view") || has("receipt_vouchers.add") || has("receipt_vouchers.edit") || has("receipt_vouchers.exception_approve")) finItems.push({ icon: Coins, label: "سندات القبض", path: "/receipt-vouchers" });
-  if (["financial", "financial_manager"].includes(role) || has("fund.view") || has("fund.transfer")) {
+  if (has("disbursements") || has("disbursements.view") || has("disbursement_requests")) {
+    finItems.push({ icon: Banknote, label: "طلبات الصرف", path: "/disbursements" });
+  }
+  if (has("disbursement_orders") || has("disbursement_orders.view")) {
+    finItems.push({ icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" });
+  }
+  if (has("receipt_vouchers") || has("receipt_vouchers.view")) {
+    finItems.push({ icon: Coins, label: "سندات القبض", path: "/receipt-vouchers" });
+  }
+  if (has("fund") || has("fund.view")) {
     finItems.push({ icon: Landmark, label: "الصندوق", path: "/fund" });
   }
-  if (role !== "service_requester" && (has("*") || has("custody_requests") || has("custody_requests.view") || has("custody_requests.create"))) {
+  if (has("custody_requests") || has("custody_requests.view")) {
     finItems.push({ icon: Wallet, label: isEn ? "Financial Custody" : "العهد المالية", path: "/custody-requests" });
   }
-  if (has("financial_report") || has("financial_reports.view") || has("financial_reports.export") || has("financial_reports")) {
-    finItems.push({ icon: BarChart3,   label: "التقرير المالي", path: "/financial-report" });
+  if (has("financial_reports") || has("financial_reports.view") || has("financial_report")) {
+    finItems.push({ icon: BarChart3, label: "التقرير المالي", path: "/financial-report" });
   }
   
   if (finItems.length > 0) {

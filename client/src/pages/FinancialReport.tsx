@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
+import { usePermission } from "@/hooks/usePermission";
 import { motion } from "framer-motion";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -217,12 +218,13 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
   const [receiptVoucherSearch, setReceiptVoucherSearch] = useState<string>("");
 
   const userPermissions: string[] = (user as any)?.permissions ?? [];
-  const isSuperOrSystemAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const hasDashboardView = userPermissions.includes("information_dashboard") || 
-                           userPermissions.includes("information_dashboard.view") || 
+  const canViewPerm = usePermission("financial_reports.view") || usePermission("financial_reports") || usePermission("financial_report");
+  const canExportPerm = usePermission("financial_reports.export");
+  const hasDashboardView = usePermission("information_dashboard") || 
+                           usePermission("information_dashboard.view") || 
                            user?.role === "dashboard_viewer";
-  const canView = isSuperOrSystemAdmin || userPermissions.includes("financial_reports.view") || (embedded && hasDashboardView);
-  const canExport = isSuperOrSystemAdmin || userPermissions.includes("financial_reports.export");
+  const canView = canViewPerm || (embedded && hasDashboardView);
+  const canExport = canExportPerm;
 
   useEffect(() => {
     if (!embedded && user && !canView) {

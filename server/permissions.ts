@@ -1,4157 +1,8819 @@
 import { eq, and, or, ne, sql, inArray, notInArray, isNull, like } from "drizzle-orm";
+
 import { getDb } from "./db";
+
 import {
+
   modules,
+
   permissions,
+
   roles,
+
   rolePermissions,
+
   userRoleAssignments,
+
   userPermissions,
+
   permissionsAuditLog,
+
   users
+
 } from "../drizzle/schema";
+
 import { TRPCError } from "@trpc/server";
+
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+
 import { z } from "zod";
+
+
 
 // ==================== دوال مساعدة ====================
 
+
+
 /**
+
  * خريطة توسيع الصلاحيات: تربط معرّفات الصلاحيات البسيطة (من RoleEdit)
+
  * بالصلاحيات الدقيقة المستخدمة في permissionProcedure
+
  */
+
 const PERMISSION_EXPANSION: Record<string, string[]> = {
+
   "information_dashboard.view": ["information_dashboard.view"],
+
   information_dashboard: ["information_dashboard.view"],
+
   Create_Ticket: ["Create_Ticket"],
+
   View_Tickets: ["View_Tickets"],
+
   beneficiary_evaluations: [
+
     "beneficiary_evaluations.view",
+
     "beneficiary_evaluations.evaluations_log",
+
     "beneficiary_evaluations.dispatch_log",
+
     "beneficiary_evaluations.contacts",
+
     "beneficiary_evaluations.reply",
+
     "beneficiary_evaluations.hide",
+
   ],
+
   "beneficiary_evaluations.view": ["beneficiary_evaluations.view"],
+
   "beneficiary_evaluations.evaluations_log": ["beneficiary_evaluations.evaluations_log"],
+
   "beneficiary_evaluations.dispatch_log": ["beneficiary_evaluations.dispatch_log"],
+
   "beneficiary_evaluations.contacts": ["beneficiary_evaluations.contacts"],
+
   "beneficiary_evaluations.reply": ["beneficiary_evaluations.reply"],
+
   "beneficiary_evaluations.hide": ["beneficiary_evaluations.hide"],
+
   beneficiary_satisfaction: [
+
     "beneficiary_evaluations.view",
+
     "beneficiary_evaluations.evaluations_log",
+
     "beneficiary_evaluations.dispatch_log",
+
     "beneficiary_evaluations.contacts",
+
     "beneficiary_evaluations.reply",
+
     "beneficiary_evaluations.hide",
+
   ],
+
   staff_management: [
+
     "permissions.view", "permissions.create", "permissions.edit", "permissions.delete",
+
     "users.view", "users.edit", "users.create", "users.delete",
+
     "users.suspend", "users.activate", "users.customize"
+
   ],
+
   mosques: ["mosques.view", "mosques.create", "mosques.edit", "mosques.delete", "mosques.approve"],
+
   mosques_map: ["mosque_map.view"],
+
   requests: ["requests.view", "requests.create", "requests.edit", "requests.delete", "requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response", "requests.create_quick_request", "requests.upload_final_report", "requests.add_review_note"],
+
   "requests.view": ["requests.view"],
+
   "requests.create": ["requests.create"],
+
   "requests.view_details": ["requests.view", "requests.edit", "requests.delete", "requests.view_details"],
+
   "requests.add_review_note": ["requests.view", "requests.add_review_note"],
+
   "requests.manage_as_field_team": ["requests.view", "requests.edit", "requests.manage_as_field_team"],
+
   "requests.manage_as_quick_response": ["requests.view", "requests.edit", "requests.manage_as_quick_response"],
+
   appointments_calendar: ["field_visits.view", "appointments.view"],
+
   projects: ["projects.view", "projects.view_details", "projects.create_multi_mosque", "projects.assign_as_manager", "projects.financials", "projects.edit_support_and_fees", "projects.add_receipt_voucher"],
+
   "projects.view": ["projects.view"],
+
   "projects.view_details": ["projects.view", "projects.view_details"],
+
   "projects.create_multi_mosque": ["projects.view", "projects.create_multi_mosque"],
+
   "projects.financials": ["projects.view", "projects.financials"],
+
   "projects.edit_support_and_fees": ["projects.view", "projects.financials", "projects.edit_support_and_fees"],
+
   "projects.add_receipt_voucher": ["projects.view", "projects.financials", "projects.add_receipt_voucher"],
+
   service_requester_accounts: ["users.view", "users.edit"],
+
   escalation: ["escalation.view"],
+
   "escalation.view": ["escalation.view"],
+
   suppliers: [
-    "suppliers.view", "suppliers.view_details", "suppliers.add", "suppliers.create", "suppliers.edit", "suppliers.delete", 
+
+    "suppliers.view", "suppliers.view_details", "suppliers.add", "suppliers.create", "suppliers.edit", 
+
     "suppliers.approve", "suppliers.reject", "suppliers.suspend"
+
   ],
-  quotations: ["quotations.view", "quotations.create", "quotations.edit", "quotations.approve"],
-  financial_approval: ["financial.view", "financial.approve", "financial.reject"],
-  contracts: ["contracts.view", "contracts.create", "contracts.edit", "contracts.edit_approved", "contracts.delete", "contracts.approve"],
-  purchase_orders: [
-    "purchase_orders.view",
-    "purchase_orders.add",
-    "purchase_orders.create_disbursement",
-  ],
-  "purchase_orders.view": ["purchase_orders.view"],
-  "purchase_orders.add": ["purchase_orders.add", "purchase_orders.view"],
-  "purchase_orders.approve": ["purchase_orders.approve"],
-  "purchase_orders.create_disbursement": ["purchase_orders.create_disbursement", "purchase_orders.view"],
-  "purchase_orders.export": ["purchase_orders.export"],
-  csr_letters: [
-    "csr_letters.view",
-    "csr_letters.add",
-  ],
-  "csr_letters.view": ["csr_letters.view", "csr_letters.print"],
-  "csr_letters.add": ["csr_letters.add", "csr_letters.view"],
-  "csr_letters.approve": ["csr_letters.approve"],
-  "csr_letters.create_disbursement": ["csr_letters.create_disbursement"],
-  "csr_letters.print": ["csr_letters.print"],
-  "csr_letters.export": ["csr_letters.export"],
-  sedana_warehouse: [
-    "sedana_warehouse.view",
-    "sedana_warehouse.inward",
-    "sedana_warehouse.outbound",
-  ],
-  "sedana_warehouse.view": ["sedana_warehouse.view"],
-  "sedana_warehouse.inward": ["sedana_warehouse.inward", "sedana_warehouse.view"],
-  "sedana_warehouse.outbound": ["sedana_warehouse.outbound", "sedana_warehouse.view"],
-
-  custody_requests: ["custody_requests.view"],
-  "custody_requests.view": ["custody_requests.view"],
-  "custody_requests.create": ["custody_requests.create", "custody_requests.view"],
-  sedana_quotations: ["sedana_quotations.view"],
-  "sedana_quotations.view": ["sedana_quotations.view"],
-  "sedana_quotations.export_pdf": ["sedana_quotations.export_pdf", "sedana_quotations.view"],
-  "sedana_quotations.add": ["sedana_quotations.add", "sedana_quotations.view"],
-  "sedana_quotations.recommend": ["sedana_quotations.recommend", "sedana_quotations.view"],
-  "sedana_quotations.approve": ["sedana_quotations.approve", "sedana_quotations.view"],
-  disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve", "disbursements.exception_approve"],
-  disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.exception_approve", "disbursement_orders.reject", "disbursement_orders.create_direct", "disbursement_orders.remind", "disbursement_orders.cancel_executed"],
-  "disbursement_orders.cancel_executed": ["disbursement_orders.cancel_executed", "disbursement_orders.view"],
-  "disbursement_orders.remind": ["disbursement_orders.remind"],
-  progress_reports: ["progress_reports.view", "progress_reports.add", "progress_reports.edit", "progress_reports.approve", "progress_reports.revoke_approval", "progress_reports.exception_approve"],
-  progress_invoices: ["progress_invoices.view", "progress_invoices.add", "progress_invoices.edit", "progress_invoices.approve", "progress_invoices.revoke_approval", "progress_invoices.exception_approve"],
-  project_reports: ["project_reports.view", "project_reports.create"],
-  financial_report: ["financial_reports.view"],
-  reports: ["reports.view_stats", "reports.export_data"],
-  "reports.view_stats": ["reports.view_stats", "reports.view"],
-  "reports.export_data": ["reports.export_data", "reports.view"],
-
-  // مركز الإحصائيات والتحليلات الشامل
-  analytics_hub: [
-    "reports.view", "reports.view_stats", "financial_reports.view", "progress_reports.view"
-  ],
-  "analytics_hub.custom": ["reports.view_stats", "reports.view"],
-  "analytics_hub.kpi": ["reports.view_stats", "reports.view"],
-  "analytics_hub.technical": ["reports.view_stats", "reports.view", "reports.export_data"],
-  "analytics_hub.financial_report": ["financial_reports.view", "financial.view"],
-  "analytics_hub.financial_dash": ["financial_reports.view", "financial.view"],
-  "analytics_hub.board": ["financial_reports.view", "reports.view"],
-  "analytics_hub.beneficiary": ["reports.view"],
-  "analytics_hub.operations": ["requests.view", "reports.view"],
-  "analytics_hub.progress": ["progress_reports.view"],
-
-  "forms_customization.analytics": ["settings.view", "settings.edit", "forms_customization.analytics", "forms_customization.view"],
-  settings_center: [
-    "settings.view", 
-    "settings_org.view", 
-    "settings_branding.view", 
-    "settings_categories.view", 
-    "services.view", 
-    "forms_customization.view", 
-    "settings_escalation.view"
-  ],
-  programs_services: [
-    "settings.view",
-    "services.view",
-    "services.add",
-    "services.edit",
-    "services.toggle_status",
-    "services.reorder",
-    "services.delete"
-  ],
-  settings_escalation: [
-    "settings_escalation.view",
-    "settings_escalation.edit_durations",
-    "settings_escalation.edit_beneficiary_sla"
-  ],
-  "settings_escalation.view": ["settings_escalation.view", "settings.view", "escalation.view"],
-  "settings_escalation.edit_durations": ["settings_escalation.edit_durations", "settings_escalation.view", "settings.view", "settings.edit"],
-  "settings_escalation.edit_beneficiary_sla": ["settings_escalation.edit_beneficiary_sla", "settings_escalation.view", "settings.view", "settings.edit"],
-  "settings_escalation.save": ["settings_escalation.edit_durations", "settings_escalation.edit_beneficiary_sla", "settings_escalation.view", "settings.view", "settings.edit"],
-  "settings_escalation.edit": [
-    "settings_escalation.view",
-    "settings_escalation.edit_durations",
-    "settings_escalation.edit_beneficiary_sla",
-    "settings.view",
-    "settings.edit"
-  ],
-
-  settings_org: ["settings.view", "settings.edit", "settings_org.view"],
-  "settings_org.view": ["settings_org.view", "settings.view"],
-  "settings_org.edit_basic": ["settings_org.edit_basic", "settings_org.view", "settings.view", "settings.edit"],
-  "settings_org.edit_supervision": ["settings_org.edit_supervision", "settings_org.view", "settings.view", "settings.edit"],
-  "settings_org.edit_officials": ["settings_org.edit_officials", "settings_org.view", "settings.view", "settings.edit"],
-  "settings_org.signers_view": ["settings_org.signers_view", "settings_org.view", "settings.view"],
-  "settings_org.signers_add": ["settings_org.signers_add", "settings_org.signers_view", "settings_org.view", "settings.view", "settings.edit"],
-  "settings_org.signers_edit": ["settings_org.signers_edit", "settings_org.signers_view", "settings_org.view", "settings.view", "settings.edit"],
-  "settings_org.signers_set_default": ["settings_org.signers_set_default", "settings_org.signers_view", "settings_org.view", "settings.view", "settings.edit"],
-  "settings_org.signers_delete": ["settings_org.signers_delete", "settings_org.signers_view", "settings_org.view", "settings.view", "settings.edit"],
-  "settings_org.edit_banks": ["settings_org.edit_banks", "settings_org.view", "settings.view", "settings.edit"],
-  "settings_org.edit_contracts": ["settings_org.edit_contracts", "settings_org.view", "settings.view", "settings.edit"],
-  "settings_org.edit_signers": [
-    "settings_org.signers_view",
-    "settings_org.signers_add",
-    "settings_org.signers_edit",
-    "settings_org.signers_set_default",
-    "settings_org.signers_delete",
-    "settings_org.view",
-    "settings.view",
-    "settings.edit"
-  ],
-
-  settings_branding: ["settings.view", "settings.edit", "settings_branding.view"],
-  "settings_branding.view": ["settings_branding.view", "settings.view"],
-  "settings_branding.edit_colors": ["settings_branding.edit_colors", "settings_branding.view", "settings.view", "settings.edit"],
-  "settings_branding.upload_logos": ["settings_branding.upload_logos", "settings_branding.view", "settings.view", "settings.edit"],
-  "settings_branding.delete_logos": ["settings_branding.delete_logos", "settings_branding.view", "settings.view", "settings.edit"],
-  "settings_branding.edit": [
-    "settings_branding.view",
-    "settings_branding.edit_colors",
-    "settings_branding.upload_logos",
-    "settings_branding.delete_logos",
-    "settings.view",
-    "settings.edit"
-  ],
-
-  settings_contracts: ["settings.view", "settings.edit", "settings_contracts.view"],
-  "settings_contracts.view": ["settings_contracts.view", "settings.view"],
-  "settings_contracts.edit": ["settings_contracts.edit", "settings_contracts.view", "settings.view", "settings.edit"],
-
-  settings_categories: ["settings.view", "settings.edit", "settings_categories.view"],
-  "settings_categories.view": ["settings_categories.view", "settings.view"],
-  "settings_categories.add": ["settings_categories.add", "settings_categories.view", "settings.view", "settings.edit"],
-  "settings_categories.edit": ["settings_categories.edit", "settings_categories.view", "settings.view", "settings.edit"],
-  "settings_categories.reorder": ["settings_categories.reorder", "settings_categories.view", "settings.view", "settings.edit"],
-  "settings_categories.delete": ["settings_categories.delete", "settings_categories.view", "settings.view", "settings.edit"],
-
-  services: ["settings.view", "settings.edit", "services.view"],
-  "services.view": ["services.view", "settings.view"],
-  "services.add": ["services.add", "services.view", "settings.view", "settings.edit"],
-  "services.edit": ["services.edit", "services.view", "settings.view", "settings.edit"],
-  "services.toggle_status": ["services.toggle_status", "services.view", "settings.view", "settings.edit"],
-  "services.reorder": ["services.reorder", "services.view", "settings.view", "settings.edit"],
-  "services.delete": ["services.delete", "services.view", "settings.view", "settings.edit"],
-
-  forms_customization: [
-    "forms_customization.view",
-    "forms_customization.dashboard_global",
-    "forms_customization.dashboard_role",
-    "forms_customization.dashboard_user",
-    "forms_customization.evaluation_view",
-    "forms_customization.evaluation_add_field",
-    "forms_customization.evaluation_delete",
-    "forms_customization.evaluation_duplicate",
-    "forms_customization.evaluation_placeholder",
-    "forms_customization.evaluation_description",
-    "forms_customization.evaluation_change_type",
-    "forms_customization.evaluation_required",
-    "forms_customization.evaluation_toggle_active",
-    "forms_customization.evaluation_reorder",
-    "forms_customization.services_view",
-    "forms_customization.services_add_field",
-    "forms_customization.services_delete",
-    "forms_customization.services_duplicate",
-    "forms_customization.services_placeholder",
-    "forms_customization.services_description",
-    "forms_customization.services_change_type",
-    "forms_customization.services_required",
-    "forms_customization.services_toggle_active",
-    "forms_customization.services_reorder",
-    "forms_customization.registration_view",
-    "forms_customization.registration_add_field",
-    "forms_customization.registration_delete",
-    "forms_customization.registration_duplicate",
-    "forms_customization.registration_placeholder",
-    "forms_customization.registration_description",
-    "forms_customization.registration_change_type",
-    "forms_customization.registration_required",
-    "forms_customization.registration_toggle_active",
-    "forms_customization.registration_reorder",
-    "forms_customization.evaluation",
-    "forms_customization.services",
-    "forms_customization.registration",
-    "settings.view",
-    "settings.edit"
-  ],
-  "forms_customization.view": ["forms_customization.view", "settings.view"],
-
-  // تخصيص لوحة المعلومات
-  "forms_customization.dashboard_global": ["forms_customization.dashboard_global", "forms_customization.view", "settings.view"],
-  "forms_customization.dashboard_role": ["forms_customization.dashboard_role", "forms_customization.view", "settings.view"],
-  "forms_customization.dashboard_user": ["forms_customization.dashboard_user", "forms_customization.view", "settings.view"],
-
-  // استمارة تقييم رضا المستفيد
-  "forms_customization.evaluation_view": ["forms_customization.evaluation_view", "forms_customization.view", "settings.view"],
-  "forms_customization.evaluation_add_field": ["forms_customization.evaluation_add_field", "forms_customization.view", "settings.view"],
-  "forms_customization.evaluation_delete": ["forms_customization.evaluation_delete", "forms_customization.view", "settings.view"],
-  "forms_customization.evaluation_duplicate": ["forms_customization.evaluation_duplicate", "forms_customization.view", "settings.view"],
-  "forms_customization.evaluation_placeholder": ["forms_customization.evaluation_placeholder", "forms_customization.view", "settings.view"],
-  "forms_customization.evaluation_description": ["forms_customization.evaluation_description", "forms_customization.view", "settings.view"],
-  "forms_customization.evaluation_change_type": ["forms_customization.evaluation_change_type", "forms_customization.view", "settings.view"],
-  "forms_customization.evaluation_required": ["forms_customization.evaluation_required", "forms_customization.view", "settings.view"],
-  "forms_customization.evaluation_toggle_active": ["forms_customization.evaluation_toggle_active", "forms_customization.view", "settings.view"],
-  "forms_customization.evaluation_reorder": ["forms_customization.evaluation_reorder", "forms_customization.view", "settings.view"],
-
-  // نماذج طلبات الخدمات
-  "forms_customization.services_view": ["forms_customization.services_view", "forms_customization.view", "settings.view"],
-  "forms_customization.services_add_field": ["forms_customization.services_add_field", "forms_customization.view", "settings.view"],
-  "forms_customization.services_delete": ["forms_customization.services_delete", "forms_customization.view", "settings.view"],
-  "forms_customization.services_duplicate": ["forms_customization.services_duplicate", "forms_customization.view", "settings.view"],
-  "forms_customization.services_placeholder": ["forms_customization.services_placeholder", "forms_customization.view", "settings.view"],
-  "forms_customization.services_description": ["forms_customization.services_description", "forms_customization.view", "settings.view"],
-  "forms_customization.services_change_type": ["forms_customization.services_change_type", "forms_customization.view", "settings.view"],
-  "forms_customization.services_required": ["forms_customization.services_required", "forms_customization.view", "settings.view"],
-  "forms_customization.services_toggle_active": ["forms_customization.services_toggle_active", "forms_customization.view", "settings.view"],
-  "forms_customization.services_reorder": ["forms_customization.services_reorder", "forms_customization.view", "settings.view"],
-
-  // نماذج التسجيل والتبرع
-  "forms_customization.registration_view": ["forms_customization.registration_view", "forms_customization.view", "settings.view"],
-  "forms_customization.registration_add_field": ["forms_customization.registration_add_field", "forms_customization.view", "settings.view"],
-  "forms_customization.registration_delete": ["forms_customization.registration_delete", "forms_customization.view", "settings.view"],
-  "forms_customization.registration_duplicate": ["forms_customization.registration_duplicate", "forms_customization.view", "settings.view"],
-  "forms_customization.registration_placeholder": ["forms_customization.registration_placeholder", "forms_customization.view", "settings.view"],
-  "forms_customization.registration_description": ["forms_customization.registration_description", "forms_customization.view", "settings.view"],
-  "forms_customization.registration_change_type": ["forms_customization.registration_change_type", "forms_customization.view", "settings.view"],
-  "forms_customization.registration_required": ["forms_customization.registration_required", "forms_customization.view", "settings.view"],
-  "forms_customization.registration_toggle_active": ["forms_customization.registration_toggle_active", "forms_customization.view", "settings.view"],
-  "forms_customization.registration_reorder": ["forms_customization.registration_reorder", "forms_customization.view", "settings.view"],
-
-  // توافق مع المفاتيح القديمة
-  "forms_customization.evaluation": [
-    "forms_customization.evaluation",
-    "forms_customization.evaluation_add_field",
-    "forms_customization.evaluation_duplicate",
-    "forms_customization.evaluation_placeholder",
-    "forms_customization.evaluation_description",
-    "forms_customization.evaluation_change_type",
-    "forms_customization.evaluation_required",
-    "forms_customization.evaluation_toggle_active",
-    "forms_customization.evaluation_reorder",
-    "forms_customization.view",
-    "settings.view",
-    "settings.edit"
-  ],
-  "forms_customization.services_add": ["forms_customization.services_add_field", "forms_customization.services_view", "forms_customization.view", "settings.view", "settings.edit"],
-  "forms_customization.services_edit": ["forms_customization.services_change_type", "forms_customization.services_view", "forms_customization.view", "settings.view", "settings.edit"],
-  "forms_customization.services": [
-    "forms_customization.services",
-    "forms_customization.services_add_field",
-    "forms_customization.services_duplicate",
-    "forms_customization.services_placeholder",
-    "forms_customization.services_description",
-    "forms_customization.services_change_type",
-    "forms_customization.services_required",
-    "forms_customization.services_toggle_active",
-    "forms_customization.services_reorder",
-    "forms_customization.services_view",
-    "forms_customization.services_add",
-    "forms_customization.services_edit",
-    "forms_customization.services_delete",
-    "forms_customization.view",
-    "settings.view",
-    "settings.edit"
-  ],
-  "forms_customization.registration": [
-    "forms_customization.registration",
-    "forms_customization.registration_add_field",
-    "forms_customization.registration_duplicate",
-    "forms_customization.registration_placeholder",
-    "forms_customization.registration_description",
-    "forms_customization.registration_change_type",
-    "forms_customization.registration_required",
-    "forms_customization.registration_toggle_active",
-    "forms_customization.registration_reorder",
-    "forms_customization.view",
-    "settings.view",
-    "settings.edit"
-  ],
-
-  "staff_notifications.view": ["staff_notifications.view", "settings.view"],
-  "staff_notifications.by_role": ["staff_notifications.by_role", "staff_notifications.view", "settings.view", "settings.edit"],
-  "staff_notifications.by_department": ["staff_notifications.by_department", "staff_notifications.view", "settings.view", "settings.edit"],
-  "staff_notifications.by_person": ["staff_notifications.by_person", "staff_notifications.view", "settings.view", "settings.edit"],
-  "staff_notifications.beneficiary": ["staff_notifications.beneficiary", "staff_notifications.view", "settings.view", "settings.edit"],
-  "staff_notifications.beneficiary_message_formats": ["staff_notifications.beneficiary_message_formats", "staff_notifications.view", "settings.view", "settings.edit"],
-  "staff_notifications.edit_message_formats": ["staff_notifications.edit_message_formats", "staff_notifications.view", "settings.view", "settings.edit"],
-
-  "notification_center.view": ["notification_center.view", "notification_center.send_logs", "settings.view"],
-  "notification_center.direct_send_staff": ["notification_center.direct_send_staff", "settings.view", "settings.edit"],
-  "notification_center.direct_send_beneficiary": ["notification_center.direct_send_beneficiary", "settings.view", "settings.edit"],
-  "notification_center.direct_send": ["notification_center.direct_send", "settings.view", "settings.edit"],
-  "notification_center.send_logs": ["notification_center.send_logs", "notification_center.view", "settings.view"],
-  corporate_comm: ["requests.view", "reports.view", "settings.view", "requests.upload_final_report"],
-  "requests.upload_final_report": ["requests.view", "requests.upload_final_report"],
-  "requests.create_quick_request": ["requests.create_quick_request"],
-  field_visits: ["field_visits.view", "field_visits.create", "field_visits.edit", "field_visits.delete"],
-
-  // إدارة المستفيدين - 5 تبويبات مخصصة
-  requester_accounts: ["users.view", "users.edit"],
-  "requester_accounts.view": ["users.view"],
-  "requester_accounts.view_details": ["users.view"],
-  "requester_accounts.create": ["users.create", "users.edit"],
-  "requester_accounts.approve": ["users.edit"],
-  "requester_accounts.suspend": ["users.edit"],
-
-  requester_exceptions: ["requests.view", "requests.edit"],
-  "requester_exceptions.view": ["requests.view"],
-  "requester_exceptions.approve": ["requests.edit", "requests.approve"],
-  "requester_exceptions.reject": ["requests.edit", "requests.approve"],
-
-  requester_donations: ["publicSubmissions.view", "publicSubmissions.edit"],
-  "requester_donations.view": ["publicSubmissions.view"],
-  "requester_donations.review": ["publicSubmissions.view"],
-  "requester_donations.approve": ["publicSubmissions.edit"],
-  "requester_donations.send_email": ["publicSubmissions.view"],
-  "requester_donations.send_whatsapp": ["publicSubmissions.view"],
-
-  requester_inquiries: ["publicSubmissions.view", "publicSubmissions.edit"],
-  "requester_inquiries.view": ["publicSubmissions.view"],
-  "requester_inquiries.review": ["publicSubmissions.view"],
-  "requester_inquiries.mark_reviewed": ["publicSubmissions.edit"],
-  "requester_inquiries.send_email": ["publicSubmissions.view"],
-  "requester_inquiries.send_whatsapp": ["publicSubmissions.view"],
-
-  requester_sedana: ["sedanaInquiries.view", "sedanaInquiries.edit"],
-  "requester_sedana.view": ["sedanaInquiries.view"],
-  "requester_sedana.review": ["sedanaInquiries.edit"],
-  "requester_sedana.send_email": ["sedanaInquiries.view"],
-  "requester_sedana.send_whatsapp": ["sedanaInquiries.view"],
 
   "suppliers.view": ["suppliers.view"],
+
   "suppliers.view_details": ["suppliers.view_details", "suppliers.view"],
-  "suppliers.add": ["suppliers.add", "suppliers.create"],
-  "suppliers.edit": ["suppliers.edit"],
-  "suppliers.approve": ["suppliers.approve", "suppliers.reject"],
-  "suppliers.suspend": ["suppliers.suspend"],
 
-  mosque_map: ["mosque_map.view"],
-  "mosque_map.view": ["mosque_map.view"],
+  "suppliers.add": ["suppliers.add", "suppliers.create", "suppliers.view"],
 
-  appointments: ["field_visits.view"],
-  "appointments.view": ["field_visits.view"],
-  "appointments.view_all": ["field_visits.view"],
-  "appointments.view_own": ["field_visits.view"],
+  "suppliers.create": ["suppliers.create", "suppliers.add", "suppliers.view"],
 
-  staff: [
-    "permissions.view", "permissions.create", "permissions.edit", "permissions.delete",
-    "users.view", "users.edit", "users.create", "users.delete",
-    "users.suspend", "users.activate", "users.customize"
-  ],
-  "staff.view": ["users.view", "permissions.view"],
-  "staff.add": ["users.create", "permissions.create"],
-  "staff.edit": ["users.edit", "permissions.edit"],
-  "staff.delete": ["users.delete", "permissions.delete"],
-  "staff.manage_users": ["users.edit"],
-  "staff.manage_custom_roles": ["permissions.edit"],
+  "suppliers.edit": ["suppliers.edit", "suppliers.view"],
 
-  "staff_users.view": ["users.view"],
-  "staff_users.add": ["users.create"],
-  "staff_users.edit": ["users.edit"],
-  "staff_users.customize": ["users.customize"],
-  "staff_users.suspend": ["users.suspend"],
-  "staff_users.activate": ["users.activate"],
-  "staff_users.delete": ["users.delete"],
+  "suppliers.approve": ["suppliers.approve", "suppliers.view"],
 
-  "staff_roles.view": ["permissions.view"],
-  "staff_roles.customize": ["permissions.edit"],
-  "staff_roles.suspend": ["permissions.edit"],
+  "suppliers.reject": ["suppliers.reject", "suppliers.view"],
 
-  "staff_custom_roles.view": ["permissions.view"],
-  "staff_custom_roles.add": ["permissions.create"],
-  "staff_custom_roles.edit": ["permissions.edit"],
-  "staff_notifications.edit": [
-    "settings.view",
-    "settings.edit",
-    "staff_notifications.by_role",
-    "staff_notifications.by_department",
-    "staff_notifications.edit_message_formats",
-    "staff_notifications.by_person",
-    "staff_notifications.beneficiary",
-    "staff_notifications.beneficiary_message_formats"
-  ],
-  staff_notifications: [
-    "staff_notifications.by_role",
-    "staff_notifications.by_department",
-    "staff_notifications.edit_message_formats",
-    "staff_notifications.by_person",
-    "staff_notifications.beneficiary",
-    "staff_notifications.beneficiary_message_formats"
-  ],
-  notification_center: [
-    "notification_center.view",
-    "notification_center.direct_send_staff",
-    "notification_center.direct_send_beneficiary",
-    "notification_center.send_logs"
-  ],
+  "suppliers.suspend": ["suppliers.suspend", "suppliers.view"],
 
-  settings: ["settings.view", "settings.edit"],
-  "settings.view": ["settings.view"],
-  "settings.add": ["settings.edit"],
-  "settings.edit": ["settings.edit"],
-  "settings.delete": ["settings.edit"],
 
-  "financial_approval.progress_invoices": ["financial.view"],
-  "financial_approval.disbursement_requests": ["financial.view"],
-  "financial_approval.disbursement_orders": ["financial.view"],
-  "financial_approval.custody_requests": ["financial.view"],
-  "financial_approval.receipt_vouchers": ["financial.view"],
-  "financial_approval.contracts": ["financial.view"],
-  "financial_approval.purchase_orders": ["financial.view"],
-  "financial_approval.progress_reports": ["financial.view"],
-
-  "quotations.view": ["quotations.view"],
-  "quotations.add": ["quotations.create"],
-  "quotations.approve": ["quotations.approve"],
-
-  "contracts.view": ["contracts.view"],
-  "contracts.create": ["contracts.create"],
-  "contracts.edit_approved": ["contracts.edit_approved", "contracts.edit", "contracts.view"],
-  "contracts.approve": ["contracts.approve", "contracts.view"],
-  "contracts.template_add": ["contracts.create"],
-  "contracts.template_edit": ["contracts.edit"],
-  "contracts.template_delete": ["contracts.delete"],
-  "contracts.clause_add": ["contracts.create"],
-
-  "disbursement_orders.view": ["disbursement_orders.view_details"],
-  "disbursement_orders.approve": ["financial.approve"],
-  "disbursement_orders.reject": ["financial.approve"],
-  "disbursement_orders.view_details": ["disbursement_orders.view_details"],
-  "disbursement_orders.create_direct": ["disbursement_orders.create_direct"],
-
-  financial_reports: ["financial_reports.view"],
-  "financial_reports.view": ["financial_reports.view"],
-  "financial_reports.export": ["financial_reports.export"],
-  "financial_reports.analytics": ["financial_reports.analytics"],
-
-  "progress_reports.view": ["progress_reports.view"],
-  "progress_reports.add": ["progress_reports.add", "progress_reports.view"],
-  "progress_reports.edit": ["progress_reports.edit", "progress_reports.view"],
-  "progress_reports.approve": ["progress_reports.approve", "progress_reports.view"],
-  "progress_reports.revoke_approval": ["progress_reports.revoke_approval", "progress_reports.view"],
-  "progress_reports.exception_approve": ["progress_reports.exception_approve", "progress_reports.view"],
-
-  "progress_invoices.view": ["progress_invoices.view"],
-  "progress_invoices.add": ["progress_invoices.add", "progress_invoices.view"],
-  "progress_invoices.edit": ["progress_invoices.edit", "progress_invoices.view"],
-  "progress_invoices.approve": ["progress_invoices.approve", "progress_invoices.view"],
-  "progress_invoices.revoke_approval": ["progress_invoices.revoke_approval", "progress_invoices.view"],
-  "progress_invoices.exception_approve": ["progress_invoices.exception_approve", "progress_invoices.view"],
-
-  "project_reports.view": ["project_reports.view"],
-  "project_reports.create": ["project_reports.create", "project_reports.view"],
 
   boq: ["boq.view", "boq.add", "boq.edit", "boq.delete", "boq.import", "boq.export"],
+
   "boq.view": ["boq.view"],
+
   "boq.add": ["boq.add", "boq.view"],
+
   "boq.edit": ["boq.edit", "boq.view"],
+
   "boq.delete": ["boq.delete", "boq.view"],
+
   "boq.import": ["boq.import", "boq.view"],
+
   "boq.export": ["boq.export", "boq.view"],
-  receipt_vouchers: ["receipt_vouchers.view", "receipt_vouchers.add", "receipt_vouchers.edit"],
+
+
+
+  quotations: ["quotations.view", "quotations.view_sedana", "quotations.create", "quotations.add", "quotations.edit", "quotations.delete", "quotations.approve", "quotations.export"],
+
+  "quotations.view": ["quotations.view"],
+
+  "quotations.view_sedana": ["quotations.view_sedana", "quotations.view"],
+
+  "quotations.add": ["quotations.add", "quotations.create", "quotations.view"],
+
+  "quotations.create": ["quotations.create", "quotations.add", "quotations.view"],
+
+  "quotations.edit": ["quotations.edit", "quotations.view"],
+
+  "quotations.delete": ["quotations.delete", "quotations.view"],
+
+  "quotations.approve": ["quotations.approve", "quotations.view"],
+
+  "quotations.export": ["quotations.export", "quotations.view"],
+
+
+
+  financial_approval: [
+
+    "financial_approval.view",
+
+    "financial_approval.progress_invoices",
+
+    "financial_approval.disbursement_requests",
+
+    "financial_approval.disbursement_orders",
+
+    "financial_approval.custody_requests",
+
+    "financial_approval.receipt_vouchers",
+
+    "financial_approval.contracts",
+
+    "financial_approval.purchase_orders",
+
+    "financial_approval.progress_reports",
+
+    "financial_approval.approve"
+
+  ],
+
+  "financial_approval.view": ["financial_approval.view", "financial.view"],
+
+  "financial_approval.progress_invoices": ["financial_approval.progress_invoices", "financial_approval.view", "financial.view"],
+
+  "financial_approval.disbursement_requests": ["financial_approval.disbursement_requests", "financial_approval.view", "financial.view"],
+
+  "financial_approval.disbursement_orders": ["financial_approval.disbursement_orders", "financial_approval.view", "financial.view"],
+
+  "financial_approval.custody_requests": ["financial_approval.custody_requests", "financial_approval.view", "financial.view"],
+
+  "financial_approval.receipt_vouchers": ["financial_approval.receipt_vouchers", "financial_approval.view", "financial.view"],
+
+  "financial_approval.contracts": ["financial_approval.contracts", "financial_approval.view", "financial.view"],
+
+  "financial_approval.purchase_orders": ["financial_approval.purchase_orders", "financial_approval.view", "financial.view"],
+
+  "financial_approval.progress_reports": ["financial_approval.progress_reports", "financial_approval.view", "financial.view"],
+
+  "financial_approval.approve": ["financial_approval.approve", "financial_approval.view", "financial.approve"],
+
+
+
+  contracts: [
+
+    "contracts.view", "contracts.create", "contracts.edit", "contracts.delete", 
+
+    "contracts.approve", "contracts.edit_approved", 
+
+    "contracts.template_add", "contracts.template_edit", "contracts.template_delete", "contracts.clause_add", "contracts.export"
+
+  ],
+
+  "contracts.view": ["contracts.view"],
+
+  "contracts.create": ["contracts.create", "contracts.view"],
+
+  "contracts.edit": ["contracts.edit", "contracts.view"],
+
+  "contracts.delete": ["contracts.delete", "contracts.view"],
+
+  "contracts.approve": ["contracts.approve", "contracts.view"],
+
+  "contracts.edit_approved": ["contracts.edit_approved", "contracts.edit", "contracts.view"],
+
+  "contracts.template_add": ["contracts.template_add", "contracts.create", "contracts.view"],
+
+  "contracts.template_edit": ["contracts.template_edit", "contracts.edit", "contracts.view"],
+
+  "contracts.template_delete": ["contracts.template_delete", "contracts.delete", "contracts.view"],
+
+  "contracts.clause_add": ["contracts.clause_add", "contracts.create", "contracts.view"],
+
+  "contracts.export": ["contracts.export", "contracts.view"],
+
+
+
+  disbursements: [
+
+    "disbursements.view", "disbursements.create", "disbursements.add", "disbursements.edit", "disbursements.delete", 
+
+    "disbursements.approve", "disbursements.create_custom", "disbursements.create_donation", "disbursements.create_from_fund", 
+
+    "disbursements.exception_approve", "disbursements.export"
+
+  ],
+
+  disbursement_requests: [
+
+    "disbursements.view", "disbursements.create", "disbursements.add", "disbursements.edit", "disbursements.delete", 
+
+    "disbursements.approve", "disbursements.create_custom", "disbursements.create_donation", "disbursements.create_from_fund", 
+
+    "disbursements.exception_approve", "disbursements.export"
+
+  ],
+
+  "disbursements.view": ["disbursements.view"],
+
+  "disbursements.add": ["disbursements.add", "disbursements.create", "disbursements.view"],
+
+  "disbursements.create": ["disbursements.create", "disbursements.view"],
+
+  "disbursements.edit": ["disbursements.edit", "disbursements.view"],
+
+  "disbursements.delete": ["disbursements.delete", "disbursements.view"],
+
+  "disbursements.approve": ["disbursements.approve", "disbursements.view"],
+
+  "disbursements.create_custom": ["disbursements.create_custom", "disbursements.create", "disbursements.view"],
+
+  "disbursements.create_donation": ["disbursements.create_donation", "disbursements.create", "disbursements.view"],
+
+  "disbursements.create_from_fund": ["disbursements.create_from_fund", "disbursements.create", "disbursements.view"],
+
+  "disbursements.exception_approve": ["disbursements.exception_approve", "disbursements.view"],
+
+  "disbursements.export": ["disbursements.export", "disbursements.view"],
+
+
+
+  receipt_vouchers: ["receipt_vouchers.view", "receipt_vouchers.add", "receipt_vouchers.edit", "receipt_vouchers.delete", "receipt_vouchers.print", "receipt_vouchers.exception_approve"],
+
   "receipt_vouchers.view": ["receipt_vouchers.view"],
+
   "receipt_vouchers.add": ["receipt_vouchers.add", "receipt_vouchers.view"],
+
   "receipt_vouchers.edit": ["receipt_vouchers.edit", "receipt_vouchers.view"],
+
+  "receipt_vouchers.delete": ["receipt_vouchers.delete", "receipt_vouchers.view"],
+
+  "receipt_vouchers.print": ["receipt_vouchers.print", "receipt_vouchers.view"],
+
+  "receipt_vouchers.exception_approve": ["receipt_vouchers.exception_approve", "receipt_vouchers.view"],
+
+
+
+  fund: ["fund.view", "fund.transfer", "fund.export"],
+
+  "fund.view": ["fund.view"],
+
+  "fund.transfer": ["fund.transfer", "fund.view"],
+
+  "fund.export": ["fund.export", "fund.view"],
+
+
+
+  disbursement_orders: [
+
+    "disbursement_orders.view", "disbursement_orders.create_direct", "disbursement_orders.approve", 
+
+    "disbursement_orders.reject", "disbursement_orders.exception_approve", "disbursement_orders.remind", 
+
+    "disbursement_orders.cancel_executed", "disbursement_orders.export"
+
+  ],
+
+  "disbursement_orders.view": ["disbursement_orders.view", "disbursement_orders.view_details"],
+
+  "disbursement_orders.create_direct": ["disbursement_orders.create_direct", "disbursement_orders.view"],
+
+  "disbursement_orders.approve": ["disbursement_orders.approve", "financial.approve", "disbursement_orders.view"],
+
+  "disbursement_orders.reject": ["disbursement_orders.reject", "financial.approve", "disbursement_orders.view"],
+
+  "disbursement_orders.exception_approve": ["disbursement_orders.exception_approve", "disbursement_orders.view"],
+
+  "disbursement_orders.remind": ["disbursement_orders.remind", "disbursement_orders.view"],
+
+  "disbursement_orders.cancel_executed": ["disbursement_orders.cancel_executed", "disbursement_orders.view"],
+
+  "disbursement_orders.export": ["disbursement_orders.export", "disbursement_orders.view"],
+
+
+
+  financial_reports: ["financial_reports.view", "financial_reports.export", "financial_reports.analytics"],
+
+  financial_report: ["financial_reports.view", "financial_reports.export", "financial_reports.analytics"],
+
+  "financial_reports.view": ["financial_reports.view"],
+
+  "financial_reports.export": ["financial_reports.export", "financial_reports.view"],
+
+  "financial_reports.analytics": ["financial_reports.analytics", "financial_reports.view"],
+
+
+
+  custody_requests: ["custody_requests.view", "custody_requests.create", "custody_requests.edit", "custody_requests.delete", "custody_requests.approve", "custody_requests.settle", "custody_requests.print"],
+
+  "custody_requests.view": ["custody_requests.view"],
+
+  "custody_requests.create": ["custody_requests.create", "custody_requests.view"],
+
+  "custody_requests.edit": ["custody_requests.edit", "custody_requests.view"],
+
+  "custody_requests.delete": ["custody_requests.delete", "custody_requests.view"],
+
+  "custody_requests.approve": ["custody_requests.approve", "custody_requests.view"],
+
+  "custody_requests.settle": ["custody_requests.settle", "custody_requests.view"],
+
+  "custody_requests.print": ["custody_requests.print", "custody_requests.view"],
+
+  purchase_orders: [
+
+    "purchase_orders.view",
+
+    "purchase_orders.add",
+
+    "purchase_orders.create_disbursement",
+
+  ],
+
+  "purchase_orders.view": ["purchase_orders.view"],
+
+  "purchase_orders.add": ["purchase_orders.add", "purchase_orders.view"],
+
+  "purchase_orders.approve": ["purchase_orders.approve"],
+
+  "purchase_orders.create_disbursement": ["purchase_orders.create_disbursement", "purchase_orders.view"],
+
+  "purchase_orders.export": ["purchase_orders.export"],
+
+  csr_letters: [
+
+    "csr_letters.view",
+
+    "csr_letters.add",
+
+  ],
+
+  "csr_letters.view": ["csr_letters.view", "csr_letters.print"],
+
+  "csr_letters.add": ["csr_letters.add", "csr_letters.view"],
+
+  "csr_letters.approve": ["csr_letters.approve"],
+
+  "csr_letters.create_disbursement": ["csr_letters.create_disbursement"],
+
+  "csr_letters.print": ["csr_letters.print"],
+
+  "csr_letters.export": ["csr_letters.export"],
+
+  sedana_warehouse: [
+
+    "sedana_warehouse.view",
+
+    "sedana_warehouse.inward",
+
+    "sedana_warehouse.outbound",
+
+  ],
+
+  "sedana_warehouse.view": ["sedana_warehouse.view"],
+
+  "sedana_warehouse.inward": ["sedana_warehouse.inward", "sedana_warehouse.view"],
+
+  "sedana_warehouse.outbound": ["sedana_warehouse.outbound", "sedana_warehouse.view"],
+
+
+
+  sedana_quotations: ["sedana_quotations.view"],
+
+  "sedana_quotations.view": ["sedana_quotations.view"],
+
+  "sedana_quotations.export_pdf": ["sedana_quotations.export_pdf", "sedana_quotations.view"],
+
+  "sedana_quotations.add": ["sedana_quotations.add", "sedana_quotations.view"],
+
+  "sedana_quotations.recommend": ["sedana_quotations.recommend", "sedana_quotations.view"],
+
+  "sedana_quotations.approve": ["sedana_quotations.approve", "sedana_quotations.view"],
+
+  progress_reports: ["progress_reports.view", "progress_reports.add", "progress_reports.edit", "progress_reports.approve", "progress_reports.revoke_approval", "progress_reports.exception_approve"],
+
+  progress_invoices: ["progress_invoices.view", "progress_invoices.add", "progress_invoices.edit", "progress_invoices.approve", "progress_invoices.revoke_approval", "progress_invoices.exception_approve"],
+
+  project_reports: ["project_reports.view", "project_reports.create"],
+
+  reports: ["reports.view_stats", "reports.export_data"],
+
+  "reports.view_stats": ["reports.view_stats", "reports.view"],
+
+  "reports.export_data": ["reports.export_data", "reports.view"],
+
+
+
+  // مركز الإحصائيات والتحليلات الشامل
+
+  analytics_hub: [
+
+    "reports.view", "reports.view_stats", "financial_reports.view", "progress_reports.view"
+
+  ],
+
+  "analytics_hub.custom": ["reports.view_stats", "reports.view"],
+
+  "analytics_hub.kpi": ["reports.view_stats", "reports.view"],
+
+  "analytics_hub.technical": ["reports.view_stats", "reports.view", "reports.export_data"],
+
+  "analytics_hub.financial_report": ["financial_reports.view", "financial.view"],
+
+  "analytics_hub.financial_dash": ["financial_reports.view", "financial.view"],
+
+  "analytics_hub.board": ["financial_reports.view", "reports.view"],
+
+  "analytics_hub.beneficiary": ["reports.view"],
+
+  "analytics_hub.operations": ["requests.view", "reports.view"],
+
+  "analytics_hub.progress": ["progress_reports.view"],
+
+
+
+  "forms_customization.analytics": ["settings.view", "settings.edit", "forms_customization.analytics", "forms_customization.view"],
+
+  settings_center: [
+
+    "settings.view", 
+
+    "settings_org.view", 
+
+    "settings_branding.view", 
+
+    "settings_categories.view", 
+
+    "services.view", 
+
+    "forms_customization.view", 
+
+    "settings_escalation.view"
+
+  ],
+
+  programs_services: [
+
+    "settings.view",
+
+    "services.view",
+
+    "services.add",
+
+    "services.edit",
+
+    "services.toggle_status",
+
+    "services.reorder",
+
+    "services.delete"
+
+  ],
+
+  settings_escalation: [
+
+    "settings_escalation.view",
+
+    "settings_escalation.edit_durations",
+
+    "settings_escalation.edit_beneficiary_sla"
+
+  ],
+
+  "settings_escalation.view": ["settings_escalation.view", "settings.view", "escalation.view"],
+
+  "settings_escalation.edit_durations": ["settings_escalation.edit_durations", "settings_escalation.view", "settings.view", "settings.edit"],
+
+  "settings_escalation.edit_beneficiary_sla": ["settings_escalation.edit_beneficiary_sla", "settings_escalation.view", "settings.view", "settings.edit"],
+
+  "settings_escalation.save": ["settings_escalation.edit_durations", "settings_escalation.edit_beneficiary_sla", "settings_escalation.view", "settings.view", "settings.edit"],
+
+  "settings_escalation.edit": [
+
+    "settings_escalation.view",
+
+    "settings_escalation.edit_durations",
+
+    "settings_escalation.edit_beneficiary_sla",
+
+    "settings.view",
+
+    "settings.edit"
+
+  ],
+
+
+
+  settings_org: ["settings.view", "settings.edit", "settings_org.view"],
+
+  "settings_org.view": ["settings_org.view", "settings.view"],
+
+  "settings_org.edit_basic": ["settings_org.edit_basic", "settings_org.view", "settings.view", "settings.edit"],
+
+  "settings_org.edit_supervision": ["settings_org.edit_supervision", "settings_org.view", "settings.view", "settings.edit"],
+
+  "settings_org.edit_officials": ["settings_org.edit_officials", "settings_org.view", "settings.view", "settings.edit"],
+
+  "settings_org.signers_view": ["settings_org.signers_view", "settings_org.view", "settings.view"],
+
+  "settings_org.signers_add": ["settings_org.signers_add", "settings_org.signers_view", "settings_org.view", "settings.view", "settings.edit"],
+
+  "settings_org.signers_edit": ["settings_org.signers_edit", "settings_org.signers_view", "settings_org.view", "settings.view", "settings.edit"],
+
+  "settings_org.signers_set_default": ["settings_org.signers_set_default", "settings_org.signers_view", "settings_org.view", "settings.view", "settings.edit"],
+
+  "settings_org.signers_delete": ["settings_org.signers_delete", "settings_org.signers_view", "settings_org.view", "settings.view", "settings.edit"],
+
+  "settings_org.edit_banks": ["settings_org.edit_banks", "settings_org.view", "settings.view", "settings.edit"],
+
+  "settings_org.edit_contracts": ["settings_org.edit_contracts", "settings_org.view", "settings.view", "settings.edit"],
+
+  "settings_org.edit_signers": [
+
+    "settings_org.signers_view",
+
+    "settings_org.signers_add",
+
+    "settings_org.signers_edit",
+
+    "settings_org.signers_set_default",
+
+    "settings_org.signers_delete",
+
+    "settings_org.view",
+
+    "settings.view",
+
+    "settings.edit"
+
+  ],
+
+
+
+  settings_branding: ["settings.view", "settings.edit", "settings_branding.view"],
+
+  "settings_branding.view": ["settings_branding.view", "settings.view"],
+
+  "settings_branding.edit_colors": ["settings_branding.edit_colors", "settings_branding.view", "settings.view", "settings.edit"],
+
+  "settings_branding.upload_logos": ["settings_branding.upload_logos", "settings_branding.view", "settings.view", "settings.edit"],
+
+  "settings_branding.delete_logos": ["settings_branding.delete_logos", "settings_branding.view", "settings.view", "settings.edit"],
+
+  "settings_branding.edit": [
+
+    "settings_branding.view",
+
+    "settings_branding.edit_colors",
+
+    "settings_branding.upload_logos",
+
+    "settings_branding.delete_logos",
+
+    "settings.view",
+
+    "settings.edit"
+
+  ],
+
+
+
+  settings_contracts: ["settings.view", "settings.edit", "settings_contracts.view"],
+
+  "settings_contracts.view": ["settings_contracts.view", "settings.view"],
+
+  "settings_contracts.edit": ["settings_contracts.edit", "settings_contracts.view", "settings.view", "settings.edit"],
+
+
+
+  settings_categories: ["settings.view", "settings.edit", "settings_categories.view"],
+
+  "settings_categories.view": ["settings_categories.view", "settings.view"],
+
+  "settings_categories.add": ["settings_categories.add", "settings_categories.view", "settings.view", "settings.edit"],
+
+  "settings_categories.edit": ["settings_categories.edit", "settings_categories.view", "settings.view", "settings.edit"],
+
+  "settings_categories.reorder": ["settings_categories.reorder", "settings_categories.view", "settings.view", "settings.edit"],
+
+  "settings_categories.delete": ["settings_categories.delete", "settings_categories.view", "settings.view", "settings.edit"],
+
+
+
+  services: ["settings.view", "settings.edit", "services.view"],
+
+  "services.view": ["services.view", "settings.view"],
+
+  "services.add": ["services.add", "services.view", "settings.view", "settings.edit"],
+
+  "services.edit": ["services.edit", "services.view", "settings.view", "settings.edit"],
+
+  "services.toggle_status": ["services.toggle_status", "services.view", "settings.view", "settings.edit"],
+
+  "services.reorder": ["services.reorder", "services.view", "settings.view", "settings.edit"],
+
+  "services.delete": ["services.delete", "services.view", "settings.view", "settings.edit"],
+
+
+
+  forms_customization: [
+
+    "forms_customization.view",
+
+    "forms_customization.dashboard_global",
+
+    "forms_customization.dashboard_role",
+
+    "forms_customization.dashboard_user",
+
+    "forms_customization.evaluation_view",
+
+    "forms_customization.evaluation_add_field",
+
+    "forms_customization.evaluation_delete",
+
+    "forms_customization.evaluation_duplicate",
+
+    "forms_customization.evaluation_placeholder",
+
+    "forms_customization.evaluation_description",
+
+    "forms_customization.evaluation_change_type",
+
+    "forms_customization.evaluation_required",
+
+    "forms_customization.evaluation_toggle_active",
+
+    "forms_customization.evaluation_reorder",
+
+    "forms_customization.services_view",
+
+    "forms_customization.services_add_field",
+
+    "forms_customization.services_delete",
+
+    "forms_customization.services_duplicate",
+
+    "forms_customization.services_placeholder",
+
+    "forms_customization.services_description",
+
+    "forms_customization.services_change_type",
+
+    "forms_customization.services_required",
+
+    "forms_customization.services_toggle_active",
+
+    "forms_customization.services_reorder",
+
+    "forms_customization.registration_view",
+
+    "forms_customization.registration_add_field",
+
+    "forms_customization.registration_delete",
+
+    "forms_customization.registration_duplicate",
+
+    "forms_customization.registration_placeholder",
+
+    "forms_customization.registration_description",
+
+    "forms_customization.registration_change_type",
+
+    "forms_customization.registration_required",
+
+    "forms_customization.registration_toggle_active",
+
+    "forms_customization.registration_reorder",
+
+    "forms_customization.evaluation",
+
+    "forms_customization.services",
+
+    "forms_customization.registration",
+
+    "settings.view",
+
+    "settings.edit"
+
+  ],
+
+  "forms_customization.view": ["forms_customization.view", "settings.view"],
+
+
+
+  // تخصيص لوحة المعلومات
+
+  "forms_customization.dashboard_global": ["forms_customization.dashboard_global", "forms_customization.view", "settings.view"],
+
+  "forms_customization.dashboard_role": ["forms_customization.dashboard_role", "forms_customization.view", "settings.view"],
+
+  "forms_customization.dashboard_user": ["forms_customization.dashboard_user", "forms_customization.view", "settings.view"],
+
+
+
+  // استمارة تقييم رضا المستفيد
+
+  "forms_customization.evaluation_view": ["forms_customization.evaluation_view", "forms_customization.view", "settings.view"],
+
+  "forms_customization.evaluation_add_field": ["forms_customization.evaluation_add_field", "forms_customization.view", "settings.view"],
+
+  "forms_customization.evaluation_delete": ["forms_customization.evaluation_delete", "forms_customization.view", "settings.view"],
+
+  "forms_customization.evaluation_duplicate": ["forms_customization.evaluation_duplicate", "forms_customization.view", "settings.view"],
+
+  "forms_customization.evaluation_placeholder": ["forms_customization.evaluation_placeholder", "forms_customization.view", "settings.view"],
+
+  "forms_customization.evaluation_description": ["forms_customization.evaluation_description", "forms_customization.view", "settings.view"],
+
+  "forms_customization.evaluation_change_type": ["forms_customization.evaluation_change_type", "forms_customization.view", "settings.view"],
+
+  "forms_customization.evaluation_required": ["forms_customization.evaluation_required", "forms_customization.view", "settings.view"],
+
+  "forms_customization.evaluation_toggle_active": ["forms_customization.evaluation_toggle_active", "forms_customization.view", "settings.view"],
+
+  "forms_customization.evaluation_reorder": ["forms_customization.evaluation_reorder", "forms_customization.view", "settings.view"],
+
+
+
+  // نماذج طلبات الخدمات
+
+  "forms_customization.services_view": ["forms_customization.services_view", "forms_customization.view", "settings.view"],
+
+  "forms_customization.services_add_field": ["forms_customization.services_add_field", "forms_customization.view", "settings.view"],
+
+  "forms_customization.services_delete": ["forms_customization.services_delete", "forms_customization.view", "settings.view"],
+
+  "forms_customization.services_duplicate": ["forms_customization.services_duplicate", "forms_customization.view", "settings.view"],
+
+  "forms_customization.services_placeholder": ["forms_customization.services_placeholder", "forms_customization.view", "settings.view"],
+
+  "forms_customization.services_description": ["forms_customization.services_description", "forms_customization.view", "settings.view"],
+
+  "forms_customization.services_change_type": ["forms_customization.services_change_type", "forms_customization.view", "settings.view"],
+
+  "forms_customization.services_required": ["forms_customization.services_required", "forms_customization.view", "settings.view"],
+
+  "forms_customization.services_toggle_active": ["forms_customization.services_toggle_active", "forms_customization.view", "settings.view"],
+
+  "forms_customization.services_reorder": ["forms_customization.services_reorder", "forms_customization.view", "settings.view"],
+
+
+
+  // نماذج التسجيل والتبرع
+
+  "forms_customization.registration_view": ["forms_customization.registration_view", "forms_customization.view", "settings.view"],
+
+  "forms_customization.registration_add_field": ["forms_customization.registration_add_field", "forms_customization.view", "settings.view"],
+
+  "forms_customization.registration_delete": ["forms_customization.registration_delete", "forms_customization.view", "settings.view"],
+
+  "forms_customization.registration_duplicate": ["forms_customization.registration_duplicate", "forms_customization.view", "settings.view"],
+
+  "forms_customization.registration_placeholder": ["forms_customization.registration_placeholder", "forms_customization.view", "settings.view"],
+
+  "forms_customization.registration_description": ["forms_customization.registration_description", "forms_customization.view", "settings.view"],
+
+  "forms_customization.registration_change_type": ["forms_customization.registration_change_type", "forms_customization.view", "settings.view"],
+
+  "forms_customization.registration_required": ["forms_customization.registration_required", "forms_customization.view", "settings.view"],
+
+  "forms_customization.registration_toggle_active": ["forms_customization.registration_toggle_active", "forms_customization.view", "settings.view"],
+
+  "forms_customization.registration_reorder": ["forms_customization.registration_reorder", "forms_customization.view", "settings.view"],
+
+
+
+  // توافق مع المفاتيح القديمة
+
+  "forms_customization.evaluation": [
+
+    "forms_customization.evaluation",
+
+    "forms_customization.evaluation_add_field",
+
+    "forms_customization.evaluation_duplicate",
+
+    "forms_customization.evaluation_placeholder",
+
+    "forms_customization.evaluation_description",
+
+    "forms_customization.evaluation_change_type",
+
+    "forms_customization.evaluation_required",
+
+    "forms_customization.evaluation_toggle_active",
+
+    "forms_customization.evaluation_reorder",
+
+    "forms_customization.view",
+
+    "settings.view",
+
+    "settings.edit"
+
+  ],
+
+  "forms_customization.services_add": ["forms_customization.services_add_field", "forms_customization.services_view", "forms_customization.view", "settings.view", "settings.edit"],
+
+  "forms_customization.services_edit": ["forms_customization.services_change_type", "forms_customization.services_view", "forms_customization.view", "settings.view", "settings.edit"],
+
+  "forms_customization.services": [
+
+    "forms_customization.services",
+
+    "forms_customization.services_add_field",
+
+    "forms_customization.services_duplicate",
+
+    "forms_customization.services_placeholder",
+
+    "forms_customization.services_description",
+
+    "forms_customization.services_change_type",
+
+    "forms_customization.services_required",
+
+    "forms_customization.services_toggle_active",
+
+    "forms_customization.services_reorder",
+
+    "forms_customization.services_view",
+
+    "forms_customization.services_add",
+
+    "forms_customization.services_edit",
+
+    "forms_customization.services_delete",
+
+    "forms_customization.view",
+
+    "settings.view",
+
+    "settings.edit"
+
+  ],
+
+  "forms_customization.registration": [
+
+    "forms_customization.registration",
+
+    "forms_customization.registration_add_field",
+
+    "forms_customization.registration_duplicate",
+
+    "forms_customization.registration_placeholder",
+
+    "forms_customization.registration_description",
+
+    "forms_customization.registration_change_type",
+
+    "forms_customization.registration_required",
+
+    "forms_customization.registration_toggle_active",
+
+    "forms_customization.registration_reorder",
+
+    "forms_customization.view",
+
+    "settings.view",
+
+    "settings.edit"
+
+  ],
+
+
+
+  "staff_notifications.view": ["staff_notifications.view", "settings.view"],
+
+  "staff_notifications.by_role": ["staff_notifications.by_role", "staff_notifications.view", "settings.view", "settings.edit"],
+
+  "staff_notifications.by_department": ["staff_notifications.by_department", "staff_notifications.view", "settings.view", "settings.edit"],
+
+  "staff_notifications.by_person": ["staff_notifications.by_person", "staff_notifications.view", "settings.view", "settings.edit"],
+
+  "staff_notifications.beneficiary": ["staff_notifications.beneficiary", "staff_notifications.view", "settings.view", "settings.edit"],
+
+  "staff_notifications.beneficiary_message_formats": ["staff_notifications.beneficiary_message_formats", "staff_notifications.view", "settings.view", "settings.edit"],
+
+  "staff_notifications.edit_message_formats": ["staff_notifications.edit_message_formats", "staff_notifications.view", "settings.view", "settings.edit"],
+
+
+
+  "notification_center.view": ["notification_center.view", "notification_center.send_logs", "settings.view"],
+
+  "notification_center.direct_send_staff": ["notification_center.direct_send_staff", "settings.view", "settings.edit"],
+
+  "notification_center.direct_send_beneficiary": ["notification_center.direct_send_beneficiary", "settings.view", "settings.edit"],
+
+  "notification_center.direct_send": ["notification_center.direct_send", "settings.view", "settings.edit"],
+
+  "notification_center.send_logs": ["notification_center.send_logs", "notification_center.view", "settings.view"],
+
+  corporate_comm: ["requests.view", "reports.view", "settings.view", "requests.upload_final_report"],
+
+  "requests.upload_final_report": ["requests.view", "requests.upload_final_report"],
+
+  "requests.create_quick_request": ["requests.create_quick_request"],
+
+  field_visits: ["field_visits.view", "field_visits.create", "field_visits.edit", "field_visits.delete"],
+
+
+
+  // إدارة المستفيدين - 5 تبويبات مخصصة
+
+  requester_accounts: ["users.view", "users.edit"],
+
+  "requester_accounts.view": ["users.view"],
+
+  "requester_accounts.view_details": ["users.view"],
+
+  "requester_accounts.create": ["users.create", "users.edit"],
+
+  "requester_accounts.approve": ["users.edit"],
+
+  "requester_accounts.suspend": ["users.edit"],
+
+
+
+  requester_exceptions: ["requests.view", "requests.edit"],
+
+  "requester_exceptions.view": ["requests.view"],
+
+  "requester_exceptions.approve": ["requests.edit", "requests.approve"],
+
+  "requester_exceptions.reject": ["requests.edit", "requests.approve"],
+
+
+
+  requester_donations: ["publicSubmissions.view", "publicSubmissions.edit"],
+
+  "requester_donations.view": ["publicSubmissions.view"],
+
+  "requester_donations.review": ["publicSubmissions.view"],
+
+  "requester_donations.approve": ["publicSubmissions.edit"],
+
+  "requester_donations.send_email": ["publicSubmissions.view"],
+
+  "requester_donations.send_whatsapp": ["publicSubmissions.view"],
+
+
+
+  requester_inquiries: ["publicSubmissions.view", "publicSubmissions.edit"],
+
+  "requester_inquiries.view": ["publicSubmissions.view"],
+
+  "requester_inquiries.review": ["publicSubmissions.view"],
+
+  "requester_inquiries.mark_reviewed": ["publicSubmissions.edit"],
+
+  "requester_inquiries.send_email": ["publicSubmissions.view"],
+
+  "requester_inquiries.send_whatsapp": ["publicSubmissions.view"],
+
+
+
+  requester_sedana: ["sedanaInquiries.view", "sedanaInquiries.edit"],
+
+  "requester_sedana.view": ["sedanaInquiries.view"],
+
+  "requester_sedana.review": ["sedanaInquiries.edit"],
+
+  "requester_sedana.send_email": ["sedanaInquiries.view"],
+
+  "requester_sedana.send_whatsapp": ["sedanaInquiries.view"],
+
+
+
+
+
+
+  mosque_map: ["mosque_map.view"],
+
+  "mosque_map.view": ["mosque_map.view"],
+
+
+
+  appointments: ["field_visits.view"],
+
+  "appointments.view": ["field_visits.view"],
+
+  "appointments.view_all": ["field_visits.view"],
+
+  "appointments.view_own": ["field_visits.view"],
+
+
+
+  staff: [
+
+    "permissions.view", "permissions.create", "permissions.edit", "permissions.delete",
+
+    "users.view", "users.edit", "users.create", "users.delete",
+
+    "users.suspend", "users.activate", "users.customize"
+
+  ],
+
+  "staff.view": ["users.view", "permissions.view"],
+
+  "staff.add": ["users.create", "permissions.create"],
+
+  "staff.edit": ["users.edit", "permissions.edit"],
+
+  "staff.delete": ["users.delete", "permissions.delete"],
+
+  "staff.manage_users": ["users.edit"],
+
+  "staff.manage_custom_roles": ["permissions.edit"],
+
+
+
+  "staff_users.view": ["users.view"],
+
+  "staff_users.add": ["users.create"],
+
+  "staff_users.edit": ["users.edit"],
+
+  "staff_users.customize": ["users.customize"],
+
+  "staff_users.suspend": ["users.suspend"],
+
+  "staff_users.activate": ["users.activate"],
+
+  "staff_users.delete": ["users.delete"],
+
+
+
+  "staff_roles.view": ["permissions.view"],
+
+  "staff_roles.customize": ["permissions.edit"],
+
+  "staff_roles.suspend": ["permissions.edit"],
+
+
+
+  "staff_custom_roles.view": ["permissions.view"],
+
+  "staff_custom_roles.add": ["permissions.create"],
+
+  "staff_custom_roles.edit": ["permissions.edit"],
+
+  "staff_notifications.edit": [
+
+    "settings.view",
+
+    "settings.edit",
+
+    "staff_notifications.by_role",
+
+    "staff_notifications.by_department",
+
+    "staff_notifications.edit_message_formats",
+
+    "staff_notifications.by_person",
+
+    "staff_notifications.beneficiary",
+
+    "staff_notifications.beneficiary_message_formats"
+
+  ],
+
+  staff_notifications: [
+
+    "staff_notifications.by_role",
+
+    "staff_notifications.by_department",
+
+    "staff_notifications.edit_message_formats",
+
+    "staff_notifications.by_person",
+
+    "staff_notifications.beneficiary",
+
+    "staff_notifications.beneficiary_message_formats"
+
+  ],
+
+  notification_center: [
+
+    "notification_center.view",
+
+    "notification_center.direct_send_staff",
+
+    "notification_center.direct_send_beneficiary",
+
+    "notification_center.send_logs"
+
+  ],
+
+
+
+  settings: ["settings.view", "settings.edit"],
+
+  "settings.view": ["settings.view"],
+
+  "settings.add": ["settings.edit"],
+
+  "settings.edit": ["settings.edit"],
+
+  "settings.delete": ["settings.edit"],
+
+
+
+  "progress_reports.view": ["progress_reports.view"],
+
+  "progress_reports.add": ["progress_reports.add", "progress_reports.view"],
+
+  "progress_reports.edit": ["progress_reports.edit", "progress_reports.view"],
+
+  "progress_reports.approve": ["progress_reports.approve", "progress_reports.view"],
+
+  "progress_reports.revoke_approval": ["progress_reports.revoke_approval", "progress_reports.view"],
+
+  "progress_reports.exception_approve": ["progress_reports.exception_approve", "progress_reports.view"],
+
+
+
+  "progress_invoices.view": ["progress_invoices.view"],
+
+  "progress_invoices.add": ["progress_invoices.add", "progress_invoices.view"],
+
+  "progress_invoices.edit": ["progress_invoices.edit", "progress_invoices.view"],
+
+  "progress_invoices.approve": ["progress_invoices.approve", "progress_invoices.view"],
+
+  "progress_invoices.revoke_approval": ["progress_invoices.revoke_approval", "progress_invoices.view"],
+
+  "progress_invoices.exception_approve": ["progress_invoices.exception_approve", "progress_invoices.view"],
+
+
+
+  "project_reports.view": ["project_reports.view"],
+
+  "project_reports.create": ["project_reports.create", "project_reports.view"],
+
+
+
   pending_reports: ["pending_reports.view", "pending_reports.intervene"],
+
   "pending_reports.view": ["pending_reports.view"],
+
   "pending_reports.intervene": ["pending_reports.intervene"],
 
-  "disbursements.add": ["disbursements.create"],
-  "disbursements.create_custom": ["disbursements.create", "disbursements.create_custom", "disbursements.create_donation"],
-  "disbursements.create_donation": ["disbursements.create", "disbursements.create_donation"],
-  "disbursements.exception_approve": ["disbursements.exception_approve"],
-  "disbursement_orders.exception_approve": ["disbursement_orders.exception_approve"],
+
 
   "progress_reports.sign": ["progress_reports.sign", "progress_reports.view"],
+
   "signing.progress_reports_sign": ["signing.progress_reports_sign", "progress_reports.view"],
 
+
+
   // Board Leadership Permissions Expansion
+
   board_chairman: ["board_chairman", "board_chairman_view"],
+
   board_chairman_view: ["board_chairman_view"],
+
   board_member: ["board_member"],
+
   "board.board_chairman": ["board_chairman", "board_chairman_view"],
+
   "board.board_chairman_view": ["board_chairman_view"],
+
   "board.board_member": ["board_member"],
+
   "board_leadership.board_chairman": ["board_chairman", "board_chairman_view"],
+
   "board_leadership.board_chairman_view": ["board_chairman_view"],
+
   "board_leadership.board_member": ["board_member"],
+
   // مالية سدانة
+
   "orders_and_letters.disbursement_orders": [
+
     "orders_and_letters.disbursement_orders",
+
     "orders_and_letters.view",
+
   ],
+
   "orders_and_letters.disbursement_orders_create_direct": [
+
     "orders_and_letters.disbursement_orders_create_direct",
+
     "orders_and_letters.disbursement_orders",
+
     "orders_and_letters.view",
+
   ],
+
   "orders_and_letters.disbursement_orders_exception_approve": [
+
     "orders_and_letters.disbursement_orders_exception_approve",
+
     "orders_and_letters.disbursement_orders",
+
     "orders_and_letters.view",
+
   ],
+
   "orders_and_letters.disbursement_orders_remind": [
+
     "orders_and_letters.disbursement_orders_remind",
+
     "orders_and_letters.disbursement_orders",
+
     "orders_and_letters.view",
+
   ],
+
   "orders_and_letters.disbursement_orders_cancel_executed": [
+
     "orders_and_letters.disbursement_orders_cancel_executed",
+
     "orders_and_letters.disbursement_orders",
+
     "orders_and_letters.view",
+
   ],
+
   "orders_and_letters.csr_letters": [
+
     "orders_and_letters.csr_letters",
+
     "orders_and_letters.view",
+
   ],
+
   "orders_and_letters.csr_letters_add": [
+
     "orders_and_letters.csr_letters_add",
+
     "orders_and_letters.csr_letters",
+
     "orders_and_letters.view",
+
     "orders_and_letters.create",
+
   ],
+
   "orders_and_letters.purchase_orders": [
+
     "orders_and_letters.purchase_orders",
+
     "orders_and_letters.view",
+
   ],
+
   "orders_and_letters.purchase_orders_add": [
+
     "orders_and_letters.purchase_orders_add",
+
     "orders_and_letters.purchase_orders",
+
     "orders_and_letters.view",
+
     "orders_and_letters.create",
+
   ],
+
   "orders_and_letters.purchase_orders_create_disbursement": [
+
     "orders_and_letters.purchase_orders_create_disbursement",
+
     "orders_and_letters.purchase_orders",
+
     "orders_and_letters.view",
+
   ],
+
 };
 
+
+
 /**
+
  * الصلاحيات المستبعدة من المنح التلقائي لمدراء النظام والمدير العام
+
  * (يجب منحها صراحةً إذا رغب المستخدم في تمكينها)
+
  */
+
 export const EXCLUDED_ADMIN_PERMISSIONS: string[] = [
+
   'requests.manage_as_field_team',
+
   'requests.manage_as_quick_response',
+
   'requests.upload_final_report',
+
   'board_chairman',
+
   'receipt_vouchers.exception_approve',
+
   'progress_reports.exception_approve',
+
   'progress_invoices.exception_approve',
+
   'disbursements.exception_approve',
+
   'disbursement_orders.exception_approve',
+
   'orders_and_letters',
+
   'orders_and_letters.disbursement_orders',
+
   'orders_and_letters.disbursement_orders_create_direct',
+
   'orders_and_letters.disbursement_orders_exception_approve',
+
   'orders_and_letters.disbursement_orders_remind',
+
   'orders_and_letters.disbursement_orders_cancel_executed',
+
   'orders_and_letters.csr_letters',
+
   'orders_and_letters.csr_letters_add',
+
   'orders_and_letters.purchase_orders',
+
   'orders_and_letters.purchase_orders_add',
+
   'orders_and_letters.purchase_orders_create_disbursement',
+
   'orders_and_letters.view',
+
   'orders_and_letters.create',
+
   'orders_and_letters.export',
+
 ];
 
+
+
 /**
+
  * دالة للتأكد من وجود صلاحيات الطلبات الجديدة في قاعدة البيانات
+
  */
+
 async function ensureRequestsPermissionsExist(db: any) {
+
   try {
+
     const reqPerms = [
+
       {
+
         id: "requests.view",
+
         moduleId: "requests",
+
         action: "view",
+
         nameAr: "عرض كافة الطلبات",
+
         nameEn: "View requests"
+
       },
+
       {
+
         id: "requests.create",
+
         moduleId: "requests",
+
         action: "create",
+
         nameAr: "اضافة طلب",
+
         nameEn: "Create request"
+
       },
+
       {
+
         id: "requests.view_details",
+
         moduleId: "requests",
+
         action: "view_details",
+
         nameAr: "عرض تفاصيل الطلب وادارته",
+
         nameEn: "View request details and manage"
+
       },
+
       {
+
         id: "requests.manage_as_field_team",
+
         moduleId: "requests",
+
         action: "manage_as_field_team",
+
         nameAr: "ادارة الطلبات كفريق ميداني",
+
         nameEn: "Manage requests as field team"
+
       },
+
       {
+
         id: "requests.manage_as_quick_response",
+
         moduleId: "requests",
+
         action: "manage_as_quick_response",
+
         nameAr: "ادارة الطلبات كفريق استجابة سريعة",
+
         nameEn: "Manage requests as quick response team"
+
       },
+
       {
+
         id: "requests.upload_final_report",
+
         moduleId: "requests",
+
         action: "upload_final_report",
+
         nameAr: "رفع التقرير الختامي",
+
         nameEn: "Upload final report"
+
       },
+
       {
+
         id: "requests.add_review_note",
+
         moduleId: "requests",
+
         action: "add_review_note",
+
         nameAr: "إضافة ملاحظة على مراجعة المعلومات والمرفقات",
+
         nameEn: "Add review note"
+
       },
+
       {
+
         id: "board_chairman",
+
         moduleId: "board",
+
         action: "board_chairman",
+
         nameAr: "عرض مركز الاعتماد المالي",
+
         nameEn: "View Financial Approval Center"
+
       },
+
       {
+
         id: "board_member",
+
         moduleId: "board",
+
         action: "board_member",
+
         nameAr: "عرض لوحة عضو مجلس الإدارة",
+
         nameEn: "View Board Member Dashboard"
+
       },
+
       {
+
         id: "projects.create_multi_mosque",
+
         moduleId: "projects",
+
         action: "create_multi_mosque",
+
         nameAr: "إضافة مشروع لعدة مساجد",
+
         nameEn: "Create Multi-Mosque Project"
+
       },
+
       {
+
         id: "projects.edit_support_and_fees",
+
         moduleId: "projects",
+
         action: "edit_support_and_fees",
+
         nameAr: "تعديل بيانات الداعمين والأجور الإدارية",
+
         nameEn: "Edit Sponsors and Admin Fees"
+
       },
+
       {
+
         id: "projects.add_receipt_voucher",
+
         moduleId: "projects",
+
         action: "add_receipt_voucher",
+
         nameAr: "إضافة سند صرف",
+
         nameEn: "Add Receipt Voucher"
+
       },
+
       {
+
         id: "project_reports.view",
+
         moduleId: "reports",
+
         action: "view",
+
         nameAr: "عرض تقارير المشاريع",
+
         nameEn: "View Project Reports"
+
       },
+
       {
+
         id: "project_reports.create",
+
         moduleId: "reports",
+
         action: "create",
+
         nameAr: "إنشاء تقارير مشاريع",
+
         nameEn: "Create Project Reports"
+
       },
+
       {
+
         id: "beneficiary_evaluations.view",
+
         moduleId: "beneficiary_evaluations",
+
         action: "view",
+
         nameAr: "عرض إحصائيات رضا المستفيدين",
+
         nameEn: "View Beneficiary Satisfaction"
+
       },
+
       {
+
         id: "beneficiary_evaluations.evaluations_log",
+
         moduleId: "beneficiary_evaluations",
+
         action: "evaluations_log",
+
         nameAr: "سجل استبيانات التقييم",
+
         nameEn: "Evaluations Survey Log"
+
       },
+
       {
+
         id: "beneficiary_evaluations.dispatch_log",
+
         moduleId: "beneficiary_evaluations",
+
         action: "dispatch_log",
+
         nameAr: "سجل الإرسال",
+
         nameEn: "Dispatch Survey Log"
+
       },
+
       {
+
         id: "beneficiary_evaluations.contacts",
+
         moduleId: "beneficiary_evaluations",
+
         action: "contacts",
+
         nameAr: "المستفيدين المعتمدين والاستفسارات",
+
         nameEn: "Approved Beneficiaries & Inquiries"
+
       },
+
       {
+
         id: "beneficiary_evaluations.reply",
+
         moduleId: "beneficiary_evaluations",
+
         action: "reply",
+
         nameAr: "إضافة رد على التقييم",
+
         nameEn: "Reply to Evaluation"
+
       },
+
       {
+
         id: "beneficiary_evaluations.hide",
+
         moduleId: "beneficiary_evaluations",
+
         action: "hide",
+
         nameAr: "إخفاء وإظهار التقييمات",
+
         nameEn: "Hide & Show Evaluations"
+
       },
+
       {
+
         id: "sedana_requests.view",
+
         moduleId: "sedana_requests",
+
         action: "view",
+
         nameAr: "عرض طلبات سدانة",
+
         nameEn: "View Sedana Requests"
+
       },
+
       {
+
         id: "sedana_requests.desk_review",
+
         moduleId: "sedana_requests",
+
         action: "desk_review",
+
         nameAr: "مراجعة الطلب مكتبيا",
+
         nameEn: "Desk Review of Request"
+
       },
+
       {
+
         id: "sedana_requests.manage",
+
         moduleId: "sedana_requests",
+
         action: "manage",
+
         nameAr: "ادارة طلب سدانة",
+
         nameEn: "Manage Sedana Request"
+
       }
+
     ];
+
+
 
     // التأكد من وجود وحدة طلبات سدانة أولاً في جدول الوحدات
+
     const [existingSedanaReqMod] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "sedana_requests")).limit(1);
+
     if (!existingSedanaReqMod) {
+
       await db.insert(modules).values({
+
         id: "sedana_requests",
+
         nameAr: "طلبات سدانة",
+
         nameEn: "Sedana Requests",
+
         icon: "Sparkles",
+
         displayOrder: 5,
+
         isActive: true
+
       }).catch(() => {});
+
     } else {
+
       await db.update(modules).set({
+
         nameAr: "طلبات سدانة",
+
         nameEn: "Sedana Requests",
+
       }).where(eq(modules.id, "sedana_requests")).catch(() => {});
+
     }
+
+
 
     // التأكد من وجود وحدة رضا المستفيدين أولاً في جدول الوحدات
+
     const [existingEvalMod] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "beneficiary_evaluations")).limit(1);
+
     if (!existingEvalMod) {
+
       await db.insert(modules).values({
+
         id: "beneficiary_evaluations",
+
         nameAr: "رضا المستفيدين",
+
         nameEn: "Beneficiary Satisfaction",
+
         icon: "HeartHandshake",
+
         displayOrder: 4,
+
         isActive: true
+
       }).catch(() => {});
+
     }
+
+
 
     // 1. إدخال أو تحديث الصلاحيات في جدول الصلاحيات
+
     let isFirstTime = false;
+
     for (const p of reqPerms) {
+
       const existing = await db.select({ id: permissions.id })
+
         .from(permissions)
+
         .where(eq(permissions.id, p.id))
+
         .limit(1);
+
       
+
       if (existing.length === 0) {
+
         await db.insert(permissions).values(p);
+
         console.log(`Inserted missing permission: ${p.id}`);
+
         isFirstTime = true;
+
       } else {
+
         await db.update(permissions).set({
+
           nameAr: p.nameAr,
+
           nameEn: p.nameEn,
+
           moduleId: p.moduleId,
+
           action: p.action
+
         }).where(eq(permissions.id, p.id));
+
       }
+
     }
+
+
 
     // 2. تحديث صلاحيات الأدوار الافتراضية
+
     await db.delete(rolePermissions).where(and(
+
       eq(rolePermissions.roleId, "board_chairman"),
+
       eq(rolePermissions.permissionId, "board_member")
+
     )).catch(() => {});
 
+
+
     const defaultMappings: Record<string, string[]> = {
+
       board_chairman: ["board_chairman"],
+
       board_member: ["board_member"],
+
       general_manager: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "quotations.view", "quotations.approve"],
+
       executive_director: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "quotations.view", "quotations.approve"],
+
       procurement_officer: ["quotations.view", "quotations.create", "quotations.add"],
+
       dashboard_viewer: ["information_dashboard.view", "information_dashboard"],
+
       projects_office: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide"],
+
       field_team: ["requests.view", "requests.manage_as_field_team"],
+
       quick_response: ["requests.view", "requests.manage_as_quick_response"],
+
       financial_manager: ["requests.view", "requests.view_details"],
+
       project_manager: ["requests.view", "requests.create", "requests.view_details"],
+
       corporate_comm: ["requests.view", "requests.upload_final_report"],
+
       super_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "escalation.view"],
+
       system_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "escalation.view"],
+
     };
+
+
 
     const roleNamesAr: Record<string, string> = {
+
       board_chairman: "رئيس مجلس الإدارة",
+
       board_member: "عضو مجلس الإدارة",
+
       general_manager: "المدير التنفيذي",
+
       executive_director: "المدير التنفيذي",
+
       financial_manager: "المدير المالي",
+
       system_admin: "مدير نظام",
+
       super_admin: "المدير العام",
+
       projects_office: "مكتب المشاريع",
+
       project_manager: "مدير المشاريع",
+
       financial: "الإدارة المالية",
+
       field_team: "فريق ميداني",
+
       quick_response: "فريق الاستجابة السريعة",
+
       corporate_comm: "الاتصال المؤسسي",
+
       service_requester: "طالب خدمة",
+
       procurement_officer: "مسؤول المشتريات",
+
       dashboard_viewer: "مستخدم لوحة المعلومات",
+
     };
+
+
 
     for (const [roleId, permIds] of Object.entries(defaultMappings)) {
+
       const [roleExists] = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
+
       if (!roleExists) {
+
         await db.insert(roles).values({
+
           id: roleId,
+
           nameAr: roleNamesAr[roleId] || roleId,
+
           nameEn: roleId,
+
           isSystem: true,
+
           isActive: true,
+
         }).catch(() => {});
+
       } else if (roleNamesAr[roleId] && roleExists.nameAr !== roleNamesAr[roleId]) {
+
         await db.update(roles).set({
+
           nameAr: roleNamesAr[roleId]
+
         }).where(eq(roles.id, roleId)).catch(() => {});
+
       }
+
+
 
       for (const permId of permIds) {
+
         const existingRolePerms = await db.select()
+
           .from(rolePermissions)
+
           .where(and(
+
             eq(rolePermissions.roleId, roleId),
+
             eq(rolePermissions.permissionId, permId)
+
           ));
 
+
+
         if (existingRolePerms.length === 0) {
+
           await db.insert(rolePermissions).values({
+
             roleId,
+
             permissionId: permId
+
           }).catch(() => {});
+
         }
+
       }
+
     }
+
     await ensureProjectsPermissionsExist(db);
+
   } catch (err) {
+
     console.error("Error in ensureRequestsPermissionsExist:", err);
+
   }
+
 }
 
+
+
 /**
+
  * دالة للتأكد من وجود صلاحيات المشاريع الجديدة في قاعدة البيانات
+
  */
+
 async function ensureProjectsPermissionsExist(db: any) {
+
   try {
+
     const projPerms = [
+
       {
+
         id: "projects.view",
+
         moduleId: "projects",
+
         action: "view",
+
         nameAr: "عرض المشاريع",
+
         nameEn: "View projects"
+
       },
+
       {
+
         id: "projects.view_details",
+
         moduleId: "projects",
+
         action: "view_details",
+
         nameAr: "عرض تفاصيل المشروع وادارته",
+
         nameEn: "View project details and manage"
+
       }
+
     ];
+
+
 
     let isFirstTime = false;
+
     for (const p of projPerms) {
+
       const existing = await db.select({ id: permissions.id })
+
         .from(permissions)
+
         .where(eq(permissions.id, p.id))
+
         .limit(1);
+
       
+
       if (existing.length === 0) {
+
         await db.insert(permissions).values(p);
+
         console.log(`Inserted missing permission: ${p.id}`);
+
         isFirstTime = true;
+
       } else {
+
         await db.update(permissions).set({
+
           nameAr: p.nameAr,
+
           nameEn: p.nameEn,
+
           moduleId: p.moduleId,
+
           action: p.action
+
         }).where(eq(permissions.id, p.id));
+
       }
+
     }
+
+
 
     if (isFirstTime) {
+
       const defaultMappings: Record<string, string[]> = {
+
         projects_office: ["projects.view", "projects.view_details"],
+
         project_manager: ["projects.view", "projects.view_details"],
+
       };
 
+
+
       for (const [roleId, permIds] of Object.entries(defaultMappings)) {
+
         const [roleExists] = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
+
         if (!roleExists) continue;
 
+
+
         const existingRolePerms = await db.select()
+
           .from(rolePermissions)
+
           .where(and(
+
             eq(rolePermissions.roleId, roleId),
+
             inArray(rolePermissions.permissionId, ["projects.view", "projects.view_details"])
+
           ));
 
+
+
         if (existingRolePerms.length === 0) {
+
           const valuesToInsert = permIds.map(permId => ({
+
             roleId,
+
             permissionId: permId
+
           }));
+
           await db.insert(rolePermissions).values(valuesToInsert);
+
           console.log(`Migrated role ${roleId} with projects permissions: ${permIds.join(", ")}`);
+
         }
+
       }
+
     }
+
   } catch (err) {
+
     console.error("Error in ensureProjectsPermissionsExist:", err);
+
   }
+
   await ensureAllCustomPermissionsExist(db);
+
   await ensureRequestersPermissionsExist(db);
+
 }
 
+
+
 /**
+
  * دالة للتأكد من ربط صلاحيات إدارة المستفيدين الجديدة بالدور الأساسي مكتب المشاريع (projects_office)
+
  */
+
 async function ensureRequestersPermissionsExist(db: any) {
+
   try {
+
     const roleId = "projects_office";
+
     const permIds = [
+
       "requester_accounts.view",
+
       "requester_accounts.view_details",
+
       "requester_accounts.approve",
+
       "requester_exceptions.view",
+
       "requester_exceptions.approve",
+
       "requester_exceptions.reject",
+
       "requester_donations.view",
+
       "requester_donations.review",
+
       "requester_donations.approve",
+
       "requester_donations.send_email",
+
       "requester_donations.send_whatsapp",
+
       "requester_inquiries.view",
+
       "requester_inquiries.review",
+
       "requester_inquiries.mark_reviewed",
+
       "requester_inquiries.send_email",
+
       "requester_inquiries.send_whatsapp",
+
       "requester_sedana.view",
+
       "requester_sedana.review",
+
       "requester_sedana.send_email",
+
       "requester_sedana.send_whatsapp",
+
     ];
+
     
+
     const [roleExists] = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
+
     if (!roleExists) return;
 
+
+
     // حذف أي صلاحيات قديمة متبقية
+
     await db.delete(rolePermissions).where(like(rolePermissions.permissionId, "requesters%")).catch(() => {});
+
     await db.delete(userPermissions).where(like(userPermissions.permissionId, "requesters%")).catch(() => {});
+
     await db.delete(permissions).where(like(permissions.id, "requesters%")).catch(() => {});
+
     await db.delete(modules).where(eq(modules.id, "requesters")).catch(() => {});
+
+
 
     for (const pId of permIds) {
+
       const [existing] = await db.select({ id: rolePermissions.id })
+
         .from(rolePermissions)
+
         .where(and(
+
           eq(rolePermissions.roleId, roleId),
+
           eq(rolePermissions.permissionId, pId)
+
         ))
+
         .limit(1);
+
       if (!existing) {
+
         await db.insert(rolePermissions).values({
+
           roleId,
+
           permissionId: pId
+
         }).catch(() => {});
+
       }
+
     }
+
   } catch (err) {
+
     console.error("Error in ensureRequestersPermissionsExist:", err);
+
   }
+
 }
 
+
+
 /**
+
  * دالة للتأكد من وجود جميع الصلاحيات المخصصة الأخرى في قاعدة البيانات لتجنب أخطاء المفاتيح الأجنبية
+
  */
+
 async function ensureAllCustomPermissionsExist(db: any) {
+
   try {
+
     // Ensure 'information_dashboard' module and permission exist
+
     const [existingInfoDashModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "information_dashboard")).limit(1);
+
     if (!existingInfoDashModule) {
+
       await db.insert(modules).values({
+
         id: "information_dashboard",
+
         nameAr: "لوحة المعلومات",
+
         nameEn: "Information Dashboard",
+
         icon: "LayoutDashboard",
+
         displayOrder: 0,
+
         isActive: true
+
       });
+
       console.log("Inserted missing custom module: information_dashboard");
+
     }
+
+
 
     const [existingInfoDashPerm] = await db.select({ id: permissions.id }).from(permissions).where(eq(permissions.id, "information_dashboard.view")).limit(1);
+
     if (!existingInfoDashPerm) {
+
       await db.insert(permissions).values({
+
         id: "information_dashboard.view",
+
         moduleId: "information_dashboard",
+
         action: "view",
+
         nameAr: "عرض لوحة المعلومات",
+
         nameEn: "View Information Dashboard",
+
         description: "عرض لوحة المعلومات المفصلة لكافة التبويبات والمخططات والإحصائيات"
+
       });
+
       console.log("Inserted missing permission: information_dashboard.view");
+
     }
+
+
 
     // Ensure 'boq' module exists in the modules table
+
     const [existingBoqModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "boq")).limit(1);
+
     if (!existingBoqModule) {
+
       await db.insert(modules).values({
+
         id: "boq",
+
         nameAr: "إعداد جداول الكميات",
+
         nameEn: "BOQ Preparation",
+
         icon: "FileSpreadsheet",
+
         displayOrder: 10,
+
         isActive: true
+
       });
+
       console.log("Inserted missing custom module: boq");
+
     }
+
+
 
     // Ensure 'pending_reports' module exists in the modules table
+
     const [existingPendingReportsModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "pending_reports")).limit(1);
+
     if (!existingPendingReportsModule) {
+
       await db.insert(modules).values({
+
         id: "pending_reports",
+
         nameAr: "تقارير الطلبات",
+
         nameEn: "Request Reports",
+
         icon: "FileText",
+
         displayOrder: 11,
+
         isActive: true
+
       });
+
       console.log("Inserted missing custom module: pending_reports");
+
     }
+
+
 
     // Ensure 'technical_support' module exists in the modules table
+
     const [existingSupportModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "technical_support")).limit(1);
+
     if (!existingSupportModule) {
+
       await db.insert(modules).values({
+
         id: "technical_support",
+
         nameAr: "الدعم الفني",
+
         nameEn: "Technical Support",
+
         icon: "LifeBuoy",
+
         displayOrder: 12,
+
         isActive: true
+
       });
+
       console.log("Inserted missing custom module: technical_support");
+
     }
+
+
 
     // Ensure 'beneficiary_evaluations' module exists in the modules table
+
     const [existingEvalModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "beneficiary_evaluations")).limit(1);
+
     if (!existingEvalModule) {
+
       await db.insert(modules).values({
+
         id: "beneficiary_evaluations",
+
         nameAr: "رضا المستفيدين",
+
         nameEn: "Beneficiary Satisfaction",
+
         icon: "HeartHandshake",
+
         displayOrder: 4,
+
         isActive: true
+
       });
+
       console.log("Inserted missing custom module: beneficiary_evaluations");
+
     }
+
+
 
     // Ensure 'analytics_hub' module exists in the modules table
+
     const [existingAnalyticsModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "analytics_hub")).limit(1);
+
     if (!existingAnalyticsModule) {
+
       await db.insert(modules).values({
+
         id: "analytics_hub",
+
         nameAr: "مركز الإحصائيات والتحليلات",
+
         nameEn: "Analytics Hub",
+
         icon: "BarChart3",
+
         displayOrder: 8,
+
         isActive: true
+
       });
+
       console.log("Inserted missing custom module: analytics_hub");
+
     }
+
+
 
     // Ensure 'escalation' module exists in the modules table
+
     const [existingEscalationModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "escalation")).limit(1);
+
     if (!existingEscalationModule) {
+
       await db.insert(modules).values({
+
         id: "escalation",
+
         nameAr: "التصعيد الإداري",
+
         nameEn: "Administrative Escalation",
+
         icon: "AlertTriangle",
+
         displayOrder: 3,
+
         isActive: true
+
       });
+
       console.log("Inserted missing custom module: escalation");
+
     }
+
+
 
     // تنظيف وحدة المستفيدين القديمة إن وجدت
+
     await db.delete(modules).where(eq(modules.id, "requesters")).catch(() => {});
 
+
+
     // Ensure the 5 granular beneficiary modules exist
+
     const beneficiaryModulesToInsert = [
+
       { id: "requester_accounts", nameAr: "حسابات طالبي الخدمة", nameEn: "Requester Accounts", icon: "Users", displayOrder: 14 },
+
       { id: "requester_exceptions", nameAr: "طلبات الاستثناء", nameEn: "Requester Exceptions", icon: "FileText", displayOrder: 15 },
+
       { id: "requester_donations", nameAr: "طلبات التبرعات", nameEn: "Requester Donations", icon: "Gift", displayOrder: 16 },
+
       { id: "requester_inquiries", nameAr: "الاستفسارات العامة", nameEn: "Requester Inquiries", icon: "MessageSquareQuote", displayOrder: 17 },
+
       { id: "requester_sedana", nameAr: "طلبات برنامج سدانة", nameEn: "Requester Sedana", icon: "Sparkles", displayOrder: 18 },
+
     ];
+
+
 
     for (const bm of beneficiaryModulesToInsert) {
+
       const [ex] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, bm.id)).limit(1);
+
       if (!ex) {
+
         await db.insert(modules).values({ ...bm, isActive: true });
+
         console.log(`Inserted missing custom module: ${bm.id}`);
+
       } else {
+
         await db.update(modules).set({ nameAr: bm.nameAr, nameEn: bm.nameEn, icon: bm.icon, displayOrder: bm.displayOrder, isActive: true }).where(eq(modules.id, bm.id)).catch(() => {});
+
       }
+
     }
+
+
+
+    // Ensure Procurement & Finance modules exist with proper metadata
+
+    const procurementFinanceModulesToInsert = [
+
+      { id: "suppliers", nameAr: "الموردون", nameEn: "Suppliers", icon: "Users", displayOrder: 20 },
+
+      { id: "boq", nameAr: "إعداد جداول الكميات", nameEn: "BOQ Preparation", icon: "FileSpreadsheet", displayOrder: 21 },
+
+      { id: "quotations", nameAr: "عروض الأسعار", nameEn: "Quotations", icon: "Receipt", displayOrder: 22 },
+
+      { id: "financial_approval", nameAr: "قسم الاعتمادات", nameEn: "Approvals Center", icon: "CheckSquare", displayOrder: 23 },
+
+      { id: "contracts", nameAr: "العقود", nameEn: "Contracts", icon: "FileSignature", displayOrder: 24 },
+
+      { id: "disbursements", nameAr: "طلبات الصرف", nameEn: "Disbursement Requests", icon: "Wallet", displayOrder: 25 },
+
+      { id: "receipt_vouchers", nameAr: "سندات القبض", nameEn: "Receipt Vouchers", icon: "Receipt", displayOrder: 26 },
+
+      { id: "fund", nameAr: "الصندوق", nameEn: "Association Fund", icon: "Landmark", displayOrder: 27 },
+
+      { id: "disbursement_orders", nameAr: "أوامر الصرف", nameEn: "Disbursement Orders", icon: "Banknote", displayOrder: 28 },
+
+      { id: "financial_reports", nameAr: "التقرير المالي", nameEn: "Financial Reports", icon: "FileBarChart", displayOrder: 29 },
+
+      { id: "custody_requests", nameAr: "العهدة المالية", nameEn: "Financial Custody", icon: "Wallet", displayOrder: 30 },
+
+    ];
+
+
+
+    for (const pfm of procurementFinanceModulesToInsert) {
+
+      const [ex] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, pfm.id)).limit(1);
+
+      if (!ex) {
+
+        await db.insert(modules).values({ ...pfm, isActive: true });
+
+        console.log(`Inserted missing custom module: ${pfm.id}`);
+
+      } else {
+
+        await db.update(modules).set({ nameAr: pfm.nameAr, nameEn: pfm.nameEn, icon: pfm.icon, displayOrder: pfm.displayOrder, isActive: true }).where(eq(modules.id, pfm.id)).catch(() => {});
+
+      }
+
+    }
+
+
 
     // Ensure 'orders_and_letters' module exists in the modules table with name 'مالية سدانة'
+
     const [existingOrdersLettersModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "orders_and_letters")).limit(1);
+
     if (!existingOrdersLettersModule) {
+
       await db.insert(modules).values({
+
         id: "orders_and_letters",
+
         nameAr: "مالية سدانة",
+
         nameEn: "Sedana Financials",
+
         icon: "ShoppingBag",
+
         displayOrder: 8,
+
         isActive: true
+
       });
+
       console.log("Inserted missing custom module: orders_and_letters (مالية سدانة)");
+
     } else {
+
       await db.update(modules).set({
+
         nameAr: "مالية سدانة",
+
         nameEn: "Sedana Financials",
+
       }).where(eq(modules.id, "orders_and_letters")).catch(() => {});
+
     }
+
+
 
     // Ensure 'purchase_orders' module exists in the modules table
+
     const [existingPoModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "purchase_orders")).limit(1);
+
     if (!existingPoModule) {
+
       await db.insert(modules).values({
+
         id: "purchase_orders",
+
         nameAr: "أوامر الشراء",
+
         nameEn: "Purchase Orders",
+
         icon: "ShoppingCart",
+
         displayOrder: 9,
+
         isActive: true
+
       });
+
       console.log("Inserted missing custom module: purchase_orders");
+
     }
+
+
 
     // Ensure 'csr_letters' module exists in the modules table
+
     const [existingCsrModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "csr_letters")).limit(1);
+
     if (!existingCsrModule) {
+
       await db.insert(modules).values({
+
         id: "csr_letters",
+
         nameAr: "المسؤولية المجتمعية",
+
         nameEn: "CSR Letters",
+
         icon: "HeartHandshake",
+
         displayOrder: 10,
+
         isActive: true
+
       });
+
       console.log("Inserted missing custom module: csr_letters");
+
     }
+
+
 
     // Ensure 'sedana_warehouse' module exists in the modules table
+
     const [existingWarehouseModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "sedana_warehouse")).limit(1);
+
     if (!existingWarehouseModule) {
+
       await db.insert(modules).values({
+
         id: "sedana_warehouse",
+
         nameAr: "المستودع الافتراضي",
+
         nameEn: "Virtual Warehouse",
+
         icon: "Boxes",
+
         displayOrder: 11,
+
         isActive: true
+
       });
+
       console.log("Inserted missing custom module: sedana_warehouse");
+
     }
+
+
 
     // Ensure 'custody_requests' module exists in the modules table
+
     const [existingCustodyModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "custody_requests")).limit(1);
+
     if (!existingCustodyModule) {
+
       await db.insert(modules).values({
+
         id: "custody_requests",
+
         nameAr: "العهدة المالية",
+
         nameEn: "Financial Custody",
+
         icon: "Wallet",
+
         displayOrder: 12,
+
         isActive: true
+
       });
+
       console.log("Inserted missing custom module: custody_requests");
+
     }
+
+
 
     // Ensure 'sedana_quotations' module exists in the modules table
+
     const [existingSedanaQuoModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "sedana_quotations")).limit(1);
+
     if (!existingSedanaQuoModule) {
+
       await db.insert(modules).values({
+
         id: "sedana_quotations",
+
         nameAr: "عروض أسعار سدانة",
+
         nameEn: "Sedana Quotations",
+
         icon: "Receipt",
+
         displayOrder: 7,
+
         isActive: true
+
       });
+
       console.log("Inserted missing custom module: sedana_quotations");
+
     }
+
+
 
     // Ensure 'sedana_requests' module exists in the modules table
+
     const [existingSedanaRequestsMod] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "sedana_requests")).limit(1);
+
     if (!existingSedanaRequestsMod) {
+
       await db.insert(modules).values({
+
         id: "sedana_requests",
+
         nameAr: "طلبات سدانة",
+
         nameEn: "Sedana Requests",
+
         icon: "Sparkles",
+
         displayOrder: 5,
+
         isActive: true
+
       }).catch(() => {});
+
       console.log("Inserted missing custom module: sedana_requests");
+
     } else {
+
       await db.update(modules).set({
+
         nameAr: "طلبات سدانة",
+
         nameEn: "Sedana Requests",
+
       }).where(eq(modules.id, "sedana_requests")).catch(() => {});
+
     }
+
+
 
     // Ensure 'signing' module exists in the modules table
+
     const [existingSigningModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "signing")).limit(1);
+
     if (!existingSigningModule) {
+
       await db.insert(modules).values({
+
         id: "signing",
+
         nameAr: "صلاحيات التوقيع",
+
         nameEn: "Signing Permissions",
+
         icon: "PenLine",
+
         displayOrder: 15,
+
         isActive: true
+
       }).catch(() => {});
+
       console.log("Inserted missing custom module: signing");
+
     }
+
+
 
     // Ensure 'financial_approval' module exists in the modules table
+
     const [existingApprovalModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "financial_approval")).limit(1);
+
     if (!existingApprovalModule) {
+
       await db.insert(modules).values({
+
         id: "financial_approval",
+
         nameAr: "قسم الاعتمادات",
+
         nameEn: "Approvals Center",
+
         icon: "CheckSquare",
+
         displayOrder: 8,
+
         isActive: true
+
       }).catch(() => {});
+
       console.log("Inserted missing custom module: financial_approval");
+
     } else {
+
       await db.update(modules).set({
+
         nameAr: "قسم الاعتمادات",
+
         nameEn: "Approvals Center",
+
         icon: "CheckSquare",
+
       }).where(eq(modules.id, "financial_approval")).catch(() => {});
+
     }
+
+
 
     // تنظيف الصلاحيات الملغاة وتحديث وحدات الصلاحيات
+
     try {
+
       await db.delete(rolePermissions).where(eq(rolePermissions.permissionId, "analytics_hub.project_reports"));
+
       await db.delete(permissions).where(eq(permissions.id, "analytics_hub.project_reports"));
+
       await db.delete(rolePermissions).where(inArray(rolePermissions.permissionId, [
+
         "beneficiary_evaluations.view_details",
+
         "beneficiary_evaluations.view_logs",
+
         "beneficiary_evaluations.send_survey",
+
         "beneficiary_evaluations.send_reminder",
+
         "beneficiary_evaluations.export",
+
         "beneficiary_evaluations.delete"
+
       ]));
+
       await db.delete(permissions).where(inArray(permissions.id, [
+
         "beneficiary_evaluations.view_details",
+
         "beneficiary_evaluations.view_logs",
+
         "beneficiary_evaluations.send_survey",
+
         "beneficiary_evaluations.send_reminder",
+
         "beneficiary_evaluations.export",
+
         "beneficiary_evaluations.delete"
+
       ]));
+
       await db.update(permissions).set({ moduleId: "requesters", nameAr: "عرض قسم إدارة المستفيدين" }).where(eq(permissions.id, "requesters.view"));
+
       await db.update(permissions).set({ moduleId: "requesters", nameAr: "اعتماد ورفض المستفيدين" }).where(eq(permissions.id, "requesters.approve"));
+
       await db.update(permissions).set({ moduleId: "beneficiary_evaluations", nameAr: "عرض إحصائيات رضا المستفيدين" }).where(eq(permissions.id, "beneficiary_evaluations.view"));
+
     } catch {}
 
+
+
     const customPerms = [
+
       { id: "escalation.view", moduleId: "escalation", action: "view", nameAr: "عرض قسم التصعيد الإداري", nameEn: "View Administrative Escalation" },
+
       { id: "analytics_hub.custom", moduleId: "analytics_hub", action: "custom", nameAr: "عرض وتخصيص اللوحة المخصصة", nameEn: "View & Customize Dashboard" },
+
       { id: "analytics_hub.kpi", moduleId: "analytics_hub", action: "kpi", nameAr: "عرض مؤشرات الأداء العامة (KPI)", nameEn: "View KPI Dashboard" },
+
       { id: "analytics_hub.technical", moduleId: "analytics_hub", action: "technical", nameAr: "عرض التقارير الإحصائية والفنية", nameEn: "View Technical Reports" },
+
       { id: "analytics_hub.financial_report", moduleId: "analytics_hub", action: "financial_report", nameAr: "عرض التقرير المالي الشامل", nameEn: "View Financial Report" },
+
       { id: "analytics_hub.financial_dash", moduleId: "analytics_hub", action: "financial_dash", nameAr: "عرض لوحة التحكم المالية", nameEn: "View Financial Dashboard" },
+
       { id: "analytics_hub.board", moduleId: "analytics_hub", action: "board", nameAr: "عرض تحليلات الإدارة العليا", nameEn: "View Board Analytics" },
+
       { id: "analytics_hub.beneficiary", moduleId: "analytics_hub", action: "beneficiary", nameAr: "عرض رضا المستفيدين", nameEn: "View Beneficiary Satisfaction" },
+
       { id: "analytics_hub.operations", moduleId: "analytics_hub", action: "operations", nameAr: "عرض تقارير العمليات والمعاينات", nameEn: "View Operations & Pending Reports" },
+
       { id: "analytics_hub.progress", moduleId: "analytics_hub", action: "progress", nameAr: "عرض تقارير ونسب الإنجاز", nameEn: "View Progress Reports" },
+
       { id: "beneficiary_evaluations.view", moduleId: "beneficiary_evaluations", action: "view", nameAr: "عرض إحصائيات رضا المستفيدين", nameEn: "View Beneficiary Satisfaction" },
+
       { id: "beneficiary_evaluations.evaluations_log", moduleId: "beneficiary_evaluations", action: "evaluations_log", nameAr: "سجل استبيانات التقييم", nameEn: "Evaluations Survey Log" },
+
       { id: "beneficiary_evaluations.dispatch_log", moduleId: "beneficiary_evaluations", action: "dispatch_log", nameAr: "سجل الإرسال", nameEn: "Dispatch Survey Log" },
+
       { id: "beneficiary_evaluations.contacts", moduleId: "beneficiary_evaluations", action: "contacts", nameAr: "المستفيدين المعتمدين والاستفسارات", nameEn: "Approved Beneficiaries & Inquiries" },
+
       { id: "beneficiary_evaluations.reply", moduleId: "beneficiary_evaluations", action: "reply", nameAr: "إضافة رد على التقييم", nameEn: "Reply to Evaluation" },
+
       { id: "beneficiary_evaluations.hide", moduleId: "beneficiary_evaluations", action: "hide", nameAr: "إخفاء وإظهار التقييمات", nameEn: "Hide & Show Evaluations" },
+
       { id: "Create_Ticket", moduleId: "technical_support", action: "create", nameAr: "إنشاء تذكرة دعم فني", nameEn: "Create Support Ticket" },
+
       { id: "View_Tickets", moduleId: "technical_support", action: "view", nameAr: "عرض تذاكر الدعم الفني", nameEn: "View Support Tickets" },
+
       { id: "mosque_map.view", moduleId: "mosques", action: "view", nameAr: "عرض خريطة المساجد", nameEn: "View Mosque Map" },
+
       { id: "requests.view_details", moduleId: "requests", action: "view_details", nameAr: "عرض تفاصيل الطلب وإدارته", nameEn: "View Request Details" },
+
       { id: "requests.add_review_note", moduleId: "requests", action: "add_review_note", nameAr: "إضافة ملاحظة على مراجعة المعلومات والمرفقات", nameEn: "Add review note" },
+
       { id: "requests.transfer_to_beneficiary", moduleId: "requests", action: "transfer_to_beneficiary", nameAr: "تحويل الطلب لمستفيد", nameEn: "Transfer Request to Beneficiary" },
+
       { id: "appointments.view_all", moduleId: "settings", action: "view_all", nameAr: "عرض كافة المواعيد والزيارات للمنشأة", nameEn: "View All Appointments" },
+
       { id: "appointments.view_own", moduleId: "settings", action: "view_own", nameAr: "عرض زياراتي الميدانية الخاصة بي فقط", nameEn: "View Own Appointments" },
+
       { id: "projects.view_details", moduleId: "projects", action: "view_details", nameAr: "عرض تفاصيل المشروع وادارته", nameEn: "View Project Details" },
+
       // 1. حسابات طالبي الخدمة
+
       { id: "requester_accounts.view", moduleId: "requester_accounts", action: "view", nameAr: "عرض حسابات طالبي الخدمة", nameEn: "View Requester Accounts" },
+
       { id: "requester_accounts.view_details", moduleId: "requester_accounts", action: "view_details", nameAr: "عرض تفاصيل الحساب", nameEn: "View Account Details" },
+
       { id: "requester_accounts.create", moduleId: "requester_accounts", action: "create", nameAr: "إضافة مستفيد", nameEn: "Create Beneficiary" },
+
       { id: "requester_accounts.approve", moduleId: "requester_accounts", action: "approve", nameAr: "اعتماد الحساب", nameEn: "Approve Beneficiary Account" },
+
       { id: "requester_accounts.suspend", moduleId: "requester_accounts", action: "suspend", nameAr: "إيقاف الحساب", nameEn: "Suspend Beneficiary Account" },
+
       // 2. طلبات الاستثناء
+
       { id: "requester_exceptions.view", moduleId: "requester_exceptions", action: "view", nameAr: "عرض طلبات الاستثناء", nameEn: "View Exceptions" },
+
       { id: "requester_exceptions.approve", moduleId: "requester_exceptions", action: "approve", nameAr: "قبول طلب الاستثناء", nameEn: "Approve Exception Request" },
+
       { id: "requester_exceptions.reject", moduleId: "requester_exceptions", action: "reject", nameAr: "رفض طلب الاستثناء", nameEn: "Reject Exception Request" },
+
       // 3. طلبات التبرعات
+
       { id: "requester_donations.view", moduleId: "requester_donations", action: "view", nameAr: "عرض طلبات التبرعات", nameEn: "View Donations" },
+
       { id: "requester_donations.review", moduleId: "requester_donations", action: "review", nameAr: "مراجعة الطلب", nameEn: "Review Donation Request" },
+
       { id: "requester_donations.approve", moduleId: "requester_donations", action: "approve", nameAr: "اعتماد الطلب", nameEn: "Approve Donation Request" },
+
       { id: "requester_donations.send_email", moduleId: "requester_donations", action: "send_email", nameAr: "إرسال Email", nameEn: "Send Email" },
+
       { id: "requester_donations.send_whatsapp", moduleId: "requester_donations", action: "send_whatsapp", nameAr: "إرسال WhatsApp", nameEn: "Send WhatsApp" },
+
       // 4. الاستفسارات العامة
+
       { id: "requester_inquiries.view", moduleId: "requester_inquiries", action: "view", nameAr: "عرض الاستفسارات العامة", nameEn: "View Inquiries" },
+
       { id: "requester_inquiries.review", moduleId: "requester_inquiries", action: "review", nameAr: "مراجعة", nameEn: "Review Inquiry" },
+
       { id: "requester_inquiries.mark_reviewed", moduleId: "requester_inquiries", action: "mark_reviewed", nameAr: "تمت المراجعة", nameEn: "Mark Inquiry As Reviewed" },
+
       { id: "requester_inquiries.send_email", moduleId: "requester_inquiries", action: "send_email", nameAr: "إرسال Email", nameEn: "Send Email" },
+
       { id: "requester_inquiries.send_whatsapp", moduleId: "requester_inquiries", action: "send_whatsapp", nameAr: "إرسال WhatsApp", nameEn: "Send WhatsApp" },
+
       // 5. طلبات برنامج سدانة
+
       { id: "requester_sedana.view", moduleId: "requester_sedana", action: "view", nameAr: "عرض طلبات برنامج سدانة", nameEn: "View Sedana Inquiries" },
+
       { id: "requester_sedana.review", moduleId: "requester_sedana", action: "review", nameAr: "اتخاذ إجراء واعتماد الطلب", nameEn: "Review Sedana Inquiry" },
+
       { id: "requester_sedana.send_email", moduleId: "requester_sedana", action: "send_email", nameAr: "إرسال Email", nameEn: "Send Email" },
+
       { id: "requester_sedana.send_whatsapp", moduleId: "requester_sedana", action: "send_whatsapp", nameAr: "إرسال WhatsApp", nameEn: "Send WhatsApp" },
+
+      // 1. الموردون
+
+      { id: "suppliers.view", moduleId: "suppliers", action: "view", nameAr: "عرض قائمة الموردين", nameEn: "View Suppliers List" },
+
       { id: "suppliers.view_details", moduleId: "suppliers", action: "view_details", nameAr: "عرض تفاصيل المورد", nameEn: "View Supplier Details" },
-      { id: "suppliers.add", moduleId: "suppliers", action: "add", nameAr: "إضافة مورد", nameEn: "Add Supplier" },
+
+      { id: "suppliers.add", moduleId: "suppliers", action: "add", nameAr: "إضافة مورد جديد", nameEn: "Add Supplier" },
+
+      { id: "suppliers.edit", moduleId: "suppliers", action: "edit", nameAr: "تعديل بيانات الموردين", nameEn: "Edit Supplier" },
+
+      { id: "suppliers.approve", moduleId: "suppliers", action: "approve", nameAr: "اعتماد أو رفض مورد", nameEn: "Approve or Reject Supplier" },
+
       { id: "suppliers.suspend", moduleId: "suppliers", action: "suspend", nameAr: "إيقاف المورد وإعادة تفعيله", nameEn: "Suspend and Reactivate Supplier" },
+
+      // 2. عروض الأسعار
+
+      { id: "quotations.view", moduleId: "quotations", action: "view", nameAr: "عرض قائمة عروض الأسعار", nameEn: "View Quotations List" },
+
+      { id: "quotations.view_sedana", moduleId: "quotations", action: "view_sedana", nameAr: "عرض عروض أسعار سدانة", nameEn: "View Sedana Quotations" },
+
       { id: "quotations.add", moduleId: "quotations", action: "add", nameAr: "إضافة عرض سعر", nameEn: "Add Quotation" },
+
+      { id: "quotations.edit", moduleId: "quotations", action: "edit", nameAr: "تعديل عرض سعر", nameEn: "Edit Quotation" },
+
+      { id: "quotations.delete", moduleId: "quotations", action: "delete", nameAr: "حذف عرض سعر", nameEn: "Delete Quotation" },
+
+      { id: "quotations.approve", moduleId: "quotations", action: "approve", nameAr: "اعتماد أو رفض عروض الأسعار", nameEn: "Approve or Reject Quotations" },
+
+      { id: "quotations.export", moduleId: "quotations", action: "export", nameAr: "تصدير عروض الأسعار", nameEn: "Export Quotations" },
+
+      // 3. قسم الاعتمادات
+
+      { id: "financial_approval.view", moduleId: "financial_approval", action: "view", nameAr: "عرض قسم الاعتمادات المالية", nameEn: "View Financial Approvals" },
+
       { id: "financial_approval.progress_invoices", moduleId: "financial_approval", action: "progress_invoices", nameAr: "عرض المستخلصات بانتظار الاعتماد", nameEn: "View Pending Progress Invoices" },
+
       { id: "financial_approval.disbursement_requests", moduleId: "financial_approval", action: "disbursement_requests", nameAr: "عرض طلبات الصرف بانتظار الاعتماد", nameEn: "View Pending Disbursement Requests" },
+
       { id: "financial_approval.disbursement_orders", moduleId: "financial_approval", action: "disbursement_orders", nameAr: "عرض أوامر الصرف بانتظار الاعتماد", nameEn: "View Pending Disbursement Orders" },
+
       { id: "financial_approval.custody_requests", moduleId: "financial_approval", action: "custody_requests", nameAr: "عرض العهد المالية بانتظار الاعتماد", nameEn: "View Pending Financial Custody" },
+
       { id: "financial_approval.receipt_vouchers", moduleId: "financial_approval", action: "receipt_vouchers", nameAr: "عرض سندات القبض بانتظار الاعتماد", nameEn: "View Pending Receipt Vouchers" },
+
       { id: "financial_approval.contracts", moduleId: "financial_approval", action: "contracts", nameAr: "عرض العقود بانتظار الاعتماد", nameEn: "View Pending Contracts" },
+
       { id: "financial_approval.purchase_orders", moduleId: "financial_approval", action: "purchase_orders", nameAr: "عرض أوامر الشراء بانتظار الاعتماد", nameEn: "View Pending Purchase Orders" },
+
       { id: "financial_approval.progress_reports", moduleId: "financial_approval", action: "progress_reports", nameAr: "عرض تقارير الإنجاز بانتظار الاعتماد", nameEn: "View Pending Progress Reports" },
+
+      { id: "financial_approval.approve", moduleId: "financial_approval", action: "approve", nameAr: "اتخاذ قرار الاعتماد والرفض", nameEn: "Decision on Approvals" },
+
+      { id: "contracts.view", moduleId: "contracts", action: "view", nameAr: "عرض قائمة العقود", nameEn: "View Contracts List" },
+
+      { id: "contracts.create", moduleId: "contracts", action: "create", nameAr: "إنشاء عقود", nameEn: "Create Contracts" },
+
+      { id: "contracts.edit", moduleId: "contracts", action: "edit", nameAr: "تعديل العقود", nameEn: "Edit Contracts" },
+
+      { id: "contracts.delete", moduleId: "contracts", action: "delete", nameAr: "حذف العقود", nameEn: "Delete Contracts" },
+
+      { id: "contracts.export", moduleId: "contracts", action: "export", nameAr: "تصدير العقود", nameEn: "Export Contracts" },
+
       { id: "contracts.template_add", moduleId: "settings", action: "template_add", nameAr: "إضافة قالب للعقود", nameEn: "Add Contract Template" },
+
       { id: "contracts.template_edit", moduleId: "settings", action: "template_edit", nameAr: "تعديل قالب العقد", nameEn: "Edit Contract Template" },
+
       { id: "contracts.template_delete", moduleId: "settings", action: "template_delete", nameAr: "حذف قالب العقد", nameEn: "Delete Contract Template" },
+
       { id: "contracts.clause_add", moduleId: "settings", action: "clause_add", nameAr: "إضافة بند للعقد", nameEn: "Add Contract Clause" },
+
       { id: "forms_customization.evaluation", moduleId: "settings", action: "evaluation", nameAr: "تخصيص استمارة التقييم", nameEn: "Customize Evaluation Form" },
+
       { id: "forms_customization.services", moduleId: "settings", action: "services", nameAr: "تخصيص نماذج طلبات الخدمات", nameEn: "Customize Service Request Forms" },
+
       { id: "forms_customization.registration", moduleId: "settings", action: "registration", nameAr: "تخصيص نماذج التسجيل والتبرع", nameEn: "Customize Registration & Donation Forms" },
+
       { id: "contracts.edit_approved", moduleId: "contracts", action: "edit_approved", nameAr: "تعديل العقود المعتمدة", nameEn: "Edit Approved Contracts" },
+
       { id: "contracts.approve", moduleId: "contracts", action: "approve", nameAr: "اعتماد العقود", nameEn: "Approve Contracts" },
+
       { id: "disbursements.view", moduleId: "disbursements", action: "view", nameAr: "عرض طلبات الصرف", nameEn: "View Disbursement Requests" },
+
       { id: "disbursements.create", moduleId: "disbursements", action: "create", nameAr: "إنشاء طلبات الصرف", nameEn: "Create Disbursement Requests" },
+
       { id: "disbursements.edit", moduleId: "disbursements", action: "edit", nameAr: "تعديل طلبات الصرف", nameEn: "Edit Disbursement Requests" },
+
+      { id: "disbursements.delete", moduleId: "disbursements", action: "delete", nameAr: "حذف طلب صرف", nameEn: "Delete Disbursement Request" },
+
       { id: "disbursements.approve", moduleId: "disbursements", action: "approve", nameAr: "اعتماد طلبات الصرف", nameEn: "Approve Disbursement Requests" },
+
       { id: "disbursements.add", moduleId: "disbursements", action: "add", nameAr: "إنشاء طلب صرف", nameEn: "Create Disbursement" },
+
+      { id: "disbursements.export", moduleId: "disbursements", action: "export", nameAr: "تصدير طلبات الصرف", nameEn: "Export Disbursement Requests" },
+
+      { id: "receipt_vouchers.delete", moduleId: "disbursements", action: "delete", nameAr: "حذف سند القبض", nameEn: "Delete Receipt Voucher" },
+
+      { id: "receipt_vouchers.print", moduleId: "disbursements", action: "print", nameAr: "طباعة سند القبض", nameEn: "Print Receipt Voucher" },
+
+      { id: "fund.export", moduleId: "disbursements", action: "export", nameAr: "تصدير كشف حساب الصندوق", nameEn: "Export Fund Statement" },
+
+      { id: "disbursement_orders.export", moduleId: "disbursements", action: "export", nameAr: "تصدير أوامر الصرف", nameEn: "Export Disbursement Orders" },
+
+      { id: "custody_requests.edit", moduleId: "custody_requests", action: "edit", nameAr: "تعديل طلب العهدة", nameEn: "Edit Financial Custody Request" },
+
+      { id: "custody_requests.delete", moduleId: "custody_requests", action: "delete", nameAr: "حذف طلب العهدة", nameEn: "Delete Financial Custody Request" },
+
+      { id: "custody_requests.approve", moduleId: "custody_requests", action: "approve", nameAr: "اعتماد العهدة المالية", nameEn: "Approve Financial Custody" },
+
+      { id: "custody_requests.settle", moduleId: "custody_requests", action: "settle", nameAr: "تسوية العهدة المالية", nameEn: "Settle Financial Custody" },
+
+      { id: "custody_requests.print", moduleId: "custody_requests", action: "print", nameAr: "طباعة طلب العهدة", nameEn: "Print Financial Custody" },
+
       { id: "disbursement_orders.view", moduleId: "disbursements", action: "view", nameAr: "عرض أوامر الصرف", nameEn: "View Disbursement Orders" },
+
       { id: "disbursement_orders.approve", moduleId: "disbursements", action: "approve", nameAr: "اعتماد أوامر الصرف", nameEn: "Approve Disbursement Orders" },
+
       { id: "disbursement_orders.reject", moduleId: "disbursements", action: "reject", nameAr: "رفض أوامر الصرف", nameEn: "Reject Disbursement Orders" },
+
       { id: "disbursement_orders.cancel_executed", moduleId: "disbursements", action: "cancel_executed", nameAr: "الغاء اعتماد أوامر الصرف المنفذة", nameEn: "Cancel Executed Disbursement Orders" },
+
       { id: "progress_reports.view", moduleId: "reports", action: "view", nameAr: "عرض تقارير الإنجاز", nameEn: "View Progress Reports" },
+
       { id: "progress_reports.add", moduleId: "reports", action: "add", nameAr: "إضافة تقرير إنجاز", nameEn: "Add Progress Report" },
+
       { id: "progress_reports.edit", moduleId: "reports", action: "edit", nameAr: "تعديل التقرير", nameEn: "Edit Progress Report" },
+
       { id: "progress_reports.approve", moduleId: "reports", action: "approve", nameAr: "اعتماد تقارير المتابعة", nameEn: "Approve Progress Reports" },
+
       { id: "progress_reports.revoke_approval", moduleId: "reports", action: "revoke_approval", nameAr: "إلغاء الاعتماد", nameEn: "Revoke Approval of Progress Reports" },
+
       { id: "progress_reports.exception_approve", moduleId: "reports", action: "exception_approve", nameAr: "استثناء اعتماد مدير المشروع", nameEn: "Exception Approve Progress Reports" },
+
       { id: "progress_invoices.view", moduleId: "reports", action: "view", nameAr: "عرض المستخلصات", nameEn: "View Progress Invoices" },
+
       { id: "progress_invoices.add", moduleId: "reports", action: "add", nameAr: "إضافة مستخلص", nameEn: "Add Progress Invoice" },
+
       { id: "progress_invoices.edit", moduleId: "reports", action: "edit", nameAr: "تعديل المستخلص", nameEn: "Edit Progress Invoice" },
+
       { id: "progress_invoices.approve", moduleId: "reports", action: "approve", nameAr: "اعتماد المستخلصات", nameEn: "Approve Progress Invoices" },
+
       { id: "progress_invoices.revoke_approval", moduleId: "reports", action: "revoke_approval", nameAr: "إلغاء الاعتماد", nameEn: "Revoke Approval of Progress Invoices" },
+
       { id: "progress_invoices.exception_approve", moduleId: "reports", action: "exception_approve", nameAr: "استثناء اعتماد مدير المشروع", nameEn: "Exception Approve Progress Invoices" },
+
       { id: "signing.progress_reports_sign", moduleId: "signing", action: "sign", nameAr: "توقيع تقارير الإنجاز", nameEn: "Sign Progress Reports" },
+
       { id: "project_reports.view", moduleId: "reports", action: "view", nameAr: "عرض تقارير المشاريع", nameEn: "View Project Reports" },
+
       { id: "project_reports.create", moduleId: "reports", action: "create", nameAr: "إنشاء تقارير مشاريع", nameEn: "Create Project Reports" },
+
       { id: "financial_reports.view", moduleId: "reports", action: "view", nameAr: "عرض تقرير المالية والإحصائيات", nameEn: "View Financial Reports" },
+
       { id: "financial_reports.export", moduleId: "reports", action: "export", nameAr: "تصدير البيانات", nameEn: "Export Financial Reports" },
+
       { id: "financial_reports.analytics", moduleId: "reports", action: "analytics", nameAr: "تحليل مؤشرات الأداء", nameEn: "Analyze Financial Performance" },
+
       { id: "reports.view_stats", moduleId: "reports", action: "view_stats", nameAr: "عرض احصائيات الطلبات", nameEn: "View Request Statistics" },
+
       { id: "reports.export_data", moduleId: "reports", action: "export_data", nameAr: "تصدير البيانات", nameEn: "Export Data" },
+
       { id: "staff_users.view", moduleId: "users", action: "view", nameAr: "عرض قائمة المستخدمين", nameEn: "View Staff Users" },
+
       { id: "staff_users.add", moduleId: "users", action: "add", nameAr: "إضافة موظف جديد", nameEn: "Add Staff User" },
+
       { id: "staff_users.edit", moduleId: "users", action: "edit", nameAr: "تعديل البيانات", nameEn: "Edit User Data" },
+
       { id: "staff_users.customize", moduleId: "users", action: "customize", nameAr: "تخصيص الصلاحيات", nameEn: "Customize Permissions" },
+
       { id: "staff_users.suspend", moduleId: "users", action: "suspend", nameAr: "إيقاف الحساب", nameEn: "Suspend Staff User" },
+
       { id: "staff_users.activate", moduleId: "users", action: "activate", nameAr: "تنشيط الحساب", nameEn: "Activate Staff User" },
+
       { id: "staff_users.delete", moduleId: "users", action: "delete", nameAr: "حذف الحساب", nameEn: "Delete Staff User" },
+
       { id: "staff_roles.view", moduleId: "permissions", action: "view", nameAr: "عرض الأدوار والصلاحيات", nameEn: "View Staff Roles" },
+
       { id: "staff_roles.customize", moduleId: "permissions", action: "customize", nameAr: "تخصيص صلاحيات الدور الأساسي", nameEn: "Customize Staff Roles" },
+
       { id: "staff_roles.suspend", moduleId: "permissions", action: "suspend", nameAr: "إيقاف الدور الأساسي", nameEn: "Suspend Staff Role" },
+
       { id: "staff_custom_roles.view", moduleId: "permissions", action: "view", nameAr: "عرض الأدوار المخصصة", nameEn: "View Custom Roles" },
+
       { id: "staff_custom_roles.add", moduleId: "permissions", action: "add", nameAr: "إضافة دور مخصص جديد", nameEn: "Add Custom Role" },
+
       { id: "staff_custom_roles.edit", moduleId: "permissions", action: "edit", nameAr: "تعديل الدور المخصص", nameEn: "Edit Custom Role" },
+
       { id: "staff_custom_roles.delete", moduleId: "permissions", action: "delete", nameAr: "حذف الدور المخصص", nameEn: "Delete Custom Role" },
+
       { id: "staff_notifications.view", moduleId: "permissions", action: "view", nameAr: "استعراض إعدادات وقوالب الإشعارات", nameEn: "View Notification Settings" },
+
       { id: "staff_notifications.edit", moduleId: "permissions", action: "edit", nameAr: "تعديل تخصيص الإشعارات (شامل)", nameEn: "Edit Notification Customization" },
+
       { id: "staff_notifications.by_role", moduleId: "permissions", action: "by_role", nameAr: "تخصيص الإشعارات حسب الدور", nameEn: "Customize Notifications by Role" },
+
       { id: "staff_notifications.by_department", moduleId: "permissions", action: "by_department", nameAr: "تخصيص الإشعارات حسب القسم", nameEn: "Customize Notifications by Department" },
+
       { id: "staff_notifications.edit_message_formats", moduleId: "permissions", action: "edit_message_formats", nameAr: "تعديل صياغة رسائل الإشعارات", nameEn: "Edit Message Formats" },
+
       { id: "staff_notifications.by_person", moduleId: "permissions", action: "by_person", nameAr: "تخصيص الإشعارات حسب الشخص", nameEn: "Customize Notifications by Person" },
+
       { id: "staff_notifications.beneficiary", moduleId: "permissions", action: "beneficiary", nameAr: "تخصيص إشعارات المستفيد", nameEn: "Beneficiary Notifications" },
+
       { id: "staff_notifications.beneficiary_message_formats", moduleId: "permissions", action: "beneficiary_message_formats", nameAr: "تعديل صياغة رسائل المستفيد", nameEn: "Edit Beneficiary Message Formats" },
+
       { id: "notification_center.view", moduleId: "permissions", action: "view", nameAr: "عرض واستعراض مركز الإشعارات", nameEn: "View Notification Center (Logs)" },
+
       { id: "notification_center.direct_send_staff", moduleId: "permissions", action: "direct_send_staff", nameAr: "إرسال إشعار مباشر لمسؤول", nameEn: "Send Direct Notification to Staff" },
+
       { id: "notification_center.direct_send_beneficiary", moduleId: "permissions", action: "direct_send_beneficiary", nameAr: "إرسال إشعار مباشر لمستفيد", nameEn: "Send Direct Notification to Beneficiary" },
+
       { id: "notification_center.direct_send", moduleId: "permissions", action: "direct_send", nameAr: "إرسال إشعار مباشر", nameEn: "Send Direct Notification" },
+
       { id: "notification_center.send_logs", moduleId: "permissions", action: "send_logs", nameAr: "سجل إرسال الإشعارات", nameEn: "Notification Send Log" },
 
+
+
       // --- إعدادات الجمعية (تفصيل كامل) ---
+
       { id: "settings_org.view", moduleId: "settings", action: "view", nameAr: "عرض إعدادات الجمعية", nameEn: "View Org Settings" },
+
       { id: "settings_org.edit_basic", moduleId: "settings", action: "edit_basic", nameAr: "تعديل معلومات الجمعية الأساسية", nameEn: "Edit Org Basic Info" },
+
       { id: "settings_org.edit_supervision", moduleId: "settings", action: "edit_supervision", nameAr: "تعديل جهات الإشراف", nameEn: "Edit Supervision Authorities" },
+
       { id: "settings_org.edit_officials", moduleId: "settings", action: "edit_officials", nameAr: "تعديل أسماء المسؤولين", nameEn: "Edit Organization Officials" },
+
       { id: "settings_org.signers_view", moduleId: "settings", action: "signers_view", nameAr: "عرض قائمة مفوضي التوقيع", nameEn: "View Org Signatories" },
+
       { id: "settings_org.signers_add", moduleId: "settings", action: "signers_add", nameAr: "إضافة مفوض توقيع جديد", nameEn: "Add Org Signatory" },
+
       { id: "settings_org.signers_edit", moduleId: "settings", action: "signers_edit", nameAr: "تعديل بيانات المفوض والتوقيع الرقمي", nameEn: "Edit Org Signatory" },
+
       { id: "settings_org.signers_set_default", moduleId: "settings", action: "signers_set_default", nameAr: "تعيين مفوض التوقيع كافتراضي", nameEn: "Set Default Org Signatory" },
+
       { id: "settings_org.signers_delete", moduleId: "settings", action: "signers_delete", nameAr: "حذف مفوض التوقيع", nameEn: "Delete Org Signatory" },
+
       { id: "settings_org.edit_banks", moduleId: "settings", action: "edit_banks", nameAr: "تعديل الحسابات البنكية المعتمدة", nameEn: "Edit Org Banks" },
+
       { id: "settings_org.edit_contracts", moduleId: "settings", action: "edit_contracts", nameAr: "تعديل إعدادات وصياغة العقود", nameEn: "Edit Org Contracts Settings" },
+
       { id: "settings_org.edit_signers", moduleId: "settings", action: "edit_signers", nameAr: "تعديل المفوضين بالتوقيع (شامل)", nameEn: "Edit Org Signers" },
 
+
+
       // --- الهوية البصرية (تفصيل كامل) ---
+
       { id: "settings_branding.view", moduleId: "settings", action: "view", nameAr: "عرض إعدادات الهوية والشعارات", nameEn: "View Branding Settings" },
+
       { id: "settings_branding.edit_colors", moduleId: "settings", action: "edit_colors", nameAr: "تعديل وحفظ الألوان والمظهر العام", nameEn: "Edit Branding Colors & Theme" },
+
       { id: "settings_branding.upload_logos", moduleId: "settings", action: "upload_logos", nameAr: "رفع وتحديث الشعارات والختم الرسمي", nameEn: "Upload Logos & Stamp" },
+
       { id: "settings_branding.delete_logos", moduleId: "settings", action: "delete_logos", nameAr: "حذف وإزالة الشعارات والأختام المرفوعة", nameEn: "Delete Uploaded Logos" },
+
       { id: "settings_branding.edit", moduleId: "settings", action: "edit", nameAr: "تعديل الهوية البصرية وشعارات البوابة (شامل)", nameEn: "Edit Branding Settings" },
 
+
+
       // --- إدارة التصنيفات (تفصيل كامل) ---
+
       { id: "settings_categories.view", moduleId: "settings", action: "view", nameAr: "عرض وتصفح التصنيفات", nameEn: "View Categories" },
+
       { id: "settings_categories.add", moduleId: "settings", action: "add", nameAr: "إضافة تصنيف جديد للخدمات", nameEn: "Add Category" },
+
       { id: "settings_categories.edit", moduleId: "settings", action: "edit", nameAr: "تعديل وحفظ تصنيف الخدمات", nameEn: "Edit Category" },
+
       { id: "settings_categories.reorder", moduleId: "settings", action: "reorder", nameAr: "إعادة ترتيب وتسلسل التصنيفات", nameEn: "Reorder Categories" },
+
       { id: "settings_categories.delete", moduleId: "settings", action: "delete", nameAr: "حذف تصنيف الخدمات", nameEn: "Delete Category" },
 
+
+
       // --- البرامج والخدمات (تفصيل كامل) ---
+
       { id: "services.view", moduleId: "settings", action: "view", nameAr: "عرض قائمة البرامج والخدمات", nameEn: "View Services" },
+
       { id: "services.add", moduleId: "settings", action: "add", nameAr: "إضافة برنامج أو خدمة جديدة", nameEn: "Add Service" },
+
       { id: "services.edit", moduleId: "settings", action: "edit", nameAr: "تعديل مواصفات البرامج والخدمات", nameEn: "Edit Service" },
+
       { id: "services.toggle_status", moduleId: "settings", action: "toggle_status", nameAr: "تفعيل أو تعطيل حالة البرامج والخدمات", nameEn: "Toggle Service Status" },
+
       { id: "services.reorder", moduleId: "settings", action: "reorder", nameAr: "إعادة ترتيب وتسلسل البرامج والخدمات", nameEn: "Reorder Services" },
+
       { id: "services.delete", moduleId: "settings", action: "delete", nameAr: "حذف برنامج أو خدمة", nameEn: "Delete Service" },
 
+
+
       // --- تخصيص النماذج (الأقسام الأربعة بالتفصيل الكامل) ---
+
       { id: "forms_customization.view", moduleId: "settings", action: "view", nameAr: "عرض وتصفح النماذج والحقول المخصصة", nameEn: "View Custom Forms" },
 
+
+
       // 1. تخصيص لوحة المعلومات
+
       { id: "forms_customization.dashboard_global", moduleId: "settings", action: "dashboard_global", nameAr: "تخصيص الصفحة للجميع", nameEn: "Customize Dashboard for All" },
+
       { id: "forms_customization.dashboard_role", moduleId: "settings", action: "dashboard_role", nameAr: "تخصيص الصفحة حسب الدور", nameEn: "Customize Dashboard by Role" },
+
       { id: "forms_customization.dashboard_user", moduleId: "settings", action: "dashboard_user", nameAr: "تخصيص الصفحة حسب المستخدم", nameEn: "Customize Dashboard by User" },
 
+
+
       // 2. تخصيص استمارة تقييم رضا المستفيد
+
       { id: "forms_customization.evaluation_view", moduleId: "settings", action: "evaluation_view", nameAr: "عرض استمارة التقييم فقط", nameEn: "View Evaluation Form Only" },
+
       { id: "forms_customization.evaluation_add_field", moduleId: "settings", action: "evaluation_add_field", nameAr: "إضافة حقل جديد", nameEn: "Evaluation Add Field" },
+
       { id: "forms_customization.evaluation_delete", moduleId: "settings", action: "evaluation_delete", nameAr: "حذف حقل", nameEn: "Evaluation Delete Field" },
+
       { id: "forms_customization.evaluation_duplicate", moduleId: "settings", action: "evaluation_duplicate", nameAr: "تكرار حقل", nameEn: "Evaluation Duplicate Field" },
+
       { id: "forms_customization.evaluation_placeholder", moduleId: "settings", action: "evaluation_placeholder", nameAr: "إضافة وتعديل نص التلميح", nameEn: "Evaluation Placeholder" },
+
       { id: "forms_customization.evaluation_description", moduleId: "settings", action: "evaluation_description", nameAr: "إضافة وتعديل الوصف الإرشادي", nameEn: "Evaluation Description" },
+
       { id: "forms_customization.evaluation_change_type", moduleId: "settings", action: "evaluation_change_type", nameAr: "تغيير نوع الحقل", nameEn: "Evaluation Change Type" },
+
       { id: "forms_customization.evaluation_required", moduleId: "settings", action: "evaluation_required", nameAr: "تحديد الحقل كإجباري أو اختياري", nameEn: "Evaluation Required" },
+
       { id: "forms_customization.evaluation_toggle_active", moduleId: "settings", action: "evaluation_toggle_active", nameAr: "تفعيل أو تعطيل الحقل", nameEn: "Evaluation Toggle Active" },
+
       { id: "forms_customization.evaluation_reorder", moduleId: "settings", action: "evaluation_reorder", nameAr: "تبديل أماكن وترتيب الحقول", nameEn: "Evaluation Reorder Fields" },
 
+
+
       // 3. تخصيص نماذج طلبات الخدمات
+
       { id: "forms_customization.services_view", moduleId: "settings", action: "services_view", nameAr: "عرض نماذج طلبات الخدمات فقط", nameEn: "View Service Request Forms Only" },
+
       { id: "forms_customization.services_add_field", moduleId: "settings", action: "services_add_field", nameAr: "إضافة حقل جديد", nameEn: "Services Add Field" },
+
       { id: "forms_customization.services_delete", moduleId: "settings", action: "services_delete", nameAr: "حذف حقل", nameEn: "Services Delete Field" },
+
       { id: "forms_customization.services_duplicate", moduleId: "settings", action: "services_duplicate", nameAr: "تكرار حقل", nameEn: "Services Duplicate Field" },
+
       { id: "forms_customization.services_placeholder", moduleId: "settings", action: "services_placeholder", nameAr: "إضافة وتعديل نص التلميح", nameEn: "Services Placeholder" },
+
       { id: "forms_customization.services_description", moduleId: "settings", action: "services_description", nameAr: "إضافة وتعديل الوصف الإرشادي", nameEn: "Services Description" },
+
       { id: "forms_customization.services_change_type", moduleId: "settings", action: "services_change_type", nameAr: "تغيير نوع الحقل", nameEn: "Services Change Type" },
+
       { id: "forms_customization.services_required", moduleId: "settings", action: "services_required", nameAr: "تحديد الحقل كإجباري أو اختياري", nameEn: "Services Required" },
+
       { id: "forms_customization.services_toggle_active", moduleId: "settings", action: "services_toggle_active", nameAr: "تفعيل أو تعطيل الحقل", nameEn: "Services Toggle Active" },
+
       { id: "forms_customization.services_reorder", moduleId: "settings", action: "services_reorder", nameAr: "تبديل أماكن وترتيب الحقول", nameEn: "Services Reorder Fields" },
 
+
+
       // 4. تخصيص نماذج التسجيل والتبرع
+
       { id: "forms_customization.registration_view", moduleId: "settings", action: "registration_view", nameAr: "عرض نماذج التسجيل والتبرع فقط", nameEn: "View Registration Forms Only" },
+
       { id: "forms_customization.registration_add_field", moduleId: "settings", action: "registration_add_field", nameAr: "إضافة حقل جديد", nameEn: "Registration Add Field" },
+
       { id: "forms_customization.registration_delete", moduleId: "settings", action: "registration_delete", nameAr: "حذف حقل", nameEn: "Registration Delete Field" },
+
       { id: "forms_customization.registration_duplicate", moduleId: "settings", action: "registration_duplicate", nameAr: "تكرار حقل", nameEn: "Registration Duplicate Field" },
+
       { id: "forms_customization.registration_placeholder", moduleId: "settings", action: "registration_placeholder", nameAr: "إضافة وتعديل نص التلميح", nameEn: "Registration Placeholder" },
+
       { id: "forms_customization.registration_description", moduleId: "settings", action: "registration_description", nameAr: "إضافة وتعديل الوصف الإرشادي", nameEn: "Registration Description" },
+
       { id: "forms_customization.registration_change_type", moduleId: "settings", action: "registration_change_type", nameAr: "تغيير نوع الحقل", nameEn: "Registration Change Type" },
+
       { id: "forms_customization.registration_required", moduleId: "settings", action: "registration_required", nameAr: "تحديد الحقل كإجباري أو اختياري", nameEn: "Registration Required" },
+
       { id: "forms_customization.registration_toggle_active", moduleId: "settings", action: "registration_toggle_active", nameAr: "تفعيل أو تعطيل الحقل", nameEn: "Registration Toggle Active" },
+
       { id: "forms_customization.registration_reorder", moduleId: "settings", action: "registration_reorder", nameAr: "تبديل أماكن وترتيب الحقول", nameEn: "Registration Reorder Fields" },
 
+
+
       // مفاتيح التوافق القديمة
+
       { id: "forms_customization.evaluation", moduleId: "settings", action: "evaluation", nameAr: "تخصيص استمارة التقييم", nameEn: "Customize Evaluation Form" },
+
       { id: "forms_customization.services", moduleId: "settings", action: "services", nameAr: "تخصيص نماذج طلبات الخدمات", nameEn: "Customize Service Request Forms" },
+
       { id: "forms_customization.services_view", moduleId: "settings", action: "services_view", nameAr: "استعراض حقول نماذج طلبات الخدمات", nameEn: "View Service Request Form Fields" },
+
       { id: "forms_customization.services_add", moduleId: "settings", action: "services_add", nameAr: "إضافة حقول لنماذج الخدمات", nameEn: "Add Service Request Form Fields" },
+
       { id: "forms_customization.services_edit", moduleId: "settings", action: "services_edit", nameAr: "تعديل حقول نماذج الخدمات", nameEn: "Edit Service Request Form Fields" },
+
       { id: "forms_customization.services_delete", moduleId: "settings", action: "services_delete", nameAr: "حذف حقول نماذج الخدمات", nameEn: "Delete Service Request Form Fields" },
+
       { id: "forms_customization.registration", moduleId: "settings", action: "registration", nameAr: "تخصيص نماذج التسجيل والتبرع", nameEn: "Customize Registration & Donation Forms" },
+
       { id: "forms_customization.analytics", moduleId: "settings", action: "analytics", nameAr: "لوحة تحليلات وإحصائيات النماذج", nameEn: "Forms Custom Analytics" },
 
+
+
       // --- تعيين وقت التأخير ومدد المراحل (تفصيل كامل) ---
+
       { id: "settings_escalation.view", moduleId: "settings", action: "view", nameAr: "عرض مدد المراحل وأوقات التأخير", nameEn: "View Delay Times & Stage Durations" },
+
       { id: "settings_escalation.edit_durations", moduleId: "settings", action: "edit_durations", nameAr: "تعديل مدد المراحل الرئيسية", nameEn: "Edit Main Stage Durations" },
+
       { id: "settings_escalation.edit_beneficiary_sla", moduleId: "settings", action: "edit_beneficiary_sla", nameAr: "تعديل مهلة تجاوب وقبول المستفيد", nameEn: "Edit Beneficiary Acceptance SLA" },
+
       { id: "requests.upload_final_report", moduleId: "requests", action: "upload_final_report", nameAr: "رفع التقرير الختامي", nameEn: "Upload Final Report" },
+
       { id: "boq.view", moduleId: "boq", action: "view", nameAr: "عرض جداول الكميات", nameEn: "View BOQ" },
+
       { id: "boq.add", moduleId: "boq", action: "add", nameAr: "إضافة بند جديد", nameEn: "Add BOQ Item" },
+
       { id: "boq.edit", moduleId: "boq", action: "edit", nameAr: "تعديل البنود", nameEn: "Edit BOQ Items" },
+
       { id: "boq.delete", moduleId: "boq", action: "delete", nameAr: "حذف البنود", nameEn: "Delete BOQ Items" },
+
       { id: "boq.import", moduleId: "boq", action: "import", nameAr: "استيراد جدول الكميات من Excel", nameEn: "Import BOQ from Excel" },
+
       { id: "boq.export", moduleId: "boq", action: "export", nameAr: "تصدير وتحميل جدول الكميات", nameEn: "Export and Download BOQ" },
+
       { id: "pending_reports.view", moduleId: "pending_reports", action: "view", nameAr: "عرض التقارير", nameEn: "View Reports" },
+
       { id: "pending_reports.intervene", moduleId: "pending_reports", action: "intervene", nameAr: "تدخل لرفع التقرير", nameEn: "Intervene to Upload Report" },
+
       { id: "requests.sign_final_report", moduleId: "requests", action: "sign_final_report", nameAr: "توقيع التقرير الختامي", nameEn: "Sign Final Report" },
+
       { id: "disbursements.create_custom", moduleId: "disbursements", action: "create_custom", nameAr: "انشاء طلبات صرف مخصصة", nameEn: "Create Custom Disbursement Requests" },
+
       { id: "disbursements.create_donation", moduleId: "disbursements", action: "create_donation", nameAr: "انشاء طلب صرف لفرصة تبرع", nameEn: "Create Donation Disbursement Request" },
+
       { id: "disbursements.exception_approve", moduleId: "disbursements", action: "exception_approve", nameAr: "استثناء اعتماد مُعد الطلب", nameEn: "Override Requester Approval" },
+
       { id: "disbursement_orders.exception_approve", moduleId: "disbursements", action: "exception_approve", nameAr: "استثناء اعتماد مُعد الأمر", nameEn: "Override Order Creator Approval" },
+
       { id: "disbursements.sign", moduleId: "disbursements", action: "sign", nameAr: "توقيع طلبات الصرف", nameEn: "Sign Disbursement Requests" },
+
       { id: "disbursement_orders.sign", moduleId: "disbursements", action: "sign_order", nameAr: "توقيع أوامر الصرف", nameEn: "Sign Disbursement Orders" },
+
       { id: "contracts.sign", moduleId: "contracts", action: "sign", nameAr: "توقيع العقود", nameEn: "Sign Contracts" },
+
       { id: "final_reports.sign", moduleId: "requests", action: "sign_final_report", nameAr: "توقيع التقارير الختامية", nameEn: "Sign Final Reports" },
+
       { id: "projects.create_multi_mosque", moduleId: "projects", action: "create_multi_mosque", nameAr: "إضافة مشروع لعدة مساجد", nameEn: "Create Multi-Mosque Project" },
+
       { id: "projects.assign_as_manager", moduleId: "projects", action: "assign_as_manager", nameAr: "تعيين كمدير للمشاريع", nameEn: "Assign as Project Manager" },
+
       { id: "projects.financials", moduleId: "projects", action: "financials", nameAr: "مالية المشاريع", nameEn: "Project Financials" },
+
       { id: "projects.edit_support_and_fees", moduleId: "projects", action: "edit_support_and_fees", nameAr: "تعديل بيانات الداعمين والأجور الإدارية", nameEn: "Edit Sponsors and Admin Fees" },
+
       { id: "projects.add_receipt_voucher", moduleId: "projects", action: "add_receipt_voucher", nameAr: "إضافة سند صرف", nameEn: "Add Receipt Voucher" },
+
       { id: "disbursement_orders.create_direct", moduleId: "disbursements", action: "create_direct", nameAr: "انشاء امر صرف مخصص", nameEn: "Create Direct Disbursement Order" },
+
       { id: "receipt_vouchers.view", moduleId: "disbursements", action: "view", nameAr: "عرض سندات القبض", nameEn: "View Receipt Vouchers" },
+
       { id: "receipt_vouchers.add", moduleId: "disbursements", action: "add", nameAr: "تسجيل سند قبض جديد", nameEn: "Create Receipt Voucher" },
+
       { id: "receipt_vouchers.edit", moduleId: "disbursements", action: "edit", nameAr: "تعديل سند القبض", nameEn: "Edit Receipt Voucher" },
+
       { id: "receipt_vouchers.exception_approve", moduleId: "disbursements", action: "exception_approve", nameAr: "استثناء اعتماد السند", nameEn: "Exception Approve Receipt Voucher" },
+
       { id: "fund.view", moduleId: "disbursements", action: "fund_view", nameAr: "عرض إحصائيات وسجلات الصندوق", nameEn: "View Fund Statistics and Records" },
+
       { id: "fund.transfer", moduleId: "disbursements", action: "fund_transfer", nameAr: "تحويل فائض من المشروع إلى الصندوق", nameEn: "Transfer Project Surplus to Fund" },
+
       { id: "disbursements.create_from_fund", moduleId: "disbursements", action: "create_from_fund", nameAr: "إضافة طلب صرف من صندوق الجمعية", nameEn: "Create Disbursement Request from Association Fund" },
+
       { id: "requests.create_quick_request", moduleId: "requests", action: "create_quick_request", nameAr: "إنشاء طلب سريع", nameEn: "Create Quick Request" },
+
       { id: "orders_and_letters.disbursement_orders", moduleId: "orders_and_letters", action: "disbursement_orders", nameAr: "عرض أوامر الصرف", nameEn: "View Disbursement Orders" },
+
       { id: "orders_and_letters.csr_letters", moduleId: "orders_and_letters", action: "csr_letters", nameAr: "عرض الخطاب المجتمعي", nameEn: "View Community Letters" },
+
       { id: "orders_and_letters.csr_letters_add", moduleId: "orders_and_letters", action: "csr_letters_add", nameAr: "إنشاء خطاب مجتمعي جديد", nameEn: "Create Community Letter" },
+
       { id: "orders_and_letters.purchase_orders", moduleId: "orders_and_letters", action: "purchase_orders", nameAr: "عرض أوامر الشراء", nameEn: "View Purchase Orders" },
+
       { id: "orders_and_letters.purchase_orders_add", moduleId: "orders_and_letters", action: "purchase_orders_add", nameAr: "إنشاء أمر شراء جديد", nameEn: "Create Purchase Order" },
+
       { id: "orders_and_letters.purchase_orders_create_disbursement", moduleId: "orders_and_letters", action: "purchase_orders_create_disbursement", nameAr: "إنشاء أمر صرف لأمر الشراء", nameEn: "Create Disbursement for Purchase Order" },
+
       { id: "purchase_orders.view", moduleId: "purchase_orders", action: "view", nameAr: "عرض أوامر الشراء", nameEn: "View Purchase Orders" },
+
       { id: "purchase_orders.add", moduleId: "purchase_orders", action: "add", nameAr: "إنشاء أمر شراء جديد", nameEn: "Create Purchase Order" },
+
       { id: "purchase_orders.approve", moduleId: "purchase_orders", action: "approve", nameAr: "اعتماد أوامر الشراء", nameEn: "Approve Purchase Orders" },
+
       { id: "purchase_orders.create_disbursement", moduleId: "purchase_orders", action: "create_disbursement", nameAr: "إنشاء أمر صرف لأمر الشراء", nameEn: "Create Disbursement Order" },
+
       { id: "purchase_orders.export", moduleId: "purchase_orders", action: "export", nameAr: "تصدير أوامر الشراء إكسيل", nameEn: "Export Purchase Orders" },
+
       { id: "csr_letters.view", moduleId: "csr_letters", action: "view", nameAr: "عرض خطابات المسؤولية المجتمعية", nameEn: "View CSR Letters" },
+
       { id: "csr_letters.add", moduleId: "csr_letters", action: "add", nameAr: "إنشاء خطاب مسؤولية مجتمعية جديد", nameEn: "Create CSR Letter" },
+
       { id: "csr_letters.approve", moduleId: "csr_letters", action: "approve", nameAr: "اعتماد خطابات المسؤولية المجتمعية", nameEn: "Approve CSR Letters" },
+
       { id: "csr_letters.create_disbursement", moduleId: "csr_letters", action: "create_disbursement", nameAr: "إنشاء أمر صرف للخطاب", nameEn: "Create Disbursement for CSR Letter" },
+
           { id: "csr_letters.export", moduleId: "csr_letters", action: "export", nameAr: "تصدير الخطابات إكسيل", nameEn: "Export CSR Letters" },
+
       { id: "sedana_warehouse.view", moduleId: "sedana_warehouse", action: "view", nameAr: "عرض المستودع الافتراضي", nameEn: "View Virtual Warehouse" },
+
       { id: "sedana_warehouse.inward", moduleId: "sedana_warehouse", action: "inward", nameAr: "تسجيل أمر إدخال بالمستودع", nameEn: "Record Inward Warehouse Order" },
+
       { id: "sedana_warehouse.outbound", moduleId: "sedana_warehouse", action: "outbound", nameAr: "إنشاء أمر إخراج ومسوغ صرف", nameEn: "Create Outbound & Disbursement Voucher" },
 
+
+
       { id: "disbursement_orders.remind", moduleId: "disbursements", action: "remind", nameAr: "إرسال تذكير بالاعتماد", nameEn: "Send Approval Reminder" },
+
       { id: "board_leadership.remind", moduleId: "board", action: "remind", nameAr: "إرسال تذكير بالاعتماد", nameEn: "Send Approval Reminder" },
+
       { id: "custody_requests.view", moduleId: "custody_requests", action: "view", nameAr: "عرض قسم العهدة المالية", nameEn: "View Financial Custody" },
+
       { id: "custody_requests.create", moduleId: "custody_requests", action: "create", nameAr: "طلب عهدة مالية جديدة", nameEn: "Create Financial Custody Request" },
+
       { id: "quotations.view_sedana", moduleId: "quotations", action: "view_sedana", nameAr: "عرض عروض أسعار سدانة", nameEn: "View Sedana Quotations" },
+
       { id: "sedana_quotations.view", moduleId: "sedana_quotations", action: "view", nameAr: "عرض عروض أسعار سدانة", nameEn: "View Sedana Quotations" },
+
       { id: "sedana_quotations.export_pdf", moduleId: "sedana_quotations", action: "export_pdf", nameAr: "تصدير ملف pdf للبنود", nameEn: "Export BOQ Items PDF" },
+
       { id: "sedana_quotations.add", moduleId: "sedana_quotations", action: "add", nameAr: "اضافة عروض الاسعار", nameEn: "Add Quotations" },
+
       { id: "sedana_quotations.recommend", moduleId: "sedana_quotations", action: "recommend", nameAr: "التوصية", nameEn: "Recommend & Award Items" },
+
       { id: "sedana_quotations.approve", moduleId: "sedana_quotations", action: "approve", nameAr: "اعتماد عروض الاسعار", nameEn: "Approve Sedana Quotations" },
+
       { id: "sedana_requests.view", moduleId: "sedana_requests", action: "view", nameAr: "عرض طلبات سدانة", nameEn: "View Sedana Requests" },
+
       { id: "sedana_requests.desk_review", moduleId: "sedana_requests", action: "desk_review", nameAr: "مراجعة الطلب مكتبيا", nameEn: "Desk Review of Request" },
+
       { id: "sedana_requests.manage", moduleId: "sedana_requests", action: "manage", nameAr: "ادارة طلب سدانة", nameEn: "Manage Sedana Request" },
+
     ];
+
+
 
     for (const p of customPerms) {
+
       try {
+
         const existing = await db.select({ id: permissions.id })
+
           .from(permissions)
+
           .where(eq(permissions.id, p.id))
+
           .limit(1);
+
         
+
         if (existing.length === 0) {
+
           await db.insert(permissions).values(p);
+
           console.log(`Inserted missing custom permission: ${p.id}`);
+
         } else {
+
           await db.update(permissions).set({
+
             nameAr: p.nameAr,
+
             nameEn: p.nameEn,
+
             moduleId: p.moduleId,
+
             action: p.action
+
           }).where(eq(permissions.id, p.id));
+
         }
+
       } catch (pErr) {
+
         console.warn(`Could not sync custom permission ${p.id}:`, pErr);
+
       }
+
     }
+
+
 
     // إسناد الصلاحيات الافتراضية لأوامر الشراء (مسندة تلقائياً حصراً لـ super_admin)
+
     const poDefaultRolePerms: Record<string, string[]> = {
+
       super_admin: ["purchase_orders.view", "purchase_orders.add", "purchase_orders.approve", "purchase_orders.create_disbursement", "purchase_orders.export"],
+
     };
+
+
 
     for (const [rId, pIds] of Object.entries(poDefaultRolePerms)) {
+
       for (const pId of pIds) {
+
         const [existing] = await db.select({ id: rolePermissions.id })
+
           .from(rolePermissions)
+
           .where(and(
+
             eq(rolePermissions.roleId, rId),
+
             eq(rolePermissions.permissionId, pId)
+
           ))
+
           .limit(1);
 
+
+
         if (!existing) {
+
           await db.insert(rolePermissions).values({
+
             roleId: rId,
+
             permissionId: pId
+
           }).catch(() => {});
+
         }
+
       }
+
     }
+
+
 
     // إسناد الصلاحيات الافتراضية للمسؤولية المجتمعية (مسندة تلقائياً حصراً لـ super_admin)
+
     const csrDefaultRolePerms: Record<string, string[]> = {
+
       super_admin: ["csr_letters.view", "csr_letters.add", "csr_letters.approve", "csr_letters.create_disbursement", "csr_letters.export"],
+
     };
+
+
 
     for (const [rId, pIds] of Object.entries(csrDefaultRolePerms)) {
+
       for (const pId of pIds) {
+
         const [existing] = await db.select({ id: rolePermissions.id })
+
           .from(rolePermissions)
+
           .where(and(
+
             eq(rolePermissions.roleId, rId),
+
             eq(rolePermissions.permissionId, pId)
+
           ))
+
           .limit(1);
 
+
+
         if (!existing) {
+
           await db.insert(rolePermissions).values({
+
             roleId: rId,
+
             permissionId: pId
+
           }).catch(() => {});
+
         }
+
       }
+
     }
+
+
 
     // إسناد الصلاحيات الافتراضية للمستودع الافتراضي (مسندة تلقائياً حصراً لـ super_admin)
+
     const warehouseDefaultRolePerms: Record<string, string[]> = {
+
       super_admin: ["sedana_warehouse.view", "sedana_warehouse.inward", "sedana_warehouse.outbound"],
+
     };
+
+
 
     for (const [rId, pIds] of Object.entries(warehouseDefaultRolePerms)) {
+
       for (const pId of pIds) {
+
         const [existing] = await db.select({ id: rolePermissions.id })
+
           .from(rolePermissions)
+
           .where(and(
+
             eq(rolePermissions.roleId, rId),
+
             eq(rolePermissions.permissionId, pId)
+
           ))
+
           .limit(1);
 
+
+
         if (!existing) {
+
           await db.insert(rolePermissions).values({
+
             roleId: rId,
+
             permissionId: pId
+
           }).catch(() => {});
+
         }
+
       }
+
     }
+
+
 
     // تنظيف صلاحيات أوامر الشراء والخطاب المجتمعي لمدير النظام
+
     await db.delete(rolePermissions).where(
+
       and(
+
         eq(rolePermissions.roleId, 'system_admin'),
+
         sql`${rolePermissions.permissionId} LIKE 'orders_and_letters%'`
+
       )
+
     ).catch(() => {});
+
+
 
     // تنظيف أي صلاحيات قديمة متبقية لـ orders_and_letters من جدول صلاحيات الأدوار والمستخدمين
+
     const validOrdersLettersPerms = [
+
       "orders_and_letters.disbursement_orders",
+
       "orders_and_letters.disbursement_orders_create_direct",
+
       "orders_and_letters.disbursement_orders_exception_approve",
+
       "orders_and_letters.disbursement_orders_remind",
+
       "orders_and_letters.disbursement_orders_cancel_executed",
+
       "orders_and_letters.csr_letters",
+
       "orders_and_letters.csr_letters_add",
+
       "orders_and_letters.purchase_orders",
+
       "orders_and_letters.purchase_orders_add",
+
       "orders_and_letters.purchase_orders_create_disbursement",
+
     ];
+
     await db.delete(rolePermissions).where(
+
       and(
+
         sql`${rolePermissions.permissionId} LIKE 'orders_and_letters%'`,
+
         notInArray(rolePermissions.permissionId, validOrdersLettersPerms)
+
       )
+
     ).catch(() => {});
+
+
 
     await db.delete(userPermissions).where(
+
       and(
+
         sql`${userPermissions.permissionId} LIKE 'orders_and_letters%'`,
+
         notInArray(userPermissions.permissionId, validOrdersLettersPerms)
+
       )
+
     ).catch(() => {});
+
+
 
     await db.delete(permissions).where(
+
       and(
+
         sql`${permissions.id} LIKE 'orders_and_letters%'`,
+
         notInArray(permissions.id, validOrdersLettersPerms)
+
       )
+
     ).catch(() => {});
+
+
 
     // إسناد الصلاحيات الافتراضية لمالية سدانة (مسندة لـ super_admin والمسؤول المالي financial)
+
     const ordersAndLettersDefaultRolePerms: Record<string, string[]> = {
+
       super_admin: [
+
         "orders_and_letters.disbursement_orders",
+
         "orders_and_letters.disbursement_orders_create_direct",
+
         "orders_and_letters.disbursement_orders_exception_approve",
+
         "orders_and_letters.disbursement_orders_remind",
+
         "orders_and_letters.disbursement_orders_cancel_executed",
+
         "orders_and_letters.csr_letters",
+
         "orders_and_letters.csr_letters_add",
+
         "orders_and_letters.purchase_orders",
+
         "orders_and_letters.purchase_orders_add",
+
         "orders_and_letters.purchase_orders_create_disbursement",
+
       ],
+
       financial: [
+
         "orders_and_letters.disbursement_orders",
+
         "orders_and_letters.disbursement_orders_create_direct",
+
         "orders_and_letters.disbursement_orders_exception_approve",
+
         "orders_and_letters.disbursement_orders_remind",
+
         "orders_and_letters.disbursement_orders_cancel_executed",
+
         "orders_and_letters.csr_letters",
+
         "orders_and_letters.csr_letters_add",
+
         "orders_and_letters.purchase_orders",
+
         "orders_and_letters.purchase_orders_add",
+
         "orders_and_letters.purchase_orders_create_disbursement",
+
       ],
+
     };
+
+
 
     for (const [rId, pIds] of Object.entries(ordersAndLettersDefaultRolePerms)) {
+
       for (const pId of pIds) {
+
         const [existing] = await db.select({ id: rolePermissions.id })
+
           .from(rolePermissions)
+
           .where(and(
+
             eq(rolePermissions.roleId, rId),
+
             eq(rolePermissions.permissionId, pId)
+
           ))
+
           .limit(1);
 
+
+
         if (!existing) {
+
           await db.insert(rolePermissions).values({
+
             roleId: rId,
+
             permissionId: pId
+
           }).catch(() => {});
+
         }
+
       }
+
     }
+
+
 
     // إسناد الصلاحيات الافتراضية للعهدة المالية للأدوار الأساسية
+
     const custodyDefaultRolePerms: Record<string, string[]> = {
+
       super_admin: ["custody_requests.view"],
+
       system_admin: ["custody_requests.view"],
+
       general_manager: ["custody_requests.view"],
+
       executive_director: ["custody_requests.view"],
+
       financial_manager: ["custody_requests.view"],
+
       financial: ["custody_requests.view"],
+
       projects_office: ["custody_requests.view"],
+
       project_manager: ["custody_requests.view"],
+
       field_team: ["custody_requests.view"],
+
       quick_response: ["custody_requests.view"],
+
       corporate_comm: ["custody_requests.view"],
+
       board_chairman: ["custody_requests.view"],
+
       board_member: ["custody_requests.view"],
+
       procurement_officer: ["custody_requests.view"],
+
     };
+
+
 
     for (const [rId, pIds] of Object.entries(custodyDefaultRolePerms)) {
+
       for (const pId of pIds) {
+
         const [existing] = await db.select({ id: rolePermissions.id })
+
           .from(rolePermissions)
+
           .where(and(
+
             eq(rolePermissions.roleId, rId),
+
             eq(rolePermissions.permissionId, pId)
+
           ))
+
           .limit(1);
 
+
+
         if (!existing) {
+
           await db.insert(rolePermissions).values({
+
             roleId: rId,
+
             permissionId: pId
+
           }).catch(() => {});
+
         }
+
       }
+
     }
+
+
 
     // إسناد الصلاحيات الافتراضية لعروض أسعار سدانة:
+
     // - super_admin: كافة الصلاحيات
+
     // - procurement_officer: عروض الأسعار باستثناء الاعتماد
+
     // - executive_director: العرض واعتماد عروض الأسعار فقط
+
     const sedanaQuoDefaultRolePerms: Record<string, string[]> = {
+
       super_admin: [
+
         "sedana_quotations.view",
+
         "sedana_quotations.export_pdf",
+
         "sedana_quotations.add",
+
         "sedana_quotations.recommend",
+
         "sedana_quotations.approve",
+
       ],
+
       procurement_officer: [
+
         "sedana_quotations.view",
+
         "sedana_quotations.export_pdf",
+
         "sedana_quotations.add",
+
         "sedana_quotations.recommend",
+
       ],
+
       executive_director: [
+
         "sedana_quotations.view",
+
         "sedana_quotations.approve",
+
       ],
+
     };
 
+
+
     for (const [rId, pIds] of Object.entries(sedanaQuoDefaultRolePerms)) {
+
       for (const pId of pIds) {
+
         const [existing] = await db.select({ id: rolePermissions.id })
+
           .from(rolePermissions)
+
           .where(and(
+
             eq(rolePermissions.roleId, rId),
+
             eq(rolePermissions.permissionId, pId)
+
           ))
+
           .limit(1);
 
+
+
         if (!existing) {
+
           await db.insert(rolePermissions).values({
+
             roleId: rId,
+
             permissionId: pId
+
           }).catch(() => {});
+
         }
+
       }
+
     }
 
+
+
     // التأكد من عدم وجود صلاحية الاعتماد لمسؤول المشتريات
+
     await db.delete(rolePermissions).where(
+
       and(
+
         eq(rolePermissions.roleId, "procurement_officer"),
+
         eq(rolePermissions.permissionId, "sedana_quotations.approve")
+
       )
+
     ).catch(() => {});
+
+
 
     // التأكد من عدم وجود صلاحيات الإضافة/التوصية/التصدير للمدير التنفيذي في عروض أسعار سدانة
+
     await db.delete(rolePermissions).where(
+
       and(
+
         eq(rolePermissions.roleId, "executive_director"),
+
         inArray(rolePermissions.permissionId, [
+
           "sedana_quotations.add",
+
           "sedana_quotations.recommend",
+
           "sedana_quotations.export_pdf",
+
         ])
+
       )
+
     ).catch(() => {});
+
+
 
     // تنظيف الصلاحية القديمة quotations.view_sedana من role_permissions لجميع الأدوار
+
     await db.delete(rolePermissions).where(
+
       eq(rolePermissions.permissionId, "quotations.view_sedana")
+
     ).catch(() => {});
+
+
 
     // تنظيف صلاحيات إدارة المخزون للأدوار غير المصرح لها
+
     await db.delete(rolePermissions).where(
+
       and(
+
         notInArray(rolePermissions.roleId, ["super_admin", "procurement_officer", "executive_director", "financial"]),
+
         or(
+
           sql`${rolePermissions.permissionId} LIKE 'sedana_quotations%'`,
+
           sql`${rolePermissions.permissionId} LIKE 'orders_and_letters%'`,
+
           sql`${rolePermissions.permissionId} LIKE 'purchase_orders%'`,
+
           sql`${rolePermissions.permissionId} LIKE 'csr_letters%'`,
+
           sql`${rolePermissions.permissionId} LIKE 'sedana_warehouse%'`,
+
           eq(rolePermissions.permissionId, "quotations.view_sedana")
+
         )
+
       )
+
     ).catch(() => {});
+
+
 
     // حصر مالية سدانة في super_admin و financial فقط
+
     await db.delete(rolePermissions).where(
+
       and(
+
         notInArray(rolePermissions.roleId, ["super_admin", "financial"]),
+
         sql`${rolePermissions.permissionId} LIKE 'orders_and_letters%'`
+
       )
+
     ).catch(() => {});
 
+
+
     // حصر أوامر الشراء والخطاب المجتمعي والمستودع في super_admin فقط
+
     await db.delete(rolePermissions).where(
+
       and(
+
         ne(rolePermissions.roleId, "super_admin"),
+
         or(
+
           sql`${rolePermissions.permissionId} LIKE 'purchase_orders%'`,
+
           sql`${rolePermissions.permissionId} LIKE 'csr_letters%'`,
+
           sql`${rolePermissions.permissionId} LIKE 'sedana_warehouse%'`
+
         )
+
       )
+
     ).catch(() => {});
+
+
+
 
 
   } catch (err) {
+
     console.error("Error in ensureAllCustomPermissionsExist:", err);
+
   }
+
 }
 
+
+
 /**
+
  * حساب الصلاحيات النهائية للمستخدم
+
  * تدمج صلاحيات الأدوار + الصلاحيات الفردية
+
  */
+
 export async function calculateUserPermissions(userId: number): Promise<string[]> {
+
   const db = await getDb();
+
   if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
+
+
   // 1. الحصول على الدور الأساسي للمستخدم من جدول المستخدمين
+
   const [userData] = await db
+
     .select({ role: users.role })
+
     .from(users)
+
     .where(eq(users.id, userId))
+
     .limit(1);
+
+
 
   let rolePermissionsData: string[] = [];
 
+
+
   // إذا كان المستخدم super_admin أو system_admin، نمنحه جميع الصلاحيات افتراضياً كبداية (أو نلتزم بما تم تخصيصه في الدور إذا وُجد)
+
   if (userData?.role === 'super_admin' || userData?.role === 'system_admin') {
+
     const isSuperAdmin = userData?.role === 'super_admin';
+
     const excludedAdminPerms = EXCLUDED_ADMIN_PERMISSIONS;
 
+
+
     const [adminRoleRecord] = await db
+
       .select({ description: roles.description })
+
       .from(roles)
+
       .where(eq(roles.id, userData.role))
+
       .limit(1);
 
+
+
     let customAdminPerms: string[] | null = null;
+
     if (adminRoleRecord?.description) {
+
       try {
+
         const parsed = JSON.parse(adminRoleRecord.description);
+
         if (Array.isArray(parsed) && parsed.length > 0) {
+
           customAdminPerms = parsed;
+
         }
+
       } catch {}
+
     }
+
+
 
     if (customAdminPerms) {
+
       rolePermissionsData.push(...customAdminPerms);
+
     } else {
+
       const allPerms = await db.select({ id: permissions.id }).from(permissions);
+
       // يحصلان أيضاً على جميع الصلاحيات الموسعة (باستثناء appointments.view_own والصلاحيات المستبعدة)
+
       const expandedSet = new Set(
+
         allPerms
+
           .map(p => p.id)
+
           .filter(id => {
+
             if (id === "appointments.view_own" || excludedAdminPerms.includes(id)) return false;
+
             if (userData.role === 'system_admin' && id.startsWith("orders_and_letters")) return false;
+
             return true;
+
           })
+
       );
+
       Object.keys(PERMISSION_EXPANSION).forEach(k => {
+
         if (k !== "appointments.view_own" && !excludedAdminPerms.includes(k)) {
+
           if (userData.role === 'system_admin' && k.startsWith("orders_and_letters")) return;
+
           expandedSet.add(k);
+
         }
+
       });
+
       Object.values(PERMISSION_EXPANSION).forEach(subs => subs.forEach(s => {
+
         if (!excludedAdminPerms.includes(s)) {
+
           if (userData.role === 'system_admin' && s.startsWith("orders_and_letters")) return;
+
           expandedSet.add(s);
+
         }
+
       }));
+
       rolePermissionsData.push(...Array.from(expandedSet));
+
     }
+
   }
+
+
 
   // 2. جمع صلاحيات جميع الأدوار المسندة للمستخدم (الدور الأساسي + الأدوار الإضافية)
+
   const userRolesData = await db
+
     .select({
+
       roleId: userRoleAssignments.roleId,
+
     })
+
     .from(userRoleAssignments)
+
     .where(
+
       and(
+
         eq(userRoleAssignments.userId, userId),
+
         sql`(${userRoleAssignments.expiresAt} IS NULL OR ${userRoleAssignments.expiresAt} > NOW())`
+
       )
+
     );
 
+
+
   const roleIds = userRolesData.map(r => r.roleId);
+
   const hasCustomRole = roleIds.some(r => r.startsWith("custom_role_"));
+
   if (userData?.role && !hasCustomRole) {
+
     roleIds.push(userData.role);
+
   }
+
+
 
   // إسناد صلاحيات تلقائية للأدوار الأساسية إذا لزم الأمر
+
   if (userData?.role === "service_requester" && !hasCustomRole) {
+
     rolePermissionsData.push("requests.create", "requests.view");
+
   }
+
+
 
   if (userData?.role === "procurement_officer" && !hasCustomRole) {
+
     rolePermissionsData.push("quotations.view", "quotations.create", "quotations.add");
+
   }
 
+
+
   if ((userData?.role === "dashboard_viewer" || roleIds.includes("dashboard_viewer")) && !hasCustomRole) {
+
     rolePermissionsData.push("information_dashboard", "information_dashboard.view");
+
   }
+
+
+
 
 
   if (userData?.role === "board_chairman" || roleIds.includes("board_chairman")) {
+
     rolePermissionsData.push("board_chairman");
+
   }
+
+
 
   if (userData?.role === "board_member" || roleIds.includes("board_member")) {
+
     rolePermissionsData.push("board_member");
+
   }
+
+
 
   if (roleIds.length > 0) {
+
     // جلب صلاحيات من جدول rolePermissions (المصدر التقليدي)
+
     const rolePermsResult = await db
+
       .select({ permissionId: rolePermissions.permissionId })
+
       .from(rolePermissions)
+
       .where(inArray(rolePermissions.roleId, roleIds));
+
     
+
     rolePermissionsData.push(...rolePermsResult.map(rp => rp.permissionId));
 
+
+
     // جلب صلاحيات من حقل description في جدول roles (المصدر للأدوار المخصصة)
+
     const rolesData = await db
+
       .select({ id: roles.id, description: roles.description })
+
       .from(roles)
+
       .where(inArray(roles.id, roleIds));
 
+
+
     for (const role of rolesData) {
+
       if (role.description) {
+
         try {
+
           const parsed = JSON.parse(role.description);
+
           if (Array.isArray(parsed)) {
+
             rolePermissionsData.push(...parsed);
+
           }
+
         } catch {
+
           // ليس JSON صالح، نتجاهل
+
         }
+
       }
+
     }
+
   }
 
+
+
   // 3. جمع الصلاحيات الفردية
+
   const userPermsData = await db
+
     .select({
+
       permissionId: userPermissions.permissionId,
+
       granted: userPermissions.granted
+
     })
+
     .from(userPermissions)
+
     .where(
+
       and(
+
         eq(userPermissions.userId, userId),
+
         sql`(${userPermissions.expiresAt} IS NULL OR ${userPermissions.expiresAt} > NOW())`
+
       )
+
     );
 
+
+
   // 4. دمج وتوسيع الصلاحيات
+
   const allPermissions = new Set<string>();
 
+
+
   // إضافة الصلاحيات المجمعة من كل المصادر
+
   rolePermissionsData.forEach(p => allPermissions.add(p));
+
+
 
   const effectiveExcludedAdminPerms = EXCLUDED_ADMIN_PERMISSIONS;
 
+
+
   // دعم الـ Wildcard (إذا وجد '*')
+
   if (allPermissions.has("*")) {
+
     const allAvailablePerms = await db.select({ id: permissions.id }).from(permissions);
+
     allAvailablePerms.forEach(p => {
+
       // الصلاحيات المستبعدة وصلاحيات إدارة المخزون لا تُمنح تلقائياً بالـ Wildcard
+
       const isInv = (
+
         p.id.startsWith("sedana_quotations") ||
+
         p.id.startsWith("orders_and_letters") ||
+
         p.id.startsWith("purchase_orders") ||
+
         p.id.startsWith("csr_letters") ||
+
         p.id.startsWith("sedana_warehouse")
+
       );
+
       if (!effectiveExcludedAdminPerms.includes(p.id) && !isInv) {
+
         allPermissions.add(p.id);
+
       }
+
     });
+
   }
+
+
 
   // توسيع الصلاحيات البسيطة إلى صلاحيات دقيقة لجميع الصلاحيات المجمعة
+
   const permissionsToExpand = Array.from(allPermissions);
+
   for (const perm of permissionsToExpand) {
+
     const expanded = PERMISSION_EXPANSION[perm];
+
     if (expanded) {
+
       expanded.forEach(sub => {
+
         if (!effectiveExcludedAdminPerms.includes(sub)) {
+
           allPermissions.add(sub);
+
         }
+
       });
+
     }
+
   }
+
+
 
   // 6. تطبيق الصلاحيات الفردية (منح أو سحب)
+
   // بناء خريطة عكسية: من الصلاحية الدقيقة إلى مفاتيح التوسيع الأب
+
   const reverseExpansionMap: Record<string, string[]> = {};
+
   for (const [parentKey, childPerms] of Object.entries(PERMISSION_EXPANSION)) {
+
     for (const child of childPerms) {
+
       if (!reverseExpansionMap[child]) reverseExpansionMap[child] = [];
+
       reverseExpansionMap[child].push(parentKey);
+
     }
+
   }
+
+
 
   const revokedPermissions = new Set<string>();
+
   userPermsData.forEach(perm => {
+
     if (perm.granted) {
+
       allPermissions.add(perm.permissionId);
+
       // توسيع الصلاحية المباشرة الممنوحة لتفادي أخطاء الصلاحيات الدقيقة في الواجهة
+
       const expanded = PERMISSION_EXPANSION[perm.permissionId];
+
       if (expanded) {
+
         expanded.forEach(sub => allPermissions.add(sub));
+
       }
+
     } else {
+
       allPermissions.delete(perm.permissionId); // سحب الصلاحية
+
       revokedPermissions.add(perm.permissionId);
+
     }
+
   });
+
+
 
   // إذا تم سحب أي صلاحية لم يعد المستخدم يملك جميع الصلاحيات (*)
+
   if (revokedPermissions.size > 0) {
+
     allPermissions.delete("*");
+
   }
+
+
 
   // إزالة المفاتيح الأب/البديلة التي تعتمد على صلاحيات محجوبة
+
   // مثلاً: حجب mosque_map.view يزيل أيضاً mosque_map و mosques_map
+
   revokedPermissions.forEach(revokedPerm => {
+
     const parentKeys = reverseExpansionMap[revokedPerm] || [];
+
     for (const parentKey of parentKeys) {
+
       if (
+
         parentKey === "disbursements.add" || 
+
         parentKey === "disbursements.create_custom" || 
+
         parentKey === "disbursements.create_donation" ||
+
         parentKey === "staff_notifications.edit" ||
+
         parentKey === "notification_center" ||
+
         parentKey === "suppliers" ||
+
         parentKey === "settings_branding.edit" ||
+
         parentKey === "forms_customization"
+
       ) {
+
         continue;
+
       }
+
       // نحذف المفتاح الأب فقط إذا كانت كل صلاحياته الفرعية محجوبة أو غير موجودة
+
       const siblingPerms = PERMISSION_EXPANSION[parentKey] || [];
+
       const hasRemainingGranted = siblingPerms.some(
+
         sibling => sibling !== revokedPerm && allPermissions.has(sibling) && !revokedPermissions.has(sibling)
+
       );
+
       if (!hasRemainingGranted) {
+
         allPermissions.delete(parentKey);
+
       }
+
     }
+
   });
 
+
+
   // تنظيف مفاتيح إعدادات الجمعية عند سحب أي من الصلاحيات التابعة
+
   if (
+
     revokedPermissions.has("settings_org.signers_view") ||
+
     revokedPermissions.has("settings_org.signers_add") ||
+
     revokedPermissions.has("settings_org.signers_edit") ||
+
     revokedPermissions.has("settings_org.signers_set_default") ||
+
     revokedPermissions.has("settings_org.signers_delete")
+
   ) {
+
     allPermissions.delete("settings_org.edit_signers");
+
   }
+
+
 
   // إذا تم سحب عرض قائمة المفوضين، تسحب جميع إجراءات المفوضين تلقائياً
+
   if (revokedPermissions.has("settings_org.signers_view")) {
+
     allPermissions.delete("settings_org.signers_view");
+
     allPermissions.delete("settings_org.signers_add");
+
     allPermissions.delete("settings_org.signers_edit");
+
     allPermissions.delete("settings_org.signers_set_default");
+
     allPermissions.delete("settings_org.signers_delete");
+
     allPermissions.delete("settings_org.edit_signers");
+
   }
+
+
 
   // إذا تم سحب كافة صلاحيات إعدادات الجمعية (أو لم يتبق أي منها)، يتم حذف صلاحية عرض إعدادات الجمعية والمفتاح العام
+
   const allOrgSubPerms = [
+
     "settings_org.edit_basic",
+
     "settings_org.edit_supervision",
+
     "settings_org.edit_officials",
+
     "settings_org.signers_view",
+
     "settings_org.signers_add",
+
     "settings_org.signers_edit",
+
     "settings_org.signers_set_default",
+
     "settings_org.signers_delete",
+
     "settings_org.edit_banks",
+
     "settings_org.edit_contracts"
+
   ];
+
   const hasRemainingOrgPerms = allOrgSubPerms.some(
+
     p => allPermissions.has(p) && !revokedPermissions.has(p)
+
   );
+
   if (!hasRemainingOrgPerms) {
+
     allPermissions.delete("settings_org.view");
+
     allPermissions.delete("settings_org");
+
     allPermissions.delete("settings_org.edit_signers");
+
   }
+
+
 
   // تنظيف مفاتيح إدارة التصنيفات عند سحب أي من الصلاحيات التابعة
+
   const allCategorySubPerms = [
+
     "settings_categories.view",
+
     "settings_categories.add",
+
     "settings_categories.edit",
+
     "settings_categories.reorder",
+
     "settings_categories.delete"
+
   ];
+
+
 
   // إذا تم سحب عرض وتصفح التصنيفات، تسحب جميع إجراءات التصنيفات تلقائياً
+
   if (revokedPermissions.has("settings_categories.view") || revokedPermissions.has("settings_categories")) {
+
     allCategorySubPerms.forEach(p => allPermissions.delete(p));
+
     allPermissions.delete("settings_categories");
+
   }
+
+
 
   // إذا تم سحب كافة صلاحيات التصنيفات (أو لم يتبق أي منها)، يتم حذف المفتاح العام settings_categories
+
   const hasRemainingCategoryPerms = allCategorySubPerms.some(
+
     p => allPermissions.has(p) && !revokedPermissions.has(p)
+
   );
+
   if (!hasRemainingCategoryPerms) {
+
     allCategorySubPerms.forEach(p => allPermissions.delete(p));
+
     allPermissions.delete("settings_categories");
+
   }
+
+
 
   // تنظيف مفاتيح البرامج والخدمات عند سحب أي من الصلاحيات التابعة
+
   const allServicesSubPerms = [
+
     "services.view",
+
     "services.add",
+
     "services.edit",
+
     "services.toggle_status",
+
     "services.reorder",
+
     "services.delete"
+
   ];
+
+
 
   // إذا تم سحب عرض البرامج والخدمات، تسحب جميع إجراءات البرامج والخدمات تلقائياً
+
   if (revokedPermissions.has("services.view") || revokedPermissions.has("services")) {
+
     allServicesSubPerms.forEach(p => allPermissions.delete(p));
+
     allPermissions.delete("services");
+
     allPermissions.delete("programs_services");
+
   }
+
+
 
   // إذا تم سحب كافة صلاحيات البرامج والخدمات (أو لم يتبق أي منها)، يتم حذف المفتاح العام services
+
   const hasRemainingServicesPerms = allServicesSubPerms.some(
+
     p => allPermissions.has(p) && !revokedPermissions.has(p)
+
   );
+
   if (!hasRemainingServicesPerms) {
+
     allServicesSubPerms.forEach(p => allPermissions.delete(p));
+
     allPermissions.delete("services");
+
     allPermissions.delete("programs_services");
+
   }
+
+
 
   // تنظيف مفاتيح الهوية البصرية عند سحب أي من الصلاحيات التابعة
+
   const allBrandingSubPerms = [
+
     "settings_branding.view",
+
     "settings_branding.edit_colors",
+
     "settings_branding.upload_logos",
+
     "settings_branding.delete_logos"
+
   ];
 
+
+
   // إذا تم سحب عرض إعدادات الهوية والشعارات، تسحب جميع إجراءات الهوية البصرية تلقائياً
+
   if (revokedPermissions.has("settings_branding.view") || revokedPermissions.has("settings_branding")) {
+
     allBrandingSubPerms.forEach(p => allPermissions.delete(p));
+
     allPermissions.delete("settings_branding");
+
     allPermissions.delete("settings_branding.edit");
+
   }
+
+
 
   // إذا سحبت أي من صلاحيات التعديل، تسحب الصلاحية الشاملة settings_branding.edit
+
   if (
+
     revokedPermissions.has("settings_branding.edit_colors") ||
+
     revokedPermissions.has("settings_branding.upload_logos") ||
+
     revokedPermissions.has("settings_branding.delete_logos") ||
+
     revokedPermissions.has("settings_branding.edit")
+
   ) {
+
     allPermissions.delete("settings_branding.edit");
+
   }
+
+
 
   // إذا تم سحب كافة صلاحيات الهوية البصرية (أو لم يتبق أي منها)، يتم حذف المفتاح العام settings_branding
+
   const hasRemainingBrandingPerms = allBrandingSubPerms.some(
+
     p => allPermissions.has(p) && !revokedPermissions.has(p)
+
   );
+
   if (!hasRemainingBrandingPerms) {
+
     allBrandingSubPerms.forEach(p => allPermissions.delete(p));
+
     allPermissions.delete("settings_branding");
+
     allPermissions.delete("settings_branding.edit");
+
   }
 
+
+
   // 7. إضافة مفاتيح الصلاحيات البسيطة تلقائياً لتوافق الواجهة الجانبية والتحقق من المسارات
+
   if (allPermissions.has("mosques.view")) {
+
     allPermissions.add("mosques");
+
   } else {
+
     allPermissions.delete("mosques");
+
   }
+
   if (
+
     allPermissions.has("requests.view") ||
+
     allPermissions.has("requests.view_details") ||
+
     allPermissions.has("requests.manage_as_field_team") ||
+
     allPermissions.has("requests.manage_as_quick_response")
+
   ) {
+
     allPermissions.add("requests");
+
   } else {
+
     allPermissions.delete("requests");
+
   }
+
   if (allPermissions.has("disbursement_orders.view")) {
+
     allPermissions.add("disbursement_orders.view_details");
+
   } else {
+
     allPermissions.delete("disbursement_orders.view_details");
+
   }
+
   if (allPermissions.has("mosque_map.view")) {
+
     allPermissions.add("mosque_map");
+
     allPermissions.add("mosques_map");
+
   } else {
+
     allPermissions.delete("mosque_map");
+
     allPermissions.delete("mosques_map");
+
   }
+
   if (allPermissions.has("appointments.view_all") || allPermissions.has("appointments.view_own")) {
+
     allPermissions.add("appointments");
+
     allPermissions.add("appointments.view");
+
     allPermissions.add("appointments_calendar");
+
   } else {
+
     allPermissions.delete("appointments");
+
     allPermissions.delete("appointments.view");
+
     allPermissions.delete("appointments_calendar");
+
   }
+
   if (allPermissions.has("projects.view")) {
+
     allPermissions.add("projects");
+
   } else {
+
     allPermissions.delete("projects");
+
   }
+
   if (allPermissions.has("reports.view_stats") || allPermissions.has("reports.export_data")) {
+
     allPermissions.add("reports");
+
   } else {
+
     allPermissions.delete("reports");
+
   }
+
+
+
 
 
   if (revokedPermissions.has("escalation.view") || revokedPermissions.has("escalation")) {
+
     allPermissions.delete("escalation");
+
     allPermissions.delete("escalation.view");
+
   } else if (allPermissions.has("escalation.view") || allPermissions.has("escalation")) {
+
     allPermissions.add("escalation");
+
     allPermissions.add("escalation.view");
+
   } else {
+
     allPermissions.delete("escalation");
+
     allPermissions.delete("escalation.view");
+
   }
+
+
 
   // التحقق من صلاحيات تعيين وقت التأخير ومدد المراحل
+
   const escalationSubPerms = [
+
     "settings_escalation.edit_durations",
+
     "settings_escalation.edit_beneficiary_sla"
+
   ];
+
+
 
   if (revokedPermissions.has("settings_escalation.view") || revokedPermissions.has("settings_escalation")) {
+
     allPermissions.delete("settings_escalation");
+
     allPermissions.delete("settings_escalation.view");
+
     allPermissions.delete("settings_escalation.edit");
+
     allPermissions.delete("settings_escalation.save");
+
     allPermissions.delete("escalation");
+
     allPermissions.delete("escalation.view");
+
     escalationSubPerms.forEach(p => allPermissions.delete(p));
+
   } else if (allPermissions.has("settings_escalation.view")) {
+
     allPermissions.add("settings_escalation");
+
     allPermissions.add("settings_escalation.view");
+
   }
+
+
 
   if (revokedPermissions.has("settings_escalation.edit_durations")) {
+
     allPermissions.delete("settings_escalation.edit_durations");
+
   }
+
   if (revokedPermissions.has("settings_escalation.edit_beneficiary_sla")) {
+
     allPermissions.delete("settings_escalation.edit_beneficiary_sla");
+
   }
+
   if (
+
     revokedPermissions.has("settings_escalation.edit_durations") ||
+
     revokedPermissions.has("settings_escalation.edit_beneficiary_sla") ||
+
     revokedPermissions.has("settings_escalation.save")
+
   ) {
+
     allPermissions.delete("settings_escalation.edit");
+
     allPermissions.delete("settings_escalation.save");
+
   }
+
+
 
   const hasAnyEscalation = allPermissions.has("settings_escalation.view") && !revokedPermissions.has("settings_escalation.view");
+
   if (!hasAnyEscalation) {
+
     allPermissions.delete("settings_escalation");
+
     allPermissions.delete("settings_escalation.view");
+
     allPermissions.delete("settings_escalation.edit");
+
     allPermissions.delete("settings_escalation.save");
+
     escalationSubPerms.forEach(p => allPermissions.delete(p));
+
   }
+
+
 
   if (revokedPermissions.has("beneficiary_evaluations.view") || revokedPermissions.has("beneficiary_evaluations") || revokedPermissions.has("beneficiary_satisfaction")) {
+
     allPermissions.delete("beneficiary_evaluations");
+
     allPermissions.delete("beneficiary_evaluations.view");
+
     allPermissions.delete("beneficiary_satisfaction");
+
   } else if (
+
     allPermissions.has("beneficiary_evaluations.view") ||
+
     allPermissions.has("beneficiary_evaluations") ||
+
     allPermissions.has("beneficiary_satisfaction") ||
+
     allPermissions.has("beneficiary_evaluations.evaluations_log") ||
+
     allPermissions.has("beneficiary_evaluations.dispatch_log") ||
+
     allPermissions.has("beneficiary_evaluations.contacts") ||
+
     allPermissions.has("beneficiary_evaluations.reply") ||
+
     allPermissions.has("beneficiary_evaluations.hide")
+
   ) {
+
     allPermissions.add("beneficiary_evaluations");
+
     allPermissions.add("beneficiary_satisfaction");
+
   } else {
+
     allPermissions.delete("beneficiary_evaluations");
+
     allPermissions.delete("beneficiary_evaluations.view");
+
     allPermissions.delete("beneficiary_satisfaction");
+
   }
+
+
+
 
 
   if (
+
     allPermissions.has("users.view") ||
+
     allPermissions.has("staff_users.view") ||
+
     allPermissions.has("staff_users.customize") ||
+
     allPermissions.has("staff_roles.view") ||
+
     allPermissions.has("staff_custom_roles.view") ||
+
     allPermissions.has("staff_notifications.edit") ||
+
     allPermissions.has("staff_notifications.by_role") ||
+
     allPermissions.has("staff_notifications.edit_message_formats") ||
+
     allPermissions.has("staff_notifications.by_person") ||
+
     allPermissions.has("staff_notifications.beneficiary") ||
+
     allPermissions.has("notification_center") ||
+
     allPermissions.has("notification_center.view") ||
+
     allPermissions.has("notification_center.direct_send") ||
+
     allPermissions.has("notification_center.send_logs")
+
   ) {
+
     allPermissions.add("staff");
+
     allPermissions.add("staff_management");
+
   }
+
   const supplierSubPerms = [
+
     "suppliers.view",
+
     "suppliers.view_details",
+
     "suppliers.add",
+
     "suppliers.create",
+
     "suppliers.edit",
-    "suppliers.delete",
+
     "suppliers.approve",
+
     "suppliers.reject",
+
     "suppliers.suspend"
+
   ];
+
   const hasAnySupplierPerm = [
+
     "suppliers.view",
+
     "suppliers.view_details",
+
     "suppliers.add",
+
     "suppliers.create",
+
     "suppliers.edit",
+
     "suppliers.approve",
+
     "suppliers.suspend"
+
   ].some(p => allPermissions.has(p) && !revokedPermissions.has(p));
 
+
+
   if (!hasAnySupplierPerm || revokedPermissions.has("suppliers") || revokedPermissions.has("suppliers.view")) {
+
     allPermissions.delete("suppliers");
+
     if (revokedPermissions.has("suppliers") || revokedPermissions.has("suppliers.view") || !hasAnySupplierPerm) {
+
       supplierSubPerms.forEach(p => allPermissions.delete(p));
+
     }
+
   } else {
+
     allPermissions.add("suppliers");
+
   }
-  if (
-    allPermissions.has("boq.view") &&
-    allPermissions.has("boq.add") &&
-    allPermissions.has("boq.edit") &&
-    allPermissions.has("boq.delete") &&
-    allPermissions.has("boq.import") &&
-    allPermissions.has("boq.export")
-  ) {
+
+  // 1. إعداد جداول الكميات
+
+  const boqSubPerms = ["boq.view", "boq.add", "boq.edit", "boq.delete", "boq.import", "boq.export"];
+
+  if (revokedPermissions.has("boq") || revokedPermissions.has("boq.view") || !allPermissions.has("boq.view")) {
+
+    allPermissions.delete("boq");
+
+    if (revokedPermissions.has("boq") || revokedPermissions.has("boq.view")) {
+
+      boqSubPerms.forEach(p => allPermissions.delete(p));
+
+    }
+
+  } else if (allPermissions.has("boq.view")) {
+
     allPermissions.add("boq");
+
   }
-  if (allPermissions.has("quotations.view")) {
+
+
+
+  // 2. عروض الأسعار
+
+  const quotationSubPerms = ["quotations.view", "quotations.view_sedana", "quotations.add", "quotations.create", "quotations.edit", "quotations.delete", "quotations.approve", "quotations.export"];
+
+  if (revokedPermissions.has("quotations") || revokedPermissions.has("quotations.view") || !allPermissions.has("quotations.view")) {
+
+    allPermissions.delete("quotations");
+
+    if (revokedPermissions.has("quotations") || revokedPermissions.has("quotations.view")) {
+
+      quotationSubPerms.forEach(p => allPermissions.delete(p));
+
+    }
+
+  } else if (allPermissions.has("quotations.view")) {
+
     allPermissions.add("quotations");
+
   }
-  if (
-    allPermissions.has("contracts.view") ||
-    allPermissions.has("contracts.create") ||
-    allPermissions.has("contracts.template_add") ||
-    allPermissions.has("contracts.template_edit") ||
-    allPermissions.has("contracts.template_delete") ||
-    allPermissions.has("contracts.clause_add")
-  ) {
+
+
+
+  // 3. قسم الاعتمادات
+
+  const approvalSubPerms = [
+
+    "financial_approval.view",
+
+    "financial_approval.progress_invoices",
+
+    "financial_approval.disbursement_requests",
+
+    "financial_approval.disbursement_orders",
+
+    "financial_approval.custody_requests",
+
+    "financial_approval.receipt_vouchers",
+
+    "financial_approval.contracts",
+
+    "financial_approval.purchase_orders",
+
+    "financial_approval.progress_reports",
+
+    "financial_approval.approve"
+
+  ];
+
+  const hasAnyApprovalPerm = approvalSubPerms.some(p => allPermissions.has(p) && !revokedPermissions.has(p));
+
+  if (revokedPermissions.has("financial_approval") || revokedPermissions.has("financial_approval.view") || !hasAnyApprovalPerm) {
+
+    allPermissions.delete("financial_approval");
+
+    allPermissions.delete("financial_approval.view");
+
+    if (revokedPermissions.has("financial_approval") || revokedPermissions.has("financial_approval.view")) {
+
+      approvalSubPerms.forEach(p => allPermissions.delete(p));
+
+    }
+
+  } else if (allPermissions.has("financial_approval.view") || hasAnyApprovalPerm) {
+
+    allPermissions.add("financial_approval");
+
+  }
+
+
+
+  // 4. العقود
+
+  const contractSubPerms = [
+
+    "contracts.view",
+
+    "contracts.create",
+
+    "contracts.edit",
+
+    "contracts.delete",
+
+    "contracts.approve",
+
+    "contracts.edit_approved",
+
+    "contracts.template_add",
+
+    "contracts.template_edit",
+
+    "contracts.template_delete",
+
+    "contracts.clause_add",
+
+    "contracts.export"
+
+  ];
+
+  if (revokedPermissions.has("contracts") || revokedPermissions.has("contracts.view") || !allPermissions.has("contracts.view")) {
+
+    allPermissions.delete("contracts");
+
+    if (revokedPermissions.has("contracts") || revokedPermissions.has("contracts.view")) {
+
+      contractSubPerms.forEach(p => allPermissions.delete(p));
+
+    }
+
+  } else if (allPermissions.has("contracts.view")) {
+
     allPermissions.add("contracts");
+
   }
+
+
+
+  // 5. طلبات الصرف
+
+  const disbursementSubPerms = [
+
+    "disbursements.view",
+
+    "disbursements.add",
+
+    "disbursements.create",
+
+    "disbursements.edit",
+
+    "disbursements.delete",
+
+    "disbursements.approve",
+
+    "disbursements.create_custom",
+
+    "disbursements.create_donation",
+
+    "disbursements.create_from_fund",
+
+    "disbursements.exception_approve",
+
+    "disbursements.export"
+
+  ];
+
   if (
-    allPermissions.has("disbursements.view") ||
-    allPermissions.has("disbursements.add") ||
-    allPermissions.has("disbursements.create_custom") ||
-    allPermissions.has("disbursements.create_donation") ||
-    allPermissions.has("disbursements.edit") ||
-    allPermissions.has("disbursements.delete") ||
-    allPermissions.has("disbursements.approve") ||
-    allPermissions.has("disbursements.exception_approve")
+
+    revokedPermissions.has("disbursements") ||
+
+    revokedPermissions.has("disbursements.view") ||
+
+    revokedPermissions.has("disbursement_requests") ||
+
+    !allPermissions.has("disbursements.view")
+
   ) {
+
+    allPermissions.delete("disbursements");
+
+    allPermissions.delete("disbursement_requests");
+
+    if (revokedPermissions.has("disbursements") || revokedPermissions.has("disbursements.view") || revokedPermissions.has("disbursement_requests")) {
+
+      disbursementSubPerms.forEach(p => allPermissions.delete(p));
+
+    }
+
+  } else if (allPermissions.has("disbursements.view")) {
+
     allPermissions.add("disbursements");
+
     allPermissions.add("disbursement_requests");
+
+    if (allPermissions.has("disbursements.create_custom")) {
+
+      allPermissions.add("disbursements.create_donation");
+
+    }
+
+    if (
+
+      allPermissions.has("disbursements.add") ||
+
+      allPermissions.has("disbursements.create_custom") ||
+
+      allPermissions.has("disbursements.create_donation")
+
+    ) {
+
+      allPermissions.add("disbursements.create");
+
+    }
+
   }
-  if (allPermissions.has("disbursements.create_custom")) {
-    allPermissions.add("disbursements.create_donation");
+
+
+
+  // 6. سندات القبض
+
+  const receiptVoucherSubPerms = [
+
+    "receipt_vouchers.view",
+
+    "receipt_vouchers.add",
+
+    "receipt_vouchers.edit",
+
+    "receipt_vouchers.delete",
+
+    "receipt_vouchers.print",
+
+    "receipt_vouchers.exception_approve"
+
+  ];
+
+  if (revokedPermissions.has("receipt_vouchers") || revokedPermissions.has("receipt_vouchers.view") || !allPermissions.has("receipt_vouchers.view")) {
+
+    allPermissions.delete("receipt_vouchers");
+
+    if (revokedPermissions.has("receipt_vouchers") || revokedPermissions.has("receipt_vouchers.view")) {
+
+      receiptVoucherSubPerms.forEach(p => allPermissions.delete(p));
+
+    }
+
+  } else if (allPermissions.has("receipt_vouchers.view")) {
+
+    allPermissions.add("receipt_vouchers");
+
   }
+
+
+
+  // 7. الصندوق
+
+  const fundSubPerms = ["fund.view", "fund.transfer", "fund.export"];
+
+  if (revokedPermissions.has("fund") || revokedPermissions.has("fund.view") || !allPermissions.has("fund.view")) {
+
+    allPermissions.delete("fund");
+
+    if (revokedPermissions.has("fund") || revokedPermissions.has("fund.view")) {
+
+      fundSubPerms.forEach(p => allPermissions.delete(p));
+
+    }
+
+  } else if (allPermissions.has("fund.view")) {
+
+    allPermissions.add("fund");
+
+  }
+
+
+
+  // 8. أوامر الصرف
+
+  const disbursementOrderSubPerms = [
+
+    "disbursement_orders.view",
+
+    "disbursement_orders.create_direct",
+
+    "disbursement_orders.approve",
+
+    "disbursement_orders.reject",
+
+    "disbursement_orders.exception_approve",
+
+    "disbursement_orders.remind",
+
+    "disbursement_orders.cancel_executed",
+
+    "disbursement_orders.export"
+
+  ];
+
   if (
-    allPermissions.has("disbursements.add") ||
-    allPermissions.has("disbursements.create_custom") ||
-    allPermissions.has("disbursements.create_donation")
+
+    revokedPermissions.has("disbursement_orders") ||
+
+    revokedPermissions.has("disbursement_orders.view") ||
+
+    !allPermissions.has("disbursement_orders.view")
+
   ) {
-    allPermissions.add("disbursements.create");
-  }
-  if (
-    allPermissions.has("purchase_orders.create_disbursement") ||
-    allPermissions.has("orders_and_letters.purchase_orders_create_disbursement") ||
-    allPermissions.has("csr_letters.create_disbursement")
-  ) {
-    allPermissions.add("disbursement_orders.view");
-    allPermissions.add("disbursement_orders.view_details");
-    allPermissions.add("disbursement_orders.create_direct");
-  }
-  if (
-    allPermissions.has("disbursement_orders.view") ||
-    allPermissions.has("disbursement_orders.approve") ||
-    allPermissions.has("disbursement_orders.exception_approve") ||
-    allPermissions.has("disbursement_orders.reject") ||
-    allPermissions.has("disbursement_orders.view_details") ||
-    allPermissions.has("disbursement_orders.create_direct") ||
-    allPermissions.has("disbursement_orders.remind") ||
-    allPermissions.has("disbursement_orders.cancel_executed")
-  ) {
-    allPermissions.add("disbursement_orders");
-  } else {
+
     allPermissions.delete("disbursement_orders");
+
+    if (revokedPermissions.has("disbursement_orders") || revokedPermissions.has("disbursement_orders.view")) {
+
+      disbursementOrderSubPerms.forEach(p => allPermissions.delete(p));
+
+      allPermissions.delete("disbursement_orders.view_details");
+
+    }
+
+  } else if (allPermissions.has("disbursement_orders.view")) {
+
+    allPermissions.add("disbursement_orders");
+
+    allPermissions.add("disbursement_orders.view_details");
+
   }
-  // أوامر الشراء
+
+
+
   if (
-    revokedPermissions.has("purchase_orders.view") ||
-    revokedPermissions.has("purchase_orders") ||
-    !allPermissions.has("purchase_orders.view")
+
+    allPermissions.has("purchase_orders.create_disbursement") ||
+
+    allPermissions.has("orders_and_letters.purchase_orders_create_disbursement") ||
+
+    allPermissions.has("csr_letters.create_disbursement")
+
   ) {
-    allPermissions.delete("purchase_orders");
-    allPermissions.delete("purchase_orders.view");
-  } else if (allPermissions.has("purchase_orders.view")) {
-    allPermissions.add("purchase_orders");
+
+    allPermissions.add("disbursement_orders.view");
+
+    allPermissions.add("disbursement_orders.view_details");
+
+    allPermissions.add("disbursement_orders.create_direct");
+
+    allPermissions.add("disbursement_orders");
+
   }
+
+  // أوامر الشراء
+
+  if (
+
+    revokedPermissions.has("purchase_orders.view") ||
+
+    revokedPermissions.has("purchase_orders") ||
+
+    !allPermissions.has("purchase_orders.view")
+
+  ) {
+
+    allPermissions.delete("purchase_orders");
+
+    allPermissions.delete("purchase_orders.view");
+
+  } else if (allPermissions.has("purchase_orders.view")) {
+
+    allPermissions.add("purchase_orders");
+
+  }
+
+
 
   // خطابات المسؤولية المجتمعية
+
   if (
+
     revokedPermissions.has("csr_letters.view") ||
+
     revokedPermissions.has("csr_letters") ||
+
     !allPermissions.has("csr_letters.view")
+
   ) {
+
     allPermissions.delete("csr_letters");
+
     allPermissions.delete("csr_letters.view");
+
   } else if (allPermissions.has("csr_letters.view")) {
+
     allPermissions.add("csr_letters");
+
   }
+
+
 
   // المستودع الافتراضي
+
   if (
+
     revokedPermissions.has("sedana_warehouse.view") ||
+
     revokedPermissions.has("sedana_warehouse") ||
+
     !allPermissions.has("sedana_warehouse.view")
+
   ) {
+
     allPermissions.delete("sedana_warehouse");
+
     allPermissions.delete("sedana_warehouse.view");
+
   } else if (allPermissions.has("sedana_warehouse.view")) {
+
     allPermissions.add("sedana_warehouse");
+
   }
+
+
 
   // العهدة المالية
-  if (allPermissions.has("custody_requests.view") || allPermissions.has("custody_requests.create")) {
+
+  const custodySubPerms = [
+
+    "custody_requests.view",
+
+    "custody_requests.create",
+
+    "custody_requests.edit",
+
+    "custody_requests.delete",
+
+    "custody_requests.approve",
+
+    "custody_requests.settle",
+
+    "custody_requests.print"
+
+  ];
+
+  if (
+
+    revokedPermissions.has("custody_requests") ||
+
+    revokedPermissions.has("custody_requests.view") ||
+
+    !allPermissions.has("custody_requests.view")
+
+  ) {
+
+    allPermissions.delete("custody_requests");
+
+    if (revokedPermissions.has("custody_requests") || revokedPermissions.has("custody_requests.view")) {
+
+      custodySubPerms.forEach(p => allPermissions.delete(p));
+
+    }
+
+  } else if (allPermissions.has("custody_requests.view")) {
+
     allPermissions.add("custody_requests");
+
   }
+
+
 
   // عروض أسعار سدانة
+
   if (
+
     revokedPermissions.has("sedana_quotations.view") ||
+
     revokedPermissions.has("sedana_quotations") ||
+
     !allPermissions.has("sedana_quotations.view")
+
   ) {
+
     allPermissions.delete("sedana_quotations");
+
     allPermissions.delete("sedana_quotations.view");
+
     allPermissions.delete("quotations.view_sedana");
+
   } else if (allPermissions.has("sedana_quotations.view")) {
+
     allPermissions.add("sedana_quotations");
+
     allPermissions.add("quotations.view_sedana");
+
   }
+
+
 
   // مالية سدانة
+
   if (
+
     revokedPermissions.has("orders_and_letters.disbursement_orders") ||
+
     !allPermissions.has("orders_and_letters.disbursement_orders")
+
   ) {
+
     allPermissions.delete("orders_and_letters.disbursement_orders");
+
     allPermissions.delete("orders_and_letters.disbursement_orders_create_direct");
+
     allPermissions.delete("orders_and_letters.disbursement_orders_exception_approve");
+
     allPermissions.delete("orders_and_letters.disbursement_orders_remind");
+
     allPermissions.delete("orders_and_letters.disbursement_orders_cancel_executed");
+
   }
 
+
+
   if (
+
     revokedPermissions.has("orders_and_letters.csr_letters") ||
+
     !allPermissions.has("orders_and_letters.csr_letters")
+
   ) {
+
     allPermissions.delete("orders_and_letters.csr_letters");
+
     allPermissions.delete("orders_and_letters.csr_letters_add");
+
   }
 
+
+
   if (
+
     revokedPermissions.has("orders_and_letters.purchase_orders") ||
+
     !allPermissions.has("orders_and_letters.purchase_orders")
+
   ) {
+
     allPermissions.delete("orders_and_letters.purchase_orders");
+
     allPermissions.delete("orders_and_letters.purchase_orders_add");
+
     allPermissions.delete("orders_and_letters.purchase_orders_create_disbursement");
+
   }
+
+
 
   const validSedanaFinancePerms = [
+
     "orders_and_letters.disbursement_orders",
+
     "orders_and_letters.disbursement_orders_create_direct",
+
     "orders_and_letters.disbursement_orders_exception_approve",
+
     "orders_and_letters.disbursement_orders_remind",
+
     "orders_and_letters.disbursement_orders_cancel_executed",
+
     "orders_and_letters.csr_letters",
+
     "orders_and_letters.csr_letters_add",
+
     "orders_and_letters.purchase_orders",
+
     "orders_and_letters.purchase_orders_add",
+
     "orders_and_letters.purchase_orders_create_disbursement",
+
   ];
+
   const hasAnyOrdersAndLetters = validSedanaFinancePerms.some(p => allPermissions.has(p));
+
   if (hasAnyOrdersAndLetters) {
+
     allPermissions.add("orders_and_letters");
+
     allPermissions.add("orders_and_letters.view");
+
     if (allPermissions.has("orders_and_letters.purchase_orders_add") || allPermissions.has("orders_and_letters.csr_letters_add")) {
+
       allPermissions.add("orders_and_letters.create");
+
     }
+
   } else {
+
     Array.from(allPermissions).forEach(p => {
+
       if (p.startsWith("orders_and_letters")) {
+
         allPermissions.delete(p);
+
       }
+
     });
+
   }
+
   if (
+
     allPermissions.has("progress_reports.view") ||
+
     allPermissions.has("progress_reports.add") ||
+
     allPermissions.has("progress_reports.edit") ||
+
     allPermissions.has("progress_reports.approve") ||
+
     allPermissions.has("progress_reports.revoke_approval") ||
+
     allPermissions.has("progress_reports.exception_approve")
+
   ) {
+
     allPermissions.add("progress_reports");
+
   }
+
   if (
+
     allPermissions.has("progress_invoices.view") ||
+
     allPermissions.has("progress_invoices.add") ||
+
     allPermissions.has("progress_invoices.edit") ||
+
     allPermissions.has("progress_invoices.approve") ||
+
     allPermissions.has("progress_invoices.revoke_approval") ||
+
     allPermissions.has("progress_invoices.exception_approve")
+
   ) {
+
     allPermissions.add("progress_invoices");
+
   }
+
   if (
+
     allPermissions.has("project_reports.view") ||
+
     allPermissions.has("project_reports.create")
+
   ) {
+
     allPermissions.add("project_reports");
+
   }
+
+  const financialReportsSubPerms = [
+
+    "financial_reports.view",
+
+    "financial_reports.export",
+
+    "financial_reports.analytics"
+
+  ];
+
   if (
-    allPermissions.has("financial_reports.view") ||
-    allPermissions.has("financial_reports.export") ||
-    allPermissions.has("financial_reports.analytics")
+
+    revokedPermissions.has("financial_reports") ||
+
+    revokedPermissions.has("financial_reports.view") ||
+
+    revokedPermissions.has("financial_report") ||
+
+    !allPermissions.has("financial_reports.view")
+
   ) {
+
+    allPermissions.delete("financial_reports");
+
+    allPermissions.delete("financial_report");
+
+    if (revokedPermissions.has("financial_reports") || revokedPermissions.has("financial_reports.view") || revokedPermissions.has("financial_report")) {
+
+      financialReportsSubPerms.forEach(p => allPermissions.delete(p));
+
+    }
+
+  } else if (allPermissions.has("financial_reports.view")) {
+
     allPermissions.add("financial_reports");
+
     allPermissions.add("financial_report");
+
   }
+
   const hasOrgForCenter = allPermissions.has("settings_org.view") || Array.from(allPermissions).some(p => p.startsWith("settings_org."));
+
   const hasNotifForCenter = allPermissions.has("staff_notifications.view") || Array.from(allPermissions).some(p => p.startsWith("staff_notifications."));
+
   const hasFormsForCenter = allPermissions.has("forms_customization.view") || Array.from(allPermissions).some(p => p.startsWith("forms_customization."));
 
+
+
   if (hasOrgForCenter || hasNotifForCenter || hasFormsForCenter) {
+
     allPermissions.add("settings");
+
     allPermissions.add("settings_center");
+
   } else {
+
     allPermissions.delete("settings");
+
     allPermissions.delete("settings_center");
+
     allPermissions.delete("settings.view");
+
   }
+
+
 
   if (
+
     allPermissions.has("services.view") ||
+
     allPermissions.has("services.add") ||
+
     allPermissions.has("services.edit") ||
+
     allPermissions.has("services.toggle_status") ||
+
     allPermissions.has("services.reorder") ||
+
     allPermissions.has("services.delete")
+
   ) {
+
     allPermissions.add("services");
+
     allPermissions.add("programs_services");
+
   } else {
+
     allPermissions.delete("services");
+
     allPermissions.delete("programs_services");
+
   }
+
   // التحقق من صلاحيات تخصيص النماذج (الأقسام الأربعة)
+
   const formsDashboardSubPerms = [
+
     "forms_customization.dashboard_global",
+
     "forms_customization.dashboard_role",
+
     "forms_customization.dashboard_user"
+
   ];
+
   const formsEvaluationSubPerms = [
+
     "forms_customization.evaluation_view",
+
     "forms_customization.evaluation_add_field",
+
     "forms_customization.evaluation_delete",
+
     "forms_customization.evaluation_duplicate",
+
     "forms_customization.evaluation_placeholder",
+
     "forms_customization.evaluation_description",
+
     "forms_customization.evaluation_change_type",
+
     "forms_customization.evaluation_required",
+
     "forms_customization.evaluation_toggle_active",
+
     "forms_customization.evaluation_reorder"
+
   ];
+
   const formsServicesSubPerms = [
+
     "forms_customization.services_view",
+
     "forms_customization.services_add_field",
+
     "forms_customization.services_delete",
+
     "forms_customization.services_duplicate",
+
     "forms_customization.services_placeholder",
+
     "forms_customization.services_description",
+
     "forms_customization.services_change_type",
+
     "forms_customization.services_required",
+
     "forms_customization.services_toggle_active",
+
     "forms_customization.services_reorder"
+
   ];
+
   const formsRegistrationSubPerms = [
+
     "forms_customization.registration_view",
+
     "forms_customization.registration_add_field",
+
     "forms_customization.registration_delete",
+
     "forms_customization.registration_duplicate",
+
     "forms_customization.registration_placeholder",
+
     "forms_customization.registration_description",
+
     "forms_customization.registration_change_type",
+
     "forms_customization.registration_required",
+
     "forms_customization.registration_toggle_active",
+
     "forms_customization.registration_reorder"
+
   ];
+
   const allFormsCustomizationSubPerms = [
+
     ...formsDashboardSubPerms,
+
     ...formsEvaluationSubPerms,
+
     ...formsServicesSubPerms,
+
     ...formsRegistrationSubPerms
+
   ];
+
+
 
   // إزالة أي صلاحية فرعية مسحوبة
+
   allFormsCustomizationSubPerms.forEach(p => {
+
     if (revokedPermissions.has(p)) {
+
       allPermissions.delete(p);
+
     }
+
   });
 
+
+
   const hasAnyDashboard = formsDashboardSubPerms.some(p => allPermissions.has(p) && !revokedPermissions.has(p));
+
   const hasAnyEvaluation = formsEvaluationSubPerms.some(p => allPermissions.has(p) && !revokedPermissions.has(p));
+
   const hasAnyServices = formsServicesSubPerms.some(p => allPermissions.has(p) && !revokedPermissions.has(p));
+
   const hasAnyRegistration = formsRegistrationSubPerms.some(p => allPermissions.has(p) && !revokedPermissions.has(p));
 
+
+
   if (hasAnyDashboard) {
+
     allPermissions.add("forms_customization.dashboard");
+
   } else {
+
     allPermissions.delete("forms_customization.dashboard");
+
     formsDashboardSubPerms.forEach(p => allPermissions.delete(p));
+
   }
+
+
 
   if (hasAnyEvaluation) {
+
     allPermissions.add("forms_customization.evaluation");
+
   } else {
+
     allPermissions.delete("forms_customization.evaluation");
+
     formsEvaluationSubPerms.forEach(p => allPermissions.delete(p));
+
   }
+
+
 
   if (hasAnyServices) {
+
     allPermissions.add("forms_customization.services");
+
   } else {
+
     allPermissions.delete("forms_customization.services");
+
     allPermissions.delete("forms_customization.services_view");
+
     allPermissions.delete("forms_customization.services_add");
+
     allPermissions.delete("forms_customization.services_edit");
+
     allPermissions.delete("forms_customization.services_delete");
+
     formsServicesSubPerms.forEach(p => allPermissions.delete(p));
+
   }
 
+
+
   if (hasAnyRegistration) {
+
     allPermissions.add("forms_customization.registration");
+
   } else {
+
     allPermissions.delete("forms_customization.registration");
+
     formsRegistrationSubPerms.forEach(p => allPermissions.delete(p));
+
   }
+
+
 
   const hasAnyFormsPerm = hasAnyDashboard || hasAnyEvaluation || hasAnyServices || hasAnyRegistration;
 
+
+
   if (hasAnyFormsPerm && !revokedPermissions.has("forms_customization.view") && !revokedPermissions.has("forms_customization")) {
+
     allPermissions.add("forms_customization");
+
     allPermissions.add("forms_customization.view");
+
   } else {
+
     allPermissions.delete("forms_customization");
+
     allPermissions.delete("forms_customization.view");
+
     allPermissions.delete("forms_customization.analytics");
+
   }
 
+
+
   if (
+
     allPermissions.has("pending_reports.view") ||
+
     allPermissions.has("pending_reports.intervene")
+
   ) {
+
     allPermissions.add("pending_reports");
+
   }
+
+
 
   if (allPermissions.has("board_chairman") || allPermissions.has("board_member") || allPermissions.has("board_leadership.remind") || allPermissions.has("board_chairman_remind")) {
+
     allPermissions.add("board_leadership");
+
   }
+
+
 
   // التحقق من صلاحيات تخصيص الإشعارات: إذا لم يملك المستخدم كافة الصلاحيات الفرعية أو تم سحب أي منها، نحذف staff_notifications و staff_notifications.edit
+
   const notifSubPerms = [
+
     "staff_notifications.by_role",
+
     "staff_notifications.by_department",
+
     "staff_notifications.edit_message_formats",
+
     "staff_notifications.by_person",
+
     "staff_notifications.beneficiary",
+
     "staff_notifications.beneficiary_message_formats"
+
   ];
+
   const hasAllNotifSub = notifSubPerms.every(p => allPermissions.has(p) && !revokedPermissions.has(p));
+
   if (!hasAllNotifSub || revokedPermissions.has("staff_notifications.edit") || revokedPermissions.has("staff_notifications")) {
+
     allPermissions.delete("staff_notifications.edit");
+
     allPermissions.delete("staff_notifications");
+
     if (revokedPermissions.has("staff_notifications.edit") || revokedPermissions.has("staff_notifications")) {
+
       notifSubPerms.forEach(p => allPermissions.delete(p));
+
     }
+
   }
+
+
 
   notifSubPerms.forEach(p => {
+
     if (revokedPermissions.has(p)) {
+
       allPermissions.delete(p);
+
     }
+
   });
+
+
 
   const hasRemainingNotifPerms = notifSubPerms.some(
+
     p => allPermissions.has(p) && !revokedPermissions.has(p)
+
   );
+
   if (!hasRemainingNotifPerms) {
+
     allPermissions.delete("staff_notifications.view");
+
     allPermissions.delete("staff_notifications");
+
     allPermissions.delete("staff_notifications.edit");
+
     allPermissions.delete("staff_notifications.by_role");
+
     allPermissions.delete("staff_notifications.by_department");
+
     allPermissions.delete("staff_notifications.edit_message_formats");
+
     allPermissions.delete("staff_notifications.by_person");
+
     allPermissions.delete("staff_notifications.beneficiary");
+
     allPermissions.delete("staff_notifications.beneficiary_message_formats");
+
     allPermissions.delete("staff_notifications.direct_send");
+
     allPermissions.delete("staff_notifications.send_logs");
+
   }
+
+
 
   // التحقق من صلاحيات مركز الإشعارات
+
   const notifCenterSubPerms = [
+
     "notification_center.view",
+
     "notification_center.direct_send_staff",
+
     "notification_center.direct_send_beneficiary"
+
   ];
+
   const hasAllNotifCenterSub = notifCenterSubPerms.every(p => allPermissions.has(p) && !revokedPermissions.has(p));
+
   if (!hasAllNotifCenterSub || revokedPermissions.has("notification_center")) {
+
     allPermissions.delete("notification_center");
+
     if (revokedPermissions.has("notification_center")) {
+
       notifCenterSubPerms.forEach(p => allPermissions.delete(p));
+
       allPermissions.delete("notification_center.direct_send");
+
       allPermissions.delete("notification_center.send_logs");
+
     }
+
   }
+
+
 
   if (revokedPermissions.has("notification_center.view")) {
+
     allPermissions.delete("notification_center.view");
+
     allPermissions.delete("notification_center.send_logs");
+
     allPermissions.delete("staff_notifications.send_logs");
+
   }
+
   if (revokedPermissions.has("notification_center.direct_send_staff")) {
+
     allPermissions.delete("notification_center.direct_send_staff");
+
   }
+
   if (revokedPermissions.has("notification_center.direct_send_beneficiary")) {
+
     allPermissions.delete("notification_center.direct_send_beneficiary");
+
   }
+
   if (
+
     !allPermissions.has("notification_center.direct_send_staff") ||
+
     !allPermissions.has("notification_center.direct_send_beneficiary") ||
+
     revokedPermissions.has("notification_center.direct_send_staff") ||
+
     revokedPermissions.has("notification_center.direct_send_beneficiary")
+
   ) {
+
     allPermissions.delete("notification_center.direct_send");
+
     allPermissions.delete("staff_notifications.direct_send");
+
   }
+
+
 
   const hasAnyNotifCenterPerm = notifCenterSubPerms.some(p => allPermissions.has(p) && !revokedPermissions.has(p));
+
   if (!hasAnyNotifCenterPerm) {
+
     allPermissions.delete("notification_center");
+
     allPermissions.delete("notification_center.view");
+
     allPermissions.delete("notification_center.direct_send");
+
     allPermissions.delete("notification_center.send_logs");
+
     allPermissions.delete("notification_center.direct_send_staff");
+
     allPermissions.delete("notification_center.direct_send_beneficiary");
+
     allPermissions.delete("staff_notifications.direct_send");
+
     allPermissions.delete("staff_notifications.send_logs");
+
   }
+
+
 
   // مزامنة صلاحيات إدارة المستخدمين بين المعرفات التقنية ومعرفات الواجهة
+
   if (allPermissions.has("users.customize")) {
+
     allPermissions.add("staff_users.customize");
+
   }
+
   if (allPermissions.has("staff_users.customize")) {
+
     allPermissions.add("users.customize");
+
   }
+
   if (allPermissions.has("users.suspend")) {
+
     allPermissions.add("staff_users.suspend");
+
   }
+
   if (allPermissions.has("staff_users.suspend")) {
+
     allPermissions.add("users.suspend");
+
   }
+
   if (allPermissions.has("users.activate")) {
+
     allPermissions.add("staff_users.activate");
+
   }
+
   if (allPermissions.has("staff_users.activate")) {
+
     allPermissions.add("users.activate");
+
   }
+
   if (allPermissions.has("users.edit")) {
+
     allPermissions.add("staff_users.edit");
+
   }
+
+
 
   // ضمان إزالة أي صلاحيات تم سحبها صراحة للتأكيد التام
+
   revokedPermissions.forEach(p => {
+
     allPermissions.delete(p);
+
   });
+
+
 
   // التحقق النهائي الصارم: إذا لم يملك المستخدم أي صلاحية من أقسام: تخصيص النماذج، تخصيص الإشعارات، إعدادات الجمعية
+
   // يجب حجب مركز الإعدادات تماماً
+
   const finalHasOrg = Array.from(allPermissions).some(p => p.startsWith("settings_org"));
+
   const finalHasNotif = Array.from(allPermissions).some(p => p.startsWith("staff_notifications"));
+
   const finalHasForms = Array.from(allPermissions).some(p => p.startsWith("forms_customization"));
 
+
+
   if (!finalHasOrg && !finalHasNotif && !finalHasForms) {
+
     allPermissions.delete("settings");
+
     allPermissions.delete("settings_center");
+
     allPermissions.delete("settings.view");
+
   }
 
+
+
   return Array.from(allPermissions);
+
 }
 
+
+
 /**
+
  * التحقق من صلاحية واحدة
+
  */
+
 export async function checkPermission(userId: number, permission: string): Promise<boolean> {
+
   const userPermissions = await calculateUserPermissions(userId);
+
   return userPermissions.includes(permission);
+
 }
 
+
+
 /**
+
  * التحقق من عدة صلاحيات (يجب أن يملك جميعها)
+
  */
+
 export async function checkPermissions(userId: number, requiredPermissions: string[]): Promise<boolean> {
+
   const userPermissions = await calculateUserPermissions(userId);
+
   return requiredPermissions.every(p => userPermissions.includes(p));
+
 }
 
+
+
 /**
+
  * Middleware للتحقق من الصلاحية
+
  */
+
 export const permissionProcedure = (permission: string | string[]) =>
+
   protectedProcedure.use(async ({ ctx, next }) => {
+
     const perms = Array.isArray(permission) ? permission : [permission];
+
     let hasPermission = false;
+
     for (const p of perms) {
+
       if (await checkPermission(ctx.user.id, p)) {
+
         hasPermission = true;
+
         break;
+
       }
+
     }
+
     if (!hasPermission) {
+
       throw new TRPCError({
+
         code: "FORBIDDEN",
+
         message: `ليس لديك صلاحية: ${perms.join(" أو ")}`
+
       });
+
     }
+
     return next({ ctx });
+
   });
 
+
+
 /**
+
  * تسجيل إجراء في سجل التدقيق
+
  */
+
 async function logAudit(data: {
+
   actionType: string;
+
   targetUserId: number;
+
   targetRoleId?: string;
+
   permissionId?: string;
+
   performedBy: number;
+
   reason?: string;
+
   oldValue?: string;
+
   newValue?: string;
+
 }) {
+
   const db = await getDb();
+
   if (!db) return;
 
+
+
   await db.insert(permissionsAuditLog).values(data);
+
 }
+
+
 
 // ==================== tRPC Router ====================
 
+
+
 export const permissionsRouter = router({
+
   // ==================== الهيكل الهرمي ====================
+
   
+
   /**
+
    * عرض الهيكل الهرمي الكامل (الوحدات + الصلاحيات)
+
    */
+
   getStructure: protectedProcedure.query(async () => {
+
     const db = await getDb();
+
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+
+
     await ensureRequestsPermissionsExist(db);
+
     await ensureAllCustomPermissionsExist(db);
 
+
+
     const modulesData = await db.select().from(modules).where(eq(modules.isActive, true)).orderBy(modules.displayOrder);
+
     const permissionsData = await db.select().from(permissions);
 
+
+
     return modulesData.map(module => ({
+
       ...module,
+
       permissions: permissionsData.filter(p => p.moduleId === module.id)
+
     }));
+
   }),
 
+
+
   /**
+
    * إضافة وحدة جديدة
+
    */
+
   createModule: permissionProcedure("permissions.create")
+
     .input(z.object({
+
       id: z.string(),
+
       nameAr: z.string(),
+
       nameEn: z.string(),
+
       description: z.string().optional(),
+
       icon: z.string().optional(),
+
       displayOrder: z.number().optional()
+
     }))
+
     .mutation(async ({ input }) => {
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+
 
       await db.insert(modules).values(input);
+
       return { success: true };
+
     }),
+
+
 
   /**
+
    * إضافة صلاحية جديدة
+
    */
+
   createPermission: permissionProcedure("permissions.create")
+
     .input(z.object({
+
       moduleId: z.string(),
+
       action: z.string(),
+
       nameAr: z.string(),
+
       nameEn: z.string(),
+
       description: z.string().optional()
+
     }))
+
     .mutation(async ({ input }) => {
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+
+
       const permissionId = `${input.moduleId}.${input.action}`;
+
       await db.insert(permissions).values({
+
         id: permissionId,
+
         ...input
+
       });
+
       return { success: true, permissionId };
+
     }),
+
+
 
   // ==================== إدارة الأدوار ====================
 
+
+
   /**
+
    * عرض جميع الأدوار
+
    */
+
   getRoles: protectedProcedure.query(async () => {
+
     const db = await getDb();
+
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+
+
     return await db.select().from(roles);
+
   }),
 
+
+
   // تحديث حالة استقبال إشعارات المستفيدين لدور وظيفي
+
   updateRoleReceiveBeneficiaryNotifications: permissionProcedure(["staff_notifications.edit", "staff_notifications.beneficiary", "staff_notifications.by_role"])
+
     .input(z.object({
+
       roleId: z.string(),
+
       enabled: z.boolean(),
+
     }))
+
     .mutation(async ({ input }) => {
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+
+
       await db
+
         .update(roles)
+
         .set({ receiveBeneficiaryNotifications: input.enabled })
+
         .where(eq(roles.id, input.roleId));
 
+
+
       return { success: true };
+
     }),
+
+
 
   // تحديث حالة استقبال إشعارات الطلبات لدور وظيفي
+
   updateRoleReceiveRequestNotifications: permissionProcedure(["staff_notifications.edit", "staff_notifications.by_role"])
+
     .input(z.object({
+
       roleId: z.string(),
+
       enabled: z.boolean(),
+
     }))
+
     .mutation(async ({ input }) => {
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+
+
       await db
+
         .update(roles)
+
         .set({ receiveRequestNotifications: input.enabled })
+
         .where(eq(roles.id, input.roleId));
 
+
+
       return { success: true };
+
     }),
+
+
 
   // تحديث حالة استقبال إشعارات المالية والعقود لدور وظيفي
+
   updateRoleReceiveFinancialAndContractNotifications: permissionProcedure(["staff_notifications.edit", "staff_notifications.by_role"])
+
     .input(z.object({
+
       roleId: z.string(),
+
       enabled: z.boolean(),
+
     }))
+
     .mutation(async ({ input }) => {
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+
 
       await db
+
         .update(roles)
+
         .set({ receiveFinancialAndContractNotifications: input.enabled })
+
         .where(eq(roles.id, input.roleId));
 
+
+
       return { success: true };
+
     }),
 
+
+
   updateRoleChannelSetting: permissionProcedure(["staff_notifications.edit", "staff_notifications.by_role", "staff_notifications.beneficiary"])
+
     .input(z.object({
+
       roleId: z.string(),
+
       category: z.enum(['beneficiary', 'request', 'financial']),
+
       channel: z.enum(['in_app', 'whatsapp', 'sms', 'email']),
+
       enabled: z.boolean(),
+
     }))
+
     .mutation(async ({ input }) => {
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+
+
       const fieldMap = {
+
         beneficiary: {
+
           in_app: "receiveBeneficiaryNotifications",
+
           email: "receiveBeneficiaryEmail",
+
           whatsapp: "receiveBeneficiaryWhatsapp",
+
           sms: "receiveBeneficiarySms"
+
         },
+
         request: {
+
           in_app: "receiveRequestNotifications",
+
           email: "receiveRequestEmail",
+
           whatsapp: "receiveRequestWhatsapp",
+
           sms: "receiveRequestSms"
+
         },
+
         financial: {
+
           in_app: "receiveFinancialAndContractNotifications",
+
           email: "receiveFinancialEmail",
+
           whatsapp: "receiveFinancialWhatsapp",
+
           sms: "receiveFinancialSms"
+
         }
+
       } as const;
+
+
 
       const field = fieldMap[input.category][input.channel];
 
+
+
       for (let attempt = 1; attempt <= 3; attempt++) {
+
         try {
+
           await db
+
             .update(roles)
+
             .set({ [field]: input.enabled })
+
             .where(eq(roles.id, input.roleId));
+
           break;
+
         } catch (err: any) {
+
           const isLockError =
+
             err?.code === "ER_LOCK_DEADLOCK" ||
+
             err?.errno === 1213 ||
+
             err?.code === "ER_LOCK_WAIT_TIMEOUT" ||
+
             err?.errno === 1205 ||
+
             (typeof err?.message === "string" && (err.message.includes("Deadlock") || err.message.includes("Lock wait timeout")));
+
           if (isLockError && attempt < 3) {
+
             await new Promise(res => setTimeout(res, 50 * attempt + Math.floor(Math.random() * 30)));
+
             continue;
+
           }
+
           throw err;
+
         }
+
       }
 
+
+
       return { success: true };
+
     }),
 
+
+
   /**
+
    * عرض صلاحيات دور محدد
+
    */
+
   getRolePermissions: protectedProcedure
+
     .input(z.object({ roleId: z.string() }))
+
     .query(async ({ input }) => {
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+
 
       await ensureRequestsPermissionsExist(db);
 
+
+
       const rolePerms = await db
+
         .select({ permissionId: rolePermissions.permissionId })
+
         .from(rolePermissions)
+
         .where(eq(rolePermissions.roleId, input.roleId));
+
+
 
       const permsSet = new Set(rolePerms.map(rp => rp.permissionId));
 
+
+
       // Also load from roles.description JSON array to handle UI customized checkbox values
+
       const [roleData] = await db
+
         .select({ description: roles.description })
+
         .from(roles)
+
         .where(eq(roles.id, input.roleId))
+
         .limit(1);
 
+
+
       if (roleData?.description) {
+
         try {
+
           const parsed = JSON.parse(roleData.description);
+
           if (Array.isArray(parsed)) {
+
             parsed.forEach(p => permsSet.add(p));
+
           }
+
         } catch {
+
           // Ignore JSON parsing errors
+
         }
+
       }
+
+
 
       return Array.from(permsSet);
+
     }),
 
+
+
   /**
+
    * عرض دور محدد
+
    */
+
   getRole: protectedProcedure
+
     .input(z.object({ roleId: z.string() }))
+
     .query(async ({ input }) => {
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+
 
       const [role] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
+
       if (!role) {
+
         throw new TRPCError({ code: "NOT_FOUND", message: "الدور غير موجود" });
+
       }
+
       return role;
+
     }),
 
+
+
   /**
+
    * إنشاء دور جديد
+
    */
+
   createRole: permissionProcedure("permissions.create")
+
     .input(z.object({
+
       id: z.string(),
+
       nameAr: z.string(),
+
       nameEn: z.string(),
+
       description: z.string().optional(),
+
       permissions: z.array(z.string())
+
     }))
+
     .mutation(async ({ input, ctx }) => {
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+
+
       await ensureRequestsPermissionsExist(db);
+
       await ensureAllCustomPermissionsExist(db);
+
+
+
+
 
 
 
       // إنشاء الدور مع تخزين الصلاحيات المخصصة في حقل الوصف كـ JSON
+
       await db.insert(roles).values({
+
         id: input.id,
+
         nameAr: input.nameAr,
+
         nameEn: input.nameEn,
+
         description: JSON.stringify(input.permissions),
+
         isSystem: false
+
       });
+
+
 
       // التحقق من الصلاحيات الموجودة فعلياً في قاعدة البيانات قبل الربط
+
       if (input.permissions.length > 0) {
+
         const existingPerms = await db.select({ id: permissions.id }).from(permissions)
+
           .where(inArray(permissions.id, input.permissions));
+
         const validPermIds = existingPerms.map(p => p.id);
 
+
+
         if (validPermIds.length > 0) {
+
           await db.insert(rolePermissions).values(
+
             validPermIds.map(permId => ({
+
               roleId: input.id,
+
               permissionId: permId
+
             }))
+
           );
+
         }
+
       }
+
+
 
       await logAudit({
+
         actionType: "create_role",
+
         targetUserId: ctx.user.id,
+
         targetRoleId: input.id,
+
         performedBy: ctx.user.id,
+
         newValue: JSON.stringify(input)
+
       });
 
+
+
       return { success: true };
+
     }),
 
+
+
   /**
+
    * تفعيل / إيقاف دور
+
    */
+
   toggleRoleStatus: permissionProcedure("permissions.edit")
+
     .input(z.object({
+
       roleId: z.string(),
+
       isActive: z.boolean()
+
     }))
+
     .mutation(async ({ input, ctx }) => {
+
       // منع إيقاف أدوار الإدارة العليا (حماية النظام)
+
       if ((input.roleId === 'super_admin' || input.roleId === 'system_admin') && !input.isActive) {
+
         throw new TRPCError({ code: "FORBIDDEN", message: "لا يمكن إيقاف هذا الدور الإداري الأساسي (حماية النظام)" });
+
       }
+
+
 
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+
+
       const [role] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
+
       if (!role) {
+
         throw new TRPCError({ code: "NOT_FOUND", message: "الدور غير موجود" });
+
       }
+
+
 
       await db.update(roles).set({ isActive: input.isActive }).where(eq(roles.id, input.roleId));
 
+
+
       await logAudit({
+
         actionType: "toggle_role_status",
+
         targetUserId: ctx.user.id,
+
         targetRoleId: input.roleId,
+
         performedBy: ctx.user.id,
+
         reason: input.isActive ? "تفعيل الدور" : "إيقاف الدور (Kill Switch)"
+
       });
 
+
+
       return { success: true };
+
     }),
 
+
+
   /**
+
    * تحديث دور مخصص (الاسم والصلاحيات)
+
    */
+
   updateRole: permissionProcedure("permissions.edit")
+
     .input(z.object({
+
       roleId: z.string(),
+
       nameAr: z.string().optional(),
+
       permissions: z.array(z.string()).optional()
+
     }))
+
     .mutation(async ({ input, ctx }) => {
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+
+
       await ensureRequestsPermissionsExist(db);
+
       await ensureAllCustomPermissionsExist(db);
 
+
+
       const [existingRole] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
+
       if (!existingRole) {
+
         throw new TRPCError({ code: "NOT_FOUND", message: "الدور غير موجود" });
+
       }
+
+
+
+
 
 
 
       // تحديث بيانات الدور (الاسم والوصف)
+
       const updateData: any = {};
+
       if (input.nameAr) updateData.nameAr = input.nameAr;
+
       if (input.permissions) updateData.description = JSON.stringify(input.permissions);
 
+
+
       if (Object.keys(updateData).length > 0) {
+
         await db.update(roles).set(updateData).where(eq(roles.id, input.roleId));
+
       }
+
+
 
       // تحديث الصلاحيات في الجدول التبادلي
+
       if (input.permissions) {
+
         await db.delete(rolePermissions).where(eq(rolePermissions.roleId, input.roleId));
 
+
+
         if (input.permissions.length > 0) {
+
           // التحقق من الصلاحيات الموجودة فعلياً
+
           const existingPerms = await db.select({ id: permissions.id }).from(permissions)
+
             .where(inArray(permissions.id, input.permissions));
+
           const validPermIds = existingPerms.map(p => p.id);
 
+
+
           if (validPermIds.length > 0) {
+
             await db.insert(rolePermissions).values(
+
               validPermIds.map(permId => ({
+
                 roleId: input.roleId,
+
                 permissionId: permId
+
               }))
+
             );
+
           }
+
         }
+
       }
+
+
 
       await logAudit({
+
         actionType: "update_role",
+
         targetUserId: ctx.user.id,
+
         targetRoleId: input.roleId,
+
         performedBy: ctx.user.id,
+
         newValue: JSON.stringify(input)
+
       });
 
+
+
       return { success: true };
+
     }),
 
+
+
   /**
+
    * إعادة الصلاحيات الافتراضية للدور
+
    */
+
   restoreDefaultPermissions: permissionProcedure("permissions.edit")
+
     .input(z.object({
+
       roleId: z.string()
+
     }))
+
     .mutation(async ({ input, ctx }) => {
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+
+
       const [existingRole] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
+
       if (!existingRole) {
+
         throw new TRPCError({ code: "NOT_FOUND", message: "الدور غير موجود" });
+
       }
+
+
 
       const rolePermissionsMapping: Record<string, string[] | string> = {
+
         super_admin: "*",
+
         system_admin: "*",
+
         general_manager: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requester_accounts", "requester_exceptions", "requester_donations", "requester_inquiries", "requester_sedana", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports", "notification_center"],
+
         executive_director: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requester_accounts", "requester_exceptions", "requester_donations", "requester_inquiries", "requester_sedana", "disbursement_orders", "progress_reports", "progress_invoices", "financial_approval.disbursement_requests", "financial_approval.disbursement_orders", "financial_approval.custody_requests", "financial_approval.receipt_vouchers", "financial_approval.contracts", "financial_approval.purchase_orders", "financial_approval.progress_reports", "notification_center"],
+
         projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "boq", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "progress_reports", "progress_invoices", "requester_accounts", "requester_exceptions", "requester_donations", "requester_inquiries", "requester_sedana"],
+
         field_team: ["mosques.view", "requests.view", "requests.edit", "requests.manage_as_field_team", "field_visits"],
+
         quick_response: ["requests.view", "requests.manage_as_quick_response", "field_visits.view", "reports.create"],
+
         financial: ["financial", "quotations", "disbursements", "suppliers.view", "financial_reports"],
+
         financial_manager: ["financial", "quotations", "disbursements", "suppliers", "reports.view", "financial_reports"],
+
         project_manager: ["projects.view", "projects.edit", "projects.assign_as_manager", "reports", "disbursements.view", "disbursements.create", "disbursements.edit", "contracts.view", "contracts.create", "contracts.edit", "suppliers.view", "handovers"],
+
         corporate_comm: ["requests.view", "requests.upload_final_report", "reports.view", "settings.view", "analytics.view"],
+
         procurement_officer: ["quotations.view", "quotations.create", "quotations.add"],
+
         dashboard_viewer: ["information_dashboard"],
+
         service_requester: ["requests.view", "requests.create", "mosques.view"]
+
       };
 
+
+
       const permList = rolePermissionsMapping[input.roleId];
+
       if (!permList) {
+
         throw new TRPCError({ code: "BAD_REQUEST", message: "هذا الدور ليس له صلاحيات افتراضية محددة بالنظام" });
+
       }
 
+
+
       // جلب جميع الصلاحيات من جدول الصلاحيات
+
       const allPermissions = await db.select({ id: permissions.id }).from(permissions);
+
       const allPermIds = allPermissions.map(p => p.id);
+
+
 
       let targetPermIds: string[] = [];
 
+
+
       if (permList === "*") {
+
         const excludedAdminPerms = EXCLUDED_ADMIN_PERMISSIONS;
+
         targetPermIds = allPermIds.filter(pId => !excludedAdminPerms.includes(pId));
+
       } else if (Array.isArray(permList)) {
+
         targetPermIds = allPermIds.filter(pId =>
+
           permList.some((key: string) => pId === key || pId.startsWith(key + "."))
+
         );
+
       }
+
+
 
       // حذف الصلاحيات الحالية وتصفية حقل description بالدور
+
       await db.delete(rolePermissions).where(eq(rolePermissions.roleId, input.roleId));
+
       await db.update(roles).set({ description: null }).where(eq(roles.id, input.roleId));
 
+
+
       if (targetPermIds.length > 0) {
+
         await db.insert(rolePermissions).values(
+
           targetPermIds.map(pId => ({
+
             roleId: input.roleId,
+
             permissionId: pId
+
           }))
+
         );
+
       }
+
+
 
       await logAudit({
+
         actionType: "restore_default_permissions",
+
         targetUserId: ctx.user.id,
+
         targetRoleId: input.roleId,
+
         performedBy: ctx.user.id,
+
         newValue: JSON.stringify({ roleId: input.roleId, permissionsCount: targetPermIds.length })
+
       });
 
+
+
       return { success: true };
+
     }),
+
+
 
   /**
+
    * حذف دور (الأدوار الافتراضية لا يمكن حذفها)
+
    */
+
   deleteRole: permissionProcedure("permissions.delete")
+
     .input(z.object({ roleId: z.string() }))
+
     .mutation(async ({ input, ctx }) => {
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+
+
       // قائمة الأدوار المحمية تماماً
+
       const protectedRoleIds = ['super_admin', 'system_admin', 'service_requester'];
+
       if (protectedRoleIds.includes(input.roleId)) {
+
         throw new TRPCError({
+
           code: "BAD_REQUEST",
+
           message: "لا يمكن حذف الأدوار الأساسية للنظام (المدير العام، مدير النظام، طالب الخدمة)"
+
         });
+
       }
+
+
 
       // التحقق من أن الدور موجود وليس افتراضياً (isSystem)
+
       const [role] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
+
       if (!role) {
+
         throw new TRPCError({ code: "NOT_FOUND", message: "الدور غير موجود" });
+
       }
+
       
+
       if (role.isSystem) {
+
         throw new TRPCError({
+
           code: "BAD_REQUEST",
+
           message: "لا يمكن حذف الأدوار الافتراضية للنظام"
+
         });
+
       }
+
+
 
       // التحقق مما إذا كان هناك مستخدمون نشطون مسند إليهم هذا الدور
+
       const [assignedUser] = await db
+
         .select({ id: userRoleAssignments.id })
+
         .from(userRoleAssignments)
+
         .innerJoin(users, eq(userRoleAssignments.userId, users.id))
+
         .where(
+
           and(
+
             eq(userRoleAssignments.roleId, input.roleId),
+
             isNull(users.deletedAt)
+
           )
+
         )
+
         .limit(1);
 
+
+
       if (assignedUser) {
+
         throw new TRPCError({
+
           code: "CONFLICT",
+
           message: "لا يمكن حذف هذا الدور لأنه مرتبط بمستخدمين حاليين. يرجى إزالة الدور من جميع المستخدمين أولاً."
+
         });
+
       }
+
+
 
       // تنفيذ الحذف داخل عملية واحدة (Transaction) لضمان سلامة البيانات
+
       try {
+
         await db.transaction(async (tx) => {
+
           console.log(`[Permissions] Starting deletion of role: ${input.roleId}`);
+
           
+
           // 1. تنظيف مراجع سجلات التدقيق (Permissions Audit Log)
+
           const auditUpdateResult = await tx.update(permissionsAuditLog)
+
             .set({ targetRoleId: null })
+
             .where(eq(permissionsAuditLog.targetRoleId, input.roleId));
+
           console.log(`[Permissions] Audit log nullified:`, auditUpdateResult);
 
+
+
           // 2. حذف مراجع الصلاحيات (Role Permissions)
+
           const permsDeleteResult = await tx.delete(rolePermissions)
+
             .where(eq(rolePermissions.roleId, input.roleId));
+
           console.log(`[Permissions] Role permissions deleted:`, permsDeleteResult);
 
+
+
           // 3. حذف مراجع المستخدمين (User Roles) - احتياطاً رغم وجود cascade
+
           const userRolesDeleteResult = await tx.delete(userRoleAssignments)
+
             .where(eq(userRoleAssignments.roleId, input.roleId));
+
           console.log(`[Permissions] User role assignments deleted:`, userRolesDeleteResult);
 
+
+
           // 4. حذف الدور نفسه
+
           const roleDeleteResult = await tx.delete(roles)
+
             .where(eq(roles.id, input.roleId));
+
           console.log(`[Permissions] Role deleted successfully:`, roleDeleteResult);
 
+
+
           // 5. تسجيل الإجراء في سجل التدقيق الجديد
+
           await tx.insert(permissionsAuditLog).values({
+
             actionType: "delete_role",
+
             targetUserId: ctx.user.id,
+
             targetRoleId: null,
+
             performedBy: ctx.user.id,
+
             reason: "حذف دور مخصص (تم تنظيف المراجع برمجياً)",
+
             oldValue: JSON.stringify(role)
+
           });
+
         });
+
       } catch (error: any) {
+
         console.error(`[Permissions] Failed to delete role ${input.roleId}:`, error);
+
         throw new TRPCError({
+
           code: "INTERNAL_SERVER_ERROR",
+
           message: `فشل حذف الدور: ${error.message || "خطأ في قاعدة البيانات"}`
+
         });
+
       }
 
+
+
       return { success: true };
+
     }),
+
+
 
   // ==================== إدارة صلاحيات المستخدمين ====================
 
+
+
   /**
+
    * عرض أدوار مستخدم
+
    */
+
   getUserRoles: protectedProcedure
+
     .input(z.object({ userId: z.number() }))
+
     .query(async ({ input }) => {
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+
+
       return await db
+
         .select({
+
           id: userRoleAssignments.id,
+
           roleId: userRoleAssignments.roleId,
+
           roleName: roles.nameAr,
+
           assignedAt: userRoleAssignments.assignedAt,
+
           expiresAt: userRoleAssignments.expiresAt
+
         })
+
         .from(userRoleAssignments)
+
         .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
+
         .where(eq(userRoleAssignments.userId, input.userId));
+
     }),
 
+
+
   /**
+
    * عرض صلاحيات مستخدم الفردية
+
    */
+
   getUserDirectPermissions: protectedProcedure
+
     .input(z.object({ userId: z.number() }))
+
     .query(async ({ input }) => {
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+
 
       return await db
+
         .select()
+
         .from(userPermissions)
+
         .where(eq(userPermissions.userId, input.userId));
+
     }),
 
+
+
   /**
+
    * عرض الصلاحيات النهائية للمستخدم
+
    */
+
   getUserPermissions: protectedProcedure
+
     .input(z.object({ userId: z.number() }))
+
     .query(async ({ input }) => {
+
       return await calculateUserPermissions(input.userId);
+
     }),
 
+
+
   /**
+
    * عرض الصلاحيات الموروثة من جميع أدوار المستخدم (الدور الأساسي + الأدوار الإضافية)
+
    */
+
   getUserRolePermissions: protectedProcedure
+
     .input(z.object({ userId: z.number() }))
+
     .query(async ({ input }) => {
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+
 
       // 1. الحصول على الدور الأساسي للمستخدم من جدول المستخدمين
+
       const [userData] = await db
+
         .select({ role: users.role })
+
         .from(users)
+
         .where(eq(users.id, input.userId))
+
         .limit(1);
 
+
+
       // 2. جمع صلاحيات جميع الأدوار المسندة للمستخدم (الدور الأساسي + الأدوار الإضافية)
+
       const userRolesData = await db
+
         .select({
+
           roleId: userRoleAssignments.roleId,
+
         })
+
         .from(userRoleAssignments)
+
         .where(
+
           and(
+
             eq(userRoleAssignments.userId, input.userId),
+
             sql`(${userRoleAssignments.expiresAt} IS NULL OR ${userRoleAssignments.expiresAt} > NOW())`
+
           )
+
         );
 
+
+
       const roleIds = userRolesData.map(r => r.roleId);
+
       const hasCustomRole = roleIds.some(r => r.startsWith("custom_role_"));
+
       if (userData?.role && !hasCustomRole && !roleIds.includes(userData.role)) {
+
         roleIds.push(userData.role);
+
       }
+
+
 
       if (roleIds.length === 0) return [];
 
+
+
       const permsSet = new Set<string>();
 
+
+
       // إذا كان المستخدم super_admin أو system_admin، نمنحه جميع الصلاحيات افتراضياً (باستثناء الصلاحيات المستبعدة)
+
       if (roleIds.includes('super_admin') || roleIds.includes('system_admin')) {
+
         const excludedAdminPerms = EXCLUDED_ADMIN_PERMISSIONS;
+
         const allPerms = await db.select({ id: permissions.id }).from(permissions);
+
         allPerms.forEach(p => {
+
           if (p.id !== "appointments.view_own" && !excludedAdminPerms.includes(p.id)) {
+
             permsSet.add(p.id);
+
           }
+
         });
+
         Object.keys(PERMISSION_EXPANSION).forEach(k => {
+
           if (k !== "appointments.view_own" && !excludedAdminPerms.includes(k)) {
+
             permsSet.add(k);
+
           }
+
         });
+
         Object.values(PERMISSION_EXPANSION).forEach(subs => subs.forEach(s => {
+
           if (!excludedAdminPerms.includes(s)) {
+
             permsSet.add(s);
+
           }
+
         }));
+
       }
+
+
 
       // إسناد صلاحيات تلقائية للأدوار الأساسية
+
       if (roleIds.includes("service_requester")) {
+
         permsSet.add("requests.create");
+
         permsSet.add("requests.view");
+
       }
+
+
 
       if (roleIds.includes("board_chairman")) {
+
         permsSet.add("board_chairman");
+
       }
+
+
 
       if (roleIds.includes("board_member")) {
+
         permsSet.add("board_member");
+
       }
+
+
 
       // جلب صلاحيات من جدول rolePermissions
+
       const rolePerms = await db
+
         .select({ permissionId: rolePermissions.permissionId })
+
         .from(rolePermissions)
+
         .where(inArray(rolePermissions.roleId, roleIds));
+
       
+
       rolePerms.forEach(rp => permsSet.add(rp.permissionId));
 
+
+
       // جلب صلاحيات من حقل description في جدول roles (للأدوار المخصصة)
+
       const rolesData = await db
+
         .select({ id: roles.id, description: roles.description })
+
         .from(roles)
+
         .where(inArray(roles.id, roleIds));
 
+
+
       for (const role of rolesData) {
+
         if (role.description) {
+
           try {
+
             const parsed = JSON.parse(role.description);
+
             if (Array.isArray(parsed)) {
+
               parsed.forEach(p => permsSet.add(p));
+
             }
+
           } catch {
+
             // Ignore
+
           }
+
         }
+
       }
 
+
+
       // توسيع الصلاحيات البسيطة
+
       const permsArray = Array.from(permsSet);
+
       const excludedAdminPerms = EXCLUDED_ADMIN_PERMISSIONS;
+
       for (const perm of permsArray) {
+
         const expanded = PERMISSION_EXPANSION[perm];
+
         if (expanded) {
+
           expanded.forEach(sub => {
+
             if (!excludedAdminPerms.includes(sub)) {
+
               permsSet.add(sub);
+
             }
+
           });
+
         }
+
       }
+
+
+
+
 
 
 
       return Array.from(permsSet);
+
     }),
 
+
+
   /**
+
    * إسناد دور لمستخدم
+
    */
+
   assignRole: permissionProcedure(["users.customize", "staff_users.customize"])
+
     .input(z.object({
+
       userId: z.number(),
+
       roleId: z.string(),
+
       expiresAt: z.date().optional()
+
     }))
+
     .mutation(async ({ input, ctx }) => {
+
       // التحقق من صلاحية المنفذ
+
       const canCustomize = (await checkPermission(ctx.user.id, "users.customize")) ||
+
                            (await checkPermission(ctx.user.id, "staff_users.customize")) ||
+
                            ['super_admin', 'system_admin'].includes(ctx.user.role);
+
       if (!canCustomize) {
+
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإسناد الأدوار" });
+
       }
 
+
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+
 
       // منع إضافة أدوار إضافية للمدير العام (لديه كل الصلاحيات أصلاً)
+
       const [targetUser] = await db.select({ role: users.role }).from(users).where(eq(users.id, input.userId)).limit(1);
+
       if (targetUser?.role === 'super_admin') {
+
         throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن إضافة أدوار إضافية للمدير العام" });
+
       }
+
+
 
       await db.insert(userRoleAssignments).values({
+
         userId: input.userId,
+
         roleId: input.roleId,
+
         assignedBy: ctx.user.id,
+
         expiresAt: input.expiresAt
+
       });
+
+
 
       await logAudit({
+
         actionType: "assign_role",
+
         targetUserId: input.userId,
+
         targetRoleId: input.roleId,
+
         performedBy: ctx.user.id
+
       });
 
+
+
       return { success: true };
+
     }),
 
+
+
   /**
+
    * إزالة دور من مستخدم
+
    */
+
   removeRole: permissionProcedure(["users.customize", "staff_users.customize"])
+
     .input(z.object({
+
       userId: z.number(),
+
       roleId: z.string()
+
     }))
+
     .mutation(async ({ input, ctx }) => {
+
       // التحقق من صلاحية المنفذ
+
       const canCustomize = (await checkPermission(ctx.user.id, "users.customize")) ||
+
                            (await checkPermission(ctx.user.id, "staff_users.customize")) ||
+
                            ['super_admin', 'system_admin'].includes(ctx.user.role);
+
       if (!canCustomize) {
+
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإزالة الأدوار" });
+
       }
 
+
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+
 
       await db.delete(userRoleAssignments).where(
+
         and(
+
           eq(userRoleAssignments.userId, input.userId),
+
           eq(userRoleAssignments.roleId, input.roleId)
+
         )
+
       );
 
+
+
       await logAudit({
+
         actionType: "remove_role",
+
         targetUserId: input.userId,
+
         targetRoleId: input.roleId,
+
         performedBy: ctx.user.id
+
       });
 
+
+
       return { success: true };
+
     }),
 
+
+
   /**
+
    * تعيين الصلاحيات الفردية للمستخدم بالكامل (تزامن الأوفررايد)
+
    */
+
   setUserDirectPermissions: permissionProcedure(["users.customize", "staff_users.customize"])
+
     .input(z.object({
+
       userId: z.number(),
+
       permissions: z.array(z.object({
+
         permissionId: z.string(),
+
         granted: z.boolean(),
+
         reason: z.string().optional()
+
       }))
+
     }))
+
     .mutation(async ({ input, ctx }) => {
+
       // التحقق من صلاحية المنفذ
+
       const canCustomize = (await checkPermission(ctx.user.id, "users.customize")) ||
+
                            (await checkPermission(ctx.user.id, "staff_users.customize")) ||
+
                            ['super_admin', 'system_admin'].includes(ctx.user.role);
+
       if (!canCustomize) {
+
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل الصلاحيات" });
+
       }
 
+
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+
+
+
 
 
 
       await ensureRequestsPermissionsExist(db);
+
       await ensureAllCustomPermissionsExist(db);
 
+
+
       // التأكد من وجود كافة المعرفات في جدول الصلاحيات قبل الربط لتفادي أخطاء المفاتيح الأجنبية
+
       if (input.permissions.length > 0) {
+
         const permIds = input.permissions.map(p => p.permissionId);
+
         const existingPerms = await db.select({ id: permissions.id }).from(permissions)
+
           .where(inArray(permissions.id, permIds));
+
         const existingSet = new Set(existingPerms.map((p: any) => p.id));
 
+
+
         const validModules = new Set(
+
           (await db.select({ id: modules.id }).from(modules)).map((m: any) => m.id)
+
         );
 
+
+
         for (const p of input.permissions) {
+
           if (!existingSet.has(p.permissionId)) {
+
             const parts = p.permissionId.split(".");
+
             const rawMod = parts[0] || "general";
+
             let modId = rawMod;
 
+
+
             if (["disbursement_orders", "receipt_vouchers", "financial_reports", "progress_reports", "pending_reports"].includes(rawMod)) {
+
               modId = (rawMod === "financial_reports" || rawMod === "progress_reports" || rawMod === "pending_reports") ? "reports" : "disbursements";
+
             } else if (rawMod.startsWith("board")) {
+
               modId = "board";
+
             }
+
+
 
             if (!validModules.has(modId)) {
+
               modId = "general";
+
             }
 
+
+
             await db.insert(permissions).values({
+
               id: p.permissionId,
+
               moduleId: modId,
+
               action: parts[1] || "manage",
+
               nameAr: p.permissionId,
+
               nameEn: p.permissionId
+
             }).catch(() => {});
+
             existingSet.add(p.permissionId);
+
           }
+
         }
+
       }
+
+
 
       await db.transaction(async (tx) => {
+
         // 1. حذف جميع الصلاحيات الفردية الحالية للمستخدم
+
         await tx.delete(userPermissions).where(eq(userPermissions.userId, input.userId));
 
+
+
         // 2. إدخال الصلاحيات الفردية الجديدة إذا وُجدت
+
         if (input.permissions.length > 0) {
+
           const valuesToInsert = input.permissions.map(p => ({
+
             userId: input.userId,
+
             permissionId: p.permissionId,
+
             granted: p.granted,
+
             grantedBy: ctx.user.id,
+
             reason: p.reason || "تخصيص صلاحيات المستخدم المباشرة"
+
           }));
+
           await tx.insert(userPermissions).values(valuesToInsert);
+
         }
+
+
 
         // 3. تسجيل الإجراء في سجل التدقيق
+
         try {
+
           await tx.insert(permissionsAuditLog).values({
+
             actionType: "sync_user_permissions",
+
             targetUserId: input.userId,
+
             performedBy: ctx.user.id,
+
             reason: "تحديث الصلاحيات الفردية المخصصة للمستخدم بالكامل",
+
             newValue: JSON.stringify(input.permissions)
+
           });
+
         } catch (auditErr) {
+
           console.warn("[Permissions] Failed to write audit log for sync_user_permissions:", auditErr);
+
         }
+
       });
 
+
+
       return { success: true };
+
     }),
 
+
+
   /**
+
    * منح صلاحية فردية لمستخدم
+
    */
+
   grantPermission: permissionProcedure("users.edit")
+
     .input(z.object({
+
       userId: z.number(),
+
       permissionId: z.string(),
+
       reason: z.string(),
+
       expiresAt: z.date().optional()
+
     }))
+
     .mutation(async ({ input, ctx }) => {
+
       // التحقق من صلاحية المنفذ
+
       if (ctx.user.role !== 'super_admin' && ctx.user.role !== 'system_admin') {
+
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل الصلاحيات" });
+
       }
 
+
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+
+
       await db.insert(userPermissions).values({
+
         userId: input.userId,
+
         permissionId: input.permissionId,
+
         granted: true,
+
         grantedBy: ctx.user.id,
+
         reason: input.reason,
+
         expiresAt: input.expiresAt
+
       });
+
+
 
       await logAudit({
+
         actionType: "grant_permission",
+
         targetUserId: input.userId,
+
         permissionId: input.permissionId,
+
         performedBy: ctx.user.id,
+
         reason: input.reason
+
       });
 
+
+
       return { success: true };
+
     }),
 
+
+
   /**
+
    * سحب صلاحية من مستخدم
+
    */
+
   revokePermission: permissionProcedure("users.edit")
+
     .input(z.object({
+
       userId: z.number(),
+
       permissionId: z.string(),
+
       reason: z.string()
+
     }))
+
     .mutation(async ({ input, ctx }) => {
+
       // التحقق من صلاحية المنفذ
+
       if (ctx.user.role !== 'super_admin' && ctx.user.role !== 'system_admin') {
+
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لسحب الصلاحيات" });
+
       }
 
+
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+
 
       await db.insert(userPermissions).values({
+
         userId: input.userId,
+
         permissionId: input.permissionId,
+
         granted: false,
+
         grantedBy: ctx.user.id,
+
         reason: input.reason
+
       });
+
+
 
       await logAudit({
+
         actionType: "revoke_permission",
+
         targetUserId: input.userId,
+
         permissionId: input.permissionId,
+
         performedBy: ctx.user.id,
+
         reason: input.reason
+
       });
 
+
+
       return { success: true };
+
     }),
 
+
+
   /**
+
    * عرض سجل التدقيق
+
    */
+
   getAuditLog: permissionProcedure("permissions.view")
+
     .input(z.object({
+
       targetUserId: z.number().optional(),
+
       limit: z.number().default(50)
+
     }))
+
     .query(async ({ input }) => {
+
       const db = await getDb();
+
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+
 
       let query = db.select().from(permissionsAuditLog);
 
+
+
       if (input.targetUserId) {
+
         query = query.where(eq(permissionsAuditLog.targetUserId, input.targetUserId)) as any;
+
       }
 
+
+
       return await query.limit(input.limit).orderBy(sql`${permissionsAuditLog.createdAt} DESC`);
+
     }),
+
 });
 
 
+
+
+
 /**
+
  * دالة لتحديث ومزامنة كافة الوحدات والصلاحيات والأدوار في قاعدة البيانات
+
  */
+
 export async function syncAllPermissionsToDatabase(customDb?: any) {
+
   const db = customDb || (await getDb());
+
   if (!db) throw new Error("Database not available");
+
   await ensureRequestsPermissionsExist(db);
+
   return { success: true };
+
 }
+

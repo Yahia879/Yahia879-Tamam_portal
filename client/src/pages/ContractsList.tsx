@@ -1,1704 +1,1725 @@
-import { useState, useMemo } from "react";
-import { useLocation, useSearch } from "wouter";
-import DashboardLayout from "@/components/DashboardLayout";
-import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
-import { trpc } from "@/lib/trpc";
-import { usePermission } from "@/hooks/usePermission";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { normalizeArabic } from "@/components/ProjectSearchSelect";
-import { SaudiRiyal } from "@/components/SaudiRiyal";
-import { cn } from "@/lib/utils";
-import {
-  FileText,
-  Search,
-  Plus,
-  Eye,
-  Printer,
-  Copy,
-  Filter,
-  Building2,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  FileEdit,
-  XCircle,
-  Loader2,
-  LayoutTemplate,
-  ChevronLeft,
-  ChevronRight,
-  Trash2,
-  ListOrdered,
-  ChevronDown,
-  ChevronUp,
-  Edit,
-  FileSignature,
-  Layers,
-} from "lucide-react";
-
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-
-// أنواع العقود لقوالب العقد
-const TEMPLATE_CONTRACT_TYPES = {
-  supervision: { label: "إشراف هندسي", color: "bg-blue-100 text-blue-800" },
-  construction: { label: "مقاولات", color: "bg-orange-100 text-orange-800" },
-  supply: { label: "توريد", color: "bg-green-100 text-green-800" },
-  maintenance: { label: "صيانة", color: "bg-purple-100 text-purple-800" },
-  services: { label: "خدمات", color: "bg-cyan-100 text-cyan-800" },
-  equipment: { label: "تجهيزات", color: "bg-pink-100 text-pink-800" },
-  consulting: { label: "استشارات", color: "bg-indigo-100 text-indigo-800" },
-  other: { label: "أخرى", color: "bg-gray-100 text-gray-800" },
-};
-
-// فئات البنود لقوالب العقد
-const CLAUSE_CATEGORIES = {
-  obligations_first_party: "التزامات الطرف الأول",
-  obligations_second_party: "التزامات الطرف الثاني",
-  financial: "الأحكام المالية",
-  duration: "مدة العقد",
-  modifications: "تعديل العقد",
-  notifications: "الإشعارات والمراسلات",
-  general: "أحكام عامة",
-  confidentiality: "سرية المعلومات",
-  intellectual_property: "حقوق الملكية الفكرية",
-  disputes: "حل المنازعات",
-  termination: "فسخ العقد",
-  penalties: "الغرامات والجزاءات",
-  warranty: "الضمان",
-  force_majeure: "القوة القاهرة",
-  copies: "نسخ الاتفاقية",
-  custom: "بند مخصص",
-};
-
-// حالات العقد
-const CONTRACT_STATUSES = [
-  { value: "all", label: "جميع الحالات" },
-  { value: "draft", label: "مسودة" },
-  { value: "pending_approval", label: "قيد الاعتماد" },
-  { value: "approved", label: "معتمد" },
-  { value: "active", label: "ساري" },
-  { value: "completed", label: "مكتمل" },
-  { value: "cancelled", label: "ملغي" },
-];
-
-// أنواع العقود
-const CONTRACT_TYPES = [
-  { value: "all", label: "جميع الأنواع" },
-  { value: "supply", label: "توريد" },
-  { value: "construction", label: "مقاولات" },
-  { value: "supervision", label: "إشراف هندسي" },
-  { value: "maintenance", label: "صيانة" },
-  { value: "services", label: "خدمات" },
-];
-
-// دالة الحصول على لون الحالة
-function getStatusBadge(status: string) {
-  switch (status) {
-    case "draft":
-      return <Badge variant="secondary"><FileEdit className="h-3 w-3 ml-1" />مسودة</Badge>;
-    case "pending_approval":
-      return <Badge variant="outline" className="border-yellow-500 text-yellow-600"><Clock className="h-3 w-3 ml-1" />قيد الاعتماد</Badge>;
-    case "approved":
-      return <Badge className="bg-green-500"><CheckCircle2 className="h-3 w-3 ml-1" />معتمد</Badge>;
-    case "active":
-      return <Badge className="bg-blue-500"><CheckCircle2 className="h-3 w-3 ml-1" />ساري</Badge>;
-    case "completed":
-      return <Badge variant="outline" className="border-green-500 text-green-600"><CheckCircle2 className="h-3 w-3 ml-1" />مكتمل</Badge>;
-    case "cancelled":
-      return <Badge variant="destructive"><XCircle className="h-3 w-3 ml-1" />ملغي</Badge>;
-    default:
-      return <Badge variant="secondary">{status}</Badge>;
-  }
-}
-
-// دالة الحصول على نوع العقد بالعربي
-function getContractTypeLabel(type: string) {
-  const types: Record<string, string> = {
-    supply: "توريد",
-    construction: "مقاولات",
-    supervision: "إشراف هندسي",
-    maintenance: "صيانة",
-    services: "خدمات",
-  };
-  return types[type] || type;
-}
-
-// مكون وصف العقد القابل للتوسيع والطي باللون الرمادي الفاتح
-function ContractDescriptionBlock({
-  description,
-  compact = false,
-}: {
-  description?: string | null;
-  compact?: boolean;
-}) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  if (!description || !description.trim()) return null;
-
-  return (
-    <div
-      className={cn(
-        "rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50/70 dark:bg-zinc-900/50 transition-all duration-200 overflow-hidden",
-        compact ? "my-1.5" : "my-2.5"
-      )}
-    >
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsExpanded((prev) => !prev);
-        }}
-        className={cn(
-          "w-full flex items-center justify-between gap-2 text-right transition-colors cursor-pointer select-none",
-          compact ? "px-2.5 py-1.5" : "px-3 py-2",
-          isExpanded
-            ? "border-b border-gray-200/80 dark:border-gray-800/80 bg-gray-100/60 dark:bg-zinc-800/40"
-            : "hover:bg-gray-100/50 dark:hover:bg-zinc-800/30"
-        )}
-      >
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <div
-            className={cn(
-              "rounded-md flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-400",
-              compact ? "w-5 h-5" : "w-5.5 h-5.5"
-            )}
-          >
-            <FileText className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
-          </div>
-          <span
-            className={cn(
-              "font-bold shrink-0 text-gray-800 dark:text-gray-200",
-              compact ? "text-[11px]" : "text-xs"
-            )}
-          >
-            وصف العقد:
-          </span>
-          {!isExpanded && (
-            <span
-              className={cn(
-                "text-gray-500 dark:text-gray-400 truncate",
-                compact ? "text-[10px]" : "text-xs"
-              )}
-            >
-              {description}
-            </span>
-          )}
-        </div>
-
-        <div
-          className="p-1 rounded-md text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 shrink-0 transition-colors"
-          title={isExpanded ? "طي" : "توسيع"}
-        >
-          {isExpanded ? (
-            <ChevronUp className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
-          ) : (
-            <ChevronDown className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
-          )}
-        </div>
-      </button>
-
-      {isExpanded && (
-        <div
-          className={cn(
-            "leading-relaxed whitespace-pre-wrap select-text animate-in fade-in-50 duration-200 border-r-[3px] border-r-emerald-600 dark:border-r-emerald-500 bg-gray-50/40 dark:bg-zinc-900/30",
-            compact
-              ? "p-2.5 text-[11px] text-gray-700 dark:text-gray-300"
-              : "p-3 sm:p-3.5 text-xs sm:text-sm text-gray-700 dark:text-gray-300"
-          )}
-        >
-          {description}
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default function ContractsList() {
-  const [, navigate] = useLocation();
-  const canCreateContract = usePermission("contracts.create");
-  const canViewContract = usePermission("contracts.view");
-  const canApproveContract = usePermission("contracts.approve");
-  const canEditApprovedContract = usePermission("contracts.edit_approved");
-  const canTemplateAdd = usePermission("contracts.template_add");
-  const canTemplateEdit = usePermission("contracts.template_edit");
-  const canTemplateDelete = usePermission("contracts.template_delete");
-  const canClauseAdd = usePermission("contracts.clause_add");
-
-  const search = useSearch();
-  const searchParams = new URLSearchParams(search || '');
-  const tabFromQuery = searchParams.get('tab');
-
-  const [activeTab, setActiveTab] = useState(tabFromQuery === "templates" ? "templates" : "contracts");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [currentPage, setCurrentPage, resetPage] = usePersistedPage("contracts_page");
-  const pageSize = 10;
-  const [showProjectSelectionDialog, setShowProjectSelectionDialog] = useState(false);
-  const [projectDialogSearch, setProjectDialogSearch] = useState("");
-
-  // حالات إدارة القوالب والبنود المأخوذة من صفحة إدارة القوالب لتكون مطابقة 100%
-  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
-  const [showClauseDialog, setShowClauseDialog] = useState(false);
-  const [showPreambleDialog, setShowPreambleDialog] = useState(false);
-  const [preambleText, setPreambleText] = useState("");
-  const [editingTemplate, setEditingTemplate] = useState<any>(null);
-  const [editingClause, setEditingClause] = useState<any>(null);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
-  const [expandedTemplates, setExpandedTemplates] = useState<number[]>([]);
-  const [expandedSedanaGroups, setExpandedSedanaGroups] = useState<number[]>([]);
-
-  const toggleSedanaGroup = (reqId: number) => {
-    setExpandedSedanaGroups(prev =>
-      prev.includes(reqId) ? prev.filter(id => id !== reqId) : [...prev, reqId]
-    );
-  };
-
-  // نموذج القالب
-  const [templateForm, setTemplateForm] = useState({
-    nameAr: "",
-    type: "supply",
-  });
-
-  // نموذج البند
-  const [clauseForm, setClauseForm] = useState({
-    title: "",
-    titleAr: "",
-    content: "",
-    category: "general",
-    isRequired: true,
-    isEditable: true,
-    isGlobal: false,
-  });
-
-  const resetTemplateForm = () => {
-    setTemplateForm({
-      nameAr: "",
-      type: "supply",
-    });
-  };
-
-  const resetClauseForm = () => {
-    setClauseForm({
-      title: "",
-      titleAr: "",
-      content: "",
-      category: "general",
-      isRequired: true,
-      isEditable: true,
-      isGlobal: false,
-    });
-  };
-
-  const handleEditTemplate = (template: any) => {
-    setEditingTemplate(template);
-    setTemplateForm({
-      nameAr: template.nameAr || "",
-      type: template.type || "supply",
-    });
-    setShowTemplateDialog(true);
-  };
-
-  const handleEditClause = (clause: any) => {
-    setEditingClause(clause);
-    setClauseForm({
-      title: clause.title || "",
-      titleAr: clause.titleAr || "",
-      content: clause.content || "",
-      category: clause.category || "general",
-      isRequired: clause.isRequired ?? true,
-      isEditable: clause.isEditable ?? true,
-      isGlobal: clause.isGlobal ?? false,
-    });
-    setShowClauseDialog(true);
-  };
-
-  // جلب قائمة العقود
-  const { data: contractsData, isLoading: contractsLoading, refetch } = trpc.contracts.list.useQuery({
-    status: statusFilter !== "all" ? statusFilter as any : undefined,
-    contractType: typeFilter !== "all" ? typeFilter as any : undefined,
-    page: currentPage,
-    limit: pageSize,
-  });
-
-  // جلب جميع المشاريع وجميع العقود لفلترة المشاريع التي لا تحتوي على عقد معتمد
-  const { data: projectsData, isLoading: projectsLoading } = trpc.projects.getAll.useQuery({});
-  const { data: allContractsData, isLoading: allContractsLoading } = trpc.contracts.list.useQuery({
-    limit: 1000,
-  });
-
-  // جلب طلبات سدانة
-  const { data: sedanaRequestsData, isLoading: sedanaRequestsLoading } = trpc.requests.search.useQuery({
-    programType: 'sedana',
-    limit: 200,
-  });
-
-  // جلب قوالب العقود
-  const { data: templatesData, isLoading: templatesLoading, refetch: refetchTemplates } = trpc.contracts.getTemplates.useQuery();
-
-  // جلب قالب مع بنوده
-  const { data: selectedTemplate, refetch: refetchSelectedTemplate } = trpc.contracts.getTemplate.useQuery(
-    { id: selectedTemplateId! },
-    { enabled: !!selectedTemplateId }
-  );
-
-  // إنشاء قالب
-  const createTemplateMutation = trpc.contracts.createTemplate.useMutation({
-    onSuccess: (data) => {
-      toast.success("تم إنشاء القالب بنجاح");
-      setShowTemplateDialog(false);
-      resetTemplateForm();
-      refetchTemplates();
-      if (data?.id) {
-        navigate(`/contract-templates/${data.id}/preview`);
-      }
-    },
-    onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء إنشاء القالب");
-    },
-  });
-
-  // تحديث قالب
-  const updateTemplateMutation = trpc.contracts.updateTemplate.useMutation({
-    onSuccess: () => {
-      toast.success("تم تحديث القالب بنجاح");
-      setShowTemplateDialog(false);
-      setEditingTemplate(null);
-      resetTemplateForm();
-      refetchTemplates();
-    },
-    onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء تحديث القالب");
-    },
-  });
-
-  // حذف قالب
-  const deleteTemplateMutation = trpc.contracts.deleteTemplate.useMutation({
-    onSuccess: () => {
-      toast.success("تم حذف القالب بنجاح");
-      refetchTemplates();
-    },
-    onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء حذف القالب");
-    },
-  });
-
-  // إنشاء بند
-  const createClauseMutation = trpc.contracts.createClause.useMutation({
-    onSuccess: () => {
-      toast.success("تم إضافة البند بنجاح");
-      setShowClauseDialog(false);
-      resetClauseForm();
-      if (selectedTemplateId) {
-        refetchSelectedTemplate();
-      }
-    },
-    onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء إضافة البند");
-    },
-  });
-
-  // تحديث بند
-  const updateClauseMutation = trpc.contracts.updateClause.useMutation({
-    onSuccess: () => {
-      toast.success("تم تحديث البند بنجاح");
-      setShowClauseDialog(false);
-      setEditingClause(null);
-      resetClauseForm();
-      if (selectedTemplateId) {
-        refetchSelectedTemplate();
-      }
-    },
-    onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء تحديث البند");
-    },
-  });
-
-  // حذف بند
-  const deleteClauseMutation = trpc.contracts.deleteClause.useMutation({
-    onSuccess: () => {
-      toast.success("تم حذف البند بنجاح");
-      if (selectedTemplateId) {
-        refetchSelectedTemplate();
-      }
-    },
-    onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء حذف البند");
-    },
-  });
-
-  const handleSubmitTemplate = () => {
-    if (!templateForm.nameAr) {
-      toast.error("يرجى ملء جميع الحقول المطلوبة");
-      return;
-    }
-
-    if (editingTemplate) {
-      updateTemplateMutation.mutate({
-        id: editingTemplate.id,
-        ...templateForm,
-        name: templateForm.nameAr, // استخدام الاسم العربي للاسم الإنجليزي مؤقتاً
-      });
-    } else {
-      createTemplateMutation.mutate({
-        ...templateForm,
-        name: templateForm.nameAr,
-      });
-    }
-  };
-
-  const handleSavePreamble = () => {
-    if (!selectedTemplateId) return;
-    updateTemplateMutation.mutate({
-      id: selectedTemplateId,
-      introTemplate: preambleText,
-    }, {
-      onSuccess: () => {
-        toast.success("تم حفظ التمهيد بنجاح");
-        setShowPreambleDialog(false);
-        refetchSelectedTemplate();
-      }
-    });
-  };
-
-  const handleSubmitClause = () => {
-    if (!clauseForm.titleAr || !clauseForm.content) {
-      toast.error("يرجى إدخال عنوان ونص البند");
-      return;
-    }
-
-    const submissionData = {
-      ...clauseForm,
-      title: clauseForm.title || clauseForm.titleAr, // استخدام العنوان العربي للإنجليزي إذا كان فارغاً
-    };
-
-    if (editingClause) {
-      updateClauseMutation.mutate({
-        id: editingClause.id,
-        ...submissionData,
-      });
-    } else {
-      createClauseMutation.mutate({
-        templateId: selectedTemplateId!,
-        ...submissionData,
-        orderIndex: selectedTemplate?.clauses?.length || 0,
-      });
-    }
-  };
-
-  const toggleTemplateExpand = (templateId: number) => {
-    setExpandedTemplates((prev) =>
-      prev.includes(templateId) ? [] : [templateId]
-    );
-    setSelectedTemplateId(templateId);
-  };
-
-  // Mutation لتكرار العقد
-  const duplicateMutation = trpc.contracts.duplicate.useMutation({
-    onSuccess: (data) => {
-      toast.success("تم تكرار العقد بنجاح");
-      navigate(`/contracts/${data.id}/preview`);
-    },
-    onError: (error: any) => {
-      toast.error(error.message || "حدث خطأ أثناء تكرار العقد");
-    },
-  });
-
-  const contracts = contractsData?.contracts || [];
-  const totalContracts = contractsData?.total || 0;
-  const totalPages = Math.ceil(totalContracts / pageSize);
-  const templates = templatesData || [];
-
-  // تصفية المشاريع التي لم يتم إنشاء عقد معتمد أو مسودة أو قيد الاعتماد لها
-  const excludedProjectIds = new Set(
-    (allContractsData?.contracts || [])
-      .filter((c: any) => c.status === 'draft' || c.status === 'pending_approval' || c.status === 'approved' || c.status === 'active' || c.status === 'completed')
-      .map((c: any) => c.projectId)
-      .filter(Boolean)
-  );
-
-  // تصفية المشاريع لتكون في مرحلة التعاقد حصراً وبدون عقد مستبعد
-  const eligibleProjects = (projectsData || []).filter(
-    (p: any) => p.requestStage === 'contracting' && !excludedProjectIds.has(p.id)
-  );
-
-  // تصفية طلبات سدانة التي تم تحديد نوع التأمين فيها كـ "عقد" لموردين (لا تظهر إلا بعد الوصول لمرحلة "التشغيل والتنفيذ" وغير مغلقة)
-  const eligibleSedanaRequests = useMemo(() => {
-    const list = (sedanaRequestsData?.requests || []).filter((req: any) =>
-      ['execution', 'handover'].includes(req.currentStage) &&
-      req.status !== 'completed' &&
-      req.closureStatus !== 'confirmed'
-    );
-    const allContracts = allContractsData?.contracts || [];
-
-    return list.map((req: any) => {
-      let pData: any = req.programData;
-      if (typeof pData === 'string') {
-        try { pData = JSON.parse(pData); } catch { pData = {}; }
-      }
-      const proc = pData?.sedanaProcurement;
-      const suppliersAlloc = proc?.suppliersAllocation || {};
-      const itemsAlloc = proc?.itemsAllocation || {};
-
-      const contractSuppliers: Array<{ supplierId?: number; supplierName: string; key: string }> = [];
-      const seen = new Set<string>();
-
-      if (proc?.itemSupplierMap && Object.keys(proc.itemSupplierMap).length > 0) {
-        Object.entries(proc.itemSupplierMap).forEach(([itemId, sup]: [string, any]) => {
-          if (sup?.supplierName && sup.supplierName !== 'لم يحدد بعد' && sup.supplierName !== 'غير محدد') {
-            const key = sup.supplierId ? `sup_${sup.supplierId}` : `name_${sup.supplierName}`;
-            if ((suppliersAlloc[key] === 'contract' || itemsAlloc[itemId] === 'contract') && !seen.has(key)) {
-              seen.add(key);
-              contractSuppliers.push({
-                supplierId: sup.supplierId,
-                supplierName: sup.supplierName,
-                key,
-              });
-            }
-          }
-        });
-      } else if (Array.isArray(pData?.awardedItemVendors)) {
-        pData.awardedItemVendors.forEach((a: any) => {
-          if (a?.supplierName && a.supplierName !== 'لم يحدد بعد') {
-            const key = a.supplierId ? `sup_${a.supplierId}` : `name_${a.supplierName}`;
-            if ((suppliersAlloc[key] === 'contract' || itemsAlloc[String(a.boqItemId)] === 'contract') && !seen.has(key)) {
-              seen.add(key);
-              contractSuppliers.push({
-                supplierId: a.supplierId,
-                supplierName: a.supplierName,
-                key,
-              });
-            }
-          }
-        });
-      }
-
-      if (contractSuppliers.length === 0) return null;
-
-      // فحص العقود المسجلة لهذا الطلب (سواء مسودة أو معتمد أو قيد المراجعة، باستثناء الملغاة)
-      const reqContracts = allContracts.filter((c: any) => c.requestId === req.id && c.status !== 'cancelled');
-      const pendingSuppliers = contractSuppliers.filter((cs: any) => {
-        return !reqContracts.some((c: any) =>
-          (cs.supplierId && c.supplierId === cs.supplierId) ||
-          (c.secondPartyName && c.secondPartyName.trim().toLowerCase() === cs.supplierName.trim().toLowerCase())
-        );
-      });
-
-      // إذا تم إنشاء عقود لكافة الموردين المتفق عليهم (حالتهم مسودة أو معتمد)، يتم إزالة الطلب من قائمة المؤهلين للتعاقد
-      if (pendingSuppliers.length === 0) return null;
-
-      return {
-        id: req.id,
-        requestId: req.id,
-        projectNumber: req.requestNumber ? `REQ-${req.requestNumber}` : `REQ-${req.id}`,
-        requestNumber: req.requestNumber,
-        name: `طلب سدانة #${req.requestNumber || req.id} - مسجد ${req.mosque?.name || 'المسجد'}`,
-        mosqueName: req.mosque?.name || '',
-        city: req.mosque?.city || '',
-        contractSuppliers,
-        pendingSuppliers,
-        createdContractsCount: reqContracts.length,
-        totalSuppliersCount: contractSuppliers.length,
-      };
-    }).filter(Boolean) as Array<{
-      id: number;
-      requestId: number;
-      projectNumber: string;
-      requestNumber?: string;
-      name: string;
-      mosqueName: string;
-      city: string;
-      contractSuppliers: Array<{ supplierId?: number; supplierName: string; key: string }>;
-      pendingSuppliers: Array<{ supplierId?: number; supplierName: string; key: string }>;
-      createdContractsCount: number;
-      totalSuppliersCount: number;
-    }>;
-  }, [sedanaRequestsData, allContractsData]);
-
-  // دمج المشاريع المؤهلة وطلبات سدانة في قائمة موحدة
-  const combinedEligibleItems = useMemo(() => {
-    const projectItems = eligibleProjects.map((p: any) => ({
-      ...p,
-      uniqueKey: `project_${p.id}`,
-      itemType: 'project' as const,
-    }));
-    const sedanaItems = eligibleSedanaRequests.map((s: any) => ({
-      ...s,
-      uniqueKey: `sedana_${s.id}`,
-      itemType: 'sedana_request' as const,
-    }));
-    return [...sedanaItems, ...projectItems];
-  }, [eligibleProjects, eligibleSedanaRequests]);
-
-  const filteredEligibleProjects = useMemo(() => {
-    return combinedEligibleItems.filter((item: any) => {
-      if (!projectDialogSearch.trim()) return true;
-      const queryWords = normalizeArabic(projectDialogSearch).split(/\s+/).filter(Boolean);
-      const combinedText = normalizeArabic(
-        `${item.projectNumber || item.requestNumber || item.requestId || ""} ${item.name || ""} ${item.mosqueName || ""} ${item.city || ""}`
-      );
-      return queryWords.every((w) => combinedText.includes(w));
-    });
-  }, [combinedEligibleItems, projectDialogSearch]);
-
-  // فلترة العقود حسب البحث
-  const filteredContracts = contracts.filter((contract: any) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      contract.contractNumber?.toLowerCase().includes(query) ||
-      contract.contractTitle?.toLowerCase().includes(query) ||
-      contract.secondPartyName?.toLowerCase().includes(query) ||
-      contract.description?.toLowerCase().includes(query)
-    );
-  });
-
-  // تجميع عقود سدانة التابعة لنفس الطلب في كرت موحد ومميز في حال كان هناك أكثر من عقد لنفس الطلب
-  const displayContractItems = useMemo(() => {
-    const sedanaReqIds = new Set<number>();
-    (sedanaRequestsData?.requests || []).forEach((r: any) => {
-      if (r.id) sedanaReqIds.add(r.id);
-    });
-
-    const isSedanaContract = (c: any) => {
-      if (c.requestId && sedanaReqIds.has(c.requestId)) return true;
-      if (c.contractTitle?.includes("سدانة")) return true;
-      if (c.requestId && (c.contractTitle?.includes("نظافة") || c.contractTitle?.includes("تشغيل"))) return true;
-      return false;
-    };
-
-    // تجميع العقود حسب requestId إذا كانت تابعة لطلب سدانة
-    const sedanaGroups = new Map<number, any[]>();
-    filteredContracts.forEach((contract: any) => {
-      if (contract.requestId && isSedanaContract(contract)) {
-        const list = sedanaGroups.get(contract.requestId) || [];
-        list.push(contract);
-        sedanaGroups.set(contract.requestId, list);
-      }
-    });
-
-    const processedGroupRequestIds = new Set<number>();
-    const items: Array<
-      | { type: "single"; contract: any }
-      | { type: "grouped_sedana"; requestId: number; contracts: any[]; requestInfo?: any }
-    > = [];
-
-    filteredContracts.forEach((contract: any) => {
-      const reqId = contract.requestId;
-      const group = reqId ? sedanaGroups.get(reqId) : null;
-
-      // في حال كان هناك أكثر من عقد لنفس الطلب لسدانة
-      if (group && group.length > 1) {
-        if (!processedGroupRequestIds.has(reqId!)) {
-          processedGroupRequestIds.add(reqId!);
-          const requestInfo = (sedanaRequestsData?.requests || []).find((r: any) => r.id === reqId);
-          items.push({
-            type: "grouped_sedana",
-            requestId: reqId!,
-            contracts: group,
-            requestInfo,
-          });
-        }
-      } else {
-        items.push({
-          type: "single",
-          contract,
-        });
-      }
-    });
-
-    return items;
-  }, [filteredContracts, sedanaRequestsData]);
-
-  const handleDuplicateContract = (contractId: number) => {
-    if (confirm("هل تريد تكرار هذا العقد؟")) {
-      duplicateMutation.mutate({ id: contractId });
-    }
-  };
-
-  const formatCurrency = (amount: number | string | null) => {
-    if (!amount) return "0";
-    const num = typeof amount === "string" ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat("ar-SA").format(num);
-  };
-
-  const formatDate = (date: string | Date | null) => {
-    if (!date) return "-";
-    return new Date(date).toLocaleDateString("ar-SA");
-  };
-
-  return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        {/* العنوان */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">إدارة العقود</h1>
-            <p className="text-muted-foreground">
-              إدارة العقود المبرمة وقوالب العقود
-            </p>
-          </div>
-          {canCreateContract && (
-            <Button onClick={() => setShowProjectSelectionDialog(true)} className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 ml-2" />
-              إنشاء عقد جديد
-            </Button>
-          )}
-        </div>
-
-        {/* التبويبات */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="overflow-x-auto pb-2 -mb-2 flex justify-start" dir="rtl">
-            <TabsList className="flex w-max sm:w-full max-w-md sm:grid sm:grid-cols-2">
-              <TabsTrigger value="contracts" className="flex items-center gap-2 whitespace-nowrap">
-                <FileText className="h-4 w-4" />
-                العقود المبرمة
-              </TabsTrigger>
-              <TabsTrigger value="templates" className="flex items-center gap-2 whitespace-nowrap">
-                <LayoutTemplate className="h-4 w-4" />
-                قوالب العقود
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          {/* تبويب العقود المبرمة */}
-          <TabsContent value="contracts" className="space-y-4 pt-4">
-            {/* أدوات البحث */}
-            <Card>
-              <CardContent className="pt-4">
-                <div className="relative">
-                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="بحث برقم العقد أو العنوان أو اسم المورد..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      resetPage();
-                    }}
-                    className="pr-10 text-right"
-                    dir="rtl"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* قائمة العقود */}
-            {contractsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : filteredContracts.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center px-4">
-                  <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <h3 className="text-lg font-medium mb-2">لا توجد عقود</h3>
-                  <p className="text-muted-foreground mb-4">
-                    لم يتم العثور على عقود مطابقة لمعايير البحث
-                  </p>
-                  <Button onClick={() => setShowProjectSelectionDialog(true)} className="w-full sm:w-auto">
-                    <Plus className="h-4 w-4 ml-2" />
-                    إنشاء عقد جديد
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-4" dir="rtl">
-                {displayContractItems.map((item: any, idx: number) => {
-                  if (item.type === "grouped_sedana") {
-                    const totalAmount = item.contracts.reduce(
-                      (sum: number, c: any) => sum + (parseFloat(c.contractAmount) || 0),
-                      0
-                    );
-                    const mosqueName =
-                      item.requestInfo?.mosque?.name ||
-                      item.contracts[0]?.mosqueName ||
-                      "المسجد المستفيد";
-                    const isExpanded = expandedSedanaGroups.includes(item.requestId);
-
-                    return (
-                      <Card
-                        key={`grouped-sedana-${item.requestId}`}
-                        className="hover:shadow-md transition-shadow overflow-hidden border-sky-300 dark:border-sky-800 bg-white dark:bg-card"
-                      >
-                        <CardContent className="p-4 text-right">
-                          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                            <div className="flex items-start gap-3 sm:gap-4 flex-1">
-                              <div className="p-2 sm:p-3 rounded-lg bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 shrink-0">
-                                <Layers className="h-5 w-5 sm:h-6 sm:w-6" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                  <h3 className="font-semibold truncate text-sm sm:text-base text-foreground">
-                                    عقود طلب سدانة - مسجد {mosqueName}
-                                  </h3>
-                                </div>
-                                <p className="text-xs sm:text-sm text-muted-foreground mb-2">
-                                  طلب #{item.requestInfo?.requestNumber || item.requestId} • تم إبرام {item.contracts.length} عقود توريد مستقلة
-                                </p>
-                                <div className="flex flex-wrap gap-x-4 gap-y-2 text-[10px] sm:text-xs text-muted-foreground">
-                                  <span className="flex items-center gap-1 font-semibold text-foreground">
-                                    <Building2 className="h-3.5 w-3.5 text-sky-600" />
-                                    <span>{new Set(item.contracts.map((c: any) => c.secondPartyName).filter(Boolean)).size} موردين معتمدين</span>
-                                  </span>
-                                  <span className="flex items-center gap-1 font-bold text-sky-900 dark:text-sky-200">
-                                    <SaudiRiyal className="h-3.5 w-3.5" />
-                                    <span>إجمالي العقود: {formatCurrency(totalAmount)}</span>
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 justify-end">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1 sm:flex-none text-xs sm:text-sm border-sky-400 text-sky-800 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950 font-bold gap-1 cursor-pointer"
-                                onClick={() => toggleSedanaGroup(item.requestId)}
-                              >
-                                {isExpanded ? (
-                                  <>
-                                    <ChevronUp className="h-3.5 w-3.5 ml-1" />
-                                    إخفاء العقود
-                                  </>
-                                ) : (
-                                  <>
-                                    <ChevronDown className="h-3.5 w-3.5 ml-1" />
-                                    عرض كافة العقود ({item.contracts.length})
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-
-                          {isExpanded && (
-                            <div className="mt-4 pt-3 border-t border-sky-100 dark:border-sky-900/60 bg-sky-50/40 dark:bg-sky-950/20 -mx-4 -mb-4 p-4 rounded-b-xl space-y-2.5">
-                              <div className="text-xs font-semibold text-sky-900 dark:text-sky-200 flex items-center justify-between">
-                                <span className="flex items-center gap-1.5">
-                                  <FileText className="w-3.5 h-3.5 text-sky-600" />
-                                  العقود المندرجة تحت هذا الطلب ({item.contracts.length} عقود):
-                                </span>
-                              </div>
-
-                              <div className="space-y-2">
-                                {item.contracts.map((contract: any, cIdx: number) => (
-                                  <div
-                                    key={contract.id}
-                                    className="p-3 rounded-lg border border-sky-200/80 dark:border-sky-900/60 bg-white dark:bg-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs hover:border-sky-300 transition-colors"
-                                  >
-                                    <div className="flex items-start sm:items-center gap-2.5 min-w-0">
-                                      <span className="w-5 h-5 rounded-full bg-sky-100 dark:bg-sky-900/70 text-sky-800 dark:text-sky-300 flex items-center justify-center font-bold text-[11px] shrink-0 mt-0.5 sm:mt-0">
-                                        {cIdx + 1}
-                                      </span>
-                                      <div className="min-w-0 space-y-0.5">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          <span className="font-bold text-xs sm:text-sm text-foreground truncate max-w-[260px]">
-                                            {contract.secondPartyName || "مورد معتمد"}
-                                          </span>
-                                          {getStatusBadge(contract.status)}
-                                        </div>
-                                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] sm:text-xs text-muted-foreground">
-                                          <span className="font-mono">رقم العقد: {contract.contractNumber}</span>
-                                          <span className="flex items-center gap-0.5 font-bold font-mono text-sky-900 dark:text-sky-200">
-                                            <SaudiRiyal className="h-3 w-3" />
-                                            {formatCurrency(contract.contractAmount)}
-                                          </span>
-                                          {contract.contractDate && (
-                                            <span className="flex items-center gap-1">
-                                              <Calendar className="h-3 w-3" />
-                                              {formatDate(contract.contractDate)}
-                                            </span>
-                                          )}
-                                        </div>
-                                        {contract.description && (
-                                          <ContractDescriptionBlock description={contract.description} compact />
-                                        )}
-                                      </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 justify-end shrink-0">
-                                      {contract.status !== "draft" && (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="text-xs h-7 px-2.5"
-                                          onClick={() => navigate(`/contracts/${contract.id}/preview`)}
-                                        >
-                                          <Eye className="h-3 w-3 ml-1" />
-                                          عرض
-                                        </Button>
-                                      )}
-                                      {(contract.status === "draft" ||
-                                        (contract.status === "approved" && canEditApprovedContract)) &&
-                                        canApproveContract && (
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={contract.isRequestClosed}
-                                            className={`text-xs h-7 px-2.5 font-bold ${
-                                              contract.isRequestClosed
-                                                ? "opacity-50 cursor-not-allowed border-slate-300 text-slate-400 bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-50"
-                                                : "border-amber-600 text-amber-600 hover:bg-amber-50"
-                                            }`}
-                                            onClick={() => {
-                                              if (!contract.isRequestClosed) {
-                                                navigate(`/contracts/${contract.id}/edit`);
-                                              }
-                                            }}
-                                            title={contract.isRequestClosed ? "لا يمكن تعديل العقد لأن الطلب المرتبط بالمشروع مغلق نهائياً" : ""}
-                                          >
-                                            <Edit className="h-3 w-3 ml-1" />
-                                            {contract.status === "approved"
-                                              ? "تعديل"
-                                              : contract.status === "draft"
-                                              ? "إكمال"
-                                              : "تعديل"}
-                                          </Button>
-                                        )}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    );
-                  }
-
-                  const contract = item.contract;
-                  return (
-                    <Card key={contract.id || idx} className="hover:shadow-md transition-shadow overflow-hidden">
-                      <CardContent className="p-4 text-right">
-                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                          <div className="flex items-start gap-3 sm:gap-4 flex-1">
-                            <div className="p-2 sm:p-3 rounded-lg bg-primary/10 shrink-0">
-                              <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <h3 className="font-semibold truncate text-sm sm:text-base">
-                                  {contract.contractTitle}
-                                </h3>
-                                <div>
-                                  {getStatusBadge(contract.status)}
-                                </div>
-                              </div>
-                              <p className="text-xs sm:text-sm text-muted-foreground mb-2">
-                                رقم العقد: {contract.contractNumber}
-                              </p>
-                              {contract.description && (
-                                <ContractDescriptionBlock description={contract.description} />
-                              )}
-                              <div className="flex flex-wrap gap-x-4 gap-y-2 text-[10px] sm:text-xs text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <Building2 className="h-3.5 w-3.5" />
-                                  <span className="truncate max-w-[150px]">{contract.secondPartyName || "غير محدد"}</span>
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <SaudiRiyal className="h-3.5 w-3.5" />
-                                  {formatCurrency(contract.contractAmount)}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="h-3.5 w-3.5" />
-                                  {formatDate(contract.contractDate)}
-                                </span>
-                                <Badge variant="outline" className="text-[9px] py-0 px-1.5 h-5">
-                                  {getContractTypeLabel(contract.contractType)}
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 justify-end">
-                            {contract.status !== "draft" && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1 sm:flex-none text-xs sm:text-sm"
-                                onClick={() => navigate(`/contracts/${contract.id}/preview`)}
-                              >
-                                <Eye className="h-3.5 w-3.5 ml-1" />
-                                عرض
-                              </Button>
-                            )}
-                            {(contract.status === "draft" || (contract.status === "approved" && canEditApprovedContract)) && canApproveContract && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={contract.isRequestClosed}
-                                className={`flex-1 sm:flex-none text-xs sm:text-sm font-bold ${
-                                  contract.isRequestClosed
-                                    ? "opacity-50 cursor-not-allowed border-slate-300 text-slate-400 bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-50"
-                                    : "border-amber-600 text-amber-600 hover:bg-amber-50"
-                                }`}
-                                onClick={() => {
-                                  if (!contract.isRequestClosed) {
-                                    navigate(`/contracts/${contract.id}/edit`);
-                                  }
-                                }}
-                                title={contract.isRequestClosed ? "لا يمكن تعديل العقد لأن الطلب المرتبط بالمشروع مغلق نهائياً" : ""}
-                              >
-                                <Edit className="h-3.5 w-3.5 ml-1" />
-                                {contract.status === "approved" ? "تعديل العقد المعتمد" : (contract.status === "draft" ? "إكمال العقد" : "تعديل")}
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-
-                {/* التصفح */}
-                <EnhancedPagination
-                  page={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={(p) => {
-                    setCurrentPage(p);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  totalItems={totalContracts}
-                  itemsPerPage={pageSize}
-                  itemName="عقد"
-                  itemNamePlural="عقود"
-                  className="rounded-xl border border-border/50 shadow-xs mt-2"
-                />
-              </div>
-            )}
-          </TabsContent>
-
-          {/* تبويب قوالب العقود */}
-          <TabsContent value="templates" className="space-y-4 pt-4" dir="rtl">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-              <div>
-                <p className="text-muted-foreground text-sm">
-                  إدارة قوالب العقود وتخصيص البنود الخاصة بها
-                </p>
-              </div>
-              {canTemplateAdd && (
-                <Button
-                  onClick={() => {
-                    setEditingTemplate(null);
-                    resetTemplateForm();
-                    setShowTemplateDialog(true);
-                  }}
-                  className="gap-2 w-full sm:w-auto"
-                >
-                  <Plus className="h-4 w-4 ml-2" />
-                  إضافة قالب جديد
-                </Button>
-              )}
-            </div>
-
-            {templatesLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : templates.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    لا توجد قوالب
-                  </h3>
-                  <p className="text-gray-500 mb-4">
-                    ابدأ بإنشاء قالب عقد جديد
-                  </p>
-                  {canTemplateAdd && (
-                    <Button
-                      onClick={() => {
-                        setEditingTemplate(null);
-                        resetTemplateForm();
-                        setShowTemplateDialog(true);
-                      }}
-                    >
-                      <Plus className="h-4 w-4 ml-2" />
-                      إضافة قالب
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                {templates.map((template: any) => (
-                  <Card key={template.id} className="overflow-hidden">
-                    <CardHeader
-                      className="cursor-pointer hover:bg-gray-50/50 transition-colors"
-                      onClick={() => toggleTemplateExpand(template.id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="p-2 bg-primary/10 rounded-lg">
-                            <FileText className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-lg flex items-center gap-2 text-right">
-                              {template.nameAr || template.name}
-                              {template.isDefault && (
-                                <Badge variant="secondary">افتراضي</Badge>
-                              )}
-                              {template.isSystem && (
-                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">نظامي</Badge>
-                              )}
-                              {!template.isActive && (
-                                <Badge variant="outline" className="text-gray-500">
-                                  غير نشط
-                                </Badge>
-                              )}
-                            </CardTitle>
-                            <CardDescription className="flex items-center gap-2 mt-1 text-right">
-                              <Badge
-                                className={
-                                  TEMPLATE_CONTRACT_TYPES[template.type as keyof typeof TEMPLATE_CONTRACT_TYPES]?.color ||
-                                  "bg-gray-100 text-gray-800"
-                                }
-                              >
-                                {TEMPLATE_CONTRACT_TYPES[template.type as keyof typeof TEMPLATE_CONTRACT_TYPES]?.label ||
-                                  template.type}
-                              </Badge>
-                              <span className="text-gray-400">•</span>
-                              <span>{template.description || "بدون وصف"}</span>
-                            </CardDescription>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/contract-templates/${template.id}/preview`);
-                            }}
-                            title="معاينة"
-                          >
-                            <Eye className="h-4 w-4 text-primary" />
-                          </Button>
-                          {canTemplateEdit && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditTemplate(template);
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {canTemplateDelete && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (confirm("هل أنت متأكد من حذف هذا القالب؟")) {
-                                  deleteTemplateMutation.mutate({ id: template.id });
-                                }
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          )}
-                          {expandedTemplates.includes(template.id) ? (
-                            <ChevronUp className="h-5 w-5 text-gray-400" />
-                          ) : (
-                            <ChevronDown className="h-5 w-5 text-gray-400" />
-                          )}
-                        </div>
-                      </div>
-                    </CardHeader>
-
-                    {expandedTemplates.includes(template.id) && (
-                      <CardContent className="border-t bg-gray-50/30">
-                        <div className="py-4">
-                          <div className="flex items-center justify-between mb-4">
-                            <h4 className="font-medium flex items-center gap-2 text-right">
-                              <ListOrdered className="h-4 w-4" />
-                              بنود العقد ({selectedTemplate?.clauses?.length || 0})
-                            </h4>
-                            {canClauseAdd && (
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setPreambleText(selectedTemplate?.introTemplate || "");
-                                    setShowPreambleDialog(true);
-                                  }}
-                                >
-                                  <FileText className="h-4 w-4 ml-1" />
-                                  {selectedTemplate?.introTemplate ? "تعديل التمهيد" : "إضافة تمهيد"}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={() => {
-                                    setEditingClause(null);
-                                    resetClauseForm();
-                                    setShowClauseDialog(true);
-                                  }}
-                                >
-                                  <Plus className="h-4 w-4 ml-1" />
-                                  إضافة بند
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-
-                          {selectedTemplate?.introTemplate && (
-                            <div className="bg-amber-50/50 border border-amber-200/60 rounded-lg p-4 mb-4 text-right w-full min-w-0 break-words">
-                              <h5 className="font-bold text-amber-900 text-sm mb-1 flex items-center gap-1.5 justify-start">
-                                <FileText className="h-4 w-4 text-amber-700" />
-                                تمهيد العقد:
-                              </h5>
-                              <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap leading-relaxed break-words [word-break:break-word] w-full min-w-0">
-                                {selectedTemplate.introTemplate}
-                              </p>
-                            </div>
-                          )}
-
-                          {selectedTemplate?.clauses?.length === 0 ? (
-                            <div className="text-center py-8 text-gray-500">
-                              لا توجد بنود في هذا القالب
-                            </div>
-                          ) : (
-                            <div className="overflow-x-auto">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="w-12 text-right">#</TableHead>
-                                    <TableHead className="text-right">العنوان</TableHead>
-                                    <TableHead className="text-right">الفئة</TableHead>
-                                    <TableHead className="text-right">إلزامي</TableHead>
-                                    <TableHead className="text-right">قابل للتعديل</TableHead>
-                                    <TableHead className="w-24 text-right">الإجراءات</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {selectedTemplate?.clauses?.map((clause: any, index: number) => (
-                                    <TableRow key={clause.id}>
-                                      <TableCell className="font-medium text-right">
-                                        {index + 1}
-                                      </TableCell>
-                                      <TableCell className="text-right">
-                                        <div>
-                                          <div className="font-medium">{clause.titleAr}</div>
-                                          <div className="text-sm text-gray-500 line-clamp-1">
-                                            {clause.content?.substring(0, 100)}...
-                                          </div>
-                                        </div>
-                                      </TableCell>
-                                      <TableCell className="text-right">
-                                        <Badge variant="outline">
-                                          {CLAUSE_CATEGORIES[clause.category as keyof typeof CLAUSE_CATEGORIES] ||
-                                            clause.category}
-                                        </Badge>
-                                      </TableCell>
-                                      <TableCell className="text-right">
-                                        {clause.isRequired ? (
-                                          <Badge className="bg-green-100 text-green-800">نعم</Badge>
-                                        ) : (
-                                          <Badge variant="outline">لا</Badge>
-                                        )}
-                                      </TableCell>
-                                      <TableCell className="text-right">
-                                        {clause.isEditable ? (
-                                          <Badge className="bg-blue-100 text-blue-800">نعم</Badge>
-                                        ) : (
-                                          <Badge variant="outline">لا</Badge>
-                                        )}
-                                      </TableCell>
-                                      <TableCell className="text-right">
-                                        <div className="flex items-center gap-1 justify-start">
-                                          {canTemplateEdit && (
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              onClick={() => handleEditClause(clause)}
-                                            >
-                                              <Edit className="h-4 w-4" />
-                                            </Button>
-                                          )}
-                                          {canTemplateDelete && (
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              onClick={() => {
-                                                if (confirm("هل أنت متأكد من حذف هذا البند؟")) {
-                                                  deleteClauseMutation.mutate({ id: clause.id });
-                                                }
-                                              }}
-                                            >
-                                              <Trash2 className="h-4 w-4 text-red-500" />
-                                            </Button>
-                                          )}
-                                        </div>
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    )}
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      {/* نافذة إضافة/تعديل القالب */}
-      <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle dir="rtl" className="text-right font-bold">
-              {editingTemplate ? "تعديل قالب العقد" : "إضافة قالب عقد جديد"}
-            </DialogTitle>
-            <DialogDescription dir="rtl" className="text-right">
-              {editingTemplate
-                ? "قم بتعديل بيانات قالب العقد"
-                : "أدخل بيانات قالب العقد الجديد"}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4" dir="rtl">
-            <div className="space-y-2 text-right">
-              <Label htmlFor="nameAr">اسم القالب (عربي) *</Label>
-              <Input
-                id="nameAr"
-                value={templateForm.nameAr}
-                onChange={(e) =>
-                  setTemplateForm({ ...templateForm, nameAr: e.target.value })
-                }
-                placeholder="عقد توريد"
-              />
-            </div>
-
-            <div className="space-y-2 text-right">
-              <Label htmlFor="type">نوع العقد *</Label>
-              <Select
-                value={templateForm.type}
-                onValueChange={(value) =>
-                  setTemplateForm({ ...templateForm, type: value })
-                }
-              >
-                <SelectTrigger className="w-full text-right" dir="rtl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent dir="rtl">
-                  {Object.entries(TEMPLATE_CONTRACT_TYPES).map(([key, { label }]) => (
-                    <SelectItem key={key} value={key}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <DialogFooter className="flex gap-2 justify-end" dir="rtl">
-            {editingTemplate && (
-              <Button
-                variant="outline"
-                type="button"
-                className="gap-1 border-primary text-primary hover:bg-primary/5"
-                onClick={() => {
-                  setShowTemplateDialog(false);
-                  navigate(`/contract-templates/${editingTemplate.id}/preview`);
-                }}
-              >
-                <Eye className="h-4 w-4 ml-1" />
-                معاينة القالب
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowTemplateDialog(false);
-                setEditingTemplate(null);
-                resetTemplateForm();
-              }}
-            >
-              إلغاء
-            </Button>
-            <Button
-              onClick={handleSubmitTemplate}
-              disabled={createTemplateMutation.isPending || updateTemplateMutation.isPending}
-            >
-              {editingTemplate ? "حفظ التعديلات" : "إنشاء القالب"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* نافذة إضافة/تعديل البند */}
-      <Dialog open={showClauseDialog} onOpenChange={setShowClauseDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle dir="rtl" className="text-right font-bold">
-              {editingClause ? "تعديل بند العقد" : "إضافة بند جديد"}
-            </DialogTitle>
-            <DialogDescription dir="rtl" className="text-right">
-              {editingClause
-                ? "قم بتعديل بيانات البند"
-                : "أدخل بيانات البند الجديد"}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4" dir="rtl">
-            <div className="space-y-2 text-right">
-              <Label htmlFor="titleAr">عنوان البند *</Label>
-              <Input
-                id="titleAr"
-                value={clauseForm.titleAr}
-                onChange={(e) =>
-                  setClauseForm({ ...clauseForm, titleAr: e.target.value })
-                }
-                placeholder="المادة الأولى: التعريفات"
-              />
-            </div>
-
-            <div className="space-y-2 text-right">
-              <Label htmlFor="clauseCategory">فئة البند</Label>
-              <Select
-                value={clauseForm.category}
-                onValueChange={(value) =>
-                  setClauseForm({ ...clauseForm, category: value })
-                }
-              >
-                <SelectTrigger className="w-full text-right" dir="rtl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent dir="rtl">
-                  {Object.entries(CLAUSE_CATEGORIES).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2 text-right">
-              <Label htmlFor="clauseContent">نص البند *</Label>
-              <Textarea
-                id="clauseContent"
-                value={clauseForm.content}
-                onChange={(e) =>
-                  setClauseForm({ ...clauseForm, content: e.target.value })
-                }
-                placeholder="أدخل نص البند هنا..."
-                rows={8}
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="flex gap-2 justify-end" dir="rtl">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowClauseDialog(false);
-                setEditingClause(null);
-                resetClauseForm();
-              }}
-            >
-              إلغاء
-            </Button>
-            <Button
-              onClick={handleSubmitClause}
-              disabled={createClauseMutation.isPending || updateClauseMutation.isPending}
-            >
-              {editingClause ? "حفظ التعديلات" : "إضافة البند"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* نافذة إضافة/تعديل التمهيد */}
-      <Dialog open={showPreambleDialog} onOpenChange={setShowPreambleDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle dir="rtl" className="text-right font-bold">
-              {selectedTemplate?.introTemplate ? "تعديل تمهيد العقد" : "إضافة تمهيد للعقد"}
-            </DialogTitle>
-            <DialogDescription dir="rtl" className="text-right">
-              التمهيد هو نص عام يظهر بعد معلومات الطرف الثاني وقبل البنود.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4" dir="rtl">
-            <div className="space-y-2 text-right">
-              <Label htmlFor="preambleContent">نص التمهيد *</Label>
-              <Textarea
-                id="preambleContent"
-                value={preambleText}
-                onChange={(e) => setPreambleText(e.target.value)}
-                placeholder="حيث إن الطرف الأول جمعية مرخصة..."
-                rows={8}
-                className="min-h-[150px]"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="flex gap-2 justify-end" dir="rtl">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowPreambleDialog(false);
-                setPreambleText("");
-              }}
-            >
-              إلغاء
-            </Button>
-            <Button
-              onClick={handleSavePreamble}
-              disabled={updateTemplateMutation.isPending}
-            >
-              حفظ
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-
-      {/* نافذة اختيار المشروع أو الطلب لإنشاء عقد */}
-      <Dialog open={showProjectSelectionDialog} onOpenChange={setShowProjectSelectionDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle dir="rtl" className="text-right font-bold text-xl text-primary">
-              تحديد مشروع أو طلب لإنشاء عقد جديد
-            </DialogTitle>
-            <DialogDescription dir="rtl" className="text-right text-muted-foreground mt-2">
-              يرجى تحديد المشروع أو طلب سدانة الذي ترغب في إنشاء العقد له. تظهر هنا المشاريع والطلبات المؤهلة للتعاقد.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4" dir="rtl">
-            {combinedEligibleItems.length > 0 && (
-              <div className="relative">
-                <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="بحث برقم المشروع أو الطلب، الاسم، المسجد، أو المدينة..."
-                  value={projectDialogSearch}
-                  onChange={(e) => setProjectDialogSearch(e.target.value)}
-                  className="pr-9 text-right"
-                />
-              </div>
-            )}
-
-            {projectsLoading || allContractsLoading || sedanaRequestsLoading ? (
-              <div className="flex flex-col items-center justify-center py-12 gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="text-muted-foreground text-sm">جاري تحميل المشاريع والطلبات المتاحة...</span>
-              </div>
-            ) : combinedEligibleItems.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                <Building2 className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">لا توجد مشاريع أو طلبات متاحة للتعاقد</h3>
-                <p className="text-gray-500 text-sm max-w-md mx-auto">
-                  كافة المشاريع والطلبات الحالية تحتوي على عقود معتمدة بالفعل أو لا توجد بنود محددة لمسار العقود.
-                </p>
-              </div>
-            ) : filteredEligibleProjects.length === 0 ? (
-              <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                <Search className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                <p className="text-sm font-semibold text-gray-700">لم يتم العثور على أي مشروع أو طلب مطابق للبحث</p>
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
-                {filteredEligibleProjects.map((item: any) => (
-                  <div
-                    key={item.uniqueKey}
-                    onClick={() => {
-                      setShowProjectSelectionDialog(false);
-                      setProjectDialogSearch("");
-                      if (item.itemType === 'sedana_request') {
-                        navigate(`/contracts/new?requestId=${item.requestId}`);
-                      } else {
-                        navigate(`/contracts/new?projectId=${item.id}`);
-                      }
-                    }}
-                    className="flex items-center justify-between p-4 bg-white hover:bg-primary/5 border border-gray-100 hover:border-primary/20 rounded-xl cursor-pointer transition-all shadow-sm group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
-                        item.itemType === 'sedana_request'
-                          ? 'bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300 group-hover:bg-sky-600 group-hover:text-white'
-                          : 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white'
-                      }`}>
-                        {item.itemType === 'sedana_request' ? <FileSignature className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}
-                      </div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-semibold text-gray-900 group-hover:text-primary transition-colors text-sm sm:text-base">
-                            {item.name}
-                          </h4>
-                          {item.itemType === 'sedana_request' && (
-                            <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200 text-[10px] font-bold">
-                              سدانة
-                            </Badge>
-                          )}
-                        </div>
-                        <span className="text-xs text-muted-foreground block mt-0.5">
-                          {item.itemType === 'sedana_request'
-                            ? `طلب #${item.requestNumber || item.requestId} • تم تحديد ${item.totalSuppliersCount} موردين للعقود (${item.createdContractsCount} عقود منشأة)`
-                            : `رقم المشروع: ${item.projectNumber}`}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant="outline" className="bg-gray-50 capitalize text-xs">
-                        {item.itemType === 'sedana_request'
-                          ? (item.pendingSuppliers?.length > 0 ? "بانتظار إنشاء العقد" : "تم إنشاء كافة العقود")
-                          : (item.status === "planning" ? "تخطيط" : 
-                             item.status === "in_progress" ? "قيد التنفيذ" : 
-                             item.status === "on_hold" ? "موقوف مؤقتاً" : 
-                             item.status === "completed" ? "مكتمل" : 
-                             item.status === "cancelled" ? "ملغي" : item.status)}
-                      </Badge>
-                      <ChevronLeft className="h-5 w-5 text-gray-400 group-hover:translate-x-[-4px] transition-transform" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="flex justify-end" dir="rtl">
-            <Button
-              variant="outline"
-              onClick={() => setShowProjectSelectionDialog(false)}
-            >
-              إلغاء
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </DashboardLayout>
-  );
-}
+import { useState, useMemo } from "react";
+import { useLocation, useSearch } from "wouter";
+import DashboardLayout from "@/components/DashboardLayout";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
+import { usePermission } from "@/hooks/usePermission";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { normalizeArabic } from "@/components/ProjectSearchSelect";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
+import { cn } from "@/lib/utils";
+import {
+  FileText,
+  Search,
+  Plus,
+  Eye,
+  Printer,
+  Copy,
+  Filter,
+  Building2,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  FileEdit,
+  XCircle,
+  Loader2,
+  LayoutTemplate,
+  ChevronLeft,
+  ChevronRight,
+  Trash2,
+  ListOrdered,
+  ChevronDown,
+  ChevronUp,
+  Edit,
+  FileSignature,
+  Layers,
+  AlertCircle,
+} from "lucide-react";
+
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+// أنواع العقود لقوالب العقد
+const TEMPLATE_CONTRACT_TYPES = {
+  supervision: { label: "إشراف هندسي", color: "bg-blue-100 text-blue-800" },
+  construction: { label: "مقاولات", color: "bg-orange-100 text-orange-800" },
+  supply: { label: "توريد", color: "bg-green-100 text-green-800" },
+  maintenance: { label: "صيانة", color: "bg-purple-100 text-purple-800" },
+  services: { label: "خدمات", color: "bg-cyan-100 text-cyan-800" },
+  equipment: { label: "تجهيزات", color: "bg-pink-100 text-pink-800" },
+  consulting: { label: "استشارات", color: "bg-indigo-100 text-indigo-800" },
+  other: { label: "أخرى", color: "bg-gray-100 text-gray-800" },
+};
+
+// فئات البنود لقوالب العقد
+const CLAUSE_CATEGORIES = {
+  obligations_first_party: "التزامات الطرف الأول",
+  obligations_second_party: "التزامات الطرف الثاني",
+  financial: "الأحكام المالية",
+  duration: "مدة العقد",
+  modifications: "تعديل العقد",
+  notifications: "الإشعارات والمراسلات",
+  general: "أحكام عامة",
+  confidentiality: "سرية المعلومات",
+  intellectual_property: "حقوق الملكية الفكرية",
+  disputes: "حل المنازعات",
+  termination: "فسخ العقد",
+  penalties: "الغرامات والجزاءات",
+  warranty: "الضمان",
+  force_majeure: "القوة القاهرة",
+  copies: "نسخ الاتفاقية",
+  custom: "بند مخصص",
+};
+
+// حالات العقد
+const CONTRACT_STATUSES = [
+  { value: "all", label: "جميع الحالات" },
+  { value: "draft", label: "مسودة" },
+  { value: "pending_approval", label: "قيد الاعتماد" },
+  { value: "approved", label: "معتمد" },
+  { value: "active", label: "ساري" },
+  { value: "completed", label: "مكتمل" },
+  { value: "cancelled", label: "ملغي" },
+];
+
+// أنواع العقود
+const CONTRACT_TYPES = [
+  { value: "all", label: "جميع الأنواع" },
+  { value: "supply", label: "توريد" },
+  { value: "construction", label: "مقاولات" },
+  { value: "supervision", label: "إشراف هندسي" },
+  { value: "maintenance", label: "صيانة" },
+  { value: "services", label: "خدمات" },
+];
+
+// دالة الحصول على لون الحالة
+function getStatusBadge(status: string) {
+  switch (status) {
+    case "draft":
+      return <Badge variant="secondary"><FileEdit className="h-3 w-3 ml-1" />مسودة</Badge>;
+    case "pending_approval":
+      return <Badge variant="outline" className="border-yellow-500 text-yellow-600"><Clock className="h-3 w-3 ml-1" />قيد الاعتماد</Badge>;
+    case "approved":
+      return <Badge className="bg-green-500"><CheckCircle2 className="h-3 w-3 ml-1" />معتمد</Badge>;
+    case "active":
+      return <Badge className="bg-blue-500"><CheckCircle2 className="h-3 w-3 ml-1" />ساري</Badge>;
+    case "completed":
+      return <Badge variant="outline" className="border-green-500 text-green-600"><CheckCircle2 className="h-3 w-3 ml-1" />مكتمل</Badge>;
+    case "cancelled":
+      return <Badge variant="destructive"><XCircle className="h-3 w-3 ml-1" />ملغي</Badge>;
+    default:
+      return <Badge variant="secondary">{status}</Badge>;
+  }
+}
+
+// دالة الحصول على نوع العقد بالعربي
+function getContractTypeLabel(type: string) {
+  const types: Record<string, string> = {
+    supply: "توريد",
+    construction: "مقاولات",
+    supervision: "إشراف هندسي",
+    maintenance: "صيانة",
+    services: "خدمات",
+  };
+  return types[type] || type;
+}
+
+// مكون وصف العقد القابل للتوسيع والطي باللون الرمادي الفاتح
+function ContractDescriptionBlock({
+  description,
+  compact = false,
+}: {
+  description?: string | null;
+  compact?: boolean;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  if (!description || !description.trim()) return null;
+
+  return (
+    <div
+      className={cn(
+        "rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50/70 dark:bg-zinc-900/50 transition-all duration-200 overflow-hidden",
+        compact ? "my-1.5" : "my-2.5"
+      )}
+    >
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsExpanded((prev) => !prev);
+        }}
+        className={cn(
+          "w-full flex items-center justify-between gap-2 text-right transition-colors cursor-pointer select-none",
+          compact ? "px-2.5 py-1.5" : "px-3 py-2",
+          isExpanded
+            ? "border-b border-gray-200/80 dark:border-gray-800/80 bg-gray-100/60 dark:bg-zinc-800/40"
+            : "hover:bg-gray-100/50 dark:hover:bg-zinc-800/30"
+        )}
+      >
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div
+            className={cn(
+              "rounded-md flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-400",
+              compact ? "w-5 h-5" : "w-5.5 h-5.5"
+            )}
+          >
+            <FileText className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
+          </div>
+          <span
+            className={cn(
+              "font-bold shrink-0 text-gray-800 dark:text-gray-200",
+              compact ? "text-[11px]" : "text-xs"
+            )}
+          >
+            وصف العقد:
+          </span>
+          {!isExpanded && (
+            <span
+              className={cn(
+                "text-gray-500 dark:text-gray-400 truncate",
+                compact ? "text-[10px]" : "text-xs"
+              )}
+            >
+              {description}
+            </span>
+          )}
+        </div>
+
+        <div
+          className="p-1 rounded-md text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 shrink-0 transition-colors"
+          title={isExpanded ? "طي" : "توسيع"}
+        >
+          {isExpanded ? (
+            <ChevronUp className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
+          ) : (
+            <ChevronDown className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
+          )}
+        </div>
+      </button>
+
+      {isExpanded && (
+        <div
+          className={cn(
+            "leading-relaxed whitespace-pre-wrap select-text animate-in fade-in-50 duration-200 border-r-[3px] border-r-emerald-600 dark:border-r-emerald-500 bg-gray-50/40 dark:bg-zinc-900/30",
+            compact
+              ? "p-2.5 text-[11px] text-gray-700 dark:text-gray-300"
+              : "p-3 sm:p-3.5 text-xs sm:text-sm text-gray-700 dark:text-gray-300"
+          )}
+        >
+          {description}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function ContractsList() {
+  const [, navigate] = useLocation();
+  const canCreateContract = usePermission("contracts.create");
+  const canViewContract = usePermission("contracts.view");
+  const canApproveContract = usePermission("contracts.approve");
+  const canEditApprovedContract = usePermission("contracts.edit_approved");
+  const canTemplateAdd = usePermission("contracts.template_add");
+  const canTemplateEdit = usePermission("contracts.template_edit");
+  const canTemplateDelete = usePermission("contracts.template_delete");
+  const canClauseAdd = usePermission("contracts.clause_add");
+  const canEditContract = usePermission("contracts.edit");
+  const canDeleteContract = usePermission("contracts.delete");
+  const canExportContract = usePermission("contracts.export");
+
+  const search = useSearch();
+  const searchParams = new URLSearchParams(search || '');
+  const tabFromQuery = searchParams.get('tab');
+
+  const [activeTab, setActiveTab] = useState(tabFromQuery === "templates" ? "templates" : "contracts");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [currentPage, setCurrentPage, resetPage] = usePersistedPage("contracts_page");
+  const pageSize = 10;
+  const [showProjectSelectionDialog, setShowProjectSelectionDialog] = useState(false);
+  const [projectDialogSearch, setProjectDialogSearch] = useState("");
+
+  // حالات إدارة القوالب والبنود المأخوذة من صفحة إدارة القوالب لتكون مطابقة 100%
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [showClauseDialog, setShowClauseDialog] = useState(false);
+  const [showPreambleDialog, setShowPreambleDialog] = useState(false);
+  const [preambleText, setPreambleText] = useState("");
+  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const [editingClause, setEditingClause] = useState<any>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
+  const [expandedTemplates, setExpandedTemplates] = useState<number[]>([]);
+  const [expandedSedanaGroups, setExpandedSedanaGroups] = useState<number[]>([]);
+
+  const toggleSedanaGroup = (reqId: number) => {
+    setExpandedSedanaGroups(prev =>
+      prev.includes(reqId) ? prev.filter(id => id !== reqId) : [...prev, reqId]
+    );
+  };
+
+  // نموذج القالب
+  const [templateForm, setTemplateForm] = useState({
+    nameAr: "",
+    type: "supply",
+  });
+
+  // نموذج البند
+  const [clauseForm, setClauseForm] = useState({
+    title: "",
+    titleAr: "",
+    content: "",
+    category: "general",
+    isRequired: true,
+    isEditable: true,
+    isGlobal: false,
+  });
+
+  const resetTemplateForm = () => {
+    setTemplateForm({
+      nameAr: "",
+      type: "supply",
+    });
+  };
+
+  const resetClauseForm = () => {
+    setClauseForm({
+      title: "",
+      titleAr: "",
+      content: "",
+      category: "general",
+      isRequired: true,
+      isEditable: true,
+      isGlobal: false,
+    });
+  };
+
+  const handleEditTemplate = (template: any) => {
+    setEditingTemplate(template);
+    setTemplateForm({
+      nameAr: template.nameAr || "",
+      type: template.type || "supply",
+    });
+    setShowTemplateDialog(true);
+  };
+
+  const handleEditClause = (clause: any) => {
+    setEditingClause(clause);
+    setClauseForm({
+      title: clause.title || "",
+      titleAr: clause.titleAr || "",
+      content: clause.content || "",
+      category: clause.category || "general",
+      isRequired: clause.isRequired ?? true,
+      isEditable: clause.isEditable ?? true,
+      isGlobal: clause.isGlobal ?? false,
+    });
+    setShowClauseDialog(true);
+  };
+
+  // جلب قائمة العقود
+  const { data: contractsData, isLoading: contractsLoading, refetch } = trpc.contracts.list.useQuery({
+    status: statusFilter !== "all" ? statusFilter as any : undefined,
+    contractType: typeFilter !== "all" ? typeFilter as any : undefined,
+    page: currentPage,
+    limit: pageSize,
+  });
+
+  // جلب جميع المشاريع وجميع العقود لفلترة المشاريع التي لا تحتوي على عقد معتمد
+  const { data: projectsData, isLoading: projectsLoading } = trpc.projects.getAll.useQuery({});
+  const { data: allContractsData, isLoading: allContractsLoading } = trpc.contracts.list.useQuery({
+    limit: 1000,
+  });
+
+  // جلب طلبات سدانة
+  const { data: sedanaRequestsData, isLoading: sedanaRequestsLoading } = trpc.requests.search.useQuery({
+    programType: 'sedana',
+    limit: 200,
+  });
+
+  // جلب قوالب العقود
+  const { data: templatesData, isLoading: templatesLoading, refetch: refetchTemplates } = trpc.contracts.getTemplates.useQuery();
+
+  // جلب قالب مع بنوده
+  const { data: selectedTemplate, refetch: refetchSelectedTemplate } = trpc.contracts.getTemplate.useQuery(
+    { id: selectedTemplateId! },
+    { enabled: !!selectedTemplateId }
+  );
+
+  // إنشاء قالب
+  const createTemplateMutation = trpc.contracts.createTemplate.useMutation({
+    onSuccess: (data) => {
+      toast.success("تم إنشاء القالب بنجاح");
+      setShowTemplateDialog(false);
+      resetTemplateForm();
+      refetchTemplates();
+      if (data?.id) {
+        navigate(`/contract-templates/${data.id}/preview`);
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء إنشاء القالب");
+    },
+  });
+
+  // تحديث قالب
+  const updateTemplateMutation = trpc.contracts.updateTemplate.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث القالب بنجاح");
+      setShowTemplateDialog(false);
+      setEditingTemplate(null);
+      resetTemplateForm();
+      refetchTemplates();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء تحديث القالب");
+    },
+  });
+
+  // حذف قالب
+  const deleteTemplateMutation = trpc.contracts.deleteTemplate.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف القالب بنجاح");
+      refetchTemplates();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء حذف القالب");
+    },
+  });
+
+  // إنشاء بند
+  const createClauseMutation = trpc.contracts.createClause.useMutation({
+    onSuccess: () => {
+      toast.success("تم إضافة البند بنجاح");
+      setShowClauseDialog(false);
+      resetClauseForm();
+      if (selectedTemplateId) {
+        refetchSelectedTemplate();
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء إضافة البند");
+    },
+  });
+
+  // تحديث بند
+  const updateClauseMutation = trpc.contracts.updateClause.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث البند بنجاح");
+      setShowClauseDialog(false);
+      setEditingClause(null);
+      resetClauseForm();
+      if (selectedTemplateId) {
+        refetchSelectedTemplate();
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء تحديث البند");
+    },
+  });
+
+  // حذف بند
+  const deleteClauseMutation = trpc.contracts.deleteClause.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف البند بنجاح");
+      if (selectedTemplateId) {
+        refetchSelectedTemplate();
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء حذف البند");
+    },
+  });
+
+  const handleSubmitTemplate = () => {
+    if (!templateForm.nameAr) {
+      toast.error("يرجى ملء جميع الحقول المطلوبة");
+      return;
+    }
+
+    if (editingTemplate) {
+      updateTemplateMutation.mutate({
+        id: editingTemplate.id,
+        ...templateForm,
+        name: templateForm.nameAr, // استخدام الاسم العربي للاسم الإنجليزي مؤقتاً
+      });
+    } else {
+      createTemplateMutation.mutate({
+        ...templateForm,
+        name: templateForm.nameAr,
+      });
+    }
+  };
+
+  const handleSavePreamble = () => {
+    if (!selectedTemplateId) return;
+    updateTemplateMutation.mutate({
+      id: selectedTemplateId,
+      introTemplate: preambleText,
+    }, {
+      onSuccess: () => {
+        toast.success("تم حفظ التمهيد بنجاح");
+        setShowPreambleDialog(false);
+        refetchSelectedTemplate();
+      }
+    });
+  };
+
+  const handleSubmitClause = () => {
+    if (!clauseForm.titleAr || !clauseForm.content) {
+      toast.error("يرجى إدخال عنوان ونص البند");
+      return;
+    }
+
+    const submissionData = {
+      ...clauseForm,
+      title: clauseForm.title || clauseForm.titleAr, // استخدام العنوان العربي للإنجليزي إذا كان فارغاً
+    };
+
+    if (editingClause) {
+      updateClauseMutation.mutate({
+        id: editingClause.id,
+        ...submissionData,
+      });
+    } else {
+      createClauseMutation.mutate({
+        templateId: selectedTemplateId!,
+        ...submissionData,
+        orderIndex: selectedTemplate?.clauses?.length || 0,
+      });
+    }
+  };
+
+  const toggleTemplateExpand = (templateId: number) => {
+    setExpandedTemplates((prev) =>
+      prev.includes(templateId) ? [] : [templateId]
+    );
+    setSelectedTemplateId(templateId);
+  };
+
+  // Mutation لتكرار العقد
+  const duplicateMutation = trpc.contracts.duplicate.useMutation({
+    onSuccess: (data) => {
+      toast.success("تم تكرار العقد بنجاح");
+      navigate(`/contracts/${data.id}/preview`);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء تكرار العقد");
+    },
+  });
+
+  const contracts = contractsData?.contracts || [];
+  const totalContracts = contractsData?.total || 0;
+  const totalPages = Math.ceil(totalContracts / pageSize);
+  const templates = templatesData || [];
+
+  // تصفية المشاريع التي لم يتم إنشاء عقد معتمد أو مسودة أو قيد الاعتماد لها
+  const excludedProjectIds = new Set(
+    (allContractsData?.contracts || [])
+      .filter((c: any) => c.status === 'draft' || c.status === 'pending_approval' || c.status === 'approved' || c.status === 'active' || c.status === 'completed')
+      .map((c: any) => c.projectId)
+      .filter(Boolean)
+  );
+
+  // تصفية المشاريع لتكون في مرحلة التعاقد حصراً وبدون عقد مستبعد
+  const eligibleProjects = (projectsData || []).filter(
+    (p: any) => p.requestStage === 'contracting' && !excludedProjectIds.has(p.id)
+  );
+
+  // تصفية طلبات سدانة التي تم تحديد نوع التأمين فيها كـ "عقد" لموردين (لا تظهر إلا بعد الوصول لمرحلة "التشغيل والتنفيذ" وغير مغلقة)
+  const eligibleSedanaRequests = useMemo(() => {
+    const list = (sedanaRequestsData?.requests || []).filter((req: any) =>
+      ['execution', 'handover'].includes(req.currentStage) &&
+      req.status !== 'completed' &&
+      req.closureStatus !== 'confirmed'
+    );
+    const allContracts = allContractsData?.contracts || [];
+
+    return list.map((req: any) => {
+      let pData: any = req.programData;
+      if (typeof pData === 'string') {
+        try { pData = JSON.parse(pData); } catch { pData = {}; }
+      }
+      const proc = pData?.sedanaProcurement;
+      const suppliersAlloc = proc?.suppliersAllocation || {};
+      const itemsAlloc = proc?.itemsAllocation || {};
+
+      const contractSuppliers: Array<{ supplierId?: number; supplierName: string; key: string }> = [];
+      const seen = new Set<string>();
+
+      if (proc?.itemSupplierMap && Object.keys(proc.itemSupplierMap).length > 0) {
+        Object.entries(proc.itemSupplierMap).forEach(([itemId, sup]: [string, any]) => {
+          if (sup?.supplierName && sup.supplierName !== 'لم يحدد بعد' && sup.supplierName !== 'غير محدد') {
+            const key = sup.supplierId ? `sup_${sup.supplierId}` : `name_${sup.supplierName}`;
+            if ((suppliersAlloc[key] === 'contract' || itemsAlloc[itemId] === 'contract') && !seen.has(key)) {
+              seen.add(key);
+              contractSuppliers.push({
+                supplierId: sup.supplierId,
+                supplierName: sup.supplierName,
+                key,
+              });
+            }
+          }
+        });
+      } else if (Array.isArray(pData?.awardedItemVendors)) {
+        pData.awardedItemVendors.forEach((a: any) => {
+          if (a?.supplierName && a.supplierName !== 'لم يحدد بعد') {
+            const key = a.supplierId ? `sup_${a.supplierId}` : `name_${a.supplierName}`;
+            if ((suppliersAlloc[key] === 'contract' || itemsAlloc[String(a.boqItemId)] === 'contract') && !seen.has(key)) {
+              seen.add(key);
+              contractSuppliers.push({
+                supplierId: a.supplierId,
+                supplierName: a.supplierName,
+                key,
+              });
+            }
+          }
+        });
+      }
+
+      if (contractSuppliers.length === 0) return null;
+
+      // فحص العقود المسجلة لهذا الطلب (سواء مسودة أو معتمد أو قيد المراجعة، باستثناء الملغاة)
+      const reqContracts = allContracts.filter((c: any) => c.requestId === req.id && c.status !== 'cancelled');
+      const pendingSuppliers = contractSuppliers.filter((cs: any) => {
+        return !reqContracts.some((c: any) =>
+          (cs.supplierId && c.supplierId === cs.supplierId) ||
+          (c.secondPartyName && c.secondPartyName.trim().toLowerCase() === cs.supplierName.trim().toLowerCase())
+        );
+      });
+
+      // إذا تم إنشاء عقود لكافة الموردين المتفق عليهم (حالتهم مسودة أو معتمد)، يتم إزالة الطلب من قائمة المؤهلين للتعاقد
+      if (pendingSuppliers.length === 0) return null;
+
+      return {
+        id: req.id,
+        requestId: req.id,
+        projectNumber: req.requestNumber ? `REQ-${req.requestNumber}` : `REQ-${req.id}`,
+        requestNumber: req.requestNumber,
+        name: `طلب سدانة #${req.requestNumber || req.id} - مسجد ${req.mosque?.name || 'المسجد'}`,
+        mosqueName: req.mosque?.name || '',
+        city: req.mosque?.city || '',
+        contractSuppliers,
+        pendingSuppliers,
+        createdContractsCount: reqContracts.length,
+        totalSuppliersCount: contractSuppliers.length,
+      };
+    }).filter(Boolean) as Array<{
+      id: number;
+      requestId: number;
+      projectNumber: string;
+      requestNumber?: string;
+      name: string;
+      mosqueName: string;
+      city: string;
+      contractSuppliers: Array<{ supplierId?: number; supplierName: string; key: string }>;
+      pendingSuppliers: Array<{ supplierId?: number; supplierName: string; key: string }>;
+      createdContractsCount: number;
+      totalSuppliersCount: number;
+    }>;
+  }, [sedanaRequestsData, allContractsData]);
+
+  // دمج المشاريع المؤهلة وطلبات سدانة في قائمة موحدة
+  const combinedEligibleItems = useMemo(() => {
+    const projectItems = eligibleProjects.map((p: any) => ({
+      ...p,
+      uniqueKey: `project_${p.id}`,
+      itemType: 'project' as const,
+    }));
+    const sedanaItems = eligibleSedanaRequests.map((s: any) => ({
+      ...s,
+      uniqueKey: `sedana_${s.id}`,
+      itemType: 'sedana_request' as const,
+    }));
+    return [...sedanaItems, ...projectItems];
+  }, [eligibleProjects, eligibleSedanaRequests]);
+
+  const filteredEligibleProjects = useMemo(() => {
+    return combinedEligibleItems.filter((item: any) => {
+      if (!projectDialogSearch.trim()) return true;
+      const queryWords = normalizeArabic(projectDialogSearch).split(/\s+/).filter(Boolean);
+      const combinedText = normalizeArabic(
+        `${item.projectNumber || item.requestNumber || item.requestId || ""} ${item.name || ""} ${item.mosqueName || ""} ${item.city || ""}`
+      );
+      return queryWords.every((w) => combinedText.includes(w));
+    });
+  }, [combinedEligibleItems, projectDialogSearch]);
+
+  // فلترة العقود حسب البحث
+  const filteredContracts = contracts.filter((contract: any) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      contract.contractNumber?.toLowerCase().includes(query) ||
+      contract.contractTitle?.toLowerCase().includes(query) ||
+      contract.secondPartyName?.toLowerCase().includes(query) ||
+      contract.description?.toLowerCase().includes(query)
+    );
+  });
+
+  // تجميع عقود سدانة التابعة لنفس الطلب في كرت موحد ومميز في حال كان هناك أكثر من عقد لنفس الطلب
+  const displayContractItems = useMemo(() => {
+    const sedanaReqIds = new Set<number>();
+    (sedanaRequestsData?.requests || []).forEach((r: any) => {
+      if (r.id) sedanaReqIds.add(r.id);
+    });
+
+    const isSedanaContract = (c: any) => {
+      if (c.requestId && sedanaReqIds.has(c.requestId)) return true;
+      if (c.contractTitle?.includes("سدانة")) return true;
+      if (c.requestId && (c.contractTitle?.includes("نظافة") || c.contractTitle?.includes("تشغيل"))) return true;
+      return false;
+    };
+
+    // تجميع العقود حسب requestId إذا كانت تابعة لطلب سدانة
+    const sedanaGroups = new Map<number, any[]>();
+    filteredContracts.forEach((contract: any) => {
+      if (contract.requestId && isSedanaContract(contract)) {
+        const list = sedanaGroups.get(contract.requestId) || [];
+        list.push(contract);
+        sedanaGroups.set(contract.requestId, list);
+      }
+    });
+
+    const processedGroupRequestIds = new Set<number>();
+    const items: Array<
+      | { type: "single"; contract: any }
+      | { type: "grouped_sedana"; requestId: number; contracts: any[]; requestInfo?: any }
+    > = [];
+
+    filteredContracts.forEach((contract: any) => {
+      const reqId = contract.requestId;
+      const group = reqId ? sedanaGroups.get(reqId) : null;
+
+      // في حال كان هناك أكثر من عقد لنفس الطلب لسدانة
+      if (group && group.length > 1) {
+        if (!processedGroupRequestIds.has(reqId!)) {
+          processedGroupRequestIds.add(reqId!);
+          const requestInfo = (sedanaRequestsData?.requests || []).find((r: any) => r.id === reqId);
+          items.push({
+            type: "grouped_sedana",
+            requestId: reqId!,
+            contracts: group,
+            requestInfo,
+          });
+        }
+      } else {
+        items.push({
+          type: "single",
+          contract,
+        });
+      }
+    });
+
+    return items;
+  }, [filteredContracts, sedanaRequestsData]);
+
+  const handleDuplicateContract = (contractId: number) => {
+    if (confirm("هل تريد تكرار هذا العقد؟")) {
+      duplicateMutation.mutate({ id: contractId });
+    }
+  };
+
+  const formatCurrency = (amount: number | string | null) => {
+    if (!amount) return "0";
+    const num = typeof amount === "string" ? parseFloat(amount) : amount;
+    return new Intl.NumberFormat("ar-SA").format(num);
+  };
+
+  const formatDate = (date: string | Date | null) => {
+    if (!date) return "-";
+    return new Date(date).toLocaleDateString("ar-SA");
+  };
+
+  if (!canViewContract) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4 font-sans" dir="rtl">
+          <div className="p-4 rounded-full bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/30 dark:border-rose-900">
+            <AlertCircle className="h-10 w-10 text-rose-600" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">عذراً، ليس لديك صلاحية لعرض صفحة العقود</h2>
+          <p className="text-xs text-muted-foreground max-w-md">يرجى التواصل مع مسؤول النظام لمنحك صلاحية "عرض العقود".</p>
+          <Button onClick={() => navigate("/dashboard")} className="mt-2 bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold text-xs">
+            العودة للوحة التحكم
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* العنوان */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">إدارة العقود</h1>
+            <p className="text-muted-foreground">
+              إدارة العقود المبرمة وقوالب العقود
+            </p>
+          </div>
+          {canCreateContract && (
+            <Button onClick={() => setShowProjectSelectionDialog(true)} className="w-full sm:w-auto">
+              <Plus className="h-4 w-4 ml-2" />
+              إنشاء عقد جديد
+            </Button>
+          )}
+        </div>
+
+        {/* التبويبات */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <div className="overflow-x-auto pb-2 -mb-2 flex justify-start" dir="rtl">
+            <TabsList className="flex w-max sm:w-full max-w-md sm:grid sm:grid-cols-2">
+              <TabsTrigger value="contracts" className="flex items-center gap-2 whitespace-nowrap">
+                <FileText className="h-4 w-4" />
+                العقود المبرمة
+              </TabsTrigger>
+              <TabsTrigger value="templates" className="flex items-center gap-2 whitespace-nowrap">
+                <LayoutTemplate className="h-4 w-4" />
+                قوالب العقود
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          {/* تبويب العقود المبرمة */}
+          <TabsContent value="contracts" className="space-y-4 pt-4">
+            {/* أدوات البحث */}
+            <Card>
+              <CardContent className="pt-4">
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="بحث برقم العقد أو العنوان أو اسم المورد..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      resetPage();
+                    }}
+                    className="pr-10 text-right"
+                    dir="rtl"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* قائمة العقود */}
+            {contractsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : filteredContracts.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center px-4">
+                  <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <h3 className="text-lg font-medium mb-2">لا توجد عقود</h3>
+                  <p className="text-muted-foreground mb-4">
+                    لم يتم العثور على عقود مطابقة لمعايير البحث
+                  </p>
+                  <Button onClick={() => setShowProjectSelectionDialog(true)} className="w-full sm:w-auto">
+                    <Plus className="h-4 w-4 ml-2" />
+                    إنشاء عقد جديد
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4" dir="rtl">
+                {displayContractItems.map((item: any, idx: number) => {
+                  if (item.type === "grouped_sedana") {
+                    const totalAmount = item.contracts.reduce(
+                      (sum: number, c: any) => sum + (parseFloat(c.contractAmount) || 0),
+                      0
+                    );
+                    const mosqueName =
+                      item.requestInfo?.mosque?.name ||
+                      item.contracts[0]?.mosqueName ||
+                      "المسجد المستفيد";
+                    const isExpanded = expandedSedanaGroups.includes(item.requestId);
+
+                    return (
+                      <Card
+                        key={`grouped-sedana-${item.requestId}`}
+                        className="hover:shadow-md transition-shadow overflow-hidden border-sky-300 dark:border-sky-800 bg-white dark:bg-card"
+                      >
+                        <CardContent className="p-4 text-right">
+                          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                            <div className="flex items-start gap-3 sm:gap-4 flex-1">
+                              <div className="p-2 sm:p-3 rounded-lg bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 shrink-0">
+                                <Layers className="h-5 w-5 sm:h-6 sm:w-6" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  <h3 className="font-semibold truncate text-sm sm:text-base text-foreground">
+                                    عقود طلب سدانة - مسجد {mosqueName}
+                                  </h3>
+                                </div>
+                                <p className="text-xs sm:text-sm text-muted-foreground mb-2">
+                                  طلب #{item.requestInfo?.requestNumber || item.requestId} • تم إبرام {item.contracts.length} عقود توريد مستقلة
+                                </p>
+                                <div className="flex flex-wrap gap-x-4 gap-y-2 text-[10px] sm:text-xs text-muted-foreground">
+                                  <span className="flex items-center gap-1 font-semibold text-foreground">
+                                    <Building2 className="h-3.5 w-3.5 text-sky-600" />
+                                    <span>{new Set(item.contracts.map((c: any) => c.secondPartyName).filter(Boolean)).size} موردين معتمدين</span>
+                                  </span>
+                                  <span className="flex items-center gap-1 font-bold text-sky-900 dark:text-sky-200">
+                                    <SaudiRiyal className="h-3.5 w-3.5" />
+                                    <span>إجمالي العقود: {formatCurrency(totalAmount)}</span>
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 justify-end">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 sm:flex-none text-xs sm:text-sm border-sky-400 text-sky-800 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950 font-bold gap-1 cursor-pointer"
+                                onClick={() => toggleSedanaGroup(item.requestId)}
+                              >
+                                {isExpanded ? (
+                                  <>
+                                    <ChevronUp className="h-3.5 w-3.5 ml-1" />
+                                    إخفاء العقود
+                                  </>
+                                ) : (
+                                  <>
+                                    <ChevronDown className="h-3.5 w-3.5 ml-1" />
+                                    عرض كافة العقود ({item.contracts.length})
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+
+                          {isExpanded && (
+                            <div className="mt-4 pt-3 border-t border-sky-100 dark:border-sky-900/60 bg-sky-50/40 dark:bg-sky-950/20 -mx-4 -mb-4 p-4 rounded-b-xl space-y-2.5">
+                              <div className="text-xs font-semibold text-sky-900 dark:text-sky-200 flex items-center justify-between">
+                                <span className="flex items-center gap-1.5">
+                                  <FileText className="w-3.5 h-3.5 text-sky-600" />
+                                  العقود المندرجة تحت هذا الطلب ({item.contracts.length} عقود):
+                                </span>
+                              </div>
+
+                              <div className="space-y-2">
+                                {item.contracts.map((contract: any, cIdx: number) => (
+                                  <div
+                                    key={contract.id}
+                                    className="p-3 rounded-lg border border-sky-200/80 dark:border-sky-900/60 bg-white dark:bg-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs hover:border-sky-300 transition-colors"
+                                  >
+                                    <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+                                      <span className="w-5 h-5 rounded-full bg-sky-100 dark:bg-sky-900/70 text-sky-800 dark:text-sky-300 flex items-center justify-center font-bold text-[11px] shrink-0 mt-0.5 sm:mt-0">
+                                        {cIdx + 1}
+                                      </span>
+                                      <div className="min-w-0 space-y-0.5">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <span className="font-bold text-xs sm:text-sm text-foreground truncate max-w-[260px]">
+                                            {contract.secondPartyName || "مورد معتمد"}
+                                          </span>
+                                          {getStatusBadge(contract.status)}
+                                        </div>
+                                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] sm:text-xs text-muted-foreground">
+                                          <span className="font-mono">رقم العقد: {contract.contractNumber}</span>
+                                          <span className="flex items-center gap-0.5 font-bold font-mono text-sky-900 dark:text-sky-200">
+                                            <SaudiRiyal className="h-3 w-3" />
+                                            {formatCurrency(contract.contractAmount)}
+                                          </span>
+                                          {contract.contractDate && (
+                                            <span className="flex items-center gap-1">
+                                              <Calendar className="h-3 w-3" />
+                                              {formatDate(contract.contractDate)}
+                                            </span>
+                                          )}
+                                        </div>
+                                        {contract.description && (
+                                          <ContractDescriptionBlock description={contract.description} compact />
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 justify-end shrink-0">
+                                      {contract.status !== "draft" && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="text-xs h-7 px-2.5"
+                                          onClick={() => navigate(`/contracts/${contract.id}/preview`)}
+                                        >
+                                          <Eye className="h-3 w-3 ml-1" />
+                                          عرض
+                                        </Button>
+                                      )}
+                                      {(contract.status === "draft" ||
+                                        (contract.status === "approved" && canEditApprovedContract)) &&
+                                        canApproveContract && (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={contract.isRequestClosed}
+                                            className={`text-xs h-7 px-2.5 font-bold ${
+                                              contract.isRequestClosed
+                                                ? "opacity-50 cursor-not-allowed border-slate-300 text-slate-400 bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-50"
+                                                : "border-amber-600 text-amber-600 hover:bg-amber-50"
+                                            }`}
+                                            onClick={() => {
+                                              if (!contract.isRequestClosed) {
+                                                navigate(`/contracts/${contract.id}/edit`);
+                                              }
+                                            }}
+                                            title={contract.isRequestClosed ? "لا يمكن تعديل العقد لأن الطلب المرتبط بالمشروع مغلق نهائياً" : ""}
+                                          >
+                                            <Edit className="h-3 w-3 ml-1" />
+                                            {contract.status === "approved"
+                                              ? "تعديل"
+                                              : contract.status === "draft"
+                                              ? "إكمال"
+                                              : "تعديل"}
+                                          </Button>
+                                        )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  }
+
+                  const contract = item.contract;
+                  return (
+                    <Card key={contract.id || idx} className="hover:shadow-md transition-shadow overflow-hidden">
+                      <CardContent className="p-4 text-right">
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                          <div className="flex items-start gap-3 sm:gap-4 flex-1">
+                            <div className="p-2 sm:p-3 rounded-lg bg-primary/10 shrink-0">
+                              <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <h3 className="font-semibold truncate text-sm sm:text-base">
+                                  {contract.contractTitle}
+                                </h3>
+                                <div>
+                                  {getStatusBadge(contract.status)}
+                                </div>
+                              </div>
+                              <p className="text-xs sm:text-sm text-muted-foreground mb-2">
+                                رقم العقد: {contract.contractNumber}
+                              </p>
+                              {contract.description && (
+                                <ContractDescriptionBlock description={contract.description} />
+                              )}
+                              <div className="flex flex-wrap gap-x-4 gap-y-2 text-[10px] sm:text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Building2 className="h-3.5 w-3.5" />
+                                  <span className="truncate max-w-[150px]">{contract.secondPartyName || "غير محدد"}</span>
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <SaudiRiyal className="h-3.5 w-3.5" />
+                                  {formatCurrency(contract.contractAmount)}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-3.5 w-3.5" />
+                                  {formatDate(contract.contractDate)}
+                                </span>
+                                <Badge variant="outline" className="text-[9px] py-0 px-1.5 h-5">
+                                  {getContractTypeLabel(contract.contractType)}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 justify-end">
+                            {contract.status !== "draft" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 sm:flex-none text-xs sm:text-sm"
+                                onClick={() => navigate(`/contracts/${contract.id}/preview`)}
+                              >
+                                <Eye className="h-3.5 w-3.5 ml-1" />
+                                عرض
+                              </Button>
+                            )}
+                            {(contract.status === "draft" || (contract.status === "approved" && canEditApprovedContract)) && canApproveContract && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={contract.isRequestClosed}
+                                className={`flex-1 sm:flex-none text-xs sm:text-sm font-bold ${
+                                  contract.isRequestClosed
+                                    ? "opacity-50 cursor-not-allowed border-slate-300 text-slate-400 bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-50"
+                                    : "border-amber-600 text-amber-600 hover:bg-amber-50"
+                                }`}
+                                onClick={() => {
+                                  if (!contract.isRequestClosed) {
+                                    navigate(`/contracts/${contract.id}/edit`);
+                                  }
+                                }}
+                                title={contract.isRequestClosed ? "لا يمكن تعديل العقد لأن الطلب المرتبط بالمشروع مغلق نهائياً" : ""}
+                              >
+                                <Edit className="h-3.5 w-3.5 ml-1" />
+                                {contract.status === "approved" ? "تعديل العقد المعتمد" : (contract.status === "draft" ? "إكمال العقد" : "تعديل")}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+
+                {/* التصفح */}
+                <EnhancedPagination
+                  page={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={(p) => {
+                    setCurrentPage(p);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  totalItems={totalContracts}
+                  itemsPerPage={pageSize}
+                  itemName="عقد"
+                  itemNamePlural="عقود"
+                  className="rounded-xl border border-border/50 shadow-xs mt-2"
+                />
+              </div>
+            )}
+          </TabsContent>
+
+          {/* تبويب قوالب العقود */}
+          <TabsContent value="templates" className="space-y-4 pt-4" dir="rtl">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+              <div>
+                <p className="text-muted-foreground text-sm">
+                  إدارة قوالب العقود وتخصيص البنود الخاصة بها
+                </p>
+              </div>
+              {canTemplateAdd && (
+                <Button
+                  onClick={() => {
+                    setEditingTemplate(null);
+                    resetTemplateForm();
+                    setShowTemplateDialog(true);
+                  }}
+                  className="gap-2 w-full sm:w-auto"
+                >
+                  <Plus className="h-4 w-4 ml-2" />
+                  إضافة قالب جديد
+                </Button>
+              )}
+            </div>
+
+            {templatesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : templates.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    لا توجد قوالب
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    ابدأ بإنشاء قالب عقد جديد
+                  </p>
+                  {canTemplateAdd && (
+                    <Button
+                      onClick={() => {
+                        setEditingTemplate(null);
+                        resetTemplateForm();
+                        setShowTemplateDialog(true);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 ml-2" />
+                      إضافة قالب
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {templates.map((template: any) => (
+                  <Card key={template.id} className="overflow-hidden">
+                    <CardHeader
+                      className="cursor-pointer hover:bg-gray-50/50 transition-colors"
+                      onClick={() => toggleTemplateExpand(template.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <FileText className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-lg flex items-center gap-2 text-right">
+                              {template.nameAr || template.name}
+                              {template.isDefault && (
+                                <Badge variant="secondary">افتراضي</Badge>
+                              )}
+                              {template.isSystem && (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">نظامي</Badge>
+                              )}
+                              {!template.isActive && (
+                                <Badge variant="outline" className="text-gray-500">
+                                  غير نشط
+                                </Badge>
+                              )}
+                            </CardTitle>
+                            <CardDescription className="flex items-center gap-2 mt-1 text-right">
+                              <Badge
+                                className={
+                                  TEMPLATE_CONTRACT_TYPES[template.type as keyof typeof TEMPLATE_CONTRACT_TYPES]?.color ||
+                                  "bg-gray-100 text-gray-800"
+                                }
+                              >
+                                {TEMPLATE_CONTRACT_TYPES[template.type as keyof typeof TEMPLATE_CONTRACT_TYPES]?.label ||
+                                  template.type}
+                              </Badge>
+                              <span className="text-gray-400">•</span>
+                              <span>{template.description || "بدون وصف"}</span>
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/contract-templates/${template.id}/preview`);
+                            }}
+                            title="معاينة"
+                          >
+                            <Eye className="h-4 w-4 text-primary" />
+                          </Button>
+                          {canTemplateEdit && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditTemplate(template);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canTemplateDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm("هل أنت متأكد من حذف هذا القالب؟")) {
+                                  deleteTemplateMutation.mutate({ id: template.id });
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          )}
+                          {expandedTemplates.includes(template.id) ? (
+                            <ChevronUp className="h-5 w-5 text-gray-400" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5 text-gray-400" />
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+
+                    {expandedTemplates.includes(template.id) && (
+                      <CardContent className="border-t bg-gray-50/30">
+                        <div className="py-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="font-medium flex items-center gap-2 text-right">
+                              <ListOrdered className="h-4 w-4" />
+                              بنود العقد ({selectedTemplate?.clauses?.length || 0})
+                            </h4>
+                            {canClauseAdd && (
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setPreambleText(selectedTemplate?.introTemplate || "");
+                                    setShowPreambleDialog(true);
+                                  }}
+                                >
+                                  <FileText className="h-4 w-4 ml-1" />
+                                  {selectedTemplate?.introTemplate ? "تعديل التمهيد" : "إضافة تمهيد"}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingClause(null);
+                                    resetClauseForm();
+                                    setShowClauseDialog(true);
+                                  }}
+                                >
+                                  <Plus className="h-4 w-4 ml-1" />
+                                  إضافة بند
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+
+                          {selectedTemplate?.introTemplate && (
+                            <div className="bg-amber-50/50 border border-amber-200/60 rounded-lg p-4 mb-4 text-right w-full min-w-0 break-words">
+                              <h5 className="font-bold text-amber-900 text-sm mb-1 flex items-center gap-1.5 justify-start">
+                                <FileText className="h-4 w-4 text-amber-700" />
+                                تمهيد العقد:
+                              </h5>
+                              <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap leading-relaxed break-words [word-break:break-word] w-full min-w-0">
+                                {selectedTemplate.introTemplate}
+                              </p>
+                            </div>
+                          )}
+
+                          {selectedTemplate?.clauses?.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                              لا توجد بنود في هذا القالب
+                            </div>
+                          ) : (
+                            <div className="overflow-x-auto">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="w-12 text-right">#</TableHead>
+                                    <TableHead className="text-right">العنوان</TableHead>
+                                    <TableHead className="text-right">الفئة</TableHead>
+                                    <TableHead className="text-right">إلزامي</TableHead>
+                                    <TableHead className="text-right">قابل للتعديل</TableHead>
+                                    <TableHead className="w-24 text-right">الإجراءات</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {selectedTemplate?.clauses?.map((clause: any, index: number) => (
+                                    <TableRow key={clause.id}>
+                                      <TableCell className="font-medium text-right">
+                                        {index + 1}
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        <div>
+                                          <div className="font-medium">{clause.titleAr}</div>
+                                          <div className="text-sm text-gray-500 line-clamp-1">
+                                            {clause.content?.substring(0, 100)}...
+                                          </div>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        <Badge variant="outline">
+                                          {CLAUSE_CATEGORIES[clause.category as keyof typeof CLAUSE_CATEGORIES] ||
+                                            clause.category}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        {clause.isRequired ? (
+                                          <Badge className="bg-green-100 text-green-800">نعم</Badge>
+                                        ) : (
+                                          <Badge variant="outline">لا</Badge>
+                                        )}
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        {clause.isEditable ? (
+                                          <Badge className="bg-blue-100 text-blue-800">نعم</Badge>
+                                        ) : (
+                                          <Badge variant="outline">لا</Badge>
+                                        )}
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        <div className="flex items-center gap-1 justify-start">
+                                          {canTemplateEdit && (
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              onClick={() => handleEditClause(clause)}
+                                            >
+                                              <Edit className="h-4 w-4" />
+                                            </Button>
+                                          )}
+                                          {canTemplateDelete && (
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              onClick={() => {
+                                                if (confirm("هل أنت متأكد من حذف هذا البند؟")) {
+                                                  deleteClauseMutation.mutate({ id: clause.id });
+                                                }
+                                              }}
+                                            >
+                                              <Trash2 className="h-4 w-4 text-red-500" />
+                                            </Button>
+                                          )}
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* نافذة إضافة/تعديل القالب */}
+      <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle dir="rtl" className="text-right font-bold">
+              {editingTemplate ? "تعديل قالب العقد" : "إضافة قالب عقد جديد"}
+            </DialogTitle>
+            <DialogDescription dir="rtl" className="text-right">
+              {editingTemplate
+                ? "قم بتعديل بيانات قالب العقد"
+                : "أدخل بيانات قالب العقد الجديد"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4" dir="rtl">
+            <div className="space-y-2 text-right">
+              <Label htmlFor="nameAr">اسم القالب (عربي) *</Label>
+              <Input
+                id="nameAr"
+                value={templateForm.nameAr}
+                onChange={(e) =>
+                  setTemplateForm({ ...templateForm, nameAr: e.target.value })
+                }
+                placeholder="عقد توريد"
+              />
+            </div>
+
+            <div className="space-y-2 text-right">
+              <Label htmlFor="type">نوع العقد *</Label>
+              <Select
+                value={templateForm.type}
+                onValueChange={(value) =>
+                  setTemplateForm({ ...templateForm, type: value })
+                }
+              >
+                <SelectTrigger className="w-full text-right" dir="rtl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent dir="rtl">
+                  {Object.entries(TEMPLATE_CONTRACT_TYPES).map(([key, { label }]) => (
+                    <SelectItem key={key} value={key}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2 justify-end" dir="rtl">
+            {editingTemplate && (
+              <Button
+                variant="outline"
+                type="button"
+                className="gap-1 border-primary text-primary hover:bg-primary/5"
+                onClick={() => {
+                  setShowTemplateDialog(false);
+                  navigate(`/contract-templates/${editingTemplate.id}/preview`);
+                }}
+              >
+                <Eye className="h-4 w-4 ml-1" />
+                معاينة القالب
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowTemplateDialog(false);
+                setEditingTemplate(null);
+                resetTemplateForm();
+              }}
+            >
+              إلغاء
+            </Button>
+            <Button
+              onClick={handleSubmitTemplate}
+              disabled={createTemplateMutation.isPending || updateTemplateMutation.isPending}
+            >
+              {editingTemplate ? "حفظ التعديلات" : "إنشاء القالب"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة إضافة/تعديل البند */}
+      <Dialog open={showClauseDialog} onOpenChange={setShowClauseDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle dir="rtl" className="text-right font-bold">
+              {editingClause ? "تعديل بند العقد" : "إضافة بند جديد"}
+            </DialogTitle>
+            <DialogDescription dir="rtl" className="text-right">
+              {editingClause
+                ? "قم بتعديل بيانات البند"
+                : "أدخل بيانات البند الجديد"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4" dir="rtl">
+            <div className="space-y-2 text-right">
+              <Label htmlFor="titleAr">عنوان البند *</Label>
+              <Input
+                id="titleAr"
+                value={clauseForm.titleAr}
+                onChange={(e) =>
+                  setClauseForm({ ...clauseForm, titleAr: e.target.value })
+                }
+                placeholder="المادة الأولى: التعريفات"
+              />
+            </div>
+
+            <div className="space-y-2 text-right">
+              <Label htmlFor="clauseCategory">فئة البند</Label>
+              <Select
+                value={clauseForm.category}
+                onValueChange={(value) =>
+                  setClauseForm({ ...clauseForm, category: value })
+                }
+              >
+                <SelectTrigger className="w-full text-right" dir="rtl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent dir="rtl">
+                  {Object.entries(CLAUSE_CATEGORIES).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2 text-right">
+              <Label htmlFor="clauseContent">نص البند *</Label>
+              <Textarea
+                id="clauseContent"
+                value={clauseForm.content}
+                onChange={(e) =>
+                  setClauseForm({ ...clauseForm, content: e.target.value })
+                }
+                placeholder="أدخل نص البند هنا..."
+                rows={8}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2 justify-end" dir="rtl">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowClauseDialog(false);
+                setEditingClause(null);
+                resetClauseForm();
+              }}
+            >
+              إلغاء
+            </Button>
+            <Button
+              onClick={handleSubmitClause}
+              disabled={createClauseMutation.isPending || updateClauseMutation.isPending}
+            >
+              {editingClause ? "حفظ التعديلات" : "إضافة البند"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة إضافة/تعديل التمهيد */}
+      <Dialog open={showPreambleDialog} onOpenChange={setShowPreambleDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle dir="rtl" className="text-right font-bold">
+              {selectedTemplate?.introTemplate ? "تعديل تمهيد العقد" : "إضافة تمهيد للعقد"}
+            </DialogTitle>
+            <DialogDescription dir="rtl" className="text-right">
+              التمهيد هو نص عام يظهر بعد معلومات الطرف الثاني وقبل البنود.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4" dir="rtl">
+            <div className="space-y-2 text-right">
+              <Label htmlFor="preambleContent">نص التمهيد *</Label>
+              <Textarea
+                id="preambleContent"
+                value={preambleText}
+                onChange={(e) => setPreambleText(e.target.value)}
+                placeholder="حيث إن الطرف الأول جمعية مرخصة..."
+                rows={8}
+                className="min-h-[150px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2 justify-end" dir="rtl">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowPreambleDialog(false);
+                setPreambleText("");
+              }}
+            >
+              إلغاء
+            </Button>
+            <Button
+              onClick={handleSavePreamble}
+              disabled={updateTemplateMutation.isPending}
+            >
+              حفظ
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+      {/* نافذة اختيار المشروع أو الطلب لإنشاء عقد */}
+      <Dialog open={showProjectSelectionDialog} onOpenChange={setShowProjectSelectionDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle dir="rtl" className="text-right font-bold text-xl text-primary">
+              تحديد مشروع أو طلب لإنشاء عقد جديد
+            </DialogTitle>
+            <DialogDescription dir="rtl" className="text-right text-muted-foreground mt-2">
+              يرجى تحديد المشروع أو طلب سدانة الذي ترغب في إنشاء العقد له. تظهر هنا المشاريع والطلبات المؤهلة للتعاقد.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4" dir="rtl">
+            {combinedEligibleItems.length > 0 && (
+              <div className="relative">
+                <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="بحث برقم المشروع أو الطلب، الاسم، المسجد، أو المدينة..."
+                  value={projectDialogSearch}
+                  onChange={(e) => setProjectDialogSearch(e.target.value)}
+                  className="pr-9 text-right"
+                />
+              </div>
+            )}
+
+            {projectsLoading || allContractsLoading || sedanaRequestsLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="text-muted-foreground text-sm">جاري تحميل المشاريع والطلبات المتاحة...</span>
+              </div>
+            ) : combinedEligibleItems.length === 0 ? (
+              <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                <Building2 className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">لا توجد مشاريع أو طلبات متاحة للتعاقد</h3>
+                <p className="text-gray-500 text-sm max-w-md mx-auto">
+                  كافة المشاريع والطلبات الحالية تحتوي على عقود معتمدة بالفعل أو لا توجد بنود محددة لمسار العقود.
+                </p>
+              </div>
+            ) : filteredEligibleProjects.length === 0 ? (
+              <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                <Search className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                <p className="text-sm font-semibold text-gray-700">لم يتم العثور على أي مشروع أو طلب مطابق للبحث</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+                {filteredEligibleProjects.map((item: any) => (
+                  <div
+                    key={item.uniqueKey}
+                    onClick={() => {
+                      setShowProjectSelectionDialog(false);
+                      setProjectDialogSearch("");
+                      if (item.itemType === 'sedana_request') {
+                        navigate(`/contracts/new?requestId=${item.requestId}`);
+                      } else {
+                        navigate(`/contracts/new?projectId=${item.id}`);
+                      }
+                    }}
+                    className="flex items-center justify-between p-4 bg-white hover:bg-primary/5 border border-gray-100 hover:border-primary/20 rounded-xl cursor-pointer transition-all shadow-sm group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
+                        item.itemType === 'sedana_request'
+                          ? 'bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300 group-hover:bg-sky-600 group-hover:text-white'
+                          : 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white'
+                      }`}>
+                        {item.itemType === 'sedana_request' ? <FileSignature className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-gray-900 group-hover:text-primary transition-colors text-sm sm:text-base">
+                            {item.name}
+                          </h4>
+                          {item.itemType === 'sedana_request' && (
+                            <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200 text-[10px] font-bold">
+                              سدانة
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground block mt-0.5">
+                          {item.itemType === 'sedana_request'
+                            ? `طلب #${item.requestNumber || item.requestId} • تم تحديد ${item.totalSuppliersCount} موردين للعقود (${item.createdContractsCount} عقود منشأة)`
+                            : `رقم المشروع: ${item.projectNumber}`}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="outline" className="bg-gray-50 capitalize text-xs">
+                        {item.itemType === 'sedana_request'
+                          ? (item.pendingSuppliers?.length > 0 ? "بانتظار إنشاء العقد" : "تم إنشاء كافة العقود")
+                          : (item.status === "planning" ? "تخطيط" : 
+                             item.status === "in_progress" ? "قيد التنفيذ" : 
+                             item.status === "on_hold" ? "موقوف مؤقتاً" : 
+                             item.status === "completed" ? "مكتمل" : 
+                             item.status === "cancelled" ? "ملغي" : item.status)}
+                      </Badge>
+                      <ChevronLeft className="h-5 w-5 text-gray-400 group-hover:translate-x-[-4px] transition-transform" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex justify-end" dir="rtl">
+            <Button
+              variant="outline"
+              onClick={() => setShowProjectSelectionDialog(false)}
+            >
+              إلغاء
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </DashboardLayout>
+  );
+}

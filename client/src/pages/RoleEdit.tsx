@@ -104,12 +104,13 @@ const superAdminGroups = [
     modules: [
       { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "edit", "approve", "suspend"] },
       { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["view", "add", "edit", "delete", "import", "export"] },
-      { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "approve"] },
+      { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "edit", "delete", "approve", "export"] },
       { 
         id: "financial_approval", 
         nameAr: "قسم الاعتمادات", 
         icon: CheckSquare, 
         perms: [
+          "view",
           "progress_invoices",
           "disbursement_requests", 
           "disbursement_orders", 
@@ -117,16 +118,17 @@ const superAdminGroups = [
           "receipt_vouchers", 
           "contracts", 
           "purchase_orders", 
-          "progress_reports"
+          "progress_reports",
+          "approve"
         ] 
       },
-      { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
-      { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "create_from_fund", "exception_approve"] },
-      { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "exception_approve"] },
-      { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "transfer"] },
-      { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind", "cancel_executed"] },
-      { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
-      { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create"] },
+      { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit", "delete", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add", "export"] },
+      { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "create_custom", "create_donation", "create_from_fund", "edit", "delete", "approve", "exception_approve", "export"] },
+      { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "delete", "print", "exception_approve"] },
+      { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "transfer", "export"] },
+      { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "approve", "reject", "exception_approve", "remind", "cancel_executed", "export"] },
+      { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export", "analytics"] },
+      { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create", "edit", "delete", "approve", "settle", "print"] },
     ]
   },
   {
@@ -482,19 +484,22 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     suppliers: {
       view: "عرض قائمة الموردين",
       view_details: "عرض تفاصيل المورد",
-      add: "إضافة مورد",
-      approve: "الاعتمادات (اعتماد أو رفض مورد)",
+      add: "إضافة مورد جديد",
       edit: "تعديل بيانات الموردين",
-      delete: "حذف مورد",
+      approve: "اعتماد أو رفض مورد",
       suspend: "إيقاف المورد وإعادة تفعيله"
     },
     quotations: {
       view: "عرض قائمة عروض الأسعار",
       view_sedana: "عرض عروض أسعار سدانة",
       add: "إضافة عرض سعر",
-      approve: "الاعتمادات (اعتماد أو رفض طلب صرف)"
+      edit: "تعديل عرض سعر",
+      delete: "حذف عرض سعر",
+      approve: "اعتماد أو رفض عروض الأسعار",
+      export: "تصدير عروض الأسعار"
     },
     financial_approval: {
+      view: "عرض قسم الاعتمادات",
       progress_invoices: "عرض المستخلصات بانتظار الاعتماد",
       disbursement_requests: "عرض طلبات الصرف بانتظار الاعتماد",
       disbursement_orders: "عرض أوامر الصرف بانتظار الاعتماد",
@@ -503,16 +508,20 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       contracts: "عرض العقود بانتظار الاعتماد",
       purchase_orders: "عرض أوامر الشراء بانتظار الاعتماد",
       progress_reports: "عرض تقارير الإنجاز بانتظار الاعتماد",
+      approve: "اتخاذ إجراء الاعتماد أو الرفض"
     },
     contracts: {
-      view: "عرض العقود وقالب العقود",
-      create: "إنشاء عقود",
+      view: "عرض العقود وقوالب العقود",
+      create: "إنشاء عقد جديد",
+      edit: "تعديل العقد",
+      delete: "حذف العقد",
       approve: "اعتماد العقود",
       edit_approved: "تعديل العقود المعتمدة",
       template_add: "إضافة قالب للعقود",
       template_edit: "تعديل قالب العقد",
       template_delete: "حذف قالب العقد",
-      clause_add: "إضافة بند للعقد"
+      clause_add: "إضافة بند للعقد",
+      export: "تصدير العقود"
     },
     orders_and_letters: {
       disbursement_orders: "عرض أوامر الصرف",
@@ -534,6 +543,11 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     custody_requests: {
       view: "عرض قسم العهدة المالية",
       create: "طلب عهدة مالية جديدة",
+      edit: "تعديل طلب العهدة",
+      delete: "حذف طلب العهدة",
+      approve: "اعتماد العهدة المالية",
+      settle: "تسوية العهدة المالية",
+      print: "طباعة طلب العهدة"
     },
     sedana_quotations: {
       view: "عرض عروض أسعار سدانة",
@@ -555,30 +569,38 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     disbursements: {
       view: "عرض طلبات الصرف",
       add: "إنشاء طلب صرف",
+      create_custom: "إنشاء طلبات صرف مخصصة",
+      create_donation: "إنشاء طلب صرف لفرصة تبرع",
+      create_from_fund: "إضافة طلب صرف من صندوق الجمعية",
       edit: "تعديل طلب الصرف",
       delete: "حذف طلب صرف",
       approve: "اعتماد طلبات الصرف",
-      create_custom: "انشاء طلبات صرف مخصصة",
-      create_from_fund: "إضافة طلب صرف من صندوق الجمعية",
       exception_approve: "استثناء اعتماد مُعد الطلب",
+      export: "تصدير طلبات الصرف"
     },
     fund: {
       view: "عرض إحصائيات وسجلات الصندوق",
       transfer: "تحويل فائض من المشروع إلى الصندوق",
+      export: "تصدير كشف حساب الصندوق"
     },
     receipt_vouchers: {
       view: "عرض سندات القبض",
       add: "تسجيل سند قبض جديد",
       edit: "تعديل سند القبض",
-      exception_approve: "استثناء اعتماد السند",
+      delete: "حذف سند القبض",
+      print: "طباعة سند القبض",
+      exception_approve: "استثناء اعتماد السند"
     },
     disbursement_orders: {
       view: "عرض أوامر الصرف",
       view_details: "عرض تفاصيل أوامر الصرف",
-      create_direct: "انشاء امر صرف مخصص",
+      create_direct: "إنشاء أمر صرف مباشر",
+      approve: "اعتماد أوامر الصرف",
+      reject: "رفض أوامر الصرف",
       exception_approve: "استثناء اعتماد مُعد الأمر",
       remind: "إرسال تذكير بالاعتماد",
       cancel_executed: "الغاء اعتماد أوامر الصرف المنفذة",
+      export: "تصدير أوامر الصرف"
     },
     progress_reports: {
       view: "عرض تقارير الإنجاز",
@@ -602,7 +624,8 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     },
     financial_reports: {
       view: "عرض تقرير المالية والإحصائيات",
-      export: "تصدير البيانات"
+      export: "تصدير البيانات المالية",
+      analytics: "تحليل مؤشرات الأداء المالي"
     },
     reports: {
       view_stats: "عرض احصائيات الطلبات",
@@ -997,10 +1020,34 @@ export default function RoleEdit() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للموردين إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("suppliers.") && permId !== "suppliers.view") {
+      if (!selectedPerms.includes("suppliers.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض قائمة الموردين' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية لجداول الكميات إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("boq.") && permId !== "boq.view") {
+      if (!selectedPerms.includes("boq.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض جداول الكميات' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية لعروض الأسعار إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("quotations.") && permId !== "quotations.view") {
       if (!selectedPerms.includes("quotations.view")) {
         toast.warning("يجب تفعيل صلاحية 'عرض قائمة عروض الأسعار' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية لقسم الاعتمادات إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("financial_approval.") && permId !== "financial_approval.view") {
+      if (!selectedPerms.includes("financial_approval.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض قسم الاعتمادات' أولاً");
         return;
       }
     }
@@ -1196,6 +1243,14 @@ export default function RoleEdit() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للصندوق إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("fund.") && permId !== "fund.view") {
+      if (!selectedPerms.includes("fund.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض إحصائيات وسجلات الصندوق' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية للعهدة المالية إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("custody_requests.") && permId !== "custody_requests.view") {
       if (!selectedPerms.includes("custody_requests.view")) {
@@ -1264,6 +1319,9 @@ export default function RoleEdit() {
         }
         if (permId === "quotations.view") {
           next = next.filter(id => !id.startsWith("quotations."));
+        }
+        if (permId === "financial_approval.view") {
+          next = next.filter(id => !id.startsWith("financial_approval."));
         }
         if (permId === "staff_users.view") {
           next = next.filter(id => !id.startsWith("staff_users."));
@@ -1800,8 +1858,12 @@ export default function RoleEdit() {
                             const isDisabled = 
                               (perm.id.startsWith("custody_requests.") && perm.id !== "custody_requests.view" && !selectedPerms.includes("custody_requests.view")) ||
                               (perm.id.startsWith("receipt_vouchers.") && perm.id !== "receipt_vouchers.view" && !selectedPerms.includes("receipt_vouchers.view")) ||
+                              (perm.id.startsWith("fund.") && perm.id !== "fund.view" && !selectedPerms.includes("fund.view")) ||
                               (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !selectedPerms.includes("contracts.view")) ||
-                              (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && !selectedPerms.includes("disbursement_orders.view")) ||
+                              (perm.id.startsWith("disbursements.") && perm.id !== "disbursements.view" && perm.id !== "disbursements.sign" && !selectedPerms.includes("disbursements.view")) ||
+                              (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && perm.id !== "disbursement_orders.sign" && !selectedPerms.includes("disbursement_orders.view")) ||
+                              (perm.id.startsWith("financial_approval.") && perm.id !== "financial_approval.view" && !selectedPerms.includes("financial_approval.view")) ||
+                              (perm.id.startsWith("financial_reports.") && perm.id !== "financial_reports.view" && !selectedPerms.includes("financial_reports.view")) ||
                               (perm.id === "board_leadership.remind" && !selectedPerms.includes("board_chairman")) ||
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
                               (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||

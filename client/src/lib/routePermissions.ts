@@ -184,11 +184,11 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   ],
 
   // ── الموردون ──
-  "/suppliers": "suppliers",
-  "/suppliers/new": "suppliers.add",
+  "/suppliers": ["suppliers", "suppliers.view"],
+  "/suppliers/new": ["suppliers.add", "suppliers.create", "suppliers"],
 
   // ── عروض الأسعار ──
-  "/quotations": "quotations",
+  "/quotations": ["quotations", "quotations.view"],
   "/sedana-quotations": "sedana_quotations.view",
 
   // ── الاعتمادات ──
@@ -201,6 +201,9 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "financial_approval.contracts",
     "financial_approval.purchase_orders",
     "financial_approval.progress_reports",
+    "financial_approval.approve",
+    "financial_approval.view",
+    "financial_approval",
   ],
   "/boq": ["boq.view", "boq", "boq.add", "boq.edit", "boq.delete", "boq.import", "boq.export", "quotations", "requests.view_details", "requests.view"],
   "/boq-preparations": ["boq.view", "boq", "boq.add", "boq.edit", "boq.delete", "boq.import", "boq.export", "quotations", "requests.view_details", "requests.view"],
@@ -221,8 +224,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "orders_and_letters.csr_letters",
     "orders_and_letters.purchase_orders",
   ],
-  "/contracts": "contracts",
-  "/contracts/new": "contracts",
+  "/contracts": ["contracts", "contracts.view"],
+  "/contracts/new": ["contracts", "contracts.create", "contracts.view"],
   "/purchase-orders": ["purchase_orders.view", "purchase_orders", "orders_and_letters.purchase_orders"],
   "/purchase-orders/new": ["purchase_orders.add", "purchase_orders", "orders_and_letters.create", "orders_and_letters.purchase_orders"],
   "/csr-letters": ["csr_letters.view", "csr_letters", "orders_and_letters.csr_letters"],
@@ -234,9 +237,9 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
 
   // ── طلبات وأوامر الصرف وسندات القبض والعهد المالية ──
   "/financial-dashboard": ["disbursement_requests", "financial_report"],
-  "/disbursements": "disbursement_requests",
-  "/disbursement-requests": "disbursement_requests",
-  "/disbursement-orders": "disbursement_orders",
+  "/disbursements": ["disbursement_requests", "disbursement_requests.view", "disbursements.view", "disbursements"],
+  "/disbursement-requests": ["disbursement_requests", "disbursement_requests.view", "disbursements.view", "disbursements"],
+  "/disbursement-orders": ["disbursement_orders", "disbursement_orders.view"],
   "/disbursement-orders/new-direct": [
     "disbursement_orders",
     "disbursement_orders.create_direct",
@@ -281,7 +284,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "beneficiary_evaluations.dispatch_log",
     "beneficiary_evaluations.contacts",
   ],
-  "/financial-report": "financial_report",
+  "/financial-report": ["financial_report", "financial_reports", "financial_reports.view"],
+  "/financial-reports": ["financial_report", "financial_reports", "financial_reports.view"],
 
   // ── الإعدادات ──
   "/settings": [
@@ -447,8 +451,8 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/milestones\/new\/\d+$/, permission: ["projects.view_details", "projects", "progress_reports", "progress_invoices", "contracts"] },
 
   // الموردون
-  { pattern: /^\/suppliers\/\d+\/edit$/, permission: "suppliers.edit" },
-  { pattern: /^\/suppliers\/\d+$/, permission: "suppliers.view_details" },
+  { pattern: /^\/suppliers\/\d+\/edit$/, permission: ["suppliers.edit", "suppliers"] },
+  { pattern: /^\/suppliers\/\d+$/, permission: ["suppliers.view_details", "suppliers.view", "suppliers"] },
 
   // المستخدمين
   { pattern: /^\/users\/\d+\/edit$/, permission: ["staff_users.edit", "users.edit"] },
@@ -462,12 +466,12 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/roles\/[^/]+$/, permission: "staff_management" },
 
   // العقود
-  { pattern: /^\/contracts\/new\/\d+$/, permission: "contracts" },
-  { pattern: /^\/contracts\/new\/request\/\d+$/, permission: "contracts" },
-  { pattern: /^\/contracts\/\d+\/preview$/, permission: "contracts" },
-  { pattern: /^\/contracts\/\d+\/print$/, permission: "contracts" },
-  { pattern: /^\/contracts\/\d+\/edit$/, permission: "contracts" },
-  { pattern: /^\/contracts\/\d+$/, permission: "contracts" },
+  { pattern: /^\/contracts\/new\/\d+$/, permission: ["contracts", "contracts.create"] },
+  { pattern: /^\/contracts\/new\/request\/\d+$/, permission: ["contracts", "contracts.create"] },
+  { pattern: /^\/contracts\/\d+\/preview$/, permission: ["contracts", "contracts.view", "contracts.view_details"] },
+  { pattern: /^\/contracts\/\d+\/print$/, permission: ["contracts", "contracts.view", "contracts.view_details"] },
+  { pattern: /^\/contracts\/\d+\/edit$/, permission: ["contracts", "contracts.edit"] },
+  { pattern: /^\/contracts\/\d+$/, permission: ["contracts", "contracts.view", "contracts.view_details"] },
 
   // قوالب العقود
   { pattern: /^\/contract-templates\/\d+\/preview$/, permission: ["settings_center", "settings_contracts.view", "contracts"] },
@@ -507,19 +511,19 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/sedana-quotations\/[^/]+$/, permission: "sedana_quotations.view" },
 
   // طلبات الصرف
-  { pattern: /^\/disbursements\/new$/, permission: "disbursement_requests" },
-  { pattern: /^\/disbursements\/new-linked$/, permission: "disbursement_requests" },
-  { pattern: /^\/disbursements\/new\/\d+$/, permission: "disbursement_requests" },
-  { pattern: /^\/disbursements\/new\/contract\/\d+$/, permission: "disbursement_requests" },
-  { pattern: /^\/disbursements\/requests\/\d+\/edit$/, permission: "disbursement_requests" },
-  { pattern: /^\/disbursements\/requests\/\d+\/print$/, permission: ["disbursement_requests", "disbursements.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
-  { pattern: /^\/payments\/edit\/[^/]+$/, permission: "disbursement_requests" },
+  { pattern: /^\/disbursements\/new$/, permission: ["disbursement_requests", "disbursement_requests.create"] },
+  { pattern: /^\/disbursements\/new-linked$/, permission: ["disbursement_requests", "disbursement_requests.create"] },
+  { pattern: /^\/disbursements\/new\/\d+$/, permission: ["disbursement_requests", "disbursement_requests.create"] },
+  { pattern: /^\/disbursements\/new\/contract\/\d+$/, permission: ["disbursement_requests", "disbursement_requests.create"] },
+  { pattern: /^\/disbursements\/requests\/\d+\/edit$/, permission: ["disbursement_requests", "disbursement_requests.edit"] },
+  { pattern: /^\/disbursements\/requests\/\d+\/print$/, permission: ["disbursement_requests", "disbursement_requests.view", "disbursements.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
+  { pattern: /^\/payments\/edit\/[^/]+$/, permission: ["disbursement_requests", "disbursement_requests.edit"] },
 
   // أوامر الصرف
-  { pattern: /^\/disbursement-orders\/new\/\d+$/, permission: "disbursement_orders" },
+  { pattern: /^\/disbursement-orders\/new\/\d+$/, permission: ["disbursement_orders", "disbursement_orders.create", "disbursement_orders.create_direct"] },
   { pattern: /^\/disbursement-orders\/\d+\/print$/, permission: ["disbursement_orders", "disbursement_orders.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
   { pattern: /^\/disbursement-orders\/\d+$/, permission: ["disbursement_orders", "disbursement_orders.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
-  { pattern: /^\/disbursements\/orders\/new\/\d+$/, permission: "disbursement_orders" },
+  { pattern: /^\/disbursements\/orders\/new\/\d+$/, permission: ["disbursement_orders", "disbursement_orders.create", "disbursement_orders.create_direct"] },
   { pattern: /^\/disbursements\/orders\/\d+\/print$/, permission: ["disbursement_orders", "disbursement_orders.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
 
   // العهد المالية
@@ -684,7 +688,7 @@ export function hasRouteAccess(
   }
 
   // super_admin و system_admin لهما كل الصلاحيات دائماً إلا إذا سُحبت صلاحية معينة صراحةً
-  // ولكن لمسارات وصلاحيات إدارة المخزون، يجب التحقق الصارم من الصلاحية الفعلية
+  // ولكن لمسارات وصلاحيات إدارة المخزون والمشتريات والمالية، يجب التحقق الصارم من الصلاحية الفعلية
   if (userRole === "super_admin" || userRole === "system_admin") {
     const required = getRequiredPermission(pathname);
     const isInventoryPerm = (p: string) => (
@@ -694,6 +698,22 @@ export function hasRouteAccess(
       p.startsWith("csr_letters") ||
       p.startsWith("sedana_warehouse")
     );
+    const isProcurementFinancePerm = (p: string) => (
+      p === "suppliers" || p.startsWith("suppliers.") ||
+      p === "boq" || p.startsWith("boq.") ||
+      p === "quotations" || p.startsWith("quotations.") ||
+      p === "financial_approval" || p.startsWith("financial_approval.") ||
+      p === "contracts" || p.startsWith("contracts.") ||
+      p === "disbursements" || p.startsWith("disbursements.") ||
+      p === "disbursement_requests" || p.startsWith("disbursement_requests.") ||
+      p === "receipt_vouchers" || p.startsWith("receipt_vouchers.") ||
+      p === "fund" || p.startsWith("fund.") ||
+      p === "disbursement_orders" || p.startsWith("disbursement_orders.") ||
+      p === "financial_reports" || p.startsWith("financial_reports.") ||
+      p === "financial_report" ||
+      p === "custody_requests" || p.startsWith("custody_requests.")
+    );
+
     const isInventoryRoute = (
       pathname === "/sedana-quotations" || pathname.startsWith("/sedana-quotations/") ||
       pathname === "/orders-and-letters" || pathname.startsWith("/orders-and-letters/") ||
@@ -705,7 +725,22 @@ export function hasRouteAccess(
       (Array.isArray(required) ? required.some(p => isInventoryPerm(p)) : (typeof required === "string" && isInventoryPerm(required)))
     );
 
-    if (isInventoryRoute) {
+    const isProcurementFinanceRoute = (
+      pathname === "/suppliers" || pathname.startsWith("/suppliers/") ||
+      pathname === "/boq-preparations" || pathname.startsWith("/boq-preparations/") ||
+      pathname === "/quotations" || pathname.startsWith("/quotations/") ||
+      pathname === "/financial-approval" || pathname.startsWith("/financial-approval/") ||
+      pathname === "/contracts" || pathname.startsWith("/contracts/") ||
+      pathname === "/disbursements" || pathname.startsWith("/disbursements/") ||
+      pathname === "/receipt-vouchers" || pathname.startsWith("/receipt-vouchers/") ||
+      pathname === "/fund" || pathname.startsWith("/fund/") ||
+      pathname === "/disbursement-orders" || pathname.startsWith("/disbursement-orders/") ||
+      pathname === "/financial-report" || pathname.startsWith("/financial-report/") ||
+      pathname === "/custody-requests" || pathname.startsWith("/custody-requests/") ||
+      (Array.isArray(required) ? required.some(p => isProcurementFinancePerm(p)) : (typeof required === "string" && isProcurementFinancePerm(required)))
+    );
+
+    if (isInventoryRoute || isProcurementFinanceRoute) {
       if (required !== null && required !== "__unknown_route__") {
         if (Array.isArray(required)) {
           if (required.every(p => !userPermissions.includes(p))) return false;

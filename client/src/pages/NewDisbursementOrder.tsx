@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import { numberToArabicText as baseNumberToArabicText } from "@shared/tafqeet";
 import DashboardLayout from "@/components/DashboardLayout";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
@@ -148,7 +149,7 @@ export default function NewDisbursementOrder() {
   }, [requestData]);
 
   // التحقق من الصلاحيات
-  const canCreateOrder = ["super_admin", "system_admin", "financial"].includes(user?.role || "");
+  const canCreateOrder = usePermission("disbursement_orders.create_direct") || usePermission("disbursements.create") || usePermission("disbursement_orders.view");
 
   if (!canCreateOrder) {
     return (

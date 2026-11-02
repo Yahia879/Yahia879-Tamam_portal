@@ -16,6 +16,36 @@ export function isInventoryPermission(permission: string): boolean {
 }
 
 /**
+ * التحقق مما إذا كانت الصلاحية تابعة لأقسام المشتريات والمالية الـ 11 الموسعة
+ * لهذه الأقسام، يُمنع التجاوز التلقائي بالـ Wildcard (*) للمدراء ويجب مطابقة الصلاحية صراحةً
+ */
+export function isProcurementOrFinancePermission(permission: string): boolean {
+  return (
+    permission === "suppliers" || permission.startsWith("suppliers.") ||
+    permission === "boq" || permission.startsWith("boq.") ||
+    permission === "quotations" || permission.startsWith("quotations.") ||
+    permission === "financial_approval" || permission.startsWith("financial_approval.") ||
+    permission === "contracts" || permission.startsWith("contracts.") ||
+    permission === "disbursements" || permission.startsWith("disbursements.") ||
+    permission === "disbursement_requests" || permission.startsWith("disbursement_requests.") ||
+    permission === "receipt_vouchers" || permission.startsWith("receipt_vouchers.") ||
+    permission === "fund" || permission.startsWith("fund.") ||
+    permission === "disbursement_orders" || permission.startsWith("disbursement_orders.") ||
+    permission === "financial_reports" || permission.startsWith("financial_reports.") ||
+    permission === "financial_report" ||
+    permission === "custody_requests" || permission.startsWith("custody_requests.")
+  );
+}
+
+/**
+ * الصلاحيات الصارمة (إدارة المخزون + المشتريات والمالية)
+ * تتطلب وجود الصلاحية صراحةً ولا تتجاوز بالـ Wildcard (*)
+ */
+export function isStrictPermission(permission: string): boolean {
+  return isInventoryPermission(permission) || isProcurementOrFinancePermission(permission);
+}
+
+/**
  * Hook للتحقق من صلاحية واحدة
  * @param permission - معرف الصلاحية (مثل: requests.view)
  * @returns true إذا كان المستخدم يملك الصلاحية، false إذا لم يملكها
@@ -38,17 +68,17 @@ export function usePermission(permission: string): boolean {
     return false;
   }
 
-  const isInv = isInventoryPermission(permission);
+  const isStrict = isStrictPermission(permission);
 
   if (permissions !== undefined) {
-    if (isInv) {
+    if (isStrict) {
       return permissions.includes(permission);
     }
     return permissions.includes(permission) || permissions.includes("*");
   }
 
   const userPerms: string[] = (user as any)?.permissions ?? [];
-  if (isInv) {
+  if (isStrict) {
     return userPerms.includes(permission);
   }
   return userPerms.includes(permission) || userPerms.includes("*");
@@ -76,21 +106,21 @@ export function usePermissions(requiredPermissions: string[]): boolean {
     return false;
   }
 
-  const hasInventory = requiredPermissions.some(isInventoryPermission);
+  const hasStrict = requiredPermissions.some(isStrictPermission);
 
   if (permissions !== undefined) {
-    if (hasInventory) {
+    if (hasStrict) {
       return requiredPermissions.every(p =>
-        isInventoryPermission(p) ? permissions.includes(p) : (permissions.includes(p) || permissions.includes("*"))
+        isStrictPermission(p) ? permissions.includes(p) : (permissions.includes(p) || permissions.includes("*"))
       );
     }
     return permissions.includes("*") || requiredPermissions.every(p => permissions.includes(p));
   }
 
   const userPerms: string[] = (user as any)?.permissions ?? [];
-  if (hasInventory) {
+  if (hasStrict) {
     return requiredPermissions.every(p =>
-      isInventoryPermission(p) ? userPerms.includes(p) : (userPerms.includes(p) || userPerms.includes("*"))
+      isStrictPermission(p) ? userPerms.includes(p) : (userPerms.includes(p) || userPerms.includes("*"))
     );
   }
   return userPerms.includes("*") || requiredPermissions.every(p => userPerms.includes(p));
@@ -120,13 +150,13 @@ export function useAnyPermission(permissionsList: string[]): boolean {
 
   if (permissions !== undefined) {
     return permissionsList.some(p =>
-      isInventoryPermission(p) ? permissions.includes(p) : (permissions.includes(p) || permissions.includes("*"))
+      isStrictPermission(p) ? permissions.includes(p) : (permissions.includes(p) || permissions.includes("*"))
     );
   }
 
   const userPerms: string[] = (user as any)?.permissions ?? [];
   return permissionsList.some(p =>
-    isInventoryPermission(p) ? userPerms.includes(p) : (userPerms.includes(p) || userPerms.includes("*"))
+    isStrictPermission(p) ? userPerms.includes(p) : (userPerms.includes(p) || userPerms.includes("*"))
   );
 }
 

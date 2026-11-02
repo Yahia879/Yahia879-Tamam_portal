@@ -378,25 +378,23 @@ export default function FinancialApproval() {
     "financial_approval.progress_reports",
   ];
 
-  const hasAdminWildcard = userPerms.includes("*");
   const hasSpecificPerm = APPROVAL_PERMISSION_KEYS.some((key) => userPerms.includes(key));
-  const hasApprovalPerm = hasSpecificPerm || hasAdminWildcard;
+  const hasApprovalPerm = hasSpecificPerm || userPerms.includes("financial_approval") || userPerms.includes("financial_approval.view");
 
   const allowedCategoryCards = useMemo(() => {
     return APPROVAL_CARDS.filter((card) => {
       if (card.key === "all") return false;
-      if (hasAdminWildcard) return true;
       const reqPerm = categoryPermMap[card.key];
       return reqPerm && userPerms.includes(reqPerm);
     });
-  }, [hasAdminWildcard, userPerms]);
+  }, [userPerms]);
 
   const visibleCards = useMemo(() => {
-    if (allowedCategoryCards.length > 1 || hasAdminWildcard) {
+    if (allowedCategoryCards.length > 1) {
       return [APPROVAL_CARDS[0], ...allowedCategoryCards];
     }
     return allowedCategoryCards;
-  }, [allowedCategoryCards, hasAdminWildcard]);
+  }, [allowedCategoryCards]);
 
   // حالة التصفية والبحث لمركز الاعتمادات
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -407,19 +405,19 @@ export default function FinancialApproval() {
   const pageSize = 12;
 
   const effectiveCategory = useMemo(() => {
-    if (!hasAdminWildcard && allowedCategoryCards.length === 1) {
+    if (allowedCategoryCards.length === 1) {
       return allowedCategoryCards[0].key;
     }
     return categoryFilter !== "all" ? categoryFilter : undefined;
-  }, [hasAdminWildcard, allowedCategoryCards, categoryFilter]);
+  }, [allowedCategoryCards, categoryFilter]);
 
   useEffect(() => {
-    if (!hasAdminWildcard && allowedCategoryCards.length === 1) {
+    if (allowedCategoryCards.length === 1) {
       if (categoryFilter !== allowedCategoryCards[0].key) {
         setCategoryFilter(allowedCategoryCards[0].key);
       }
     }
-  }, [hasAdminWildcard, allowedCategoryCards, categoryFilter]);
+  }, [allowedCategoryCards, categoryFilter]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -602,7 +600,7 @@ export default function FinancialApproval() {
                     <SelectValue placeholder="كافة التصنيفات" />
                   </SelectTrigger>
                   <SelectContent dir="rtl">
-                    {(allowedCategoryCards.length > 1 || hasAdminWildcard) && (
+                    {allowedCategoryCards.length > 1 && (
                       <SelectItem value="all">كافة التصنيفات المتاحة</SelectItem>
                     )}
                     {allowedCategoryCards.map((c) => (
