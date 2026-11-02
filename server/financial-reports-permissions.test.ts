@@ -49,4 +49,14 @@ describe("Financial Reports Permissions Refactor", () => {
     expect(hasRouteAccess("/financial-report", "super_admin", ["*"], false)).toBe(false);
     expect(hasRouteAccess("/financial-report", "super_admin", ["financial_reports.projects"], false)).toBe(true);
   });
+
+  it("should block /financial-approval route when user has no approval category permissions", () => {
+    expect(hasRouteAccess("/financial-approval", "custom", ["projects.view"], false)).toBe(false);
+  });
+
+  it("should allow /financial-approval route when user has any of the approval category permissions", () => {
+    expect(hasRouteAccess("/financial-approval", "custom", ["financial_approval.disbursement_requests"], false)).toBe(true);
+    expect(hasRouteAccess("/financial-approval", "custom", ["financial_approval.receipt_vouchers"], false)).toBe(true);
+    expect(hasRouteAccess("/financial-approval", "custom", ["financial_approval.contracts"], false)).toBe(true);
+  });
 });

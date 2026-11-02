@@ -201,8 +201,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "financial_approval.contracts",
     "financial_approval.purchase_orders",
     "financial_approval.progress_reports",
-    "financial_approval.approve",
-    "financial_approval",
   ],
   "/boq": ["boq.view", "boq", "boq.add", "boq.edit", "boq.delete", "boq.import", "boq.export", "quotations", "requests.view_details", "requests.view"],
   "/boq-preparations": ["boq.view", "boq", "boq.add", "boq.edit", "boq.delete", "boq.import", "boq.export", "quotations", "requests.view_details", "requests.view"],

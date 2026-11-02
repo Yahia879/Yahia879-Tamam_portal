@@ -479,6 +479,20 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
     }));
   }, [allReceiptVouchers]);
 
+  const availableTabs = useMemo(() => [
+    ...(!embedded && canViewProjects ? [{ id: "projects", label: "المشاريع", count: reportData?.byProject?.length || 0, icon: Folder, activeColor: "from-primary to-teal-600" }] : []),
+    ...(canViewContracts ? [{ id: "contracts", label: "العقود", count: summary?.totalContracts || 0, icon: ScrollText, activeColor: "from-primary to-teal-600" }] : []),
+    ...(canViewRequests ? [{ id: "requests", label: "طلبات الصرف", count: summary?.totalRequests || 0, icon: FileText, activeColor: "from-primary to-teal-600" }] : []),
+    ...(canViewOrders ? [{ id: "orders", label: "أوامر الصرف", count: summary?.totalOrders || 0, icon: Wallet, activeColor: "from-primary to-teal-600" }] : []),
+    ...(canViewReceiptVouchers ? [{ id: "receipt_vouchers", label: "سندات القبض", count: receiptVouchersSummary.totalCount, icon: Receipt, activeColor: "from-emerald-600 to-teal-600" }] : []),
+  ], [embedded, canViewProjects, canViewContracts, canViewRequests, canViewOrders, canViewReceiptVouchers, reportData?.byProject?.length, summary?.totalContracts, summary?.totalRequests, summary?.totalOrders, receiptVouchersSummary.totalCount]);
+
+  useEffect(() => {
+    if (availableTabs.length > 0 && !availableTabs.some(t => t.id === activeTab)) {
+      setActiveTab(availableTabs[0].id);
+    }
+  }, [availableTabs, activeTab]);
+
   if (!user || !canView) {
     return null;
   }
@@ -494,20 +508,6 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
     );
     return embedded ? loadingContent : <DashboardLayout>{loadingContent}</DashboardLayout>;
   }
-
-  const availableTabs = useMemo(() => [
-    ...(!embedded && canViewProjects ? [{ id: "projects", label: "المشاريع", count: reportData?.byProject?.length || 0, icon: Folder, activeColor: "from-primary to-teal-600" }] : []),
-    ...(canViewContracts ? [{ id: "contracts", label: "العقود", count: summary?.totalContracts || 0, icon: ScrollText, activeColor: "from-primary to-teal-600" }] : []),
-    ...(canViewRequests ? [{ id: "requests", label: "طلبات الصرف", count: summary?.totalRequests || 0, icon: FileText, activeColor: "from-primary to-teal-600" }] : []),
-    ...(canViewOrders ? [{ id: "orders", label: "أوامر الصرف", count: summary?.totalOrders || 0, icon: Wallet, activeColor: "from-primary to-teal-600" }] : []),
-    ...(canViewReceiptVouchers ? [{ id: "receipt_vouchers", label: "سندات القبض", count: receiptVouchersSummary.totalCount, icon: Receipt, activeColor: "from-emerald-600 to-teal-600" }] : []),
-  ], [embedded, canViewProjects, canViewContracts, canViewRequests, canViewOrders, canViewReceiptVouchers, reportData?.byProject?.length, summary?.totalContracts, summary?.totalRequests, summary?.totalOrders, receiptVouchersSummary.totalCount]);
-
-  useEffect(() => {
-    if (availableTabs.length > 0 && !availableTabs.some(t => t.id === activeTab)) {
-      setActiveTab(availableTabs[0].id);
-    }
-  }, [availableTabs, activeTab]);
 
   const content = (
     <div className="space-y-6 print:space-y-4">

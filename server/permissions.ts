@@ -224,9 +224,7 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
     "financial_approval.purchase_orders",
 
-    "financial_approval.progress_reports",
-
-    "financial_approval.approve"
+    "financial_approval.progress_reports"
 
   ],
 
@@ -5510,7 +5508,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
   // 3. قسم الاعتمادات
 
-  const approvalSubPerms = [
+  const approvalCategoryPerms = [
 
     "financial_approval.progress_invoices",
 
@@ -5526,29 +5524,31 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
     "financial_approval.purchase_orders",
 
-    "financial_approval.progress_reports",
-
-    "financial_approval.approve"
+    "financial_approval.progress_reports"
 
   ];
 
   allPermissions.delete("financial_approval.view");
 
-  const hasAnyApprovalPerm = approvalSubPerms.some(p => allPermissions.has(p) && !revokedPermissions.has(p));
+  const hasAnyApprovalCategory = approvalCategoryPerms.some(p => allPermissions.has(p) && !revokedPermissions.has(p));
 
-  if (revokedPermissions.has("financial_approval") || !hasAnyApprovalPerm) {
+  if (revokedPermissions.has("financial_approval") || !hasAnyApprovalCategory) {
 
     allPermissions.delete("financial_approval");
 
+    allPermissions.delete("financial_approval.approve");
+
     if (revokedPermissions.has("financial_approval")) {
 
-      approvalSubPerms.forEach(p => allPermissions.delete(p));
+      approvalCategoryPerms.forEach(p => allPermissions.delete(p));
 
     }
 
-  } else if (hasAnyApprovalPerm) {
+  } else if (hasAnyApprovalCategory) {
 
     allPermissions.add("financial_approval");
+
+    allPermissions.add("financial_approval.approve");
 
   }
 

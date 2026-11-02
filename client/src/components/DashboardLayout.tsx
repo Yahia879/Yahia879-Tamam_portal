@@ -388,9 +388,8 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
     "financial_approval.contracts",
     "financial_approval.purchase_orders",
     "financial_approval.progress_reports",
-    "financial_approval.approve",
   ];
-  if (has("financial_approval") || permissions.some(p => VALID_APPROVAL_PERMS.includes(p))) {
+  if (permissions.some(p => VALID_APPROVAL_PERMS.includes(p))) {
     finItems.push({ icon: CheckSquare, label: isEn ? "Approvals" : "الاعتمادات", path: "/financial-approval" });
   }
   if (has("contracts") || has("contracts.view")) {

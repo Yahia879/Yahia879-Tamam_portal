@@ -83,7 +83,7 @@ export default function ReceiptVouchers() {
   const canCreateProject = usePermission("receipt_vouchers.create_project");
   const canCreateRestricted = usePermission("receipt_vouchers.create_restricted");
   const canCreateUnrestricted = usePermission("receipt_vouchers.create_unrestricted");
-  const canAdd = canCreateProject || canCreateRestricted || canCreateUnrestricted || usePermission("receipt_vouchers.create") || usePermission("receipt_vouchers");
+  const canAdd = canCreateProject || canCreateRestricted || canCreateUnrestricted;
   const canEdit = usePermission("receipt_vouchers.edit");
   const canPrint = usePermission("receipt_vouchers.print");
   const hasExceptionApprove = usePermission("receipt_vouchers.exception_approve");
