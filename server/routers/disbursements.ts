@@ -1287,12 +1287,9 @@ export const disbursementsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // التحقق من الصلاحيات
-      const allowedRoles = ["super_admin", "system_admin", "projects_office", "project_manager", "financial", "financial_manager"];
-      if (!allowedRoles.includes(ctx.user.role)) {
-        const hasPerm = await checkPermission(ctx.user.id, "disbursements.create");
-        if (!hasPerm) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إنشاء طلب صرف" });
-        }
+      const hasPerm = await checkPermission(ctx.user.id, "disbursements.create");
+      if (!hasPerm) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إنشاء طلب صرف" });
       }
 
       let projectId = input.projectId;
@@ -1515,7 +1512,7 @@ export const disbursementsRouter = router({
       };
     }),
 
-  updateRequest: permissionProcedure("disbursements.create")
+  updateRequest: permissionProcedure("disbursements.edit")
     .input(
       z.object({
         id: z.number(),
@@ -1540,12 +1537,9 @@ export const disbursementsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // التحقق من الصلاحيات
-      const allowedRoles = ["super_admin", "system_admin", "projects_office", "project_manager", "financial", "financial_manager"];
-      if (!allowedRoles.includes(ctx.user.role)) {
-        const hasPerm = await checkPermission(ctx.user.id, "disbursements.create");
-        if (!hasPerm) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل طلب صرف" });
-        }
+      const hasPerm = await checkPermission(ctx.user.id, "disbursements.edit");
+      if (!hasPerm) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل طلب صرف" });
       }
 
       const [request] = await db
@@ -1724,11 +1718,10 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "طلب الصرف غير موجود" });
       }
 
-      const hasApprovePerm = 
-        await checkPermission(ctx.user.id, "disbursements.approve") ||
-        await checkPermission(ctx.user.id, "disbursements.sign") ||
-        await checkPermission(ctx.user.id, "disbursement_orders.approve") ||
-        await checkPermission(ctx.user.id, "disbursement_orders.sign");
+      const hasApprovePerm = await checkPermission(ctx.user.id, "disbursements.approve");
+      if (!hasApprovePerm) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية اعتماد طلبات الصرف" });
+      }
 
       const isExecDirector = ["general_manager", "executive_director"].includes(ctx.user.role) || (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" || (ctx.user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
 
@@ -1956,12 +1949,9 @@ export const disbursementsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const allowedRoles = ["super_admin", "system_admin", "general_manager", "financial", "financial_manager"];
-      if (!allowedRoles.includes(ctx.user.role)) {
-        const hasPerm = await checkPermission(ctx.user.id, "disbursements.approve");
-        if (!hasPerm) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية رفض طلب الصرف" });
-        }
+      const hasPerm = await checkPermission(ctx.user.id, "disbursements.approve");
+      if (!hasPerm) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية رفض طلب الصرف" });
       }
 
       const [request] = await db

@@ -511,13 +511,13 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/sedana-quotations\/[^/]+$/, permission: "sedana_quotations.view" },
 
   // طلبات الصرف
-  { pattern: /^\/disbursements\/new$/, permission: ["disbursement_requests", "disbursement_requests.create"] },
-  { pattern: /^\/disbursements\/new-linked$/, permission: ["disbursement_requests", "disbursement_requests.create"] },
-  { pattern: /^\/disbursements\/new\/\d+$/, permission: ["disbursement_requests", "disbursement_requests.create"] },
-  { pattern: /^\/disbursements\/new\/contract\/\d+$/, permission: ["disbursement_requests", "disbursement_requests.create"] },
-  { pattern: /^\/disbursements\/requests\/\d+\/edit$/, permission: ["disbursement_requests", "disbursement_requests.edit"] },
-  { pattern: /^\/disbursements\/requests\/\d+\/print$/, permission: ["disbursement_requests", "disbursement_requests.view", "disbursements.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
-  { pattern: /^\/payments\/edit\/[^/]+$/, permission: ["disbursement_requests", "disbursement_requests.edit"] },
+  { pattern: /^\/disbursements\/new$/, permission: ["disbursements.create", "disbursements.create_project_linked", "disbursements.create_from_fund", "disbursements.create_donation", "disbursements.create_tamam_platform", "disbursements.create_custom"] },
+  { pattern: /^\/disbursements\/new-linked$/, permission: ["disbursements.create", "disbursements.create_project_linked", "disbursements.create_from_fund", "disbursements.create_donation", "disbursements.create_tamam_platform", "disbursements.create_custom"] },
+  { pattern: /^\/disbursements\/new\/\d+$/, permission: ["disbursements.create", "disbursements.create_project_linked", "disbursements.create_from_fund", "disbursements.create_donation", "disbursements.create_tamam_platform", "disbursements.create_custom"] },
+  { pattern: /^\/disbursements\/new\/contract\/\d+$/, permission: ["disbursements.create", "disbursements.create_project_linked", "disbursements.create_from_fund", "disbursements.create_donation", "disbursements.create_tamam_platform", "disbursements.create_custom"] },
+  { pattern: /^\/disbursements\/requests\/\d+\/edit$/, permission: ["disbursements.edit", "disbursement_requests.edit"] },
+  { pattern: /^\/disbursements\/requests\/\d+\/print$/, permission: ["disbursements.approve", "disbursements.view", "disbursement_requests.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
+  { pattern: /^\/payments\/edit\/[^/]+$/, permission: ["disbursements.edit", "disbursement_requests.edit"] },
 
   // أوامر الصرف
   { pattern: /^\/disbursement-orders\/new\/\d+$/, permission: ["disbursement_orders", "disbursement_orders.create", "disbursement_orders.create_direct"] },

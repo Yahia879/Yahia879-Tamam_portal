@@ -1054,12 +1054,15 @@ export default function RolePermissions() {
           icon: Wallet,
           permissions: [
             { id: "disbursements.view", nameAr: "عرض طلبات الصرف" },
-            { id: "disbursements.add", nameAr: "إنشاء طلب صرف" },
-            { id: "disbursements.edit", nameAr: "تعديل طلب الصرف" },
+            { id: "disbursements.create_project_linked", nameAr: "إنشاء طلب صرف مرتبط بتقرير انجاز أو مستخلص معتمد" },
+            { id: "disbursements.create_from_fund", nameAr: "إنشاء طلب صرف تبرع فائض" },
+            { id: "disbursements.create_donation", nameAr: "إنشاء طلب صرف لفرصة تبرع" },
+            { id: "disbursements.create_tamam_platform", nameAr: "إنشاء طلب صرف مرتبط بالمنصة السابقة" },
+            { id: "disbursements.create_custom", nameAr: "إنشاء طلب صرف مخصص/عام" },
+            { id: "disbursements.edit", nameAr: "تعديل طلب صرف" },
             { id: "disbursements.approve", nameAr: "اعتماد طلبات الصرف" },
-            { id: "disbursements.create_custom", nameAr: "انشاء طلبات صرف مخصصة" },
-            { id: "disbursements.create_from_fund", nameAr: "إضافة طلب صرف من صندوق الجمعية" },
             { id: "disbursements.exception_approve", nameAr: "استثناء اعتماد مُعد الطلب" },
+            { id: "disbursements.export", nameAr: "تصدير بيانات طلبات الصرف" },
           ]
         },
         {
@@ -1293,12 +1296,15 @@ export default function RolePermissions() {
           icon: Wallet,
           permissions: [
             { id: "disbursements.view", nameAr: "عرض طلبات الصرف" },
-            { id: "disbursements.add", nameAr: "إنشاء طلب صرف" },
-            { id: "disbursements.edit", nameAr: "تعديل طلب الصرف" },
+            { id: "disbursements.create_project_linked", nameAr: "إنشاء طلب صرف مرتبط بتقرير انجاز أو مستخلص معتمد" },
+            { id: "disbursements.create_from_fund", nameAr: "إنشاء طلب صرف تبرع فائض" },
+            { id: "disbursements.create_donation", nameAr: "إنشاء طلب صرف لفرصة تبرع" },
+            { id: "disbursements.create_tamam_platform", nameAr: "إنشاء طلب صرف مرتبط بالمنصة السابقة" },
+            { id: "disbursements.create_custom", nameAr: "إنشاء طلب صرف مخصص/عام" },
+            { id: "disbursements.edit", nameAr: "تعديل طلب صرف" },
             { id: "disbursements.approve", nameAr: "اعتماد طلبات الصرف" },
-            { id: "disbursements.create_custom", nameAr: "انشاء طلبات صرف مخصصة" },
-            { id: "disbursements.create_from_fund", nameAr: "إضافة طلب صرف من صندوق الجمعية" },
             { id: "disbursements.exception_approve", nameAr: "استثناء اعتماد مُعد الطلب" },
+            { id: "disbursements.export", nameAr: "تصدير بيانات طلبات الصرف" },
           ]
         },
         {
@@ -1446,7 +1452,7 @@ export default function RolePermissions() {
           ]
         },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
-        { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "create_from_fund", "exception_approve"] },
+        { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "create_project_linked", "create_from_fund", "create_donation", "create_tamam_platform", "create_custom", "edit", "approve", "exception_approve", "export"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "exception_approve"] },
         { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "transfer"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind", "cancel_executed"] },
@@ -1674,7 +1680,7 @@ export default function RolePermissions() {
           ]
         },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit", "delete", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add", "export"] },
-        { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "create_custom", "create_donation", "create_from_fund", "edit", "delete", "approve", "exception_approve", "export"] },
+        { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "create_project_linked", "create_from_fund", "create_donation", "create_tamam_platform", "create_custom", "edit", "approve", "exception_approve", "export"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "delete", "print", "exception_approve"] },
         { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "transfer", "export"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "approve", "reject", "exception_approve", "remind", "cancel_executed", "export"] },
@@ -2166,15 +2172,15 @@ export default function RolePermissions() {
       },
       disbursements: {
         view: "عرض طلبات الصرف",
-        add: "إنشاء طلب صرف",
-        create_custom: "إنشاء طلبات صرف مخصصة",
+        create_project_linked: "إنشاء طلب صرف مرتبط بتقرير انجاز أو مستخلص معتمد",
+        create_from_fund: "إنشاء طلب صرف تبرع فائض",
         create_donation: "إنشاء طلب صرف لفرصة تبرع",
-        create_from_fund: "إضافة طلب صرف من صندوق الجمعية",
-        edit: "تعديل طلب الصرف",
-        delete: "حذف طلب صرف",
+        create_tamam_platform: "إنشاء طلب صرف مرتبط بالمنصة السابقة",
+        create_custom: "إنشاء طلب صرف مخصص/عام",
+        edit: "تعديل طلب صرف",
         approve: "اعتماد طلبات الصرف",
         exception_approve: "استثناء اعتماد مُعد الطلب",
-        export: "تصدير طلبات الصرف"
+        export: "تصدير بيانات طلبات الصرف"
       },
       receipt_vouchers: {
         view: "عرض سندات القبض",

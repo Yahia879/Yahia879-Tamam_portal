@@ -4736,17 +4736,17 @@ export default function UserPermissions() {
 
         view: "عرض طلبات الصرف",
 
-        add: "إضافة طلب صرف عادي لمشروع",
+        create_project_linked: "إنشاء طلب صرف مرتبط بتقرير انجاز أو مستخلص معتمد",
+
+        create_from_fund: "إنشاء طلب صرف تبرع فائض",
+
+        create_donation: "إنشاء طلب صرف لفرصة تبرع",
+
+        create_tamam_platform: "إنشاء طلب صرف مرتبط بالمنصة السابقة",
 
         create_custom: "إنشاء طلب صرف مخصص/عام",
 
-        create_donation: "إنشاء طلب صرف تبرع فائض",
-
-        create_from_fund: "إنشاء طلب صرف من الصندوق",
-
         edit: "تعديل طلب صرف",
-
-        delete: "حذف طلب صرف",
 
         approve: "اعتماد طلبات الصرف",
 
@@ -5984,7 +5984,7 @@ export default function UserPermissions() {
 
 
 
-        { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "create_custom", "create_donation", "create_from_fund", "edit", "delete", "approve", "exception_approve", "export"] },
+        { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "create_project_linked", "create_from_fund", "create_donation", "create_tamam_platform", "create_custom", "edit", "approve", "exception_approve", "export"] },
 
 
 

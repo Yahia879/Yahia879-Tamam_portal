@@ -16,10 +16,10 @@ const destinationSchema = z.object({
 });
 
 async function authorize(ctx: any, action: "view" | "transfer" | "disburse") {
-  if (["financial", "financial_manager"].includes(ctx.user.role)) return;
   const permissionId = action === "disburse" ? "disbursements.create_from_fund" : `fund.${action}`;
   if (await checkPermission(ctx.user.id, permissionId)) return;
   if (action === "view" && await checkPermission(ctx.user.id, "fund.transfer")) return;
+  if (action !== "disburse" && ["financial", "financial_manager"].includes(ctx.user.role)) return;
   throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لهذا الإجراء في الصندوق" });
 }
 

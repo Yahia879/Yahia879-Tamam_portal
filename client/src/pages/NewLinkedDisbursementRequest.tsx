@@ -110,11 +110,25 @@ export default function NewLinkedDisbursementRequest() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
 
-  const userPermissions = (user as any)?.permissions || [];
-  const canCreateStandard = userPermissions.includes("disbursements.add");
-  const canCreateCustom = userPermissions.includes("disbursements.create_custom");
-  const canCreateDonationDisbursement = userPermissions.includes("disbursements.create_donation");
-  const canCreateFromFund = userPermissions.includes("disbursements.create_from_fund") || ["financial", "financial_manager"].includes((user as any)?.role || "");
+  const { data: userPermsData } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id || 0 },
+    { enabled: !!user?.id, staleTime: 30000 }
+  );
+  const effectivePermissions = (userPermsData as string[]) || (user as any)?.permissions || [];
+
+  const canCreateProjectLinked = effectivePermissions.includes("disbursements.create_project_linked");
+  const canCreateStandard = canCreateProjectLinked;
+  const canCreateFromFund = effectivePermissions.includes("disbursements.create_from_fund");
+  const canCreateDonationDisbursement = effectivePermissions.includes("disbursements.create_donation");
+  const canCreateTamamPlatform = effectivePermissions.includes("disbursements.create_tamam_platform");
+  const canCreateCustom = effectivePermissions.includes("disbursements.create_custom");
+
+  const hasAnyCreationPerm = 
+    canCreateProjectLinked || 
+    canCreateFromFund || 
+    canCreateDonationDisbursement || 
+    canCreateTamamPlatform || 
+    canCreateCustom;
 
   // استرجاع حالة الصفحة المحفوظة في حال العودة من صفحة معاينة التقرير
   const savedState = (() => {
@@ -151,7 +165,7 @@ export default function NewLinkedDisbursementRequest() {
     if (initialUrlParams.projectId > 0) return "project_linked";
     if (savedState?.requestType) {
       const val = savedState.requestType;
-      if (val === "project_linked" && !canCreateStandard) {
+      if (val === "project_linked" && !canCreateProjectLinked) {
         return "supplier_one_time";
       }
       if (val !== "project_linked" && !canCreateCustom) {
@@ -159,15 +173,15 @@ export default function NewLinkedDisbursementRequest() {
       }
       return val;
     }
-    return canCreateStandard ? "project_linked" : "supplier_one_time";
+    return canCreateProjectLinked ? "project_linked" : "supplier_one_time";
   });
   const [isCustom, setIsCustom] = useState(() => {
     if (initialUrlParams.projectId > 0) return false;
-    const val = savedState?.isCustom ?? (!canCreateStandard);
+    const val = savedState?.isCustom ?? (!canCreateProjectLinked);
     if (val && !canCreateCustom) {
       return false;
     }
-    if (!val && !canCreateStandard) {
+    if (!val && !canCreateProjectLinked) {
       return true;
     }
     return val;
@@ -524,6 +538,34 @@ export default function NewLinkedDisbursementRequest() {
       setSuppliers([{ id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }]);
     }
   };
+
+  // Auto-switch to allowed category if current selection is not permitted
+  useEffect(() => {
+    if (!effectivePermissions.length) return;
+    const isCurrentAllowed = 
+      (activeCategory === "approved_report" && canCreateProjectLinked) ||
+      (activeCategory === "fund_project_surplus" && canCreateFromFund) ||
+      (activeCategory === "donation_opportunity" && canCreateDonationDisbursement) ||
+      (activeCategory === "tamam_platform" && canCreateTamamPlatform) ||
+      (activeCategory === "custom" && canCreateCustom);
+
+    if (!isCurrentAllowed && hasAnyCreationPerm) {
+      if (canCreateProjectLinked) handleCategoryChange("approved_report");
+      else if (canCreateFromFund) handleCategoryChange("fund_project_surplus");
+      else if (canCreateDonationDisbursement) handleCategoryChange("donation_opportunity");
+      else if (canCreateTamamPlatform) handleCategoryChange("tamam_platform");
+      else if (canCreateCustom) handleCategoryChange("custom");
+    }
+  }, [
+    activeCategory,
+    effectivePermissions,
+    canCreateProjectLinked,
+    canCreateFromFund,
+    canCreateDonationDisbursement,
+    canCreateTamamPlatform,
+    canCreateCustom,
+    hasAnyCreationPerm
+  ]);
 
   const handleDonationLinkedChange = (checked: boolean) => {
     setIsDonationLinked(checked);
@@ -1930,6 +1972,23 @@ export default function NewLinkedDisbursementRequest() {
     });
   };
   
+  if (userPermsData && !hasAnyCreationPerm) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4 font-sans" dir="rtl">
+          <div className="p-4 rounded-full bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/30 dark:border-rose-900">
+            <AlertCircle className="h-10 w-10 text-rose-600" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">عذراً، ليس لديك صلاحية لإنشاء طلبات الصرف</h2>
+          <p className="text-xs text-muted-foreground max-w-md">يرجى التواصل مع مسؤول النظام لمنحك إحدى صلاحيات إنشاء طلبات الصرف.</p>
+          <Button onClick={() => navigate("/disbursements")} className="mt-2 bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold text-xs">
+            العودة لطلبات الصرف
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 animate-fade-in pb-20 px-3 sm:px-4 md:px-0" dir="rtl">
@@ -2044,7 +2103,7 @@ export default function NewLinkedDisbursementRequest() {
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     {/* 1. طلب صرف مرتبط بتقرير انجاز معتمد */}
-                    {canCreateStandard && (
+                    {canCreateProjectLinked && (
                       <button
                         type="button"
                         onClick={() => handleCategoryChange("approved_report")}
@@ -2130,36 +2189,38 @@ export default function NewLinkedDisbursementRequest() {
                     )}
 
                     {/* 3. مرتبط بالمنصة السابقة */}
-                    <button
-                      type="button"
-                      onClick={() => handleCategoryChange("tamam_platform")}
-                      className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
-                        activeCategory === "tamam_platform"
-                          ? "bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-500/80 dark:border-emerald-500/60 shadow-xs ring-2 ring-emerald-500/20"
-                          : "bg-background border-border hover:border-emerald-300 dark:hover:border-emerald-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
-                      }`}
-                    >
-                      <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
-                        activeCategory === "tamam_platform"
-                          ? "bg-emerald-600 text-white"
-                          : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 group-hover:bg-emerald-200"
-                      }`}>
-                        <Building2 className="w-5 h-5" />
-                      </div>
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className={`text-xs sm:text-sm font-bold block ${activeCategory === "tamam_platform" ? "text-emerald-900 dark:text-emerald-200" : "text-foreground"}`}>
-                            مرتبط بالمنصة السابقة
-                          </span>
-                          {activeCategory === "tamam_platform" && (
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse shrink-0" />
-                          )}
+                    {canCreateTamamPlatform && (
+                      <button
+                        type="button"
+                        onClick={() => handleCategoryChange("tamam_platform")}
+                        className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                          activeCategory === "tamam_platform"
+                            ? "bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-500/80 dark:border-emerald-500/60 shadow-xs ring-2 ring-emerald-500/20"
+                            : "bg-background border-border hover:border-emerald-300 dark:hover:border-emerald-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
+                        }`}
+                      >
+                        <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
+                          activeCategory === "tamam_platform"
+                            ? "bg-emerald-600 text-white"
+                            : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 group-hover:bg-emerald-200"
+                        }`}>
+                          <Building2 className="w-5 h-5" />
                         </div>
-                        <p className={`text-[11px] leading-relaxed ${activeCategory === "tamam_platform" ? "text-emerald-750 dark:text-emerald-300" : "text-muted-foreground"}`}>
-                          طلب صرف مرتبط بسجلات المنصة السابقة
-                        </p>
-                      </div>
-                    </button>
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs sm:text-sm font-bold block ${activeCategory === "tamam_platform" ? "text-emerald-900 dark:text-emerald-200" : "text-foreground"}`}>
+                              مرتبط بالمنصة السابقة
+                            </span>
+                            {activeCategory === "tamam_platform" && (
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse shrink-0" />
+                            )}
+                          </div>
+                          <p className={`text-[11px] leading-relaxed ${activeCategory === "tamam_platform" ? "text-emerald-750 dark:text-emerald-300" : "text-muted-foreground"}`}>
+                            طلب صرف مرتبط بسجلات المنصة السابقة
+                          </p>
+                        </div>
+                      </button>
+                    )}
 
                     {/* 4. طلب صرف مخصص */}
                     {canCreateCustom && (

@@ -123,7 +123,7 @@ const superAdminGroups = [
         ] 
       },
       { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit", "delete", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add", "export"] },
-      { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "create_custom", "create_donation", "create_from_fund", "edit", "delete", "approve", "exception_approve", "export"] },
+      { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "create_project_linked", "create_from_fund", "create_donation", "create_tamam_platform", "create_custom", "edit", "approve", "exception_approve", "export"] },
       { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "add", "edit", "delete", "print", "exception_approve"] },
       { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "transfer", "export"] },
       { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "approve", "reject", "exception_approve", "remind", "cancel_executed", "export"] },
@@ -568,15 +568,15 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     },
     disbursements: {
       view: "عرض طلبات الصرف",
-      add: "إنشاء طلب صرف",
-      create_custom: "إنشاء طلبات صرف مخصصة",
+      create_project_linked: "إنشاء طلب صرف مرتبط بتقرير انجاز أو مستخلص معتمد",
+      create_from_fund: "إنشاء طلب صرف تبرع فائض",
       create_donation: "إنشاء طلب صرف لفرصة تبرع",
-      create_from_fund: "إضافة طلب صرف من صندوق الجمعية",
-      edit: "تعديل طلب الصرف",
-      delete: "حذف طلب صرف",
+      create_tamam_platform: "إنشاء طلب صرف مرتبط بالمنصة السابقة",
+      create_custom: "إنشاء طلب صرف مخصص/عام",
+      edit: "تعديل طلب صرف",
       approve: "اعتماد طلبات الصرف",
       exception_approve: "استثناء اعتماد مُعد الطلب",
-      export: "تصدير طلبات الصرف"
+      export: "تصدير بيانات طلبات الصرف"
     },
     fund: {
       view: "عرض إحصائيات وسجلات الصندوق",

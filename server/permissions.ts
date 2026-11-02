@@ -289,45 +289,25 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
 
   disbursements: [
-
-    "disbursements.view", "disbursements.create", "disbursements.add", "disbursements.edit", "disbursements.delete", 
-
-    "disbursements.approve", "disbursements.create_custom", "disbursements.create_donation", "disbursements.create_from_fund", 
-
-    "disbursements.exception_approve", "disbursements.export"
-
+    "disbursements.view", "disbursements.create", "disbursements.create_project_linked", "disbursements.create_from_fund", 
+    "disbursements.create_donation", "disbursements.create_tamam_platform", "disbursements.create_custom", 
+    "disbursements.edit", "disbursements.approve", "disbursements.exception_approve", "disbursements.export"
   ],
-
   disbursement_requests: [
-
-    "disbursements.view", "disbursements.create", "disbursements.add", "disbursements.edit", "disbursements.delete", 
-
-    "disbursements.approve", "disbursements.create_custom", "disbursements.create_donation", "disbursements.create_from_fund", 
-
-    "disbursements.exception_approve", "disbursements.export"
-
+    "disbursements.view", "disbursements.create", "disbursements.create_project_linked", "disbursements.create_from_fund", 
+    "disbursements.create_donation", "disbursements.create_tamam_platform", "disbursements.create_custom", 
+    "disbursements.edit", "disbursements.approve", "disbursements.exception_approve", "disbursements.export"
   ],
-
   "disbursements.view": ["disbursements.view"],
-
-  "disbursements.add": ["disbursements.add", "disbursements.create", "disbursements.view"],
-
   "disbursements.create": ["disbursements.create", "disbursements.view"],
-
-  "disbursements.edit": ["disbursements.edit", "disbursements.view"],
-
-  "disbursements.delete": ["disbursements.delete", "disbursements.view"],
-
-  "disbursements.approve": ["disbursements.approve", "disbursements.view"],
-
-  "disbursements.create_custom": ["disbursements.create_custom", "disbursements.create", "disbursements.view"],
-
-  "disbursements.create_donation": ["disbursements.create_donation", "disbursements.create", "disbursements.view"],
-
+  "disbursements.create_project_linked": ["disbursements.create_project_linked", "disbursements.create", "disbursements.view"],
   "disbursements.create_from_fund": ["disbursements.create_from_fund", "disbursements.create", "disbursements.view"],
-
+  "disbursements.create_donation": ["disbursements.create_donation", "disbursements.create", "disbursements.view"],
+  "disbursements.create_tamam_platform": ["disbursements.create_tamam_platform", "disbursements.create", "disbursements.view"],
+  "disbursements.create_custom": ["disbursements.create_custom", "disbursements.create", "disbursements.view"],
+  "disbursements.edit": ["disbursements.edit", "disbursements.view"],
+  "disbursements.approve": ["disbursements.approve", "disbursements.view"],
   "disbursements.exception_approve": ["disbursements.exception_approve", "disbursements.view"],
-
   "disbursements.export": ["disbursements.export", "disbursements.view"],
 
 
@@ -3168,18 +3148,12 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "contracts.approve", moduleId: "contracts", action: "approve", nameAr: "اعتماد العقود", nameEn: "Approve Contracts" },
 
       { id: "disbursements.view", moduleId: "disbursements", action: "view", nameAr: "عرض طلبات الصرف", nameEn: "View Disbursement Requests" },
-
-      { id: "disbursements.create", moduleId: "disbursements", action: "create", nameAr: "إنشاء طلبات الصرف", nameEn: "Create Disbursement Requests" },
-
-      { id: "disbursements.edit", moduleId: "disbursements", action: "edit", nameAr: "تعديل طلبات الصرف", nameEn: "Edit Disbursement Requests" },
-
-      { id: "disbursements.delete", moduleId: "disbursements", action: "delete", nameAr: "حذف طلب صرف", nameEn: "Delete Disbursement Request" },
-
+      { id: "disbursements.create_project_linked", moduleId: "disbursements", action: "create_project_linked", nameAr: "إنشاء طلب صرف مرتبط بتقرير انجاز أو مستخلص معتمد", nameEn: "Create Progress Report/Invoice Linked Disbursement" },
+      { id: "disbursements.create_tamam_platform", moduleId: "disbursements", action: "create_tamam_platform", nameAr: "إنشاء طلب صرف مرتبط بالمنصة السابقة", nameEn: "Create Legacy Platform Linked Disbursement" },
+      { id: "disbursements.edit", moduleId: "disbursements", action: "edit", nameAr: "تعديل طلب صرف", nameEn: "Edit Disbursement Requests" },
       { id: "disbursements.approve", moduleId: "disbursements", action: "approve", nameAr: "اعتماد طلبات الصرف", nameEn: "Approve Disbursement Requests" },
-
-      { id: "disbursements.add", moduleId: "disbursements", action: "add", nameAr: "إنشاء طلب صرف", nameEn: "Create Disbursement" },
-
-      { id: "disbursements.export", moduleId: "disbursements", action: "export", nameAr: "تصدير طلبات الصرف", nameEn: "Export Disbursement Requests" },
+      { id: "disbursements.exception_approve", moduleId: "disbursements", action: "exception_approve", nameAr: "استثناء اعتماد مُعد الطلب", nameEn: "Override Requester Approval" },
+      { id: "disbursements.export", moduleId: "disbursements", action: "export", nameAr: "تصدير بيانات طلبات الصرف", nameEn: "Export Disbursement Requests" },
 
       { id: "receipt_vouchers.delete", moduleId: "disbursements", action: "delete", nameAr: "حذف سند القبض", nameEn: "Delete Receipt Voucher" },
 
@@ -3511,10 +3485,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       { id: "requests.sign_final_report", moduleId: "requests", action: "sign_final_report", nameAr: "توقيع التقرير الختامي", nameEn: "Sign Final Report" },
 
-      { id: "disbursements.create_custom", moduleId: "disbursements", action: "create_custom", nameAr: "انشاء طلبات صرف مخصصة", nameEn: "Create Custom Disbursement Requests" },
-
-      { id: "disbursements.create_donation", moduleId: "disbursements", action: "create_donation", nameAr: "انشاء طلب صرف لفرصة تبرع", nameEn: "Create Donation Disbursement Request" },
-
       { id: "disbursements.exception_approve", moduleId: "disbursements", action: "exception_approve", nameAr: "استثناء اعتماد مُعد الطلب", nameEn: "Override Requester Approval" },
 
       { id: "disbursement_orders.exception_approve", moduleId: "disbursements", action: "exception_approve", nameAr: "استثناء اعتماد مُعد الأمر", nameEn: "Override Order Creator Approval" },
@@ -3550,8 +3520,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "fund.view", moduleId: "disbursements", action: "fund_view", nameAr: "عرض إحصائيات وسجلات الصندوق", nameEn: "View Fund Statistics and Records" },
 
       { id: "fund.transfer", moduleId: "disbursements", action: "fund_transfer", nameAr: "تحويل فائض من المشروع إلى الصندوق", nameEn: "Transfer Project Surplus to Fund" },
-
-      { id: "disbursements.create_from_fund", moduleId: "disbursements", action: "create_from_fund", nameAr: "إضافة طلب صرف من صندوق الجمعية", nameEn: "Create Disbursement Request from Association Fund" },
 
       { id: "requests.create_quick_request", moduleId: "requests", action: "create_quick_request", nameAr: "إنشاء طلب سريع", nameEn: "Create Quick Request" },
 
@@ -3668,6 +3636,15 @@ async function ensureAllCustomPermissionsExist(db: any) {
       }
 
     }
+    // Cleanup removed permissions disbursements.add and disbursements.delete
+    try {
+      await db.delete(rolePermissions).where(inArray(rolePermissions.permissionId, ["disbursements.add", "disbursements.delete"]));
+      await db.delete(userPermissions).where(inArray(userPermissions.permissionId, ["disbursements.add", "disbursements.delete"]));
+      await db.delete(permissions).where(inArray(permissions.id, ["disbursements.add", "disbursements.delete"]));
+    } catch (cleanErr) {
+      console.warn("Could not clean old disbursements permissions:", cleanErr);
+    }
+
 
 
 
@@ -4727,11 +4704,11 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
       if (
 
-        parentKey === "disbursements.add" || 
-
-        parentKey === "disbursements.create_custom" || 
-
+        parentKey === "disbursements.create_project_linked" ||
+        parentKey === "disbursements.create_from_fund" ||
         parentKey === "disbursements.create_donation" ||
+        parentKey === "disbursements.create_tamam_platform" ||
+        parentKey === "disbursements.create_custom" ||
 
         parentKey === "staff_notifications.edit" ||
 
@@ -5514,84 +5491,48 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
 
   // 5. طلبات الصرف
-
   const disbursementSubPerms = [
-
     "disbursements.view",
-
-    "disbursements.add",
-
     "disbursements.create",
-
-    "disbursements.edit",
-
-    "disbursements.delete",
-
-    "disbursements.approve",
-
-    "disbursements.create_custom",
-
-    "disbursements.create_donation",
-
+    "disbursements.create_project_linked",
     "disbursements.create_from_fund",
-
+    "disbursements.create_donation",
+    "disbursements.create_tamam_platform",
+    "disbursements.create_custom",
+    "disbursements.edit",
+    "disbursements.approve",
     "disbursements.exception_approve",
-
     "disbursements.export"
-
   ];
 
   if (
-
     revokedPermissions.has("disbursements") ||
-
     revokedPermissions.has("disbursements.view") ||
-
     revokedPermissions.has("disbursement_requests") ||
-
     !allPermissions.has("disbursements.view")
-
   ) {
-
     allPermissions.delete("disbursements");
-
     allPermissions.delete("disbursement_requests");
-
     if (revokedPermissions.has("disbursements") || revokedPermissions.has("disbursements.view") || revokedPermissions.has("disbursement_requests")) {
-
       disbursementSubPerms.forEach(p => allPermissions.delete(p));
-
     }
-
   } else if (allPermissions.has("disbursements.view")) {
-
     allPermissions.add("disbursements");
-
     allPermissions.add("disbursement_requests");
 
-    if (allPermissions.has("disbursements.create_custom")) {
-
-      allPermissions.add("disbursements.create_donation");
-
-    }
-
     if (
-
-      allPermissions.has("disbursements.add") ||
-
-      allPermissions.has("disbursements.create_custom") ||
-
-      allPermissions.has("disbursements.create_donation")
-
+      allPermissions.has("disbursements.create_project_linked") ||
+      allPermissions.has("disbursements.create_from_fund") ||
+      allPermissions.has("disbursements.create_donation") ||
+      allPermissions.has("disbursements.create_tamam_platform") ||
+      allPermissions.has("disbursements.create_custom")
     ) {
-
       allPermissions.add("disbursements.create");
-
     }
-
   }
 
-
+  allPermissions.delete("disbursements.add");
+  allPermissions.delete("disbursements.delete");
 
   // 6. سندات القبض
 

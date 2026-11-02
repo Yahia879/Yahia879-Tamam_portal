@@ -434,20 +434,29 @@ export default function DisbursementRequests() {
   const permOrdersSign = usePermission("disbursement_orders.sign");
   const permOrdersApprove = usePermission("disbursement_orders.approve");
   const permDisbursementsEdit = usePermission("disbursements.edit");
-  const permDisbursementsAdd = usePermission("disbursements.add");
-  const permCreateCustom = usePermission("disbursements.create_custom");
-  const permDisbursementsCreate = usePermission("disbursements.create");
   const permExceptionApprove = usePermission("disbursements.exception_approve");
-
   const permDisbursementsView = usePermission("disbursements.view") || usePermission("disbursements") || usePermission("disbursement_requests");
   const permDisbursementsExport = usePermission("disbursements.export");
-  const permDisbursementsDelete = usePermission("disbursements.delete");
 
-  const hasApprovePermission = permDisbursementsApprove || permDisbursementsSign || permOrdersSign;
+  const permCreateProjectLinked = usePermission("disbursements.create_project_linked");
+  const permCreateFromFund = usePermission("disbursements.create_from_fund");
+  const permCreateDonation = usePermission("disbursements.create_donation");
+  const permCreateTamamPlatform = usePermission("disbursements.create_tamam_platform");
+  const permCreateCustom = usePermission("disbursements.create_custom");
+
+  const canCreateDisbursement = 
+    permCreateProjectLinked || 
+    permCreateFromFund || 
+    permCreateDonation || 
+    permCreateTamamPlatform || 
+    permCreateCustom;
+
+  const canEditRequest = permDisbursementsEdit;
   const canCreateRequest = permDisbursementsEdit;
-  const canCreateDisbursement = permDisbursementsCreate;
-  const canApproveRequest = hasApprovePermission;
+  const canApproveRequest = permDisbursementsApprove;
   const canExceptionApprove = permExceptionApprove;
+  const hasAnyRowAction = canApproveRequest || canEditRequest || canExceptionApprove;
+  const hasApprovePermission = permDisbursementsApprove || permDisbursementsSign || permOrdersSign;
   const canCreateOrder = hasApprovePermission;
   const canApproveOrder = permOrdersApprove || permOrdersSign || hasApprovePermission;
   const canExecuteOrder = ["super_admin", "system_admin", "financial"].includes(user?.role || "");
@@ -813,7 +822,9 @@ export default function DisbursementRequests() {
                         <TableHead className="py-3.5 px-4 text-right min-w-[130px] font-bold text-slate-700 dark:text-slate-200">المبلغ</TableHead>
                         <TableHead className="py-3.5 px-4 text-right min-w-[210px] font-bold text-slate-700 dark:text-slate-200">الحالة</TableHead>
                         <TableHead className="py-3.5 px-4 text-right min-w-[110px] font-bold text-slate-700 dark:text-slate-200">التاريخ</TableHead>
+                        {hasAnyRowAction && (
                         <TableHead className="py-3.5 px-4 text-center min-w-[100px] font-bold text-slate-700 dark:text-slate-200">الإجراءات</TableHead>
+                      )}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -919,6 +930,7 @@ export default function DisbursementRequests() {
                                   ? new Date(request.requestedAt).toLocaleDateString("ar-SA")
                                   : "-"}
                               </TableCell>
+                              {hasAnyRowAction && (
                               <TableCell className="py-3.5 px-4 text-center">
                                 {request.status === "rejected" ? (
                                   <DropdownMenu>
@@ -948,7 +960,7 @@ export default function DisbursementRequests() {
                                           <span>تعديل طلب الصرف</span>
                                         </DropdownMenuItem>
                                       )}
-                                      {hasApprovePermission && (
+                                      {canApproveRequest && (
                                         <DropdownMenuItem
                                           onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
                                           className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-blue-600 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-950/30"
@@ -961,7 +973,7 @@ export default function DisbursementRequests() {
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 ) : isConverted ? (
-                                  hasApprovePermission ? (
+                                  canApproveRequest ? (
                                     <div className="flex flex-wrap justify-center gap-1.5">
                                       <Button
                                         variant="outline"
@@ -984,7 +996,7 @@ export default function DisbursementRequests() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="w-56 text-right font-medium">
-                                      {hasApprovePermission && (
+                                      {canApproveRequest && (
                                         <DropdownMenuItem
                                           onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
                                           className="flex items-center gap-2 cursor-pointer text-[#1a5f4a] hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
@@ -999,7 +1011,7 @@ export default function DisbursementRequests() {
                                           className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
                                         >
                                           <FileText className="h-4 w-4 text-gray-500" />
-                                          <span>تعديل طلب الدفعة</span>
+                                          <span>تعديل طلب الصرف</span>
                                         </DropdownMenuItem>
                                       )}
                                       {request.fundRestrictionType !== "project" && correspondingReport && (
@@ -1042,7 +1054,7 @@ export default function DisbursementRequests() {
                                       )}
 
                                       {/* Stage 1 Approval: Preparer */}
-                                      {(request.status === "pending" || request.status === "draft") && (request.requestedBy === user?.id) && (
+                                      {(request.status === "pending" || request.status === "draft") && (request.requestedBy === user?.id) && canApproveRequest && (
                                         <>
                                           <DropdownMenuItem
                                             onClick={() => {
@@ -1070,7 +1082,7 @@ export default function DisbursementRequests() {
                                       )}
 
                                       {/* Stage 2 Approval: Executive Director ONLY */}
-                                      {request.status === "pending_executive" && isExecutiveDirector && (
+                                      {request.status === "pending_executive" && isExecutiveDirector && canApproveRequest && (
                                         <>
                                           <DropdownMenuItem
                                             onClick={() => {
@@ -1101,6 +1113,7 @@ export default function DisbursementRequests() {
                                   </DropdownMenu>
                                 )}
                               </TableCell>
+                              )}
                             </TableRow>
                           );
                         })
@@ -1200,6 +1213,7 @@ export default function DisbursementRequests() {
                                   status={request.status as any} 
                                   type="request" 
                                 />
+                                  {hasAnyRowAction && (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted shrink-0">
@@ -1207,8 +1221,8 @@ export default function DisbursementRequests() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="w-56 text-right font-medium">
-                                    {/* 1. Print/View Report - Available if has approve permission */}
-                                    {hasApprovePermission && (
+                                    {/* 1. Print/View Report */}
+                                    {canApproveRequest && (
                                       <DropdownMenuItem
                                         onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
                                         className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-blue-600 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-950/30"
@@ -1218,7 +1232,7 @@ export default function DisbursementRequests() {
                                       </DropdownMenuItem>
                                     )}
 
-                                    {/* Super Admin ONLY: Approval Exception (استثناء اعتماد) */}
+                                    {/* Approval Exception */}
                                     {canExceptionApprove && request.requestedBy !== user?.id && (request.status === "pending" || request.status === "draft") && (
                                       <DropdownMenuItem
                                         onClick={() => {
@@ -1233,7 +1247,7 @@ export default function DisbursementRequests() {
                                       </DropdownMenuItem>
                                     )}
 
-                                    {/* 2. View Rejection Reason - If rejected */}
+                                    {/* Rejection Reason */}
                                     {request.status === "rejected" && request.rejectionReason && (
                                       <DropdownMenuItem
                                         onClick={() => {
@@ -1248,8 +1262,8 @@ export default function DisbursementRequests() {
                                       </DropdownMenuItem>
                                     )}
 
-                                    {/* 3. Edit Request - If editable */}
-                                    {canCreateRequest && (request.status === "draft" || request.status === "rejected") && (
+                                    {/* Edit Request */}
+                                    {canEditRequest && (request.status === "draft" || request.status === "rejected" || request.status === "pending") && (
                                       <DropdownMenuItem
                                         onClick={() => navigate(`/disbursements/requests/${request.id}/edit`)}
                                         className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
@@ -1259,7 +1273,63 @@ export default function DisbursementRequests() {
                                       </DropdownMenuItem>
                                     )}
 
-                                    {/* 4. Progress Report - If exists */}
+                                    {/* Stage 1 Approval: Preparer */}
+                                    {(request.status === "pending" || request.status === "draft") && (request.requestedBy === user?.id) && canApproveRequest && (
+                                      <>
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setSelectedRequest(request);
+                                            setApprovalNotes("");
+                                            setShowApproveDialog(true);
+                                          }}
+                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
+                                        >
+                                          <CheckCircle className="h-4 w-4 text-emerald-500" />
+                                          <span>اعتماد طلب الصرف</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setSelectedRequest(request);
+                                            setRejectionReason("");
+                                            setShowRejectDialog(true);
+                                          }}
+                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30"
+                                        >
+                                          <XCircle className="h-4 w-4 text-rose-500" />
+                                          <span>إلغاء طلب الصرف</span>
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+
+                                    {/* Stage 2 Approval: Executive Director */}
+                                    {request.status === "pending_executive" && isExecutiveDirector && canApproveRequest && (
+                                      <>
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setSelectedRequest(request);
+                                            setApprovalNotes("");
+                                            setShowApproveDialog(true);
+                                          }}
+                                          className="flex items-center gap-2 cursor-pointer font-bold text-[#1a5f4a] hover:text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
+                                        >
+                                          <CheckCircle className="h-4 w-4 text-emerald-600 animate-pulse" />
+                                          <span>اعتماد طلب الصرف</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setSelectedRequest(request);
+                                            setRejectionReason("");
+                                            setShowRejectDialog(true);
+                                          }}
+                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30"
+                                        >
+                                          <XCircle className="h-4 w-4 text-rose-500" />
+                                          <span>إلغاء طلب الصرف</span>
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+
+                                    {/* Progress Report */}
                                     {request.fundRestrictionType !== "project" && correspondingReport && (
                                       <DropdownMenuItem
                                         onClick={() => navigate(`/progress-reports/${correspondingReport.id}/print`)}
@@ -1272,6 +1342,7 @@ export default function DisbursementRequests() {
 
                                   </DropdownMenuContent>
                                 </DropdownMenu>
+                                )}
                               </div>
                             </div>
 
