@@ -87,7 +87,7 @@ export default function FundPage() {
 
   const canTransferToFund = usePermission("fund.transfer");
 
-  const canExportFund = usePermission("fund.export");
+  const canViewMovements = usePermission("fund.export");
 
   const query = window.location.search;
 
@@ -119,13 +119,15 @@ export default function FundPage() {
 
 
 
-  const { data: movements = [], isLoading: isLoadingMovements } = trpc.fund.movements.useQuery({
-
-    limit: 6,
-
-    all: showAllMovements,
-
-  });
+  const { data: movements = [], isLoading: isLoadingMovements } = trpc.fund.movements.useQuery(
+    {
+      limit: 6,
+      all: showAllMovements,
+    },
+    {
+      enabled: canViewMovements,
+    }
+  );
 
   const { data: projectsData } = trpc.projects.getAll.useQuery({ limit: 200 });
 
@@ -440,29 +442,33 @@ export default function FundPage() {
 
 
   if (showAllMovements) {
+    if (!canViewMovements) {
+      return (
+        <DashboardLayout>
+          <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4 font-sans" dir="rtl">
+            <div className="p-4 rounded-full bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/30 dark:border-rose-900">
+              <AlertCircle className="h-10 w-10 text-rose-600" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">ليس لديك صلاحية لعرض سجلات حركات الصندوق</h2>
+            <Button onClick={() => navigate("/fund")} className="mt-2 bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold">
+              العودة إلى الصندوق
+            </Button>
+          </div>
+        </DashboardLayout>
+      );
+    }
 
     return (
-
       <DashboardLayout>
-
         <div dir="rtl" className="mx-auto max-w-7xl space-y-6 p-4 font-sans sm:p-6">
-
           <div>
-
             <h1 className="text-2xl font-black text-slate-900">سجل حركات الصندوق</h1>
-
             <p className="mt-1 text-sm text-muted-foreground">جميع عمليات الإيداع والصرف والتحويل المسجلة</p>
-
           </div>
-
           {movementHistoryCard}
-
         </div>
-
       </DashboardLayout>
-
     );
-
   }
 
 
@@ -889,7 +895,7 @@ export default function FundPage() {
 
 
 
-        {movementHistoryCard}
+        {canViewMovements && movementHistoryCard}
 
       </div>
 

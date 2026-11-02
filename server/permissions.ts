@@ -210,8 +210,6 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   financial_approval: [
 
-    "financial_approval.view",
-
     "financial_approval.progress_invoices",
 
     "financial_approval.disbursement_requests",
@@ -232,25 +230,23 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   ],
 
-  "financial_approval.view": ["financial_approval.view", "financial.view"],
+  "financial_approval.progress_invoices": ["financial_approval.progress_invoices", "financial_approval", "financial.view"],
 
-  "financial_approval.progress_invoices": ["financial_approval.progress_invoices", "financial_approval.view", "financial.view"],
+  "financial_approval.disbursement_requests": ["financial_approval.disbursement_requests", "financial_approval", "financial.view"],
 
-  "financial_approval.disbursement_requests": ["financial_approval.disbursement_requests", "financial_approval.view", "financial.view"],
+  "financial_approval.disbursement_orders": ["financial_approval.disbursement_orders", "financial_approval", "financial.view"],
 
-  "financial_approval.disbursement_orders": ["financial_approval.disbursement_orders", "financial_approval.view", "financial.view"],
+  "financial_approval.custody_requests": ["financial_approval.custody_requests", "financial_approval", "financial.view"],
 
-  "financial_approval.custody_requests": ["financial_approval.custody_requests", "financial_approval.view", "financial.view"],
+  "financial_approval.receipt_vouchers": ["financial_approval.receipt_vouchers", "financial_approval", "financial.view"],
 
-  "financial_approval.receipt_vouchers": ["financial_approval.receipt_vouchers", "financial_approval.view", "financial.view"],
+  "financial_approval.contracts": ["financial_approval.contracts", "financial_approval", "financial.view"],
 
-  "financial_approval.contracts": ["financial_approval.contracts", "financial_approval.view", "financial.view"],
+  "financial_approval.purchase_orders": ["financial_approval.purchase_orders", "financial_approval", "financial.view"],
 
-  "financial_approval.purchase_orders": ["financial_approval.purchase_orders", "financial_approval.view", "financial.view"],
+  "financial_approval.progress_reports": ["financial_approval.progress_reports", "financial_approval", "financial.view"],
 
-  "financial_approval.progress_reports": ["financial_approval.progress_reports", "financial_approval.view", "financial.view"],
-
-  "financial_approval.approve": ["financial_approval.approve", "financial_approval.view", "financial.approve"],
+  "financial_approval.approve": ["financial_approval.approve", "financial_approval", "financial.approve"],
 
 
 
@@ -3118,7 +3114,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       // 3. قسم الاعتمادات
 
-      { id: "financial_approval.view", moduleId: "financial_approval", action: "view", nameAr: "عرض قسم الاعتمادات المالية", nameEn: "View Financial Approvals" },
 
       { id: "financial_approval.progress_invoices", moduleId: "financial_approval", action: "progress_invoices", nameAr: "عرض المستخلصات بانتظار الاعتماد", nameEn: "View Pending Progress Invoices" },
 
@@ -3177,7 +3172,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       { id: "receipt_vouchers.print", moduleId: "disbursements", action: "print", nameAr: "طباعة سند القبض", nameEn: "Print Receipt Voucher" },
 
-      { id: "fund.export", moduleId: "disbursements", action: "export", nameAr: "تصدير كشف حساب الصندوق", nameEn: "Export Fund Statement" },
+      { id: "fund.export", moduleId: "disbursements", action: "export", nameAr: "عرض سجلات حركات الصندوق", nameEn: "View Fund Movements" },
 
       { id: "disbursement_orders.export", moduleId: "disbursements", action: "export", nameAr: "تصدير أوامر الصرف", nameEn: "Export Disbursement Orders" },
 
@@ -3665,6 +3660,15 @@ async function ensureAllCustomPermissionsExist(db: any) {
       await db.delete(permissions).where(inArray(permissions.id, ["disbursements.add", "disbursements.delete"]));
     } catch (cleanErr) {
       console.warn("Could not clean old disbursements permissions:", cleanErr);
+    }
+
+    // Cleanup removed permission financial_approval.view
+    try {
+      await db.delete(rolePermissions).where(eq(rolePermissions.permissionId, "financial_approval.view"));
+      await db.delete(userPermissions).where(eq(userPermissions.permissionId, "financial_approval.view"));
+      await db.delete(permissions).where(eq(permissions.id, "financial_approval.view"));
+    } catch (cleanErr) {
+      console.warn("Could not clean old financial_approval.view permission:", cleanErr);
     }
 
     // Cleanup and migrate receipt_vouchers.add and receipt_vouchers.delete
@@ -5447,8 +5451,6 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
   const approvalSubPerms = [
 
-    "financial_approval.view",
-
     "financial_approval.progress_invoices",
 
     "financial_approval.disbursement_requests",
@@ -5469,21 +5471,21 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
   ];
 
+  allPermissions.delete("financial_approval.view");
+
   const hasAnyApprovalPerm = approvalSubPerms.some(p => allPermissions.has(p) && !revokedPermissions.has(p));
 
-  if (revokedPermissions.has("financial_approval") || revokedPermissions.has("financial_approval.view") || !hasAnyApprovalPerm) {
+  if (revokedPermissions.has("financial_approval") || !hasAnyApprovalPerm) {
 
     allPermissions.delete("financial_approval");
 
-    allPermissions.delete("financial_approval.view");
-
-    if (revokedPermissions.has("financial_approval") || revokedPermissions.has("financial_approval.view")) {
+    if (revokedPermissions.has("financial_approval")) {
 
       approvalSubPerms.forEach(p => allPermissions.delete(p));
 
     }
 
-  } else if (allPermissions.has("financial_approval.view") || hasAnyApprovalPerm) {
+  } else if (hasAnyApprovalPerm) {
 
     allPermissions.add("financial_approval");
 
@@ -5651,6 +5653,13 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
     allPermissions.add("fund");
 
+  }
+
+  if (revokedPermissions.has("fund.transfer")) {
+    allPermissions.delete("fund.transfer");
+  }
+  if (revokedPermissions.has("fund.export")) {
+    allPermissions.delete("fund.export");
   }
 
 

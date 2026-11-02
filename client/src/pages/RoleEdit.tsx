@@ -110,7 +110,6 @@ const superAdminGroups = [
         nameAr: "قسم الاعتمادات", 
         icon: CheckSquare, 
         perms: [
-          "view",
           "progress_invoices",
           "disbursement_requests", 
           "disbursement_orders", 
@@ -499,7 +498,6 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       export: "تصدير عروض الأسعار"
     },
     financial_approval: {
-      view: "عرض قسم الاعتمادات",
       progress_invoices: "عرض المستخلصات بانتظار الاعتماد",
       disbursement_requests: "عرض طلبات الصرف بانتظار الاعتماد",
       disbursement_orders: "عرض أوامر الصرف بانتظار الاعتماد",
@@ -581,7 +579,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     fund: {
       view: "عرض إحصائيات وسجلات الصندوق",
       transfer: "تحويل فائض من المشروع إلى الصندوق",
-      export: "تصدير كشف حساب الصندوق"
+      export: "عرض سجلات حركات الصندوق"
     },
     receipt_vouchers: {
       view: "عرض سندات القبض",
@@ -1045,14 +1043,6 @@ export default function RoleEdit() {
       }
     }
 
-    // منع تفعيل أي صلاحية فرعية لقسم الاعتمادات إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("financial_approval.") && permId !== "financial_approval.view") {
-      if (!selectedPerms.includes("financial_approval.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض قسم الاعتمادات' أولاً");
-        return;
-      }
-    }
-
     // منع تفعيل أي صلاحية فرعية للمستخدمين إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("staff_users.") && permId !== "staff_users.view") {
       if (!selectedPerms.includes("staff_users.view")) {
@@ -1320,9 +1310,6 @@ export default function RoleEdit() {
         }
         if (permId === "quotations.view") {
           next = next.filter(id => !id.startsWith("quotations."));
-        }
-        if (permId === "financial_approval.view") {
-          next = next.filter(id => !id.startsWith("financial_approval."));
         }
         if (permId === "staff_users.view") {
           next = next.filter(id => !id.startsWith("staff_users."));
@@ -1863,7 +1850,6 @@ export default function RoleEdit() {
                               (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !selectedPerms.includes("contracts.view")) ||
                               (perm.id.startsWith("disbursements.") && perm.id !== "disbursements.view" && perm.id !== "disbursements.sign" && !selectedPerms.includes("disbursements.view")) ||
                               (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && perm.id !== "disbursement_orders.sign" && !selectedPerms.includes("disbursement_orders.view")) ||
-                              (perm.id.startsWith("financial_approval.") && perm.id !== "financial_approval.view" && !selectedPerms.includes("financial_approval.view")) ||
                               (perm.id.startsWith("financial_reports.") && perm.id !== "financial_reports.view" && !selectedPerms.includes("financial_reports.view")) ||
                               (perm.id === "board_leadership.remind" && !selectedPerms.includes("board_chairman")) ||
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||

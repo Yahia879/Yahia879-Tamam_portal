@@ -4528,8 +4528,6 @@ export default function UserPermissions() {
 
       financial_approval: {
 
-        view: "عرض قسم الاعتمادات",
-
         progress_invoices: "اعتماد المستخلصات",
 
         disbursement_requests: "اعتماد طلبات الصرف",
@@ -4762,7 +4760,7 @@ export default function UserPermissions() {
 
         transfer: "تحويل فائض من المشروع إلى الصندوق",
 
-        export: "تصدير كشف حركات الصندوق"
+        export: "عرض سجلات حركات الصندوق"
 
       },
 
@@ -5935,10 +5933,6 @@ export default function UserPermissions() {
 
 
           perms: [
-
-
-
-            "view",
 
 
 
@@ -7880,7 +7874,6 @@ export default function UserPermissions() {
 
                               (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && perm.id !== "disbursement_orders.sign" && !isChecked("disbursement_orders.view")) ||
 
-                              (perm.id.startsWith("financial_approval.") && perm.id !== "financial_approval.view" && !isChecked("financial_approval.view")) ||
 
                               (perm.id.startsWith("financial_reports.") && perm.id !== "financial_reports.view" && !isChecked("financial_reports.view")) ||
 

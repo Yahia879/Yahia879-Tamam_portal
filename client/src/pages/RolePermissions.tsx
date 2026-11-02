@@ -370,14 +370,6 @@ export default function RolePermissions() {
       }
     }
 
-    // منع تفعيل أي صلاحية فرعية لقسم الاعتمادات إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("financial_approval.") && permId !== "financial_approval.view") {
-      if (!selectedPerms.includes("financial_approval.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض قسم الاعتمادات' أولاً");
-        return;
-      }
-    }
-
     // منع تفعيل أي صلاحية فرعية للصندوق إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("fund.") && permId !== "fund.view") {
       if (!selectedPerms.includes("fund.view")) {
@@ -482,9 +474,6 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض قائمة عروض الأسعار'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات عروض الأسعار الأخرى
         if (permId === "quotations.view") {
           next = next.filter(id => !id.startsWith("quotations."));
-        }
-        if (permId === "financial_approval.view") {
-          next = next.filter(id => !id.startsWith("financial_approval."));
         }
         if (permId === "fund.view") {
           next = next.filter(id => !id.startsWith("fund."));
@@ -1084,6 +1073,7 @@ export default function RolePermissions() {
           permissions: [
             { id: "fund.view", nameAr: "عرض إحصائيات وسجلات الصندوق" },
             { id: "fund.transfer", nameAr: "تحويل فائض من المشروع إلى الصندوق" },
+            { id: "fund.export", nameAr: "عرض سجلات حركات الصندوق" },
           ]
         },
         {
@@ -1329,6 +1319,7 @@ export default function RolePermissions() {
           permissions: [
             { id: "fund.view", nameAr: "عرض إحصائيات وسجلات الصندوق" },
             { id: "fund.transfer", nameAr: "تحويل فائض من المشروع إلى الصندوق" },
+            { id: "fund.export", nameAr: "عرض سجلات حركات الصندوق" },
           ]
         },
         {
@@ -1461,7 +1452,7 @@ export default function RolePermissions() {
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "create_project_linked", "create_from_fund", "create_donation", "create_tamam_platform", "create_custom", "edit", "approve", "exception_approve", "export"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "create_project", "create_restricted", "create_unrestricted", "edit", "print", "exception_approve"] },
-        { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "transfer"] },
+        { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "transfer", "export"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind", "cancel_executed"] },
         { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create"] },
       ]
@@ -1674,7 +1665,6 @@ export default function RolePermissions() {
           nameAr: "قسم الاعتمادات",
           icon: CheckSquare,
           perms: [
-            "view",
             "progress_invoices",
             "disbursement_requests",
             "disbursement_orders",
@@ -2126,7 +2116,6 @@ export default function RolePermissions() {
         export: "تصدير عروض الأسعار"
       },
       financial_approval: {
-        view: "عرض قسم الاعتمادات",
         progress_invoices: "عرض المستخلصات بانتظار الاعتماد",
         disbursement_requests: "عرض طلبات الصرف بانتظار الاعتماد",
         disbursement_orders: "عرض أوامر الصرف بانتظار الاعتماد",
@@ -2201,7 +2190,7 @@ export default function RolePermissions() {
       fund: {
         view: "عرض إحصائيات وسجلات الصندوق",
         transfer: "تحويل فائض من المشروع إلى الصندوق",
-        export: "تصدير كشف حساب الصندوق"
+        export: "عرض سجلات حركات الصندوق"
       },
       disbursement_orders: {
         view: "عرض أوامر الصرف",
@@ -2738,7 +2727,6 @@ export default function RolePermissions() {
                                   (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !selectedPerms.includes("contracts.view")) ||
                                   (perm.id.startsWith("disbursements.") && perm.id !== "disbursements.view" && perm.id !== "disbursements.sign" && !selectedPerms.includes("disbursements.view")) ||
                                   (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && perm.id !== "disbursement_orders.sign" && !selectedPerms.includes("disbursement_orders.view")) ||
-                                  (perm.id.startsWith("financial_approval.") && perm.id !== "financial_approval.view" && !selectedPerms.includes("financial_approval.view")) ||
                                   (perm.id.startsWith("financial_reports.") && perm.id !== "financial_reports.view" && !selectedPerms.includes("financial_reports.view")) ||
                                   (perm.id === "board_leadership.remind" && !selectedPerms.includes("board_chairman")) ||
                                 (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||

@@ -390,7 +390,7 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
     "financial_approval.progress_reports",
     "financial_approval.approve",
   ];
-  if (has("financial_approval") || has("financial_approval.view") || permissions.some(p => VALID_APPROVAL_PERMS.includes(p))) {
+  if (has("financial_approval") || permissions.some(p => VALID_APPROVAL_PERMS.includes(p))) {
     finItems.push({ icon: CheckSquare, label: isEn ? "Approvals" : "الاعتمادات", path: "/financial-approval" });
   }
   if (has("contracts") || has("contracts.view")) {
@@ -405,7 +405,7 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   if (has("receipt_vouchers") || has("receipt_vouchers.view")) {
     finItems.push({ icon: Coins, label: "سندات القبض", path: "/receipt-vouchers" });
   }
-  if (has("fund") || has("fund.view")) {
+  if (has("fund") || has("fund.view") || has("fund.transfer") || has("fund.export")) {
     finItems.push({ icon: Landmark, label: "الصندوق", path: "/fund" });
   }
   if (has("custody_requests") || has("custody_requests.view")) {

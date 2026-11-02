@@ -379,7 +379,7 @@ export default function FinancialApproval() {
   ];
 
   const hasSpecificPerm = APPROVAL_PERMISSION_KEYS.some((key) => userPerms.includes(key));
-  const hasApprovalPerm = hasSpecificPerm || userPerms.includes("financial_approval") || userPerms.includes("financial_approval.view");
+  const hasApprovalPerm = hasSpecificPerm || userPerms.includes("financial_approval");
 
   const allowedCategoryCards = useMemo(() => {
     return APPROVAL_CARDS.filter((card) => {

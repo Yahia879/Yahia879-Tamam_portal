@@ -15,11 +15,12 @@ const destinationSchema = z.object({
   restrictedProjectId: z.number().int().positive().optional(),
 });
 
-async function authorize(ctx: any, action: "view" | "transfer" | "disburse") {
-  const permissionId = action === "disburse" ? "disbursements.create_from_fund" : `fund.${action}`;
+async function authorize(ctx: any, action: "view" | "transfer" | "disburse" | "movements") {
+  const permissionId = action === "disburse" ? "disbursements.create_from_fund"
+    : action === "movements" ? "fund.export"
+    : `fund.${action}`;
   if (await checkPermission(ctx.user.id, permissionId)) return;
-  if (action === "view" && await checkPermission(ctx.user.id, "fund.transfer")) return;
-  if (action !== "disburse" && ["financial", "financial_manager"].includes(ctx.user.role)) return;
+  if (action === "view" && (await checkPermission(ctx.user.id, "fund.transfer") || await checkPermission(ctx.user.id, "fund.export"))) return;
   throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لهذا الإجراء في الصندوق" });
 }
 
@@ -115,7 +116,7 @@ export const fundRouter = router({
     all: z.boolean().optional(),
   }).optional())
     .query(async ({ input, ctx }) => {
-      await authorize(ctx, "view");
+      await authorize(ctx, "movements");
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       const query = db.select().from(fundMovements).orderBy(desc(fundMovements.id));
