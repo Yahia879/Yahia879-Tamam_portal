@@ -69,4 +69,25 @@ describe("Financial Reports Permissions Refactor", () => {
     expect(hasRouteAccess("/receipt-vouchers/new", "custom", ["receipt_vouchers.create_restricted"], false)).toBe(true);
     expect(hasRouteAccess("/receipt-vouchers/new", "custom", ["receipt_vouchers.create_project"], false)).toBe(true);
   });
+
+  it("should have correct PERMISSION_EXPANSION for disbursement_orders", () => {
+    const expanded = PERMISSION_EXPANSION["disbursement_orders"];
+    expect(expanded).toContain("disbursement_orders.view");
+    expect(expanded).toContain("disbursement_orders.create_direct");
+    expect(expanded).toContain("disbursement_orders.exception_approve");
+    expect(expanded).toContain("disbursement_orders.remind");
+    expect(expanded).toContain("disbursement_orders.cancel_executed");
+    expect(expanded).toContain("disbursement_orders.export");
+
+    expect(expanded).not.toContain("disbursement_orders.approve");
+    expect(expanded).not.toContain("disbursement_orders.reject");
+  });
+
+  it("should block /disbursement-orders/new-direct when user only has disbursement_orders.view", () => {
+    expect(hasRouteAccess("/disbursement-orders/new-direct", "custom", ["disbursement_orders.view"], false)).toBe(false);
+  });
+
+  it("should allow /disbursement-orders/new-direct when user has disbursement_orders.create_direct", () => {
+    expect(hasRouteAccess("/disbursement-orders/new-direct", "custom", ["disbursement_orders.create_direct"], false)).toBe(true);
+  });
 });

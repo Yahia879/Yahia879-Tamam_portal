@@ -352,22 +352,17 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
 
   disbursement_orders: [
-
-    "disbursement_orders.view", "disbursement_orders.create_direct", "disbursement_orders.approve", 
-
-    "disbursement_orders.reject", "disbursement_orders.exception_approve", "disbursement_orders.remind", 
-
-    "disbursement_orders.cancel_executed", "disbursement_orders.export"
-
+    "disbursement_orders.view",
+    "disbursement_orders.create_direct",
+    "disbursement_orders.exception_approve",
+    "disbursement_orders.remind",
+    "disbursement_orders.cancel_executed",
+    "disbursement_orders.export"
   ],
 
   "disbursement_orders.view": ["disbursement_orders.view", "disbursement_orders.view_details"],
 
   "disbursement_orders.create_direct": ["disbursement_orders.create_direct", "disbursement_orders.view"],
-
-  "disbursement_orders.approve": ["disbursement_orders.approve", "financial.approve", "disbursement_orders.view"],
-
-  "disbursement_orders.reject": ["disbursement_orders.reject", "financial.approve", "disbursement_orders.view"],
 
   "disbursement_orders.exception_approve": ["disbursement_orders.exception_approve", "disbursement_orders.view"],
 
@@ -5733,10 +5728,6 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
     "disbursement_orders.create_direct",
 
-    "disbursement_orders.approve",
-
-    "disbursement_orders.reject",
-
     "disbursement_orders.exception_approve",
 
     "disbursement_orders.remind",
@@ -5775,23 +5766,32 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
   }
 
+  disbursementOrderSubPerms.forEach(p => {
+    if (revokedPermissions.has(p)) {
+      allPermissions.delete(p);
+    }
+  });
 
+  allPermissions.delete("disbursement_orders.approve");
+  allPermissions.delete("disbursement_orders.reject");
 
   if (
 
-    allPermissions.has("purchase_orders.create_disbursement") ||
+    (allPermissions.has("purchase_orders.create_disbursement") ||
 
     allPermissions.has("orders_and_letters.purchase_orders_create_disbursement") ||
 
-    allPermissions.has("csr_letters.create_disbursement")
+    allPermissions.has("csr_letters.create_disbursement")) &&
+
+    !revokedPermissions.has("disbursement_orders") &&
+
+    !revokedPermissions.has("disbursement_orders.view")
 
   ) {
 
     allPermissions.add("disbursement_orders.view");
 
     allPermissions.add("disbursement_orders.view_details");
-
-    allPermissions.add("disbursement_orders.create_direct");
 
     allPermissions.add("disbursement_orders");
 

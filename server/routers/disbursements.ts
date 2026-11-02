@@ -5564,22 +5564,11 @@ export const disbursementsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // التحقق من الصلاحيات
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const isFinancialUser =
-        ["financial", "financial_manager"].includes(ctx.user.role) ||
-        ctx.user.email === "solayani@manarah.org.sa" ||
-        ctx.user.email === "test2@gmail.com" ||
-        ctx.user.email === "test11@gmail.com";
-
-      if (!isAdmin && !isFinancialUser) {
-        const hasOrderRemind =
-          (await checkPermission(ctx.user.id, "orders_and_letters.disbursement_orders_remind")) ||
-          (await checkPermission(ctx.user.id, "disbursement_orders.remind")) ||
-          (await checkPermission(ctx.user.id, "disbursement_orders.view")) ||
-          (await checkPermission(ctx.user.id, "disbursement_orders.approve"));
-        if (!hasOrderRemind) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إرسال تذكير بالاعتماد لأمر الصرف" });
-        }
+      const hasOrderRemind =
+        (await checkPermission(ctx.user.id, "orders_and_letters.disbursement_orders_remind")) ||
+        (await checkPermission(ctx.user.id, "disbursement_orders.remind"));
+      if (!hasOrderRemind) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إرسال تذكير بالاعتماد لأمر الصرف" });
       }
 
       const [order] = await db

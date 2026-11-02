@@ -238,7 +238,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/disbursement-requests": ["disbursement_requests", "disbursement_requests.view", "disbursements.view", "disbursements"],
   "/disbursement-orders": ["disbursement_orders", "disbursement_orders.view"],
   "/disbursement-orders/new-direct": [
-    "disbursement_orders",
     "disbursement_orders.create_direct",
     "orders_and_letters.disbursement_orders_create_direct",
     "orders_and_letters",
@@ -540,7 +539,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/payments\/edit\/[^/]+$/, permission: ["disbursements.edit", "disbursement_requests.edit"] },
 
   // أوامر الصرف
-  { pattern: /^\/disbursement-orders\/new\/\d+$/, permission: ["disbursement_orders", "disbursement_orders.create", "disbursement_orders.create_direct"] },
+  { pattern: /^\/disbursement-orders\/new\/\d+$/, permission: ["disbursement_orders.create", "disbursement_orders.create_direct"] },
   { pattern: /^\/disbursement-orders\/\d+\/print$/, permission: ["disbursement_orders", "disbursement_orders.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
   { pattern: /^\/disbursement-orders\/\d+$/, permission: ["disbursement_orders", "disbursement_orders.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
   { pattern: /^\/disbursements\/orders\/new\/\d+$/, permission: ["disbursement_orders", "disbursement_orders.create", "disbursement_orders.create_direct"] },

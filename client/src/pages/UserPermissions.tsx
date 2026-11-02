@@ -4759,13 +4759,9 @@ export default function UserPermissions() {
 
         view: "عرض أوامر الصرف",
 
-        create_direct: "إنشاء أمر صرف مباشر",
+        create_direct: "إنشاء أمر صرف مخصص",
 
-        approve: "اعتماد أمر الصرف",
-
-        reject: "رفض أمر الصرف",
-
-        exception_approve: "استثناء اعتماد مُعد الأمر",
+        exception_approve: "استثناء الاعتماد",
 
         remind: "إرسال تذكير بالاعتماد",
 
@@ -5971,7 +5967,7 @@ export default function UserPermissions() {
 
 
 
-        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "approve", "reject", "exception_approve", "remind", "cancel_executed", "export"] },
+        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind", "cancel_executed", "export"] },
 
 
 

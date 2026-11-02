@@ -336,25 +336,24 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
   };
 
   // التحقق من الصلاحيات (استدعاء جميع الـ Hooks بشكل ثابت لمنع الـ short-circuit)
-  const permOrdersApprove = usePermission("disbursement_orders.approve");
   const permOrdersSign = usePermission("disbursement_orders.sign");
-  const permDisbursementsApprove = usePermission("disbursements.approve");
   const permDisbursementsSign = usePermission("disbursements.sign");
-  const permOrdersReject = usePermission("disbursement_orders.reject");
   const permOrdersViewDetails = usePermission("disbursement_orders.view_details");
-  const permOrdersCreateDirect = usePermission("orders_and_letters.disbursement_orders_create_direct") || usePermission("disbursement_orders.create_direct");
-  const permOrdersExceptionApprove = usePermission("orders_and_letters.disbursement_orders_exception_approve") || usePermission("disbursement_orders.exception_approve");
-  const permOrdersRemind = usePermission("orders_and_letters.disbursement_orders_remind") || usePermission("disbursement_orders.remind");
-  const permOrdersCancelExecuted = usePermission("orders_and_letters.disbursement_orders_cancel_executed") || usePermission("disbursement_orders.cancel_executed");
-
-  const canApproveOrder = permOrdersApprove || permOrdersSign || permDisbursementsApprove || permDisbursementsSign;
-  const canRejectOrder = permOrdersReject;
-  const canViewDetails = permOrdersViewDetails;
-  const canCreateDirectOrder = permOrdersCreateDirect;
-  const canExceptionApproveOrder = permOrdersExceptionApprove;
-  const canRemind = permOrdersRemind;
-  const canCancelExecuted = permOrdersCancelExecuted;
+  const permOrdersCreateDirect = usePermission("disbursement_orders.create_direct");
+  const permOrdersCreateDirectOL = usePermission("orders_and_letters.disbursement_orders_create_direct");
+  const permOrdersExceptionApprove = usePermission("disbursement_orders.exception_approve");
+  const permOrdersExceptionApproveOL = usePermission("orders_and_letters.disbursement_orders_exception_approve");
+  const permOrdersRemind = usePermission("disbursement_orders.remind");
+  const permOrdersRemindOL = usePermission("orders_and_letters.disbursement_orders_remind");
+  const permOrdersCancelExecuted = usePermission("disbursement_orders.cancel_executed");
+  const permOrdersCancelExecutedOL = usePermission("orders_and_letters.disbursement_orders_cancel_executed");
   const canExport = usePermission("disbursement_orders.export");
+
+  const canViewDetails = permOrdersViewDetails;
+  const canCreateDirectOrder = isEmbedded ? (permOrdersCreateDirectOL || permOrdersCreateDirect) : permOrdersCreateDirect;
+  const canExceptionApproveOrder = isEmbedded ? (permOrdersExceptionApproveOL || permOrdersExceptionApprove) : permOrdersExceptionApprove;
+  const canRemind = isEmbedded ? (permOrdersRemindOL || permOrdersRemind) : permOrdersRemind;
+  const canCancelExecuted = isEmbedded ? (permOrdersCancelExecutedOL || permOrdersCancelExecuted) : permOrdersCancelExecuted;
 
   // نافذة إرسال تذكير بالاعتماد
   const [reminderModal, setReminderModal] = useState<{
@@ -439,6 +438,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
       (user as any)?.customRole?.nameAr === "الرئيس التنفيذي" ||
       (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director"
     );
+
+  const isApproverOrRejecter = isSolayani || user?.email?.toLowerCase().trim() === "ceo@manarah.org.sa" || isExecutiveDirectorStrict;
+  const canPerformAnyAction = isApproverOrRejecter || canExceptionApproveOrder || canRemind || canCancelExecuted;
 
   // ترتيب الأوامر بحيث تظهر الأوامر التي بانتظار اعتماد المستخدم أولاً
   const sortedOrders = useMemo(() => {
@@ -680,7 +682,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">طريقة الدفع</TableHead>
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">الحالة</TableHead>
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">التاريخ</TableHead>
-                        <TableHead className="py-2.5 px-3 text-center font-bold text-slate-700 dark:text-slate-200">الإجراءات</TableHead>
+                        {canPerformAnyAction && (
+                          <TableHead className="py-2.5 px-3 text-center font-bold text-slate-700 dark:text-slate-200">الإجراءات</TableHead>
+                        )}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -862,7 +866,8 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                             <TableCell className="py-2.5 px-3 whitespace-nowrap text-right text-xs text-muted-foreground">
                               {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-SA") : "-"}
                             </TableCell>
-                            <TableCell className="py-2.5 px-3 text-center">
+                            {canPerformAnyAction && (
+                              <TableCell className="py-2.5 px-3 text-center">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted shrink-0">
@@ -903,7 +908,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                             className="flex items-center gap-2 cursor-pointer text-amber-700 dark:text-amber-400 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/40 font-bold"
                                           >
                                             <ShieldAlert className="h-4 w-4 text-amber-600" />
-                                            <span>استثناء اعتماد مُعد الأمر</span>
+                                            <span>استثناء الاعتماد</span>
                                           </DropdownMenuItem>
                                         )}
 
@@ -982,7 +987,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                            className="flex items-center gap-2 cursor-pointer text-amber-700 dark:text-amber-400 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-semibold"
                                          >
                                            <Bell className="h-4 w-4 text-amber-600" />
-                                           <span>إرسال تذكير بالاعتماد</span>
+                                           <span>تذكير الاعتماد</span>
                                          </DropdownMenuItem>
                                        )}
 
@@ -1057,6 +1062,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>
+                            )}
                           </TableRow>
                         );
                       })}
@@ -1245,8 +1251,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                             {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-SA") : "—"}
                           </span>
                           
-                          <div className="flex gap-1.5">
-                            <DropdownMenu>
+                          {canPerformAnyAction && (
+                            <div className="flex gap-1.5">
+                              <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="sm" className="h-8 w-8 p-0 hover:bg-muted rounded-full">
                                   <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1286,7 +1293,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                           className="flex items-center gap-2 cursor-pointer text-amber-700 dark:text-amber-400 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/40 font-bold"
                                         >
                                           <ShieldAlert className="h-4 w-4 text-amber-600" />
-                                          <span>استثناء اعتماد مُعد الأمر</span>
+                                          <span>استثناء الاعتماد</span>
                                         </DropdownMenuItem>
                                       )}
 
@@ -1336,7 +1343,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                                           className="flex items-center gap-2 cursor-pointer text-amber-700 dark:text-amber-400 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-semibold"
                                         >
                                           <Bell className="h-4 w-4 text-amber-600" />
-                                          <span>إرسال تذكير بالاعتماد</span>
+                                          <span>تذكير الاعتماد</span>
                                         </DropdownMenuItem>
                                       )}
 
@@ -1411,6 +1418,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
+                          )}
                         </div>
                       </div>
                     </Card>
@@ -1865,7 +1873,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
             <DialogHeader className="text-right sm:text-right border-b pb-4">
               <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg sm:text-xl font-bold">
                 <Bell className="w-5 h-5 text-amber-600 shrink-0" />
-                <span>إرسال تذكير بالاعتماد</span>
+                <span>تذكير الاعتماد</span>
               </DialogTitle>
               <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 font-medium">
                 إرسال إشعار تذكيري لرئيس مجلس الإدارة لاعتماد أمر الصرف رقم ({reminderModal.order?.orderNumber})
