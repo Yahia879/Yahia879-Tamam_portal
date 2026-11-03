@@ -418,7 +418,9 @@ export const suppliersRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const hasViewPermission = await checkPermission(ctx.user.id, "suppliers.view");
-      const hasQuoteCreatePermission = await checkPermission(ctx.user.id, "quotations.create");
+      const hasQuoteCreatePermission = (await Promise.all([
+        "quotations.add", "quotations.template_upload", "quotations.template_download", "quotations.link_add", "sedana_quotations.add",
+      ].map(permission => checkPermission(ctx.user.id, permission)))).some(Boolean);
       const hasContractCreatePermission = await checkPermission(ctx.user.id, "contracts.create");
       const hasDisbursementCreatePermission = await checkPermission(ctx.user.id, "disbursements.create");
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);

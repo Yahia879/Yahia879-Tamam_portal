@@ -70,13 +70,13 @@ export default function SedanaQuotations() {
   // جلب كافة طلبات النظام
   const { data: requestsData, isLoading: isRequestsLoading } =
     trpc.requests.search.useQuery(
-      { limit: 1000 },
-      { refetchOnWindowFocus: false }
+      { limit: 1000, programType: "sedana", quotationsView: true },
+      { enabled: canViewSedanaQuotations, refetchOnWindowFocus: false }
     );
 
   // جلب إحصائيات وأعداد عروض الأسعار المجمعة لكل طلب
   const { data: quotationsCountsData } =
-    trpc.projects.getQuotationsCountsByRequest.useQuery();
+    trpc.projects.getQuotationsCountsByRequest.useQuery(undefined, { enabled: canViewSedanaQuotations });
 
   const quotationsCounts = useMemo(() => {
     return quotationsCountsData || {};

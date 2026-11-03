@@ -1,3 +1,4 @@
+import { GENERAL_QUOTATION_PERMISSIONS, GENERAL_QUOTATION_LABELS, quotationPermissionSelection } from "@shared/quotationPermissions";
 import { contractPermissionSelection } from "@shared/contractPermissions";
 import { DisbursementPermConfirmationModal } from "@/components/permissions/DisbursementPermConfirmationModal";
 import { useState, useEffect, useMemo } from "react";
@@ -105,7 +106,7 @@ const superAdminGroups = [
     modules: [
       { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "edit", "approve", "suspend"] },
       { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["view", "add", "edit", "delete", "import", "export"] },
-      { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "edit", "delete", "approve", "export"] },
+
       { 
         id: "financial_approval", 
         nameAr: "قسم الاعتمادات", 
@@ -132,6 +133,13 @@ const superAdminGroups = [
     ]
   },
       {
+      title: "عروض الأسعار",
+      modules: [
+        { id: "quotations", nameAr: "عروض أسعار الطلبات العامة", icon: Receipt, perms: GENERAL_QUOTATION_PERMISSIONS.map(p => p.action) },
+        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view", "export_pdf", "add", "recommend", "approve"] },
+      ],
+    },
+    {
       title: "العقود",
       modules: [
         {
@@ -168,7 +176,7 @@ const superAdminGroups = [
     {
     title: "إدارة المخزون",
     modules: [
-      { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view", "export_pdf", "add", "recommend", "approve"] },
+
       {
         id: "orders_and_letters",
         nameAr: "مالية سدانة",
@@ -523,15 +531,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       approve: "اعتماد أو رفض مورد",
       suspend: "إيقاف المورد وإعادة تفعيله"
     },
-    quotations: {
-      view: "عرض قائمة عروض الأسعار",
-      view_sedana: "عرض عروض أسعار سدانة",
-      add: "إضافة عرض سعر",
-      edit: "تعديل عرض سعر",
-      delete: "حذف عرض سعر",
-      approve: "اعتماد أو رفض عروض الأسعار",
-      export: "تصدير عروض الأسعار"
-    },
+    quotations: GENERAL_QUOTATION_LABELS,
     financial_approval: {
       progress_invoices: "عرض المستخلصات بانتظار الاعتماد",
       disbursement_requests: "عرض طلبات الصرف بانتظار الاعتماد",
@@ -994,7 +994,7 @@ export default function RoleEdit() {
       return;
     }
 
-    let finalPerms = contractPermissionSelection(selectedPerms);
+    let finalPerms = quotationPermissionSelection(contractPermissionSelection(selectedPerms));
 
     if (finalPerms.length === 0) {
       toast.error("يرجى تحديد صلاحية واحدة على الأقل");

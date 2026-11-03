@@ -1,3 +1,4 @@
+import { requireQuotationAccess, requireQuotationRecordAccess, requireRelatedQuotationRead } from "../quotationAccess";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
@@ -1739,7 +1740,7 @@ export const projectsRouter = router({
 
   // إضافة بند في جدول الكميات
   addBOQItem: protectedProcedure
-    .input(z.object({
+    .input(z.object({ permissionScope: z.enum(["boq", "quotations"]).default("boq"),
       projectId: z.number().optional(),
       requestId: z.number().optional(),
       mosqueId: z.number().optional(),
@@ -1756,11 +1757,10 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const isAuthorizedRole = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasPermission = await checkPermission(ctx.user.id, "boq.add") ||
-                            await checkPermission(ctx.user.id, "boq");
-      if (!isAuthorizedRole && !hasPermission) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة بنود إلى جدول الكميات" });
+      if (input.permissionScope === "quotations") {
+        await requireQuotationAccess(db, ctx.user.id, input, "boq_add", "boq_add");
+      } else if (!await checkPermission(ctx.user.id, "boq.add")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إضافة بنود جدول الكميات" });
       }
 
       // البحث عن مشروع مرتبط بالطلب (إن وُجد)
@@ -1838,7 +1838,7 @@ export const projectsRouter = router({
 
   // تحديث بند في جدول الكميات
   updateBOQItem: protectedProcedure
-    .input(z.object({
+    .input(z.object({ permissionScope: z.enum(["boq", "quotations"]).default("boq"),
       id: z.number(),
       mosqueId: z.number().optional().nullable(),
       itemName: z.string().optional(),
@@ -1852,12 +1852,7 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const isAuthorizedRole = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasPermission = await checkPermission(ctx.user.id, "boq.edit") ||
-                            await checkPermission(ctx.user.id, "boq");
-      if (!isAuthorizedRole && !hasPermission) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل بنود جدول الكميات" });
-      }
+
 
       const { id, ...updateData } = input;
 
@@ -1869,6 +1864,12 @@ export const projectsRouter = router({
 
       if (!currentItem) {
         throw new TRPCError({ code: "NOT_FOUND", message: "البند غير موجود" });
+      }
+
+      if (input.permissionScope === "quotations") {
+        await requireQuotationAccess(db, ctx.user.id, currentItem, "boq_edit", "boq_edit");
+      } else if (!await checkPermission(ctx.user.id, "boq.edit")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل جدول الكميات" });
       }
 
       // التحقق من عدم اعتماد أي عرض سعر لهذا الطلب أو المشروع
@@ -1936,17 +1937,12 @@ export const projectsRouter = router({
 
   // حذف بند من جدول الكميات
   deleteBOQItem: protectedProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ permissionScope: z.enum(["boq", "quotations"]).default("boq"), id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const isAuthorizedRole = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasPermission = await checkPermission(ctx.user.id, "boq.delete") ||
-                            await checkPermission(ctx.user.id, "boq");
-      if (!isAuthorizedRole && !hasPermission) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لحذف بنود من جدول الكميات" });
-      }
+
 
       const [currentItem] = await db
         .select()
@@ -1955,6 +1951,12 @@ export const projectsRouter = router({
 
       if (!currentItem) {
         throw new TRPCError({ code: "NOT_FOUND", message: "البند غير موجود" });
+      }
+
+      if (input.permissionScope === "quotations") {
+        await requireQuotationAccess(db, ctx.user.id, currentItem, "boq_delete", "boq_delete");
+      } else if (!await checkPermission(ctx.user.id, "boq.delete")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل جدول الكميات" });
       }
 
       // التحقق من عدم اعتماد أي عرض سعر لهذا الطلب أو المشروع
@@ -3148,6 +3150,7 @@ export const projectsRouter = router({
   // إنشاء عرض سعر
   createQuotation: protectedProcedure
     .input(z.object({
+      entryMethod: z.enum(["manual", "template", "link"]).default("manual"),
       projectId: z.number().optional(),
       requestId: z.number().optional(),
       supplierId: z.number(),
@@ -3177,20 +3180,13 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق من صلاحيات مسؤول المشتريات: مقتصر فقط على برنامج سدانة
-      if (ctx.user.role === "procurement_officer") {
-        if (!input.requestId) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "رقم الطلب مطلوب لإضافة عرض السعر" });
-        }
-        const [req] = await db
-          .select({ programType: mosqueRequests.programType })
-          .from(mosqueRequests)
-          .where(eq(mosqueRequests.id, input.requestId))
-          .limit(1);
-        if (req && req.programType !== "sedana") {
-          throw new TRPCError({ code: "FORBIDDEN", message: "صلاحيات مسؤول المشتريات مقتصرة على عروض أسعار برنامج سدانة فقط" });
-        }
+      const isLink = !!input.documentUrl && input.totalAmount === 0 && !input.items?.length;
+      const method = isLink ? "link" : input.entryMethod;
+      if (method === "link" && (!isLink || (input.finalAmount ?? 0) !== 0 || !/^https?:\/\//i.test(input.documentUrl ?? ""))) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "بيانات الرابط غير صالحة" });
       }
+      const action = method === "link" ? "link_add" : method === "template" ? "template_upload" : "add";
+      await requireQuotationAccess(db, ctx.user.id, input, action, "add");
 
       const quotationNumber = generateQuotationNumber();
 
@@ -3228,22 +3224,13 @@ export const projectsRouter = router({
 
   // جلب عروض الأسعار للطلب
   getQuotationsByRequest: protectedProcedure
-    .input(z.object({ requestId: z.number() }))
+    .input(z.object({ requestId: z.number(), permissionScope: z.enum(["quotations", "related_record"]).default("related_record") }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق من صلاحيات مسؤول المشتريات: مقتصر فقط على برنامج سدانة
-      if (ctx.user.role === "procurement_officer") {
-        const [req] = await db
-          .select({ programType: mosqueRequests.programType })
-          .from(mosqueRequests)
-          .where(eq(mosqueRequests.id, input.requestId))
-          .limit(1);
-        if (req && req.programType !== "sedana") {
-          throw new TRPCError({ code: "FORBIDDEN", message: "صلاحيات مسؤول المشتريات مقتصرة على عروض أسعار برنامج سدانة فقط" });
-        }
-      }
+      if (input.permissionScope === "quotations") await requireQuotationAccess(db, ctx.user.id, input, "view");
+      else await requireRelatedQuotationRead(db, ctx.user.id, input);
 
       const quotationsList = await db
         .select({
@@ -3336,27 +3323,7 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // اعتماد أو رفض عروض الأسعار مرتبط بصلاحية "اعتماد أو رفض عروض الأسعار"
-      if (input.status === "accepted" || input.status === "rejected") {
-        const { calculateUserPermissions } = await import("../permissions");
-        const approverPerms = await calculateUserPermissions(ctx.user.id);
-        if (!approverPerms.includes("quotations.approve") && !approverPerms.includes("*")) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "ليس لديك صلاحية اعتماد أو رفض عروض الأسعار"
-          });
-        }
-      }
-
-      const [quotation] = await db
-        .select()
-        .from(quotations)
-        .where(eq(quotations.id, input.id))
-        .limit(1);
-
-      if (!quotation) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "عرض السعر غير موجود" });
-      }
+      const quotation = await requireQuotationRecordAccess(db, ctx.user.id, input.id, "approve");
 
       await db
         .update(quotations)
@@ -3386,6 +3353,8 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      await requireQuotationRecordAccess(db, ctx.user.id, input.id, "approve", "recommend");
+
       await db
         .update(quotations)
         .set({ 
@@ -3408,6 +3377,8 @@ export const projectsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      await requireQuotationRecordAccess(db, ctx.user.id, input.id, "approve", "recommend");
 
       await db
         .update(quotations)
@@ -3434,25 +3405,7 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // اعتماد عروض الأسعار مرتبط بصلاحية "اعتماد أو رفض عروض الأسعار"
-      const { calculateUserPermissions: calcPermsForApproval } = await import("../permissions");
-      const approverPerms = await calcPermsForApproval(ctx.user.id);
-      if (!approverPerms.includes("quotations.approve") && !approverPerms.includes("*")) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "ليس لديك صلاحية اعتماد عروض الأسعار"
-        });
-      }
-
-      // جلب بيانات العرض
-      const [quotation] = await db
-        .select()
-        .from(quotations)
-        .where(eq(quotations.id, input.id));
-
-      if (!quotation) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "عرض السعر غير موجود" });
-      }
+      const quotation = await requireQuotationRecordAccess(db, ctx.user.id, input.id, "approve");
 
       // تحديد المبلغ المعتمد
       let approvedAmount: string;
@@ -3506,19 +3459,7 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق من صلاحية اعتماد عروض أسعار سدانة
-      const { calculateUserPermissions } = await import("../permissions");
-      const userPerms = await calculateUserPermissions(ctx.user.id);
-      const hasApprovePerm =
-        userPerms.includes("sedana_quotations.approve") ||
-        userPerms.includes("*") ||
-        (userPerms.includes("quotations.approve") && userPerms.includes("quotations.view_sedana"));
-      if (!hasApprovePerm) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "ليس لديك صلاحية اعتماد عروض أسعار سدانة"
-        });
-      }
+      await requireQuotationAccess(db, ctx.user.id, input, "approve");
 
       const quotationIds = Array.from(new Set(input.itemVendorSelections.map(s => s.quotationId)));
 

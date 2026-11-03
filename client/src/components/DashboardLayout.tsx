@@ -376,7 +376,7 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   if (has("boq") || has("boq.view")) {
     finItems.push({ icon: Calculator, label: "إعداد جداول الكميات", path: "/boq-preparations" });
   }
-  if (has("quotations") || has("quotations.view")) {
+  if (has("quotations.view") || has("sedana_quotations.view")) {
     finItems.push({ icon: Receipt, label: "عروض الأسعار", path: "/quotations" });
   }
   const VALID_APPROVAL_PERMS = [

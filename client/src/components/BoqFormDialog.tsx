@@ -38,6 +38,7 @@ import { Check, ChevronsUpDown, Loader2, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BoqFormDialogProps {
+  permissionScope?: "boq" | "quotations";
   requestId?: number;
   projectId?: number;
   mosqueId?: number;
@@ -49,6 +50,7 @@ interface BoqFormDialogProps {
 }
 
 export default function BoqFormDialog({
+  permissionScope = "boq",
   requestId,
   projectId,
   mosqueId: propMosqueId,
@@ -152,6 +154,7 @@ export default function BoqFormDialog({
 
     if (isEditMode) {
       updateItemMutation.mutate({
+        permissionScope,
         id: item.id,
         mosqueId: finalMosqueId,
         category: formData.category,
@@ -163,6 +166,7 @@ export default function BoqFormDialog({
       });
     } else {
       addItemMutation.mutate({
+        permissionScope,
         requestId: requestId || undefined,
         projectId: projectId || undefined,
         mosqueId: finalMosqueId,

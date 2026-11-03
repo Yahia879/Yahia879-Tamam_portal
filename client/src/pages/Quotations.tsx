@@ -1,10 +1,10 @@
+import { canViewQuotationRequest, isSedanaQuotationRequest } from "@shared/quotationPermissions";
 import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import DashboardLayout from "@/components/DashboardLayout";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
-import { PermissionGuard } from "@/components/PermissionGuard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -131,64 +131,25 @@ export function QuotationsView({
     return null;
   }
 
-  // تحديد تصنيف دور المستخدم وصلاحيات مسؤول المشتريات والاعتماد
-  const customRoleNameAr = (user as any)?.customRole?.nameAr || "";
-  const customRoleNameEn = ((user as any)?.customRole?.nameEn || "").toLowerCase();
-
-  const isProcurementOfficer =
-    user?.role === "procurement_officer" ||
-    customRoleNameAr === "مسؤول المشتريات" ||
-    customRoleNameEn === "procurement officer";
-
-  const isExecDirector =
-    ["general_manager", "executive_director"].includes(user?.role || "") ||
-    customRoleNameAr === "المدير التنفيذي" ||
-    customRoleNameEn === "executive director";
-
-  const isSystemAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-
-  // جلب صلاحيات المستخدم للتحكم الدقيق بصلاحيات عروض أسعار سدانة
   const { data: userPermissions = [] } = trpc.permissions.getUserPermissions.useQuery(
-    user?.id ? { userId: user.id } : ({} as any)
+    { userId: user?.id ?? 0 },
+    { enabled: !!user, staleTime: 10000, refetchOnMount: true, refetchOnWindowFocus: true }
   );
 
   const perms = userPermissions as string[];
   // صفحة عروض أسعار سدانة المستقلة (مسار /sedana-quotations أو الوضع المضمن) مقابل صفحة عروض الأسعار العامة
   const isSedanaPage = isEmbedded || (typeof window !== "undefined" && window.location.pathname.includes("sedana-quotations"));
 
-  const canApproveQuotations = perms.includes("quotations.approve");
-  const canViewQuotations = perms.includes("quotations.view") || perms.includes("quotations");
-  const canAddQuotation = perms.includes("quotations.add") || perms.includes("quotations.create");
-  const canEditQuotation = perms.includes("quotations.edit");
-  const canDeleteQuotation = perms.includes("quotations.delete");
-  const canExportQuotations = perms.includes("quotations.export");
-  const canAddBoq = perms.includes("boq.add");
-  const canEditBoq = perms.includes("boq.edit");
-  const canDeleteBoq = perms.includes("boq.delete");
-
-  // داخل صفحة /quotations: عروض سدانة تتبع صلاحية "عرض عروض أسعار سدانة" مع صلاحيات عروض الأسعار الفرعية
-  const hasViewSedanaInQuotations = perms.includes("quotations.view_sedana");
-
-  const canExportSedanaPdf = isSedanaPage
-    ? perms.includes("sedana_quotations.export_pdf")
-    : (hasViewSedanaInQuotations && canExportQuotations);
-
-  const canAddSedanaQuotation = isSedanaPage
-    ? perms.includes("sedana_quotations.add")
-    : (hasViewSedanaInQuotations && canAddQuotation);
-
-  const canRecommendSedana = isSedanaPage
-    ? perms.includes("sedana_quotations.recommend")
-    : (hasViewSedanaInQuotations && canEditQuotation);
-
-  const canViewSedanaInQuotations = isSedanaPage
-    ? perms.includes("sedana_quotations.view")
-    : hasViewSedanaInQuotations;
-  const canApproveSedanaQuotations = isSedanaPage
-    ? perms.includes("sedana_quotations.approve")
-    : (hasViewSedanaInQuotations && canApproveQuotations);
-  const canViewSedanaQuotations = canViewSedanaInQuotations;
-  const canGoToSedanaPage = perms.includes("sedana_quotations.view");
+  const canViewGeneralQuotations = perms.includes("quotations.view");
+  const canViewSedanaQuotations = perms.includes("sedana_quotations.view");
+  const canViewQuotations = isSedanaPage ? canViewSedanaQuotations : canViewGeneralQuotations || canViewSedanaQuotations;
+  const canApproveQuotations = canViewGeneralQuotations && perms.includes("quotations.approve");
+  const canAddQuotation = canViewGeneralQuotations && perms.includes("quotations.add");
+  const canExportSedanaPdf = canViewSedanaQuotations && perms.includes("sedana_quotations.export_pdf");
+  const canAddSedanaQuotation = canViewSedanaQuotations && perms.includes("sedana_quotations.add");
+  const canRecommendSedana = canViewSedanaQuotations && perms.includes("sedana_quotations.recommend");
+  const canApproveSedanaQuotations = canViewSedanaQuotations && perms.includes("sedana_quotations.approve");
+  const canGoToSedanaPage = canViewSedanaQuotations;
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showAddLinkDialog, setShowAddLinkDialog] = useState(false);
@@ -249,12 +210,15 @@ export function QuotationsView({
   // جلب الطلبات في مرحلة التقييم المالي
   const { data: requests } = trpc.requests.search.useQuery({
     currentStage: "financial_eval_and_approval",
-  });
+    quotationsView: true,
+    programType: isSedanaPage ? "sedana" : undefined,
+    limit: 1000,
+  }, { enabled: canViewQuotations });
 
   // جلب تفاصيل الطلب المحدد برقم ID إذا تم تمريره عبر الرابط
   const { data: singleRequestData, refetch: refetchSingleRequest } = trpc.requests.getById.useQuery(
     { id: parseInt(selectedRequestId) },
-    { enabled: !!selectedRequestId && !isNaN(parseInt(selectedRequestId)) }
+    { enabled: canViewQuotations && !!selectedRequestId && !isNaN(parseInt(selectedRequestId)) }
   );
 
   const getMosqueDisplayName = (request: any) => {
@@ -306,13 +270,9 @@ export function QuotationsView({
 
   const allRequestsList = useMemo(() => {
     const raw = requests?.requests || [];
-    if (canViewSedanaInQuotations) return raw;
-    return raw.filter((r: any) => 
-      r.programType !== "sedana" && 
-      !r.isSedana && 
-      !(typeof r.requestNumber === "string" && r.requestNumber.includes("-SED-"))
-    );
-  }, [requests?.requests, canViewSedanaInQuotations]);
+    return raw.filter((request: any) => canViewQuotationRequest(perms, request) &&
+      (!isSedanaPage || isSedanaQuotationRequest(request)));
+  }, [requests?.requests, canViewGeneralQuotations, canViewSedanaQuotations, isSedanaPage]);
 
   const displayedRequestsList = useMemo(() => {
     if (!selectedRequestId) return allRequestsList;
@@ -321,10 +281,7 @@ export function QuotationsView({
     if (singleRequestData) {
       const targetReq = (singleRequestData as any).request || singleRequestData;
       if (targetReq && targetReq.id) {
-        if (
-          !canViewSedanaInQuotations &&
-          (targetReq.programType === "sedana" || targetReq.isSedana || (typeof targetReq.requestNumber === "string" && targetReq.requestNumber.includes("-SED-")))
-        ) {
+        if (!canViewQuotationRequest(perms, targetReq) || (isSedanaPage && !isSedanaQuotationRequest(targetReq))) {
           return allRequestsList;
         }
         // إذا كان الطلب المحدد قد تم اعتماده مسبقاً وانتقل لمرحلة أخرى (وليس في مرحلة التقييم المالي)،
@@ -362,7 +319,7 @@ export function QuotationsView({
       }
     }
     return allRequestsList;
-  }, [allRequestsList, selectedRequestId, singleRequestData]);
+  }, [allRequestsList, selectedRequestId, singleRequestData, canViewGeneralQuotations, canViewSedanaQuotations, isSedanaPage]);
 
   // إذا تم فتح الصفحة برابط يحتوي على معرف طلب قد تم اعتماده مسبقاً وانتقل لمرحلة أخرى (للطلبات غير سدانة في الصفحة العامة)
   useEffect(() => {
@@ -383,25 +340,32 @@ export function QuotationsView({
   // جلب الموردين النشطين (مع خيار إظهار غير المعتمدين)
   const { data: suppliers } = trpc.suppliers.getActiveSuppliers.useQuery({
     includeUnapproved: includeUnapproved,
-  });
+  }, { enabled: canAddQuotation || canAddSedanaQuotation || (canViewGeneralQuotations && ["quotations.template_upload", "quotations.template_download", "quotations.link_add"].some(p => perms.includes(p))) });
 
   // جلب عروض الأسعار للطلب المحدد
   const { data: quotationsData, isLoading: quotationsLoading, refetch: refetchQuotations } = trpc.projects.getQuotationsByRequest.useQuery(
-    { requestId: parseInt(selectedRequestId) || 0 },
-    { enabled: !!selectedRequestId }
+    { requestId: parseInt(selectedRequestId) || 0, permissionScope: "quotations" },
+    { enabled: canViewQuotations && !!selectedRequestId && displayedRequestsList.some((r: any) => String(r.id) === selectedRequestId) }
   );
 
   const currentSelectedRequest = useMemo(() => {
     const fromSingle = (singleRequestData as any)?.request || singleRequestData;
-    if (fromSingle && (fromSingle.id || fromSingle.requestNumber)) return fromSingle;
+    if (fromSingle && canViewQuotationRequest(perms, fromSingle) && (!isSedanaPage || isSedanaQuotationRequest(fromSingle))) return fromSingle;
     return displayedRequestsList.find((r: any) => r.id.toString() === selectedRequestId);
-  }, [singleRequestData, displayedRequestsList, selectedRequestId]);
+  }, [singleRequestData, displayedRequestsList, selectedRequestId, canViewGeneralQuotations, canViewSedanaQuotations, isSedanaPage]);
 
   const isSedanaProgram = 
     currentSelectedRequest?.programType === 'sedana' ||
     Boolean(currentSelectedRequest?.isSedana) ||
     Boolean(currentSelectedRequest?.parsedProgramData?.isSedana) ||
     (typeof window !== "undefined" && window.location.pathname.includes("sedana-quotations"));
+
+  const canAddLink = isSedanaProgram ? canAddSedanaQuotation : canViewGeneralQuotations && perms.includes("quotations.link_add");
+  const canDownloadTemplate = isSedanaProgram ? canAddSedanaQuotation : canViewGeneralQuotations && perms.includes("quotations.template_download");
+  const canUploadTemplate = isSedanaProgram ? canAddSedanaQuotation : canViewGeneralQuotations && perms.includes("quotations.template_upload");
+  const canAddBoq = isSedanaProgram ? perms.includes("boq.add") : canViewGeneralQuotations && perms.includes("quotations.boq_add");
+  const canEditBoq = isSedanaProgram ? perms.includes("boq.edit") : canViewGeneralQuotations && perms.includes("quotations.boq_edit");
+  const canDeleteBoq = isSedanaProgram ? perms.includes("boq.delete") : canViewGeneralQuotations && perms.includes("quotations.boq_delete");
 
   // الطلب تجاوز مرحلة التقييم المالي واعتماد العرض (مثل التعاقد/اعتماد نوع التوريد، التنفيذ، إلخ)
   const isPastFinancialEval = useMemo(() => {
@@ -411,7 +375,7 @@ export function QuotationsView({
   }, [isSedanaProgram, currentSelectedRequest]);
 
   const isSuppliersReadOnly = isPastFinancialEval || Boolean(readOnlySuppliers);
-  const isAwardingReadOnly = isSuppliersReadOnly || (isSedanaProgram && !canRecommendSedana);
+  const isAwardingReadOnly = isSuppliersReadOnly || (isSedanaProgram ? !canRecommendSedana : !canApproveQuotations);
 
   const allQuotations = useMemo(() => quotationsData?.quotations ?? [], [quotationsData?.quotations]);
   const hasAcceptedQuotation = useMemo(() => {
@@ -424,7 +388,7 @@ export function QuotationsView({
   // جلب جدول الكميات للطلب المحدد
   const { data: boqData, isLoading: boqLoading, refetch: refetchBOQ } = trpc.projects.getBOQ.useQuery(
     { requestId: parseInt(selectedRequestId) || 0 },
-    { enabled: !!selectedRequestId }
+    { enabled: canViewQuotations && !!selectedRequestId && displayedRequestsList.some((r: any) => String(r.id) === selectedRequestId) }
   );
 
   const [showBoqDialog, setShowBoqDialog] = useState(false);
@@ -864,12 +828,13 @@ export function QuotationsView({
   });
 
   const handleDeleteBoqItem = (id: number) => {
+    if (!canDeleteBoq) return;
     if (hasAcceptedQuotation) {
       toast.error("لا يمكن حذف بند من جدول الكميات بعد اعتماد عرض السعر");
       return;
     }
     if (confirm("هل أنت متأكد من حذف هذا البند من جدول الكميات؟")) {
-      deleteBoqItemMutation.mutate({ id });
+      deleteBoqItemMutation.mutate({ id, permissionScope: isSedanaProgram ? "boq" : "quotations" });
     }
   };
 
@@ -911,6 +876,7 @@ export function QuotationsView({
   });
 
   const downloadQuotationTemplate = async (supplierIdToUse?: string) => {
+    if (!canDownloadTemplate) return;
     const targetSupplierId = supplierIdToUse || templateSupplierId;
     const selectedSupplier = (suppliers || []).find((s: any) => s.id.toString() === targetSupplierId);
     const supplierNameToUse = selectedSupplier?.name || "";
@@ -1039,6 +1005,7 @@ export function QuotationsView({
   };
 
   const handleQuotationExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canUploadTemplate) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -1147,6 +1114,7 @@ export function QuotationsView({
   };
 
   const downloadBulkQuotationTemplate = async () => {
+    if (!canDownloadTemplate) return;
     if (!boqData?.items || boqData.items.length === 0) {
       toast.error("لا توجد بنود في جدول الكميات لتسعيرها");
       return;
@@ -1325,6 +1293,7 @@ export function QuotationsView({
   };
 
   const handleBulkQuotationExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canUploadTemplate) return;
     const file = e.target.files?.[0];
     if (!file) return;
     if (!selectedRequestId) {
@@ -1459,6 +1428,7 @@ export function QuotationsView({
 
           try {
             await addQuotationMutation.mutateAsync({
+              entryMethod: "template",
               requestId: parseInt(selectedRequestId),
               supplierId: matchedSupplier.id,
               totalAmount,
@@ -1578,6 +1548,7 @@ export function QuotationsView({
   }, [quotationItems]);
 
   const handleAddLinkQuotation = () => {
+    if (!canAddLink) return;
     if (!selectedRequestId) {
       toast.error("يرجى اختيار الطلب أولاً");
       return;
@@ -1604,6 +1575,7 @@ export function QuotationsView({
     const supplierId = suppliers && suppliers.length > 0 ? suppliers[0].id : 1;
 
     addQuotationMutation.mutate({
+      entryMethod: "link",
       requestId: parseInt(selectedRequestId),
       supplierId: supplierId,
       totalAmount: 0,
@@ -1616,6 +1588,7 @@ export function QuotationsView({
   };
 
   const handleAddQuotation = () => {
+    if (!(isSedanaProgram ? canAddSedanaQuotation : canAddQuotation)) return;
     if (!selectedRequestId) {
       toast.error("يرجى اختيار الطلب أولاً");
       return;
@@ -1720,6 +1693,7 @@ export function QuotationsView({
 
   // تنفيذ الاعتماد مع المبلغ المعدل والمبرر
   const handleConfirmApproval = () => {
+    if (!canApproveQuotations) return;
     if (!selectedQuotationForApproval) return;
     // استخدام approveAfterNegotiationMutation للاعتماد مع المبلغ
     approveAfterNegotiationMutation.mutate({
@@ -1735,16 +1709,19 @@ export function QuotationsView({
   };
 
   const handleRejectQuotation = (id: number) => {
+    if (!canApproveQuotations) return;
     approveQuotationMutation.mutate({ id, status: "rejected" });
   };
 
   // إلغاء اعتماد عرض السعر (إعادته لحالة قيد المراجعة)
   const handleCancelApproval = (id: number) => {
+    if (!canApproveQuotations) return;
     approveQuotationMutation.mutate({ id, status: "pending" });
   };
 
   // إعادة عرض مرفوض للمراجعة
   const handleReactivateQuotation = (id: number) => {
+    if (!canApproveQuotations) return;
     approveQuotationMutation.mutate({ id, status: "pending" });
   };
 
@@ -2049,16 +2026,16 @@ export function QuotationsView({
             {selectedRequestId && (
               <div className="mt-4 flex justify-end gap-3">
                 {(isSedanaProgram ? canAddSedanaQuotation : canAddQuotation) && (
-                  <>
-                    <Button onClick={() => setShowAddDialog(true)}>
-                      <Plus className="h-4 w-4 ml-2" />
-                      إضافة عرض سعر للطلب المحدد
-                    </Button>
-                    <Button variant="outline" onClick={() => setShowAddLinkDialog(true)}>
-                      <Link2 className="h-4 w-4 ml-2" />
-                      إضافة رابط
-                    </Button>
-                  </>
+                  <Button onClick={() => setShowAddDialog(true)}>
+                    <Plus className="h-4 w-4 ml-2" />
+                    إضافة عرض سعر للطلب المحدد
+                  </Button>
+                )}
+                {canAddLink && (
+                  <Button variant="outline" onClick={() => setShowAddLinkDialog(true)}>
+                    <Link2 className="h-4 w-4 ml-2" />
+                    إضافة رابط
+                  </Button>
                 )}
               </div>
             )}
@@ -2725,7 +2702,7 @@ export function QuotationsView({
                                           size="icon"
                                           className="h-7 w-7 text-cyan-600 hover:text-cyan-700 hover:bg-cyan-50"
                                           title="تعديل البند"
- hidden={!canEditBoq}
+                                          hidden={!canEditBoq}
                                           onClick={() => {
                                             setEditingBoqItem(item);
                                             setShowBoqDialog(true);
@@ -2738,7 +2715,7 @@ export function QuotationsView({
                                           size="icon"
                                           className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
                                           title="حذف البند"
- hidden={!canDeleteBoq}
+                                          hidden={!canDeleteBoq}
                                           onClick={() => handleDeleteBoqItem(item.id)}
                                         >
                                           <Trash2 className="h-3.5 w-3.5" />
@@ -2866,7 +2843,7 @@ export function QuotationsView({
                                       size="icon"
                                       className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                                       title="تعديل البند"
- hidden={!canEditBoq}
+                                          hidden={!canEditBoq}
                                       onClick={() => {
                                         setEditingBoqItem(item);
                                         setShowBoqDialog(true);
@@ -2879,7 +2856,7 @@ export function QuotationsView({
                                       size="icon"
                                       className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
                                       title="حذف البند"
- hidden={!canDeleteBoq}
+                                          hidden={!canDeleteBoq}
                                       onClick={() => handleDeleteBoqItem(item.id)}
                                     >
                                       <Trash2 className="h-4 w-4" />
@@ -2930,7 +2907,7 @@ export function QuotationsView({
         )}
 
         {/* نافذة إضافة وتعديل بند في جدول الكميات */}
-        {showBoqDialog && (
+        {showBoqDialog && (editingBoqItem ? canEditBoq : canAddBoq) && (
           <BoqFormDialog
             requestId={parseInt(selectedRequestId)}
             open={showBoqDialog}
@@ -2939,6 +2916,7 @@ export function QuotationsView({
               setEditingBoqItem(null);
               refetchBOQ();
             }}
+            permissionScope={isSedanaProgram ? "boq" : "quotations"}
             item={editingBoqItem}
           />
         )}
@@ -2961,7 +2939,7 @@ export function QuotationsView({
                 />
                 <Button
                   onClick={downloadBulkQuotationTemplate}
- hidden={!(canExportQuotations || canAddQuotation)}
+ hidden={!canDownloadTemplate}
                   variant="outline"
                   className="border-green-600 text-green-600 hover:bg-green-50 text-xs sm:text-sm"
                   size="sm"
@@ -2971,7 +2949,7 @@ export function QuotationsView({
                 </Button>
                 <Button
                   onClick={() => document.getElementById("bulk-quotation-excel-upload")?.click()}
- hidden={!canAddQuotation}
+ hidden={!canUploadTemplate}
                   variant="outline"
                   className="border-green-600 text-green-600 hover:bg-green-50 text-xs sm:text-sm"
                   size="sm"
@@ -3106,7 +3084,7 @@ export function QuotationsView({
                                 <TableCell>
                                   <div className="flex gap-2 justify-start">
                                     {canApproveQuotations ? (
-                                        <PermissionGuard permission="quotations.approve">
+                                        <>
                                       {(quotation.status === "pending" || quotation.status === "negotiating") && (
                                         <>
                                           <Button
@@ -3154,7 +3132,7 @@ export function QuotationsView({
                                           إعادة للمراجعة
                                         </Button>
                                       )}
-                                    </PermissionGuard>
+                                    </>
                                       ) : (
                                         <span className="text-muted-foreground">-</span>
                                       )}
@@ -3177,7 +3155,7 @@ export function QuotationsView({
                                 إضافة أول عرض سعر
                               </Button>
                             )}
-                            {linkQuotations.length === 0 && (
+                            {canAddLink && linkQuotations.length === 0 && (
                               <Button
                                 variant="outline"
                                 onClick={() => setShowAddLinkDialog(true)}
@@ -3198,7 +3176,7 @@ export function QuotationsView({
 
 
         {/* Dialog إضافة عرض سعر مع تسعير البنود */}
-        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <Dialog open={showAddDialog && (isSedanaProgram ? canAddSedanaQuotation : canAddQuotation)} onOpenChange={setShowAddDialog}>
           <DialogContent className="!max-w-[98vw] !w-[98vw] max-h-[95vh] overflow-y-auto" dir="rtl">
             <DialogHeader className="pb-4 border-b text-right sm:text-right">
               <DialogTitle className="text-2xl flex items-center gap-3 justify-start">
@@ -3225,6 +3203,7 @@ export function QuotationsView({
                     onChange={handleQuotationExcelUpload}
                   />
                   <Button
+                    hidden={!canDownloadTemplate}
                     onClick={() => {
                       setTemplateSupplierId(selectedSupplierId || "");
                       setShowDownloadTemplateDialog(true);
@@ -3237,6 +3216,7 @@ export function QuotationsView({
                     تحميل قالب التسعير (Excel)
                   </Button>
                   <Button
+                    hidden={!canUploadTemplate}
                     onClick={() => document.getElementById("quotation-excel-upload")?.click()}
                     variant="outline"
                     className="border-primary text-primary hover:bg-primary/10 text-xs sm:text-sm"
@@ -3567,7 +3547,7 @@ export function QuotationsView({
         </Dialog>
 
         {/* Dialog إضافة رابط */}
-        <Dialog open={showAddLinkDialog} onOpenChange={setShowAddLinkDialog}>
+        <Dialog open={showAddLinkDialog && canAddLink} onOpenChange={setShowAddLinkDialog}>
           <DialogContent className="max-w-md" dir="rtl">
             <DialogHeader className="text-right sm:text-right">
               <DialogTitle className="text-xl flex items-center gap-2 justify-start">
@@ -3700,7 +3680,7 @@ export function QuotationsView({
         </Dialog>
 
         {/* Dialog اعتماد عرض السعر المتقدمة */}
-        <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+        <Dialog open={showApproveDialog && canApproveQuotations} onOpenChange={setShowApproveDialog}>
           <DialogContent className="max-w-md" dir="rtl">
             <DialogHeader className="text-right sm:text-right">
               <DialogTitle className="text-right">اعتماد عرض السعر</DialogTitle>
@@ -3789,7 +3769,7 @@ export function QuotationsView({
         </Dialog>
 
         {/* Dialog اختيار المورد لتحميل قالب التسعير */}
-        <Dialog open={showDownloadTemplateDialog} onOpenChange={setShowDownloadTemplateDialog}>
+        <Dialog open={showDownloadTemplateDialog && canDownloadTemplate} onOpenChange={setShowDownloadTemplateDialog}>
           <DialogContent className="sm:max-w-[450px]" dir="rtl">
             <DialogHeader className="text-right sm:text-right">
               <DialogTitle className="flex items-center gap-2 text-xl font-bold">
@@ -3860,7 +3840,12 @@ export function QuotationsView({
       </div>
     );
 
-  if (!isEmbedded && !canViewQuotations) {
+  const selectedRequest = (singleRequestData as any)?.request || singleRequestData;
+  if (selectedRequest && (!canViewQuotationRequest(perms, selectedRequest) || (isSedanaPage && !isSedanaQuotationRequest(selectedRequest)))) {
+    return <DashboardLayout><p className="p-6" dir="rtl">ليس لديك صلاحية عرض عروض أسعار هذا الطلب.</p></DashboardLayout>;
+  }
+
+  if (!canViewQuotations) {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4 font-sans" dir="rtl">

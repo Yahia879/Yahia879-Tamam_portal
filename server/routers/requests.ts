@@ -332,6 +332,7 @@ const createRequestSchema = z.object({
 
 // مخطط البحث والفلترة
 const searchRequestsSchema = z.object({
+  quotationsView: z.boolean().optional(),
   search: z.string().optional(),
   programType: z.string().optional(),
   currentStage: z.enum(requestStages).optional(),
@@ -919,12 +920,20 @@ export const requestsRouter = router({
       const isFieldTeam = ctx.user.role === "field_team" || userPermissions.includes("requests.manage_as_field_team");
 
       const conditions = [];
+      if (input.quotationsView) {
+        const general = userPermissions.includes("quotations.view");
+        const sedana = userPermissions.includes("sedana_quotations.view");
+        if (!general && !sedana) throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض عروض الأسعار" });
+        if (!general) conditions.push(eq(mosqueRequests.programType, "sedana"));
+        if (!sedana) conditions.push(sql`(${mosqueRequests.programType} IS NULL OR ${mosqueRequests.programType} != 'sedana')`);
+      }
+
 
       // المدير العام ومكتب المشاريع يرون جميع الطلبات
       const adminRoles = ["super_admin", "system_admin", "projects_office", "financial_manager", "executive_director", "technical_supervisor"];
       
       // إذا لم يكن يملك صلاحية requests.view_details، نطبق شروط التصفية حسب الأدوار
-      if (!hasViewDetailsPermission) {
+      if (!hasViewDetailsPermission && !input.quotationsView) {
         // طالب الخدمة يرى فقط طلباته
         if (ctx.user.role === "service_requester") {
           conditions.push(eq(mosqueRequests.userId, ctx.user.id));
@@ -970,7 +979,7 @@ export const requestsRouter = router({
       const canViewSedana = isSuperOrSystemAdmin || isProcurementOfficer || isFinancialOrInventory || hasSedanaPermission;
       const hasGeneralRequestsView = userPermissions.includes("requests.view") || userPermissions.includes("requests.view_details") || userPermissions.includes("*");
 
-      if (input.currentStage === "financial_eval_and_approval") {
+      if (!input.quotationsView && input.currentStage === "financial_eval_and_approval") {
         const canViewSedanaInQuotations = userPermissions.includes("sedana_quotations.view") || userPermissions.includes("quotations.view_sedana") || userPermissions.includes("*");
         if (!canViewSedanaInQuotations) {
           conditions.push(
@@ -979,14 +988,14 @@ export const requestsRouter = router({
         }
       }
 
-      if ((isProcurementOfficer || (hasSedanaPermission && !hasGeneralRequestsView)) && !hasGeneralRequestsView) {
+      if (!input.quotationsView && (isProcurementOfficer || (hasSedanaPermission && !hasGeneralRequestsView)) && !hasGeneralRequestsView) {
         // مخصص لبرنامج سدانة فقط إذا كان يملك صلاحية سدانة بدون صلاحية عامة لعرض الطلبات
         conditions.push(eq(mosqueRequests.programType, "sedana"));
-      } else if (input.programType === "sedana") {
+      } else if (!input.quotationsView && input.programType === "sedana") {
         if (!canViewSedana) {
           conditions.push(sql`1 = 0`);
         }
-      } else if (input.excludeSedana || (!isSuperOrSystemAdmin && !input.programType && !isProcurementOfficer && !isFinancialOrInventory && !hasSedanaPermission)) {
+      } else if (!input.quotationsView && (input.excludeSedana || (!isSuperOrSystemAdmin && !input.programType && !isProcurementOfficer && !isFinancialOrInventory && !hasSedanaPermission))) {
         if (!isSuperOrSystemAdmin || input.excludeSedana) {
           conditions.push(
             sql`(${mosqueRequests.programType} IS NULL OR ${mosqueRequests.programType} != 'sedana')`

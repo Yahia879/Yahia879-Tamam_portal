@@ -1,3 +1,4 @@
+import { GENERAL_QUOTATION_PERMISSIONS, GENERAL_QUOTATION_LABELS } from "@shared/quotationPermissions";
 import { DisbursementPermConfirmationModal } from "@/components/permissions/DisbursementPermConfirmationModal";
 
 
@@ -4485,23 +4486,7 @@ export default function UserPermissions() {
 
       },
 
-      quotations: {
-
-        view: "عرض قائمة عروض الأسعار",
-
-        view_sedana: "عرض عروض أسعار سدانة",
-
-        add: "إضافة عرض سعر",
-
-        edit: "تعديل عرض سعر",
-
-        delete: "حذف عرض سعر",
-
-        approve: "اعتماد أو رفض عروض الأسعار",
-
-        export: "تصدير عروض الأسعار"
-
-      },
+      quotations: GENERAL_QUOTATION_LABELS,
 
       financial_approval: {
 
@@ -5885,9 +5870,6 @@ export default function UserPermissions() {
 
 
 
-        { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "view_sedana", "add", "edit", "delete", "approve", "export"] },
-
-
 
         { 
 
@@ -5986,6 +5968,13 @@ export default function UserPermissions() {
 
 
         {
+      title: "عروض الأسعار",
+      modules: [
+        { id: "quotations", nameAr: "عروض أسعار الطلبات العامة", icon: Receipt, perms: GENERAL_QUOTATION_PERMISSIONS.map(p => p.action) },
+        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view", "export_pdf", "add", "recommend", "approve"] },
+      ],
+    },
+    {
       title: "العقود",
       modules: [
         {
@@ -6029,9 +6018,6 @@ export default function UserPermissions() {
 
       modules: [
 
-
-
-        { id: "sedana_quotations", nameAr: "عروض أسعار سدانة", icon: Receipt, perms: ["view", "export_pdf", "add", "recommend", "approve"] },
 
 
 

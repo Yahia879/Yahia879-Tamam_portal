@@ -188,7 +188,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/suppliers/new": ["suppliers.add", "suppliers.create", "suppliers"],
 
   // ── عروض الأسعار ──
-  "/quotations": ["quotations", "quotations.view"],
+  "/quotations": ["quotations.view", "sedana_quotations.view"],
   "/sedana-quotations": "sedana_quotations.view",
 
   // ── الاعتمادات ──
@@ -700,6 +700,14 @@ export function hasRouteAccess(
   // الصندوق: متاح دائماً للإدارة المالية (متوافق مع الخادم والقائمة الجانبية)
   if ((pathname === "/fund" || pathname.startsWith("/fund/")) && ["financial", "financial_manager"].includes(userRole)) {
     return true;
+  }
+
+  if (pathname === "/quotations" || pathname.startsWith("/quotations/") ||
+      pathname === "/sedana-quotations" || pathname.startsWith("/sedana-quotations/")) {
+    const required = getRequiredPermission(pathname);
+    return Array.isArray(required)
+      ? required.some(p => userPermissions.includes(p))
+      : typeof required === "string" && userPermissions.includes(required);
   }
 
   if (pathname === "/contracts" || pathname.startsWith("/contracts/") ||

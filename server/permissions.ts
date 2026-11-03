@@ -1,3 +1,4 @@
+import { GENERAL_QUOTATION_PERMISSIONS, GENERAL_QUOTATION_PERMISSION_IDS, quotationPermissionOptions } from "../shared/quotationPermissions";
 import { CONTRACT_PERMISSIONS, CONTRACT_PERMISSION_IDS, contractPermissionOptions } from "../shared/contractPermissions";
 import { eq, and, or, ne, sql, inArray, notInArray, isNull, like } from "drizzle-orm";
 
@@ -189,25 +190,11 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
 
 
-  quotations: ["quotations.view", "quotations.view_sedana", "quotations.create", "quotations.add", "quotations.edit", "quotations.delete", "quotations.approve", "quotations.export"],
-
-  "quotations.view": ["quotations.view"],
-
-  "quotations.view_sedana": ["quotations.view_sedana", "quotations.view"],
-
-  "quotations.add": ["quotations.add", "quotations.create", "quotations.view"],
-
-  "quotations.create": ["quotations.create", "quotations.add", "quotations.view"],
-
-  "quotations.edit": ["quotations.edit", "quotations.view"],
-
-  "quotations.delete": ["quotations.delete", "quotations.view"],
-
-  "quotations.approve": ["quotations.approve", "quotations.view"],
-
-  "quotations.export": ["quotations.export", "quotations.view"],
-
-
+  quotations: GENERAL_QUOTATION_PERMISSION_IDS,
+  ...Object.fromEntries(GENERAL_QUOTATION_PERMISSIONS.map(p => [
+    `quotations.${p.action}`, [`quotations.${p.action}`, "quotations.view"],
+  ])),
+  "quotations.create": ["quotations.add", "quotations.view"],
 
   financial_approval: [
 
@@ -2019,7 +2006,12 @@ async function ensureRequestsPermissionsExist(db: any) {
 
 
 
+      let customizedQuotationRole = false;
+      try { customizedQuotationRole = Array.isArray(JSON.parse(roleExists?.description ?? "null")); } catch {}
+
       for (const permId of permIds) {
+        if (customizedQuotationRole && permId.startsWith("quotations.")) continue;
+
 
         const existingRolePerms = await db.select()
 
@@ -3115,21 +3107,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       // 2. عروض الأسعار
 
-      { id: "quotations.view", moduleId: "quotations", action: "view", nameAr: "عرض قائمة عروض الأسعار", nameEn: "View Quotations List" },
-
-      { id: "quotations.view_sedana", moduleId: "quotations", action: "view_sedana", nameAr: "عرض عروض أسعار سدانة", nameEn: "View Sedana Quotations" },
-
-      { id: "quotations.add", moduleId: "quotations", action: "add", nameAr: "إضافة عرض سعر", nameEn: "Add Quotation" },
-
-      { id: "quotations.edit", moduleId: "quotations", action: "edit", nameAr: "تعديل عرض سعر", nameEn: "Edit Quotation" },
-
-      { id: "quotations.delete", moduleId: "quotations", action: "delete", nameAr: "حذف عرض سعر", nameEn: "Delete Quotation" },
-
-      { id: "quotations.approve", moduleId: "quotations", action: "approve", nameAr: "اعتماد أو رفض عروض الأسعار", nameEn: "Approve or Reject Quotations" },
-
-      { id: "quotations.export", moduleId: "quotations", action: "export", nameAr: "تصدير عروض الأسعار", nameEn: "Export Quotations" },
-
-      // 3. قسم الاعتمادات
+  // 3. قسم الاعتمادات
 
 
       { id: "financial_approval.progress_invoices", moduleId: "financial_approval", action: "progress_invoices", nameAr: "عرض المستخلصات بانتظار الاعتماد", nameEn: "View Pending Progress Invoices" },
@@ -3587,8 +3565,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       { id: "custody_requests.create", moduleId: "custody_requests", action: "create", nameAr: "طلب عهدة مالية جديدة", nameEn: "Create Financial Custody Request" },
 
-      { id: "quotations.view_sedana", moduleId: "quotations", action: "view_sedana", nameAr: "عرض عروض أسعار سدانة", nameEn: "View Sedana Quotations" },
-
       { id: "sedana_quotations.view", moduleId: "sedana_quotations", action: "view", nameAr: "عرض عروض أسعار سدانة", nameEn: "View Sedana Quotations" },
 
       { id: "sedana_quotations.export_pdf", moduleId: "sedana_quotations", action: "export_pdf", nameAr: "تصدير ملف pdf للبنود", nameEn: "Export BOQ Items PDF" },
@@ -3610,6 +3586,10 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
 
     customPerms.push({ id: "contracts.sign", moduleId: "settings", action: "sign", nameAr: "\u062a\u0648\u0642\u064a\u0639 \u0627\u0644\u0639\u0642\u0648\u062f", nameEn: "Sign Contracts" });
+    customPerms.push(...GENERAL_QUOTATION_PERMISSIONS.map(p => ({
+      id: `quotations.${p.action}`, moduleId: "quotations", action: p.action,
+      nameAr: p.nameAr, nameEn: p.action.replace(/_/g, " "),
+    })));
     customPerms.push(...CONTRACT_PERMISSIONS.map(p => ({
       id: `contracts.${p.action}`,
       moduleId: "contracts",
@@ -3668,6 +3648,15 @@ async function ensureAllCustomPermissionsExist(db: any) {
       await db.delete(rolePermissions).where(inArray(rolePermissions.permissionId, retiredContractIds));
       await db.delete(userPermissions).where(inArray(userPermissions.permissionId, retiredContractIds));
       await db.delete(permissions).where(inArray(permissions.id, retiredContractIds));
+    }
+
+    const retiredQuotationPermissions = await db.select({ id: permissions.id }).from(permissions)
+      .where(and(like(permissions.id, "quotations.%"), notInArray(permissions.id, GENERAL_QUOTATION_PERMISSION_IDS)));
+    const retiredQuotationIds = retiredQuotationPermissions.map((p: { id: string }) => p.id);
+    if (retiredQuotationIds.length) {
+      await db.delete(rolePermissions).where(inArray(rolePermissions.permissionId, retiredQuotationIds));
+      await db.delete(userPermissions).where(inArray(userPermissions.permissionId, retiredQuotationIds));
+      await db.delete(permissions).where(inArray(permissions.id, retiredQuotationIds));
     }
 
     // Cleanup removed permissions disbursements.add and disbursements.delete
@@ -4185,6 +4174,11 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
 
     for (const [rId, pIds] of Object.entries(sedanaQuoDefaultRolePerms)) {
+      const [role] = await db.select({ description: roles.description }).from(roles).where(eq(roles.id, rId)).limit(1);
+      let customized = false;
+      try { customized = Array.isArray(JSON.parse(role?.description ?? "null")); } catch {}
+      if (customized) continue;
+
 
       for (const pId of pIds) {
 
@@ -4526,11 +4520,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
 
 
-  if (userData?.role === "procurement_officer" && !hasCustomRole) {
 
-    rolePermissionsData.push("quotations.view", "quotations.create", "quotations.add");
-
-  }
 
 
 
@@ -4566,7 +4556,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
     const rolePermsResult = await db
 
-      .select({ permissionId: rolePermissions.permissionId })
+      .select({ roleId: rolePermissions.roleId, permissionId: rolePermissions.permissionId })
 
       .from(rolePermissions)
 
@@ -4574,7 +4564,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
     
 
-    rolePermissionsData.push(...rolePermsResult.map(rp => rp.permissionId));
+    const customizedQuotationRoles = new Set<string>();
 
 
 
@@ -4600,6 +4590,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
           if (Array.isArray(parsed)) {
 
+            customizedQuotationRoles.add(role.id);
             rolePermissionsData.push(...parsed);
 
           }
@@ -4614,6 +4605,11 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
     }
 
+    rolePermissionsData.push(...rolePermsResult.filter(rp =>
+      !customizedQuotationRoles.has(rp.roleId) ||
+      !(rp.permissionId === "quotations" || rp.permissionId.startsWith("quotations.") ||
+        rp.permissionId === "sedana_quotations" || rp.permissionId.startsWith("sedana_quotations."))
+    ).map(rp => rp.permissionId));
   }
 
 
@@ -4673,6 +4669,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
       // الصلاحيات المستبعدة وصلاحيات إدارة المخزون لا تُمنح تلقائياً بالـ Wildcard
 
       const isInv = (
+        p.id === "quotations" || p.id.startsWith("quotations.") ||
 
         p.id.startsWith("sedana_quotations") ||
 
@@ -4706,7 +4703,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
     const expanded = PERMISSION_EXPANSION[perm];
 
-    if (expanded && !(perm === "contracts" && permissionsToExpand.some(p => p.startsWith("contracts.")))) {
+    if (expanded && !(["contracts", "quotations"].includes(perm) && permissionsToExpand.some(p => p.startsWith(`${perm}.`)))) {
 
       expanded.forEach(sub => {
 
@@ -5479,7 +5476,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
   // 2. عروض الأسعار
 
-  const quotationSubPerms = ["quotations.view", "quotations.view_sedana", "quotations.add", "quotations.create", "quotations.edit", "quotations.delete", "quotations.approve", "quotations.export"];
+  const quotationSubPerms = GENERAL_QUOTATION_PERMISSION_IDS;
 
   if (revokedPermissions.has("quotations") || revokedPermissions.has("quotations.view") || !allPermissions.has("quotations.view")) {
 
@@ -5498,6 +5495,14 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
   }
 
 
+
+  if (revokedPermissions.has("quotations.create")) allPermissions.delete("quotations.add");
+  GENERAL_QUOTATION_PERMISSION_IDS.forEach(p => {
+    if (revokedPermissions.has(p)) allPermissions.delete(p);
+  });
+  allPermissions.forEach(p => {
+    if (p.startsWith("quotations.") && !GENERAL_QUOTATION_PERMISSION_IDS.includes(p)) allPermissions.delete(p);
+  });
 
   // 3. قسم الاعتمادات
 
@@ -5941,23 +5946,13 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
     allPermissions.delete("sedana_quotations");
 
     allPermissions.delete("sedana_quotations.view");
+    ["export_pdf", "add", "recommend", "approve"].forEach(action => allPermissions.delete(`sedana_quotations.${action}`));
 
   } else if (allPermissions.has("sedana_quotations.view")) {
 
     allPermissions.add("sedana_quotations");
 
   }
-
-  // صلاحية عرض سدانة داخل صفحة عروض الأسعار مستقلة تماماً عن صلاحية صفحة عروض أسعار سدانة
-  if (
-    revokedPermissions.has("quotations.view_sedana") ||
-    revokedPermissions.has("quotations.view") ||
-    !allPermissions.has("quotations.view")
-  ) {
-    allPermissions.delete("quotations.view_sedana");
-  }
-
-
 
   // مالية سدانة
 
@@ -7263,6 +7258,9 @@ export const permissionsRouter = router({
 
           if (Array.isArray(parsed)) {
 
+            Array.from(permsSet).forEach(p => {
+              if (p === "quotations" || p.startsWith("quotations.") || p === "sedana_quotations" || p.startsWith("sedana_quotations.")) permsSet.delete(p);
+            });
             parsed.forEach(p => permsSet.add(p));
 
           }
@@ -7277,7 +7275,7 @@ export const permissionsRouter = router({
 
 
 
-      return contractPermissionOptions(Array.from(permsSet));
+      return quotationPermissionOptions(contractPermissionOptions(Array.from(permsSet)));
 
     }),
 
