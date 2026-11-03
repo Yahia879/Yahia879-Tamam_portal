@@ -162,14 +162,15 @@ export default function ContractPrint() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const hasViewPermission = usePermission("contracts.view");
+  const canExportContract = usePermission("contracts.export");
   const hasContractSignPermission = usePermission("contracts.sign");
   const { user: currentUser } = useAuth();
+  const hasUserSignPerm = hasContractSignPermission;
+
   
   const [showFirstPartySignature, setShowFirstPartySignature] = useState(true);
 
   // التحقق من أن المستخدم الحالي هو المدير التنفيذي ولديه صلاحية توقيع العقود وتوقيع رقمي
-  const userPermissionsList = (currentUser as any)?.permissions || [];
-  const hasUserSignPerm = hasContractSignPermission || userPermissionsList.includes("contracts.sign");
   const isExecutiveDirectorRole = 
     (currentUser as any)?.customRole?.nameAr === "المدير التنفيذي" ||
     currentUser?.name === "المدير التنفيذي" ||
@@ -187,7 +188,7 @@ export default function ContractPrint() {
   );
 
   const handlePrint = () => {
-    window.print();
+    if (canExportContract) window.print();
   };
 
   if (isLoading) {
@@ -198,7 +199,7 @@ export default function ContractPrint() {
     );
   }
 
-  if (!hasViewPermission) {
+  if (!hasViewPermission || !canExportContract) {
     return (
       <div className="flex items-center justify-center min-h-screen text-red-500 font-bold" dir="rtl">
         عذراً، لا تملك صلاحية عرض تقرير طباعة العقد.

@@ -1,3 +1,4 @@
+import { CONTRACT_PERMISSIONS, CONTRACT_PERMISSION_IDS, contractPermissionOptions } from "../shared/contractPermissions";
 import { eq, and, or, ne, sql, inArray, notInArray, isNull, like } from "drizzle-orm";
 
 import { getDb } from "./db";
@@ -270,7 +271,7 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
   "contracts.create": ["contracts.create", "contracts.view"],
   "contracts.edit": ["contracts.edit", "contracts.view"],
   "contracts.approve": ["contracts.approve", "contracts.view"],
-  "contracts.edit_approved": ["contracts.edit_approved", "contracts.edit", "contracts.view"],
+  "contracts.edit_approved": ["contracts.edit_approved", "contracts.view"],
   "contracts.export": ["contracts.export", "contracts.view"],
 
   "contracts.template_view": ["contracts.template_view"],
@@ -3149,33 +3150,11 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       { id: "financial_approval.approve", moduleId: "financial_approval", action: "approve", nameAr: "اتخاذ قرار الاعتماد والرفض", nameEn: "Decision on Approvals" },
 
-      { id: "contracts.view", moduleId: "contracts", action: "view", nameAr: "عرض قائمة العقود", nameEn: "View Contracts List" },
-
-      { id: "contracts.create", moduleId: "contracts", action: "create", nameAr: "إنشاء عقود", nameEn: "Create Contracts" },
-
-      { id: "contracts.edit", moduleId: "contracts", action: "edit", nameAr: "تعديل العقود", nameEn: "Edit Contracts" },
-
-      { id: "contracts.delete", moduleId: "contracts", action: "delete", nameAr: "حذف العقود", nameEn: "Delete Contracts" },
-
-      { id: "contracts.export", moduleId: "contracts", action: "export", nameAr: "تصدير العقود", nameEn: "Export Contracts" },
-
-      { id: "contracts.template_add", moduleId: "settings", action: "template_add", nameAr: "إضافة قالب للعقود", nameEn: "Add Contract Template" },
-
-      { id: "contracts.template_edit", moduleId: "settings", action: "template_edit", nameAr: "تعديل قالب العقد", nameEn: "Edit Contract Template" },
-
-      { id: "contracts.template_delete", moduleId: "settings", action: "template_delete", nameAr: "حذف قالب العقد", nameEn: "Delete Contract Template" },
-
-      { id: "contracts.clause_add", moduleId: "settings", action: "clause_add", nameAr: "إضافة بند للعقد", nameEn: "Add Contract Clause" },
-
       { id: "forms_customization.evaluation", moduleId: "settings", action: "evaluation", nameAr: "تخصيص استمارة التقييم", nameEn: "Customize Evaluation Form" },
 
       { id: "forms_customization.services", moduleId: "settings", action: "services", nameAr: "تخصيص نماذج طلبات الخدمات", nameEn: "Customize Service Request Forms" },
 
       { id: "forms_customization.registration", moduleId: "settings", action: "registration", nameAr: "تخصيص نماذج التسجيل والتبرع", nameEn: "Customize Registration & Donation Forms" },
-
-      { id: "contracts.edit_approved", moduleId: "contracts", action: "edit_approved", nameAr: "تعديل العقود المعتمدة", nameEn: "Edit Approved Contracts" },
-
-      { id: "contracts.approve", moduleId: "contracts", action: "approve", nameAr: "اعتماد العقود", nameEn: "Approve Contracts" },
 
       { id: "disbursements.view", moduleId: "disbursements", action: "view", nameAr: "عرض طلبات الصرف", nameEn: "View Disbursement Requests" },
       { id: "disbursements.create_project_linked", moduleId: "disbursements", action: "create_project_linked", nameAr: "إنشاء طلب صرف مرتبط بتقرير انجاز أو مستخلص معتمد", nameEn: "Create Progress Report/Invoice Linked Disbursement" },
@@ -3528,8 +3507,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       { id: "disbursement_orders.sign", moduleId: "disbursements", action: "sign_order", nameAr: "توقيع أوامر الصرف", nameEn: "Sign Disbursement Orders" },
 
-      { id: "contracts.sign", moduleId: "contracts", action: "sign", nameAr: "توقيع العقود", nameEn: "Sign Contracts" },
-
       { id: "final_reports.sign", moduleId: "requests", action: "sign_final_report", nameAr: "توقيع التقارير الختامية", nameEn: "Sign Final Reports" },
 
       { id: "projects.create_multi_mosque", moduleId: "projects", action: "create_multi_mosque", nameAr: "إضافة مشروع لعدة مساجد", nameEn: "Create Multi-Mosque Project" },
@@ -3632,6 +3609,15 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
 
 
+    customPerms.push({ id: "contracts.sign", moduleId: "settings", action: "sign", nameAr: "\u062a\u0648\u0642\u064a\u0639 \u0627\u0644\u0639\u0642\u0648\u062f", nameEn: "Sign Contracts" });
+    customPerms.push(...CONTRACT_PERMISSIONS.map(p => ({
+      id: `contracts.${p.action}`,
+      moduleId: "contracts",
+      action: p.action,
+      nameAr: p.nameAr,
+      nameEn: p.nameAr,
+    })));
+
     for (const p of customPerms) {
 
       try {
@@ -3675,6 +3661,15 @@ async function ensureAllCustomPermissionsExist(db: any) {
       }
 
     }
+    const retiredContractPermissions = await db.select({ id: permissions.id }).from(permissions)
+      .where(and(like(permissions.id, "contracts.%"), notInArray(permissions.id, [...CONTRACT_PERMISSION_IDS, "contracts.sign"])));
+    const retiredContractIds = retiredContractPermissions.map((p: { id: string }) => p.id);
+    if (retiredContractIds.length) {
+      await db.delete(rolePermissions).where(inArray(rolePermissions.permissionId, retiredContractIds));
+      await db.delete(userPermissions).where(inArray(userPermissions.permissionId, retiredContractIds));
+      await db.delete(permissions).where(inArray(permissions.id, retiredContractIds));
+    }
+
     // Cleanup removed permissions disbursements.add and disbursements.delete
     try {
       await db.delete(rolePermissions).where(inArray(rolePermissions.permissionId, ["disbursements.add", "disbursements.delete"]));
@@ -4355,7 +4350,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
  */
 
-export async function calculateUserPermissions(userId: number): Promise<string[]> {
+export async function calculateUserPermissions(userId: number, includeUserOverrides = true): Promise<string[]> {
 
   const db = await getDb();
 
@@ -4411,7 +4406,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
         const parsed = JSON.parse(adminRoleRecord.description);
 
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
 
           customAdminPerms = parsed;
 
@@ -4423,7 +4418,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
 
 
-    if (customAdminPerms) {
+    if (customAdminPerms !== null) {
 
       rolePermissionsData.push(...customAdminPerms);
 
@@ -4625,7 +4620,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
   // 3. جمع الصلاحيات الفردية
 
-  const userPermsData = await db
+  const userPermsData = includeUserOverrides ? await db
 
     .select({
 
@@ -4647,7 +4642,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
       )
 
-    );
+    ) : [];
 
 
 
@@ -4711,7 +4706,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
     const expanded = PERMISSION_EXPANSION[perm];
 
-    if (expanded) {
+    if (expanded && !(perm === "contracts" && permissionsToExpand.some(p => p.startsWith("contracts.")))) {
 
       expanded.forEach(sub => {
 
@@ -5603,7 +5598,11 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     }
   });
 
-  allPermissions.delete("contracts.delete");
+  allPermissions.forEach(permission => {
+    if (permission.startsWith("contracts.") && !CONTRACT_PERMISSION_IDS.includes(permission) && permission !== "contracts.sign") {
+      allPermissions.delete(permission);
+    }
+  });
 
 
 
@@ -7278,7 +7277,7 @@ export const permissionsRouter = router({
 
 
 
-      return Array.from(permsSet);
+      return contractPermissionOptions(Array.from(permsSet));
 
     }),
 
@@ -8079,244 +8078,8 @@ export const permissionsRouter = router({
    */
 
   getUserRolePermissions: protectedProcedure
-
     .input(z.object({ userId: z.number() }))
-
-    .query(async ({ input }) => {
-
-      const db = await getDb();
-
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-
-
-
-      // 1. الحصول على الدور الأساسي للمستخدم من جدول المستخدمين
-
-      const [userData] = await db
-
-        .select({ role: users.role })
-
-        .from(users)
-
-        .where(eq(users.id, input.userId))
-
-        .limit(1);
-
-
-
-      // 2. جمع صلاحيات جميع الأدوار المسندة للمستخدم (الدور الأساسي + الأدوار الإضافية)
-
-      const userRolesData = await db
-
-        .select({
-
-          roleId: userRoleAssignments.roleId,
-
-        })
-
-        .from(userRoleAssignments)
-
-        .where(
-
-          and(
-
-            eq(userRoleAssignments.userId, input.userId),
-
-            sql`(${userRoleAssignments.expiresAt} IS NULL OR ${userRoleAssignments.expiresAt} > NOW())`
-
-          )
-
-        );
-
-
-
-      const roleIds = userRolesData.map(r => r.roleId);
-
-      const hasCustomRole = roleIds.some(r => r.startsWith("custom_role_"));
-
-      if (userData?.role && !hasCustomRole && !roleIds.includes(userData.role)) {
-
-        roleIds.push(userData.role);
-
-      }
-
-
-
-      if (roleIds.length === 0) return [];
-
-
-
-      const permsSet = new Set<string>();
-
-
-
-      // إذا كان المستخدم super_admin أو system_admin، نمنحه جميع الصلاحيات افتراضياً (باستثناء الصلاحيات المستبعدة)
-
-      if (roleIds.includes('super_admin') || roleIds.includes('system_admin')) {
-
-        const excludedAdminPerms = EXCLUDED_ADMIN_PERMISSIONS;
-
-        const allPerms = await db.select({ id: permissions.id }).from(permissions);
-
-        allPerms.forEach(p => {
-
-          if (p.id !== "appointments.view_own" && !excludedAdminPerms.includes(p.id)) {
-
-            permsSet.add(p.id);
-
-          }
-
-        });
-
-        Object.keys(PERMISSION_EXPANSION).forEach(k => {
-
-          if (k !== "appointments.view_own" && !excludedAdminPerms.includes(k)) {
-
-            permsSet.add(k);
-
-          }
-
-        });
-
-        Object.values(PERMISSION_EXPANSION).forEach(subs => subs.forEach(s => {
-
-          if (!excludedAdminPerms.includes(s)) {
-
-            permsSet.add(s);
-
-          }
-
-        }));
-
-      }
-
-
-
-      // إسناد صلاحيات تلقائية للأدوار الأساسية
-
-      if (roleIds.includes("service_requester")) {
-
-        permsSet.add("requests.create");
-
-        permsSet.add("requests.view");
-
-      }
-
-
-
-      if (roleIds.includes("board_chairman")) {
-
-        permsSet.add("board_chairman");
-
-      }
-
-
-
-      if (roleIds.includes("board_member")) {
-
-        permsSet.add("board_member");
-
-      }
-
-
-
-      // جلب صلاحيات من جدول rolePermissions
-
-      const rolePerms = await db
-
-        .select({ permissionId: rolePermissions.permissionId })
-
-        .from(rolePermissions)
-
-        .where(inArray(rolePermissions.roleId, roleIds));
-
-      
-
-      rolePerms.forEach(rp => permsSet.add(rp.permissionId));
-
-
-
-      // جلب صلاحيات من حقل description في جدول roles (للأدوار المخصصة)
-
-      const rolesData = await db
-
-        .select({ id: roles.id, description: roles.description })
-
-        .from(roles)
-
-        .where(inArray(roles.id, roleIds));
-
-
-
-      for (const role of rolesData) {
-
-        if (role.description) {
-
-          try {
-
-            const parsed = JSON.parse(role.description);
-
-            if (Array.isArray(parsed)) {
-
-              parsed.forEach(p => permsSet.add(p));
-
-            }
-
-          } catch {
-
-            // Ignore
-
-          }
-
-        }
-
-      }
-
-
-
-      // توسيع الصلاحيات البسيطة
-
-      const permsArray = Array.from(permsSet);
-
-      const excludedAdminPerms = EXCLUDED_ADMIN_PERMISSIONS;
-
-      for (const perm of permsArray) {
-
-        const expanded = PERMISSION_EXPANSION[perm];
-
-        if (expanded) {
-
-          expanded.forEach(sub => {
-
-            if (!excludedAdminPerms.includes(sub)) {
-
-              permsSet.add(sub);
-
-            }
-
-          });
-
-        }
-
-      }
-
-
-
-
-
-
-
-      return Array.from(permsSet);
-
-    }),
-
-
-
-  /**
-
-   * إسناد دور لمستخدم
-
-   */
+    .query(({ input }) => calculateUserPermissions(input.userId, false)),
 
   assignRole: permissionProcedure(["users.customize", "staff_users.customize"])
 

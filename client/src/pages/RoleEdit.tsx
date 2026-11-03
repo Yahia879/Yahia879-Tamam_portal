@@ -1,3 +1,4 @@
+import { contractPermissionSelection } from "@shared/contractPermissions";
 import { DisbursementPermConfirmationModal } from "@/components/permissions/DisbursementPermConfirmationModal";
 import { useState, useEffect, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
@@ -555,7 +556,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
         template_add: "إضافة قالب جديد",
         template_edit: "تعديل القالب",
         template_delete: "حذف القالب",
-        preamble_add: "اضافة تمهيد",
+        preamble_add: "إضافة تمهيد",
         preamble_edit: "تعديل التمهيد",
         clause_add: "إضافة بند جديد للقالب",
         clause_edit: "تعديل بنود القالب",
@@ -993,7 +994,7 @@ export default function RoleEdit() {
       return;
     }
 
-    let finalPerms = selectedPerms;
+    let finalPerms = contractPermissionSelection(selectedPerms);
 
     if (finalPerms.length === 0) {
       toast.error("يرجى تحديد صلاحية واحدة على الأقل");
@@ -1411,7 +1412,7 @@ export default function RoleEdit() {
           next = next.filter(id => !id.startsWith("disbursements."));
         }
 
-        // عند إلغاء تفعيل صلاحية 'عرض العقود وقالب العقود'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات العقود الأخرى
+        // عند إلغاء تفعيل صلاحية 'عرض قسم العقود'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات العقود الأخرى
         if (permId === "contracts.view") {
           const contractsSectionSubPerms = ["contracts.create", "contracts.edit", "contracts.approve", "contracts.edit_approved", "contracts.export"];
           next = next.filter(id => !contractsSectionSubPerms.includes(id));

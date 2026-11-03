@@ -4536,7 +4536,7 @@ export default function UserPermissions() {
         template_add: "إضافة قالب جديد",
         template_edit: "تعديل القالب",
         template_delete: "حذف القالب",
-        preamble_add: "اضافة تمهيد",
+        preamble_add: "إضافة تمهيد",
         preamble_edit: "تعديل التمهيد",
         clause_add: "إضافة بند جديد للقالب",
         clause_edit: "تعديل بنود القالب",

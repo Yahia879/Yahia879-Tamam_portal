@@ -1,3 +1,4 @@
+import { contractPermissionSelection } from "@shared/contractPermissions";
 import { DisbursementPermConfirmationModal } from "@/components/permissions/DisbursementPermConfirmationModal";
 import { useState, useEffect, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
@@ -127,7 +128,7 @@ export default function RolePermissions() {
 
   const handleSaveChanges = () => {
     if (!roleId) return;
-    let finalPerms = selectedPerms;
+    let finalPerms = contractPermissionSelection(selectedPerms);
     if (roleId === "project_manager") {
       finalPerms = finalPerms.filter(p => !p.startsWith("financial_reports.") && !p.startsWith("settings_contracts."));
     }
@@ -541,7 +542,7 @@ export default function RolePermissions() {
           next = next.filter(id => !id.startsWith("disbursements."));
         }
 
-        // عند إلغاء تفعيل صلاحية 'عرض العقود وقالب العقود'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات العقود الأخرى
+        // عند إلغاء تفعيل صلاحية 'عرض قسم العقود'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات العقود الأخرى
         if (permId === "contracts.view") {
           const contractsSectionSubPerms = ["contracts.create", "contracts.edit", "contracts.approve", "contracts.edit_approved", "contracts.export"];
           next = next.filter(id => !contractsSectionSubPerms.includes(id));
@@ -2178,7 +2179,7 @@ export default function RolePermissions() {
         template_add: "إضافة قالب جديد",
         template_edit: "تعديل القالب",
         template_delete: "حذف القالب",
-        preamble_add: "اضافة تمهيد",
+        preamble_add: "إضافة تمهيد",
         preamble_edit: "تعديل التمهيد",
         clause_add: "إضافة بند جديد للقالب",
         clause_edit: "تعديل بنود القالب",

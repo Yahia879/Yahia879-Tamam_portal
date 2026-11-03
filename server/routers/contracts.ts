@@ -1,3 +1,4 @@
+import { contractEditPermission, isApprovedContract } from "../../shared/contractPermissions";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
@@ -781,7 +782,7 @@ export const contractsRouter = router({
         supportType: z.string().optional(),
         supportedAmount: z.number().optional().nullable(),
         currentStep: z.number().optional().default(1),
-        status: z.enum(contractStatuses).optional(),
+        status: z.enum(["draft", "pending_approval"]).optional(),
         
         // الدفعات (للتوافق مع الكود القديم)
         payments: z.array(
@@ -1136,7 +1137,7 @@ export const contractsRouter = router({
     }),
   
   // تحديث عقد
-  update: permissionProcedure("contracts.edit")
+  update: permissionProcedure(["contracts.edit", "contracts.edit_approved"])
     .input(
       z.object({
         id: z.number(),
@@ -1197,14 +1198,13 @@ export const contractsRouter = router({
         throw new Error("العقد غير موجود");
       }
       
-      if (contract.status !== "draft") {
-        const isSuper = (ctx.user as any)?.role === "super_admin" || (ctx.user as any)?.role === "system_admin";
-        const hasApprovedPerm = await checkPermission(ctx.user.id, "contracts.edit_approved");
-        const canEditApproved = isSuper || hasApprovedPerm;
-
-        if (!canEditApproved) {
-          throw new Error("ليس لديك صلاحية تعديل العقود المعتمدة");
-        }
+      const requiredEditPermission = contractEditPermission(contract);
+      if (!await checkPermission(ctx.user.id, requiredEditPermission)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: `ليس لديك صلاحية: ${requiredEditPermission}` });
+      }
+      if (input.status && input.status !== contract.status &&
+          !["draft", "pending_approval"].includes(input.status)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "يجب اعتماد العقد من إجراء اعتماد العقد" });
       }
 
       // التحقق مما إذا كان الطلب المرتبط مغلقاً
@@ -1234,10 +1234,10 @@ export const contractsRouter = router({
       // تحديث المبلغ بالنص إذا تم تغيير المبلغ
       const updates: Record<string, unknown> = { ...updateData };
       if (input.status) {
-        if (contract.status === "approved" && input.status === "pending_approval") {
-          updates.status = "approved";
+        if (isApprovedContract(contract)) {
+          updates.status = contract.status;
         } else {
-          updates.status = input.status;
+          updates.status = isApprovedContract(contract) ? contract.status : input.status;
         }
       }
       // تحديد قيمة العقد: إذا قام المستخدم بإدخال أو تعديل القيمة، نعتمدها هي أولاً
@@ -1377,7 +1377,7 @@ export const contractsRouter = router({
         updates.currentStep = input.currentStep;
       }
       if (input.status !== undefined) {
-        updates.status = input.status;
+        updates.status = isApprovedContract(contract) ? contract.status : input.status;
       }
       
       // التأكد من تحديث مفوض التوقيع بشكل صريح
@@ -1635,7 +1635,7 @@ export const contractsRouter = router({
     }),
   
   // اعتماد العقد
-  approve: permissionProcedure(["contracts.approve", "contracts.edit"])
+  approve: permissionProcedure("contracts.approve")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -1843,7 +1843,7 @@ export const contractsRouter = router({
     }),
   
   // تفعيل العقد
-  activate: permissionProcedure("contracts.edit")
+  activate: permissionProcedure("contracts.edit_approved")
     .input(
       z.object({
         id: z.number(),
@@ -1897,7 +1897,7 @@ export const contractsRouter = router({
     }),
   
   // تحويل العقد إلى مشروع
-  convertToProject: permissionProcedure("contracts.edit")
+  convertToProject: permissionProcedure("contracts.edit_approved")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -1948,7 +1948,7 @@ export const contractsRouter = router({
   // ==================== دفعات العقد ====================
   
   // تحديث دفعات العقد
-  updatePayments: permissionProcedure("contracts.edit")
+  updatePayments: permissionProcedure(["contracts.edit", "contracts.edit_approved"])
     .input(
       z.object({
         contractId: z.number(),
@@ -1965,10 +1965,16 @@ export const contractsRouter = router({
         ),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
       
+      const [contract] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, input.contractId));
+      if (!contract) throw new TRPCError({ code: "NOT_FOUND", message: "العقد غير موجود" });
+      if (!await checkPermission(ctx.user.id, contractEditPermission(contract))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل هذا العقد" });
+      }
+
       const existingPayments = await db
         .select()
         .from(contractPayments)
@@ -2060,7 +2066,7 @@ export const contractsRouter = router({
   // ==================== قوالب العقود ====================
 
   // الحصول على جميع قوالب العقود
-  getTemplates: permissionProcedure(["contracts.view", "contracts.template_view"]).query(async () => {
+  getTemplates: permissionProcedure(["contracts.template_view", "contracts.create", "contracts.edit", "contracts.edit_approved"]).query(async () => {
     const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
     const templates = await db
@@ -2081,7 +2087,7 @@ export const contractsRouter = router({
   }),
 
   // الحصول على قالب واحد مع بنوده
-  getTemplate: permissionProcedure(["contracts.view", "contracts.template_view"])
+  getTemplate: permissionProcedure("contracts.template_view")
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -2106,7 +2112,7 @@ export const contractsRouter = router({
     }),
 
   // إنشاء قالب جديد
-  createTemplate: permissionProcedure(["contracts.template_add", "contracts.create"])
+  createTemplate: permissionProcedure("contracts.template_add")
     .input(
       z.object({
         name: z.string().min(1),
@@ -2123,6 +2129,10 @@ export const contractsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
+
+      if (input.introTemplate?.trim() && !await checkPermission(ctx.user.id, "contracts.preamble_add")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إضافة تمهيد" });
+      }
 
       // إذا كان القالب الافتراضي، إلغاء الافتراضي من القوالب الأخرى
       if (input.isDefault) {
@@ -2142,7 +2152,7 @@ export const contractsRouter = router({
     }),
 
   // تحديث قالب
-  updateTemplate: permissionProcedure(["contracts.template_edit", "contracts.preamble_add", "contracts.preamble_edit", "contracts.edit"])
+  updateTemplate: permissionProcedure(["contracts.template_edit", "contracts.preamble_add", "contracts.preamble_edit"])
     .input(
       z.object({
         id: z.number(),
@@ -2158,7 +2168,7 @@ export const contractsRouter = router({
         isDefault: z.boolean().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
       const { id, ...data } = input;
@@ -2169,6 +2179,18 @@ export const contractsRouter = router({
         .from(contractTemplates)
         .where(eq(contractTemplates.id, id));
       
+      if (!template) throw new TRPCError({ code: "NOT_FOUND", message: "القالب غير موجود" });
+      if (Object.keys(data).some(key => key !== "introTemplate") &&
+          !await checkPermission(ctx.user.id, "contracts.template_edit")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل القالب" });
+      }
+      if (data.introTemplate !== undefined) {
+        const permission = template.introTemplate?.trim() ? "contracts.preamble_edit" : "contracts.preamble_add";
+        if (!await checkPermission(ctx.user.id, permission)) {
+          throw new TRPCError({ code: "FORBIDDEN", message: `ليس لديك صلاحية: ${permission}` });
+        }
+      }
+
       // السماح بتعديل القالب حتى لو كان قالب نظام
 
       // إذا كان القالب الافتراضي، إلغاء الافتراضي من القوالب الأخرى
@@ -2188,7 +2210,7 @@ export const contractsRouter = router({
     }),
 
   // حذف قالب
-  deleteTemplate: permissionProcedure(["contracts.template_delete", "contracts.delete"])
+  deleteTemplate: permissionProcedure("contracts.template_delete")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -2231,7 +2253,7 @@ export const contractsRouter = router({
   // ==================== بنود العقود ====================
 
   // الحصول على بنود قالب معين
-  getTemplateClauses: permissionProcedure(["contracts.view", "contracts.template_view"])
+  getTemplateClauses: permissionProcedure(["contracts.template_view", "contracts.create", "contracts.edit", "contracts.edit_approved"])
     .input(z.object({ templateId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -2245,7 +2267,7 @@ export const contractsRouter = router({
     }),
 
   // الحصول على البنود العامة (غير مرتبطة بقالب)
-  getGlobalClauses: permissionProcedure(["contracts.view", "contracts.template_view"]).query(async () => {
+  getGlobalClauses: permissionProcedure(["contracts.template_view", "contracts.create", "contracts.edit", "contracts.edit_approved"]).query(async () => {
     const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
     const clauses = await db
@@ -2257,7 +2279,7 @@ export const contractsRouter = router({
   }),
 
   // إضافة بند جديد
-  createClause: permissionProcedure(["contracts.clause_add", "contracts.create"])
+  createClause: permissionProcedure("contracts.clause_add")
     .input(
       z.object({
         templateId: z.number().optional(),
@@ -2290,7 +2312,7 @@ export const contractsRouter = router({
     }),
 
   // تحديث بند
-  updateClause: permissionProcedure(["contracts.clause_edit", "contracts.edit"])
+  updateClause: permissionProcedure("contracts.clause_edit")
     .input(
       z.object({
         id: z.number(),
@@ -2327,7 +2349,7 @@ export const contractsRouter = router({
     }),
 
   // حذف بند
-  deleteClause: permissionProcedure(["contracts.clause_delete", "contracts.delete"])
+  deleteClause: permissionProcedure("contracts.clause_delete")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -2357,7 +2379,7 @@ export const contractsRouter = router({
     }),
 
   // إعادة ترتيب البنود
-  reorderClauses: permissionProcedure(["contracts.clause_edit", "contracts.edit", "contracts.template_edit"])
+  reorderClauses: permissionProcedure("contracts.clause_edit")
     .input(
       z.object({
         templateId: z.number(),
@@ -2453,7 +2475,7 @@ export const contractsRouter = router({
     }),
 
   // حذف مفوض
-  deleteSignatory: permissionProcedure("contracts.delete")
+  deleteSignatory: permissionProcedure("settings_org.signers_delete")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -2672,7 +2694,7 @@ export const contractsRouter = router({
     }),
 
   // إنشاء طلب تعديل
-  requestModification: permissionProcedure("contracts.edit")
+  requestModification: permissionProcedure(["contracts.edit", "contracts.edit_approved"])
     .input(
       z.object({
         contractId: z.number(),
@@ -2697,6 +2719,10 @@ export const contractsRouter = router({
         throw new Error("العقد غير موجود");
       }
       
+      if (!await checkPermission(ctx.user.id, contractEditPermission(contract))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل هذا العقد" });
+      }
+
       // التحقق من عدم وجود دفعات مصروفة
       const paidPayments = await db
         .select()
@@ -2727,7 +2753,7 @@ export const contractsRouter = router({
     }),
 
   // الموافقة على طلب التعديل
-  approveModification: permissionProcedure("contracts.edit")
+  approveModification: permissionProcedure("contracts.edit_approved")
     .input(
       z.object({
         requestId: z.number(),
@@ -2753,7 +2779,7 @@ export const contractsRouter = router({
     }),
 
   // رفض طلب التعديل
-  rejectModification: permissionProcedure("contracts.edit")
+  rejectModification: permissionProcedure("contracts.edit_approved")
     .input(
       z.object({
         requestId: z.number(),

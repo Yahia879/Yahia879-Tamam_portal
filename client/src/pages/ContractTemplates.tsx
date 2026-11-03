@@ -91,10 +91,15 @@ const CLAUSE_CATEGORIES = {
 export default function ContractTemplates() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
+  const canViewTemplates = usePermission("contracts.template_view");
   const canTemplateAdd = usePermission("contracts.template_add");
   const canTemplateEdit = usePermission("contracts.template_edit");
   const canTemplateDelete = usePermission("contracts.template_delete");
   const canClauseAdd = usePermission("contracts.clause_add");
+  const canClauseEdit = usePermission("contracts.clause_edit");
+  const canClauseDelete = usePermission("contracts.clause_delete");
+  const canPreambleAdd = usePermission("contracts.preamble_add");
+  const canPreambleEdit = usePermission("contracts.preamble_edit");
 
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showClauseDialog, setShowClauseDialog] = useState(false);
@@ -123,12 +128,12 @@ export default function ContractTemplates() {
   });
 
   // جلب قوالب العقود
-  const { data: templates, refetch: refetchTemplates } = trpc.contracts.getTemplates.useQuery();
+  const { data: templates, refetch: refetchTemplates } = trpc.contracts.getTemplates.useQuery(undefined, { enabled: canViewTemplates });
 
   // جلب قالب مع بنوده
   const { data: selectedTemplate, refetch: refetchSelectedTemplate } = trpc.contracts.getTemplate.useQuery(
     { id: selectedTemplateId! },
-    { enabled: !!selectedTemplateId }
+    { enabled: canViewTemplates && !!selectedTemplateId }
   );
 
   // إنشاء قالب
@@ -324,6 +329,10 @@ export default function ContractTemplates() {
     setSelectedTemplateId(templateId);
   };
 
+  if (!canViewTemplates) {
+    return <DashboardLayout><p dir="rtl" className="p-6">ليس لديك صلاحية عرض قوالب العقود.</p></DashboardLayout>;
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -473,8 +482,8 @@ export default function ContractTemplates() {
                           <ListOrdered className="h-4 w-4" />
                           بنود العقد ({selectedTemplate?.clauses?.length || 0})
                         </h4>
-                        {canClauseAdd && (
-                          <div className="flex gap-2">
+                        <div className="flex gap-2">
+                            {(selectedTemplate?.introTemplate?.trim() ? canPreambleEdit : canPreambleAdd) && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -486,6 +495,8 @@ export default function ContractTemplates() {
                               <FileText className="h-4 w-4 ml-1" />
                               {selectedTemplate?.introTemplate ? "تعديل التمهيد" : "إضافة تمهيد"}
                             </Button>
+                            )}
+                            {canClauseAdd && (
                             <Button
                               size="sm"
                               onClick={() => {
@@ -497,8 +508,8 @@ export default function ContractTemplates() {
                               <Plus className="h-4 w-4 ml-1" />
                               إضافة بند
                             </Button>
+                            )}
                           </div>
-                        )}
                       </div>
 
                       {selectedTemplate?.introTemplate && (
@@ -566,7 +577,7 @@ export default function ContractTemplates() {
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex items-center gap-1">
-                                        {canTemplateEdit && (
+                                        {canClauseEdit && (
                                           <Button
                                             variant="ghost"
                                             size="icon"
@@ -575,7 +586,7 @@ export default function ContractTemplates() {
                                             <Edit className="h-4 w-4" />
                                           </Button>
                                         )}
-                                        {canTemplateDelete && (
+                                        {canClauseDelete && (
                                           <Button
                                             variant="ghost"
                                             size="icon"

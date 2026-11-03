@@ -1,3 +1,4 @@
+import { isApprovedContract } from "@shared/contractPermissions";
 import { useState, useMemo, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -241,21 +242,27 @@ export default function ContractsList() {
   const [, navigate] = useLocation();
   const canCreateContract = usePermission("contracts.create");
   const canViewContract = usePermission("contracts.view");
-  const canApproveContract = usePermission("contracts.approve");
+  const canViewTemplates = usePermission("contracts.template_view");
   const canEditApprovedContract = usePermission("contracts.edit_approved");
   const canTemplateAdd = usePermission("contracts.template_add");
   const canTemplateEdit = usePermission("contracts.template_edit");
   const canTemplateDelete = usePermission("contracts.template_delete");
   const canClauseAdd = usePermission("contracts.clause_add");
+  const canClauseEdit = usePermission("contracts.clause_edit");
+  const canClauseDelete = usePermission("contracts.clause_delete");
+  const canPreambleAdd = usePermission("contracts.preamble_add");
+  const canPreambleEdit = usePermission("contracts.preamble_edit");
   const canEditContract = usePermission("contracts.edit");
-  const canDeleteContract = usePermission("contracts.delete");
-  const canExportContract = usePermission("contracts.export");
 
   const search = useSearch();
   const searchParams = new URLSearchParams(search || '');
   const tabFromQuery = searchParams.get('tab');
 
   const [activeTab, setActiveTab] = useState(tabFromQuery === "templates" ? "templates" : "contracts");
+  const visibleActiveTab = activeTab === "templates"
+    ? (canViewTemplates ? "templates" : "contracts")
+    : (canViewContract ? "contracts" : "templates");
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -346,27 +353,27 @@ export default function ContractsList() {
     contractType: typeFilter !== "all" ? typeFilter as any : undefined,
     page: currentPage,
     limit: pageSize,
-  });
+  }, { enabled: canViewContract });
 
   // جلب جميع المشاريع وجميع العقود لفلترة المشاريع التي لا تحتوي على عقد معتمد
-  const { data: projectsData, isLoading: projectsLoading } = trpc.projects.getAll.useQuery({});
+  const { data: projectsData, isLoading: projectsLoading } = trpc.projects.getAll.useQuery({}, { enabled: canCreateContract && showProjectSelectionDialog });
   const { data: allContractsData, isLoading: allContractsLoading } = trpc.contracts.list.useQuery({
     limit: 1000,
-  });
+  }, { enabled: canCreateContract && showProjectSelectionDialog });
 
   // جلب طلبات سدانة
   const { data: sedanaRequestsData, isLoading: sedanaRequestsLoading } = trpc.requests.search.useQuery({
     programType: 'sedana',
     limit: 200,
-  });
+  }, { enabled: canViewContract });
 
   // جلب قوالب العقود
-  const { data: templatesData, isLoading: templatesLoading, refetch: refetchTemplates } = trpc.contracts.getTemplates.useQuery();
+  const { data: templatesData, isLoading: templatesLoading, refetch: refetchTemplates } = trpc.contracts.getTemplates.useQuery(undefined, { enabled: canViewTemplates });
 
   // جلب قالب مع بنوده
   const { data: selectedTemplate, refetch: refetchSelectedTemplate } = trpc.contracts.getTemplate.useQuery(
     { id: selectedTemplateId! },
-    { enabled: !!selectedTemplateId }
+    { enabled: canViewTemplates && !!selectedTemplateId }
   );
 
   // إنشاء قالب
@@ -754,7 +761,7 @@ export default function ContractsList() {
     return new Date(date).toLocaleDateString("ar-SA");
   };
 
-  if (!canViewContract) {
+  if (!canViewContract && !canViewTemplates) {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4 font-sans" dir="rtl">
@@ -762,7 +769,7 @@ export default function ContractsList() {
             <AlertCircle className="h-10 w-10 text-rose-600" />
           </div>
           <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">عذراً، ليس لديك صلاحية لعرض صفحة العقود</h2>
-          <p className="text-xs text-muted-foreground max-w-md">يرجى التواصل مع مسؤول النظام لمنحك صلاحية "عرض العقود".</p>
+          <p className="text-xs text-muted-foreground max-w-md">يرجى التواصل مع مسؤول النظام لمنحك صلاحية "عرض قسم العقود" أو "عرض قوالب العقود".</p>
           <Button onClick={() => navigate("/dashboard")} className="mt-2 bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold text-xs">
             العودة للوحة التحكم
           </Button>
@@ -791,22 +798,22 @@ export default function ContractsList() {
         </div>
 
         {/* التبويبات */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={visibleActiveTab} onValueChange={setActiveTab}>
           <div className="overflow-x-auto pb-2 -mb-2 flex justify-start" dir="rtl">
-            <TabsList className="flex w-max sm:w-full max-w-md sm:grid sm:grid-cols-2">
-              <TabsTrigger value="contracts" className="flex items-center gap-2 whitespace-nowrap">
+            <TabsList className={cn("flex w-max sm:w-full max-w-md sm:grid", canViewContract && canViewTemplates ? "sm:grid-cols-2" : "sm:grid-cols-1")}>
+              {canViewContract && (<TabsTrigger value="contracts" className="flex items-center gap-2 whitespace-nowrap">
                 <FileText className="h-4 w-4" />
                 العقود المبرمة
-              </TabsTrigger>
-              <TabsTrigger value="templates" className="flex items-center gap-2 whitespace-nowrap">
+              </TabsTrigger>)}
+              {canViewTemplates && (<TabsTrigger value="templates" className="flex items-center gap-2 whitespace-nowrap">
                 <LayoutTemplate className="h-4 w-4" />
                 قوالب العقود
-              </TabsTrigger>
+              </TabsTrigger>)}
             </TabsList>
           </div>
 
           {/* تبويب العقود المبرمة */}
-          <TabsContent value="contracts" className="space-y-4 pt-4">
+          {canViewContract && (<TabsContent value="contracts" className="space-y-4 pt-4">
             {/* أدوات البحث */}
             <Card>
               <CardContent className="pt-4">
@@ -960,7 +967,7 @@ export default function ContractsList() {
                                     </div>
 
                                     <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 justify-end shrink-0">
-                                      {contract.status !== "draft" && (
+                                      {canViewContract && (
                                         <Button
                                           variant="outline"
                                           size="sm"
@@ -971,9 +978,7 @@ export default function ContractsList() {
                                           عرض
                                         </Button>
                                       )}
-                                      {(contract.status === "draft" ||
-                                        (contract.status === "approved" && canEditApprovedContract)) &&
-                                        canApproveContract && (
+                                      {(isApprovedContract(contract) ? canEditApprovedContract : canEditContract) && (
                                           <Button
                                             variant="outline"
                                             size="sm"
@@ -991,10 +996,8 @@ export default function ContractsList() {
                                             title={contract.isRequestClosed ? "لا يمكن تعديل العقد لأن الطلب المرتبط بالمشروع مغلق نهائياً" : ""}
                                           >
                                             <Edit className="h-3 w-3 ml-1" />
-                                            {contract.status === "approved"
-                                              ? "تعديل"
-                                              : contract.status === "draft"
-                                              ? "إكمال"
+                                            {isApprovedContract(contract)
+                                              ? "تعديل العقد المعتمد"
                                               : "تعديل"}
                                           </Button>
                                         )}
@@ -1053,7 +1056,7 @@ export default function ContractsList() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 justify-end">
-                            {contract.status !== "draft" && (
+                            {canViewContract && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1064,7 +1067,7 @@ export default function ContractsList() {
                                 عرض
                               </Button>
                             )}
-                            {(contract.status === "draft" || (contract.status === "approved" && canEditApprovedContract)) && canApproveContract && (
+                            {(isApprovedContract(contract) ? canEditApprovedContract : canEditContract) && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1082,7 +1085,7 @@ export default function ContractsList() {
                                 title={contract.isRequestClosed ? "لا يمكن تعديل العقد لأن الطلب المرتبط بالمشروع مغلق نهائياً" : ""}
                               >
                                 <Edit className="h-3.5 w-3.5 ml-1" />
-                                {contract.status === "approved" ? "تعديل العقد المعتمد" : (contract.status === "draft" ? "إكمال العقد" : "تعديل")}
+                                {isApprovedContract(contract) ? "تعديل العقد المعتمد" : "تعديل"}
                               </Button>
                             )}
                           </div>
@@ -1108,10 +1111,10 @@ export default function ContractsList() {
                 />
               </div>
             )}
-          </TabsContent>
+          </TabsContent>)}
 
           {/* تبويب قوالب العقود */}
-          <TabsContent value="templates" className="space-y-4 pt-4" dir="rtl">
+          {canViewTemplates && (<TabsContent value="templates" className="space-y-4 pt-4" dir="rtl">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
               <div>
                 <p className="text-muted-foreground text-sm">
@@ -1259,8 +1262,8 @@ export default function ContractsList() {
                               <ListOrdered className="h-4 w-4" />
                               بنود العقد ({selectedTemplate?.clauses?.length || 0})
                             </h4>
-                            {canClauseAdd && (
-                              <div className="flex gap-2">
+                            <div className="flex gap-2">
+                                {(selectedTemplate?.introTemplate?.trim() ? canPreambleEdit : canPreambleAdd) && (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -1272,6 +1275,8 @@ export default function ContractsList() {
                                   <FileText className="h-4 w-4 ml-1" />
                                   {selectedTemplate?.introTemplate ? "تعديل التمهيد" : "إضافة تمهيد"}
                                 </Button>
+                                )}
+                                {canClauseAdd && (
                                 <Button
                                   size="sm"
                                   onClick={() => {
@@ -1283,8 +1288,8 @@ export default function ContractsList() {
                                   <Plus className="h-4 w-4 ml-1" />
                                   إضافة بند
                                 </Button>
+                                )}
                               </div>
-                            )}
                           </div>
 
                           {selectedTemplate?.introTemplate && (
@@ -1352,7 +1357,7 @@ export default function ContractsList() {
                                       </TableCell>
                                       <TableCell className="text-right">
                                         <div className="flex items-center gap-1 justify-start">
-                                          {canTemplateEdit && (
+                                          {canClauseEdit && (
                                             <Button
                                               variant="ghost"
                                               size="icon"
@@ -1361,7 +1366,7 @@ export default function ContractsList() {
                                               <Edit className="h-4 w-4" />
                                             </Button>
                                           )}
-                                          {canTemplateDelete && (
+                                          {canClauseDelete && (
                                             <Button
                                               variant="ghost"
                                               size="icon"
@@ -1389,7 +1394,7 @@ export default function ContractsList() {
                 ))}
               </div>
             )}
-          </TabsContent>
+          </TabsContent>)}
         </Tabs>
       </div>
 

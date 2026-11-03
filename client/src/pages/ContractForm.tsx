@@ -1,3 +1,5 @@
+import { isApprovedContract } from "@shared/contractPermissions";
+import { usePermission } from "@/hooks/usePermission";
 import React, { useState, useEffect, useRef, useMemo, Fragment } from "react";
 import { useLocation, useParams, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -267,6 +269,9 @@ export default function ContractForm() {
   
   // كشف وضع التعديل من المسار أو المسودة المنشأة حديثاً
   const [createdDraftId, setCreatedDraftId] = useState<number | null>(null);
+  const canCreateContract = usePermission("contracts.create");
+  const canEditContract = usePermission("contracts.edit");
+  const canEditApprovedContract = usePermission("contracts.edit_approved");
   const isEditMode = window.location.pathname.includes('/edit') || !!createdDraftId;
   const editContractId = (window.location.pathname.includes('/edit') && params.id) ? parseInt(params.id) : (createdDraftId || undefined);
   
@@ -2191,11 +2196,11 @@ export default function ContractForm() {
         supportingEntity: JSON.stringify(supportSources),
         supportType: Math.abs(supportSources.reduce((sum, src) => sum + src.amount, 0) - totalProjectCost) < 0.01 ? "full" : "partial",
         supportedAmount: supportSources.reduce((sum, src) => sum + src.amount, 0),
-        status: existingContract?.contract?.status === "approved" ? "approved" : "pending_approval",
+        status: existingContract?.contract && isApprovedContract(existingContract.contract) ? (existingContract.contract.status ?? "approved") : "pending_approval",
         currentStep: 8,
       }, {
         onSuccess: () => {
-          toast.success(existingContract?.contract?.status === "approved" ? "تم تعديل العقد بنجاح" : "تم اعتماد العقد بنجاح");
+          toast.success("تم حفظ بيانات العقد بنجاح");
           navigate(`/contracts/${editContractId}/preview`);
         }
       });
@@ -2347,7 +2352,7 @@ export default function ContractForm() {
       supportType: Math.abs(supportSources.reduce((sum, src) => sum + src.amount, 0) - totalProjectCost) < 0.01 ? "full" : "partial",
       supportedAmount: supportSources.reduce((sum, src) => sum + src.amount, 0),
       currentStep: currentStep,
-      status: existingContract?.contract?.status === "approved" ? "approved" : "draft",
+      status: existingContract?.contract && isApprovedContract(existingContract.contract) ? (existingContract.contract.status ?? "approved") : "draft",
     };
 
     const targetId = editContractId || createdDraftId;
@@ -2383,6 +2388,10 @@ export default function ContractForm() {
           setIsSavingDraft(false);
           updateSavedSnapshot();
           if (data?.id) {
+            if (!canEditContract) {
+              navigate(`/contracts/${data.id}/preview`);
+              return;
+            }
             setCreatedDraftId(data.id);
             window.history.replaceState(null, "", `/contracts/${data.id}/edit`);
           }
@@ -2407,6 +2416,16 @@ export default function ContractForm() {
     { id: 6, title: "البنود المخصصة", icon: Plus },
     { id: 7, title: "المراجعة", icon: Eye },
   ];
+
+  const canUseForm = isEditMode
+    ? !!existingContract?.contract && (isApprovedContract(existingContract.contract) ? canEditApprovedContract : canEditContract)
+    : canCreateContract;
+  if (isEditMode && isLoadingContract) {
+    return <DashboardLayout><div className="p-8 text-center">جاري تحميل العقد...</div></DashboardLayout>;
+  }
+  if (!canUseForm) {
+    return <DashboardLayout><p dir="rtl" className="p-6">ليس لديك صلاحية {isEditMode ? "تعديل هذا العقد" : "إنشاء عقد جديد"}.</p></DashboardLayout>;
+  }
 
   return (
     <DashboardLayout>

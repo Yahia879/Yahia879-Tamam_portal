@@ -1,3 +1,4 @@
+import { isApprovedContract } from "@shared/contractPermissions";
 import { useState, useRef, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -261,10 +262,10 @@ export default function ContractPreview() {
   const canExportContract = usePermission("contracts.export");
   const hasContractSignPermission = usePermission("contracts.sign");
   const { user: currentUser } = useAuth();
+  const hasUserSignPerm = hasContractSignPermission;
+
 
   // التحقق من أن المستخدم الحالي هو المدير التنفيذي ولديه صلاحية توقيع العقود وتوقيع رقمي
-  const userPermissionsList = (currentUser as any)?.permissions || [];
-  const hasUserSignPerm = hasContractSignPermission || userPermissionsList.includes("contracts.sign");
   const isExecutiveDirectorRole = 
     (currentUser as any)?.customRole?.nameAr === "المدير التنفيذي" ||
     currentUser?.name === "المدير التنفيذي" ||
@@ -795,7 +796,7 @@ export default function ContractPreview() {
               </Button>
             )}
 
-            {((contract.status !== "approved" && canEditContract) || (contract.status === "approved" && canEditApprovedContract)) && (
+            {(isApprovedContract(contract) ? canEditApprovedContract : canEditContract) && (
               <Button
                 variant="outline"
                 disabled={isRequestClosed}
@@ -812,7 +813,7 @@ export default function ContractPreview() {
                 title={isRequestClosed ? "لا يمكن تعديل العقد لأن الطلب المرتبط مغلق نهائياً" : ""}
               >
                 <Edit className="h-4 w-4 ml-2" />
-                {contract.status === "approved" ? "تعديل العقد المعتمد" : "التعديل على الخطوات السابقة"}
+                {isApprovedContract(contract) ? "تعديل العقد المعتمد" : "تعديل بيانات العقد"}
               </Button>
             )}
 
@@ -1301,7 +1302,7 @@ export default function ContractPreview() {
                             )}
                           </div>
                         </div>
-                        {request.status === "pending" && (
+                        {request.status === "pending" && canEditApprovedContract && (
                           <div className="flex gap-2">
                             <Button
                               size="sm"

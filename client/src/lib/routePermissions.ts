@@ -221,7 +221,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "orders_and_letters.csr_letters",
     "orders_and_letters.purchase_orders",
   ],
-  "/contracts": ["contracts", "contracts.view", "contracts.template_view"],
+  "/contracts": ["contracts.view", "contracts.template_view"],
   "/contracts/new": ["contracts.create"],
   "/purchase-orders": ["purchase_orders.view", "purchase_orders", "orders_and_letters.purchase_orders"],
   "/purchase-orders/new": ["purchase_orders.add", "purchase_orders", "orders_and_letters.create", "orders_and_letters.purchase_orders"],
@@ -382,7 +382,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "settings_categories.delete",
     "settings_categories.reorder"
   ],
-  "/contract-templates": ["settings_center", "settings_contracts.view", "contracts"],
+  "/contract-templates": ["contracts.template_view"],
   "/program-customization": [
     "services.view",
     "services.add",
@@ -487,14 +487,14 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   // العقود
   { pattern: /^\/contracts\/new\/\d+$/, permission: ["contracts.create"] },
   { pattern: /^\/contracts\/new\/request\/\d+$/, permission: ["contracts.create"] },
-  { pattern: /^\/contracts\/\d+\/preview$/, permission: ["contracts", "contracts.view", "contracts.view_details"] },
+  { pattern: /^\/contracts\/\d+\/preview$/, permission: ["contracts.view"] },
   { pattern: /^\/contracts\/\d+\/print$/, permission: ["contracts.export"] },
   { pattern: /^\/contracts\/\d+\/edit$/, permission: ["contracts.edit", "contracts.edit_approved"] },
-  { pattern: /^\/contracts\/\d+$/, permission: ["contracts", "contracts.view", "contracts.view_details"] },
+  { pattern: /^\/contracts\/\d+$/, permission: ["contracts.view"] },
 
   // قوالب العقود
-  { pattern: /^\/contract-templates\/\d+\/preview$/, permission: ["contracts.template_view", "settings_contracts.view", "contracts"] },
-  { pattern: /^\/contract-templates\/\d+\/print$/, permission: ["contracts.template_view", "contracts.export", "settings_contracts.view", "contracts"] },
+  { pattern: /^\/contract-templates\/\d+\/preview$/, permission: ["contracts.template_view"] },
+  { pattern: /^\/contract-templates\/\d+\/print$/, permission: ["contracts.template_view"] },
 
   // BOQ
   {
@@ -641,10 +641,6 @@ export function getRequiredPermission(pathname: string): string | string[] | nul
   // مسارات طالب الخدمة
   if (REQUESTER_ROUTES.has(pathname)) return null;
 
-  // السماح بمعاينة وطباعة قوالب العقود لأي مستخدم إداري مسجل
-  if (/^\/contract-templates\/[^/]+\/preview$/.test(pathname) || /^\/contract-templates\/[^/]+\/print$/.test(pathname)) {
-    return null;
-  }
 
   // المسارات الثابتة
   if (ROUTE_PERMISSION_MAP[pathname]) {
@@ -704,6 +700,14 @@ export function hasRouteAccess(
   // الصندوق: متاح دائماً للإدارة المالية (متوافق مع الخادم والقائمة الجانبية)
   if ((pathname === "/fund" || pathname.startsWith("/fund/")) && ["financial", "financial_manager"].includes(userRole)) {
     return true;
+  }
+
+  if (pathname === "/contracts" || pathname.startsWith("/contracts/") ||
+      pathname === "/contract-templates" || pathname.startsWith("/contract-templates/")) {
+    const required = getRequiredPermission(pathname);
+    return Array.isArray(required)
+      ? required.some(p => userPermissions.includes(p))
+      : typeof required === "string" && userPermissions.includes(required);
   }
 
   // super_admin و system_admin لهما كل الصلاحيات دائماً إلا إذا سُحبت صلاحية معينة صراحةً
