@@ -1,3 +1,5 @@
+import { custodyStaffReviewer } from "@shared/custodyPermissions";
+import CustodyExceptionRequestDialog from "@/components/CustodyExceptionRequestDialog";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -146,7 +148,9 @@ export default function CustodyRequests() {
     );
   }, [user, isSuperAdmin]);
 
-  const hasViewPerm = usePermission("custody_requests.view") || usePermission("custody_requests");
+  const hasViewPerm = usePermission("custody_requests.view");
+  const canRequestException = usePermission("custody_requests.request_exception");
+  const [requestExceptionOpen, setRequestExceptionOpen] = useState(false);
   const hasCreatePerm = usePermission("custody_requests.create");
   const hasApprovePerm = usePermission("custody_requests.approve");
   const hasEditPerm = usePermission("custody_requests.edit");
@@ -155,10 +159,12 @@ export default function CustodyRequests() {
   const hasPrintPerm = usePermission("custody_requests.print");
 
   // فقط المدير التنفيذي والـ super_admin يرون تبويب طلبات الموظفين
-  const canSeeStaffTab = isSuperAdmin || isExecutiveDirector;
-  const canSeeAll = isSuperAdmin || isExecutiveDirector || isFinancialOfficer;
+  const canSeeStaffTab = custodyStaffReviewer(user);
+  const canSeeAll = canSeeStaffTab || isFinancialOfficer;
   const canApprove = isExecutiveDirector || hasApprovePerm;
   const canCreate = hasCreatePerm;
+  const canSeeExceptions = canSeeStaffTab || canRequestException;
+  const canEnter = canSeeStaffTab || hasViewPerm || canCreate || canRequestException;
 
   // نطاق طلبات الاستثناء للـ super_admin: طلبات الموظفين أو طلباتي
   const [exceptionScope, setExceptionScope] = useState<"staff" | "my">("staff");
@@ -172,10 +178,11 @@ export default function CustodyRequests() {
   const [exceptionPage, setExceptionPage] = useState(1);
   const [viewReasonException, setViewReasonException] = useState<any>(null);
 
-  const { data: pendingActionCounts } = trpc.custody.getPendingActionCounts.useQuery();
-  const effectiveExceptionScope = isSuperAdmin ? exceptionScope : (isExecutiveDirector ? "staff" : "my");
+  const { data: pendingActionCounts } = trpc.custody.getPendingActionCounts.useQuery(undefined, { enabled: canEnter });
+  const effectiveExceptionScope = canSeeStaffTab ? (canRequestException ? exceptionScope : "staff") : "my";
   const { data: exceptionsData, isLoading: isLoadingExceptions } = trpc.custody.getExceptions.useQuery(
-    { status: exceptionFilter, scope: effectiveExceptionScope, page: exceptionPage, limit: 10 }
+    { status: exceptionFilter, scope: effectiveExceptionScope, page: exceptionPage, limit: 10 },
+    { enabled: canSeeExceptions }
   );
 
   const reviewExceptionMutation = trpc.custody.reviewException.useMutation({
@@ -195,25 +202,23 @@ export default function CustodyRequests() {
   });
 
   // تبويب طلباتي وطلبات الموظفين والاستثناءات
-  const [activeTab, setActiveTab] = useState<"staff" | "my" | "exceptions">(() => canSeeStaffTab ? "staff" : "my");
-
-  useEffect(() => {
-    if (!canSeeStaffTab && activeTab === "staff") {
-      setActiveTab("my");
-    }
-  }, [canSeeStaffTab, activeTab]);
+  const [selectedTab, setActiveTab] = useState<"staff" | "my" | "exceptions">(() => canSeeStaffTab ? "staff" : canCreate ? "my" : "exceptions");
+  const activeTab = selectedTab === "staff" && canSeeStaffTab ? "staff"
+    : selectedTab === "my" && canCreate ? "my"
+    : selectedTab === "exceptions" && canSeeExceptions ? "exceptions"
+    : canSeeStaffTab ? "staff" : canCreate ? "my" : canSeeExceptions ? "exceptions" : null;
 
   // جلب الطلبات من الـ Backend مع ترقيم الصفحات والفلترة في كل تغيير
   const { data: responseData, isLoading, isFetching } = trpc.custody.getAll.useQuery(
     {
       status: statusFilter === "all" ? undefined : (statusFilter as any),
       search: debouncedSearch.trim() || undefined,
-      scope: canSeeStaffTab ? (activeTab === "exceptions" ? "staff" : activeTab) : "my",
+      scope: canSeeStaffTab && activeTab !== "my" ? "staff" : "my",
       page,
       limit: pageSize,
     },
     {
-      enabled: activeTab !== "exceptions",
+      enabled: activeTab === "staff" || activeTab === "my",
     }
   );
 
@@ -224,7 +229,7 @@ export default function CustodyRequests() {
   // جلب الإحصائيات
   const { data: stats } = trpc.custody.getStats.useQuery({
     scope: canSeeStaffTab ? (activeTab === "my" ? "my" : "staff") : "my",
-  });
+  }, { enabled: !!activeTab });
 
   // طفرة الاعتماد
   const approveMutation = trpc.custody.approve.useMutation({
@@ -312,7 +317,7 @@ export default function CustodyRequests() {
     }
   };
 
-  if (!hasViewPerm) {
+  if (!canEnter) {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4 font-sans" dir="rtl">
@@ -350,15 +355,21 @@ export default function CustodyRequests() {
             </p>
           </div>
 
-          {canCreate && (
+          {(canCreate || canRequestException) && (
             <div className="flex items-center gap-2.5 flex-wrap">
-              <Button
+              {canCreate && (<Button
                 onClick={() => setLocation("/custody-requests/new")}
                 className="gradient-primary text-white font-bold rounded-xl shadow-md gap-2 h-11 px-5 cursor-pointer"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>طلب صرف عهدة مالية جديدة</span>
-              </Button>
+              </Button>)}
+              {canRequestException && (
+                <Button variant="outline" onClick={() => setRequestExceptionOpen(true)}>
+                  <ShieldAlert className="w-4 h-4 ml-2" />
+                  طلب استثناء
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -384,7 +395,7 @@ export default function CustodyRequests() {
             </button>
           )}
 
-          <button
+          {canCreate && (<button
             type="button"
             onClick={() => handleTabChange("my")}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
@@ -398,9 +409,9 @@ export default function CustodyRequests() {
             <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
               {stats?.myCount ?? 0}
             </Badge>
-          </button>
+          </button>)}
 
-          <button
+          {canSeeExceptions && (<button
             type="button"
             onClick={() => handleTabChange("exceptions")}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
@@ -416,14 +427,15 @@ export default function CustodyRequests() {
                 ? (exceptionsData?.counts?.staffTotal ?? stats?.exceptionsTotal ?? 0)
                 : (exceptionsData?.counts?.myTotal ?? stats?.exceptionsTotal ?? 0)}
             </Badge>
-          </button>
+          </button>)}
         </div>
 
-        {activeTab === "exceptions" ? (
+        {!activeTab && <p className="text-sm text-muted-foreground">لا توجد تبويبات متاحة بالصلاحيات الحالية.</p>}
+        {activeTab && (activeTab === "exceptions" ? (
           /* تبويب إدارة طلبات الاستثناء */
           <div className="space-y-4">
             {/* للـ super_admin فقط: تبويبان فرعيان (طلبات الموظفين و طلباتي) */}
-            {isSuperAdmin && (
+            {canSeeStaffTab && canRequestException && (
               <div className="flex items-center gap-2 p-1.5 bg-muted/60 dark:bg-muted/30 rounded-2xl border border-border/70 w-fit">
                 <button
                   type="button"
@@ -1127,9 +1139,11 @@ export default function CustodyRequests() {
           </CardContent>
         </Card>
           </>
-        )}
+        ))}
 
 
+
+        <CustodyExceptionRequestDialog open={requestExceptionOpen} onOpenChange={setRequestExceptionOpen} />
 
         {/* حوار رفض الطلب */}
         <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>

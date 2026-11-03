@@ -1,3 +1,5 @@
+import { custodyAccess } from "../../shared/custodyPermissions";
+import { calculateUserPermissions, checkPermission } from "../permissions";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
@@ -106,7 +108,7 @@ function checkCustodyRoles(user: { id: number; role?: string; name?: string; ema
     (user as any)?.customRole?.nameAr === "محاسب" ||
     isSuperAdmin;
 
-  const canSeeStaff = isSuperAdmin || isExecutiveDirector;
+  const canSeeStaff = custodyAccess(user, []).canSeeStaff;
   const canSeeAll = isSuperAdmin || isExecutiveDirector || isFinancialOfficer;
   return { isSuperAdmin, isExecutiveDirector, isFinancialOfficer, canSeeStaff, canSeeAll };
 }
@@ -126,6 +128,9 @@ export const custodyRouter = router({
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const access = custodyAccess(ctx.user, await calculateUserPermissions(ctx.user.id));
+      if (!(access.canSeeStaff || access.canCreate)) throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض هذه الطلبات" });
 
       const { canSeeStaff } = checkCustodyRoles(ctx.user);
 
@@ -615,9 +620,8 @@ export const custodyRouter = router({
 
       const { isExecutiveDirector, isSuperAdmin } = checkCustodyRoles(ctx.user);
 
-      const { calculateUserPermissions } = await import("../permissions");
       const userPermissions = await calculateUserPermissions(ctx.user.id);
-      const canCreate = isSuperAdmin || isExecutiveDirector || userPermissions.includes("custody_requests.create");
+      const canCreate = userPermissions.includes("custody_requests.create");
       if (!canCreate) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -1214,6 +1218,10 @@ export const custodyRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      if (!await checkPermission(ctx.user.id, "custody_requests.request_exception")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية طلب استثناء" });
+      }
+
       // فحص عدم وجود طلب استثناء معلق أو استثناء معتمد غير مستخدم
       const [blockingException] = await db
         .select()
@@ -1273,10 +1281,20 @@ export const custodyRouter = router({
           id: custodyRequests.id,
           requestNumber: custodyRequests.requestNumber,
           title: custodyRequests.title,
+          userId: custodyRequests.userId,
+          status: custodyRequests.status,
+          isSettled: custodyRequests.isSettled,
         })
         .from(custodyRequests)
         .where(eq(custodyRequests.id, input.activeCustodyId))
         .limit(1);
+
+      if (!activeCustody || activeCustody.userId !== ctx.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "يمكن طلب استثناء لعهدتك الشخصية فقط" });
+      }
+      if (activeCustody.status === "rejected" || activeCustody.isSettled) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "العهدة المحددة لا تحتاج إلى استثناء" });
+      }
 
       const [insertResult] = await db.insert(custodyExceptions).values({
         userId: ctx.user.id,
@@ -1367,6 +1385,9 @@ export const custodyRouter = router({
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const access = custodyAccess(ctx.user, await calculateUserPermissions(ctx.user.id));
+      if (!(access.canSeeExceptions && (input?.scope !== "my" || access.canRequestException))) throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض هذه الطلبات" });
 
       const { isExecutiveDirector, isSuperAdmin, canSeeStaff } = checkCustodyRoles(ctx.user);
       const baseConditions: any[] = [];

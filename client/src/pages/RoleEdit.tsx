@@ -1,3 +1,4 @@
+import { custodyPermissionSelection } from "@shared/custodyPermissions";
 import { GENERAL_QUOTATION_PERMISSIONS, GENERAL_QUOTATION_LABELS, quotationPermissionSelection } from "@shared/quotationPermissions";
 import { contractPermissionSelection } from "@shared/contractPermissions";
 import { DisbursementPermConfirmationModal } from "@/components/permissions/DisbursementPermConfirmationModal";
@@ -129,7 +130,7 @@ const superAdminGroups = [
       { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "transfer", "export"] },
       { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "approve", "reject", "exception_approve", "remind", "cancel_executed", "export"] },
       { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["projects", "disbursements", "contracts", "disbursement_orders", "receipt_vouchers", "export"] },
-      { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create", "edit", "delete", "approve", "settle", "print"] },
+      { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["create", "request_exception"] },
     ]
   },
       {
@@ -581,7 +582,8 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     },
     custody_requests: {
       view: "عرض قسم العهدة المالية",
-      create: "طلب عهدة مالية جديدة",
+      create: "طلب عهدة مالية",
+        request_exception: "طلب استثناء",
       edit: "تعديل طلب العهدة",
       delete: "حذف طلب العهدة",
       approve: "اعتماد العهدة المالية",
@@ -994,7 +996,7 @@ export default function RoleEdit() {
       return;
     }
 
-    let finalPerms = quotationPermissionSelection(contractPermissionSelection(selectedPerms));
+    let finalPerms = custodyPermissionSelection(quotationPermissionSelection(contractPermissionSelection(selectedPerms)));
 
     if (finalPerms.length === 0) {
       toast.error("يرجى تحديد صلاحية واحدة على الأقل");
@@ -1290,7 +1292,7 @@ export default function RoleEdit() {
     }
 
     // منع تفعيل أي صلاحية فرعية للعهدة المالية إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("custody_requests.") && permId !== "custody_requests.view") {
+    if (permId.startsWith("custody_requests.") && !["custody_requests.view", "custody_requests.create", "custody_requests.request_exception"].includes(permId)) {
       if (!selectedPerms.includes("custody_requests.view")) {
         toast.warning("يجب تفعيل صلاحية 'عرض قسم العهدة المالية' أولاً");
         return;
@@ -1440,7 +1442,7 @@ export default function RoleEdit() {
 
         // عند إلغاء تفعيل صلاحية 'عرض قسم العهدة المالية'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات العهدة المالية الأخرى
         if (permId === "custody_requests.view") {
-          next = next.filter(id => !id.startsWith("custody_requests."));
+          next = next.filter(id => !id.startsWith("custody_requests.") || ["custody_requests.create", "custody_requests.request_exception"].includes(id));
         }
 
 
@@ -1896,7 +1898,7 @@ export default function RoleEdit() {
                           {modulePerms.map((perm: any) => {
                             const isChecked = isPermissionGranted(perm.id);
                             const isDisabled = 
-                              (perm.id.startsWith("custody_requests.") && perm.id !== "custody_requests.view" && !selectedPerms.includes("custody_requests.view")) ||
+                              (perm.id.startsWith("custody_requests.") && !["custody_requests.view", "custody_requests.create", "custody_requests.request_exception"].includes(perm.id) && !selectedPerms.includes("custody_requests.view")) ||
                               (perm.id.startsWith("receipt_vouchers.") && perm.id !== "receipt_vouchers.view" && !selectedPerms.includes("receipt_vouchers.view")) ||
                               (perm.id.startsWith("fund.") && perm.id !== "fund.view" && !selectedPerms.includes("fund.view")) ||
                               (perm.id.startsWith("contracts.") && ["contracts.create", "contracts.edit", "contracts.approve", "contracts.edit_approved", "contracts.export"].includes(perm.id) && !selectedPerms.includes("contracts.view")) || (perm.id.startsWith("contracts.") && ["contracts.template_add", "contracts.template_edit", "contracts.template_delete", "contracts.preamble_add", "contracts.preamble_edit", "contracts.clause_add", "contracts.clause_edit", "contracts.clause_delete"].includes(perm.id) && !selectedPerms.includes("contracts.template_view")) ||

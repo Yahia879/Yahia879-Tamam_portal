@@ -51,8 +51,11 @@ export default function NewCustodyRequest() {
   const { user } = useAuth();
   const utils = trpc.useUtils();
 
+  const canCreate = usePermission("custody_requests.create");
+  const canRequestException = usePermission("custody_requests.request_exception");
+
   // فحص وجود عهدة قائمة والاستثناء
-  const { data: custodyCheck, isLoading: isCheckingCustody } = trpc.custody.checkActiveCustody.useQuery();
+  const { data: custodyCheck, isLoading: isCheckingCustody } = trpc.custody.checkActiveCustody.useQuery(undefined, { enabled: canCreate });
   const [isExceptionDialogOpen, setIsExceptionDialogOpen] = useState(false);
   const [exceptionReason, setExceptionReason] = useState("");
 
@@ -82,12 +85,6 @@ export default function NewCustodyRequest() {
     (user as any)?.customRole?.nameAr === "الرئيس التنفيذي" ||
     user?.name === "المدير التنفيذي" ||
     user?.email === "ceo@manarah.org.sa";
-
-  const isSuperAdmin = user?.role === "super_admin" || user?.role === "system_admin";
-  const hasCreatePerm = usePermission("custody_requests.create");
-  const hasCustodyAll = usePermission("custody_requests");
-  const userPermissions: string[] = (user as any)?.permissions ?? [];
-  const canCreate = isSuperAdmin || isExecutiveDirector || hasCreatePerm || hasCustodyAll || userPermissions.includes("custody_requests.create") || userPermissions.includes("custody_requests");
 
   const hasActiveCustody = isExecutiveDirector ? false : !!custodyCheck?.hasActiveCustody;
   const activeCustody = isExecutiveDirector ? null : custodyCheck?.activeCustody;
@@ -164,6 +161,7 @@ export default function NewCustodyRequest() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canCreate) return;
 
     if (!title.trim()) {
       toast.error("يرجى إدخال عنوان العهدة المالية");
@@ -328,7 +326,7 @@ export default function NewCustodyRequest() {
                 <Badge variant="outline" className="bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-200 border-rose-300 gap-1 py-1.5 px-3 font-bold">
                   تم رفض الاستثناء
                 </Badge>
-              ) : (
+              ) : canRequestException ? (
                 <Button
                   type="button"
                   size="sm"
@@ -338,7 +336,7 @@ export default function NewCustodyRequest() {
                   <ShieldAlert className="w-4 h-4" />
                   <span>طلب استثناء</span>
                 </Button>
-              )}
+              ) : null}
             </div>
           </div>
         )}
@@ -347,7 +345,7 @@ export default function NewCustodyRequest() {
 
 
         {/* نافذة طلب الاستثناء */}
-        <Dialog open={isExceptionDialogOpen} onOpenChange={setIsExceptionDialogOpen}>
+        <Dialog open={isExceptionDialogOpen && canRequestException} onOpenChange={setIsExceptionDialogOpen}>
           <DialogContent className="sm:max-w-xl md:max-w-2xl rounded-2xl p-6 text-right" dir="rtl">
             <DialogHeader className="text-right sm:text-right items-start space-y-1.5 pb-3 border-b border-border/40">
               <div className="flex items-center gap-2.5">
@@ -417,9 +415,9 @@ export default function NewCustodyRequest() {
             <DialogFooter className="flex flex-row sm:flex-row justify-start items-center gap-2 pt-3 border-t border-border/40">
               <Button
                 type="button"
-                disabled={exceptionReason.trim().length < 5 || requestExceptionMutation.isPending || !activeCustody?.id}
+                disabled={!canRequestException || exceptionReason.trim().length < 5 || requestExceptionMutation.isPending || !activeCustody?.id}
                 onClick={() => {
-                  if (!activeCustody?.id) return;
+                  if (!canRequestException || !activeCustody?.id) return;
                   const trimmedReason = exceptionReason.trim();
                   if (trimmedReason.length < 5) {
                     toast.error("يرجى كتابة مبررات طلب الاستثناء بشكل واضح (5 أحرف على الأقل)");

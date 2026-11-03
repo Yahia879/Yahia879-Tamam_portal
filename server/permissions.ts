@@ -1,3 +1,4 @@
+import { CUSTODY_PERMISSION_ACTIONS, CUSTODY_PERSONAL_PERMISSIONS, custodyPermissionOptions } from "../shared/custodyPermissions";
 import { GENERAL_QUOTATION_PERMISSIONS, GENERAL_QUOTATION_PERMISSION_IDS, quotationPermissionOptions } from "../shared/quotationPermissions";
 import { CONTRACT_PERMISSIONS, CONTRACT_PERMISSION_IDS, contractPermissionOptions } from "../shared/contractPermissions";
 import { eq, and, or, ne, sql, inArray, notInArray, isNull, like } from "drizzle-orm";
@@ -397,11 +398,12 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
 
 
-  custody_requests: ["custody_requests.view", "custody_requests.create", "custody_requests.edit", "custody_requests.delete", "custody_requests.approve", "custody_requests.settle", "custody_requests.print"],
+  custody_requests: CUSTODY_PERMISSION_ACTIONS.map(p => `custody_requests.${p}`),
 
   "custody_requests.view": ["custody_requests.view"],
 
-  "custody_requests.create": ["custody_requests.create", "custody_requests.view"],
+  "custody_requests.create": ["custody_requests.create"],
+  "custody_requests.request_exception": ["custody_requests.request_exception"],
 
   "custody_requests.edit": ["custody_requests.edit", "custody_requests.view"],
 
@@ -3563,7 +3565,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       { id: "custody_requests.view", moduleId: "custody_requests", action: "view", nameAr: "عرض قسم العهدة المالية", nameEn: "View Financial Custody" },
 
-      { id: "custody_requests.create", moduleId: "custody_requests", action: "create", nameAr: "طلب عهدة مالية جديدة", nameEn: "Create Financial Custody Request" },
+      { id: "custody_requests.request_exception", moduleId: "custody_requests", action: "request_exception", nameAr: "طلب استثناء", nameEn: "Request Custody Exception" },
+      { id: "custody_requests.create", moduleId: "custody_requests", action: "create", nameAr: "طلب عهدة مالية", nameEn: "Create Financial Custody Request" },
 
       { id: "sedana_quotations.view", moduleId: "sedana_quotations", action: "view", nameAr: "عرض عروض أسعار سدانة", nameEn: "View Sedana Quotations" },
 
@@ -4088,6 +4091,11 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
 
     for (const [rId, pIds] of Object.entries(custodyDefaultRolePerms)) {
+      const [role] = await db.select({ description: roles.description }).from(roles).where(eq(roles.id, rId)).limit(1);
+      let customized = false;
+      try { customized = Array.isArray(JSON.parse(role?.description ?? "null")); } catch {}
+      if (customized) continue;
+
 
       for (const pId of pIds) {
 
@@ -4608,7 +4616,8 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
     rolePermissionsData.push(...rolePermsResult.filter(rp =>
       !customizedQuotationRoles.has(rp.roleId) ||
       !(rp.permissionId === "quotations" || rp.permissionId.startsWith("quotations.") ||
-        rp.permissionId === "sedana_quotations" || rp.permissionId.startsWith("sedana_quotations."))
+        rp.permissionId === "sedana_quotations" || rp.permissionId.startsWith("sedana_quotations.") ||
+        rp.permissionId === "custody_requests" || rp.permissionId.startsWith("custody_requests."))
     ).map(rp => rp.permissionId));
   }
 
@@ -4669,6 +4678,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
       // الصلاحيات المستبعدة وصلاحيات إدارة المخزون لا تُمنح تلقائياً بالـ Wildcard
 
       const isInv = (
+        p.id === "custody_requests" || p.id.startsWith("custody_requests.") ||
         p.id === "quotations" || p.id.startsWith("quotations.") ||
 
         p.id.startsWith("sedana_quotations") ||
@@ -4703,7 +4713,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
     const expanded = PERMISSION_EXPANSION[perm];
 
-    if (expanded && !(["contracts", "quotations"].includes(perm) && permissionsToExpand.some(p => p.startsWith(`${perm}.`)))) {
+    if (expanded && !(["contracts", "quotations", "custody_requests"].includes(perm) && permissionsToExpand.some(p => p.startsWith(`${perm}.`)))) {
 
       expanded.forEach(sub => {
 
@@ -5887,49 +5897,17 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
   // العهدة المالية
 
-  const custodySubPerms = [
-
-    "custody_requests.view",
-
-    "custody_requests.create",
-
-    "custody_requests.edit",
-
-    "custody_requests.delete",
-
-    "custody_requests.approve",
-
-    "custody_requests.settle",
-
-    "custody_requests.print"
-
-  ];
-
-  if (
-
-    revokedPermissions.has("custody_requests") ||
-
-    revokedPermissions.has("custody_requests.view") ||
-
-    !allPermissions.has("custody_requests.view")
-
-  ) {
-
-    allPermissions.delete("custody_requests");
-
-    if (revokedPermissions.has("custody_requests") || revokedPermissions.has("custody_requests.view")) {
-
-      custodySubPerms.forEach(p => allPermissions.delete(p));
-
-    }
-
-  } else if (allPermissions.has("custody_requests.view")) {
-
-    allPermissions.add("custody_requests");
-
+  const custodySubPerms = CUSTODY_PERMISSION_ACTIONS.map(p => `custody_requests.${p}`);
+  if (revokedPermissions.has("custody_requests")) {
+    custodySubPerms.forEach(p => allPermissions.delete(p));
+  } else if (revokedPermissions.has("custody_requests.view")) {
+    custodySubPerms.filter(p => !CUSTODY_PERSONAL_PERMISSIONS.includes(p)).forEach(p => allPermissions.delete(p));
   }
-
-
+  custodySubPerms.forEach(p => {
+    if (revokedPermissions.has(p)) allPermissions.delete(p);
+  });
+  if (custodySubPerms.some(p => allPermissions.has(p))) allPermissions.add("custody_requests");
+  else allPermissions.delete("custody_requests");
 
   // عروض أسعار سدانة
 
@@ -7259,7 +7237,7 @@ export const permissionsRouter = router({
           if (Array.isArray(parsed)) {
 
             Array.from(permsSet).forEach(p => {
-              if (p === "quotations" || p.startsWith("quotations.") || p === "sedana_quotations" || p.startsWith("sedana_quotations.")) permsSet.delete(p);
+              if (p === "quotations" || p.startsWith("quotations.") || p === "sedana_quotations" || p.startsWith("sedana_quotations.") || p === "custody_requests" || p.startsWith("custody_requests.")) permsSet.delete(p);
             });
             parsed.forEach(p => permsSet.add(p));
 
@@ -7275,7 +7253,7 @@ export const permissionsRouter = router({
 
 
 
-      return quotationPermissionOptions(contractPermissionOptions(Array.from(permsSet)));
+      return custodyPermissionOptions(quotationPermissionOptions(contractPermissionOptions(Array.from(permsSet))));
 
     }),
 

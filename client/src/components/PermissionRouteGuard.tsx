@@ -69,7 +69,7 @@ export default function PermissionRouteGuard({ children }: PermissionRouteGuardP
     const hasCustom = !!(user as any)?.customRole || !isBaseRole;
 
     const routeRole = isDashboardViewerUser(user) ? "dashboard_viewer" : user.role;
-    const allowed = hasRouteAccess(location, routeRole, userPerms, hasCustom);
+    const allowed = hasRouteAccess(location, routeRole, userPerms, hasCustom, user);
     return { allowed, reason: allowed ? "permission-ok" : "permission-denied", pending: false };
   }, [user, loading, location]);
 

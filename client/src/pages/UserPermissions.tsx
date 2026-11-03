@@ -1,3 +1,4 @@
+import { custodyPermissionSelection } from "@shared/custodyPermissions";
 import { GENERAL_QUOTATION_PERMISSIONS, GENERAL_QUOTATION_LABELS } from "@shared/quotationPermissions";
 import { DisbursementPermConfirmationModal } from "@/components/permissions/DisbursementPermConfirmationModal";
 
@@ -1642,7 +1643,7 @@ export default function UserPermissions() {
 
 
 
-    if (permId.startsWith("custody_requests.") && permId !== "custody_requests.view") {
+    if (permId.startsWith("custody_requests.") && !["custody_requests.view", "custody_requests.create", "custody_requests.request_exception"].includes(permId)) {
 
 
 
@@ -3059,7 +3060,7 @@ export default function UserPermissions() {
 
 
 
-          cascadeRevoke("custody_requests.");
+          ["view", "edit", "delete", "approve", "settle", "print"].forEach(action => cascadeRevoke(`custody_requests.${action}`));
 
 
 
@@ -4602,7 +4603,8 @@ export default function UserPermissions() {
 
         view: "عرض قائمة العهد المالية",
 
-        create: "تقديم طلب صرف عهدة جديدة",
+        create: "طلب عهدة مالية",
+        request_exception: "طلب استثناء",
 
         edit: "تعديل طلب العهدة",
 
@@ -5955,7 +5957,7 @@ export default function UserPermissions() {
 
 
 
-        { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["view", "create", "edit", "delete", "approve", "settle", "print"] },
+        { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["create", "request_exception"] },
 
 
 
@@ -7858,7 +7860,7 @@ export default function UserPermissions() {
 
                             const isDisabled = 
 
-                              (perm.id.startsWith("custody_requests.") && perm.id !== "custody_requests.view" && !isChecked("custody_requests.view")) ||
+                              (perm.id.startsWith("custody_requests.") && !["custody_requests.view", "custody_requests.create", "custody_requests.request_exception"].includes(perm.id) && !isChecked("custody_requests.view")) ||
 
                               (perm.id.startsWith("receipt_vouchers.") && perm.id !== "receipt_vouchers.view" && !isChecked("receipt_vouchers.view")) ||
 

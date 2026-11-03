@@ -1,3 +1,4 @@
+import { custodyAccess, type CustodyUser } from "@shared/custodyPermissions";
 import { isDashboardViewerUser } from "./dashboardViewer";
 
 /**
@@ -255,7 +256,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "receipt_vouchers.create_unrestricted",
     "receipt_vouchers.create"
   ],
-  "/custody-requests": ["custody_requests", "custody_requests.view", "custody_requests.create"],
+  "/custody-requests": ["custody_requests", "custody_requests.view", "custody_requests.create", "custody_requests.request_exception"],
   "/custody-requests/new": ["custody_requests.create"],
 
   // ── تقارير الإنجاز والمشاريع والمستخلصات ──
@@ -673,6 +674,7 @@ export function hasRouteAccess(
   userRole: string,
   userPermissions: string[],
   hasCustomRole: boolean,
+  user?: CustodyUser,
 ): boolean {
   if ((pathname === "/dashboard" || pathname === "/dashboard/") && userRole === "dashboard_viewer") {
     return false;
@@ -700,6 +702,12 @@ export function hasRouteAccess(
   // الصندوق: متاح دائماً للإدارة المالية (متوافق مع الخادم والقائمة الجانبية)
   if ((pathname === "/fund" || pathname.startsWith("/fund/")) && ["financial", "financial_manager"].includes(userRole)) {
     return true;
+  }
+
+  if (pathname === "/custody-requests" || pathname.startsWith("/custody-requests/")) {
+    if (userRole === "service_requester") return false;
+    const access = custodyAccess(user ?? { role: userRole }, userPermissions);
+    return pathname === "/custody-requests/new" ? access.canCreate : access.canEnter;
   }
 
   if (pathname === "/quotations" || pathname.startsWith("/quotations/") ||
@@ -811,34 +819,6 @@ export function hasRouteAccess(
     return userRole !== "service_requester";
   }
 
-  // مسار إنشاء عهدة جديدة: يتطلب صراحة صلاحية إنشاء عهدة أو صلاحيات الإدارة العليا
-  if (pathname === "/custody-requests/new") {
-    if (userRole === "service_requester") return false;
-    return (
-      userRole === "super_admin" ||
-      userRole === "system_admin" ||
-      userRole === "executive_director" ||
-      userPermissions.includes("*") ||
-      userPermissions.includes("custody_requests.create")
-    );
-  }
-
-  // مسارات العهدة المالية الأخرى: متاحة لمن تم تفعيل قسم العهدة له
-  const isCustodyRoute =
-    pathname === "/custody-requests" ||
-    pathname.startsWith("/custody-requests/");
-  if (isCustodyRoute) {
-    if (userRole === "service_requester") return false;
-    return (
-      userRole === "super_admin" ||
-      userRole === "system_admin" ||
-      userPermissions.includes("*") ||
-      userPermissions.includes("custody_requests") ||
-      userPermissions.includes("custody_requests.view") ||
-      userPermissions.includes("custody_requests.create")
-    );
-  }
-
   const required = getRequiredPermission(pathname);
 
   // لا توجد قيود صلاحية خاصة على هذا المسار (معفى أو مسار طالب خدمة)
@@ -892,7 +872,7 @@ export function getUserHomeRoute(user: any): string {
   ].includes(user.role);
   const hasCustom = !!(user as any)?.customRole || !isBaseRole;
 
-  const canAccess = (path: string) => hasRouteAccess(path, user.role, userPerms, hasCustom);
+  const canAccess = (path: string) => hasRouteAccess(path, user.role, userPerms, hasCustom, user);
 
   const hasDashboard = userPerms.includes("dashboard") || userPerms.includes("dashboard.view") || userPerms.includes("*");
 

@@ -1,3 +1,4 @@
+import { custodyAccess } from "@shared/custodyPermissions";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { isDashboardViewerUser } from "@/lib/dashboardViewer";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -407,7 +408,7 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   if (has("fund") || has("fund.view") || has("fund.transfer") || has("fund.export")) {
     finItems.push({ icon: Landmark, label: "الصندوق", path: "/fund" });
   }
-  if (has("custody_requests") || has("custody_requests.view")) {
+  if (custodyAccess({ role, customRole: { nameAr: customRoleNameAr, nameEn: customRoleNameEn } }, permissions).canEnter) {
     finItems.push({ icon: Wallet, label: isEn ? "Financial Custody" : "العهد المالية", path: "/custody-requests" });
   }
   if (
