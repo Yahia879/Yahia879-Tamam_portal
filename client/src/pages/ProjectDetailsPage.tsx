@@ -67,6 +67,7 @@ import { getStageOrder, getNextStage } from "@shared/constants";
 import BoqTab, { BoqTabHandle } from "@/components/BoqTab";
 import ProjectProgressMilestonesTab from "@/components/ProjectProgressMilestonesTab";
 import ProjectFinancialsTab from "@/components/ProjectFinancialsTab";
+import ProjectChangeOrdersTab from "@/components/ProjectChangeOrdersTab";
 import { normalizeArabic } from "@/components/ProjectSearchSelect";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { cn } from "@/lib/utils";
@@ -250,7 +251,7 @@ export default function ProjectDetailsPage() {
   );
 
   useEffect(() => {
-    if (financialsOnly && !isSedanaProgram) {
+    if (financialsOnly && !isSedanaProgram && activeTab !== "change_orders" && activeTab !== "financials") {
       setActiveTab("financials");
     } else if ((!canViewFinancials || isSedanaProgram) && activeTab === "financials") {
       setActiveTab("overview");
@@ -948,6 +949,7 @@ export default function ProjectDetailsPage() {
       icon: ClipboardList, 
       badge: boqItemsCount > 0 ? `${boqItemsCount}` : undefined 
     },
+    ...(canViewDetails || canViewFinancials || isAdmin ? [{ id: "change_orders", label: "أوامر التغيير", icon: FileText }] : []),
     ...(!isSedanaProgram && canViewFinancials ? [{ 
       id: "financials", 
       label: "المالية", 
@@ -1279,6 +1281,12 @@ export default function ProjectDetailsPage() {
           </TooltipProvider>
         )}
         {/* Main Grid: Collapsible Vertical Sidebar Tabs + Content Area */}
+        {financialsOnly && (
+          <div className="flex flex-wrap gap-2" role="group" aria-label="أقسام مالية المشروع">
+            {!isSedanaProgram && <Button variant={activeTab === "financials" ? "default" : "outline"} onClick={() => setActiveTab("financials")}>المالية</Button>}
+            <Button variant={activeTab === "change_orders" ? "default" : "outline"} onClick={() => setActiveTab("change_orders")}>أوامر التغيير</Button>
+          </div>
+        )}
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 items-start">
           {/* Mobile Tabs Bar (Sticky Horizontal Pills on Mobile) */}
           {!financialsOnly && (
@@ -1991,6 +1999,12 @@ export default function ProjectDetailsPage() {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              {(canViewDetails || canViewFinancials || isAdmin) && (
+                <TabsContent value="change_orders" className="space-y-6 mt-0">
+                  <ProjectChangeOrdersTab projectId={parseInt(id || "0")} closed={isRequestClosed || project?.status === "completed" || project?.status === "cancelled"} />
+                </TabsContent>
+              )}
 
               {/* المالية */}
               {!isSedanaProgram && canViewFinancials && (

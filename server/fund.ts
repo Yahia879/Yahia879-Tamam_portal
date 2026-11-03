@@ -7,6 +7,7 @@ import {
   fundMovements,
   mosqueRequests,
   projectFinancialDetails,
+  projectChangeOrders,
   projects,
   quotations,
   receiptVouchers,
@@ -210,6 +211,11 @@ export async function postFundDisbursement(
   userId: number,
 ) {
   if (!request.fundRestrictionType) return;
+  const [changeOrder] = await db.select({ amount: projectChangeOrders.amount }).from(projectChangeOrders)
+    .where(eq(projectChangeOrders.disbursementRequestId, request.id)).limit(1);
+  if (changeOrder && (cents(order.amount) !== cents(changeOrder.amount) || cents(request.amount) !== cents(changeOrder.amount))) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "مبلغ الصرف يجب أن يطابق قيمة بنود أمر التغيير" });
+  }
   const [prior] = await db.select({ amount: sql<string>`COALESCE(SUM(${fundMovements.amount}), 0)` })
     .from(fundMovements).where(and(
       eq(fundMovements.requestId, request.id),

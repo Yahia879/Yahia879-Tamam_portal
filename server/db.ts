@@ -130,6 +130,22 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
     await promisePool.query("CREATE TABLE IF NOT EXISTS fund_lock (id INT PRIMARY KEY) ENGINE=InnoDB");
     await promisePool.query("INSERT IGNORE INTO fund_lock (id) VALUES (1)");
+    await promisePool.query(`CREATE TABLE IF NOT EXISTS project_change_orders (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      orderNumber VARCHAR(50) NOT NULL UNIQUE,
+      submissionKey VARCHAR(36) NOT NULL UNIQUE,
+      projectId INT NOT NULL,
+      disbursementRequestId INT NOT NULL UNIQUE,
+      title VARCHAR(200) NOT NULL,
+      reason TEXT NOT NULL,
+      itemsJson LONGTEXT NOT NULL,
+      amount DECIMAL(15,2) NOT NULL,
+      originalProjectCost DECIMAL(15,2) NOT NULL,
+      percentage DECIMAL(18,6) NOT NULL,
+      createdById INT NOT NULL,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_change_order_project (projectId)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
     // The former UI stored the restriction in notes. Preserve that historical label.
     await promisePool.query(`UPDATE receipt_vouchers
       SET category = IF(notes LIKE 'مصرف التبرع:%', 'restricted', 'unrestricted'),

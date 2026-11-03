@@ -36,6 +36,7 @@ import { sedanaInquiriesRouter } from "./routers/sedanaInquiries";
 import { sedanaExecutionRouter } from "./routers/sedanaExecution";
 import { approvalsRouter } from "./routers/approvals";
 import { fundRouter } from "./routers/fund";
+import { projectChangeOrdersRouter } from "./routers/projectChangeOrders";
 
 export const appRouter = router({
   system: systemRouter,
@@ -78,6 +79,7 @@ export const appRouter = router({
   
   // إدارة المشاريع
   projects: projectsRouter,
+  projectChangeOrders: projectChangeOrdersRouter,
   fund: fundRouter,
   
   // إدارة الموردين

@@ -55,7 +55,7 @@ type FundRequestInput = {
   beneficiaryName: string; beneficiaryBank?: string; beneficiaryIban?: string;
 };
 
-async function insertFundRequest(tx: any, input: FundRequestInput, bucket: FundBucket, userId: number) {
+export async function insertFundRequest(tx: any, input: FundRequestInput, bucket: FundBucket, userId: number) {
   const year = new Date().getFullYear();
   const prefix = `DR-${year}-`;
   const [lastRequest] = await tx.select({ requestNumber: disbursementRequests.requestNumber })

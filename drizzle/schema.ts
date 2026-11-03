@@ -1197,6 +1197,23 @@ export const disbursementRequests = mysqlTable("disbursement_requests", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+// بنود أوامر التغيير تحفظ مستقلة للحفاظ على قيمة المشروع الأصلية ونسبة التغيير.
+export const projectChangeOrders = mysqlTable("project_change_orders", {
+  id: int("id").autoincrement().primaryKey(),
+  orderNumber: varchar("orderNumber", { length: 50 }).notNull().unique(),
+  submissionKey: varchar("submissionKey", { length: 36 }).notNull().unique(),
+  projectId: int("projectId").notNull().references(() => projects.id),
+  disbursementRequestId: int("disbursementRequestId").notNull().unique().references(() => disbursementRequests.id),
+  title: varchar("title", { length: 200 }).notNull(),
+  reason: text("reason").notNull(),
+  itemsJson: longtext("itemsJson").notNull(),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  originalProjectCost: decimal("originalProjectCost", { precision: 15, scale: 2 }).notNull(),
+  percentage: decimal("percentage", { precision: 18, scale: 6 }).notNull(),
+  createdById: int("createdById").notNull().references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 // جدول أوامر الصرف (الإدارة المالية)
 export const disbursementOrders = mysqlTable("disbursement_orders", {
   id: int("id").autoincrement().primaryKey(),

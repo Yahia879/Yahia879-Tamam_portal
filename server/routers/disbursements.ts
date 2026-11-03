@@ -21,6 +21,7 @@ import {
   userRoleAssignments,
   roles,
   projectFinancialDetails,
+  projectChangeOrders,
   receiptVouchers,
   fundMovements,
   quantitySchedules,
@@ -1552,6 +1553,11 @@ export const disbursementsRouter = router({
       }
 
       // لا يمكن تعديل الطلب إذا تم دفعه أو تم ربطه بأمر صرف
+      const [changeOrder] = await db.select({ id: projectChangeOrders.id }).from(projectChangeOrders)
+        .where(eq(projectChangeOrders.disbursementRequestId, input.id)).limit(1);
+      if (changeOrder) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "طلب الصرف مرتبط بأمر تغيير وبنوده محفوظة؛ ارفض الطلب وأنشئ أمر تغيير جديداً لتعديل البنود أو المستفيد" });
+      }
       if (request.fundRestrictionType && Number(request.amount) !== input.amount) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "مبلغ طلب الصرف من الصندوق محجوز؛ أنشئ طلباً جديداً لتغيير المبلغ" });
       }
