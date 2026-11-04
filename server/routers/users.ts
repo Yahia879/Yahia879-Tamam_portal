@@ -416,7 +416,10 @@ export const usersRouter = router({
     }),
 
   // Toggle user status
-  toggleStatus: permissionProcedure(["users.suspend", "staff_users.suspend", "users.activate", "staff_users.activate"])
+  toggleStatus: permissionProcedure([
+    "users.suspend", "staff_users.suspend", "users.activate", "staff_users.activate",
+    "requester_accounts.approve", "requester_accounts.suspend",
+  ])
     .input(
       z.object({
         userId: z.number(),
@@ -469,6 +472,19 @@ export const usersRouter = router({
           throw new TRPCError({
             code: "FORBIDDEN",
             message: "غير مصرح لك بتنشيط الحساب (تتطلب صلاحية تنشيط الحساب)"
+          });
+        }
+      } else if (input.status === "pending") {
+        // صلاحيات المستفيدين لا تمنح حق إعادة الحسابات إلى حالة الانتظار.
+        const canResetStatus = isAdmin ||
+          (await checkPermission(ctx.user.id, "users.suspend")) ||
+          (await checkPermission(ctx.user.id, "staff_users.suspend")) ||
+          (await checkPermission(ctx.user.id, "users.activate")) ||
+          (await checkPermission(ctx.user.id, "staff_users.activate"));
+        if (!canResetStatus) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "غير مصرح لك بإعادة الحساب إلى حالة الانتظار"
           });
         }
       }
