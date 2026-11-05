@@ -64,10 +64,11 @@ const APPROVAL_STATUS = {
 export default function Mosques() {
   const { user } = useAuth();
   const canApproveMosques = usePermission("mosques.approve");
+  const canViewDetailsMosques = usePermission("mosques.view_details");
   const canEditMosques = usePermission("mosques.edit");
   const canDeleteMosques = usePermission("mosques.delete");
   const isSuperAdmin = user?.role === "super_admin" || user?.role === "system_admin";
-  const hasMosqueActions = canApproveMosques || canEditMosques || canDeleteMosques || isSuperAdmin;
+  const hasMosqueActions = canApproveMosques || canViewDetailsMosques || canEditMosques || canDeleteMosques || isSuperAdmin;
 
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState<string>("all");
@@ -410,12 +411,14 @@ export default function Mosques() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                      <Link href={`/mosques/${mosque.id}`}>
-                                        <DropdownMenuItem className="cursor-pointer">
-                                          <Eye className="w-4 h-4 ml-2" />
-                                          عرض التفاصيل
-                                        </DropdownMenuItem>
-                                      </Link>
+                                      <PermissionGuard permission="mosques.view_details">
+                                        <Link href={`/mosques/${mosque.id}`}>
+                                          <DropdownMenuItem className="cursor-pointer">
+                                            <Eye className="w-4 h-4 ml-2" />
+                                            عرض التفاصيل
+                                          </DropdownMenuItem>
+                                        </Link>
+                                      </PermissionGuard>
                                       <PermissionGuard permission="mosques.edit">
                                         <Link href={`/mosques/${mosque.id}/edit`}>
                                           <DropdownMenuItem className="cursor-pointer">
@@ -483,12 +486,14 @@ export default function Mosques() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <Link href={`/mosques/${mosque.id}`}>
-                                  <DropdownMenuItem className="cursor-pointer text-sm">
-                                    <Eye className="w-4 h-4 ml-2" />
-                                    عرض التفاصيل
-                                  </DropdownMenuItem>
-                                </Link>
+                                <PermissionGuard permission="mosques.view_details">
+                                  <Link href={`/mosques/${mosque.id}`}>
+                                    <DropdownMenuItem className="cursor-pointer text-sm">
+                                      <Eye className="w-4 h-4 ml-2" />
+                                      عرض التفاصيل
+                                    </DropdownMenuItem>
+                                  </Link>
+                                </PermissionGuard>
                                 <PermissionGuard permission="mosques.edit">
                                   <Link href={`/mosques/${mosque.id}/edit`}>
                                     <DropdownMenuItem className="cursor-pointer text-sm">
