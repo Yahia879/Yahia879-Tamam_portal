@@ -109,9 +109,13 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   ],
 
-  mosques: ["mosques.view", "mosques.create", "mosques.view_details", "mosques.edit", "mosques.delete", "mosques.approve"],
+  mosques: ["mosques.view", "mosques.create", "mosques.view_details", "mosques.edit", "mosques.delete", "mosques.reject", "mosques.approve"],
 
   "mosques.view_details": ["mosques.view", "mosques.view_details"],
+
+  "mosques.reject": ["mosques.view", "mosques.reject"],
+
+  "mosques.approve": ["mosques.view", "mosques.approve"],
 
   mosques_map: ["mosque_map.view"],
 
@@ -3030,6 +3034,10 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "mosque_map.view", moduleId: "mosques", action: "view", nameAr: "عرض خريطة المساجد", nameEn: "View Mosque Map" },
 
       { id: "mosques.view_details", moduleId: "mosques", action: "view_details", nameAr: "عرض تفاصيل المسجد", nameEn: "View Mosque Details" },
+
+      { id: "mosques.reject", moduleId: "mosques", action: "reject", nameAr: "رفض المسجد", nameEn: "Reject Mosque" },
+
+      { id: "mosques.approve", moduleId: "mosques", action: "approve", nameAr: "اعتماد المساجد", nameEn: "Approve Mosques" },
 
       { id: "requests.view_details", moduleId: "requests", action: "view_details", nameAr: "عرض تفاصيل الطلب وإدارته", nameEn: "View Request Details" },
 
