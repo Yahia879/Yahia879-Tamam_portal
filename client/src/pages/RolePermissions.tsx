@@ -1151,8 +1151,8 @@ export default function RolePermissions() {
           permissions: [
             { id: "mosques.view", nameAr: "عرض قائمة المساجد" },
             { id: "mosques.create", nameAr: "إضافة مسجد جديد" },
-            { id: "mosques.view_details", nameAr: "عرض تفاصيل" },
-            { id: "mosques.edit", nameAr: "تعديل بيانات" },
+            { id: "mosques.view_details", nameAr: "عرض تفاصيل المسجد" },
+            { id: "mosques.edit", nameAr: "تعديل بيانات المسجد" },
             { id: "mosques.approve", nameAr: "اعتماد المساجد" },
           ]
         },
@@ -2086,9 +2086,9 @@ export default function RolePermissions() {
         view: "عرض المساجد",
         create: "إضافة مسجد",
         add: "إضافة مسجد",
-        view_details: "عرض تفاصيل",
-        edit: "تعديل بيانات",
-        update: "تعديل بيانات",
+        view_details: "عرض تفاصيل المسجد",
+        edit: "تعديل بيانات المسجد",
+        update: "تعديل بيانات المسجد",
         delete: "حذف المسجد",
         approve: "الاعتمادات (رفض أو اعتماد المسجد)"
       },
