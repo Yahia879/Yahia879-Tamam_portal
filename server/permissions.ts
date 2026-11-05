@@ -3029,7 +3029,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       { id: "mosque_map.view", moduleId: "mosques", action: "view", nameAr: "عرض خريطة المساجد", nameEn: "View Mosque Map" },
 
-      { id: "mosques.view_details", moduleId: "mosques", action: "view_details", nameAr: "عرض تفاصيل", nameEn: "View Mosque Details" },
+      { id: "mosques.view_details", moduleId: "mosques", action: "view_details", nameAr: "عرض تفاصيل المسجد", nameEn: "View Mosque Details" },
 
       { id: "requests.view_details", moduleId: "requests", action: "view_details", nameAr: "عرض تفاصيل الطلب وإدارته", nameEn: "View Request Details" },
 
