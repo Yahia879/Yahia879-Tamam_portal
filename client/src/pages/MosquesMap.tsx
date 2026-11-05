@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Building2, MapPin, Search, List, Map as MapIcon, ChevronRight, Users, ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
+import { PermissionGuard } from "@/components/PermissionGuard";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function MosquesMap() {
@@ -84,18 +85,21 @@ export default function MosquesMap() {
               <strong>عدد المصلين:</strong> {mosque.capacity}
             </p>
           )}
-          <Link href={`/mosques/${mosque.id}`}>
-            <Button variant="default" size="sm" className="w-full mt-2 h-8 text-xs gradient-primary text-white">
-              عرض التفاصيل
-            </Button>
-          </Link>
+          <PermissionGuard permission="mosque_map.view_details">
+            <Link href={`/mosques/${mosque.id}`}>
+              <Button variant="default" size="sm" className="w-full mt-2 h-8 text-xs gradient-primary text-white">
+                عرض التفاصيل
+              </Button>
+            </Link>
+          </PermissionGuard>
         </div>
       )
     }));
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-full overflow-x-hidden">
+      <PermissionGuard permission="mosque_map.view">
+        <div className="space-y-6 max-w-full overflow-x-hidden">
         {/* العنوان والأدوات */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
@@ -266,12 +270,14 @@ export default function MosquesMap() {
                         </div>
                       )}
                     </div>
-                    <Link href={`/mosques/${mosque.id}`}>
-                      <Button variant="outline" size="sm" className="w-full h-9 text-xs md:text-sm">
-                        عرض التفاصيل
-                        <ChevronRight className="w-4 h-4 mr-1" />
-                      </Button>
-                    </Link>
+                    <PermissionGuard permission="mosque_map.view_details">
+                      <Link href={`/mosques/${mosque.id}`}>
+                        <Button variant="outline" size="sm" className="w-full h-9 text-xs md:text-sm">
+                          عرض التفاصيل
+                          <ChevronRight className="w-4 h-4 mr-1" />
+                        </Button>
+                      </Link>
+                    </PermissionGuard>
                   </CardContent>
                 </Card>
               ))
@@ -279,6 +285,7 @@ export default function MosquesMap() {
           </div>
         )}
       </div>
+      </PermissionGuard>
     </DashboardLayout>
   );
 }
