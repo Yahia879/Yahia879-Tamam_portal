@@ -4159,7 +4159,9 @@ export default function UserPermissions() {
 
 
 
-        approve: "الاعتمادات (رفض أو اعتماد المسجد)"
+        reject: "رفض المسجد",
+
+        approve: "اعتماد المساجد"
 
 
 
@@ -5754,7 +5756,7 @@ export default function UserPermissions() {
 
 
 
-        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "view_details", "edit", "delete", "approve"] },
+        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "view_details", "edit", "delete", "reject", "approve"] },
 
 
 
