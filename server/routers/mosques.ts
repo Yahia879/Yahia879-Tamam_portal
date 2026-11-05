@@ -401,8 +401,8 @@ export const mosquesRouter = router({
   reject: protectedProcedure
     .input(z.object({ id: z.number(), reason: z.string().optional() }))
     .mutation(async ({ input, ctx }) => {
-      const hasApprovePerm = await checkPermission(ctx.user.id, "mosques.approve");
-      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role) && !hasApprovePerm) {
+      const hasRejectPerm = await checkPermission(ctx.user.id, "mosques.reject");
+      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role) && !hasRejectPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لرفض المساجد" });
       }
 
@@ -574,7 +574,8 @@ export const mosquesRouter = router({
   // الحصول على المساجد قيد الاعتماد
   getPendingMosques: protectedProcedure.query(async ({ ctx }) => {
     const hasApprovePerm = await checkPermission(ctx.user.id, "mosques.approve");
-    if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role) && !hasApprovePerm) {
+    const hasRejectPerm = await checkPermission(ctx.user.id, "mosques.reject");
+    if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role) && !hasApprovePerm && !hasRejectPerm) {
       throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض المساجد قيد الاعتماد" });
     }
 
