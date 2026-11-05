@@ -4149,7 +4149,9 @@ export default function UserPermissions() {
 
 
 
-        edit: "تعديل بيانات مسجد",
+        view_details: "عرض تفاصيل",
+
+        edit: "تعديل بيانات",
 
 
 
@@ -5752,7 +5754,7 @@ export default function UserPermissions() {
 
 
 
-        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
+        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "view_details", "edit", "delete", "approve"] },
 
 
 
