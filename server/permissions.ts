@@ -109,7 +109,9 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   ],
 
-  mosques: ["mosques.view", "mosques.create", "mosques.edit", "mosques.delete", "mosques.approve"],
+  mosques: ["mosques.view", "mosques.create", "mosques.view_details", "mosques.edit", "mosques.delete", "mosques.approve"],
+
+  "mosques.view_details": ["mosques.view", "mosques.view_details"],
 
   mosques_map: ["mosque_map.view"],
 
@@ -3027,6 +3029,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       { id: "mosque_map.view", moduleId: "mosques", action: "view", nameAr: "عرض خريطة المساجد", nameEn: "View Mosque Map" },
 
+      { id: "mosques.view_details", moduleId: "mosques", action: "view_details", nameAr: "عرض تفاصيل", nameEn: "View Mosque Details" },
+
       { id: "requests.view_details", moduleId: "requests", action: "view_details", nameAr: "عرض تفاصيل الطلب وإدارته", nameEn: "View Request Details" },
 
       { id: "requests.add_review_note", moduleId: "requests", action: "add_review_note", nameAr: "إضافة ملاحظة على مراجعة المعلومات والمرفقات", nameEn: "Add review note" },
@@ -5118,7 +5122,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
   // 7. إضافة مفاتيح الصلاحيات البسيطة تلقائياً لتوافق الواجهة الجانبية والتحقق من المسارات
 
-  if (allPermissions.has("mosques.view")) {
+  if (allPermissions.has("mosques.view") || allPermissions.has("mosques.view_details")) {
 
     allPermissions.add("mosques");
 
