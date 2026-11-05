@@ -445,8 +445,8 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
 
   // المساجد
   { pattern: /^\/mosques\/\d+\/edit-imam$/, permission: "mosques" },
-  { pattern: /^\/mosques\/\d+\/edit$/, permission: "mosques" },
-  { pattern: /^\/mosques\/\d+$/, permission: "mosques" },
+  { pattern: /^\/mosques\/\d+\/edit$/, permission: ["mosques.edit", "mosques"] },
+  { pattern: /^\/mosques\/\d+$/, permission: ["mosques.view_details", "mosques"] },
 
   // استبيان تقييم رضا المستفيد
   { pattern: /^\/requests\/\d+\/evaluation$/, permission: ["requests", "requests.view", "requests.view_details", "service_requester_only"] },
