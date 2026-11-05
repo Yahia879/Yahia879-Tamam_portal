@@ -1151,7 +1151,8 @@ export default function RolePermissions() {
           permissions: [
             { id: "mosques.view", nameAr: "عرض قائمة المساجد" },
             { id: "mosques.create", nameAr: "إضافة مسجد جديد" },
-            { id: "mosques.edit", nameAr: "تعديل بيانات مسجد" },
+            { id: "mosques.view_details", nameAr: "عرض تفاصيل" },
+            { id: "mosques.edit", nameAr: "تعديل بيانات" },
             { id: "mosques.approve", nameAr: "اعتماد المساجد" },
           ]
         },
@@ -1416,7 +1417,7 @@ export default function RolePermissions() {
     {
       title: "المساجد والطلبات",
       modules: [
-        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
+        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "view_details", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "transfer_to_beneficiary", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report", "create_quick_request"] },
         { id: "sedana_requests", nameAr: "طلبات سدانة", icon: Sparkles, perms: ["view", "desk_review", "manage"] },
@@ -1632,7 +1633,7 @@ export default function RolePermissions() {
     {
       title: "المساجد والطلبات",
       modules: [
-        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
+        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "view_details", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "transfer_to_beneficiary", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"] },
         { id: "sedana_requests", nameAr: "طلبات سدانة", icon: Sparkles, perms: ["view", "desk_review", "manage"] },
@@ -2085,8 +2086,9 @@ export default function RolePermissions() {
         view: "عرض المساجد",
         create: "إضافة مسجد",
         add: "إضافة مسجد",
-        edit: "تعديل المسجد",
-        update: "تعديل المسجد",
+        view_details: "عرض تفاصيل",
+        edit: "تعديل بيانات",
+        update: "تعديل بيانات",
         delete: "حذف المسجد",
         approve: "الاعتمادات (رفض أو اعتماد المسجد)"
       },
