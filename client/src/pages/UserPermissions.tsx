@@ -785,25 +785,17 @@ export default function UserPermissions() {
 
 
     if (permId.startsWith("mosques.") && permId !== "mosques.view") {
-
-
-
       if (!isChecked("mosques.view")) {
-
-
-
         toast.warning("يجب تفعيل صلاحية 'عرض المساجد' أولاً");
-
-
-
         return;
-
-
-
       }
+    }
 
-
-
+    if (permId.startsWith("mosque_map.") && permId !== "mosque_map.view") {
+      if (!isChecked("mosque_map.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض الخريطة الجغرافية للمساجد' أولاً");
+        return;
+      }
     }
 
 
@@ -2860,6 +2852,10 @@ export default function UserPermissions() {
 
 
         if (permId === "mosques.view") cascadeRevoke("mosques.");
+
+
+
+        if (permId === "mosque_map.view") cascadeRevoke("mosque_map.");
 
 
 
@@ -5580,7 +5576,9 @@ export default function UserPermissions() {
 
 
 
-        view: "عرض الخريطة الجغرافية للمساجد"
+        view: "عرض الخريطة الجغرافية للمساجد",
+
+        view_details: "عرض التفاصيل"
 
 
 
@@ -5760,7 +5758,7 @@ export default function UserPermissions() {
 
 
 
-        { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
+        { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view", "view_details"] },
 
 
 
@@ -7882,6 +7880,10 @@ export default function UserPermissions() {
 
 
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !isChecked("mosques.view")) ||
+
+
+
+                              (perm.id.startsWith("mosque_map.") && perm.id !== "mosque_map.view" && !isChecked("mosque_map.view")) ||
 
 
 
