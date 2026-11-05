@@ -64,11 +64,12 @@ const APPROVAL_STATUS = {
 export default function Mosques() {
   const { user } = useAuth();
   const canApproveMosques = usePermission("mosques.approve");
+  const canRejectMosques = usePermission("mosques.reject");
   const canViewDetailsMosques = usePermission("mosques.view_details");
   const canEditMosques = usePermission("mosques.edit");
   const canDeleteMosques = usePermission("mosques.delete");
   const isSuperAdmin = user?.role === "super_admin" || user?.role === "system_admin";
-  const hasMosqueActions = canApproveMosques || canViewDetailsMosques || canEditMosques || canDeleteMosques || isSuperAdmin;
+  const hasMosqueActions = canApproveMosques || canRejectMosques || canViewDetailsMosques || canEditMosques || canDeleteMosques || isSuperAdmin;
 
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState<string>("all");
@@ -205,7 +206,7 @@ export default function Mosques() {
           </Card>
 
           {/* بطاقة المساجد قيد المراجعة */}
-          <PermissionGuard permission="mosques.approve">
+          <PermissionGuard anyPermission={["mosques.approve", "mosques.reject"]}>
             <Card className={`border-0 shadow-sm ${pendingCount > 0 ? 'ring-2 ring-yellow-400' : ''}`}>
               <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between">
@@ -293,7 +294,7 @@ export default function Mosques() {
                   ))}
                 </SelectContent>
               </Select>
-              <PermissionGuard permission="mosques.approve">
+              <PermissionGuard anyPermission={["mosques.approve", "mosques.reject"]}>
                 <Select value={statusFilter} onValueChange={(val) => {
                   setStatusFilter(val);
                   resetPage();
@@ -332,7 +333,7 @@ export default function Mosques() {
                         <TableHead className="text-right">المدينة</TableHead>
                         <TableHead className="text-right">المحافظة</TableHead>
                         <TableHead className="text-right">عدد المصلين</TableHead>
-                        <PermissionGuard permission="mosques.approve">
+                        <PermissionGuard anyPermission={["mosques.approve", "mosques.reject"]}>
                           <TableHead className="text-right">الحالة</TableHead>
                         </PermissionGuard>
                         {hasMosqueActions && (
@@ -367,7 +368,7 @@ export default function Mosques() {
                                 </div>
                               ) : "-"}
                             </TableCell>
-                            <PermissionGuard permission="mosques.approve">
+                            <PermissionGuard anyPermission={["mosques.approve", "mosques.reject"]}>
                               <TableCell>
                                 <Badge className={`${status.color} flex items-center gap-1 w-fit whitespace-nowrap`}>
                                   <StatusIcon className="w-3 h-3" />
@@ -378,9 +379,9 @@ export default function Mosques() {
                             {hasMosqueActions && (
                               <TableCell>
                                 <div className="flex items-center gap-2">
-                                  <PermissionGuard permission="mosques.approve">
-                                    {mosque.approvalStatus === "pending" && (
-                                      <>
+                                  {mosque.approvalStatus === "pending" && (
+                                    <>
+                                      <PermissionGuard permission="mosques.approve">
                                         <Button
                                           size="sm"
                                           variant="outline"
@@ -391,6 +392,8 @@ export default function Mosques() {
                                           <CheckCircle className="w-4 h-4 ml-1" />
                                           اعتماد
                                         </Button>
+                                      </PermissionGuard>
+                                      <PermissionGuard permission="mosques.reject">
                                         <Button
                                           size="sm"
                                           variant="outline"
@@ -401,9 +404,9 @@ export default function Mosques() {
                                           <XCircle className="w-4 h-4 ml-1" />
                                           رفض
                                         </Button>
-                                      </>
-                                    )}
-                                  </PermissionGuard>
+                                      </PermissionGuard>
+                                    </>
+                                  )}
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button variant="ghost" size="icon">
@@ -518,16 +521,16 @@ export default function Mosques() {
                         </div>
 
                         <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                          <PermissionGuard permission="mosques.approve">
+                          <PermissionGuard anyPermission={["mosques.approve", "mosques.reject"]}>
                             <Badge className={`${status.color} flex items-center gap-1 text-[10px] md:text-xs py-0.5 h-auto`}>
                               <StatusIcon className="w-3 h-3" />
                               {status.label}
                             </Badge>
                           </PermissionGuard>
 
-                          <PermissionGuard permission="mosques.approve">
-                            {mosque.approvalStatus === "pending" && (
-                              <div className="flex items-center gap-2">
+                          {mosque.approvalStatus === "pending" && (
+                            <div className="flex items-center gap-2">
+                              <PermissionGuard permission="mosques.approve">
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -538,6 +541,8 @@ export default function Mosques() {
                                   <CheckCircle className="w-3 h-3 ml-1" />
                                   اعتماد
                                 </Button>
+                              </PermissionGuard>
+                              <PermissionGuard permission="mosques.reject">
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -548,9 +553,9 @@ export default function Mosques() {
                                   <XCircle className="w-3 h-3 ml-1" />
                                   رفض
                                 </Button>
-                              </div>
-                            )}
-                          </PermissionGuard>
+                              </PermissionGuard>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
