@@ -4149,9 +4149,9 @@ export default function UserPermissions() {
 
 
 
-        view_details: "عرض تفاصيل",
+        view_details: "عرض تفاصيل المسجد",
 
-        edit: "تعديل بيانات",
+        edit: "تعديل بيانات المسجد",
 
 
 
