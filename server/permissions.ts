@@ -117,7 +117,7 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   "mosques.approve": ["mosques.view", "mosques.approve"],
 
-  mosques_map: ["mosque_map.view"],
+  mosques_map: ["mosque_map.view", "mosque_map.view_details"],
 
   requests: ["requests.view", "requests.create", "requests.edit", "requests.delete", "requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response", "requests.create_quick_request", "requests.upload_final_report", "requests.add_review_note"],
 
@@ -1090,9 +1090,11 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
 
 
-  mosque_map: ["mosque_map.view"],
+  mosque_map: ["mosque_map.view", "mosque_map.view_details"],
 
   "mosque_map.view": ["mosque_map.view"],
+
+  "mosque_map.view_details": ["mosque_map.view", "mosque_map.view_details"],
 
 
 
@@ -3032,6 +3034,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "View_Tickets", moduleId: "technical_support", action: "view", nameAr: "عرض تذاكر الدعم الفني", nameEn: "View Support Tickets" },
 
       { id: "mosque_map.view", moduleId: "mosques", action: "view", nameAr: "عرض خريطة المساجد", nameEn: "View Mosque Map" },
+
+      { id: "mosque_map.view_details", moduleId: "mosques", action: "view_details", nameAr: "عرض التفاصيل", nameEn: "View Mosque Details from Map" },
 
       { id: "mosques.view_details", moduleId: "mosques", action: "view_details", nameAr: "عرض تفاصيل المسجد", nameEn: "View Mosque Details" },
 
