@@ -127,7 +127,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
 
   // ── المساجد ──
   "/mosques": "mosques",
-  "/mosques/map": "mosques_map",
+  "/mosques/map": ["mosque_map.view", "mosques_map", "mosque_map"],
   "/mosques/new": "mosques",
   // /mosques/:id و /mosques/:id/edit تُعالج بنمط regex
 
