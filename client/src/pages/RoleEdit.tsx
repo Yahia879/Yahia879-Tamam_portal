@@ -83,7 +83,7 @@ const superAdminGroups = [
     title: "المساجد والطلبات",
     modules: [
       { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "view_details", "edit", "delete", "reject", "approve"] },
-      { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
+      { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view", "view_details"] },
       { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "transfer_to_beneficiary", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"] },
       { id: "sedana_requests", nameAr: "طلبات سدانة", icon: Sparkles, perms: ["view", "desk_review", "manage"] },
       { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["view"] },
@@ -909,7 +909,8 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       edit: "تعديل إعدادات أوقات التأخير"
     },
     mosque_map: {
-      view: "عرض الخريطة التفاعلية"
+      view: "عرض الخريطة الجغرافية للمساجد",
+      view_details: "عرض التفاصيل"
     },
     appointments: {
       view: "عرض تقويم المواعيد",
@@ -1047,6 +1048,14 @@ export default function RoleEdit() {
     if (permId.startsWith("mosques.") && permId !== "mosques.view") {
       if (!selectedPerms.includes("mosques.view")) {
         toast.warning("يجب تفعيل صلاحية 'عرض المساجد' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية لخريطة المساجد إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("mosque_map.") && permId !== "mosque_map.view") {
+      if (!selectedPerms.includes("mosque_map.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض الخريطة الجغرافية للمساجد' أولاً");
         return;
       }
     }
@@ -1352,6 +1361,9 @@ export default function RoleEdit() {
         let next = prev.filter(id => id !== permId);
         if (permId === "mosques.view") {
           next = next.filter(id => !id.startsWith("mosques."));
+        }
+        if (permId === "mosque_map.view") {
+          next = next.filter(id => !id.startsWith("mosque_map."));
         }
         if (permId === "suppliers.view") {
           next = next.filter(id => !id.startsWith("suppliers."));
@@ -1908,6 +1920,7 @@ export default function RoleEdit() {
                               (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && perm.id !== "disbursement_orders.sign" && !selectedPerms.includes("disbursement_orders.view")) ||
                               (perm.id === "board_leadership.remind" && !selectedPerms.includes("board_chairman")) ||
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
+                              (perm.id.startsWith("mosque_map.") && perm.id !== "mosque_map.view" && !selectedPerms.includes("mosque_map.view")) ||
                               (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||
                               (perm.id.startsWith("boq.") && perm.id !== "boq.view" && !selectedPerms.includes("boq.view")) ||
                               (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !selectedPerms.includes("quotations.view")) ||
