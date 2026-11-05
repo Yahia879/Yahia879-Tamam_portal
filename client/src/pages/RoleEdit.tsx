@@ -82,7 +82,7 @@ const superAdminGroups = [
   {
     title: "المساجد والطلبات",
     modules: [
-      { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "view_details", "edit", "delete", "approve"] },
+      { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "view_details", "edit", "delete", "reject", "approve"] },
       { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
       { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "transfer_to_beneficiary", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"] },
       { id: "sedana_requests", nameAr: "طلبات سدانة", icon: Sparkles, perms: ["view", "desk_review", "manage"] },
@@ -475,7 +475,8 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       edit: "تعديل بيانات المسجد",
       update: "تعديل بيانات المسجد",
       delete: "حذف المسجد",
-      approve: "الاعتمادات (رفض أو اعتماد المسجد)"
+      reject: "رفض المسجد",
+      approve: "اعتماد المساجد"
     },
     requests: {
       view: "عرض كافة الطلبات",
