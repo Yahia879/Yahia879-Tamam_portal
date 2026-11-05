@@ -471,9 +471,9 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       view: "عرض المساجد",
       create: "إضافة مسجد",
       add: "إضافة مسجد",
-      view_details: "عرض تفاصيل",
-      edit: "تعديل بيانات",
-      update: "تعديل بيانات",
+      view_details: "عرض تفاصيل المسجد",
+      edit: "تعديل بيانات المسجد",
+      update: "تعديل بيانات المسجد",
       delete: "حذف المسجد",
       approve: "الاعتمادات (رفض أو اعتماد المسجد)"
     },
