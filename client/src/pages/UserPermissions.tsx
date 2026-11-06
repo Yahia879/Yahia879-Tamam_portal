@@ -4213,9 +4213,9 @@ export default function UserPermissions() {
 
 
 
-        delayed_requests: "التصعيد الإداري للطلبات المتأخرة",
+        delayed_requests: "الطلبات المتأخرة",
 
-        delayed_beneficiaries: "التصعيد الإداري للمستفيدون المعلقون",
+        delayed_beneficiaries: "المستفيدون المعلقون",
 
 
 
