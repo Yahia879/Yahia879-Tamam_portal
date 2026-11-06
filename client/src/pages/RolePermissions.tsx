@@ -1205,8 +1205,8 @@ export default function RolePermissions() {
           nameAr: "التصعيد الإداري",
           icon: AlertTriangle,
           permissions: [
-            { id: "escalation.delayed_requests", nameAr: "التصعيد الإداري للطلبات المتأخرة" },
-            { id: "escalation.delayed_beneficiaries", nameAr: "التصعيد الإداري للمستفيدون المعلقون" },
+            { id: "escalation.delayed_requests", nameAr: "الطلبات المتأخرة" },
+            { id: "escalation.delayed_beneficiaries", nameAr: "المستفيدون المعلقون" },
           ]
         },
         {
@@ -2120,8 +2120,8 @@ export default function RolePermissions() {
         create_quick_request: "إنشاء طلب سريع",
       },
       escalation: {
-        delayed_requests: "التصعيد الإداري للطلبات المتأخرة",
-        delayed_beneficiaries: "التصعيد الإداري للمستفيدون المعلقون",
+        delayed_requests: "الطلبات المتأخرة",
+        delayed_beneficiaries: "المستفيدون المعلقون",
       },
       beneficiary_evaluations: {
         view: "عرض إحصائيات رضا المستفيدين",
