@@ -98,6 +98,9 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   // سجل الإرسال
   const canViewDispatchLogs = userPerms.includes("beneficiary_evaluations.dispatch_log");
 
+  // إعادة تذكير في سجل الإرسال
+  const canResendReminder = userPerms.includes("beneficiary_evaluations.resend_reminder") || userPerms.includes("beneficiary_evaluations.send_reminder");
+
   // المستفيدين المعتمدين والاستفسارات
   const canViewContacts = userPerms.includes("beneficiary_evaluations.contacts");
 
@@ -200,6 +203,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   });
 
   const handleSendReminder = (requestId: number) => {
+    if (!canResendReminder) return;
     setSendingReminderId(requestId);
     sendReminderMutation.mutate({ requestId });
   };
@@ -1344,48 +1348,56 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                   <td className="p-3.5 px-4 text-center whitespace-nowrap">
                                     <div className="flex items-center justify-center gap-1.5 flex-wrap">
                                       {item.requestId ? (
-                                        <Button
-                                          size="sm"
-                                          variant={isEvaluated ? "outline" : "default"}
-                                          disabled={!hasEmail || isSendingThis}
-                                          onClick={() => handleSendReminder(item.requestId)}
-                                          title={hasEmail ? "إرسال إيميل تذكيري للعميل" : "لا يوجد بريد إلكتروني مسجل"}
-                                          className={`h-8 px-3 text-xs font-bold gap-1.5 rounded-lg ${
-                                            !isEvaluated 
-                                              ? "bg-teal-600 hover:bg-teal-700 text-white shadow-xs" 
-                                              : "text-muted-foreground hover:text-foreground"
-                                          }`}
-                                        >
-                                          {isSendingThis ? (
-                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                          ) : (
-                                            <Send className="w-3.5 h-3.5" />
-                                          )}
-                                          <span>{isEvaluated ? "إعادة تذكير" : "إرسال تذكير"}</span>
-                                        </Button>
+                                        canResendReminder ? (
+                                          <Button
+                                            size="sm"
+                                            variant={isEvaluated ? "outline" : "default"}
+                                            disabled={!hasEmail || isSendingThis}
+                                            onClick={() => handleSendReminder(item.requestId)}
+                                            title={hasEmail ? "إرسال إيميل تذكيري للعميل" : "لا يوجد بريد إلكتروني مسجل"}
+                                            className={`h-8 px-3 text-xs font-bold gap-1.5 rounded-lg ${
+                                              !isEvaluated 
+                                                ? "bg-teal-600 hover:bg-teal-700 text-white shadow-xs" 
+                                                : "text-muted-foreground hover:text-foreground"
+                                            }`}
+                                          >
+                                            {isSendingThis ? (
+                                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            ) : (
+                                              <Send className="w-3.5 h-3.5" />
+                                            )}
+                                            <span>{isEvaluated ? "إعادة تذكير" : "إرسال تذكير"}</span>
+                                          </Button>
+                                        ) : (
+                                          <span className="text-muted-foreground/50 text-xs">—</span>
+                                        )
                                       ) : (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          disabled={!hasEmail || isSendingThis}
-                                          onClick={() => handleInitiateSendSurvey({
-                                            id: item.id,
-                                            name: item.beneficiary.name,
-                                            email: item.beneficiary.email,
-                                            phone: item.beneficiary.phone,
-                                            category: item.beneficiary.category || "approved_beneficiary",
-                                            userId: item.beneficiary.id,
-                                          })}
-                                          title={hasEmail ? "إعادة إرسال استبيان الرضا" : "لا يوجد بريد إلكتروني مسجل"}
-                                          className="h-8 px-3 text-xs font-bold gap-1.5 rounded-lg text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800/60 hover:bg-teal-50 dark:hover:bg-teal-950/30"
-                                        >
-                                          {isSendingThis ? (
-                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                          ) : (
-                                            <Send className="w-3.5 h-3.5 text-teal-600" />
-                                          )}
-                                          <span>إعادة إرسال</span>
-                                        </Button>
+                                        canResendReminder ? (
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            disabled={!hasEmail || isSendingThis}
+                                            onClick={() => handleInitiateSendSurvey({
+                                              id: item.id,
+                                              name: item.beneficiary.name,
+                                              email: item.beneficiary.email,
+                                              phone: item.beneficiary.phone,
+                                              category: item.beneficiary.category || "approved_beneficiary",
+                                              userId: item.beneficiary.id,
+                                            })}
+                                            title={hasEmail ? "إعادة إرسال استبيان الرضا" : "لا يوجد بريد إلكتروني مسجل"}
+                                            className="h-8 px-3 text-xs font-bold gap-1.5 rounded-lg text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800/60 hover:bg-teal-50 dark:hover:bg-teal-950/30"
+                                          >
+                                            {isSendingThis ? (
+                                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            ) : (
+                                              <Send className="w-3.5 h-3.5 text-teal-600" />
+                                            )}
+                                            <span>إعادة إرسال</span>
+                                          </Button>
+                                        ) : (
+                                          <span className="text-muted-foreground/50 text-xs">—</span>
+                                        )
                                       )}
                                     </div>
                                   </td>
