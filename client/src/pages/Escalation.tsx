@@ -168,15 +168,8 @@ export default function EscalationPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
 
-  const userPerms: string[] = (user as any)?.permissions ?? [];
-  const hasWildcard = user?.role === "super_admin" || user?.role === "system_admin" || userPerms.includes("*");
-  const hasLegacy = userPerms.includes("escalation") || userPerms.includes("escalation.view");
-
-  const permDelayedRequests = usePermission("escalation.delayed_requests");
-  const permDelayedBeneficiaries = usePermission("escalation.delayed_beneficiaries");
-
-  const canViewDelayedRequests = hasWildcard || hasLegacy || permDelayedRequests;
-  const canViewDelayedBeneficiaries = hasWildcard || hasLegacy || permDelayedBeneficiaries;
+  const canViewDelayedRequests = usePermission("escalation.delayed_requests");
+  const canViewDelayedBeneficiaries = usePermission("escalation.delayed_beneficiaries");
 
   const [activeTab, setActiveTab] = useState<string>(() =>
     !canViewDelayedRequests && canViewDelayedBeneficiaries ? "delayed-beneficiaries" : "delayed-requests"
