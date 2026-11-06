@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
+import { PermissionGuard } from "@/components/PermissionGuard";
+import { usePermission } from "@/hooks/usePermission";
 import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -165,7 +167,28 @@ function formatDelayText(delayDaysOnly?: number, delayHoursOnly?: number, delayD
 export default function EscalationPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<string>("delayed-requests");
+
+  const userPerms: string[] = (user as any)?.permissions ?? [];
+  const hasWildcard = user?.role === "super_admin" || user?.role === "system_admin" || userPerms.includes("*");
+  const hasLegacy = userPerms.includes("escalation") || userPerms.includes("escalation.view");
+
+  const permDelayedRequests = usePermission("escalation.delayed_requests");
+  const permDelayedBeneficiaries = usePermission("escalation.delayed_beneficiaries");
+
+  const canViewDelayedRequests = hasWildcard || hasLegacy || permDelayedRequests;
+  const canViewDelayedBeneficiaries = hasWildcard || hasLegacy || permDelayedBeneficiaries;
+
+  const [activeTab, setActiveTab] = useState<string>(() =>
+    !canViewDelayedRequests && canViewDelayedBeneficiaries ? "delayed-beneficiaries" : "delayed-requests"
+  );
+
+  useEffect(() => {
+    if (!canViewDelayedRequests && canViewDelayedBeneficiaries) {
+      setActiveTab("delayed-beneficiaries");
+    } else if (canViewDelayedRequests && !canViewDelayedBeneficiaries) {
+      setActiveTab("delayed-requests");
+    }
+  }, [canViewDelayedRequests, canViewDelayedBeneficiaries]);
 
   // الفلاتر
   const [search, setSearch] = useState("");
@@ -213,6 +236,7 @@ export default function EscalationPage() {
     refetch: refetchStats 
   } = trpc.escalation.getStats.useQuery(undefined, {
     refetchInterval: 30000,
+    enabled: canViewDelayedRequests || canViewDelayedBeneficiaries,
   });
 
   const { 
@@ -228,6 +252,8 @@ export default function EscalationPage() {
     sortBy: sortBy,
     page: requestsPage,
     limit,
+  }, {
+    enabled: canViewDelayedRequests,
   });
 
   const { 
@@ -241,6 +267,8 @@ export default function EscalationPage() {
     sortBy: sortBy,
     page: beneficiariesPage,
     limit,
+  }, {
+    enabled: canViewDelayedBeneficiaries,
   });
 
   const delayedRequests = requestsResult?.requests || [];
@@ -305,7 +333,8 @@ export default function EscalationPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-full overflow-x-hidden text-right" dir="rtl">
+      <PermissionGuard anyPermission={["escalation.delayed_requests", "escalation.delayed_beneficiaries", "escalation.view", "escalation"]}>
+        <div className="space-y-6 max-w-full overflow-x-hidden text-right" dir="rtl">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="min-w-0">
@@ -323,102 +352,108 @@ export default function EscalationPage() {
           </div>
         </div>
 
-        {/* Stats Row - 3 كروت إحصائية رئيسية مطابقة للمطلوب */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-3.5" dir="rtl">
-          {[
-            {
-              id: "requests",
-              label: "الطلبات المتأخرة",
-              hint: "طلبات تجاوزت مهلة المرحلة",
-              value: stats?.totalDelayedRequests || 0,
-              icon: <Clock className="w-4 h-4" />,
-              iconBg: "bg-amber-100 dark:bg-amber-950/40 text-amber-600",
-              borderHover: "hover:border-amber-300 dark:hover:border-amber-800",
-              onClick: () => {
-                setActiveTab("delayed-requests");
-              },
-            },
-            {
-              id: "beneficiaries",
-              label: "المستفيدون المتأخرون بالاعتماد",
-              hint: "بانتظار قبول طلب التسجيل",
-              value: stats?.totalDelayedBeneficiaries || 0,
-              icon: <Users className="w-4 h-4" />,
-              iconBg: "bg-teal-100 dark:bg-teal-950/40 text-teal-600",
-              borderHover: "hover:border-teal-300 dark:hover:border-teal-800",
-              onClick: () => {
-                setActiveTab("delayed-beneficiaries");
-              },
-            },
-            {
-              id: "all",
-              label: "إجمالي التأخير",
-              hint: "مجموع الطلبات والمستفيدين",
-              value: stats?.totalDelayedItems || 0,
-              icon: <FileText className="w-4 h-4" />,
-              iconBg: "bg-primary/10 text-primary",
-              borderHover: "hover:border-primary/40",
-              onClick: () => {
-                setActiveTab("delayed-requests");
-                setSeverityFilter("all");
-              },
-            },
-          ].map((stat) => (
-            <Card 
-              key={stat.id} 
-              onClick={stat.onClick}
-              className={`border border-border/60 shadow-xs overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 text-right ${stat.borderHover}`}
-              dir="rtl"
-            >
-              <CardContent className="p-3.5 md:p-4">
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0 text-right">
-                    <p className="text-xs text-muted-foreground font-medium truncate">{stat.label}</p>
-                    <p className="text-xl md:text-2xl font-bold text-foreground truncate mt-0.5 font-mono tabular-nums">
-                      {isLoadingStats ? <Loader2 className="w-4 h-4 animate-spin inline-block text-muted-foreground" /> : stat.value}
-                    </p>
-                    <p className="text-2xs text-muted-foreground mt-0.5 truncate">{stat.hint}</p>
+        {/* Stats Row - كروت إحصائية رئيسية مطابقة للمطلوب والصلاحيات */}
+        {(canViewDelayedRequests || canViewDelayedBeneficiaries) && (
+          <div className={`grid grid-cols-1 ${canViewDelayedRequests && canViewDelayedBeneficiaries ? 'sm:grid-cols-3' : 'sm:grid-cols-1 max-w-sm'} gap-3 md:gap-3.5`} dir="rtl">
+            {[
+              ...(canViewDelayedRequests ? [{
+                id: "requests",
+                label: "الطلبات المتأخرة",
+                hint: "طلبات تجاوزت مهلة المرحلة",
+                value: stats?.totalDelayedRequests || 0,
+                icon: <Clock className="w-4 h-4" />,
+                iconBg: "bg-amber-100 dark:bg-amber-950/40 text-amber-600",
+                borderHover: "hover:border-amber-300 dark:hover:border-amber-800",
+                onClick: () => {
+                  setActiveTab("delayed-requests");
+                },
+              }] : []),
+              ...(canViewDelayedBeneficiaries ? [{
+                id: "beneficiaries",
+                label: "المستفيدون المتأخرون بالاعتماد",
+                hint: "بانتظار قبول طلب التسجيل",
+                value: stats?.totalDelayedBeneficiaries || 0,
+                icon: <Users className="w-4 h-4" />,
+                iconBg: "bg-teal-100 dark:bg-teal-950/40 text-teal-600",
+                borderHover: "hover:border-teal-300 dark:hover:border-teal-800",
+                onClick: () => {
+                  setActiveTab("delayed-beneficiaries");
+                },
+              }] : []),
+              ...(canViewDelayedRequests && canViewDelayedBeneficiaries ? [{
+                id: "all",
+                label: "إجمالي التأخير",
+                hint: "مجموع الطلبات والمستفيدين",
+                value: stats?.totalDelayedItems || 0,
+                icon: <FileText className="w-4 h-4" />,
+                iconBg: "bg-primary/10 text-primary",
+                borderHover: "hover:border-primary/40",
+                onClick: () => {
+                  setActiveTab("delayed-requests");
+                  setSeverityFilter("all");
+                },
+              }] : []),
+            ].map((stat) => (
+              <Card 
+                key={stat.id} 
+                onClick={stat.onClick}
+                className={`border border-border/60 shadow-xs overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 text-right ${stat.borderHover}`}
+                dir="rtl"
+              >
+                <CardContent className="p-3.5 md:p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 text-right">
+                      <p className="text-xs text-muted-foreground font-medium truncate">{stat.label}</p>
+                      <p className="text-xl md:text-2xl font-bold text-foreground truncate mt-0.5 font-mono tabular-nums">
+                        {isLoadingStats ? <Loader2 className="w-4 h-4 animate-spin inline-block text-muted-foreground" /> : stat.value}
+                      </p>
+                      <p className="text-2xs text-muted-foreground mt-0.5 truncate">{stat.hint}</p>
+                    </div>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>
+                      {stat.icon}
+                    </div>
                   </div>
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>
-                    {stat.icon}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* التبويبات الرئيسية */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3.5" dir="rtl">
           <div className="flex items-center justify-start pb-0.5" dir="rtl">
             <TabsList className="bg-muted/70 dark:bg-muted/30 p-1 rounded-xl inline-flex w-full sm:w-auto justify-start gap-1 h-auto border border-border/70 shadow-2xs backdrop-blur-xs" dir="rtl">
               {/* تبويب 1: الطلبات المتأخرة */}
-              <TabsTrigger 
-                value="delayed-requests" 
-                className="flex-1 sm:flex-initial gap-2 px-3.5 py-2 text-xs rounded-lg font-semibold transition-all data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border data-[state=active]:border-border/80 text-muted-foreground hover:text-foreground group cursor-pointer"
-              >
-                <div className="w-5 h-5 rounded-md bg-amber-100/80 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
-                  <FileText className="w-3 h-3" />
-                </div>
-                <span className="whitespace-nowrap font-semibold">الطلبات المتأخرة</span>
-                <span className="inline-flex items-center justify-center min-w-5 h-4.5 px-1.5 rounded-full text-2xs font-bold font-mono tabular-nums bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-300/70 dark:border-amber-700/60 shadow-2xs">
-                  {requestsResult ? requestsResult.total : (stats?.totalDelayedRequests || 0)}
-                </span>
-              </TabsTrigger>
+              {canViewDelayedRequests && (
+                <TabsTrigger 
+                  value="delayed-requests" 
+                  className="flex-1 sm:flex-initial gap-2 px-3.5 py-2 text-xs rounded-lg font-semibold transition-all data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border data-[state=active]:border-border/80 text-muted-foreground hover:text-foreground group cursor-pointer"
+                >
+                  <div className="w-5 h-5 rounded-md bg-amber-100/80 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
+                    <FileText className="w-3 h-3" />
+                  </div>
+                  <span className="whitespace-nowrap font-semibold">الطلبات المتأخرة</span>
+                  <span className="inline-flex items-center justify-center min-w-5 h-4.5 px-1.5 rounded-full text-2xs font-bold font-mono tabular-nums bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-300/70 dark:border-amber-700/60 shadow-2xs">
+                    {requestsResult ? requestsResult.total : (stats?.totalDelayedRequests || 0)}
+                  </span>
+                </TabsTrigger>
+              )}
 
               {/* تبويب 2: المستفيدون المعلقون */}
-              <TabsTrigger 
-                value="delayed-beneficiaries" 
-                className="flex-1 sm:flex-initial gap-2 px-3.5 py-2 text-xs rounded-lg font-semibold transition-all data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border data-[state=active]:border-border/80 text-muted-foreground hover:text-foreground group cursor-pointer"
-              >
-                <div className="w-5 h-5 rounded-md bg-teal-100/80 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
-                  <Users className="w-3 h-3" />
-                </div>
-                <span className="whitespace-nowrap font-semibold">المستفيدون المعلقون</span>
-                <span className="inline-flex items-center justify-center min-w-5 h-4.5 px-1.5 rounded-full text-2xs font-bold font-mono tabular-nums bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-300/70 dark:border-teal-700/60 shadow-2xs">
-                  {beneficiariesResult ? beneficiariesResult.total : (stats?.totalDelayedBeneficiaries || 0)}
-                </span>
-              </TabsTrigger>
+              {canViewDelayedBeneficiaries && (
+                <TabsTrigger 
+                  value="delayed-beneficiaries" 
+                  className="flex-1 sm:flex-initial gap-2 px-3.5 py-2 text-xs rounded-lg font-semibold transition-all data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border data-[state=active]:border-border/80 text-muted-foreground hover:text-foreground group cursor-pointer"
+                >
+                  <div className="w-5 h-5 rounded-md bg-teal-100/80 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
+                    <Users className="w-3 h-3" />
+                  </div>
+                  <span className="whitespace-nowrap font-semibold">المستفيدون المعلقون</span>
+                  <span className="inline-flex items-center justify-center min-w-5 h-4.5 px-1.5 rounded-full text-2xs font-bold font-mono tabular-nums bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-300/70 dark:border-teal-700/60 shadow-2xs">
+                    {beneficiariesResult ? beneficiariesResult.total : (stats?.totalDelayedBeneficiaries || 0)}
+                  </span>
+                </TabsTrigger>
+              )}
             </TabsList>
           </div>
 
@@ -587,7 +622,8 @@ export default function EscalationPage() {
           </Card>
 
           {/* تبويب 1: قائمة الطلبات المتأخرة */}
-          <TabsContent value="delayed-requests" className="space-y-4">
+          {canViewDelayedRequests && (
+            <TabsContent value="delayed-requests" className="space-y-4">
             <Card className="border-0 shadow-xs overflow-hidden">
               {isLoadingRequests ? (
                 <div className="p-12 text-center">
@@ -751,9 +787,11 @@ export default function EscalationPage() {
               )}
             </Card>
           </TabsContent>
+          )}
 
           {/* تبويب 2: المستفيدون المعلقون */}
-          <TabsContent value="delayed-beneficiaries" className="space-y-4">
+          {canViewDelayedBeneficiaries && (
+            <TabsContent value="delayed-beneficiaries" className="space-y-4">
             <Card className="border-0 shadow-xs overflow-hidden">
               {isLoadingBeneficiaries ? (
                 <div className="p-12 text-center">
@@ -912,6 +950,7 @@ export default function EscalationPage() {
               )}
             </Card>
           </TabsContent>
+          )}
         </Tabs>
 
 
@@ -980,6 +1019,7 @@ export default function EscalationPage() {
           />
         )}
       </div>
+      </PermissionGuard>
     </DashboardLayout>
   );
 }
