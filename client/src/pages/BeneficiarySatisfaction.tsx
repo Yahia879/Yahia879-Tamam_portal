@@ -70,12 +70,14 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { PROGRAM_LABELS } from "@shared/constants";
+import { useUserPermissions } from "@/hooks/usePermission";
 
 export default function BeneficiarySatisfaction({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
+  const serverPermissions = useUserPermissions();
 
   // فحص الصلاحيات الدقيقة لقسم رضا المستفيدين (مطابقة تماماً لآلية صفحة الطلبات Requests.tsx)
-  const userPerms = (user?.permissions as string[]) || [];
+  const userPerms = serverPermissions.length > 0 ? serverPermissions : (((user?.permissions as string[]) || []));
 
   const canViewPage = userPerms.includes("beneficiary_evaluations.view") || 
                       userPerms.includes("beneficiary_evaluations.evaluations_log") ||
@@ -86,6 +88,12 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   // يظهر فقط عند تفعيل صلاحية سجل استبيانات التقييم
   // أما عند تفعيل "عرض إحصائيات رضا المستفيدين" وحدها، فيظهر فقط الـ 4 كاردات الإحصائية
   const canViewEvaluationsLog = userPerms.includes("beneficiary_evaluations.evaluations_log");
+
+  // عرض التفاصيل في سجل استبيانات التقييم
+  const canViewDetails = userPerms.includes("beneficiary_evaluations.view_details");
+
+  // عرض الرد في سجل استبيانات التقييم
+  const canViewReply = userPerms.includes("beneficiary_evaluations.view_reply");
 
   // سجل الإرسال
   const canViewDispatchLogs = userPerms.includes("beneficiary_evaluations.dispatch_log");
@@ -353,6 +361,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   };
 
   const handleOpenViewReplyModal = (evalItem: any) => {
+    if (!canViewReply) return;
     setViewReplyEval(evalItem);
     setIsViewReplyModalOpen(true);
   };
@@ -410,6 +419,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   };
 
   const handleOpenDetails = (evalItem: any) => {
+    if (!canViewDetails) return;
     setSelectedEval(evalItem);
     setIsDetailModalOpen(true);
   };
@@ -806,11 +816,11 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                   <td className="p-3.5 px-4 max-w-[280px] text-right" title={item.comments || ""}>
                                     {item.comments ? (
                                       <div
-                                        onClick={() => handleOpenDetails(item)}
-                                        className="cursor-pointer group"
+                                        onClick={() => canViewDetails && handleOpenDetails(item)}
+                                        className={canViewDetails ? "cursor-pointer group" : ""}
                                         title={item.comments}
                                       >
-                                        <p className="text-muted-foreground group-hover:text-foreground transition-colors italic text-xs leading-relaxed text-right line-clamp-2 break-words">
+                                        <p className={`text-muted-foreground ${canViewDetails ? "group-hover:text-foreground" : ""} transition-colors italic text-xs leading-relaxed text-right line-clamp-2 break-words`}>
                                           "{item.comments}"
                                         </p>
                                       </div>
@@ -832,27 +842,31 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                   {/* الإجراءات */}
                                   <td className="p-3.5 px-4 text-center whitespace-nowrap">
                                     <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleOpenDetails(item)}
-                                        className="h-8 px-2.5 text-xs font-bold gap-1 rounded-lg hover:bg-amber-500/10 hover:text-amber-700 hover:border-amber-500/30"
-                                      >
-                                        <Eye className="w-3.5 h-3.5" />
-                                        <span>عرض</span>
-                                      </Button>
-
-                                      {/* زر الرد: إذا وجد رد يظهر زر عرض الرد، وإذا لم يوجد رد يظهر إضافة رد فقط (دون تعديل) */}
-                                      {item.reply ? (
+                                      {canViewDetails && (
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          onClick={() => handleOpenViewReplyModal(item)}
-                                          className="h-8 px-2.5 text-xs font-bold gap-1 rounded-lg text-teal-700 dark:text-teal-300 border-teal-500/30 bg-teal-500/5 hover:bg-teal-500/15"
+                                          onClick={() => handleOpenDetails(item)}
+                                          className="h-8 px-2.5 text-xs font-bold gap-1 rounded-lg hover:bg-amber-500/10 hover:text-amber-700 hover:border-amber-500/30"
                                         >
-                                          <ShieldCheck className="w-3.5 h-3.5" />
-                                          <span>عرض الرد</span>
+                                          <Eye className="w-3.5 h-3.5" />
+                                          <span>عرض</span>
                                         </Button>
+                                      )}
+
+                                      {/* زر الرد: إذا وجد رد يظهر زر عرض الرد، وإذا لم يوجد رد يظهر إضافة رد فقط (دون تعديل) */}
+                                      {item.reply ? (
+                                        canViewReply && (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleOpenViewReplyModal(item)}
+                                            className="h-8 px-2.5 text-xs font-bold gap-1 rounded-lg text-teal-700 dark:text-teal-300 border-teal-500/30 bg-teal-500/5 hover:bg-teal-500/15"
+                                          >
+                                            <ShieldCheck className="w-3.5 h-3.5" />
+                                            <span>عرض الرد</span>
+                                          </Button>
+                                        )
                                       ) : (
                                         canReply && (
                                           <Button
