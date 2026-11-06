@@ -229,7 +229,9 @@ export default function Settings() {
       return (
         effectivePermissions.some(p => p.startsWith("settings_escalation.")) ||
         effectivePermissions.includes("escalation") ||
-        effectivePermissions.includes("escalation.view")
+        effectivePermissions.includes("escalation.view") ||
+        effectivePermissions.includes("escalation.delayed_requests") ||
+        effectivePermissions.includes("escalation.delayed_beneficiaries")
       );
     }
     if (perm === "staff_notifications.view" || perm === "staff_notifications.edit") {
