@@ -139,8 +139,14 @@ function getSeverityLevel(delayDays: number): "warning" | "medium" | "critical" 
 }
 
 const escalationProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-  const { checkPermission } = await import("../permissions");
-  const hasPerm = await checkPermission(ctx.user.id, "escalation.view");
+  const { calculateUserPermissions } = await import("../permissions");
+  const userPerms = await calculateUserPermissions(ctx.user.id);
+  const hasPerm =
+    userPerms.includes("*") ||
+    userPerms.includes("escalation.view") ||
+    userPerms.includes("escalation") ||
+    userPerms.includes("escalation.delayed_requests") ||
+    userPerms.includes("escalation.delayed_beneficiaries");
   if (!hasPerm) {
     throw new TRPCError({
       code: "FORBIDDEN",
@@ -671,7 +677,20 @@ export const escalationRouter = router({
       page: z.number().min(1).default(1).optional(),
       limit: z.number().min(1).max(100).default(10).optional(),
     }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const hasReqPerm =
+        userPerms.includes("*") ||
+        userPerms.includes("escalation.view") ||
+        userPerms.includes("escalation") ||
+        userPerms.includes("escalation.delayed_requests");
+      if (!hasReqPerm) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ليس لديك صلاحية التصعيد الإداري للطلبات المتأخرة",
+        });
+      }
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -1041,7 +1060,20 @@ export const escalationRouter = router({
       page: z.number().min(1).default(1).optional(),
       limit: z.number().min(1).max(100).default(10).optional(),
     }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const hasBenPerm =
+        userPerms.includes("*") ||
+        userPerms.includes("escalation.view") ||
+        userPerms.includes("escalation") ||
+        userPerms.includes("escalation.delayed_beneficiaries");
+      if (!hasBenPerm) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ليس لديك صلاحية التصعيد الإداري للمستفيدون المعلقون",
+        });
+      }
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
