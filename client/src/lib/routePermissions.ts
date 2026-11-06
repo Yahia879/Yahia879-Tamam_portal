@@ -24,14 +24,14 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   system_admin: ["*"], // كل الصلاحيات
 
   general_manager: [
-    "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
+    "dashboard", "mosques", "mosques_map", "requests", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
     "contracts", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
     "progress_reports", "progress_invoices", "financial_report", "reports", "staff_management", "settings_center", "custody_requests",
   ],
 
   executive_director: [
-    "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
+    "dashboard", "mosques", "mosques_map", "requests", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
     "contracts", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
     "progress_reports", "progress_invoices", "financial_report", "reports", "staff_management", "settings_center", "custody_requests",
@@ -39,7 +39,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 
   projects_office: [
-    "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
+    "dashboard", "mosques", "mosques_map", "requests", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "appointments_calendar",
     "projects", "service_requester_accounts",
     "suppliers", "quotations", "financial_approval", "contracts",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers",
@@ -137,8 +137,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/requests/quick-create": ["requests.create_quick_request", "requests.manage_as_quick_response"],
   "/field-visits": "requests.view",
   "/field-visits/calendar": "appointments_calendar",
-  "/escalation": ["escalation", "escalation.view", "escalation.delayed_requests", "escalation.delayed_beneficiaries"],
-  "/admin-escalation": ["escalation", "escalation.view", "escalation.delayed_requests", "escalation.delayed_beneficiaries"],
+  "/escalation": ["escalation.delayed_requests", "escalation.delayed_beneficiaries"],
+  "/admin-escalation": ["escalation.delayed_requests", "escalation.delayed_beneficiaries"],
 
   // ── المشاريع ──
   "/projects": ["projects.view", "projects.view_details", "projects.create_multi_mosque", "projects.financials", "projects.edit_support_and_fees", "projects.add_receipt_voucher"],
@@ -406,8 +406,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/forms-customization/analytics": ["forms_customization.analytics", "forms_customization.evaluation", "forms_customization.services", "forms_customization.registration", "settings_center"],
   "/forms-customization/option-2": "forms_customization.services",
   "/forms-customization/escalation": [
-    "escalation",
-    "escalation.view",
     "settings_escalation",
     "settings_escalation.view",
     "settings_escalation.edit_durations",
