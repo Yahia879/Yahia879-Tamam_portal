@@ -42,7 +42,12 @@ export function isProcurementOrFinancePermission(permission: string): boolean {
  * تتطلب وجود الصلاحية صراحةً ولا تتجاوز بالـ Wildcard (*)
  */
 export function isStrictPermission(permission: string): boolean {
-  return isInventoryPermission(permission) || isProcurementOrFinancePermission(permission);
+  return (
+    isInventoryPermission(permission) ||
+    isProcurementOrFinancePermission(permission) ||
+    permission === "escalation.delayed_requests" ||
+    permission === "escalation.delayed_beneficiaries"
+  );
 }
 
 /**
