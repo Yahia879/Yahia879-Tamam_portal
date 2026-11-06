@@ -324,7 +324,7 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   if (has("mosques"))                      mosqueItems.push({ icon: Building2,     label: "المساجد",               path: "/mosques" });
   if (has("mosques_map") || has("mosque_map.view") || has("mosque_map"))                  mosqueItems.push({ icon: MapPin,        label: "خريطة المساجد",         path: "/mosques/map" });
   if (has("requests") || has("requests.view") || has("requests.create") || has("requests.view_details") || has("sedana_requests.view") || has("sedana_requests.manage") || has("sedana_requests"))                     mosqueItems.push({ icon: FileText,      label: isEn ? "Requests" : "الطلبات",               path: "/requests" });
-  if (has("escalation") || has("escalation.view")) {
+  if (has("escalation") || has("escalation.view") || has("escalation.delayed_requests") || has("escalation.delayed_beneficiaries")) {
     mosqueItems.push({ icon: AlertTriangle, label: isEn ? "Admin Escalation" : "التصعيد الإداري", path: "/escalation" });
   }
   if (has("pending_reports.view") || has("pending_reports.intervene") || has("pending_reports")) {
