@@ -67,6 +67,8 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
     "beneficiary_evaluations.dispatch_log",
 
+    "beneficiary_evaluations.resend_reminder",
+
     "beneficiary_evaluations.contacts",
 
     "beneficiary_evaluations.reply",
@@ -85,6 +87,10 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   "beneficiary_evaluations.dispatch_log": ["beneficiary_evaluations.dispatch_log"],
 
+  "beneficiary_evaluations.resend_reminder": ["beneficiary_evaluations.resend_reminder"],
+
+  "beneficiary_evaluations.send_reminder": ["beneficiary_evaluations.resend_reminder"],
+
   "beneficiary_evaluations.contacts": ["beneficiary_evaluations.contacts"],
 
   "beneficiary_evaluations.reply": ["beneficiary_evaluations.reply"],
@@ -102,6 +108,8 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
     "beneficiary_evaluations.view_reply",
 
     "beneficiary_evaluations.dispatch_log",
+
+    "beneficiary_evaluations.resend_reminder",
 
     "beneficiary_evaluations.contacts",
 
@@ -1930,15 +1938,15 @@ async function ensureRequestsPermissionsExist(db: any) {
 
       board_member: ["board_member"],
 
-      general_manager: ["requests.view", "requests.create", "requests.view_details", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "quotations.view", "quotations.approve"],
+      general_manager: ["requests.view", "requests.create", "requests.view_details", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.resend_reminder", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "quotations.view", "quotations.approve"],
 
-      executive_director: ["requests.view", "requests.create", "requests.view_details", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "quotations.view", "quotations.approve"],
+      executive_director: ["requests.view", "requests.create", "requests.view_details", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.resend_reminder", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "quotations.view", "quotations.approve"],
 
       procurement_officer: ["quotations.view", "quotations.create", "quotations.add"],
 
       dashboard_viewer: ["information_dashboard.view", "information_dashboard"],
 
-      projects_office: ["requests.view", "requests.create", "requests.view_details", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide"],
+      projects_office: ["requests.view", "requests.create", "requests.view_details", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.resend_reminder", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide"],
 
       field_team: ["requests.view", "requests.manage_as_field_team"],
 
@@ -1950,9 +1958,9 @@ async function ensureRequestsPermissionsExist(db: any) {
 
       corporate_comm: ["requests.view", "requests.upload_final_report"],
 
-      super_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "escalation.delayed_requests", "escalation.delayed_beneficiaries"],
+      super_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.resend_reminder", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "escalation.delayed_requests", "escalation.delayed_beneficiaries"],
 
-      system_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "escalation.delayed_requests", "escalation.delayed_beneficiaries"],
+      system_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.resend_reminder", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "escalation.delayed_requests", "escalation.delayed_beneficiaries"],
 
     };
 
@@ -2971,8 +2979,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
         "beneficiary_evaluations.send_survey",
 
-        "beneficiary_evaluations.send_reminder",
-
         "beneficiary_evaluations.export",
 
         "beneficiary_evaluations.delete"
@@ -2984,8 +2990,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
         "beneficiary_evaluations.view_logs",
 
         "beneficiary_evaluations.send_survey",
-
-        "beneficiary_evaluations.send_reminder",
 
         "beneficiary_evaluations.export",
 
@@ -3054,6 +3058,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "beneficiary_evaluations.view_reply", moduleId: "beneficiary_evaluations", action: "view_reply", nameAr: "عرض الرد", nameEn: "View Reply" },
 
       { id: "beneficiary_evaluations.dispatch_log", moduleId: "beneficiary_evaluations", action: "dispatch_log", nameAr: "سجل الإرسال", nameEn: "Dispatch Survey Log" },
+
+      { id: "beneficiary_evaluations.resend_reminder", moduleId: "beneficiary_evaluations", action: "resend_reminder", nameAr: "إعادة تذكير", nameEn: "Resend Reminder" },
 
       { id: "beneficiary_evaluations.contacts", moduleId: "beneficiary_evaluations", action: "contacts", nameAr: "المستفيدين المعتمدين والاستفسارات", nameEn: "Approved Beneficiaries & Inquiries" },
 
@@ -5397,6 +5403,8 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
     allPermissions.has("beneficiary_evaluations.view_reply") ||
 
     allPermissions.has("beneficiary_evaluations.dispatch_log") ||
+
+    allPermissions.has("beneficiary_evaluations.resend_reminder") ||
 
     allPermissions.has("beneficiary_evaluations.contacts") ||
 
