@@ -490,8 +490,8 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       create_quick_request: "إنشاء طلب سريع"
     },
     escalation: {
-      delayed_requests: "التصعيد الإداري للطلبات المتأخرة",
-      delayed_beneficiaries: "التصعيد الإداري للمستفيدون المعلقون"
+      delayed_requests: "الطلبات المتأخرة",
+      delayed_beneficiaries: "المستفيدون المعلقون"
     },
     beneficiary_evaluations: {
       view: "عرض إحصائيات رضا المستفيدين",
