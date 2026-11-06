@@ -962,7 +962,7 @@ export default function RoleEdit() {
 
   useEffect(() => {
     if (rolePermissions) {
-      setSelectedPerms(rolePermissions);
+      setSelectedPerms(rolePermissions.filter(p => p !== "escalation.view" && p !== "escalation"));
     }
   }, [rolePermissions]);
 
@@ -1000,7 +1000,8 @@ export default function RoleEdit() {
       return;
     }
 
-    let finalPerms = custodyPermissionSelection(quotationPermissionSelection(contractPermissionSelection(selectedPerms)));
+    let finalPerms = custodyPermissionSelection(quotationPermissionSelection(contractPermissionSelection(selectedPerms)))
+      .filter(p => p !== "escalation.view" && p !== "escalation");
 
     if (finalPerms.length === 0) {
       toast.error("يرجى تحديد صلاحية واحدة على الأقل");
