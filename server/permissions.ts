@@ -151,9 +151,13 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   service_requester_accounts: ["users.view", "users.edit"],
 
-  escalation: ["escalation.view"],
+  escalation: ["escalation.delayed_requests", "escalation.delayed_beneficiaries"],
 
-  "escalation.view": ["escalation.view"],
+  "escalation.view": ["escalation.delayed_requests", "escalation.delayed_beneficiaries"],
+
+  "escalation.delayed_requests": ["escalation.delayed_requests"],
+
+  "escalation.delayed_beneficiaries": ["escalation.delayed_beneficiaries"],
 
   suppliers: [
 
@@ -2999,6 +3003,10 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       { id: "escalation.view", moduleId: "escalation", action: "view", nameAr: "عرض قسم التصعيد الإداري", nameEn: "View Administrative Escalation" },
 
+      { id: "escalation.delayed_requests", moduleId: "escalation", action: "delayed_requests", nameAr: "التصعيد الإداري للطلبات المتأخرة", nameEn: "Administrative Escalation - Delayed Requests" },
+
+      { id: "escalation.delayed_beneficiaries", moduleId: "escalation", action: "delayed_beneficiaries", nameAr: "التصعيد الإداري للمستفيدون المعلقون", nameEn: "Administrative Escalation - Suspended Beneficiaries" },
+
       { id: "analytics_hub.custom", moduleId: "analytics_hub", action: "custom", nameAr: "عرض وتخصيص اللوحة المخصصة", nameEn: "View & Customize Dashboard" },
 
       { id: "analytics_hub.kpi", moduleId: "analytics_hub", action: "kpi", nameAr: "عرض مؤشرات الأداء العامة (KPI)", nameEn: "View KPI Dashboard" },
@@ -5230,17 +5238,25 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
 
 
-  if (revokedPermissions.has("escalation.view") || revokedPermissions.has("escalation")) {
+  const hasDelayedRequests = allPermissions.has("escalation.delayed_requests") && !revokedPermissions.has("escalation.delayed_requests");
 
-    allPermissions.delete("escalation");
+  const hasDelayedBeneficiaries = allPermissions.has("escalation.delayed_beneficiaries") && !revokedPermissions.has("escalation.delayed_beneficiaries");
 
-    allPermissions.delete("escalation.view");
+  if (hasDelayedRequests || hasDelayedBeneficiaries || allPermissions.has("escalation.view") || allPermissions.has("escalation")) {
 
-  } else if (allPermissions.has("escalation.view") || allPermissions.has("escalation")) {
+    if (!revokedPermissions.has("escalation.view") && !revokedPermissions.has("escalation")) {
 
-    allPermissions.add("escalation");
+      allPermissions.add("escalation");
 
-    allPermissions.add("escalation.view");
+      allPermissions.add("escalation.view");
+
+    } else {
+
+      allPermissions.delete("escalation");
+
+      allPermissions.delete("escalation.view");
+
+    }
 
   } else {
 
