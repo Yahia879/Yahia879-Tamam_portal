@@ -6702,6 +6702,16 @@ export const requestsRouter = router({
   sendBeneficiarySurveyReminder: protectedProcedure
     .input(z.object({ requestId: z.number() }))
     .mutation(async ({ input, ctx }) => {
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      if (
+        !userPermissions.includes("beneficiary_evaluations.resend_reminder") &&
+        !userPermissions.includes("beneficiary_evaluations.send_reminder") &&
+        !userPermissions.includes("*")
+      ) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إعادة التذكير" });
+      }
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
