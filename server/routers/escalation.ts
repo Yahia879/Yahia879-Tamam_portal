@@ -143,8 +143,6 @@ const escalationProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   const userPerms = await calculateUserPermissions(ctx.user.id);
   const hasPerm =
     userPerms.includes("*") ||
-    userPerms.includes("escalation.view") ||
-    userPerms.includes("escalation") ||
     userPerms.includes("escalation.delayed_requests") ||
     userPerms.includes("escalation.delayed_beneficiaries");
   if (!hasPerm) {
