@@ -4239,6 +4239,14 @@ export default function UserPermissions() {
 
 
 
+        view_details: "عرض التفاصيل",
+
+
+
+        view_reply: "عرض الرد",
+
+
+
         dispatch_log: "سجل الإرسال",
 
 
@@ -5808,7 +5816,7 @@ export default function UserPermissions() {
 
 
 
-        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view", "evaluations_log", "dispatch_log", "contacts", "reply", "hide"] },
+        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view", "evaluations_log", "view_details", "view_reply", "dispatch_log", "contacts", "reply", "hide"] },
 
 
 
