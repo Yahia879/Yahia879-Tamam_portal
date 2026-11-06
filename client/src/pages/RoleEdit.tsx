@@ -89,7 +89,7 @@ const superAdminGroups = [
       { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["delayed_requests", "delayed_beneficiaries"] },
       { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
       { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
-      { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view", "evaluations_log", "dispatch_log", "contacts", "reply", "hide"] },
+      { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view", "evaluations_log", "view_details", "view_reply", "dispatch_log", "contacts", "reply", "hide"] },
     ]
   },
   {
@@ -496,6 +496,8 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     beneficiary_evaluations: {
       view: "عرض إحصائيات رضا المستفيدين",
       evaluations_log: "سجل استبيانات التقييم",
+      view_details: "عرض التفاصيل",
+      view_reply: "عرض الرد",
       dispatch_log: "سجل الإرسال",
       contacts: "المستفيدين المعتمدين والاستفسارات",
       reply: "إضافة رد على التقييم",
