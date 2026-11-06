@@ -83,19 +83,21 @@ export default function RolePermissions() {
 
   useEffect(() => {
     if (rolePermissions) {
+      const sanitized = rolePermissions.filter(p => p !== "escalation.view" && p !== "escalation");
       if (roleId === "project_manager") {
-        setSelectedPerms(rolePermissions.filter(p => !p.startsWith("financial_reports.") && !p.startsWith("settings_contracts.")));
+        setSelectedPerms(sanitized.filter(p => !p.startsWith("financial_reports.") && !p.startsWith("settings_contracts.")));
       } else {
-        setSelectedPerms(rolePermissions);
+        setSelectedPerms(sanitized);
       }
     }
   }, [rolePermissions, roleId]);
 
   const hasChanges = useMemo(() => {
     if (!rolePermissions) return false;
+    const sanitized = rolePermissions.filter(p => p !== "escalation.view" && p !== "escalation");
     const initialPerms = roleId === "project_manager"
-      ? rolePermissions.filter(p => !p.startsWith("financial_reports.") && !p.startsWith("settings_contracts."))
-      : rolePermissions;
+      ? sanitized.filter(p => !p.startsWith("financial_reports.") && !p.startsWith("settings_contracts."))
+      : sanitized;
     if (selectedPerms.length !== initialPerms.length) return true;
     const setA = new Set(selectedPerms);
     return !initialPerms.every(p => setA.has(p));
@@ -130,7 +132,8 @@ export default function RolePermissions() {
 
   const handleSaveChanges = () => {
     if (!roleId) return;
-    let finalPerms = custodyPermissionSelection(quotationPermissionSelection(contractPermissionSelection(selectedPerms)));
+    let finalPerms = custodyPermissionSelection(quotationPermissionSelection(contractPermissionSelection(selectedPerms)))
+      .filter(p => p !== "escalation.view" && p !== "escalation");
     if (roleId === "project_manager") {
       finalPerms = finalPerms.filter(p => !p.startsWith("financial_reports.") && !p.startsWith("settings_contracts."));
     }
