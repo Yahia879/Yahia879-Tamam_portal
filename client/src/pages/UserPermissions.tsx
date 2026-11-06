@@ -4251,6 +4251,10 @@ export default function UserPermissions() {
 
 
 
+        resend_reminder: "إعادة تذكير",
+
+
+
         contacts: "المستفيدين المعتمدين والاستفسارات",
 
 
@@ -5816,7 +5820,7 @@ export default function UserPermissions() {
 
 
 
-        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view", "evaluations_log", "view_details", "view_reply", "dispatch_log", "contacts", "reply", "hide"] },
+        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view", "evaluations_log", "view_details", "view_reply", "dispatch_log", "resend_reminder", "contacts", "reply", "hide"] },
 
 
 
