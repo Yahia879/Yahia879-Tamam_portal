@@ -636,7 +636,7 @@ export default function UserPermissions() {
 
 
 
-        if (renderedPermIds.has(p.permissionId)) {
+        if (p.permissionId !== "escalation.view" && p.permissionId !== "escalation" && renderedPermIds.has(p.permissionId)) {
 
 
 
@@ -3973,7 +3973,11 @@ export default function UserPermissions() {
 
 
 
-    const payload = Object.entries(overrides).map(([permissionId, granted]) => ({
+    const payload = Object.entries(overrides)
+
+      .filter(([permissionId]) => permissionId !== "escalation.view" && permissionId !== "escalation")
+
+      .map(([permissionId, granted]) => ({
 
 
 
