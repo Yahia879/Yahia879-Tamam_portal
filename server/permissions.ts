@@ -151,10 +151,6 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   service_requester_accounts: ["users.view", "users.edit"],
 
-  escalation: ["escalation.delayed_requests", "escalation.delayed_beneficiaries"],
-
-  "escalation.view": ["escalation.delayed_requests", "escalation.delayed_beneficiaries"],
-
   "escalation.delayed_requests": ["escalation.delayed_requests"],
 
   "escalation.delayed_beneficiaries": ["escalation.delayed_beneficiaries"],
@@ -585,7 +581,7 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   ],
 
-  "settings_escalation.view": ["settings_escalation.view", "settings.view", "escalation.view"],
+  "settings_escalation.view": ["settings_escalation.view", "settings.view"],
 
   "settings_escalation.edit_durations": ["settings_escalation.edit_durations", "settings_escalation.view", "settings.view", "settings.edit"],
 
@@ -1922,15 +1918,15 @@ async function ensureRequestsPermissionsExist(db: any) {
 
       board_member: ["board_member"],
 
-      general_manager: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "quotations.view", "quotations.approve"],
+      general_manager: ["requests.view", "requests.create", "requests.view_details", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "quotations.view", "quotations.approve"],
 
-      executive_director: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "quotations.view", "quotations.approve"],
+      executive_director: ["requests.view", "requests.create", "requests.view_details", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "quotations.view", "quotations.approve"],
 
       procurement_officer: ["quotations.view", "quotations.create", "quotations.add"],
 
       dashboard_viewer: ["information_dashboard.view", "information_dashboard"],
 
-      projects_office: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide"],
+      projects_office: ["requests.view", "requests.create", "requests.view_details", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide"],
 
       field_team: ["requests.view", "requests.manage_as_field_team"],
 
@@ -1942,9 +1938,9 @@ async function ensureRequestsPermissionsExist(db: any) {
 
       corporate_comm: ["requests.view", "requests.upload_final_report"],
 
-      super_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "escalation.view"],
+      super_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "escalation.delayed_requests", "escalation.delayed_beneficiaries"],
 
-      system_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "escalation.view"],
+      system_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "escalation.delayed_requests", "escalation.delayed_beneficiaries"],
 
     };
 
@@ -2999,14 +2995,26 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       await db.update(permissions).set({ moduleId: "escalation", nameAr: "المستفيدون المعلقون" }).where(eq(permissions.id, "escalation.delayed_beneficiaries"));
 
+      // Purge legacy escalation permissions from DB
+      await db.delete(rolePermissions).where(or(eq(rolePermissions.permissionId, "escalation.view"), eq(rolePermissions.permissionId, "escalation")));
+      await db.delete(userPermissions).where(or(eq(userPermissions.permissionId, "escalation.view"), eq(userPermissions.permissionId, "escalation")));
+      await db.delete(permissions).where(eq(permissions.id, "escalation.view"));
+
+      const allRoles = await db.select({ id: roles.id, description: roles.description }).from(roles);
+      for (const r of allRoles) {
+        if (r.description && (r.description.includes('"escalation.view"') || r.description.includes('"escalation"'))) {
+          try {
+            const parsed = JSON.parse(r.description);
+            if (Array.isArray(parsed)) {
+              const cleaned = parsed.filter((p: string) => p !== "escalation.view" && p !== "escalation");
+              await db.update(roles).set({ description: JSON.stringify(cleaned) }).where(eq(roles.id, r.id));
+            }
+          } catch {}
+        }
+      }
     } catch {}
 
-
-
     const customPerms = [
-
-      { id: "escalation.view", moduleId: "escalation", action: "view", nameAr: "عرض قسم التصعيد الإداري", nameEn: "View Administrative Escalation" },
-
       { id: "escalation.delayed_requests", moduleId: "escalation", action: "delayed_requests", nameAr: "الطلبات المتأخرة", nameEn: "Delayed Requests" },
 
       { id: "escalation.delayed_beneficiaries", moduleId: "escalation", action: "delayed_beneficiaries", nameAr: "المستفيدون المعلقون", nameEn: "Suspended Beneficiaries" },
@@ -4719,6 +4727,10 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
         p.id.startsWith("sedana_warehouse") ||
 
+        p.id === "escalation" ||
+
+        p.id === "escalation.view" ||
+
         p.id === "escalation.delayed_requests" ||
 
         p.id === "escalation.delayed_beneficiaries"
@@ -5250,28 +5262,20 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
   const hasDelayedBeneficiaries = allPermissions.has("escalation.delayed_beneficiaries") && !revokedPermissions.has("escalation.delayed_beneficiaries");
 
-  if (hasDelayedRequests || hasDelayedBeneficiaries || allPermissions.has("escalation.view") || allPermissions.has("escalation")) {
+  allPermissions.delete("escalation.view");
 
-    if (!revokedPermissions.has("escalation.view") && !revokedPermissions.has("escalation")) {
+  if (!hasDelayedRequests) {
+    allPermissions.delete("escalation.delayed_requests");
+  }
 
-      allPermissions.add("escalation");
+  if (!hasDelayedBeneficiaries) {
+    allPermissions.delete("escalation.delayed_beneficiaries");
+  }
 
-      allPermissions.add("escalation.view");
-
-    } else {
-
-      allPermissions.delete("escalation");
-
-      allPermissions.delete("escalation.view");
-
-    }
-
+  if (hasDelayedRequests || hasDelayedBeneficiaries) {
+    allPermissions.add("escalation");
   } else {
-
     allPermissions.delete("escalation");
-
-    allPermissions.delete("escalation.view");
-
   }
 
 
@@ -5297,10 +5301,6 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
     allPermissions.delete("settings_escalation.edit");
 
     allPermissions.delete("settings_escalation.save");
-
-    allPermissions.delete("escalation");
-
-    allPermissions.delete("escalation.view");
 
     escalationSubPerms.forEach(p => allPermissions.delete(p));
 
@@ -7291,7 +7291,8 @@ export const permissionsRouter = router({
 
       }
 
-
+      permsSet.delete("escalation.view");
+      permsSet.delete("escalation");
 
       return custodyPermissionOptions(quotationPermissionOptions(contractPermissionOptions(Array.from(permsSet))));
 
@@ -7371,6 +7372,8 @@ export const permissionsRouter = router({
 
 
 
+      const cleanedPerms = input.permissions.filter(p => p !== "escalation.view" && p !== "escalation");
+
       // إنشاء الدور مع تخزين الصلاحيات المخصصة في حقل الوصف كـ JSON
 
       await db.insert(roles).values({
@@ -7381,7 +7384,7 @@ export const permissionsRouter = router({
 
         nameEn: input.nameEn,
 
-        description: JSON.stringify(input.permissions),
+        description: JSON.stringify(cleanedPerms),
 
         isSystem: false
 
@@ -7391,11 +7394,11 @@ export const permissionsRouter = router({
 
       // التحقق من الصلاحيات الموجودة فعلياً في قاعدة البيانات قبل الربط
 
-      if (input.permissions.length > 0) {
+      if (cleanedPerms.length > 0) {
 
         const existingPerms = await db.select({ id: permissions.id }).from(permissions)
 
-          .where(inArray(permissions.id, input.permissions));
+          .where(inArray(permissions.id, cleanedPerms));
 
         const validPermIds = existingPerms.map(p => p.id);
 
@@ -7559,13 +7562,15 @@ export const permissionsRouter = router({
 
 
 
+      const cleanedPerms = input.permissions ? input.permissions.filter(p => p !== "escalation.view" && p !== "escalation") : undefined;
+
       // تحديث بيانات الدور (الاسم والوصف)
 
       const updateData: any = {};
 
       if (input.nameAr) updateData.nameAr = input.nameAr;
 
-      if (input.permissions) updateData.description = JSON.stringify(input.permissions);
+      if (cleanedPerms) updateData.description = JSON.stringify(cleanedPerms);
 
 
 
@@ -7579,19 +7584,19 @@ export const permissionsRouter = router({
 
       // تحديث الصلاحيات في الجدول التبادلي
 
-      if (input.permissions) {
+      if (cleanedPerms) {
 
         await db.delete(rolePermissions).where(eq(rolePermissions.roleId, input.roleId));
 
 
 
-        if (input.permissions.length > 0) {
+        if (cleanedPerms.length > 0) {
 
           // التحقق من الصلاحيات الموجودة فعلياً
 
           const existingPerms = await db.select({ id: permissions.id }).from(permissions)
 
-            .where(inArray(permissions.id, input.permissions));
+            .where(inArray(permissions.id, cleanedPerms));
 
           const validPermIds = existingPerms.map(p => p.id);
 
@@ -8309,13 +8314,13 @@ export const permissionsRouter = router({
 
       await ensureAllCustomPermissionsExist(db);
 
-
+      const cleanedInputPerms = input.permissions.filter(p => p.permissionId !== "escalation.view" && p.permissionId !== "escalation");
 
       // التأكد من وجود كافة المعرفات في جدول الصلاحيات قبل الربط لتفادي أخطاء المفاتيح الأجنبية
 
-      if (input.permissions.length > 0) {
+      if (cleanedInputPerms.length > 0) {
 
-        const permIds = input.permissions.map(p => p.permissionId);
+        const permIds = cleanedInputPerms.map(p => p.permissionId);
 
         const existingPerms = await db.select({ id: permissions.id }).from(permissions)
 
@@ -8333,7 +8338,7 @@ export const permissionsRouter = router({
 
 
 
-        for (const p of input.permissions) {
+        for (const p of cleanedInputPerms) {
 
           if (!existingSet.has(p.permissionId)) {
 
@@ -8399,9 +8404,9 @@ export const permissionsRouter = router({
 
         // 2. إدخال الصلاحيات الفردية الجديدة إذا وُجدت
 
-        if (input.permissions.length > 0) {
+        if (cleanedInputPerms.length > 0) {
 
-          const valuesToInsert = input.permissions.map(p => ({
+          const valuesToInsert = cleanedInputPerms.map(p => ({
 
             userId: input.userId,
 
