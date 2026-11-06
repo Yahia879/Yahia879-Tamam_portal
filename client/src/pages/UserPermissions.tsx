@@ -4213,7 +4213,9 @@ export default function UserPermissions() {
 
 
 
-        view: "عرض قسم التصعيد الإداري",
+        delayed_requests: "التصعيد الإداري للطلبات المتأخرة",
+
+        delayed_beneficiaries: "التصعيد الإداري للمستفيدون المعلقون",
 
 
 
@@ -5790,7 +5792,7 @@ export default function UserPermissions() {
 
 
 
-        { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["view"] },
+        { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["delayed_requests", "delayed_beneficiaries"] },
 
 
 
