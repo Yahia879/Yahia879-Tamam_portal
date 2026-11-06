@@ -2995,6 +2995,10 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       await db.update(permissions).set({ moduleId: "beneficiary_evaluations", nameAr: "عرض إحصائيات رضا المستفيدين" }).where(eq(permissions.id, "beneficiary_evaluations.view"));
 
+      await db.update(permissions).set({ moduleId: "escalation", nameAr: "الطلبات المتأخرة" }).where(eq(permissions.id, "escalation.delayed_requests"));
+
+      await db.update(permissions).set({ moduleId: "escalation", nameAr: "المستفيدون المعلقون" }).where(eq(permissions.id, "escalation.delayed_beneficiaries"));
+
     } catch {}
 
 
@@ -3003,9 +3007,9 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       { id: "escalation.view", moduleId: "escalation", action: "view", nameAr: "عرض قسم التصعيد الإداري", nameEn: "View Administrative Escalation" },
 
-      { id: "escalation.delayed_requests", moduleId: "escalation", action: "delayed_requests", nameAr: "التصعيد الإداري للطلبات المتأخرة", nameEn: "Administrative Escalation - Delayed Requests" },
+      { id: "escalation.delayed_requests", moduleId: "escalation", action: "delayed_requests", nameAr: "الطلبات المتأخرة", nameEn: "Delayed Requests" },
 
-      { id: "escalation.delayed_beneficiaries", moduleId: "escalation", action: "delayed_beneficiaries", nameAr: "التصعيد الإداري للمستفيدون المعلقون", nameEn: "Administrative Escalation - Suspended Beneficiaries" },
+      { id: "escalation.delayed_beneficiaries", moduleId: "escalation", action: "delayed_beneficiaries", nameAr: "المستفيدون المعلقون", nameEn: "Suspended Beneficiaries" },
 
       { id: "analytics_hub.custom", moduleId: "analytics_hub", action: "custom", nameAr: "عرض وتخصيص اللوحة المخصصة", nameEn: "View & Customize Dashboard" },
 
@@ -4713,7 +4717,11 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
         p.id.startsWith("csr_letters") ||
 
-        p.id.startsWith("sedana_warehouse")
+        p.id.startsWith("sedana_warehouse") ||
+
+        p.id === "escalation.delayed_requests" ||
+
+        p.id === "escalation.delayed_beneficiaries"
 
       );
 
