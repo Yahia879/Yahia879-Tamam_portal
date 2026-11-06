@@ -326,7 +326,7 @@ export default function EscalationPage() {
 
   return (
     <DashboardLayout>
-      <PermissionGuard anyPermission={["escalation.delayed_requests", "escalation.delayed_beneficiaries", "escalation.view", "escalation"]}>
+      <PermissionGuard anyPermission={["escalation.delayed_requests", "escalation.delayed_beneficiaries"]}>
         <div className="space-y-6 max-w-full overflow-x-hidden text-right" dir="rtl">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
