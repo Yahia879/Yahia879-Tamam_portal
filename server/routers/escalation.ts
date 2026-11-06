@@ -681,14 +681,11 @@ export const escalationRouter = router({
       const { calculateUserPermissions } = await import("../permissions");
       const userPerms = await calculateUserPermissions(ctx.user.id);
       const hasReqPerm =
-        userPerms.includes("*") ||
-        userPerms.includes("escalation.view") ||
-        userPerms.includes("escalation") ||
         userPerms.includes("escalation.delayed_requests");
       if (!hasReqPerm) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "ليس لديك صلاحية التصعيد الإداري للطلبات المتأخرة",
+          message: "ليس لديك صلاحية عرض الطلبات المتأخرة",
         });
       }
       const db = await getDb();
@@ -1064,14 +1061,11 @@ export const escalationRouter = router({
       const { calculateUserPermissions } = await import("../permissions");
       const userPerms = await calculateUserPermissions(ctx.user.id);
       const hasBenPerm =
-        userPerms.includes("*") ||
-        userPerms.includes("escalation.view") ||
-        userPerms.includes("escalation") ||
         userPerms.includes("escalation.delayed_beneficiaries");
       if (!hasBenPerm) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "ليس لديك صلاحية التصعيد الإداري للمستفيدون المعلقون",
+          message: "ليس لديك صلاحية عرض المستفيدين المعلقين",
         });
       }
       const db = await getDb();
