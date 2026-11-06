@@ -137,8 +137,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/requests/quick-create": ["requests.create_quick_request", "requests.manage_as_quick_response"],
   "/field-visits": "requests.view",
   "/field-visits/calendar": "appointments_calendar",
-  "/escalation": ["escalation", "escalation.view"],
-  "/admin-escalation": ["escalation", "escalation.view"],
+  "/escalation": ["escalation", "escalation.view", "escalation.delayed_requests", "escalation.delayed_beneficiaries"],
+  "/admin-escalation": ["escalation", "escalation.view", "escalation.delayed_requests", "escalation.delayed_beneficiaries"],
 
   // ── المشاريع ──
   "/projects": ["projects.view", "projects.view_details", "projects.create_multi_mosque", "projects.financials", "projects.edit_support_and_fees", "projects.add_receipt_voucher"],
