@@ -126,9 +126,9 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/dashboard": ["dashboard", "dashboard.view", "mosques", "requests", "projects", "suppliers", "staff_management", "settings_center"],
 
   // ── المساجد ──
-  "/mosques": "mosques",
-  "/mosques/map": ["mosque_map.view", "mosques_map", "mosque_map"],
-  "/mosques/new": "mosques",
+  "/mosques": "mosques.view",
+  "/mosques/map": "mosque_map.view",
+  "/mosques/new": "mosques.create",
   // /mosques/:id و /mosques/:id/edit تُعالج بنمط regex
 
   // ── الطلبات ──
@@ -442,9 +442,9 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/forms-customization\/registration\/[^/]+$/, permission: ["forms_customization.registration", "settings_center"] },
 
   // المساجد
-  { pattern: /^\/mosques\/\d+\/edit-imam$/, permission: "mosques" },
-  { pattern: /^\/mosques\/\d+\/edit$/, permission: ["mosques.edit", "mosques"] },
-  { pattern: /^\/mosques\/\d+$/, permission: ["mosques.view_details", "mosques"] },
+  { pattern: /^\/mosques\/\d+\/edit-imam$/, permission: "mosques.edit" },
+  { pattern: /^\/mosques\/\d+\/edit$/, permission: "mosques.edit" },
+  { pattern: /^\/mosques\/\d+$/, permission: ["mosques.view_details", "mosque_map.view_details"] },
 
   // استبيان تقييم رضا المستفيد
   { pattern: /^\/requests\/\d+\/evaluation$/, permission: ["requests", "requests.view", "requests.view_details", "service_requester_only"] },
@@ -674,6 +674,15 @@ export function hasRouteAccess(
   hasCustomRole: boolean,
   user?: CustodyUser,
 ): boolean {
+  // Mosque controls use explicit permissions for every role, including administrators.
+  if (pathname === "/mosques" || pathname === "/mosques/" ||
+      pathname === "/mosques/map" || pathname === "/mosques/map/" ||
+      pathname === "/mosques/new" || /^\/mosques\/\d+(\/edit(-imam)?)?$/.test(pathname)) {
+    const required = getRequiredPermission(pathname.replace(/\/$/, ""));
+    return Array.isArray(required)
+      ? required.some(p => userPermissions.includes(p))
+      : typeof required === "string" && userPermissions.includes(required);
+  }
   if ((pathname === "/dashboard" || pathname === "/dashboard/") && userRole === "dashboard_viewer") {
     return false;
   }

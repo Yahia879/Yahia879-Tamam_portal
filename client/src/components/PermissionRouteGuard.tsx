@@ -3,6 +3,7 @@ import { isDashboardViewerUser } from "@/lib/dashboardViewer";
 import { useLocation } from "wouter";
 import { useEffect, useMemo } from "react";
 import { hasRouteAccess, EXEMPT_ROUTES, REQUESTER_ROUTES } from "@/lib/routePermissions";
+import { trpc } from "@/lib/trpc";
 
 interface PermissionRouteGuardProps {
   children: React.ReactNode;
@@ -21,10 +22,25 @@ interface PermissionRouteGuardProps {
 export default function PermissionRouteGuard({ children }: PermissionRouteGuardProps) {
   const { user, loading } = useAuth();
   const [location, navigate] = useLocation();
+  const isMosqueRoute = (location === "/mosques" || location.startsWith("/mosques/")) &&
+    user?.role !== "service_requester";
+  const { data: mosquePermissions, isLoading: mosquePermissionsLoading } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    {
+      enabled: !!user && isMosqueRoute,
+      staleTime: 0,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      refetchInterval: isMosqueRoute ? 5000 : false,
+    },
+  );
 
   const accessResult = useMemo(() => {
     // أثناء التحميل، لا نحكم بعد
     if (loading) return { allowed: false, reason: "loading", pending: true };
+    if (user && isMosqueRoute && mosquePermissionsLoading) {
+      return { allowed: false, reason: "loading-permissions", pending: true };
+    }
 
     // إذا لم يوجد مستخدم: المسارات العامة مسموحة، الباقي يتركه للمكونات الأخرى (مثل GuestGuard)
     if (!user) {
@@ -63,7 +79,7 @@ export default function PermissionRouteGuard({ children }: PermissionRouteGuardP
     }
 
     // التحقق من الصلاحيات — يشمل الأدوار الأساسية والمخصصة
-    const userPerms: string[] = (user as any)?.permissions ?? [];
+    const userPerms: string[] = isMosqueRoute ? mosquePermissions ?? [] : (user as any)?.permissions ?? [];
     // يعتبر المستخدم لديه دور مخصص إذا كان لديه كائن customRole أو إذا كان دوره غير موجود في الأدوار الأساسية المعروفة
     const isBaseRole = ["super_admin", "system_admin", "board_chairman", "board_member", "general_manager", "executive_director", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager", "corporate_comm", "service_requester", "procurement_officer", "dashboard_viewer"].includes(user.role);
     const hasCustom = !!(user as any)?.customRole || !isBaseRole;
@@ -71,7 +87,7 @@ export default function PermissionRouteGuard({ children }: PermissionRouteGuardP
     const routeRole = isDashboardViewerUser(user) ? "dashboard_viewer" : user.role;
     const allowed = hasRouteAccess(location, routeRole, userPerms, hasCustom, user);
     return { allowed, reason: allowed ? "permission-ok" : "permission-denied", pending: false };
-  }, [user, loading, location]);
+  }, [user, loading, location, isMosqueRoute, mosquePermissions, mosquePermissionsLoading]);
 
   useEffect(() => {
     if (accessResult.pending) return;
@@ -88,7 +104,7 @@ export default function PermissionRouteGuard({ children }: PermissionRouteGuardP
   }, [accessResult.allowed, accessResult.reason, accessResult.pending, location, navigate, user]);
 
   // أثناء التحميل، لا نعرض المحتوى (تجنب الوميض)
-  if (loading) return null;
+  if (loading || accessResult.pending) return null;
 
   // عند منع الوصول (غير المعلّق)، لا نعرض المحتوى
   if (!accessResult.pending && !accessResult.allowed) return null;

@@ -45,6 +45,8 @@ export function isStrictPermission(permission: string): boolean {
   return (
     isInventoryPermission(permission) ||
     isProcurementOrFinancePermission(permission) ||
+    permission === "mosques" || permission.startsWith("mosques.") ||
+    permission === "mosques_map" || permission === "mosque_map" || permission.startsWith("mosque_map.") ||
     permission === "escalation.delayed_requests" ||
     permission === "escalation.delayed_beneficiaries"
   );

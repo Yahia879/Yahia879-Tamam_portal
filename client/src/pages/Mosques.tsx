@@ -25,7 +25,6 @@ import {
 import { Link } from "wouter";
 import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { trpc } from "@/lib/trpc";
-import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -62,14 +61,13 @@ const APPROVAL_STATUS = {
 };
 
 export default function Mosques() {
-  const { user } = useAuth();
   const canApproveMosques = usePermission("mosques.approve");
   const canRejectMosques = usePermission("mosques.reject");
   const canViewDetailsMosques = usePermission("mosques.view_details");
   const canEditMosques = usePermission("mosques.edit");
   const canDeleteMosques = usePermission("mosques.delete");
-  const isSuperAdmin = user?.role === "super_admin" || user?.role === "system_admin";
-  const hasMosqueActions = canApproveMosques || canRejectMosques || canViewDetailsMosques || canEditMosques || canDeleteMosques || isSuperAdmin;
+  const hasMosqueMenuActions = canViewDetailsMosques || canEditMosques || canDeleteMosques;
+  const hasMosqueActions = canApproveMosques || canRejectMosques || hasMosqueMenuActions;
 
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState<string>("all");
@@ -145,27 +143,30 @@ export default function Mosques() {
   const pendingCount = stats?.byApprovalStatus?.pending || 0;
 
   const handleApprove = (mosqueId: number) => {
+    if (!canApproveMosques) return;
     approveMutation.mutate({ id: mosqueId });
   };
 
   const handleReject = () => {
-    if (selectedMosqueId) {
+    if (selectedMosqueId && canRejectMosques) {
       rejectMutation.mutate({ id: selectedMosqueId, reason: rejectReason });
     }
   };
 
   const openRejectDialog = (mosqueId: number) => {
+    if (!canRejectMosques) return;
     setSelectedMosqueId(mosqueId);
     setRejectDialogOpen(true);
   };
 
   const openDeleteDialog = (mosqueId: number) => {
+    if (!canDeleteMosques) return;
     setSelectedMosqueId(mosqueId);
     setDeleteDialogOpen(true);
   };
 
   const handleDelete = () => {
-    if (selectedMosqueId) {
+    if (selectedMosqueId && canDeleteMosques) {
       deleteMutation.mutate({ id: selectedMosqueId });
     }
   };
@@ -379,35 +380,33 @@ export default function Mosques() {
                             {hasMosqueActions && (
                               <TableCell>
                                 <div className="flex items-center gap-2">
-                                  {mosque.approvalStatus === "pending" && (
-                                    <>
-                                      <PermissionGuard permission="mosques.approve">
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          className="text-green-600 border-green-300 hover:bg-green-50"
-                                          onClick={() => handleApprove(mosque.id)}
-                                          disabled={approveMutation.isPending}
-                                        >
-                                          <CheckCircle className="w-4 h-4 ml-1" />
-                                          اعتماد
-                                        </Button>
-                                      </PermissionGuard>
-                                      <PermissionGuard permission="mosques.reject">
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          className="text-red-600 border-red-300 hover:bg-red-50"
-                                          onClick={() => openRejectDialog(mosque.id)}
-                                          disabled={rejectMutation.isPending}
-                                        >
-                                          <XCircle className="w-4 h-4 ml-1" />
-                                          رفض
-                                        </Button>
-                                      </PermissionGuard>
-                                    </>
-                                  )}
-                                  <DropdownMenu>
+                                  <PermissionGuard permission="mosques.approve">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-green-600 border-green-300 hover:bg-green-50"
+                                      onClick={() => handleApprove(mosque.id)}
+                                      disabled={approveMutation.isPending || mosque.approvalStatus === "approved"}
+                                      title={mosque.approvalStatus === "approved" ? "المسجد معتمد بالفعل" : "اعتماد المسجد"}
+                                    >
+                                      <CheckCircle className="w-4 h-4 ml-1" />
+                                      اعتماد
+                                    </Button>
+                                  </PermissionGuard>
+                                  <PermissionGuard permission="mosques.reject">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-red-600 border-red-300 hover:bg-red-50"
+                                      onClick={() => openRejectDialog(mosque.id)}
+                                      disabled={rejectMutation.isPending || mosque.approvalStatus === "rejected"}
+                                      title={mosque.approvalStatus === "rejected" ? "المسجد مرفوض بالفعل" : "رفض المسجد"}
+                                    >
+                                      <XCircle className="w-4 h-4 ml-1" />
+                                      رفض
+                                    </Button>
+                                  </PermissionGuard>
+                                  {hasMosqueMenuActions && <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button variant="ghost" size="icon">
                                         <MoreVertical className="w-4 h-4" />
@@ -441,7 +440,7 @@ export default function Mosques() {
                                         </DropdownMenuItem>
                                       </PermissionGuard>
                                     </DropdownMenuContent>
-                                  </DropdownMenu>
+                                  </DropdownMenu>}
                                 </div>
                               </TableCell>
                             )}
@@ -481,7 +480,7 @@ export default function Mosques() {
                               </div>
                             </div>
                           </div>
-                          {hasMosqueActions && (
+                          {hasMosqueMenuActions && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -528,7 +527,7 @@ export default function Mosques() {
                             </Badge>
                           </PermissionGuard>
 
-                          {mosque.approvalStatus === "pending" && (
+                          {(canApproveMosques || canRejectMosques) && (
                             <div className="flex items-center gap-2">
                               <PermissionGuard permission="mosques.approve">
                                 <Button
@@ -536,7 +535,8 @@ export default function Mosques() {
                                   variant="outline"
                                   className="h-8 text-[11px] text-green-600 border-green-300 hover:bg-green-50 px-2"
                                   onClick={() => handleApprove(mosque.id)}
-                                  disabled={approveMutation.isPending}
+                                  disabled={approveMutation.isPending || mosque.approvalStatus === "approved"}
+                                  title={mosque.approvalStatus === "approved" ? "المسجد معتمد بالفعل" : "اعتماد المسجد"}
                                 >
                                   <CheckCircle className="w-3 h-3 ml-1" />
                                   اعتماد
@@ -548,7 +548,8 @@ export default function Mosques() {
                                   variant="outline"
                                   className="h-8 text-[11px] text-red-600 border-red-300 hover:bg-red-50 px-2"
                                   onClick={() => openRejectDialog(mosque.id)}
-                                  disabled={rejectMutation.isPending}
+                                  disabled={rejectMutation.isPending || mosque.approvalStatus === "rejected"}
+                                  title={mosque.approvalStatus === "rejected" ? "المسجد مرفوض بالفعل" : "رفض المسجد"}
                                 >
                                   <XCircle className="w-3 h-3 ml-1" />
                                   رفض
@@ -580,11 +581,13 @@ export default function Mosques() {
               <div className="p-8 text-center">
                 <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">لا توجد مساجد مسجلة</p>
-                <Link href="/mosques/new">
-                  <Button className="mt-4 gradient-primary text-white">
-                    إضافة مسجد جديد
-                  </Button>
-                </Link>
+                <PermissionGuard permission="mosques.create">
+                  <Link href="/mosques/new">
+                    <Button className="mt-4 gradient-primary text-white">
+                      إضافة مسجد جديد
+                    </Button>
+                  </Link>
+                </PermissionGuard>
               </div>
             )}
           </CardContent>
@@ -592,7 +595,7 @@ export default function Mosques() {
       </div>
 
       {/* نافذة سبب الرفض */}
-      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+      <Dialog open={rejectDialogOpen && canRejectMosques} onOpenChange={setRejectDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>رفض المسجد</DialogTitle>
@@ -624,7 +627,7 @@ export default function Mosques() {
       </Dialog>
 
       {/* نافذة تأكيد الحذف */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <Dialog open={deleteDialogOpen && canDeleteMosques} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-destructive flex items-center gap-2">

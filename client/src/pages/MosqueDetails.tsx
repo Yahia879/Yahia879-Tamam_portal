@@ -241,8 +241,7 @@ export default function MosqueDetails() {
                         {mosqueRequests.map((req: any) => (
                           <div
                             key={req.id}
-                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                            onClick={() => setLocation(`/requests/${req.id}`)}
+                            className="flex items-center justify-between p-4 border rounded-lg"
                           >
                             <div className="space-y-1">
                               <p className="font-mono text-sm font-semibold text-muted-foreground">{req.requestNumber}</p>
@@ -320,13 +319,15 @@ export default function MosqueDetails() {
                     <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-center">
                       <p className="text-sm text-amber-900 font-medium mb-3">لم يتم تسجيل بيانات الإمام</p>
                       <p className="text-xs text-amber-700 mb-4">أضف معلومات الإمام لإكمال بيانات المسجد</p>
-                      <Button 
-                        className="w-full bg-amber-600 hover:bg-amber-700 text-white"
-                        onClick={() => setLocation(`/mosques/${mosqueId}/edit-imam`)}
-                      >
-                        <Plus className="w-4 h-4 ml-2" />
-                        تسجيل بيانات الإمام
-                      </Button>
+                      <PermissionGuard permission="mosques.edit">
+                        <Button
+                          className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                          onClick={() => setLocation(`/mosques/${mosqueId}/edit-imam`)}
+                        >
+                          <Plus className="w-4 h-4 ml-2" />
+                          تسجيل بيانات الإمام
+                        </Button>
+                      </PermissionGuard>
                     </div>
                   </div>
                 )}
@@ -357,14 +358,16 @@ export default function MosqueDetails() {
                       </div>
                     )}
                   </div>
-                  <Button 
-                    variant="outline" 
-                    className="w-full mt-4 border-blue-300 text-blue-700 hover:bg-blue-100"
-                    onClick={() => setLocation(`/mosques/${mosqueId}/edit`)}
-                  >
-                    <Edit className="w-4 h-4 ml-2" />
-                    إكمال البيانات
-                  </Button>
+                  <PermissionGuard permission="mosques.edit">
+                    <Button
+                      variant="outline"
+                      className="w-full mt-4 border-blue-300 text-blue-700 hover:bg-blue-100"
+                      onClick={() => setLocation(`/mosques/${mosqueId}/edit`)}
+                    >
+                      <Edit className="w-4 h-4 ml-2" />
+                      إكمال البيانات
+                    </Button>
+                  </PermissionGuard>
                 </CardContent>
               </Card>
             )}

@@ -131,11 +131,11 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   mosques: ["mosques.view", "mosques.create", "mosques.view_details", "mosques.edit", "mosques.delete", "mosques.reject", "mosques.approve"],
 
-  "mosques.view_details": ["mosques.view", "mosques.view_details"],
+  "mosques.view_details": ["mosques.view_details"],
 
-  "mosques.reject": ["mosques.view", "mosques.reject"],
+  "mosques.reject": ["mosques.reject"],
 
-  "mosques.approve": ["mosques.view", "mosques.approve"],
+  "mosques.approve": ["mosques.approve"],
 
   mosques_map: ["mosque_map.view", "mosque_map.view_details"],
 
@@ -1114,7 +1114,7 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   "mosque_map.view": ["mosque_map.view"],
 
-  "mosque_map.view_details": ["mosque_map.view", "mosque_map.view_details"],
+  "mosque_map.view_details": ["mosque_map.view_details"],
 
 
 
@@ -4669,7 +4669,9 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
     rolePermissionsData.push(...rolePermsResult.filter(rp =>
       !customizedQuotationRoles.has(rp.roleId) ||
-      !(rp.permissionId === "quotations" || rp.permissionId.startsWith("quotations.") ||
+      !(rp.permissionId === "mosques" || rp.permissionId.startsWith("mosques.") ||
+        rp.permissionId === "mosques_map" || rp.permissionId === "mosque_map" || rp.permissionId.startsWith("mosque_map.") ||
+        rp.permissionId === "quotations" || rp.permissionId.startsWith("quotations.") ||
         rp.permissionId === "sedana_quotations" || rp.permissionId.startsWith("sedana_quotations.") ||
         rp.permissionId === "custody_requests" || rp.permissionId.startsWith("custody_requests."))
     ).map(rp => rp.permissionId));
@@ -4732,6 +4734,8 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
       // الصلاحيات المستبعدة وصلاحيات إدارة المخزون لا تُمنح تلقائياً بالـ Wildcard
 
       const isInv = (
+        p.id === "mosques" || p.id.startsWith("mosques.") ||
+        p.id === "mosques_map" || p.id === "mosque_map" || p.id.startsWith("mosque_map.") ||
         p.id === "custody_requests" || p.id.startsWith("custody_requests.") ||
         p.id === "quotations" || p.id.startsWith("quotations.") ||
 
@@ -4774,8 +4778,9 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
   for (const perm of permissionsToExpand) {
 
     const expanded = PERMISSION_EXPANSION[perm];
+    const section = perm === "mosques_map" ? "mosque_map" : perm;
 
-    if (expanded && !(["contracts", "quotations", "custody_requests"].includes(perm) && permissionsToExpand.some(p => p.startsWith(`${perm}.`)))) {
+    if (expanded && !(["mosques", "mosque_map", "contracts", "quotations", "custody_requests"].includes(section) && permissionsToExpand.some(p => p.startsWith(`${section}.`)))) {
 
       expanded.forEach(sub => {
 
@@ -5180,7 +5185,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
   // 7. إضافة مفاتيح الصلاحيات البسيطة تلقائياً لتوافق الواجهة الجانبية والتحقق من المسارات
 
-  if (allPermissions.has("mosques.view") || allPermissions.has("mosques.view_details")) {
+  if (allPermissions.has("mosques.view")) {
 
     allPermissions.add("mosques");
 
@@ -7301,7 +7306,7 @@ export const permissionsRouter = router({
           if (Array.isArray(parsed)) {
 
             Array.from(permsSet).forEach(p => {
-              if (p === "quotations" || p.startsWith("quotations.") || p === "sedana_quotations" || p.startsWith("sedana_quotations.") || p === "custody_requests" || p.startsWith("custody_requests.")) permsSet.delete(p);
+              if (p === "mosques" || p.startsWith("mosques.") || p === "mosques_map" || p === "mosque_map" || p.startsWith("mosque_map.") || p === "quotations" || p.startsWith("quotations.") || p === "sedana_quotations" || p.startsWith("sedana_quotations.") || p === "custody_requests" || p.startsWith("custody_requests.")) permsSet.delete(p);
             });
             parsed.forEach(p => permsSet.add(p));
 
@@ -7317,6 +7322,18 @@ export const permissionsRouter = router({
 
       permsSet.delete("escalation.view");
       permsSet.delete("escalation");
+
+      // Expand legacy section grants for the editor, then save only the checked actions.
+      if (permsSet.has("mosques") && !Array.from(permsSet).some(p => p.startsWith("mosques."))) {
+        PERMISSION_EXPANSION.mosques.forEach(p => permsSet.add(p));
+      }
+      permsSet.delete("mosques");
+      if ((permsSet.has("mosque_map") || permsSet.has("mosques_map")) &&
+          !Array.from(permsSet).some(p => p.startsWith("mosque_map."))) {
+        PERMISSION_EXPANSION.mosque_map.forEach(p => permsSet.add(p));
+      }
+      permsSet.delete("mosque_map");
+      permsSet.delete("mosques_map");
 
       return custodyPermissionOptions(quotationPermissionOptions(contractPermissionOptions(Array.from(permsSet))));
 
@@ -7396,7 +7413,7 @@ export const permissionsRouter = router({
 
 
 
-      const cleanedPerms = input.permissions.filter(p => p !== "escalation.view" && p !== "escalation");
+      const cleanedPerms = input.permissions.filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation"].includes(p));
 
       // إنشاء الدور مع تخزين الصلاحيات المخصصة في حقل الوصف كـ JSON
 
@@ -7586,7 +7603,7 @@ export const permissionsRouter = router({
 
 
 
-      const cleanedPerms = input.permissions ? input.permissions.filter(p => p !== "escalation.view" && p !== "escalation") : undefined;
+      const cleanedPerms = input.permissions ? input.permissions.filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation"].includes(p)) : undefined;
 
       // تحديث بيانات الدور (الاسم والوصف)
 

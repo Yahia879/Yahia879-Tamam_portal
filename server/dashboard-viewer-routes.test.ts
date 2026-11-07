@@ -18,9 +18,10 @@ describe("dashboard viewer routes", () => {
   it("skips blocked pages, including the administrative dashboard and revoked sections", () => {
     const user = { role: "field_team", customRole: { id: "dashboard_viewer" } };
     expect(getInformationDashboardReturnRoute(
-      user, ["information_dashboard.view", "mosques"], ["/dashboard", "/requests", "/information-dashboard", "/mosques"]
+      user, ["information_dashboard.view", "mosques", "mosques.view"], ["/dashboard", "/requests", "/information-dashboard", "/mosques"]
     )).toBe("/mosques");
     expect(getInformationDashboardReturnRoute(user, ["information_dashboard.view"], ["/requests"])).toBeNull();
+    expect(getInformationDashboardReturnRoute(user, ["information_dashboard.view", "mosques"], ["/mosques"])).toBeNull();
   });
 
   it("preserves the administrative return destination for other roles", () => {

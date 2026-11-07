@@ -1004,7 +1004,7 @@ export default function RoleEdit() {
     }
 
     let finalPerms = custodyPermissionSelection(quotationPermissionSelection(contractPermissionSelection(selectedPerms)))
-      .filter(p => p !== "escalation.view" && p !== "escalation");
+      .filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation"].includes(p));
 
     if (finalPerms.length === 0) {
       toast.error("يرجى تحديد صلاحية واحدة على الأقل");
