@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useUserPermissions } from "@/hooks/usePermission";
+import { REQUEST_REPORT_TYPES, requestReportAccess } from "@shared/requestReportPermissions";
 import DashboardLayout from "@/components/DashboardLayout";
 import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { Button } from "@/components/ui/button";
@@ -97,7 +98,6 @@ function ProgressiveImage({ src, alt, className }: { src: string; alt: string; c
 }
 
 export default function PendingReports({ embedded = false }: { embedded?: boolean }) {
-  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -105,11 +105,14 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
   const [page, setPage, resetPage] = usePersistedPage("pending_reports_page");
   const limit = 15;
 
-  const userPermissions = (user as any)?.permissions ?? [];
-  const isAdmin = user && ["super_admin", "system_admin"].includes(user.role);
-  const hasViewPermission = isAdmin || userPermissions.includes("pending_reports.view");
-  const hasIntervenePermission = userPermissions.includes("pending_reports.intervene");
-  const hasRequestViewDetails = isAdmin || userPermissions.includes("requests.view_details");
+  const userPermissions = useUserPermissions();
+  const access = requestReportAccess(userPermissions);
+  const hasViewPermission = access.canEnter;
+  const viewableTypes = REQUEST_REPORT_TYPES.filter(access.canView);
+  const effectiveTypeFilter = typeFilter === "all" || access.canView(typeFilter) ? typeFilter : "all";
+  const canIntervene = (item: any) => access.canView(item.reportType) && access.canIntervene(item.reportType) &&
+    ((!item.isCompleted && item.isLate) || item.reportType === "quick_request");
+  const interventionUrl = (item: any) => `${item.actionUrl}${item.actionUrl.includes("?") ? "&" : "?"}intervene=${item.reportType}`;
 
   const [selectedRequestIdForView, setSelectedRequestIdForView] = useState<number | null>(null);
   const [selectedReportTypeForView, setSelectedReportTypeForView] = useState<"field_visit" | "quick_response" | "quick_request" | null>(null);
@@ -117,16 +120,17 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
   const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
 
   const { data: singleRequestData, isLoading: singleRequestLoading } = trpc.requests.getById.useQuery(
-    { id: selectedRequestIdForView ?? 0 },
-    { enabled: !!selectedRequestIdForView }
+    { id: selectedRequestIdForView ?? 0, reportType: selectedReportTypeForView ?? undefined },
+    { enabled: !!selectedRequestIdForView && access.canView(selectedReportTypeForView) }
   );
 
   const { data: reportsData, isLoading, error } = trpc.requests.getPendingReports.useQuery({
     search,
-    typeFilter,
+    typeFilter: effectiveTypeFilter,
     statusFilter,
     page,
     limit,
+    types: viewableTypes,
   }, {
     enabled: !!hasViewPermission,
     refetchOnWindowFocus: true,
@@ -137,14 +141,14 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-4">
         <ShieldAlert className="w-16 h-16 text-red-500 mb-4 animate-bounce" />
         <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح بالدخول</h2>
-        <p className="text-muted-foreground mb-4">هذه الصفحة مخصصة لمدير النظام فقط.</p>
+        <p className="text-muted-foreground mb-4">ليس لديك صلاحية لعرض تقارير الطلبات.</p>
         <Button onClick={() => setLocation("/dashboard")}>العودة للوحة التحكم</Button>
       </div>
     );
     return embedded ? errorContent : <DashboardLayout>{errorContent}</DashboardLayout>;
   }
 
-  const reportsList = reportsData?.reports ?? [];
+  const reportsList = (reportsData?.reports ?? []).filter(item => access.canView(item.reportType));
   const total = reportsData?.total ?? 0;
   const stats = reportsData?.stats ?? {
     totalCount: 0,
@@ -169,7 +173,7 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
         </div>
 
         {/* بطاقات الإحصائيات الستة */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {/* كارد جميع التقارير */}
           <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
@@ -201,7 +205,7 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
           </Card>
 
           {/* كارد الزيارات الميدانية */}
-          <Card className="border-0 shadow-sm">
+          {access.canView("field_visit") && <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -213,10 +217,10 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </Card>}
 
           {/* كارد الاستجابة السريعة */}
-          <Card className="border-0 shadow-sm">
+          {access.canView("quick_response") && <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -228,10 +232,18 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </Card>}
 
           {/* كارد التقارير الختامية */}
-          <Card className="border-0 shadow-sm">
+          {access.canView("quick_request") && (
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-6">
+                <p className="text-xs text-muted-foreground">تقارير الطلبات السريعة</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{stats.quickRequestsCount}</p>
+              </CardContent>
+            </Card>
+          )}
+          {access.canView("final_report") && <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -243,7 +255,7 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </Card>}
 
           {/* كارد التقارير المتأخرة */}
           <Card className="border-0 shadow-sm">
@@ -275,16 +287,13 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                 />
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Select value={typeFilter} onValueChange={(val) => { setTypeFilter(val); resetPage(); }}>
+                <Select value={effectiveTypeFilter} onValueChange={(val) => { setTypeFilter(val); resetPage(); }}>
                   <SelectTrigger className="w-full sm:w-48">
                     <SelectValue placeholder="نوع التقرير" />
                   </SelectTrigger>
                   <SelectContent dir="rtl">
                     <SelectItem value="all">جميع الأنواع</SelectItem>
-                    <SelectItem value="field_visit">زيارة ميدانية</SelectItem>
-                    <SelectItem value="quick_response">استجابة سريعة</SelectItem>
-                    <SelectItem value="quick_request">تقرير طلب سريع</SelectItem>
-                    <SelectItem value="final_report">تقرير ختامي</SelectItem>
+                    {viewableTypes.map(type => <SelectItem key={type} value={type}>{typeLabels[type]}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); resetPage(); }}>
@@ -408,7 +417,7 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                             </Badge>
                           </TableCell>
                           <TableCell className="text-left pl-6">
-                            {(item.isCompleted || (item.isLate && hasIntervenePermission)) ? (
+                            {access.canView(item.reportType) ? (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon">
@@ -416,10 +425,11 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48">
+                                  {!item.isCompleted && <DropdownMenuItem disabled>عرض التقرير (لم يرفع بعد)</DropdownMenuItem>}
                                   {item.isCompleted && (
                                     <>
                                       {item.reportType === "final_report" ? (
-                                        <Link href={`/final-report/${item.reportId}`}>
+                                        <Link href={`/final-report/${item.reportId}?reportSource=pending_reports`}>
                                           <DropdownMenuItem className="cursor-pointer">
                                             <FileText className="w-4 h-4 ml-2" />
                                             عرض التقرير
@@ -440,11 +450,11 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                                       )}
                                     </>
                                   )}
-                                  {!item.isCompleted && item.isLate && hasIntervenePermission && (
-                                    <Link href={item.actionUrl}>
+                                  {canIntervene(item) && (
+                                    <Link href={interventionUrl(item)}>
                                       <DropdownMenuItem className="cursor-pointer">
                                         <FileText className="w-4 h-4 ml-2" />
-                                        التدخل ورفع التقرير
+                                        {item.isCompleted ? "التدخل وتعديل التقرير" : "التدخل ورفع التقرير"}
                                       </DropdownMenuItem>
                                     </Link>
                                   )}
@@ -488,7 +498,7 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                             <p className="text-xs text-muted-foreground truncate">{item.mosqueName}</p>
                           </div>
                         </div>
-                        {(item.isCompleted || (item.isLate && hasIntervenePermission)) ? (
+                        {access.canView(item.reportType) ? (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -496,10 +506,11 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
+                              {!item.isCompleted && <DropdownMenuItem disabled>عرض التقرير (لم يرفع بعد)</DropdownMenuItem>}
                               {item.isCompleted && (
                                 <>
                                   {item.reportType === "final_report" ? (
-                                    <Link href={`/final-report/${item.reportId}`}>
+                                    <Link href={`/final-report/${item.reportId}?reportSource=pending_reports`}>
                                       <DropdownMenuItem className="cursor-pointer">
                                         <FileText className="w-4 h-4 ml-2" />
                                         عرض التقرير
@@ -520,11 +531,11 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                                   )}
                                 </>
                               )}
-                              {!item.isCompleted && item.isLate && hasIntervenePermission && (
-                                <Link href={item.actionUrl}>
+                              {canIntervene(item) && (
+                                <Link href={interventionUrl(item)}>
                                   <DropdownMenuItem className="cursor-pointer">
                                     <FileText className="w-4 h-4 ml-2" />
-                                    التدخل ورفع التقرير
+                                    {item.isCompleted ? "التدخل وتعديل التقرير" : "التدخل ورفع التقرير"}
                                   </DropdownMenuItem>
                                 </Link>
                               )}
@@ -610,7 +621,7 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
 
     {/* Dialog لعرض التقرير الميداني أو الاستجابة السريعة */}
     <ColoredDialog
-      open={reportDialogOpen}
+      open={reportDialogOpen && access.canView(selectedReportTypeForView)}
       onOpenChange={(val) => {
         setReportDialogOpen(val);
         if (!val) {
@@ -669,11 +680,11 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
               className="bg-[#1a5f4a] hover:bg-[#144939] text-white font-bold gap-2 shadow-xs text-xs"
               onClick={() => {
                 if (selectedReportTypeForView === "field_visit") {
-                  setLocation(`/requests/${singleRequestData.id}/field-visit-report/print`);
+                  setLocation(`/requests/${singleRequestData.id}/field-visit-report/print?reportSource=pending_reports`);
                 } else if (selectedReportTypeForView === "quick_request") {
-                  setLocation(`/requests/${singleRequestData.id}/quick-request-report/print`);
+                  setLocation(`/requests/${singleRequestData.id}/quick-request-report/print?reportSource=pending_reports`);
                 } else if (selectedReportTypeForView === "quick_response") {
-                  setLocation(`/requests/${singleRequestData.id}/quick-response-report/print`);
+                  setLocation(`/requests/${singleRequestData.id}/quick-response-report/print?reportSource=pending_reports`);
                 }
               }}
             >
@@ -1105,7 +1116,7 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
     </ColoredDialog>
 
     {/* Lightbox Modal */}
-    {previewImage && (
+    {previewImage && access.canView(selectedReportTypeForView) && (
       <div 
         className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200"
         onClick={() => setPreviewImage(null)}

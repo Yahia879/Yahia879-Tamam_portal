@@ -327,7 +327,7 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   if (has("escalation.delayed_requests") || has("escalation.delayed_beneficiaries")) {
     mosqueItems.push({ icon: AlertTriangle, label: isEn ? "Admin Escalation" : "التصعيد الإداري", path: "/escalation" });
   }
-  if (has("pending_reports.view") || has("pending_reports.intervene") || has("pending_reports")) {
+  if (["field_visit", "quick_response", "quick_request", "final_report"].some(type => has(`pending_reports.view_${type}`))) {
     mosqueItems.push({ icon: ShieldAlert, label: "تقارير الطلبات", path: "/pending-reports" });
   }
   if (has("appointments_calendar"))        mosqueItems.push({ icon: Clock,         label: "تقويم المواعيد",        path: "/field-visits/calendar" });

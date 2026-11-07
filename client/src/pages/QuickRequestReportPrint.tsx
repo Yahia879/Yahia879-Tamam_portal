@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -34,11 +34,12 @@ export default function QuickRequestReportPrint() {
   const [, setLocation] = useLocation();
   const { user: currentUser } = useAuth();
   const requestId = parseInt(id || "0");
+  const fromPendingReports = new URLSearchParams(useSearch()).get("reportSource") === "pending_reports";
 
   useDocumentTitle(requestId ? `طباعة تقرير الطلب السريع #${requestId}` : "تقرير الطلب السريع");
 
   const { data: request, isLoading: requestLoading } = trpc.requests.getById.useQuery(
-    { id: requestId },
+    { id: requestId, reportType: fromPendingReports ? "quick_request" : undefined },
     { enabled: !!requestId && !isNaN(requestId) }
   );
 

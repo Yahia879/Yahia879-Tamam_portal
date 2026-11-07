@@ -27,8 +27,12 @@ import {
 
 export default function FinalReportForm() {
   const { user } = useAuth();
+  const { data: livePermissions, isLoading: permissionsLoading } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 }, { enabled: !!user, staleTime: 0, refetchOnWindowFocus: true },
+  );
   const search = useSearch();
   const params = new URLSearchParams(search);
+  const isIntervention = params.get("intervene") === "final_report";
   const requestIdStr = params.get("requestId");
   const requestId = requestIdStr ? parseInt(requestIdStr) : null;
   const [, setLocation] = useLocation();
@@ -49,7 +53,7 @@ export default function FinalReportForm() {
 
   // جلب بيانات الطلب
   const { data: request, isLoading: requestLoading } = trpc.requests.getById.useQuery(
-    { id: requestId! },
+    { id: requestId!, ...(isIntervention ? { reportType: "final_report" as const, reportAccess: "intervene" as const } : {}) },
     { enabled: !!requestId }
   );
 
@@ -150,8 +154,8 @@ export default function FinalReportForm() {
   const isNotInExecution = request && request.currentStage !== "execution" && request.currentStage !== "handover";
   
   // التحقق من الصلاحيات والتعيين
-  const userPermissions = (user as any)?.permissions || [];
-  const hasIntervenePerm = userPermissions.includes("pending_reports.intervene");
+  const userPermissions = livePermissions ?? (user as any)?.permissions ?? [];
+  const hasIntervenePerm = userPermissions.includes("pending_reports.intervene_final_report");
   const isAdmin = user && ["super_admin", "system_admin"].includes(user.role);
   const isAssigned = !request?.finalReportAssignedTo || 
                      (user && request.finalReportAssignedTo === user.id) || 
@@ -160,13 +164,13 @@ export default function FinalReportForm() {
   const isCorpComm = user?.role === 'corporate_comm' || 
                      userPermissions.includes("requests.upload_final_report") || 
                      hasIntervenePerm;
-  const hasAccess = isAssigned && isCorpComm;
+  const hasAccess = isIntervention ? hasIntervenePerm : isAssigned && isCorpComm;
 
   const isDisabled = isNotInExecution || isTransitionDisabled || !hasAccess;
 
   // توجيه تلقائي في حالة عدم الصلاحية
   useEffect(() => {
-    if (!requestLoading && !reportsLoading && !projectLoading) {
+    if (!requestLoading && !reportsLoading && !projectLoading && !permissionsLoading) {
       if (isNotInExecution) {
         toast.error("الطلب ليس في مرحلة التنفيذ أو الاستلام");
         setLocation(`/requests/${requestId}`);
@@ -177,7 +181,7 @@ export default function FinalReportForm() {
         setLocation(`/requests/${requestId}`);
       }
     }
-  }, [requestLoading, reportsLoading, projectLoading, isNotInExecution, isTransitionDisabled, request, hasAccess, requestId, setLocation]);
+  }, [requestLoading, reportsLoading, projectLoading, permissionsLoading, isNotInExecution, isTransitionDisabled, request, hasAccess, requestId, setLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,6 +200,7 @@ export default function FinalReportForm() {
     setIsSubmitting(true);
     createFinalReportMutation.mutate({
       requestId,
+      intervention: isIntervention,
       summary: summary.trim(),
       achievements: achievements.trim() || undefined,
       challenges: challenges.trim() || undefined,

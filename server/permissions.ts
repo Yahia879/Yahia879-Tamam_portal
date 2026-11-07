@@ -1,6 +1,7 @@
 import { CUSTODY_PERMISSION_ACTIONS, CUSTODY_PERSONAL_PERMISSIONS, custodyPermissionOptions } from "../shared/custodyPermissions";
 import { GENERAL_QUOTATION_PERMISSIONS, GENERAL_QUOTATION_PERMISSION_IDS, quotationPermissionOptions } from "../shared/quotationPermissions";
 import { CONTRACT_PERMISSIONS, CONTRACT_PERMISSION_IDS, contractPermissionOptions } from "../shared/contractPermissions";
+import { REQUEST_REPORT_PERMISSIONS, REQUEST_REPORT_PERMISSION_IDS, RETIRED_REQUEST_REPORT_PERMISSIONS, requestReportPermissionSelection } from "../shared/requestReportPermissions";
 import { eq, and, or, ne, sql, inArray, notInArray, isNull, like } from "drizzle-orm";
 
 import { getDb } from "./db";
@@ -46,6 +47,7 @@ import { z } from "zod";
  */
 
 export const PERMISSION_EXPANSION: Record<string, string[]> = {
+  pending_reports: REQUEST_REPORT_PERMISSION_IDS,
 
   "information_dashboard.view": ["information_dashboard.view"],
 
@@ -1278,11 +1280,6 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
 
 
-  pending_reports: ["pending_reports.view", "pending_reports.intervene"],
-
-  "pending_reports.view": ["pending_reports.view"],
-
-  "pending_reports.intervene": ["pending_reports.intervene"],
 
 
 
@@ -3527,9 +3524,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       { id: "boq.export", moduleId: "boq", action: "export", nameAr: "تصدير وتحميل جدول الكميات", nameEn: "Export and Download BOQ" },
 
-      { id: "pending_reports.view", moduleId: "pending_reports", action: "view", nameAr: "عرض التقارير", nameEn: "View Reports" },
-
-      { id: "pending_reports.intervene", moduleId: "pending_reports", action: "intervene", nameAr: "تدخل لرفع التقرير", nameEn: "Intervene to Upload Report" },
+      ...REQUEST_REPORT_PERMISSIONS.map(p => ({ id: `pending_reports.${p.action}`, moduleId: "pending_reports", action: p.action, nameAr: p.nameAr, nameEn: p.action.replaceAll("_", " ") })),
 
       { id: "requests.sign_final_report", moduleId: "requests", action: "sign_final_report", nameAr: "توقيع التقرير الختامي", nameEn: "Sign Final Report" },
 
@@ -3706,6 +3701,9 @@ async function ensureAllCustomPermissionsExist(db: any) {
       await db.delete(userPermissions).where(inArray(userPermissions.permissionId, retiredContractIds));
       await db.delete(permissions).where(inArray(permissions.id, retiredContractIds));
     }
+    await db.delete(rolePermissions).where(inArray(rolePermissions.permissionId, RETIRED_REQUEST_REPORT_PERMISSIONS));
+    await db.delete(userPermissions).where(inArray(userPermissions.permissionId, RETIRED_REQUEST_REPORT_PERMISSIONS));
+    await db.delete(permissions).where(inArray(permissions.id, RETIRED_REQUEST_REPORT_PERMISSIONS));
 
     const retiredQuotationPermissions = await db.select({ id: permissions.id }).from(permissions)
       .where(and(like(permissions.id, "quotations.%"), notInArray(permissions.id, GENERAL_QUOTATION_PERMISSION_IDS)));
@@ -4670,6 +4668,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
     rolePermissionsData.push(...rolePermsResult.filter(rp =>
       !customizedQuotationRoles.has(rp.roleId) ||
       !(rp.permissionId === "mosques" || rp.permissionId.startsWith("mosques.") ||
+        rp.permissionId === "pending_reports" || rp.permissionId.startsWith("pending_reports.") ||
         rp.permissionId === "mosques_map" || rp.permissionId === "mosque_map" || rp.permissionId.startsWith("mosque_map.") ||
         rp.permissionId === "quotations" || rp.permissionId.startsWith("quotations.") ||
         rp.permissionId === "sedana_quotations" || rp.permissionId.startsWith("sedana_quotations.") ||
@@ -4715,7 +4714,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
   // إضافة الصلاحيات المجمعة من كل المصادر
 
-  rolePermissionsData.forEach(p => allPermissions.add(p));
+  requestReportPermissionSelection(rolePermissionsData).forEach(p => allPermissions.add(p));
 
 
 
@@ -4735,6 +4734,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
       const isInv = (
         p.id === "mosques" || p.id.startsWith("mosques.") ||
+        p.id === "pending_reports" || p.id.startsWith("pending_reports.") ||
         p.id === "mosques_map" || p.id === "mosque_map" || p.id.startsWith("mosque_map.") ||
         p.id === "custody_requests" || p.id.startsWith("custody_requests.") ||
         p.id === "quotations" || p.id.startsWith("quotations.") ||
@@ -4821,6 +4821,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
   const revokedPermissions = new Set<string>();
 
   userPermsData.forEach(perm => {
+    if (RETIRED_REQUEST_REPORT_PERMISSIONS.includes(perm.permissionId)) return;
 
     if (perm.granted) {
 
@@ -6461,20 +6462,6 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
 
 
-  if (
-
-    allPermissions.has("pending_reports.view") ||
-
-    allPermissions.has("pending_reports.intervene")
-
-  ) {
-
-    allPermissions.add("pending_reports");
-
-  }
-
-
-
   if (allPermissions.has("board_chairman") || allPermissions.has("board_member") || allPermissions.has("board_leadership.remind") || allPermissions.has("board_chairman_remind")) {
 
     allPermissions.add("board_leadership");
@@ -6743,7 +6730,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
 
 
-  return Array.from(allPermissions);
+  return requestReportPermissionSelection(Array.from(allPermissions));
 
 }
 
@@ -6903,7 +6890,7 @@ export const permissionsRouter = router({
 
       ...module,
 
-      permissions: permissionsData.filter(p => p.moduleId === module.id)
+      permissions: permissionsData.filter(p => p.moduleId === module.id && !RETIRED_REQUEST_REPORT_PERMISSIONS.includes(p.id))
 
     }));
 
@@ -7280,6 +7267,7 @@ export const permissionsRouter = router({
 
 
       const permsSet = new Set(rolePerms.map(rp => rp.permissionId));
+      let customizedPermissions = false;
 
 
 
@@ -7304,9 +7292,10 @@ export const permissionsRouter = router({
           const parsed = JSON.parse(roleData.description);
 
           if (Array.isArray(parsed)) {
+            customizedPermissions = true;
 
             Array.from(permsSet).forEach(p => {
-              if (p === "mosques" || p.startsWith("mosques.") || p === "mosques_map" || p === "mosque_map" || p.startsWith("mosque_map.") || p === "quotations" || p.startsWith("quotations.") || p === "sedana_quotations" || p.startsWith("sedana_quotations.") || p === "custody_requests" || p.startsWith("custody_requests.")) permsSet.delete(p);
+              if (p === "pending_reports" || p.startsWith("pending_reports.") || p === "mosques" || p.startsWith("mosques.") || p === "mosques_map" || p === "mosque_map" || p.startsWith("mosque_map.") || p === "quotations" || p.startsWith("quotations.") || p === "sedana_quotations" || p.startsWith("sedana_quotations.") || p === "custody_requests" || p.startsWith("custody_requests.")) permsSet.delete(p);
             });
             parsed.forEach(p => permsSet.add(p));
 
@@ -7322,6 +7311,9 @@ export const permissionsRouter = router({
 
       permsSet.delete("escalation.view");
       permsSet.delete("escalation");
+      if (!customizedPermissions && ["super_admin", "system_admin"].includes(input.roleId)) {
+        REQUEST_REPORT_PERMISSION_IDS.forEach(p => permsSet.add(p));
+      }
 
       // Expand legacy section grants for the editor, then save only the checked actions.
       if (permsSet.has("mosques") && !Array.from(permsSet).some(p => p.startsWith("mosques."))) {
@@ -7335,7 +7327,7 @@ export const permissionsRouter = router({
       permsSet.delete("mosque_map");
       permsSet.delete("mosques_map");
 
-      return custodyPermissionOptions(quotationPermissionOptions(contractPermissionOptions(Array.from(permsSet))));
+      return requestReportPermissionSelection(custodyPermissionOptions(quotationPermissionOptions(contractPermissionOptions(Array.from(permsSet)))));
 
     }),
 
@@ -7413,7 +7405,7 @@ export const permissionsRouter = router({
 
 
 
-      const cleanedPerms = input.permissions.filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation"].includes(p));
+      const cleanedPerms = requestReportPermissionSelection(input.permissions).filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation"].includes(p));
 
       // إنشاء الدور مع تخزين الصلاحيات المخصصة في حقل الوصف كـ JSON
 
@@ -7603,7 +7595,7 @@ export const permissionsRouter = router({
 
 
 
-      const cleanedPerms = input.permissions ? input.permissions.filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation"].includes(p)) : undefined;
+      const cleanedPerms = input.permissions ? requestReportPermissionSelection(input.permissions).filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation"].includes(p)) : undefined;
 
       // تحديث بيانات الدور (الاسم والوصف)
 
@@ -8355,7 +8347,7 @@ export const permissionsRouter = router({
 
       await ensureAllCustomPermissionsExist(db);
 
-      const cleanedInputPerms = input.permissions.filter(p => p.permissionId !== "escalation.view" && p.permissionId !== "escalation");
+      const cleanedInputPerms = input.permissions.filter(p => !RETIRED_REQUEST_REPORT_PERMISSIONS.includes(p.permissionId) && p.permissionId !== "escalation.view" && p.permissionId !== "escalation");
 
       // التأكد من وجود كافة المعرفات في جدول الصلاحيات قبل الربط لتفادي أخطاء المفاتيح الأجنبية
 

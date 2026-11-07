@@ -1,3 +1,4 @@
+import { REQUEST_REPORT_PERMISSIONS } from "@shared/requestReportPermissions";
 import { custodyPermissionSelection } from "@shared/custodyPermissions";
 import { GENERAL_QUOTATION_PERMISSIONS, GENERAL_QUOTATION_LABELS, quotationPermissionSelection } from "@shared/quotationPermissions";
 import { contractPermissionSelection } from "@shared/contractPermissions";
@@ -1656,7 +1657,7 @@ export default function RolePermissions() {
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "transfer_to_beneficiary", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"] },
         { id: "sedana_requests", nameAr: "طلبات سدانة", icon: Sparkles, perms: ["view", "desk_review", "manage"] },
         { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["delayed_requests", "delayed_beneficiaries"] },
-        { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
+        { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: REQUEST_REPORT_PERMISSIONS.map(p => p.action) },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view", "evaluations_log", "view_details", "view_reply", "dispatch_log", "resend_reminder", "contacts", "reply", "hide"] },
       ]
@@ -2090,10 +2091,7 @@ export default function RolePermissions() {
         board_member: "عرض لوحة عضو مجلس الإدارة",
         remind: "إرسال تذكير بالاعتماد",
       },
-      pending_reports: {
-        view: "عرض التقارير",
-        intervene: "تدخل لرفع التقرير"
-      },
+      pending_reports: Object.fromEntries(REQUEST_REPORT_PERMISSIONS.map(p => [p.action, p.nameAr])),
       signing: {
         disbursements_sign: "توقيع طلبات الصرف",
         disbursement_orders_sign: "توقيع أوامر الصرف",

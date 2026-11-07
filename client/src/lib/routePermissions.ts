@@ -1,4 +1,5 @@
 import { custodyAccess, type CustodyUser } from "@shared/custodyPermissions";
+import { REQUEST_REPORT_VIEW_PERMISSIONS } from "@shared/requestReportPermissions";
 import { isDashboardViewerUser } from "./dashboardViewer";
 
 /**
@@ -272,14 +273,14 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
 
   // ── الاستلامات ──
   "/handovers": ["projects", "contracts"],
-  "/final-report/new": ["projects", "requests.view_details", "requests.upload_final_report", "pending_reports.intervene"],
+  "/final-report/new": ["projects", "requests.view_details", "requests.upload_final_report", "pending_reports.intervene_final_report"],
 
   // ── مؤشرات الأداء ──
   "/kpi-dashboard": ["projects", "requests.view_details"],
 
   // ── التقارير ──
   "/reports": ["reports.view_stats", "reports.export_data"],
-  "/pending-reports": ["pending_reports.view"],
+  "/pending-reports": REQUEST_REPORT_VIEW_PERMISSIONS,
   "/beneficiary-satisfaction": [
     "beneficiary_evaluations.view",
     "beneficiary_evaluations.evaluations_log",
@@ -452,10 +453,13 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
 
   // الطلبات
   { pattern: /^\/requests\/\d+\/edit$/, permission: "requests.view_details" },
-  { pattern: /^\/requests\/\d+\/field-inspection$/, permission: ["requests.view_details", "requests.manage_as_field_team", "pending_reports.intervene"] },
-  { pattern: /^\/requests\/\d+\/quick-response$/, permission: ["requests.view_details", "requests.manage_as_quick_response", "pending_reports.intervene"] },
+  { pattern: /^\/requests\/\d+\/field-inspection$/, permission: ["requests.view_details", "requests.manage_as_field_team", "pending_reports.intervene_field_visit"] },
+  { pattern: /^\/requests\/\d+\/quick-response$/, permission: ["requests.view_details", "requests.manage_as_quick_response", "pending_reports.intervene_quick_response", "pending_reports.intervene_quick_request"] },
+  { pattern: /^\/requests\/\d+\/field-visit-report\/print$/, permission: ["requests.view_details", "pending_reports.view_field_visit"] },
+  { pattern: /^\/requests\/\d+\/quick-response-report\/print$/, permission: ["requests.view_details", "pending_reports.view_quick_response"] },
+  { pattern: /^\/requests\/\d+\/quick-request-report\/print$/, permission: ["requests.view_details", "pending_reports.view_quick_request"] },
   { pattern: /^\/requests\/\d+\/assign-final-report$/, permission: "requests.view_details" },
-  { pattern: /^\/requests\/\d+$/, permission: ["requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response", "requests.upload_final_report", "pending_reports.intervene", "sedana_requests.view", "sedana_requests.desk_review", "sedana_requests.manage"] },
+  { pattern: /^\/requests\/\d+$/, permission: ["requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response", "requests.upload_final_report", "sedana_requests.view", "sedana_requests.desk_review", "sedana_requests.manage"] },
   { pattern: /^\/requests\/\d+\/sedana-evaluation$/, permission: ["sedana_requests.desk_review", "sedana_requests.view", "sedana_requests.manage", "requests.view_details"] },
   { pattern: /^\/requester\/requests\/\d+\/sedana-evaluation$/, permission: ["sedana_requests.desk_review", "sedana_requests.view", "sedana_requests.manage", "requests.view_details"] },
 
@@ -674,6 +678,9 @@ export function hasRouteAccess(
   hasCustomRole: boolean,
   user?: CustodyUser,
 ): boolean {
+  if (pathname === "/pending-reports" || pathname === "/pending-reports/") {
+    return REQUEST_REPORT_VIEW_PERMISSIONS.some(p => userPermissions.includes(p));
+  }
   // Mosque controls use explicit permissions for every role, including administrators.
   if (pathname === "/mosques" || pathname === "/mosques/" ||
       pathname === "/mosques/map" || pathname === "/mosques/map/" ||

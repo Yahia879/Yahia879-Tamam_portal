@@ -6,12 +6,18 @@ import { getDb } from "../db";
 import { finalReports, mosqueRequests, projects, mosques, users, contractsEnhanced, contractPayments, payments } from "../../drizzle/schema";
 import { calculateUserPermissions } from "../permissions";
 
+function canReadFinalReports(permissions: string[]) {
+  return ["pending_reports.view_final_report", "requests.view_details", "requests.upload_final_report", "projects.view", "projects.view_details"]
+    .some(permission => permissions.includes(permission));
+}
+
 export const finalReportsRouter = router({
   // إنشاء تقرير ختامي جديد
   create: protectedProcedure
     .input(
       z.object({
         requestId: z.number(),
+        intervention: z.boolean().optional(),
         projectId: z.number().optional(),
         summary: z.string().min(1, "الملخص مطلوب"),
         achievements: z.string().optional(),
@@ -38,8 +44,8 @@ export const finalReportsRouter = router({
       const allowedRoles = ["super_admin", "system_admin", "projects_office", "project_manager"];
       const userPerms = await calculateUserPermissions(ctx.user.id);
       const hasUploadFinalReportPerm = userPerms.includes("requests.upload_final_report");
-      const hasIntervenePerm = userPerms.includes("pending_reports.intervene");
-      if (!allowedRoles.includes(ctx.user.role) && !hasUploadFinalReportPerm && !hasIntervenePerm) {
+      const hasIntervenePerm = userPerms.includes("pending_reports.intervene_final_report");
+      if (input.intervention ? !hasIntervenePerm : (!allowedRoles.includes(ctx.user.role) && !hasUploadFinalReportPerm && !hasIntervenePerm)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لرفع التقرير الختامي" });
       }
 
@@ -214,9 +220,16 @@ export const finalReportsRouter = router({
   // جلب التقارير الختامية لطلب معين
   getByRequestId: protectedProcedure
     .input(z.object({ requestId: z.number() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return [];
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      if (!canReadFinalReports(userPermissions) && !userPermissions.includes("pending_reports.intervene_final_report")) {
+        const [request] = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+        if (!request || (request.userId !== ctx.user.id && request.finalReportAssignedTo !== ctx.user.id)) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض التقارير الختامية" });
+        }
+      }
       return await db.select().from(finalReports)
         .where(eq(finalReports.requestId, input.requestId))
         .orderBy(desc(finalReports.createdAt));
@@ -224,8 +237,12 @@ export const finalReportsRouter = router({
 
   // جلب تقرير ختامي بالمعرف مع تفاصيل كاملة
   getWithDetails: protectedProcedure
-    .input(z.object({ reportId: z.number() }))
-    .query(async ({ input }) => {
+    .input(z.object({ reportId: z.number(), reportSource: z.literal("pending_reports").optional() }))
+    .query(async ({ input, ctx }) => {
+      const viewerPermissions = await calculateUserPermissions(ctx.user.id);
+      if (input.reportSource && !viewerPermissions.includes("pending_reports.view_final_report")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض التقارير الختامية" });
+      }
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
@@ -240,6 +257,10 @@ export const finalReportsRouter = router({
       const requestResult = await db.select().from(mosqueRequests)
         .where(eq(mosqueRequests.id, report.requestId)).limit(1);
       const request = requestResult[0] || null;
+      if (!canReadFinalReports(viewerPermissions) && request?.userId !== ctx.user.id &&
+          request?.finalReportAssignedTo !== ctx.user.id && report.preparedBy !== ctx.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض التقارير الختامية" });
+      }
 
       // جلب بيانات المسجد
       let mosque = null;
@@ -283,7 +304,10 @@ export const finalReportsRouter = router({
 
   // جلب جميع التقارير الختامية
   list: protectedProcedure
-    .query(async () => {
+    .query(async ({ ctx }) => {
+      if (!canReadFinalReports(await calculateUserPermissions(ctx.user.id))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض التقارير الختامية" });
+      }
       const db = await getDb();
       if (!db) return [];
       return await db.select().from(finalReports)

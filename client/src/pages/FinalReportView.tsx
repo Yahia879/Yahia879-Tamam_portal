@@ -42,7 +42,7 @@ export default function FinalReportView() {
   const [, setLocation] = useLocation();
 
   const { data, isLoading, error } = trpc.finalReports.getWithDetails.useQuery(
-    { reportId },
+    { reportId, reportSource: new URLSearchParams(search).get("reportSource") === "pending_reports" ? "pending_reports" : undefined },
     { enabled: reportId > 0 }
   );
 

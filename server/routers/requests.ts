@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
-import { permissionProcedure, checkPermission } from "../permissions";
+import { permissionProcedure, checkPermission, calculateUserPermissions } from "../permissions";
+import { REQUEST_REPORT_TYPES, requestReportAccess, isQuickRequestReport } from "../../shared/requestReportPermissions";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import { 
@@ -596,8 +597,14 @@ export const requestsRouter = router({
 
   // الحصول على طلب بالمعرف
   getById: protectedProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.number(), reportType: z.enum(REQUEST_REPORT_TYPES).optional(), reportAccess: z.enum(["view", "intervene"]).optional() }))
     .query(async ({ input, ctx }) => {
+      const hasTypedReportAccess = input.reportType
+        ? await checkPermission(ctx.user.id, `pending_reports.${input.reportAccess ?? "view"}_${input.reportType}`)
+        : false;
+      if (input.reportType && !hasTypedReportAccess) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لهذا النوع من التقارير" });
+      }
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
@@ -621,6 +628,10 @@ export const requestsRouter = router({
         programConditions: result[0].programConditions,
         evaluationNotes: result[0].evaluationNotes,
       };
+      if ((input.reportType === "quick_request" || input.reportType === "quick_response") &&
+          (input.reportType === "quick_request") !== isQuickRequestReport(request)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "نوع التقرير لا يطابق الطلب" });
+      }
 
       const isOwner = request.userId === ctx.user.id;
       const isAssigned = request.assignedTo === ctx.user.id;
@@ -630,7 +641,7 @@ export const requestsRouter = router({
                              await checkPermission(ctx.user.id, "requests.view") ||
                              await checkPermission(ctx.user.id, "requests.manage_as_field_team") ||
                              await checkPermission(ctx.user.id, "requests.manage_as_quick_response") ||
-                             await checkPermission(ctx.user.id, "pending_reports.view") ||
+                             hasTypedReportAccess ||
                              await checkPermission(ctx.user.id, "orders_and_letters.view") ||
                              await checkPermission(ctx.user.id, "orders_and_letters") ||
                              await checkPermission(ctx.user.id, "purchase_orders.view") ||
@@ -661,7 +672,7 @@ export const requestsRouter = router({
                                   await checkPermission(ctx.user.id, "orders_and_letters") ||
                                   await checkPermission(ctx.user.id, "purchase_orders.view") ||
                                   await checkPermission(ctx.user.id, "csr_letters.view");
-      if (request.programType === "sedana" && !isOwner && !allowedSedanaRoles.includes(ctx.user.role) && !hasSedanaOrdersPerm) {
+      if (request.programType === "sedana" && !isOwner && !allowedSedanaRoles.includes(ctx.user.role) && !hasSedanaOrdersPerm && !hasTypedReportAccess) {
         throw new TRPCError({ code: "FORBIDDEN", message: "طلبات سدانة مخصصة للمخولين فقط" });
       }
 
@@ -811,9 +822,13 @@ export const requestsRouter = router({
       // الحصول على تقارير الزيارات الميدانية (للموظفين ومقدم الطلب)
       let fieldReports: any[] = [];
       let quickReports: any[] = [];
-      if (isInternal || isAssigned || isOwner) {
-        fieldReports = await db.select().from(fieldVisitReports).where(eq(fieldVisitReports.requestId, input.id));
-        quickReports = await db.select().from(quickResponseReports).where(eq(quickResponseReports.requestId, input.id));
+      if (isInternal || isAssigned || isOwner || hasTypedReportAccess) {
+        if (!input.reportType || input.reportType === "field_visit") {
+          fieldReports = await db.select().from(fieldVisitReports).where(eq(fieldVisitReports.requestId, input.id));
+        }
+        if (!input.reportType || ["quick_response", "quick_request"].includes(input.reportType)) {
+          quickReports = await db.select().from(quickResponseReports).where(eq(quickResponseReports.requestId, input.id));
+        }
       }
 
       // حساب نسبة التقدم
@@ -3000,6 +3015,7 @@ export const requestsRouter = router({
   addFieldVisitReport: protectedProcedure
     .input(z.object({
       requestId: z.number(),
+      intervention: z.boolean().optional(),
       visitDate: z.string(),
       // التقييم الفني
       mosqueCondition: z.string().optional(),
@@ -3035,8 +3051,8 @@ export const requestsRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const hasFieldTeamPerm = await checkPermission(ctx.user.id, "requests.manage_as_field_team");
-      const hasIntervenePerm = await checkPermission(ctx.user.id, "pending_reports.intervene");
-      if (ctx.user.role !== "field_team" && !hasFieldTeamPerm && !["super_admin", "system_admin"].includes(ctx.user.role) && !hasIntervenePerm) {
+      const hasIntervenePerm = await checkPermission(ctx.user.id, "pending_reports.intervene_field_visit");
+      if (input.intervention ? !hasIntervenePerm : (ctx.user.role !== "field_team" && !hasFieldTeamPerm && !["super_admin", "system_admin"].includes(ctx.user.role) && !hasIntervenePerm)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة تقارير ميدانية" });
       }
 
@@ -3185,6 +3201,7 @@ export const requestsRouter = router({
   addQuickResponseReport: protectedProcedure
     .input(z.object({
       requestId: z.number(),
+      intervention: z.boolean().optional(),
       responseDate: z.string(),
       // التقييم الفني
       technicalEvaluation: z.string().optional(),
@@ -3202,9 +3219,14 @@ export const requestsRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const hasQRPerm = await checkPermission(ctx.user.id, "requests.manage_as_quick_response");
-      const hasIntervenePerm = await checkPermission(ctx.user.id, "pending_reports.intervene");
+      const reportDb = await getDb();
+      if (!reportDb) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const [reportRequest] = await reportDb.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+      if (!reportRequest) throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      const reportType = isQuickRequestReport(reportRequest) ? "quick_request" : "quick_response";
+      const hasIntervenePerm = await checkPermission(ctx.user.id, `pending_reports.intervene_${reportType}`);
       const isAllowed = ["quick_response", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role) || hasQRPerm || hasIntervenePerm;
-      if (!isAllowed) {
+      if (input.intervention ? !hasIntervenePerm : !isAllowed) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة تقارير الاستجابة السريعة" });
       }
 
@@ -5279,6 +5301,7 @@ export const requestsRouter = router({
       z.object({
         search: z.string().optional(),
         typeFilter: z.string().optional(),
+        types: z.array(z.enum(REQUEST_REPORT_TYPES)).optional(),
         statusFilter: z.string().optional(),
         page: z.number().optional().default(1),
         limit: z.number().optional().default(15),
@@ -5296,8 +5319,8 @@ export const requestsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const hasViewPerm = await checkPermission(ctx.user.id, "pending_reports.view");
-      if (!["super_admin", "system_admin"].includes(ctx.user.role) && !hasViewPerm) {
+      const reportAccess = requestReportAccess(await calculateUserPermissions(ctx.user.id));
+      if (!reportAccess.canEnter) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض هذه الصفحة" });
       }
 
@@ -5407,7 +5430,7 @@ export const requestsRouter = router({
         // 1. Check Field Visit Report
         const hasFvReport = fvReportMap.has(request.id);
         const fvReportData = fvReports.find(r => r.requestId === request.id);
-        if (request.fieldVisitAssignedTo && (request.currentStage === 'field_visit' || hasFvReport)) {
+        if ((request.fieldVisitAssignedTo || hasFvReport) && (request.currentStage === 'field_visit' || hasFvReport)) {
           let isLate = false;
           if (!hasFvReport && request.fieldVisitScheduledDate) {
             const scheduledDate = new Date(request.fieldVisitScheduledDate);
@@ -5441,11 +5464,7 @@ export const requestsRouter = router({
         const hasQrReport = qrReportMap.has(request.id);
         const qrReportData = qrReports.find(r => r.requestId === request.id);
 
-        const isQuickCreate = Boolean(
-          pData?.isQuickCreate || 
-          pData?.source === 'quick_create' ||
-          (isQuickResponseTrack && (pData?.customMosqueName || (request.currentStage === 'closed' && hasQrReport)))
-        );
+        const isQuickCreate = isQuickRequestReport(request);
 
         if (isQuickCreate && hasQrReport) {
           // تقرير طلب سريع مرفوع عن طريق صفحة إنشاء طلب سريع
@@ -5464,7 +5483,7 @@ export const requestsRouter = router({
             isCompleted: true,
             reportType: "quick_request",
             dueDate: qrReportData?.responseDate ? new Date(qrReportData.responseDate).toLocaleDateString("ar-SA") : (request.createdAt ? new Date(request.createdAt).toLocaleDateString("ar-SA") : "غير محدد"),
-            actionUrl: `/requests/${request.id}`,
+            actionUrl: `/requests/${request.id}/quick-response`,
           });
         } else if (isQuickResponseTrack && (request.assignedTo || hasQrReport) && (request.currentStage === 'execution' || hasQrReport)) {
           let isLate = false;
@@ -5543,6 +5562,8 @@ export const requestsRouter = router({
 
       // Filter list
       const filteredList = sortedReportsList.filter((item) => {
+        if (!reportAccess.canView(item.reportType)) return false;
+        if (input?.types && !input.types.includes(item.reportType)) return false;
         const matchesSearch =
           item.requestNumber.toLowerCase().includes(search.toLowerCase()) ||
           item.mosqueName.toLowerCase().includes(search.toLowerCase()) ||

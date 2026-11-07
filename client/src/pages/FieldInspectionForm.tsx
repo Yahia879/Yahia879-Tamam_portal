@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation, useParams } from "wouter";
+import { useLocation, useParams, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -44,7 +44,13 @@ export default function FieldInspectionForm() {
   const [, navigate] = useLocation();
   const params = useParams<{ requestId: string }>();
   const requestId = parseInt(params.requestId || "0");
+  const interventionType = new URLSearchParams(useSearch()).get("intervene");
+  const isIntervention = interventionType === "field_visit";
+  const scopedType = "field_visit" as const;
   const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { data: livePermissions, isLoading: permissionsLoading } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 }, { enabled: !!user, staleTime: 0, refetchOnWindowFocus: true },
+  );
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
@@ -91,7 +97,7 @@ export default function FieldInspectionForm() {
 
   // جلب بيانات الطلب
   const { data: requestData, isLoading: requestLoading } = trpc.requests.getById.useQuery(
-    { id: requestId },
+    { id: requestId, ...(isIntervention ? { reportType: scopedType, reportAccess: "intervene" as const } : {}) },
     { enabled: requestId > 0 }
   );
 
@@ -226,21 +232,21 @@ export default function FieldInspectionForm() {
 
   // التحقق من تسجيل الدخول والصلاحيات
   useEffect(() => {
-    if (!authLoading) {
+    if (!authLoading && !permissionsLoading) {
       if (!isAuthenticated) {
         toast.error("يجب تسجيل الدخول للوصول لهذه الصفحة");
         navigate("/login");
       } else {
-        const userPermissions = (user as any)?.permissions ?? [];
-        const hasIntervenePerm = userPermissions.includes("pending_reports.intervene");
+        const userPermissions = livePermissions ?? (user as any)?.permissions ?? [];
+        const hasIntervenePerm = userPermissions.includes("pending_reports.intervene_field_visit");
         const hasFieldTeamPerm = userPermissions.includes("requests.manage_as_field_team");
-        if (user?.role !== 'field_team' && !hasFieldTeamPerm && !['super_admin', 'system_admin'].includes(user?.role || "") && !hasIntervenePerm) {
+        if (isIntervention ? !hasIntervenePerm : (user?.role !== 'field_team' && !hasFieldTeamPerm && !['super_admin', 'system_admin'].includes(user?.role || "") && !hasIntervenePerm)) {
           toast.error("ليس لديك صلاحية لرفع تقرير الزيارة الميدانية");
           navigate(`/requests/${requestId}`);
         }
       }
     }
-  }, [authLoading, isAuthenticated, user, navigate, requestId]);
+  }, [authLoading, permissionsLoading, livePermissions, isIntervention, isAuthenticated, user, navigate, requestId]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -262,6 +268,7 @@ export default function FieldInspectionForm() {
     try {
       await createReport.mutateAsync({
         requestId,
+        intervention: isIntervention,
         visitDate: new Date().toISOString(),
         mosqueCondition: formData.mosqueCondition,
         conditionRating: formData.conditionRating as "excellent" | "good" | "fair" | "poor" | "critical",

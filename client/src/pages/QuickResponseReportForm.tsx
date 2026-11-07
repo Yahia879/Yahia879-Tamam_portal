@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation, useParams } from "wouter";
+import { useLocation, useParams, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -148,6 +148,9 @@ export default function QuickResponseReportForm() {
   const [, navigate] = useLocation();
   const params = useParams<{ requestId: string }>();
   const requestId = parseInt(params.requestId || "0");
+  const interventionType = new URLSearchParams(useSearch()).get("intervene");
+  const isIntervention = interventionType === "quick_response" || interventionType === "quick_request";
+  const scopedType = interventionType === "quick_request" ? "quick_request" as const : "quick_response" as const;
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const utils = trpc.useUtils();
   
@@ -182,7 +185,7 @@ export default function QuickResponseReportForm() {
 
   // جلب بيانات الطلب
   const { data: requestData, isLoading: requestLoading } = trpc.requests.getById.useQuery(
-    { id: requestId },
+    { id: requestId, ...(isIntervention ? { reportType: scopedType, reportAccess: "intervene" as const } : {}) },
     { enabled: requestId > 0 }
   );
 
@@ -298,6 +301,7 @@ export default function QuickResponseReportForm() {
     try {
       await createReport.mutateAsync({
         requestId,
+        intervention: isIntervention,
         responseDate: new Date().toISOString(),
         technicalEvaluation: formData.technicalEvaluation,
         finalEvaluation: formData.finalEvaluation,

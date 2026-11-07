@@ -1,3 +1,4 @@
+import { REQUEST_REPORT_PERMISSIONS } from "@shared/requestReportPermissions";
 import { custodyPermissionSelection } from "@shared/custodyPermissions";
 import { GENERAL_QUOTATION_PERMISSIONS, GENERAL_QUOTATION_LABELS } from "@shared/quotationPermissions";
 import { DisbursementPermConfirmationModal } from "@/components/permissions/DisbursementPermConfirmationModal";
@@ -4097,19 +4098,7 @@ export default function UserPermissions() {
 
 
 
-      pending_reports: {
-
-
-
-        view: "عرض التقارير",
-
-
-
-        intervene: "تدخل لرفع التقرير"
-
-
-
-      },
+      pending_reports: Object.fromEntries(REQUEST_REPORT_PERMISSIONS.map(p => [p.action, p.nameAr])),
 
 
 
@@ -5812,7 +5801,7 @@ export default function UserPermissions() {
 
 
 
-        { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
+        { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: REQUEST_REPORT_PERMISSIONS.map(p => p.action) },
 
 
 
