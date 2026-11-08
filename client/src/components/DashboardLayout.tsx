@@ -404,7 +404,7 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   if (has("receipt_vouchers") || has("receipt_vouchers.view")) {
     finItems.push({ icon: Coins, label: "سندات القبض", path: "/receipt-vouchers" });
   }
-  if (has("fund") || has("fund.view") || has("fund.transfer") || has("fund.export")) {
+  if (has("fund") || has("fund.view") || has("fund.export")) {
     finItems.push({ icon: Landmark, label: "الصندوق", path: "/fund" });
   }
   if (custodyAccess({ role, customRole: { nameAr: customRoleNameAr, nameEn: customRoleNameEn } }, permissions).canEnter) {

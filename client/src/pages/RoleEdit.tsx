@@ -131,7 +131,7 @@ const superAdminGroups = [
       
       { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "create_project_linked", "create_from_fund", "create_donation", "create_tamam_platform", "create_custom", "edit", "approve", "exception_approve", "export"] },
       { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "create_project", "create_restricted", "create_unrestricted", "edit", "print", "exception_approve"] },
-      { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "transfer", "export"] },
+      { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "export"] },
       { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "approve", "reject", "exception_approve", "remind", "cancel_executed", "export"] },
       { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["projects", "disbursements", "contracts", "disbursement_orders", "receipt_vouchers", "export"] },
       { id: "custody_requests", nameAr: "العهدة المالية", icon: Wallet, perms: ["create", "request_exception"] },
@@ -618,7 +618,6 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     },
     fund: {
       view: "عرض إحصائيات وسجلات الصندوق",
-      transfer: "تحويل فائض من المشروع إلى الصندوق",
       export: "عرض سجلات حركات الصندوق"
     },
     receipt_vouchers: {
@@ -1146,10 +1145,10 @@ export default function RoleEdit() {
       }
     }
 
-    // منع تفعيل مالية المشاريع إلا بعد تفعيل صلاحيتي الصندوق
+    // تتطلب مالية المشاريع صلاحية عرض الصندوق
     if (permId === "projects.financials") {
-      if (!selectedPerms.includes("projects.financials") && (!selectedPerms.includes("fund.view") || !selectedPerms.includes("fund.transfer"))) {
-        toast.warning("يجب تفعيل صلاحيتي الصندوق ('عرض إحصائيات وسجلات الصندوق' و'تحويل فائض من المشروع إلى الصندوق') أولاً");
+      if (!selectedPerms.includes("projects.financials") && !selectedPerms.includes("fund.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض إحصائيات وسجلات الصندوق' أولاً");
         return;
       }
     }
@@ -1938,7 +1937,7 @@ export default function RoleEdit() {
                               (perm.id.startsWith("services.") && perm.id !== "services.view" && !selectedPerms.includes("services.view")) ||
                               (perm.id.startsWith("requests.") && perm.id !== "requests.view" && perm.id !== "requests.sign_final_report" && !selectedPerms.includes("requests.view")) ||
                               (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !selectedPerms.includes("projects.view")) ||
-                              (perm.id === "projects.financials" && (!selectedPerms.includes("fund.view") || !selectedPerms.includes("fund.transfer")) && !selectedPerms.includes("projects.financials")) ||
+                              (perm.id === "projects.financials" && !selectedPerms.includes("fund.view") && !selectedPerms.includes("projects.financials")) ||
                               ((perm.id === "projects.edit_support_and_fees" || perm.id === "projects.add_receipt_voucher") && !selectedPerms.includes("projects.financials")) ||
                               (perm.id.startsWith("progress_reports.") && perm.id !== "progress_reports.view" && !selectedPerms.includes("progress_reports.view")) ||
                               (perm.id.startsWith("progress_invoices.") && perm.id !== "progress_invoices.view" && !selectedPerms.includes("progress_invoices.view")) ||

@@ -80,8 +80,82 @@ export async function getFundAvailable(db: any, bucket: FundBucket, excludeReque
   };
 }
 
+export async function getFundRequestAvailability(db: any, bucket: FundBucket) {
+  const balance = await getFundAvailable(db, bucket);
+  let changeOrderReserved = 0;
+  let additionalReservation = 0;
+  if (bucket.restrictionType === "project" && bucket.restrictedProjectId) {
+    const orders = await db.select({
+      amount: projectChangeOrders.amount,
+      status: projectChangeOrders.status,
+      requestId: disbursementRequests.id,
+      requestAmount: disbursementRequests.amount,
+      requestStatus: disbursementRequests.status,
+      requestRestrictionType: disbursementRequests.fundRestrictionType,
+      requestProjectId: disbursementRequests.fundRestrictedProjectId,
+    }).from(projectChangeOrders)
+      .leftJoin(disbursementRequests, eq(projectChangeOrders.disbursementRequestId, disbursementRequests.id))
+      .where(eq(projectChangeOrders.projectId, bucket.restrictedProjectId));
+    const coveredByRequest = new Map<number, number>();
+    for (const order of orders) {
+      if (order.status === "rejected") continue;
+      const amount = Math.max(0, cents(order.amount));
+      const paid = order.requestStatus === "paid";
+      const reservedHere = order.requestStatus && order.requestStatus !== "rejected" && !paid &&
+        order.requestRestrictionType === "project" && order.requestProjectId === bucket.restrictedProjectId;
+      let covered = 0;
+      if (order.requestId && (paid || reservedHere)) {
+        // Pending linked requests are already deducted from spendable. Consume each
+        // request's coverage once, including historical orders sharing a request.
+        const remaining = coveredByRequest.get(order.requestId) ?? Math.max(0, cents(order.requestAmount));
+        covered = Math.min(amount, remaining);
+        coveredByRequest.set(order.requestId, remaining - covered);
+      }
+      changeOrderReserved += paid ? amount - covered : amount;
+      additionalReservation += amount - covered;
+    }
+  }
+  return {
+    ...balance,
+    changeOrderReserved: changeOrderReserved / 100,
+    unlinkedSpendable: Math.max(0, (cents(balance.spendable) - additionalReservation) / 100),
+  };
+}
+
 export async function lockFund(db: any) {
   await db.execute(sql`SELECT id FROM fund_lock WHERE id = 1 FOR UPDATE`);
+}
+
+// Call inside the transaction holding fund_lock, after saving project progress.
+export async function postCompletedProjectSurplus(tx: any, projectId: number, userId: number | null) {
+  const [project] = await tx.select().from(projects).where(eq(projects.id, projectId)).limit(1);
+  if (!project || Number(project.completionPercentage || 0) < 100 || project.status === "cancelled") return 0;
+  let available;
+  try {
+    available = await getProjectFundableAmounts(tx, projectId);
+  } catch (error) {
+    // A project without an approved cost has no transferable surplus yet.
+    if (error instanceof TRPCError && error.code === "BAD_REQUEST") return 0;
+    throw error;
+  }
+  if (available.surplusAvailable <= 0) return 0;
+  await tx.insert(fundMovements).values({
+    eventKey: `surplus:${projectId}:completion:${crypto.randomUUID()}`,
+    movementType: "surplus", amount: available.surplusAvailable.toFixed(2),
+    restrictionType: "project", restrictedProjectId: projectId, projectId,
+    sourceDetailsJson: JSON.stringify({ automatic: true, completionPercentage: 100, vouchers: available.vouchers }),
+    notes: "تحويل فائض المشروع تلقائياً إلى الصندوق عند اكتمال عمليات المشروع",
+    createdById: userId,
+  });
+  return available.surplusAvailable;
+}
+
+export async function updateProjectAndSettleSurplus(db: any, projectId: number, changes: any, userId: number) {
+  return db.transaction(async (tx: any) => {
+    await lockFund(tx);
+    await tx.update(projects).set(changes).where(eq(projects.id, projectId));
+    return postCompletedProjectSurplus(tx, projectId, userId);
+  });
 }
 
 export function voucherBucket(voucher: typeof receiptVouchers.$inferSelect): FundBucket | null {
@@ -96,6 +170,10 @@ export function voucherBucket(voucher: typeof receiptVouchers.$inferSelect): Fun
 }
 
 export async function postVoucherDeposit(db: any, voucher: typeof receiptVouchers.$inferSelect, userId?: number) {
+  if (voucher.projectId && voucher.status === "approved") {
+    await postCompletedProjectSurplus(db, voucher.projectId, userId || voucher.createdById);
+    return;
+  }
   const bucket = voucherBucket(voucher);
   if (!bucket || voucher.status !== "approved") return;
   if (bucket.restrictionType === "purpose" && !bucket.donationPurposeId) {

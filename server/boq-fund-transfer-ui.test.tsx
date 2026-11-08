@@ -49,15 +49,18 @@ vi.mock("@/lib/trpc", () => {
   }
   return { trpc: proxy() };
 });
-let BoqTab: any, NewFundTransferPage: () => React.ReactNode;
+let BoqTab: any, NewFundTransferPage: () => React.ReactNode, FundPage: () => React.ReactNode, NewLinkedRequest: () => React.ReactNode;
 beforeAll(async () => {
   vi.stubGlobal("React", React);
   BoqTab = (await import("../client/src/components/BoqTab")).default;
   NewFundTransferPage = (await import("../client/src/pages/NewFundTransferPage")).default;
+  FundPage = (await import("../client/src/pages/FundPage")).default;
+  NewLinkedRequest = (await import("../client/src/pages/NewLinkedDisbursementRequest")).default;
 });
 beforeEach(() => {
   state.slots = []; state.cursor = 0; state.effects = []; state.dirty = false; state.errors = []; state.navigation = []; state.mutations = [];
   vi.stubGlobal("window", { location: { search: "?projectId=19&source=surplus&context=change_orders&amount=1500" } });
+  vi.stubGlobal("sessionStorage", { getItem: () => null, setItem: vi.fn(), removeItem: vi.fn() });
   state.data = {
     "projects.getById": { project: { id: 19 } },
     "categories.getAllCategories": [],
@@ -69,6 +72,81 @@ beforeEach(() => {
     "projectChangeOrders.list": { funding: { pendingTransfer: 500 } },
     "fund.transferableProjects": [{ id: 19, projectNumber: "PRJ-19", name: "Project", available: 9000, changeOrderAvailable: 500 }],
   };
+});
+
+describe("fund request controls", () => {
+  function fundRequestStepTwo(unlinkedSpendable = 3500) {
+    (window.location as any).search = "";
+    state.data["permissions.getUserPermissions"] = ["disbursements.create_from_fund"];
+    state.data["projects.getAll"] = [{ id: 19, name: "Project", projectNumber: "PRJ-19" }];
+    state.data["fund.summary"] = { buckets: [{ restrictionType: "project", restrictedProjectId: 19, spendable: 5000, unlinkedSpendable, changeOrderReserved: 1500 }] };
+    state.data["projectChangeOrders.list"] = { orders: [{ id: 1, projectId: 19, amount: "1500", orderNumber: "CO-1", title: "Extra work", status: "boq_approved", items: [] }] };
+    let tree = render(NewLinkedRequest);
+    elements(tree).find(el => el.props.onClick && text(el).includes("التالي"))!.props.onClick(); tree = render(NewLinkedRequest);
+    elements(tree).find(el => el.props.onValueChange && text(el).includes("PRJ-19"))!.props.onValueChange("19");
+    return render(NewLinkedRequest);
+  }
+  it("prefills the unallocated 3500 instead of the full 5000 and blocks a higher amount", () => {
+    let tree = fundRequestStepTwo();
+    expect(text(tree)).toContain("المخصص لأوامر التغيير غير المصروفة: 1,500.00");
+    expect(text(tree)).toContain("المبلغ غير المخصص لأوامر التغيير: 3,500.00");
+    const amount = elements(tree).find(el => el.props.type === "number" && el.props.value === 3500 && el.props.onChange)!;
+    expect(amount).toBeDefined(); amount.props.onChange({ target: { value: "3500.01" } }); tree = render(NewLinkedRequest);
+    expect(text(tree)).toContain("أكبر من المبلغ غير المخصص لأوامر التغيير");
+    const next = elements(tree).find(el => el.props.onClick && text(el).includes("التالي"))!;
+    next.props.onClick(); tree = render(NewLinkedRequest);
+    expect(elements(tree).some(el => el.props.id === "link-fund-change-order")).toBe(true);
+    expect(state.mutations).toEqual([]);
+  });
+  it("rechecks the unlinked limit after switching back from a selected change order", () => {
+    let tree = fundRequestStepTwo(1000);
+    elements(tree).find(el => el.props.id === "link-fund-change-order")!.props.onCheckedChange(true); tree = render(NewLinkedRequest);
+    elements(tree).find(el => el.props.onValueChange && text(el).includes("CO-1"))!.props.onValueChange("1"); tree = render(NewLinkedRequest);
+    expect(text(tree)).toContain("الرصيد المتاح في الصندوق: 5,000.00");
+    expect(text(tree)).not.toContain("أكبر من المبلغ غير المخصص");
+    elements(tree).find(el => el.props.id === "link-fund-change-order")!.props.onCheckedChange(false); tree = render(NewLinkedRequest);
+    expect(text(tree)).toContain("المبلغ غير المخصص لأوامر التغيير: 1,000.00");
+    expect(text(tree)).toContain("أكبر من المبلغ غير المخصص لأوامر التغيير");
+  });
+  it("fails closed if allocation data is unavailable instead of offering the full balance", () => {
+    let tree = fundRequestStepTwo();
+    state.data["fund.summary"] = structuredClone(state.data["fund.summary"]);
+    delete state.data["fund.summary"].buckets[0].unlinkedSpendable;
+    tree = render(NewLinkedRequest);
+    expect(text(tree)).toContain("المبلغ غير المخصص لأوامر التغيير: 0.00");
+    expect(text(tree)).toContain("أكبر من المبلغ غير المخصص لأوامر التغيير");
+  });
+  it("removes the manual surplus section and transfer button from the fund page", () => {
+    const tree = render(FundPage);
+    expect(text(tree)).not.toContain("تحويل من مشروع");
+    expect(text(tree)).not.toContain("مشاريع الجمعية التي بها فائض مالي متاح للتحويل");
+    expect(elements(tree).some(el => el.props.onClick && text(el).includes("تحويل المبلغ للصندوق"))).toBe(false);
+  });
+  it("shows change orders only after explicitly checking the link option, and clears it when unchecked", () => {
+    (window.location as any).search = "";
+    state.data["permissions.getUserPermissions"] = ["disbursements.create_from_fund"];
+    state.data["projects.getAll"] = [{ id: 19, name: "Completed project", projectNumber: "PRJ-19", requestStage: "closed", requestStatus: "completed" }];
+    state.data["fund.summary"] = { buckets: [{ restrictionType: "project", restrictedProjectId: 19, spendable: 1000, unlinkedSpendable: 0, changeOrderReserved: 1000 }] };
+    state.data["projectChangeOrders.list"] = { orders: [{ id: 1, projectId: 19, amount: "1000", orderNumber: "CO-1", title: "Extra work", status: "boq_approved", items: [] }] };
+    let tree = render(NewLinkedRequest);
+    const next = elements(tree).find(el => el.props.onClick && text(el).includes("التالي"));
+    expect(next).toBeDefined(); next!.props.onClick(); tree = render(NewLinkedRequest);
+    const checkbox = elements(tree).find(el => el.props.id === "link-fund-change-order");
+    expect(checkbox).toBeDefined();
+    expect(checkbox!.props.checked).toBe(false);
+    expect(text(tree)).toContain("طلب صرف غير مرتبط بأمر تغيير");
+    // The completed project's retained fund balance is still selectable.
+    const projectSelect = elements(tree).find(el => el.props.onValueChange && text(el).includes("PRJ-19"));
+    expect(projectSelect).toBeDefined(); projectSelect!.props.onValueChange("19"); tree = render(NewLinkedRequest);
+    elements(tree).find(el => el.props.id === "link-fund-change-order")!.props.onCheckedChange(true); tree = render(NewLinkedRequest);
+    expect(text(tree)).toContain("أمر التغيير المرتبط بطلب الصرف");
+    const orderSelect = elements(tree).find(el => el.props.onValueChange && text(el).includes("CO-1"));
+    expect(orderSelect).toBeDefined(); orderSelect!.props.onValueChange("1"); tree = render(NewLinkedRequest);
+    expect(elements(tree).find(el => el.props.onValueChange && text(el).includes("CO-1"))!.props.value).toBe("1");
+    elements(tree).find(el => el.props.id === "link-fund-change-order")!.props.onCheckedChange(false); tree = render(NewLinkedRequest);
+    expect(text(tree)).toContain("طلب صرف غير مرتبط بأمر تغيير");
+    expect(elements(tree).some(el => el.props.onValueChange && text(el).includes("CO-1"))).toBe(false);
+  });
 });
 function render(page: () => React.ReactNode) {
   for (let i = 0; i < 8; i++) {

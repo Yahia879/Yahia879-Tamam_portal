@@ -404,6 +404,8 @@ export default function NewLinkedDisbursementRequest() {
     : "custom";
 
   const handleCategoryChange = (cat: "donation_opportunity" | "fund_project_surplus" | "tamam_platform" | "approved_report" | "custom") => {
+    setLinkFundChangeOrder(false);
+    setSelectedChangeOrderId(null);
     setSelectedReportId(null);
     setIsAdvanceSelected(false);
     setIsFinalClosingSelected(false);
@@ -739,7 +741,7 @@ export default function NewLinkedDisbursementRequest() {
   ]);
   
   // جلب المشاريع (مع استبعاد المشاريع التي طلبها المرتبط مغلق)
-  const { data: projects } = trpc.projects.getAll.useQuery({ excludeClosedRequests: true });
+  const { data: projects } = trpc.projects.getAll.useQuery({ excludeClosedRequests: !isFundProjectSurplus, limit: 200 });
   
   // جلب فرص التبرع النشطة (مع استبعاد الفرص التي طلبها المرتبط مغلق)
   const { data: donationOpportunities } = trpc.disbursements.getActiveDonations.useQuery(
@@ -759,10 +761,13 @@ export default function NewLinkedDisbursementRequest() {
   }, [projects]);
 
   const [selectedChangeOrderId, setSelectedChangeOrderId] = useState<number | null>(null);
-  const { data: fundSummary } = trpc.fund.summary.useQuery(undefined, { enabled: isFundProjectSurplus });
+  const [linkFundChangeOrder, setLinkFundChangeOrder] = useState(false);
+  const { data: fundSummary } = trpc.fund.summary.useQuery(undefined, {
+    enabled: isFundProjectSurplus, staleTime: 0, refetchOnMount: "always", refetchOnWindowFocus: true,
+  });
   const { data: projectChangeOrdersData } = trpc.projectChangeOrders.list.useQuery(
     { projectId: formData.projectId },
-    { enabled: isFundProjectSurplus && formData.projectId > 0 }
+    { enabled: isFundProjectSurplus && linkFundChangeOrder && formData.projectId > 0 }
   );
   const availableChangeOrders = useMemo(() => {
     return (projectChangeOrdersData?.orders || []).filter(
@@ -773,16 +778,22 @@ export default function NewLinkedDisbursementRequest() {
     const balances = new Map(
       (fundSummary?.buckets || [])
         .filter((bucket) => bucket.restrictionType === "project" && bucket.restrictedProjectId && bucket.spendable > 0)
-        .map((bucket) => [bucket.restrictedProjectId!, bucket.spendable])
+        .map((bucket) => [bucket.restrictedProjectId!, {
+          fundAvailable: bucket.spendable,
+          unlinkedFundAvailable: bucket.unlinkedSpendable,
+          changeOrderReserved: bucket.changeOrderReserved,
+        }])
     );
-    return activeProjects
+    return (projects || [])
       .filter((project: any) => balances.has(project.id))
-      .map((project: any) => ({ ...project, fundAvailable: balances.get(project.id) || 0 }));
-  }, [activeProjects, fundSummary]);
+      .map((project: any) => ({ ...project, ...balances.get(project.id) }));
+  }, [projects, fundSummary]);
+  const selectedFundProject = fundSurplusProjects.find((project: any) => project.id === formData.projectId);
   const selectedFundSurplus = useMemo(
-    () => fundSurplusProjects.find((project: any) => project.id === formData.projectId)?.fundAvailable || 0,
-    [formData.projectId, fundSurplusProjects]
+    () => Number((linkFundChangeOrder ? selectedFundProject?.fundAvailable : selectedFundProject?.unlinkedFundAvailable) || 0),
+    [selectedFundProject, linkFundChangeOrder]
   );
+  const fundBalanceLabel = linkFundChangeOrder ? "الرصيد المتاح في الصندوق" : "المبلغ غير المخصص لأوامر التغيير";
 
   // استبعاد أي فرصة تبرع يكون طلبها المرتبط مغلقاً أو مكتملاً
   const activeDonationOpportunities = useMemo(() => {
@@ -1663,6 +1674,7 @@ export default function NewLinkedDisbursementRequest() {
   
   // دالة التحقق من تعطيل زر الانتقال من الخطوة 2 إلى الخطوة 3
   const isStep2NextDisabled = () => {
+    if (isFundProjectSurplus && linkFundChangeOrder && !selectedChangeOrderId) return true;
     const isFundingRequired = requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses";
     if ((isFundingRequired && !formData.fundingSupport) || !formData.mainProjectName) return true;
 
@@ -1720,7 +1732,7 @@ export default function NewLinkedDisbursementRequest() {
   // معالجة النقر على زر "التالي" بالخطوة الثانية
   const handleStep2Next = () => {
     if (isFundSurplusExceeded) {
-      toast.error(`لا يمكن المتابعة: المبلغ مع الأجور الإدارية (${fundSurplusCharge.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال) أكبر من فائض المشروع المتاح في الصندوق (${selectedFundSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال).`);
+      toast.error(`لا يمكن المتابعة: المبلغ مع الأجور الإدارية (${fundSurplusCharge.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال) أكبر من ${fundBalanceLabel} (${selectedFundSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال).`);
       return;
     }
     if (isDisbursementUnderProgress && !isUnderProgressConfirmed) {
@@ -1808,7 +1820,7 @@ export default function NewLinkedDisbursementRequest() {
       return;
     }
     if (isFundProjectSurplus && totalAmount + formData.adminFees > selectedFundSurplus + 0.001) {
-      toast.error(`المبلغ مع الأجور الإدارية يتجاوز فائض المشروع المتاح في الصندوق (${selectedFundSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)`);
+      toast.error(`المبلغ مع الأجور الإدارية يتجاوز ${fundBalanceLabel} (${selectedFundSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)`);
       return;
     }
     if (isTamamLinked) {
@@ -1871,10 +1883,18 @@ export default function NewLinkedDisbursementRequest() {
 
   const executeDisbursementSubmit = (useGeneralAccount: boolean) => {
     if (isFundProjectSurplus) {
+      if (isFundSurplusExceeded) {
+        toast.error(`المبلغ مع الأجور الإدارية يتجاوز ${fundBalanceLabel} (${selectedFundSurplus.toFixed(2)} ريال)`);
+        return;
+      }
+      if (linkFundChangeOrder && !selectedChangeOrderId) {
+        toast.error("يرجى اختيار أمر التغيير المرتبط بطلب الصرف");
+        return;
+      }
       const supplier = suppliers[0];
       createFundSurplusMutation.mutate({
         projectId: formData.projectId,
-        changeOrderId: selectedChangeOrderId || undefined,
+        changeOrderId: linkFundChangeOrder ? selectedChangeOrderId || undefined : undefined,
         title: formData.title,
         description: formData.requiredWorksDesc.trim(),
         amount: totalAmount,
@@ -2323,16 +2343,18 @@ export default function NewLinkedDisbursementRequest() {
                           const projectId = Number(value);
                           const project = fundSurplusProjects.find((item: any) => item.id === projectId);
                           setSelectedChangeOrderId(null);
+                          setLinkFundChangeOrder(false);
                           setFormData((prev) => ({
                             ...prev,
                             projectId,
+                            requiredWorksDesc: "",
                             mainProjectName: project?.name || "",
                             customProjectName: project?.name || "",
                             fundingSupport: "فائض المشروع في صندوق الجمعية",
-                            amount: Number(project?.fundAvailable || 0),
+                            amount: Number(project?.unlinkedFundAvailable || 0),
                           }));
                           setSuppliers((previous) => previous.map((supplier, index) => index === 0
-                            ? { ...supplier, amount: Number(project?.fundAvailable || 0) }
+                            ? { ...supplier, amount: Number(project?.unlinkedFundAvailable || 0) }
                             : supplier
                           ));
                         }}
@@ -2351,11 +2373,32 @@ export default function NewLinkedDisbursementRequest() {
                       <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-500">لا توجد مشاريع لها فوائض متاحة في الصندوق حالياً.</p>
                     )}
 
-                    {/* اختيار بنود أمر التغيير المسعّرة في جدول الكميات إن وُجدت */}
-                    {formData.projectId > 0 && availableChangeOrders.length > 0 && (
+                    <div className="flex items-center gap-2 rounded-xl border border-border p-3" dir="rtl">
+                      <Checkbox
+                        id="link-fund-change-order"
+                        checked={linkFundChangeOrder}
+                        onCheckedChange={(checked) => {
+                          setLinkFundChangeOrder(checked === true);
+                          if (selectedChangeOrderId) setFormData(previous => ({ ...previous, requiredWorksDesc: "" }));
+                          setSelectedChangeOrderId(null);
+                        }}
+                      />
+                      <Label htmlFor="link-fund-change-order" className="cursor-pointer text-xs font-bold">ربط طلب الصرف بأمر تغيير</Label>
+                    </div>
+                    {!linkFundChangeOrder && <p className="text-xs text-muted-foreground">طلب صرف غير مرتبط بأمر تغيير.</p>}
+                    {selectedFundProject && (
+                      <div className="space-y-1 rounded-xl border border-amber-200 bg-amber-50/50 p-3 text-xs" dir="rtl">
+                        <p>المخصص لأوامر التغيير غير المصروفة: {Number(selectedFundProject.changeOrderReserved || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال</p>
+                        <p className="font-bold" role="status">{fundBalanceLabel}: {selectedFundSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال، شاملاً الأجور الإدارية.</p>
+                      </div>
+                    )}
+                    {linkFundChangeOrder && availableChangeOrders.length === 0 && (
+                      <p className="text-xs text-amber-800">لا توجد أوامر تغيير متاحة للربط في المشروع المحدد.</p>
+                    )}
+                    {linkFundChangeOrder && formData.projectId > 0 && availableChangeOrders.length > 0 && (
                       <div className="mt-3 space-y-2 rounded-xl border border-indigo-200 bg-indigo-50/50 p-3.5 text-right">
                         <Label className="text-xs font-bold text-indigo-950 block">
-                          بنود أمر التغيير المعتمدة في جدول الكميات (اختياري لربط طلب الصرف ببنود أمر التغيير)
+                          أمر التغيير المرتبط بطلب الصرف *
                         </Label>
                         <Select
                           value={selectedChangeOrderId ? String(selectedChangeOrderId) : ""}
@@ -3170,7 +3213,7 @@ export default function NewLinkedDisbursementRequest() {
                 {isFundSurplusExceeded && (
                   <div className="mb-3 flex basis-full items-start gap-2 rounded-xl border border-red-300 bg-red-50 px-3 py-2.5 text-right text-xs font-semibold text-red-800">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
-                    <span>لا يمكن المتابعة: المبلغ مع الأجور الإدارية ({fundSurplusCharge.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال) أكبر من فائض المشروع المتاح في الصندوق ({selectedFundSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال).</span>
+                    <span>لا يمكن المتابعة: المبلغ مع الأجور الإدارية ({fundSurplusCharge.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال) أكبر من {fundBalanceLabel} ({selectedFundSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال).</span>
                   </div>
                 )}
                 <Button

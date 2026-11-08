@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useLocation } from "wouter";
 
@@ -28,7 +28,6 @@ import {
 
   Building2,
 
-  ArrowRightLeft,
 
   Loader2,
 
@@ -85,7 +84,7 @@ export default function FundPage() {
 
   const canViewFund = usePermission("fund.view") || usePermission("fund");
 
-  const canTransferToFund = usePermission("fund.transfer");
+
 
   const canViewMovements = usePermission("fund.export");
 
@@ -95,28 +94,7 @@ export default function FundPage() {
 
 
 
-  useEffect(() => {
-
-    const params = new URLSearchParams(query);
-
-    if (params.has("projectId") && params.has("source")) {
-
-      navigate(`/fund/transfers/new${query}`);
-
-    }
-
-  }, [navigate, query]);
-
-
-
   const { data: summary, isLoading } = trpc.fund.summary.useQuery();
-
-  const utils = trpc.useUtils();
-
-  const { data: surplusProjects = [], isLoading: isLoadingSurplus } =
-
-    trpc.fund.transferableProjects.useQuery({ source: "surplus" });
-
 
 
   const { data: movements = [], isLoading: isLoadingMovements } = trpc.fund.movements.useQuery(
@@ -507,21 +485,6 @@ export default function FundPage() {
 
 
 
-          {canTransferToFund && (
-
-            <div className="flex items-center gap-2 flex-wrap">
-
-              <Button onClick={() => navigate("/fund/transfers/new")} className="bg-indigo-700 hover:bg-indigo-800 text-white font-bold">
-
-                <ArrowRightLeft className="w-4 h-4 ml-2" />
-
-                تحويل من مشروع
-
-              </Button>
-
-            </div>
-
-          )}
 
         </div>
 
@@ -622,172 +585,6 @@ export default function FundPage() {
           </div>
 
         </div>
-
-
-
-        {/* ========================================================================= */}
-
-        {/* قسم المشاريع التي بها فائض مالي متاح للتحويل إلى الصندوق */}
-
-        {/* ========================================================================= */}
-
-        <Card className="shadow-xs border-emerald-200/90 bg-gradient-to-b from-emerald-50/20 to-card overflow-hidden">
-
-          <CardHeader className="border-b border-emerald-100/80 bg-transparent pb-3.5">
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-
-              <div className="flex items-center gap-2.5">
-
-                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-
-                  <Coins className="w-5 h-5" />
-
-                </div>
-
-                <div>
-
-                  <div className="flex items-center gap-2 flex-wrap">
-
-                    <CardTitle className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
-
-                      مشاريع الجمعية التي بها فائض مالي متاح للتحويل
-
-                    </CardTitle>
-
-                    <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-xs font-bold">
-
-                      {surplusProjects.length} {surplusProjects.length === 1 ? "مشروع به فائض" : "مشاريع بها فائض"}
-
-                    </Badge>
-
-                  </div>
-
-                  <CardDescription className="text-xs mt-0.5">
-
-                    المشاريع التي تجاوزت مبالغ سندات قبضها التكلفة المعتمدة، مع إمكانية تحويل الفائض مباشرة إلى الصندوق
-
-                  </CardDescription>
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </CardHeader>
-
-          <CardContent className="pt-4">
-
-            {isLoadingSurplus ? (
-
-              <div className="py-8 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
-
-                <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
-
-                <span>جاري فحص وتحديث فوائض المشاريع...</span>
-
-              </div>
-
-            ) : surplusProjects.length === 0 ? (
-
-              <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-dashed border-slate-200 dark:border-slate-800 text-center space-y-1.5">
-
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">لا توجد مشاريع بها فائض مالي متاح للتحويل حالياً</p>
-
-                <p className="text-xs text-muted-foreground">
-
-                  عند تجاوز المقبوضات الفعلية لأي مشروع تكلفته المعتمدة، سيظهر تلقائياً هنا مع زر التحويل المباشر للصندوق.
-
-                </p>
-
-              </div>
-
-            ) : (
-
-              <div className="space-y-3">
-
-                {surplusProjects.map((proj: any) => (
-
-                  <div
-
-                    key={proj.id}
-
-                    className="p-4 rounded-xl border border-emerald-200/70 bg-card hover:border-emerald-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs"
-
-                  >
-
-                    <div className="flex items-center gap-2 flex-wrap min-w-0">
-
-                      <span className="font-black text-sm sm:text-base text-foreground">
-
-                        {proj.name}
-
-                      </span>
-
-                      <Badge variant="outline" className="text-[10px] font-bold border-slate-300 bg-slate-50 dark:bg-slate-900">
-
-                        {proj.projectNumber}
-
-                      </Badge>
-
-                      {Number(proj.changeOrderAvailable || 0) > 0 && (
-                        <Badge variant="outline" className="text-[10px] font-bold border-indigo-300 bg-indigo-50 text-indigo-800">
-                          بنود أمر تغيير مسعّرة: {format(Number(proj.changeOrderAvailable))} ر.س
-                        </Badge>
-                      )}
-
-                    </div>
-
-
-
-                    <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
-
-                      <div className="text-right">
-
-                        <span className="text-[10px] block font-semibold text-muted-foreground">المبلغ المتاح للتحويل للصندوق</span>
-
-                        <span className="font-sans text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1">
-
-                          +{format(proj.available)} <SaudiRiyal className="w-3.5 h-3.5" />
-
-                        </span>
-
-                      </div>
-
-
-
-                      {canTransferToFund && (
-
-                        <Button
-
-                          onClick={() => navigate(`/fund/transfers/new?projectId=${proj.id}&source=surplus&amount=${Number(proj.changeOrderAvailable || 0) > 0 ? proj.changeOrderAvailable : proj.available}`)}
-
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4 rounded-xl shadow-xs gap-1.5 cursor-pointer shrink-0"
-
-                        >
-
-                          <ArrowRightLeft className="w-4 h-4" />
-
-                          <span>تحويل المبلغ للصندوق</span>
-
-                        </Button>
-
-                      )}
-
-                    </div>
-
-                  </div>
-
-                ))}
-
-              </div>
-
-            )}
-
-          </CardContent>
-
-        </Card>
 
 
 

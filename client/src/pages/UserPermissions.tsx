@@ -1110,7 +1110,7 @@ export default function UserPermissions() {
 
 
 
-    // منع تفعيل مالية المشاريع إلا بعد تفعيل صلاحيتي الصندوق
+    // تتطلب مالية المشاريع صلاحية عرض الصندوق
 
 
 
@@ -1118,11 +1118,11 @@ export default function UserPermissions() {
 
 
 
-      if (!isChecked("projects.financials") && (!isChecked("fund.view") || !isChecked("fund.transfer"))) {
+      if (!isChecked("projects.financials") && !isChecked("fund.view")) {
 
 
 
-        toast.warning("يجب تفعيل صلاحيتي الصندوق ('عرض إحصائيات وسجلات الصندوق' و'تحويل فائض من المشروع إلى الصندوق') أولاً");
+        toast.warning("يجب تفعيل صلاحية 'عرض إحصائيات وسجلات الصندوق' أولاً");
 
 
 
@@ -4708,7 +4708,6 @@ export default function UserPermissions() {
 
         view: "عرض إحصائيات وسجلات الصندوق",
 
-        transfer: "تحويل فائض من المشروع إلى الصندوق",
 
         export: "عرض سجلات حركات الصندوق"
 
@@ -5923,7 +5922,7 @@ export default function UserPermissions() {
 
 
 
-        { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "transfer", "export"] },
+        { id: "fund", nameAr: "الصندوق", icon: Landmark, perms: ["view", "export"] },
 
 
 
@@ -7915,7 +7914,7 @@ export default function UserPermissions() {
 
 
 
-                              (perm.id === "projects.financials" && (!isChecked("fund.view") || !isChecked("fund.transfer")) && !isChecked("projects.financials")) ||
+                              (perm.id === "projects.financials" && !isChecked("fund.view") && !isChecked("projects.financials")) ||
 
 
 

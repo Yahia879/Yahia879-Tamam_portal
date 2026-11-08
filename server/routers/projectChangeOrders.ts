@@ -40,6 +40,7 @@ async function authorizeView(userId: number) {
     "projects.edit_support_and_fees",
     "projects.add_receipt_voucher",
     "boq.view",
+    "disbursements.create_from_fund",
   ]) {
     if (await checkPermission(userId, permission)) return;
   }

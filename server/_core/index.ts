@@ -24,6 +24,7 @@ try {
 }
 
 import "dotenv/config";
+import { startCompletedProjectSurplusSettlement } from "../completed-project-surplus";
 import express from "express";
 
 // Ensure NODE_ENV is set, default to development unless running from dist
@@ -194,6 +195,7 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    startCompletedProjectSurplusSettlement();
   });
 }
 

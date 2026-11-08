@@ -9,7 +9,7 @@ import { TRPCError } from "@trpc/server";
 import { checkPermission } from "../permissions";
 import { notifyProjectManagerAssigned, notifyQuotationCreation, notifyQuotationApproval } from "./notifications";
 import { numberToArabicText } from "../../shared/tafqeet";
-import { lockFund, postVoucherDeposit, reverseVoucherDeposit } from "../fund";
+import { lockFund, postVoucherDeposit, reverseVoucherDeposit, updateProjectAndSettleSurplus, postCompletedProjectSurplus } from "../fund";
 
 // توليد رقم مشروع بمنهجية سنوية فريدة وآمنة تمنع أي تكرار
 export async function generateProjectNumber(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<string> {
@@ -1571,7 +1571,7 @@ export const projectsRouter = router({
       startDate: z.date().optional(),
       endDate: z.date().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
@@ -1599,10 +1599,7 @@ export const projectsRouter = router({
       if (updateData.startDate) updateValues.startDate = updateData.startDate;
       if (updateData.endDate) updateValues.endDate = updateData.endDate;
 
-      await db
-        .update(projects)
-        .set(updateValues)
-        .where(eq(projects.id, id));
+      await updateProjectAndSettleSurplus(db, id, updateValues, ctx.user.id);
 
       // إرسال إشعار لمدير المشروع إذا تم تعيين مدير جديد ومختلف عن السابق
       if (updateData.managerId && oldProject && oldProject.managerId !== updateData.managerId) {
@@ -3896,59 +3893,61 @@ export const projectsRouter = router({
       startDate: z.date().optional(),
       endDate: z.date().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const { id, ...updateData } = input;
+      return db.transaction(async (tx) => {
+        await lockFund(tx);
+        const { id, ...updateData } = input;
 
-      await db
-        .update(projectPhases)
-        .set(updateData)
-        .where(eq(projectPhases.id, id));
+        await tx
+          .update(projectPhases)
+          .set(updateData)
+          .where(eq(projectPhases.id, id));
 
-      // جلب معرف المشروع المرتبط بالمرحلة
-      const [phase] = await db.select({ 
-        projectId: projectPhases.projectId,
-        phaseOrder: projectPhases.phaseOrder,
-        phaseName: projectPhases.phaseName
-      }).from(projectPhases).where(eq(projectPhases.id, id));
+        // جلب معرف المشروع المرتبط بالمرحلة
+        const [phase] = await tx.select({
+          projectId: projectPhases.projectId,
+          phaseOrder: projectPhases.phaseOrder,
+          phaseName: projectPhases.phaseName
+        }).from(projectPhases).where(eq(projectPhases.id, id));
       
-      if (phase && phase.projectId) {
-        // إذا تم إكمال المرحلة الرابعة (التعاقد)، نقوم باعتماد العقد تلقائياً
-        if (phase.phaseOrder === 4 && updateData.status === "completed") {
-          console.log(`[updatePhase] Phase 4 completed for project ${phase.projectId}. Approving contract...`);
-          await db.update(contractsEnhanced)
-            .set({
-              status: "approved",
-              approvedAt: new Date(),
-              updatedAt: new Date(),
-            })
-            .where(
-              and(
-                eq(contractsEnhanced.projectId, phase.projectId),
-                or(
-                  eq(contractsEnhanced.status, "draft"),
-                  eq(contractsEnhanced.status, "pending_approval")
+        if (phase && phase.projectId) {
+          // إذا تم إكمال المرحلة الرابعة (التعاقد)، نقوم باعتماد العقد تلقائياً
+          if (phase.phaseOrder === 4 && updateData.status === "completed") {
+            console.log(`[updatePhase] Phase 4 completed for project ${phase.projectId}. Approving contract...`);
+            await tx.update(contractsEnhanced)
+              .set({
+                status: "approved",
+                approvedAt: new Date(),
+                updatedAt: new Date(),
+              })
+              .where(
+                and(
+                  eq(contractsEnhanced.projectId, phase.projectId),
+                  or(
+                    eq(contractsEnhanced.status, "draft"),
+                    eq(contractsEnhanced.status, "pending_approval")
+                  )
                 )
-              )
-            );
-        }
+              );
+          }
 
-        // جلب جميع مراحل المشروع لحساب الإجمالي
-        const phases = await db.select().from(projectPhases).where(eq(projectPhases.projectId, phase.projectId));
+          // جلب جميع مراحل المشروع لحساب الإجمالي
+          const phases = await tx.select().from(projectPhases).where(eq(projectPhases.projectId, phase.projectId));
         
-        if (phases.length > 0) {
-          const totalCompletion = phases.reduce((sum, p) => sum + (p.completionPercentage || 0), 0);
-          const projectPercentage = Math.round(totalCompletion / phases.length);
+          if (phases.length > 0) {
+            const totalCompletion = phases.reduce((sum, p) => sum + (p.completionPercentage || 0), 0);
+            const projectPercentage = Math.round(totalCompletion / phases.length);
           
-          await db.update(projects)
-            .set({ completionPercentage: projectPercentage })
-            .where(eq(projects.id, phase.projectId));
+            await tx.update(projects).set({ completionPercentage: projectPercentage }).where(eq(projects.id, phase.projectId));
+            await postCompletedProjectSurplus(tx, phase.projectId, ctx.user.id);
+          }
         }
-      }
 
-      return { success: true };
+        return { success: true };
+      });
     }),
 
   // ==================== الإحصائيات ====================
@@ -4334,7 +4333,7 @@ export const projectsRouter = router({
         updateData.milestones = JSON.stringify(input.milestones);
       }
 
-      await db.update(projects).set(updateData).where(eq(projects.id, input.id));
+      await updateProjectAndSettleSurplus(db, input.id, updateData, ctx.user.id);
       return { success: true };
     }),
 

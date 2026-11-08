@@ -5,7 +5,7 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { checkPermission } from "../permissions";
 import { categories, disbursementRequests, fundMovements, projectChangeOrders, projects, receiptVouchers } from "../../drizzle/schema";
-import { FundBucket, getFundAvailable, getProjectFundableAmounts, lockFund, money } from "../fund";
+import { FundBucket, getFundRequestAvailability, getProjectFundableAmounts, lockFund, money } from "../fund";
 import { notifyDisbursementRequestCreation } from "./notifications";
 
 const amountSchema = z.number().finite().positive().refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6, "المبلغ يجب أن يكون بدقة هللتين");
@@ -18,9 +18,9 @@ const destinationSchema = z.object({
 async function authorize(ctx: any, action: "view" | "transfer" | "disburse" | "movements") {
   const permissionId = action === "disburse" ? "disbursements.create_from_fund"
     : action === "movements" ? "fund.export"
-    : `fund.${action}`;
+    : action === "transfer" ? "projects.financials" : `fund.${action}`;
   if (await checkPermission(ctx.user.id, permissionId)) return;
-  if (action === "view" && (await checkPermission(ctx.user.id, "fund.transfer") || await checkPermission(ctx.user.id, "fund.export"))) return;
+  if (action === "view" && await checkPermission(ctx.user.id, "fund.export")) return;
   throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لهذا الإجراء في الصندوق" });
 }
 
@@ -101,7 +101,7 @@ export const fundRouter = router({
         restrictionType: row.restrictionType, donationPurposeId: row.donationPurposeId,
         donationPurposeName: row.donationPurposeName, restrictedProjectId: row.restrictedProjectId,
       };
-      const balance = await getFundAvailable(db, bucket);
+      const balance = await getFundRequestAvailability(db, bucket);
       return { ...bucket, ...balance };
     }));
     return {
@@ -243,10 +243,26 @@ export const fundRouter = router({
       if (bucket.restrictionType === "project" && input.projectId !== bucket.restrictedProjectId) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "هذا الرصيد مخصص للمشروع المرتبط به فقط" });
       }
-      const balance = await getFundAvailable(tx, bucket);
+      const balance = await getFundRequestAvailability(tx, bucket);
       const totalCharge = money(input.amount + input.adminFees);
-      if (Math.round(totalCharge * 100) > Math.round(balance.spendable * 100)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: `الرصيد المتاح لطلب صرف جديد من هذا المصرف ${balance.spendable.toFixed(2)} ريال` });
+      const limit = input.changeOrderId ? balance.spendable : balance.unlinkedSpendable;
+      if (Math.round(totalCharge * 100) > Math.round(limit * 100)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: input.changeOrderId
+          ? `الرصيد المتاح لطلب صرف جديد من هذا المصرف ${limit.toFixed(2)} ريال`
+          : `المبلغ المتاح للصرف غير المرتبط بأوامر التغيير ${limit.toFixed(2)} ريال فقط، شاملاً الأجور الإدارية` });
+      }
+      if (input.changeOrderId) {
+        const [order] = await tx.select().from(projectChangeOrders)
+          .where(eq(projectChangeOrders.id, input.changeOrderId)).limit(1);
+        if (!order || order.projectId !== input.projectId || order.status === "rejected") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "أمر التغيير غير متاح للمشروع المحدد" });
+        }
+        if (order.disbursementRequestId) {
+          throw new TRPCError({ code: "CONFLICT", message: "أمر التغيير مرتبط بطلب صرف مسبقاً" });
+        }
+        if (Math.round(Number(order.amount) * 100) !== Math.round(input.amount * 100)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "مبلغ طلب الصرف يجب أن يطابق مبلغ أمر التغيير" });
+        }
       }
       const createdReq = await insertFundRequest(tx, input, bucket, ctx.user.id);
 
@@ -259,19 +275,6 @@ export const fundRouter = router({
           supplierIban: input.beneficiaryIban || null,
           status: "disbursement_created",
         }).where(eq(projectChangeOrders.id, input.changeOrderId));
-      } else if (input.projectId) {
-        const [matchingOrder] = await tx.select().from(projectChangeOrders)
-          .where(eq(projectChangeOrders.projectId, input.projectId))
-          .orderBy(desc(projectChangeOrders.id));
-        if (matchingOrder && !matchingOrder.disbursementRequestId && Math.round(Number(matchingOrder.amount) * 100) === Math.round(input.amount * 100)) {
-          await tx.update(projectChangeOrders).set({
-            disbursementRequestId: createdReq.id,
-            supplierName: input.beneficiaryName,
-            supplierBank: input.beneficiaryBank || null,
-            supplierIban: input.beneficiaryIban || null,
-            status: "disbursement_created",
-          }).where(eq(projectChangeOrders.id, matchingOrder.id));
-        }
       }
 
       return createdReq;

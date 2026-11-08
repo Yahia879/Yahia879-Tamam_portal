@@ -249,9 +249,9 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "orders_and_letters.purchase_orders_create_disbursement",
     "csr_letters.create_disbursement"
   ],
-  "/fund": ["fund.view", "fund.transfer"],
-  "/fund/movements": ["fund.view", "fund.transfer"],
-  "/fund/transfers/new": ["fund.transfer"],
+  "/fund": ["fund.view"],
+  "/fund/movements": ["fund.view"],
+  "/fund/transfers/new": ["projects.financials"],
   "/receipt-vouchers": ["receipt_vouchers", "receipt_vouchers.view", "receipt_vouchers.create_project", "receipt_vouchers.create_restricted", "receipt_vouchers.create_unrestricted", "receipt_vouchers.create", "receipt_vouchers.edit", "receipt_vouchers.print", "receipt_vouchers.exception_approve"],
   "/receipt-vouchers/new": [
     "receipt_vouchers.create_project",

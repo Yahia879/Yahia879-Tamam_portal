@@ -57,6 +57,7 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
     const canAdd = usePermission("boq.add");
     const canEdit = usePermission("boq.edit");
     const canDelete = usePermission("boq.delete");
+    const canTransfer = usePermission("projects.financials");
     const canImport = usePermission("boq.import");
     const canExport = usePermission("boq.export");
 
@@ -794,7 +795,7 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                       : `المتبقي للتحويل إلى الصندوق: ${pendingTransfer.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`}
                   </p>
                 </div>
-                {!isTransferLoading && !transferUnavailable && pendingTransfer > 0 && targetProjectId && (
+                {canTransfer && !isTransferLoading && !transferUnavailable && pendingTransfer > 0 && targetProjectId && (
                   <Button
                     type="button"
                     size="sm"

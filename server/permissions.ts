@@ -316,11 +316,11 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
 
 
-  fund: ["fund.view", "fund.transfer", "fund.export"],
+  fund: ["fund.view", "fund.export"],
 
   "fund.view": ["fund.view"],
 
-  "fund.transfer": ["fund.transfer", "fund.view"],
+
 
   "fund.export": ["fund.export", "fund.view"],
 
@@ -3495,7 +3495,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       { id: "fund.view", moduleId: "disbursements", action: "fund_view", nameAr: "عرض إحصائيات وسجلات الصندوق", nameEn: "View Fund Statistics and Records" },
 
-      { id: "fund.transfer", moduleId: "disbursements", action: "fund_transfer", nameAr: "تحويل فائض من المشروع إلى الصندوق", nameEn: "Transfer Project Surplus to Fund" },
 
       { id: "requests.create_quick_request", moduleId: "requests", action: "create_quick_request", nameAr: "إنشاء طلب سريع", nameEn: "Create Quick Request" },
 
@@ -5725,7 +5724,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
   // 7. الصندوق
 
-  const fundSubPerms = ["fund.view", "fund.transfer", "fund.export"];
+  const fundSubPerms = ["fund.view", "fund.export"];
 
   if (revokedPermissions.has("fund") || revokedPermissions.has("fund.view") || !allPermissions.has("fund.view")) {
 

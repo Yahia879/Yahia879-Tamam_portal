@@ -158,7 +158,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
   const isFaaa8User = user?.email === "solayani@manarah.org.sa";
   const hasExceptionApprove = usePermission("receipt_vouchers.exception_approve");
   const hasFinancials = usePermission("projects.financials");
-  const canTransferToFund = usePermission("fund.transfer") || ["financial", "financial_manager"].includes(user?.role || "");
+  const canTransferToFund = usePermission("projects.financials");
   const canDisburseFromFund = usePermission("disbursements.create_from_fund");
   const canEditSupportPerm = usePermission("projects.edit_support_and_fees");
   const canAddReceiptPerm = usePermission("projects.add_receipt_voucher");

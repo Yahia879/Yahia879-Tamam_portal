@@ -49,6 +49,7 @@ import { CsrLettersView } from "./CsrLettersList";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { isProjectBoqApproved } from "../../../shared/projectBoq";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -442,7 +443,7 @@ export default function ProjectDetailsPage() {
   };
 
   // التحقق مما إذا كان جدول الكميات مقفلاً (يتوقف التعديل عند اعتماد عرض سعر أو بدء مرحلة التعاقد والتنفيذ)
-  const isBOQLocked = hasApprovedQuotation || Boolean(project?.phases?.some(p => 
+  const isBOQLocked = isProjectBoqApproved(project) || hasApprovedQuotation || Boolean(project?.phases?.some(p =>
     p.phaseOrder >= 4 && (p.status === "in_progress" || p.status === "completed")
   ));
 
@@ -473,7 +474,7 @@ export default function ProjectDetailsPage() {
   const isAllowedToApproveBOQ = ["super_admin", "system_admin", "projects_office"].includes(user?.role || "");
   
   // شرط أكثر مرونة للتحقق من المرحلة (المرحلة 2 قيد التنفيذ أو قيد التخطيط)
-  const showApproveBOQButton = (isBOQPreparationPhase || project?.status === "planning") && hasBOQItems && isAllowedToApproveBOQ;
+  const showApproveBOQButton = !isBOQLocked && (isBOQPreparationPhase || project?.status === "planning") && hasBOQItems && isAllowedToApproveBOQ;
 
   // شرط ظهور زر اعتماد العقد: في مرحلة التعاقد ويوجد عقد واحد فقط بانتظار الاعتماد
   const showApproveContractButton = isContractingPhase && project?.contracts?.length === 1 && (project?.contracts[0].status === "draft" || project?.contracts[0].status === "pending_approval");
