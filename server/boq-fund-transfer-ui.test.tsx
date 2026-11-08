@@ -2,7 +2,7 @@ import React from "react";
 import { Edit, Trash2 } from "lucide-react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-const state = vi.hoisted(() => ({ slots: [] as any[], cursor: 0, effects: [] as (() => void)[], dirty: false, data: {} as Record<string, any>, errors: [] as string[], navigation: [] as string[], mutations: [] as any[] }));
+const state = vi.hoisted(() => ({ slots: [] as any[], cursor: 0, effects: [] as (() => void)[], dirty: false, data: {} as Record<string, any>, errors: [] as string[], navigation: [] as string[], mutations: [] as any[], userPermissions: ["projects.view_details", "projects.financials"] }));
 vi.mock("react", async original => {
   const actual = await original<typeof import("react")>();
   const changed = (a?: any[], b?: any[]) => !a || !b || a.length !== b.length || a.some((v, i) => !Object.is(v, b[i]));
@@ -33,9 +33,9 @@ vi.mock("react", async original => {
     useImperativeHandle: () => {},
   };
 });
-vi.mock("wouter", () => ({ useLocation: () => ["/projects/19", (url: string) => state.navigation.push(url)] }));
+vi.mock("wouter", () => ({ useLocation: () => ["/projects/19", (url: string) => state.navigation.push(url)], useParams: () => ({ id: "19" }), Link: ({ children }: any) => children }));
 vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => ({ user: { id: 1, role: "projects_office" } }) }));
-vi.mock("@/hooks/usePermission", () => ({ usePermission: () => true }));
+vi.mock("@/hooks/usePermission", () => ({ usePermission: () => true, useUserPermissions: () => state.userPermissions }));
 vi.mock("@/components/DashboardLayout", () => ({ default: ({ children }: any) => children }));
 vi.mock("@/components/BoqFormDialog", () => ({ default: () => null }));
 vi.mock("@/lib/trpc", () => {
@@ -49,16 +49,18 @@ vi.mock("@/lib/trpc", () => {
   }
   return { trpc: proxy() };
 });
-let BoqTab: any, NewFundTransferPage: () => React.ReactNode, FundPage: () => React.ReactNode, NewLinkedRequest: () => React.ReactNode;
+let BoqTab: any, NewFundTransferPage: () => React.ReactNode, FundPage: () => React.ReactNode, NewLinkedRequest: () => React.ReactNode, ProjectDetailsPage: () => React.ReactNode;
 beforeAll(async () => {
   vi.stubGlobal("React", React);
   BoqTab = (await import("../client/src/components/BoqTab")).default;
   NewFundTransferPage = (await import("../client/src/pages/NewFundTransferPage")).default;
   FundPage = (await import("../client/src/pages/FundPage")).default;
   NewLinkedRequest = (await import("../client/src/pages/NewLinkedDisbursementRequest")).default;
+  ProjectDetailsPage = (await import("../client/src/pages/ProjectDetailsPage")).default;
 });
 beforeEach(() => {
   state.slots = []; state.cursor = 0; state.effects = []; state.dirty = false; state.errors = []; state.navigation = []; state.mutations = [];
+  state.userPermissions = ["projects.view_details", "projects.financials"];
   vi.stubGlobal("window", { location: { search: "?projectId=19&source=surplus&context=change_orders&amount=1500" } });
   vi.stubGlobal("sessionStorage", { getItem: () => null, setItem: vi.fn(), removeItem: vi.fn() });
   state.data = {
@@ -167,6 +169,28 @@ function text(node: React.ReactNode): string {
 }
 const renderBoq = (props = {}) => render(() => BoqTab.render({ projectId: 19, isLocked: false, ...props }, null));
 const transferButton = (tree: React.ReactNode) => elements(tree).find(el => el.props.onClick && text(el).includes("تحويل المتبقي إلى الصندوق"));
+
+describe("project change-order tab visibility", () => {
+  it.each([
+    ["bunyan", "bunyan", true], ["sedana", "bunyan", false], ["bunyan", "sedana", false],
+  ])("handles project program %s and request program %s", (programType, requestProgram, visible) => {
+    state.data["projects.getById"] = {
+      id: 19, projectNumber: "PRJ-19", name: "Project", status: "in_progress", programType,
+      request: { id: 19, requestNumber: "REQ-19", programType: requestProgram, currentStage: "execution" },
+      phases: [], payments: [], contracts: [], quotations: [], linkedMosques: [],
+    };
+    const tree = render(ProjectDetailsPage);
+    expect(text(tree).includes("أوامر التغيير")).toBe(visible);
+    expect(elements(tree).some(el => el.props.value === "change_orders")).toBe(visible);
+  });
+  it("hides the financial-only change-order shortcut for Sedana projects", () => {
+    state.userPermissions = ["projects.financials"];
+    state.data["projects.getById"] = { id: 19, name: "Sedana", programType: "sedana", phases: [], payments: [], contracts: [], quotations: [] };
+    const tree = render(ProjectDetailsPage);
+    expect(text(tree)).not.toContain("أوامر التغيير");
+    expect(elements(tree).some(el => el.props.value === "change_orders")).toBe(false);
+  });
+});
 
 describe("project BOQ transfer and item controls", () => {
   it("keeps historical totals separate and sends only the remaining 500 to the transfer page", () => {

@@ -121,4 +121,13 @@ describe("project change order view", () => {
     expect(html).not.toContain("إضافة أمر تغيير جديد");
     expect(html).toContain("CO-2026-0001");
   });
+  it("does not offer creation using fund cash after all project surplus has been transferred", () => {
+    state.data.funding.projectSurplus = 0;
+    state.data.funding.fundSurplus = 10000;
+    state.data.funding.available = 10000;
+    const html = render();
+    expect(html).toContain("أوامر التغيير مغلقة لعدم وجود فائض متاح للمشروع");
+    expect(html).not.toContain("إضافة أمر تغيير جديد");
+    expect(html).toContain("CO-2026-0001");
+  });
 });

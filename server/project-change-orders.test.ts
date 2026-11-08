@@ -16,6 +16,8 @@ const state = vi.hoisted(() => ({
   initialSurplus: 10000,
   initialFund: 0,
   projectStatus: "in_progress",
+  projectProgram: "bunyan",
+  requestProgram: "bunyan",
   requestStage: "execution",
   failOrderInsert: false,
   locks: 0,
@@ -103,11 +105,12 @@ vi.mock("./db", async () => {
                     name: "مشروع تجريبي",
                     projectNumber: "PRJ-2026-0001",
                     status: state.projectStatus,
+                    programType: state.projectProgram,
                     requestId: 1,
                   },
                 ];
               if (table === schema.mosqueRequests)
-                return [{ id: 1, currentStage: state.requestStage }];
+                return [{ id: 1, currentStage: state.requestStage, programType: state.requestProgram }];
               let rows =
                 table === schema.projectChangeOrders
                   ? state.orders
@@ -254,6 +257,8 @@ beforeEach(() => {
     initialSurplus: 10000,
     initialFund: 0,
     projectStatus: "in_progress",
+    projectProgram: "bunyan",
+    requestProgram: "bunyan",
     requestStage: "execution",
     failOrderInsert: false,
     locks: 0,
@@ -292,6 +297,41 @@ describe("change order calculations", () => {
 });
 
 describe("project change order surplus & immutability rules", () => {
+  it("rejects creation when only the fund has money and project surplus is zero", async () => {
+    state.initialSurplus = 0;
+    state.initialFund = 10000;
+    expect((await caller().list({ projectId: 1 })).funding).toMatchObject({ projectSurplus: 0, fundSurplus: 10000, available: 0 });
+    await expect(caller().create(input(0.01))).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(state.orders).toEqual([]);
+    expect(state.boqItems).toEqual([]);
+  });
+  it("rejects creation after all project surplus has been transferred to the fund", async () => {
+    state.movements = [{ movementType: "surplus", amount: "10000" }];
+    expect((await caller().list({ projectId: 1 })).funding?.available).toBe(0);
+    await expect(caller().create(input(500))).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(state.orders).toEqual([]);
+  });
+  it("caps a new order by the surplus still inside the project after a partial transfer", async () => {
+    state.movements = [{ movementType: "surplus", amount: "8000" }];
+    expect((await caller().list({ projectId: 1 })).funding?.available).toBe(2000);
+    await expect(caller().create(input(2000.01))).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller().create(input(2000))).resolves.toMatchObject({ created: true });
+  });
+  it("keeps room for a new order when the preceding order has already been funded", async () => {
+    state.initialSurplus = 1500;
+    await caller().create(input(1000));
+    state.movements = [{ movementType: "surplus", amount: "1000" }];
+    expect((await caller().list({ projectId: 1 })).funding?.available).toBe(500);
+    await expect(caller().create(input(500))).resolves.toMatchObject({ created: true });
+    expect((await caller().list({ projectId: 1 })).funding?.available).toBe(0);
+  });
+  it.each(["project", "request"])("prevents creating an order when the %s identifies a Sedana project", async source => {
+    if (source === "project") state.projectProgram = "sedana";
+    else state.requestProgram = "sedana";
+    await expect(caller().create(input(500))).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(state.orders).toEqual([]);
+    expect(state.boqItems).toEqual([]);
+  });
   it("creates change order within available surplus and inserts final items into BOQ", async () => {
     const result = await caller().create(input(5000));
     expect(result.orderNumber).toMatch(/^CO-/);

@@ -380,7 +380,7 @@ export default function Mosques() {
                             {hasMosqueActions && (
                               <TableCell>
                                 <div className="flex items-center gap-2">
-                                  {mosque.approvalStatus !== "approved" && <PermissionGuard permission="mosques.approve">
+                                  {!["approved", "rejected"].includes(mosque.approvalStatus || "") && <PermissionGuard permission="mosques.approve">
                                     <Button
                                       size="sm"
                                       variant="outline"
@@ -393,19 +393,19 @@ export default function Mosques() {
                                       اعتماد
                                     </Button>
                                   </PermissionGuard>}
-                                  <PermissionGuard permission="mosques.reject">
+                                  {!["approved", "rejected"].includes(mosque.approvalStatus || "") && <PermissionGuard permission="mosques.reject">
                                     <Button
                                       size="sm"
                                       variant="outline"
                                       className="text-red-600 border-red-300 hover:bg-red-50"
                                       onClick={() => openRejectDialog(mosque.id)}
-                                      disabled={rejectMutation.isPending || mosque.approvalStatus === "rejected"}
-                                      title={mosque.approvalStatus === "rejected" ? "المسجد مرفوض بالفعل" : "رفض المسجد"}
+                                      disabled={rejectMutation.isPending}
+                                      title="رفض المسجد"
                                     >
                                       <XCircle className="w-4 h-4 ml-1" />
                                       رفض
                                     </Button>
-                                  </PermissionGuard>
+                                  </PermissionGuard>}
                                   {hasMosqueMenuActions && <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button variant="ghost" size="icon">
@@ -527,9 +527,9 @@ export default function Mosques() {
                             </Badge>
                           </PermissionGuard>
 
-                          {(canApproveMosques || canRejectMosques) && (
+                          {!["approved", "rejected"].includes(mosque.approvalStatus || "") && (canApproveMosques || canRejectMosques) && (
                             <div className="flex items-center gap-2">
-                              {mosque.approvalStatus !== "approved" && <PermissionGuard permission="mosques.approve">
+                              {!["approved", "rejected"].includes(mosque.approvalStatus || "") && <PermissionGuard permission="mosques.approve">
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -542,19 +542,19 @@ export default function Mosques() {
                                   اعتماد
                                 </Button>
                               </PermissionGuard>}
-                              <PermissionGuard permission="mosques.reject">
+                              {!["approved", "rejected"].includes(mosque.approvalStatus || "") && <PermissionGuard permission="mosques.reject">
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   className="h-8 text-[11px] text-red-600 border-red-300 hover:bg-red-50 px-2"
                                   onClick={() => openRejectDialog(mosque.id)}
-                                  disabled={rejectMutation.isPending || mosque.approvalStatus === "rejected"}
-                                  title={mosque.approvalStatus === "rejected" ? "المسجد مرفوض بالفعل" : "رفض المسجد"}
+                                  disabled={rejectMutation.isPending}
+                                  title="رفض المسجد"
                                 >
                                   <XCircle className="w-3 h-3 ml-1" />
                                   رفض
                                 </Button>
-                              </PermissionGuard>
+                              </PermissionGuard>}
                             </div>
                           )}
                         </div>

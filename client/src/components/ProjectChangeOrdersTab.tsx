@@ -156,7 +156,9 @@ export function ProjectChangeOrdersTab({
 
   const originalCost = Number(data?.funding?.originalProjectCost || 0);
   const currentActiveTotal = Number(data?.activeTotal || 0);
-  const availableSurplus = Number(data?.funding?.available || 0);
+  const availableSurplus = Math.max(0, Math.min(
+    Number(data?.funding?.available || 0), Number(data?.funding?.projectSurplus || 0)
+  ));
   const noSurplus = !isLoading && !!data?.funding && !data.fundingError && availableSurplus <= 0;
   const creationLocked = closed || noSurplus;
   const isExceedingSurplus =

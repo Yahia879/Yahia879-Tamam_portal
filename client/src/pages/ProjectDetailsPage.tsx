@@ -254,7 +254,7 @@ export default function ProjectDetailsPage() {
   useEffect(() => {
     if (financialsOnly && !isSedanaProgram && activeTab !== "change_orders" && activeTab !== "financials") {
       setActiveTab("financials");
-    } else if ((!canViewFinancials || isSedanaProgram) && activeTab === "financials") {
+    } else if (((!canViewFinancials || isSedanaProgram) && activeTab === "financials") || (isSedanaProgram && activeTab === "change_orders")) {
       setActiveTab("overview");
     }
   }, [financialsOnly, canViewFinancials, isSedanaProgram, activeTab]);
@@ -950,7 +950,7 @@ export default function ProjectDetailsPage() {
       icon: ClipboardList, 
       badge: boqItemsCount > 0 ? `${boqItemsCount}` : undefined 
     },
-    ...(canViewDetails || canViewFinancials || isAdmin ? [{ id: "change_orders", label: "أوامر التغيير", icon: FileText }] : []),
+    ...(!isSedanaProgram && (canViewDetails || canViewFinancials || isAdmin) ? [{ id: "change_orders", label: "أوامر التغيير", icon: FileText }] : []),
     ...(!isSedanaProgram && canViewFinancials ? [{ 
       id: "financials", 
       label: "المالية", 
@@ -1282,7 +1282,7 @@ export default function ProjectDetailsPage() {
           </TooltipProvider>
         )}
         {/* Main Grid: Collapsible Vertical Sidebar Tabs + Content Area */}
-        {financialsOnly && (
+        {financialsOnly && !isSedanaProgram && (
           <div className="flex flex-wrap gap-2" role="group" aria-label="أقسام مالية المشروع">
             {!isSedanaProgram && <Button variant={activeTab === "financials" ? "default" : "outline"} onClick={() => setActiveTab("financials")}>المالية</Button>}
             <Button variant={activeTab === "change_orders" ? "default" : "outline"} onClick={() => setActiveTab("change_orders")}>أوامر التغيير</Button>
@@ -2002,7 +2002,7 @@ export default function ProjectDetailsPage() {
                 </Card>
               </TabsContent>
 
-              {(canViewDetails || canViewFinancials || isAdmin) && (
+              {!isSedanaProgram && (canViewDetails || canViewFinancials || isAdmin) && (
                 <TabsContent value="change_orders" className="space-y-6 mt-0">
                   <ProjectChangeOrdersTab
                     projectId={parseInt(id || "0")}

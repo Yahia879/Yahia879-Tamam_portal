@@ -50,6 +50,12 @@ async function authorizeView(userId: number) {
   });
 }
 
+function creationSurplus(projectSurplus: number, fundSpendable: number, unrequestedTotal: number) {
+  // Fund cash can cover existing orders, but cannot fund a new order's creation.
+  const unfundedOrders = Math.max(0, unrequestedTotal - Math.max(0, fundSpendable));
+  return Math.max(0, money(projectSurplus - unfundedOrders));
+}
+
 export const projectChangeOrdersRouter = router({
   list: protectedProcedure
     .input(z.object({ projectId: z.number().int().positive() }))
@@ -117,14 +123,7 @@ export const projectChangeOrdersRouter = router({
           pendingTransfer: available.changeOrderAvailable,
           projectSurplus: available.surplusAvailable,
           fundSurplus: Math.max(0, fund.spendable),
-          available: money(
-            Math.max(
-              0,
-              available.surplusAvailable +
-                Math.max(0, fund.spendable) -
-                unrequestedActiveTotal
-            )
-          ),
+          available: creationSurplus(available.surplusAvailable, fund.spendable, unrequestedActiveTotal),
           originalProjectCost: Number(
             orders.at(-1)?.originalProjectCost || available.projectCost
           ),
@@ -159,6 +158,7 @@ export const projectChangeOrdersRouter = router({
       const priced = priceChangeOrderItems(input.items);
 
       const result = await db.transaction(async tx => {
+        await lockFund(tx);
         const [existing] = await tx
           .select()
           .from(projectChangeOrders)
@@ -183,6 +183,10 @@ export const projectChangeOrdersRouter = router({
           throw new TRPCError({ code: "NOT_FOUND", message: "المشروع غير موجود" });
         }
 
+        if (project.programType === "sedana") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "أوامر التغيير غير متاحة لمشاريع سدانة" });
+        }
+
         if (["completed", "cancelled"].includes(project.status || "")) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -197,6 +201,10 @@ export const projectChangeOrdersRouter = router({
             .where(eq(mosqueRequests.id, project.requestId))
             .limit(1);
 
+          if (request?.programType === "sedana") {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "أوامر التغيير غير متاحة لمشاريع سدانة" });
+          }
+
           if (
             request?.currentStage === "closed" ||
             request?.status === "completed" ||
@@ -208,8 +216,6 @@ export const projectChangeOrdersRouter = router({
             });
           }
         }
-
-        await lockFund(tx);
 
         const available = await getProjectFundableAmounts(tx, input.projectId);
         const fund = await getFundAvailable(tx, {
@@ -232,14 +238,7 @@ export const projectChangeOrdersRouter = router({
             .reduce((sum: number, order: any) => sum + Number(order.amount || 0), 0)
         );
 
-        const availableSurplus = money(
-          Math.max(
-            0,
-            available.surplusAvailable +
-              Math.max(0, fund.spendable) -
-              unrequestedActiveTotal
-          )
-        );
+        const availableSurplus = creationSurplus(available.surplusAvailable, fund.spendable, unrequestedActiveTotal);
 
         if (
           priced.total <= 0 ||

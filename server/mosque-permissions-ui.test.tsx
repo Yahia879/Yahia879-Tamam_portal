@@ -123,10 +123,10 @@ describe("mosque page controls for the general administrator", () => {
     state.permissions.push("mosques.approve", "mosques.reject");
     const html = renderToStaticMarkup(<Mosques />);
     const buttons = html.match(/<button\b[^>]*>[\s\S]*?<\/button>/g) ?? [];
-    for (const [label, targetStatus] of [["اعتماد", "approved"], ["رفض", "rejected"]]) {
+    for (const label of ["اعتماد", "رفض"]) {
       const controls = buttons.filter(b => new RegExp(`${label}\\s*</button>`).test(b));
-      expect(controls).toHaveLength(label === "اعتماد" && status === "approved" ? 0 : 2);
-      for (const control of controls) expect(control.includes('disabled=""')).toBe(status === targetStatus);
+      expect(controls).toHaveLength(status === "pending" ? 2 : 0);
+      for (const control of controls) expect(control.includes('disabled=""')).toBe(false);
     }
     state.permissions = ["mosques.view"];
     expect(renderToStaticMarkup(<Mosques />)).not.toMatch(/(اعتماد|رفض)\s*<\/button>/);
