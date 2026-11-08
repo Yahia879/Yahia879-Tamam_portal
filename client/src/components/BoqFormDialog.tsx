@@ -47,6 +47,16 @@ interface BoqFormDialogProps {
   open: boolean;
   onClose: () => void;
   item?: any; // إذا كان موجوداً، يكون في وضع التعديل
+  requireUnitPrice?: boolean;
+  onSaveItem?: (itemData: {
+    mosqueId?: number;
+    category: string;
+    itemName: string;
+    itemDescription: string;
+    unit: string;
+    quantity: number;
+    unitPrice: number;
+  }) => void;
 }
 
 export default function BoqFormDialog({
@@ -59,6 +69,8 @@ export default function BoqFormDialog({
   open,
   onClose,
   item,
+  requireUnitPrice = false,
+  onSaveItem,
 }: BoqFormDialogProps) {
   const isEditMode = !!item;
   const [unitPopoverOpen, setUnitPopoverOpen] = useState(false);
@@ -150,7 +162,26 @@ export default function BoqFormDialog({
       return;
     }
 
+    if (requireUnitPrice && !(parseFloat(formData.unitPrice || "0") > 0)) {
+      toast.error("يرجى تحديد سعر الوحدة للبند (أكبر من صفر)");
+      return;
+    }
+
     const finalMosqueId = selectedMosqueId || propMosqueId || undefined;
+
+    if (onSaveItem) {
+      onSaveItem({
+        mosqueId: finalMosqueId,
+        category: formData.category,
+        itemName: formData.itemName.trim(),
+        itemDescription: formData.description.trim(),
+        unit: formData.unit.trim(),
+        quantity: parseFloat(formData.quantity),
+        unitPrice: parseFloat(formData.unitPrice || "0") || 0,
+      });
+      onClose();
+      return;
+    }
 
     if (isEditMode) {
       updateItemMutation.mutate({
@@ -365,7 +396,10 @@ export default function BoqFormDialog({
 
           {/* سعر الوحدة */}
           <div className="grid gap-2">
-            <Label htmlFor="unitPrice" className="flex items-center gap-1">سعر الوحدة (<SaudiRiyal className="w-3.5 h-3.5" />)</Label>
+            <Label htmlFor="unitPrice" className="flex items-center gap-1">
+              سعر الوحدة (<SaudiRiyal className="w-3.5 h-3.5" />)
+              {requireUnitPrice && <span className="text-red-500">*</span>}
+            </Label>
             <Input
               id="unitPrice"
               type="number"

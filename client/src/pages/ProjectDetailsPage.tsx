@@ -1970,6 +1970,7 @@ export default function ProjectDetailsPage() {
                       requestId={project.requestId || undefined} 
                       projectId={project.id} 
                       isLocked={isBOQLocked} 
+                      readOnlyItems={true}
                       ref={boqTabRef} 
                       hideAddButton={true} 
                     />
@@ -2002,7 +2003,14 @@ export default function ProjectDetailsPage() {
 
               {(canViewDetails || canViewFinancials || isAdmin) && (
                 <TabsContent value="change_orders" className="space-y-6 mt-0">
-                  <ProjectChangeOrdersTab projectId={parseInt(id || "0")} closed={isRequestClosed || project?.status === "completed" || project?.status === "cancelled"} />
+                  <ProjectChangeOrdersTab
+                    projectId={parseInt(id || "0")}
+                    closed={isRequestClosed || project?.status === "completed" || project?.status === "cancelled"}
+                    onNavigateToBoq={() => {
+                      setActiveTab("boq");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                  />
                 </TabsContent>
               )}
 

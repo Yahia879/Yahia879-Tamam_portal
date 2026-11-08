@@ -135,17 +135,54 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
       orderNumber VARCHAR(50) NOT NULL UNIQUE,
       submissionKey VARCHAR(36) NOT NULL UNIQUE,
       projectId INT NOT NULL,
-      disbursementRequestId INT NOT NULL UNIQUE,
+      disbursementRequestId INT NULL,
       title VARCHAR(200) NOT NULL,
       reason TEXT NOT NULL,
       itemsJson LONGTEXT NOT NULL,
       amount DECIMAL(15,2) NOT NULL,
       originalProjectCost DECIMAL(15,2) NOT NULL,
       percentage DECIMAL(18,6) NOT NULL,
+      status VARCHAR(50) NOT NULL DEFAULT 'pending_boq',
+      boqApprovedAt DATETIME NULL,
+      boqApprovedBy INT NULL,
+      supplierName VARCHAR(255) NULL,
+      supplierBank VARCHAR(255) NULL,
+      supplierIban VARCHAR(50) NULL,
       createdById INT NOT NULL,
       createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       INDEX idx_change_order_project (projectId)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+
+    const [pcoCols] = (await promisePool.query("SHOW COLUMNS FROM project_change_orders")) as any[];
+    const pcoColNames = Array.isArray(pcoCols) ? pcoCols.map((c: any) => c.Field) : [];
+    if (!pcoColNames.includes("status")) {
+      await promisePool.query("ALTER TABLE project_change_orders ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT 'pending_boq'");
+    }
+    if (!pcoColNames.includes("boqApprovedAt")) {
+      await promisePool.query("ALTER TABLE project_change_orders ADD COLUMN boqApprovedAt DATETIME NULL");
+    }
+    if (!pcoColNames.includes("boqApprovedBy")) {
+      await promisePool.query("ALTER TABLE project_change_orders ADD COLUMN boqApprovedBy INT NULL");
+    }
+    if (!pcoColNames.includes("supplierName")) {
+      await promisePool.query("ALTER TABLE project_change_orders ADD COLUMN supplierName VARCHAR(255) NULL");
+    }
+    if (!pcoColNames.includes("supplierBank")) {
+      await promisePool.query("ALTER TABLE project_change_orders ADD COLUMN supplierBank VARCHAR(255) NULL");
+    }
+    if (!pcoColNames.includes("supplierIban")) {
+      await promisePool.query("ALTER TABLE project_change_orders ADD COLUMN supplierIban VARCHAR(50) NULL");
+    }
+    await promisePool.query("ALTER TABLE project_change_orders MODIFY COLUMN disbursementRequestId INT NULL").catch(() => {});
+
+    const [qsCols] = (await promisePool.query("SHOW COLUMNS FROM quantity_schedules")) as any[];
+    const qsColNames = Array.isArray(qsCols) ? qsCols.map((c: any) => c.Field) : [];
+    if (!qsColNames.includes("changeOrderId")) {
+      await promisePool.query("ALTER TABLE quantity_schedules ADD COLUMN changeOrderId INT NULL");
+    }
+    if (!qsColNames.includes("isChangeOrder")) {
+      await promisePool.query("ALTER TABLE quantity_schedules ADD COLUMN isChangeOrder TINYINT(1) NOT NULL DEFAULT 0");
+    }
     // The former UI stored the restriction in notes. Preserve that historical label.
     await promisePool.query(`UPDATE receipt_vouchers
       SET category = IF(notes LIKE 'مصرف التبرع:%', 'restricted', 'unrestricted'),

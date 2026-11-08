@@ -758,7 +758,17 @@ export default function NewLinkedDisbursementRequest() {
     });
   }, [projects]);
 
+  const [selectedChangeOrderId, setSelectedChangeOrderId] = useState<number | null>(null);
   const { data: fundSummary } = trpc.fund.summary.useQuery(undefined, { enabled: isFundProjectSurplus });
+  const { data: projectChangeOrdersData } = trpc.projectChangeOrders.list.useQuery(
+    { projectId: formData.projectId },
+    { enabled: isFundProjectSurplus && formData.projectId > 0 }
+  );
+  const availableChangeOrders = useMemo(() => {
+    return (projectChangeOrdersData?.orders || []).filter(
+      (order: any) => Number(order.amount || 0) > 0 && !order.disbursementRequestId && order.status !== "rejected"
+    );
+  }, [projectChangeOrdersData]);
   const fundSurplusProjects = useMemo(() => {
     const balances = new Map(
       (fundSummary?.buckets || [])
@@ -1864,6 +1874,7 @@ export default function NewLinkedDisbursementRequest() {
       const supplier = suppliers[0];
       createFundSurplusMutation.mutate({
         projectId: formData.projectId,
+        changeOrderId: selectedChangeOrderId || undefined,
         title: formData.title,
         description: formData.requiredWorksDesc.trim(),
         amount: totalAmount,
@@ -2311,6 +2322,7 @@ export default function NewLinkedDisbursementRequest() {
                         onValueChange={(value) => {
                           const projectId = Number(value);
                           const project = fundSurplusProjects.find((item: any) => item.id === projectId);
+                          setSelectedChangeOrderId(null);
                           setFormData((prev) => ({
                             ...prev,
                             projectId,
@@ -2337,6 +2349,50 @@ export default function NewLinkedDisbursementRequest() {
                     </div>
                     {fundSurplusProjects.length === 0 && (
                       <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-500">لا توجد مشاريع لها فوائض متاحة في الصندوق حالياً.</p>
+                    )}
+
+                    {/* اختيار بنود أمر التغيير المسعّرة في جدول الكميات إن وُجدت */}
+                    {formData.projectId > 0 && availableChangeOrders.length > 0 && (
+                      <div className="mt-3 space-y-2 rounded-xl border border-indigo-200 bg-indigo-50/50 p-3.5 text-right">
+                        <Label className="text-xs font-bold text-indigo-950 block">
+                          بنود أمر التغيير المعتمدة في جدول الكميات (اختياري لربط طلب الصرف ببنود أمر التغيير)
+                        </Label>
+                        <Select
+                          value={selectedChangeOrderId ? String(selectedChangeOrderId) : ""}
+                          onValueChange={(val) => {
+                            const coId = Number(val);
+                            const co = availableChangeOrders.find((o: any) => o.id === coId);
+                            setSelectedChangeOrderId(coId || null);
+                            if (co) {
+                              const itemsText = (co.items || [])
+                                .map((it: any) => `${it.name} (${it.quantity} ${it.unit} × ${Number(it.unitPrice).toLocaleString("en-US")} = ${Number(it.total).toLocaleString("en-US")} ر.س)`)
+                                .join("، ");
+                              const coAmount = Number(co.amount || 0);
+                              setFormData((prev) => ({
+                                ...prev,
+                                amount: coAmount,
+                                requiredWorksDesc: `صرف بنود أمر التغيير (${co.orderNumber} - ${co.title}): ${itemsText}`,
+                              }));
+                              setSuppliers((previous) =>
+                                previous.map((supplier, index) =>
+                                  index === 0 ? { ...supplier, amount: coAmount, agreedAmount: coAmount } : supplier
+                                )
+                              );
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-10 w-full rounded-xl border-indigo-200 bg-white text-right text-xs" dir="rtl">
+                            <SelectValue placeholder="اختر أمر التغيير لملء بنوده ومبلغه تلقائياً" />
+                          </SelectTrigger>
+                          <SelectContent dir="rtl">
+                            {availableChangeOrders.map((co: any) => (
+                              <SelectItem key={co.id} value={String(co.id)} className="text-right text-xs">
+                                {co.orderNumber} — {co.title} ({Number(co.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })} ر.س)
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     )}
                   </div>
                 )}

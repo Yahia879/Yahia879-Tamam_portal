@@ -731,6 +731,12 @@ export default function FundPage() {
 
                       </Badge>
 
+                      {Number(proj.changeOrderAvailable || 0) > 0 && (
+                        <Badge variant="outline" className="text-[10px] font-bold border-indigo-300 bg-indigo-50 text-indigo-800">
+                          بنود أمر تغيير مسعّرة: {format(Number(proj.changeOrderAvailable))} ر.س
+                        </Badge>
+                      )}
+
                     </div>
 
 
@@ -739,7 +745,7 @@ export default function FundPage() {
 
                       <div className="text-right">
 
-                        <span className="text-[10px] block font-semibold text-muted-foreground">الفائض المتاح للتحويل</span>
+                        <span className="text-[10px] block font-semibold text-muted-foreground">المبلغ المتاح للتحويل للصندوق</span>
 
                         <span className="font-sans text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1">
 
@@ -755,7 +761,7 @@ export default function FundPage() {
 
                         <Button
 
-                          onClick={() => navigate(`/fund/transfers/new?projectId=${proj.id}&source=surplus&amount=${proj.available}`)}
+                          onClick={() => navigate(`/fund/transfers/new?projectId=${proj.id}&source=surplus&amount=${Number(proj.changeOrderAvailable || 0) > 0 ? proj.changeOrderAvailable : proj.available}`)}
 
                           className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4 rounded-xl shadow-xs gap-1.5 cursor-pointer shrink-0"
 

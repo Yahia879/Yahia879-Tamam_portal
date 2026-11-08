@@ -12,13 +12,28 @@ const preciseNumber = (places: number, message: string) =>
       message
     );
 
+const nonNegativeNumber = (places: number, message: string) =>
+  z
+    .number()
+    .finite()
+    .nonnegative()
+    .refine(
+      value =>
+        Math.abs(value * 10 ** places - Math.round(value * 10 ** places)) <
+        0.00001,
+      message
+    );
+
 export const changeOrderItemSchema = z.object({
   name: z.string().trim().min(1, "اسم البند مطلوب").max(255),
+  description: z.string().trim().max(2000).optional(),
   unit: z.string().trim().min(1, "وحدة البند مطلوبة").max(50),
   quantity: preciseNumber(3, "الكمية تقبل ثلاث منازل عشرية فقط").max(1_000_000),
-  unitPrice: preciseNumber(2, "السعر يقبل منزلتين عشريتين فقط").max(
+  unitPrice: preciseNumber(2, "سعر الوحدة مطلوب ويجب أن يكون أكبر من صفر").max(
     1_000_000_000
   ),
+  category: z.string().trim().max(100).optional(),
+  mosqueId: z.number().int().positive().nullable().optional(),
 });
 
 export const createChangeOrderSchema = z.object({
@@ -30,6 +45,30 @@ export const createChangeOrderSchema = z.object({
     .array(changeOrderItemSchema)
     .min(1, "أضف بنداً واحداً على الأقل")
     .max(100),
+  beneficiaryName: z.string().trim().max(255).optional(),
+  beneficiaryBank: z.string().trim().max(255).optional(),
+  beneficiaryIban: z.string().trim().max(50).optional(),
+});
+
+export const approveBoqChangeOrderSchema = z.object({
+  changeOrderId: z.number().int().positive(),
+  items: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1, "اسم البند مطلوب").max(255),
+        description: z.string().trim().max(2000).optional(),
+        unit: z.string().trim().min(1, "وحدة البند مطلوبة").max(50),
+        quantity: preciseNumber(3, "الكمية تقبل ثلاث منازل عشرية فقط").max(1_000_000),
+        unitPrice: preciseNumber(2, "سعر الوحدة المعتمد مطلوب ويجب أن يكون أكبر من صفر").max(1_000_000_000),
+        category: z.string().trim().max(100).optional(),
+        mosqueId: z.number().int().positive().nullable().optional(),
+      })
+    )
+    .min(1, "أضف بنداً واحداً على الأقل"),
+});
+
+export const createDisbursementForChangeOrderSchema = z.object({
+  changeOrderId: z.number().int().positive(),
   beneficiaryName: z.string().trim().min(2, "اسم المستفيد مطلوب").max(255),
   beneficiaryBank: z.string().trim().max(255).optional(),
   beneficiaryIban: z.string().trim().max(50).optional(),

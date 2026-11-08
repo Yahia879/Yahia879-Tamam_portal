@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,11 +31,14 @@ export default function NewFundTransferPage() {
     ? initialSource : "surplus";
   const [amount, setAmount] = useState(params.get("amount") || "");
   const [reason, setReason] = useState("");
+  const isChangeOrderTransfer = source === "surplus" && params.get("context") === "change_orders";
+  const prefilledProject = useRef<string | null>(null);
 
   const utils = trpc.useUtils();
   const { data: projects = [], isLoading: isLoadingProjects } = trpc.fund.transferableProjects.useQuery({ source });
-  const selectedProject = projects.find((project) => String(project.id) === projectId);
-  const availableSource = selectedProject?.available || 0;
+  const eligibleProjects = isChangeOrderTransfer ? projects.filter(project => project.changeOrderAvailable > 0) : projects;
+  const selectedProject = eligibleProjects.find((project) => String(project.id) === projectId);
+  const availableSource = selectedProject ? (isChangeOrderTransfer ? Math.min(selectedProject.available, selectedProject.changeOrderAvailable) : selectedProject.available) : 0;
   const numericAmount = Number(amount);
   const isAmountValid = Number.isFinite(numericAmount) && numericAmount > 0 && numericAmount <= availableSource;
 
@@ -48,12 +51,20 @@ export default function NewFundTransferPage() {
 
   useEffect(() => {
     const urlAmount = params.get("amount");
+    if (isChangeOrderTransfer) {
+      if (selectedProject && prefilledProject.current !== projectId) {
+        const requested = params.get("projectId") === projectId ? Number(urlAmount) : 0;
+        setAmount((requested > 0 ? Math.min(requested, availableSource) : availableSource).toFixed(2));
+        prefilledProject.current = projectId;
+      }
+      return;
+    }
     if (urlAmount && !amount) {
       setAmount(urlAmount);
     } else if (!amount && selectedProject && selectedProject.available > 0 && params.get("projectId")) {
       setAmount(selectedProject.available.toFixed(2));
     }
-  }, [selectedProject]);
+  }, [selectedProject, projectId, availableSource, isChangeOrderTransfer]);
 
   const transferMutation = trpc.fund.transferFromProject.useMutation({
     onSuccess: async (result) => {
@@ -64,6 +75,7 @@ export default function NewFundTransferPage() {
         utils.fund.projectAvailability.invalidate(),
         utils.fund.transferableProjects.invalidate(),
         utils.projects.getFinancialData.invalidate(),
+        utils.projectChangeOrders.list.invalidate(),
       ]);
       navigate("/fund");
     },
@@ -78,6 +90,7 @@ export default function NewFundTransferPage() {
     transferMutation.mutate({
       projectId: Number(projectId),
       source,
+      changeOrdersOnly: isChangeOrderTransfer,
       amount: numericAmount,
       destination: {
         restrictionType: source === "surplus" ? "project" : "general",
@@ -120,19 +133,19 @@ export default function NewFundTransferPage() {
             <div className="grid gap-5 md:grid-cols-2">
               <div className="md:col-span-2">
                 <Label htmlFor="transfer-project">المشروع</Label>
-                <Select value={selectedProject ? projectId : ""} onValueChange={setProjectId} disabled={isLoadingProjects || projects.length === 0}>
+                <Select value={selectedProject ? projectId : ""} onValueChange={setProjectId} disabled={isLoadingProjects || eligibleProjects.length === 0}>
                   <SelectTrigger id="transfer-project" className="mt-2 h-11">
                     <SelectValue placeholder={isLoadingProjects ? "جارٍ تحميل المشاريع..." : "اختر المشروع"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {projects.map((project) => (
+                    {eligibleProjects.map((project) => (
                       <SelectItem key={project.id} value={String(project.id)}>
                         {project.projectNumber} — {project.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {!isLoadingProjects && projects.length === 0 && (
+                {!isLoadingProjects && eligibleProjects.length === 0 && (
                   <p className="mt-2 text-sm text-muted-foreground">لا توجد مشاريع لديها {sourceName[source]} متاح للتحويل حالياً.</p>
                 )}
               </div>
@@ -140,7 +153,7 @@ export default function NewFundTransferPage() {
               <div className="rounded-xl border border-indigo-100 bg-gradient-to-l from-indigo-50/80 to-white p-4 md:col-span-2 sm:p-5">
                 <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-indigo-950">
                   <Landmark className="h-4 w-4 text-indigo-700" />
-                  رصيد {sourceName[source]} المتاح
+                  {isChangeOrderTransfer ? "المتبقي لتحويل أوامر التغيير إلى الصندوق" : `رصيد ${sourceName[source]} المتاح`}
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                   <div>
@@ -155,6 +168,43 @@ export default function NewFundTransferPage() {
                     </Button>
                   )}
                 </div>
+                {!isChangeOrderTransfer && (selectedProject as any)?.changeOrders?.length > 0 && (
+                  <div className="mt-4 space-y-2 border-t border-indigo-200/70 pt-3">
+                    <span className="block text-xs font-bold text-indigo-950">
+                      أوامر التغيير المسعّرة في جدول الكميات لهذا المشروع:
+                    </span>
+                    <div className="space-y-1.5">
+                      {(selectedProject as any).changeOrders.map((co: any) => (
+                        <div
+                          key={co.id}
+                          className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs"
+                        >
+                          <div>
+                            <span className="font-bold text-slate-900">{co.title}</span>
+                            <span className="mr-2 font-mono text-slate-500">({co.orderNumber})</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-sans font-bold text-indigo-900">
+                              {format(Number(co.amount))} ريال
+                            </span>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-[11px] font-bold border-indigo-300 text-indigo-800"
+                              onClick={() => {
+                                setAmount(Number(co.amount).toFixed(2));
+                                setReason(`تحويل قيمة بنود أمر التغيير (${co.orderNumber} - ${co.title}) إلى الصندوق`);
+                              }}
+                            >
+                              تحديد مبلغ أمر التغيير
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="md:col-span-2">

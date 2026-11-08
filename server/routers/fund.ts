@@ -4,7 +4,7 @@ import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { checkPermission } from "../permissions";
-import { categories, disbursementRequests, fundMovements, projects, receiptVouchers } from "../../drizzle/schema";
+import { categories, disbursementRequests, fundMovements, projectChangeOrders, projects, receiptVouchers } from "../../drizzle/schema";
 import { FundBucket, getFundAvailable, getProjectFundableAmounts, lockFund, money } from "../fund";
 import { notifyDisbursementRequestCreation } from "./notifications";
 
@@ -138,11 +138,20 @@ export const fundRouter = router({
     await authorize(ctx, "view");
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-    const candidates = await db.select({
+    const voucherCandidates = await db.select({
       id: projects.id, name: projects.name, projectNumber: projects.projectNumber,
     }).from(projects).innerJoin(receiptVouchers, and(
       eq(receiptVouchers.projectId, projects.id), eq(receiptVouchers.status, "approved"),
     )).groupBy(projects.id, projects.name, projects.projectNumber);
+    const changeOrderCandidates = await db.select({
+      id: projects.id, name: projects.name, projectNumber: projects.projectNumber,
+    }).from(projects).innerJoin(projectChangeOrders, eq(projectChangeOrders.projectId, projects.id))
+      .groupBy(projects.id, projects.name, projects.projectNumber);
+    const candidateMap = new Map<number, { id: number; name: string; projectNumber: string }>();
+    for (const c of [...voucherCandidates, ...changeOrderCandidates]) {
+      candidateMap.set(c.id, c);
+    }
+    const candidates = Array.from(candidateMap.values());
     const eligible = [];
     for (const project of candidates) {
       let available;
@@ -155,7 +164,16 @@ export const fundRouter = router({
       }
       const amount = input.source === "surplus" ? available.surplusAvailable
         : input.source === "administrative" ? available.administrativeAvailable : available.operationalAvailable;
-      if (amount > 0) eligible.push({ ...project, available: amount, received: available.received, projectCost: available.projectCost, surplusTransferred: available.surplusTransferred });
+      if (amount > 0) eligible.push({
+        ...project,
+        available: amount,
+        received: available.received,
+        projectCost: available.projectCost,
+        surplusTransferred: available.surplusTransferred,
+        changeOrderAvailable: available.changeOrderAvailable || 0,
+        changeOrderTotal: available.changeOrderTotal || 0,
+        changeOrders: available.changeOrders || [],
+      });
     }
     return eligible;
   }),
@@ -167,6 +185,7 @@ export const fundRouter = router({
     destination: destinationSchema,
     reason: z.string().trim().optional().default(""),
     releaseRestriction: z.boolean().default(false),
+    changeOrdersOnly: z.boolean().default(false),
   })).mutation(async ({ input, ctx }) => {
     await authorize(ctx, "transfer");
     const db = await getDb();
@@ -174,7 +193,9 @@ export const fundRouter = router({
     return db.transaction(async (tx) => {
       await lockFund(tx);
       const available = await getProjectFundableAmounts(tx, input.projectId);
-      const max = input.source === "surplus" ? available.surplusAvailable
+      if (input.changeOrdersOnly && input.source !== "surplus") throw new TRPCError({ code: "BAD_REQUEST", message: "تحويل أوامر التغيير يكون من فائض المشروع" });
+      const max = input.changeOrdersOnly ? available.changeOrderAvailable
+        : input.source === "surplus" ? available.surplusAvailable
         : input.source === "administrative" ? available.administrativeAvailable : available.operationalAvailable;
       if (Math.round(input.amount * 100) > Math.round(max * 100)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: `المتاح للتحويل ${max.toFixed(2)} ريال فقط` });
@@ -196,7 +217,7 @@ export const fundRouter = router({
         donationPurposeName: bucket.donationPurposeName || null,
         restrictedProjectId: bucket.restrictedProjectId || null,
         projectId: input.projectId,
-        sourceDetailsJson: JSON.stringify({ vouchers: available.vouchers, released: input.releaseRestriction }),
+        sourceDetailsJson: JSON.stringify({ vouchers: available.vouchers, released: input.releaseRestriction, changeOrdersOnly: input.changeOrdersOnly }),
         notes, createdById: ctx.user.id,
       });
       return { success: true, eventKey, remaining: money(max - input.amount) };
@@ -206,6 +227,7 @@ export const fundRouter = router({
   createDisbursementRequest: protectedProcedure.input(z.object({
     title: z.string().trim().min(3), description: z.string().optional(),
     amount: amountSchema, projectId: z.number().int().positive().optional(),
+    changeOrderId: z.number().int().positive().optional(),
     adminFees: z.number().finite().min(0).default(0),
     workDescription: z.string().trim().optional(),
     beneficiaryName: z.string().trim().min(2), beneficiaryBank: z.string().optional(),
@@ -226,7 +248,33 @@ export const fundRouter = router({
       if (Math.round(totalCharge * 100) > Math.round(balance.spendable * 100)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: `الرصيد المتاح لطلب صرف جديد من هذا المصرف ${balance.spendable.toFixed(2)} ريال` });
       }
-      return insertFundRequest(tx, input, bucket, ctx.user.id);
+      const createdReq = await insertFundRequest(tx, input, bucket, ctx.user.id);
+
+      // ربط طلب الصرف بأمر التغيير إن وُجد
+      if (input.changeOrderId) {
+        await tx.update(projectChangeOrders).set({
+          disbursementRequestId: createdReq.id,
+          supplierName: input.beneficiaryName,
+          supplierBank: input.beneficiaryBank || null,
+          supplierIban: input.beneficiaryIban || null,
+          status: "disbursement_created",
+        }).where(eq(projectChangeOrders.id, input.changeOrderId));
+      } else if (input.projectId) {
+        const [matchingOrder] = await tx.select().from(projectChangeOrders)
+          .where(eq(projectChangeOrders.projectId, input.projectId))
+          .orderBy(desc(projectChangeOrders.id));
+        if (matchingOrder && !matchingOrder.disbursementRequestId && Math.round(Number(matchingOrder.amount) * 100) === Math.round(input.amount * 100)) {
+          await tx.update(projectChangeOrders).set({
+            disbursementRequestId: createdReq.id,
+            supplierName: input.beneficiaryName,
+            supplierBank: input.beneficiaryBank || null,
+            supplierIban: input.beneficiaryIban || null,
+            status: "disbursement_created",
+          }).where(eq(projectChangeOrders.id, matchingOrder.id));
+        }
+      }
+
+      return createdReq;
     });
     try {
       await notifyDisbursementRequestCreation(result.id, result.requestNumber, input.title, input.amount.toFixed(2), input.projectId || null);

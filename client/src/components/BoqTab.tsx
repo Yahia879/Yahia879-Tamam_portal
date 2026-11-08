@@ -1,4 +1,5 @@
 import { useState, useImperativeHandle, forwardRef, useMemo } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -28,6 +29,8 @@ import {
   Layers,
   Sparkles,
   Lock,
+  ArrowRightLeft,
+  FileDiff,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BoqFormDialog from "./BoqFormDialog";
@@ -40,6 +43,7 @@ interface BoqTabProps {
   projectId?: number;
   isLocked?: boolean;
   hideAddButton?: boolean;
+  readOnlyItems?: boolean;
 }
 
 export interface BoqTabHandle {
@@ -47,7 +51,8 @@ export interface BoqTabHandle {
 }
 
 const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
-  ({ requestId, projectId, isLocked: externalIsLocked, hideAddButton }, ref) => {
+  ({ requestId, projectId, isLocked: externalIsLocked, hideAddButton, readOnlyItems = false }, ref) => {
+    const [, navigate] = useLocation();
     const { user } = useAuth();
     const canAdd = usePermission("boq.add");
     const canEdit = usePermission("boq.edit");
@@ -85,6 +90,14 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
 
     const boqData = boqResult?.items || [];
     const totalAmount = boqResult?.total || 0;
+    const changeOrderItems = boqData.filter((item: any) => item.isChangeOrder || item.changeOrderId);
+    const targetProjectId = projectId || (projectData as any)?.project?.id || (projectData as any)?.id || changeOrderItems[0]?.projectId;
+    const { data: changeOrderData, isLoading: isTransferLoading, isError: isTransferError } = trpc.projectChangeOrders.list.useQuery(
+      { projectId: targetProjectId || 0 },
+      { enabled: !!targetProjectId && changeOrderItems.length > 0, staleTime: 0, refetchOnMount: "always", refetchOnWindowFocus: true }
+    );
+    const pendingTransfer = Number(changeOrderData?.funding?.pendingTransfer || 0);
+    const transferUnavailable = !targetProjectId || isTransferError || !!changeOrderData?.fundingError || (!isTransferLoading && !changeOrderData?.funding);
 
     const isMultiMosque = Boolean(
       request?.isMultiMosque || 
@@ -131,6 +144,8 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
     const lockMessage = hasAcceptedQuotation
       ? "لا يمكن تعديل أو حذف جدول الكميات بعد اعتماد عرض السعر"
       : "لا يمكن تعديل جدول الكميات في هذه المرحلة";
+    const itemChangesLocked = isLocked || readOnlyItems;
+    const itemLockMessage = readOnlyItems ? "لا يمكن تعديل أو حذف بنود جدول الكميات من صفحة المشروع" : lockMessage;
 
     useImperativeHandle(ref, () => ({
       openAddDialog: () => {
@@ -401,9 +416,14 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
       e.target.value = "";
     };
 
-    const handleDeleteItem = (id: number) => {
-      if (isLocked) {
-        toast.error(lockMessage);
+    const handleDeleteItem = (id: number, item?: any) => {
+      const isChangeOrderItem = Boolean(item?.isChangeOrder || item?.changeOrderId);
+      if (isChangeOrderItem) {
+        toast.error("لا يمكن حذف بند أمر التغيير بعد إضافته");
+        return;
+      }
+      if (itemChangesLocked) {
+        toast.error(itemLockMessage);
         return;
       }
       if (!canDelete) {
@@ -416,8 +436,13 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
     };
 
     const openEditDialog = (item: any) => {
-      if (isLocked) {
-        toast.error(lockMessage);
+      const isChangeOrderItem = Boolean(item?.isChangeOrder || item?.changeOrderId);
+      if (isChangeOrderItem) {
+        toast.error("لا يمكن تعديل بند أمر التغيير بعد إضافته");
+        return;
+      }
+      if (itemChangesLocked) {
+        toast.error(itemLockMessage);
         return;
       }
       if (!canEdit) {
@@ -433,6 +458,9 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
       setShowEditDialog(false);
       setSelectedItem(null);
       utils.projects.getBOQ.invalidate();
+      utils.projectChangeOrders.list.invalidate();
+      utils.fund.transferableProjects.invalidate();
+      utils.fund.projectAvailability.invalidate();
       refetch();
     };
 
@@ -731,6 +759,61 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
           </Card>
         )}
 
+        {/* إشعار بنود أوامر التغيير المضافة لجدول الكميات */}
+        {changeOrderItems.length > 0 && (() => {
+          const coItems = changeOrderItems;
+          const coTotal = coItems.reduce(
+            (sum: number, i: any) => sum + (i.totalPrice ? parseFloat(i.totalPrice) : 0),
+            0
+          );
+          return (
+            <Card className="border-indigo-200 bg-indigo-50/40 shadow-xs">
+              <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <FileDiff className="h-4 w-4 text-indigo-700" />
+                    <span className="font-bold text-sm text-indigo-950">
+                      بنود أوامر التغيير في جدول كميات المشروع ({coItems.length} بند)
+                    </span>
+                    {coTotal > 0 ? (
+                      <Badge className="bg-emerald-600 text-white text-xs font-bold">
+                        إجمالي قيمة البنود: {coTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })} ر.س
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800 text-xs font-bold">
+                        بانتظار تحديد قيمة البنود
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    يُحتسب المبلغ المتبقي للتحويل بعد خصم التحويلات السابقة إلى الصندوق.
+                  </p>
+                  <p className="text-sm font-bold text-indigo-950">
+                    {isTransferLoading ? "جارٍ حساب المبلغ المتبقي للتحويل..." : transferUnavailable
+                      ? "تعذر حساب المبلغ المتبقي للتحويل حالياً"
+                      : `المتبقي للتحويل إلى الصندوق: ${pendingTransfer.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`}
+                  </p>
+                </div>
+                {!isTransferLoading && !transferUnavailable && pendingTransfer > 0 && targetProjectId && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="bg-indigo-700 hover:bg-indigo-800 text-white font-bold gap-1.5 shrink-0"
+                    onClick={() =>
+                      navigate(
+                        `/fund/transfers/new?projectId=${targetProjectId}&source=surplus&context=change_orders&amount=${pendingTransfer}`
+                      )
+                    }
+                  >
+                    <ArrowRightLeft className="h-4 w-4" />
+                    تحويل المتبقي إلى الصندوق ({pendingTransfer.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س)
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         {/* عرض جدول البنود */}
         {filteredItems.length === 0 ? (
           <Card className="border-dashed border-2">
@@ -792,14 +875,18 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                           <TableHead className="font-bold text-right text-xs">الكمية</TableHead>
                           <TableHead className="font-bold text-right text-xs">سعر الوحدة</TableHead>
                           <TableHead className="font-bold text-right text-xs">الإجمالي</TableHead>
-                          {!isLocked && (canEdit || canDelete) && <TableHead className="font-bold text-center text-xs">الإجراءات</TableHead>}
+                          {!itemChangesLocked && (canEdit || canDelete) && (
+                            <TableHead className="font-bold text-center text-xs">الإجراءات</TableHead>
+                          )}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {items.map((item: any) => {
                           const itemMosque = mosquesList.find(m => m.id === item.mosqueId);
+                          const isChangeOrderItem = Boolean(item.isChangeOrder || item.changeOrderId);
+                          const showActionsCol = !itemChangesLocked && (canEdit || canDelete);
                           return (
-                            <TableRow key={item.id} className="hover:bg-muted/30">
+                            <TableRow key={item.id} className={`hover:bg-muted/30 ${isChangeOrderItem ? "bg-indigo-50/20" : ""}`}>
                               {isMultiMosque && selectedMosqueTab === "all" && (
                                 <TableCell className="text-xs font-semibold text-teal-700 dark:text-teal-300">
                                   {item.mosqueName || itemMosque?.name || (
@@ -809,7 +896,14 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                               )}
                               <TableCell className="font-medium text-xs sm:text-sm">
                                 <div>
-                                  <span>{item.itemName}</span>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span>{item.itemName}</span>
+                                    {isChangeOrderItem && (
+                                      <Badge variant="outline" className="text-[10px] border-indigo-300 bg-indigo-50 text-indigo-800 font-bold">
+                                        بند أمر تغيير (ثابت)
+                                      </Badge>
+                                    )}
+                                  </div>
                                   {item.itemDescription && (
                                     <p className="text-[11px] text-muted-foreground mt-0.5">{item.itemDescription}</p>
                                   )}
@@ -818,43 +912,49 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                               <TableCell className="text-xs">{item.unit}</TableCell>
                               <TableCell className="text-xs font-bold">{item.quantity}</TableCell>
                               <TableCell className="text-xs">
-                                {item.unitPrice ? (
+                                {item.unitPrice && parseFloat(item.unitPrice) > 0 ? (
                                   <span className="inline-flex items-center gap-1">
                                     {parseFloat(item.unitPrice).toLocaleString("en-US")} <SaudiRiyal className="w-3 h-3 inline" />
                                   </span>
                                 ) : "-"}
                               </TableCell>
                               <TableCell className="font-bold text-xs sm:text-sm text-teal-600 dark:text-teal-400">
-                                {item.totalPrice ? (
+                                {item.totalPrice && parseFloat(item.totalPrice) > 0 ? (
                                   <span className="inline-flex items-center gap-1">
                                     {parseFloat(item.totalPrice).toLocaleString("en-US")} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                                   </span>
                                 ) : "-"}
                               </TableCell>
-                              {!isLocked && (canEdit || canDelete) && (
+                              {showActionsCol && (
                                 <TableCell>
-                                  <div className="flex items-center justify-center gap-1">
-                                    {canEdit && (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 hover:bg-muted"
-                                        onClick={() => openEditDialog(item)}
-                                      >
-                                        <Edit className="h-3.5 w-3.5 text-muted-foreground" />
-                                      </Button>
-                                    )}
-                                    {canDelete && (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 hover:bg-destructive/10 text-destructive"
-                                        onClick={() => handleDeleteItem(item.id)}
-                                      >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </Button>
-                                    )}
-                                  </div>
+                                  {!isChangeOrderItem ? (
+                                    <div className="flex items-center justify-center gap-1">
+                                      {canEdit && (
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 hover:bg-muted"
+                                          onClick={() => openEditDialog(item)}
+                                        >
+                                          <Edit className="h-3.5 w-3.5 text-muted-foreground" />
+                                        </Button>
+                                      )}
+                                      {canDelete && (
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 hover:bg-destructive/10 text-destructive"
+                                          onClick={() => handleDeleteItem(item.id, item)}
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-center">
+                                      <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                                    </div>
+                                  )}
                                 </TableCell>
                               )}
                             </TableRow>
@@ -881,7 +981,7 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
           />
         )}
 
-        {showEditDialog && selectedItem && (
+        {showEditDialog && selectedItem && !itemChangesLocked && (
           <BoqFormDialog
             requestId={requestId}
             projectId={projectId}

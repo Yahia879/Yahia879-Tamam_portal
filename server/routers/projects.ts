@@ -2,7 +2,8 @@ import { requireQuotationAccess, requireQuotationRecordAccess, requireRelatedQuo
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { projects, projectMosques, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, disbursementOrders, requestEvaluations, projectFinancialDetails, receiptVouchers, fundMovements, userPermissions, requestNumberSequence, requestHistory, auditLogs, progressReports, categories } from "../../drizzle/schema";
+import { projects, projectMosques, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, disbursementOrders, requestEvaluations, projectFinancialDetails, projectChangeOrders, receiptVouchers, fundMovements, userPermissions, requestNumberSequence, requestHistory, auditLogs, progressReports, categories } from "../../drizzle/schema";
+import { changeOrderPercentage, priceChangeOrderItems } from "../../shared/projectChangeOrders";
 import { eq, desc, asc, and, sql, inArray, notInArray, or, ne, like, isNull, isNotNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { checkPermission } from "../permissions";
@@ -1866,61 +1867,71 @@ export const projectsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "البند غير موجود" });
       }
 
-      if (input.permissionScope === "quotations") {
-        await requireQuotationAccess(db, ctx.user.id, currentItem, "boq_edit", "boq_edit");
-      } else if (!await checkPermission(ctx.user.id, "boq.edit")) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل جدول الكميات" });
-      }
-
-      // التحقق من عدم اعتماد أي عرض سعر لهذا الطلب أو المشروع
-      const reqId = currentItem.requestId || (currentItem.projectId ? (await db.select({ requestId: projects.requestId }).from(projects).where(eq(projects.id, currentItem.projectId)).limit(1))[0]?.requestId : null);
-      const projId = currentItem.projectId || (currentItem.requestId ? (await db.select({ id: projects.id }).from(projects).where(eq(projects.requestId, currentItem.requestId)).limit(1))[0]?.id : null);
-
-      const [acceptedQuotation] = await db
-        .select({ id: quotations.id })
-        .from(quotations)
-        .where(
-          and(
-            or(
-              reqId ? eq(quotations.requestId, reqId) : undefined,
-              projId ? eq(quotations.projectId, projId) : undefined,
-              currentItem.requestId ? eq(quotations.requestId, currentItem.requestId) : undefined,
-              currentItem.projectId ? eq(quotations.projectId, currentItem.projectId) : undefined
-            ),
-            inArray(quotations.status, ["accepted", "approved"])
-          )
-        )
-        .limit(1);
-
-      if (acceptedQuotation) {
+      const isChangeOrderItem = Boolean(currentItem.isChangeOrder || currentItem.changeOrderId);
+      if (isChangeOrderItem) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "لا يمكن تعديل جدول الكميات بعد اعتماد عرض السعر",
+          message: "لا يمكن تعديل بند أمر التغيير بعد إضافته",
         });
       }
 
-      if (reqId) {
-        const [req] = await db
-          .select({ currentStage: mosqueRequests.currentStage, selectedQuotationId: mosqueRequests.selectedQuotationId })
-          .from(mosqueRequests)
-          .where(eq(mosqueRequests.id, reqId))
+      if (input.permissionScope === "quotations") {
+        await requireQuotationAccess(db, ctx.user.id, currentItem, "boq_edit", "boq_edit");
+      } else if (!await checkPermission(ctx.user.id, "boq.edit") && !(isChangeOrderItem && (await checkPermission(ctx.user.id, "projects.view_details") || await checkPermission(ctx.user.id, "boq.add")))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل جدول الكميات" });
+      }
+
+      // التحقق من عدم اعتماد أي عرض سعر لهذا الطلب أو المشروع (يُسمح بتعديل وتسعير بنود أوامر التغيير)
+      const reqId = currentItem.requestId || (currentItem.projectId ? (await db.select({ requestId: projects.requestId }).from(projects).where(eq(projects.id, currentItem.projectId)).limit(1))[0]?.requestId : null);
+      const projId = currentItem.projectId || (currentItem.requestId ? (await db.select({ id: projects.id }).from(projects).where(eq(projects.requestId, currentItem.requestId)).limit(1))[0]?.id : null);
+
+      if (!isChangeOrderItem) {
+        const [acceptedQuotation] = await db
+          .select({ id: quotations.id })
+          .from(quotations)
+          .where(
+            and(
+              or(
+                reqId ? eq(quotations.requestId, reqId) : undefined,
+                projId ? eq(quotations.projectId, projId) : undefined,
+                currentItem.requestId ? eq(quotations.requestId, currentItem.requestId) : undefined,
+                currentItem.projectId ? eq(quotations.projectId, currentItem.projectId) : undefined
+              ),
+              inArray(quotations.status, ["accepted", "approved"])
+            )
+          )
           .limit(1);
-        if (req && (req.selectedQuotationId || ["contracting", "execution", "handover", "closed"].includes(req.currentStage))) {
+
+        if (acceptedQuotation) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "لا يمكن تعديل جدول الكميات بعد اعتماد عرض السعر والانتقال للمراحل التالية",
+            message: "لا يمكن تعديل جدول الكميات بعد اعتماد عرض السعر",
           });
+        }
+
+        if (reqId) {
+          const [req] = await db
+            .select({ currentStage: mosqueRequests.currentStage, selectedQuotationId: mosqueRequests.selectedQuotationId })
+            .from(mosqueRequests)
+            .where(eq(mosqueRequests.id, reqId))
+            .limit(1);
+          if (req && (req.selectedQuotationId || ["contracting", "execution", "handover", "closed"].includes(req.currentStage))) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "لا يمكن تعديل جدول الكميات بعد اعتماد عرض السعر والانتقال للمراحل التالية",
+            });
+          }
         }
       }
 
       const quantity = updateData.quantity ?? parseFloat(currentItem.quantity);
       const unitPrice = updateData.unitPrice ?? (currentItem.unitPrice ? parseFloat(currentItem.unitPrice) : null);
-      const totalPrice = unitPrice ? quantity * unitPrice : null;
+      const totalPrice = unitPrice !== null ? quantity * unitPrice : null;
 
       const updateValues: any = {};
       if (updateData.mosqueId !== undefined) updateValues.mosqueId = updateData.mosqueId;
       if (updateData.itemName) updateValues.itemName = updateData.itemName;
-      if (updateData.itemDescription) updateValues.itemDescription = updateData.itemDescription;
+      if (updateData.itemDescription !== undefined) updateValues.itemDescription = updateData.itemDescription;
       if (updateData.unit) updateValues.unit = updateData.unit;
       if (updateData.quantity) updateValues.quantity = updateData.quantity.toString();
       if (updateData.unitPrice !== undefined) updateValues.unitPrice = updateData.unitPrice?.toString();
@@ -1931,6 +1942,60 @@ export const projectsRouter = router({
         .update(quantitySchedules)
         .set(updateValues)
         .where(eq(quantitySchedules.id, id));
+
+      // إذا كان البند مرتبطاً بأمر تغيير، تتم مزامنة قيمة أمر التغيير واعتماده تلقائياً عند تسعير البند
+      if (currentItem.changeOrderId) {
+        const [changeOrder] = await db
+          .select()
+          .from(projectChangeOrders)
+          .where(eq(projectChangeOrders.id, currentItem.changeOrderId))
+          .limit(1);
+
+        if (changeOrder) {
+          const coItems = await db
+            .select()
+            .from(quantitySchedules)
+            .where(eq(quantitySchedules.changeOrderId, currentItem.changeOrderId));
+
+          const priced = priceChangeOrderItems(
+            coItems.map((row) => ({
+              name: row.itemName,
+              description: row.itemDescription || undefined,
+              unit: row.unit,
+              quantity: Math.max(0.001, Number(row.quantity || 1)),
+              unitPrice: Math.max(0, Number(row.unitPrice || 0)),
+              category: row.category || undefined,
+              mosqueId: row.mosqueId || undefined,
+            }))
+          );
+
+          const percentage = changeOrderPercentage(
+            priced.total,
+            Number(changeOrder.originalProjectCost || 0)
+          );
+
+          await db
+            .update(projectChangeOrders)
+            .set({
+              itemsJson: JSON.stringify(priced.items),
+              amount: priced.total.toFixed(2),
+              percentage: percentage.toFixed(6),
+              status:
+                priced.total > 0 && changeOrder.status === "pending_boq"
+                  ? "boq_approved"
+                  : changeOrder.status,
+              boqApprovedAt:
+                priced.total > 0 && !changeOrder.boqApprovedAt
+                  ? new Date()
+                  : changeOrder.boqApprovedAt,
+              boqApprovedBy:
+                priced.total > 0 && !changeOrder.boqApprovedBy
+                  ? ctx.user.id
+                  : changeOrder.boqApprovedBy,
+            })
+            .where(eq(projectChangeOrders.id, currentItem.changeOrderId));
+        }
+      }
 
       return { success: true };
     }),
@@ -1959,44 +2024,54 @@ export const projectsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل جدول الكميات" });
       }
 
+      const isChangeOrderItem = Boolean(currentItem.isChangeOrder || currentItem.changeOrderId);
+      if (isChangeOrderItem) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يمكن تعديل بند أمر التغيير بعد إضافته",
+        });
+      }
+
       // التحقق من عدم اعتماد أي عرض سعر لهذا الطلب أو المشروع
       const reqId = currentItem.requestId || (currentItem.projectId ? (await db.select({ requestId: projects.requestId }).from(projects).where(eq(projects.id, currentItem.projectId)).limit(1))[0]?.requestId : null);
       const projId = currentItem.projectId || (currentItem.requestId ? (await db.select({ id: projects.id }).from(projects).where(eq(projects.requestId, currentItem.requestId)).limit(1))[0]?.id : null);
 
-      const [acceptedQuotation] = await db
-        .select({ id: quotations.id })
-        .from(quotations)
-        .where(
-          and(
-            or(
-              reqId ? eq(quotations.requestId, reqId) : undefined,
-              projId ? eq(quotations.projectId, projId) : undefined,
-              currentItem.requestId ? eq(quotations.requestId, currentItem.requestId) : undefined,
-              currentItem.projectId ? eq(quotations.projectId, currentItem.projectId) : undefined
-            ),
-            inArray(quotations.status, ["accepted", "approved"])
+      if (!isChangeOrderItem) {
+        const [acceptedQuotation] = await db
+          .select({ id: quotations.id })
+          .from(quotations)
+          .where(
+            and(
+              or(
+                reqId ? eq(quotations.requestId, reqId) : undefined,
+                projId ? eq(quotations.projectId, projId) : undefined,
+                currentItem.requestId ? eq(quotations.requestId, currentItem.requestId) : undefined,
+                currentItem.projectId ? eq(quotations.projectId, currentItem.projectId) : undefined
+              ),
+              inArray(quotations.status, ["accepted", "approved"])
+            )
           )
-        )
-        .limit(1);
-
-      if (acceptedQuotation) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "لا يمكن حذف بند من جدول الكميات بعد اعتماد عرض السعر",
-        });
-      }
-
-      if (reqId) {
-        const [req] = await db
-          .select({ currentStage: mosqueRequests.currentStage, selectedQuotationId: mosqueRequests.selectedQuotationId })
-          .from(mosqueRequests)
-          .where(eq(mosqueRequests.id, reqId))
           .limit(1);
-        if (req && (req.selectedQuotationId || ["contracting", "execution", "handover", "closed"].includes(req.currentStage))) {
+
+        if (acceptedQuotation) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "لا يمكن حذف بند من جدول الكميات بعد اعتماد عرض السعر والانتقال للمراحل التالية",
+            message: "لا يمكن حذف بند من جدول الكميات بعد اعتماد عرض السعر",
           });
+        }
+
+        if (reqId) {
+          const [req] = await db
+            .select({ currentStage: mosqueRequests.currentStage, selectedQuotationId: mosqueRequests.selectedQuotationId })
+            .from(mosqueRequests)
+            .where(eq(mosqueRequests.id, reqId))
+            .limit(1);
+          if (req && (req.selectedQuotationId || ["contracting", "execution", "handover", "closed"].includes(req.currentStage))) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "لا يمكن حذف بند من جدول الكميات بعد اعتماد عرض السعر والانتقال للمراحل التالية",
+            });
+          }
         }
       }
 
@@ -2062,6 +2137,8 @@ export const projectsRouter = router({
           unitPrice: quantitySchedules.unitPrice,
           totalPrice: quantitySchedules.totalPrice,
           category: quantitySchedules.category,
+          changeOrderId: quantitySchedules.changeOrderId,
+          isChangeOrder: quantitySchedules.isChangeOrder,
           createdAt: quantitySchedules.createdAt,
           updatedAt: quantitySchedules.updatedAt,
           mosqueName: mosques.name,
@@ -2176,6 +2253,8 @@ export const projectsRouter = router({
                   unitPrice: quantitySchedules.unitPrice,
                   totalPrice: quantitySchedules.totalPrice,
                   category: quantitySchedules.category,
+                  changeOrderId: quantitySchedules.changeOrderId,
+                  isChangeOrder: quantitySchedules.isChangeOrder,
                   createdAt: quantitySchedules.createdAt,
                   updatedAt: quantitySchedules.updatedAt,
                   mosqueName: mosques.name,

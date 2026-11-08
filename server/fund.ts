@@ -168,7 +168,23 @@ export async function getProjectFundableAmounts(db: any, projectId: number) {
     projectCost = money(quote?.approvedAmount || quote?.negotiatedAmount || quote?.finalAmount || quote?.totalAmount);
   }
   if (!projectCost) projectCost = money(financial?.supportAmount);
-  if (!projectCost) throw new TRPCError({ code: "BAD_REQUEST", message: "يجب تحديد تكلفة المشروع المعتمدة قبل تحويل الفائض" });
+  if (!projectCost) projectCost = money((project as any).budget);
+  if (!projectCost) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "يجب تحديد تكلفة المشروع المعتمدة قبل تحويل الفائض" });
+  }
+  let changeOrders: any[] = [];
+  try {
+    changeOrders = await db.select().from(projectChangeOrders)
+      .where(eq(projectChangeOrders.projectId, projectId));
+  } catch {
+    changeOrders = [];
+  }
+  const activeChangeOrders = (Array.isArray(changeOrders) ? changeOrders : []).filter(
+    (co: any) => co.status !== "rejected" && money(co.amount) > 0
+  );
+  const changeOrderTotal = money(
+    activeChangeOrders.reduce((sum: number, co: any) => sum + cents(co.amount), 0) / 100
+  );
   const posted = await db.select({ movementType: fundMovements.movementType, amount: fundMovements.amount })
     .from(fundMovements).where(eq(fundMovements.projectId, projectId));
   const surplusTransferred = money(posted.filter((m: any) => m.movementType === "surplus")
@@ -197,9 +213,23 @@ export async function getProjectFundableAmounts(db: any, projectId: number) {
     received, projectCost, adminFee, operationalFee,
     surplusTransferred, adminTransferred, operationalTransferred,
   });
+  const changeOrderAvailable = Math.min(
+    fundable.surplusAvailable,
+    Math.max(0, money(changeOrderTotal - surplusTransferred))
+  );
   return {
     received, projectCost, surplusTransferred, adminTransferred, operationalTransferred,
     ...fundable,
+    changeOrderTotal,
+    changeOrderAvailable,
+    changeOrders: activeChangeOrders.map((co: any) => ({
+      id: co.id,
+      orderNumber: co.orderNumber,
+      title: co.title,
+      amount: money(co.amount),
+      status: co.status,
+      disbursementRequestId: co.disbursementRequestId,
+    })),
     vouchers: vouchers.map((voucher: any) => ({ id: voucher.id, amount: voucher.amount, voucherNumber: voucher.voucherNumber })),
   };
 }

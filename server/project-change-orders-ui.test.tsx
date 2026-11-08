@@ -4,16 +4,25 @@ import { Router } from "wouter";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
-  canCreate: true,
   data: null as any,
   error: null as any,
 }));
-vi.mock("@/hooks/usePermission", () => ({
-  usePermission: () => state.canCreate,
-}));
+
 vi.mock("@/lib/trpc", () => ({
   trpc: {
-    useUtils: () => ({}),
+    useUtils: () => ({
+      projectChangeOrders: { list: { invalidate: vi.fn() } },
+      projects: { getBOQ: { invalidate: vi.fn() } },
+      fund: {
+        transferableProjects: { invalidate: vi.fn() },
+        projectAvailability: { invalidate: vi.fn() },
+      },
+    }),
+    categories: {
+      getAllCategories: {
+        useQuery: () => ({ data: [] }),
+      },
+    },
     projectChangeOrders: {
       list: {
         useQuery: () => ({
@@ -29,16 +38,20 @@ vi.mock("@/lib/trpc", () => ({
 }));
 
 import ProjectChangeOrdersTab from "../client/src/components/ProjectChangeOrdersTab";
-const render = (closed = false) =>
+
+const render = (closed = false, onNavigateToBoq = vi.fn()) =>
   renderToStaticMarkup(
     <Router ssrPath="/projects/1">
-      <ProjectChangeOrdersTab projectId={1} closed={closed} />
+      <ProjectChangeOrdersTab
+        projectId={1}
+        closed={closed}
+        onNavigateToBoq={onNavigateToBoq}
+      />
     </Router>
   );
 
 beforeEach(() => {
   vi.stubGlobal("React", React);
-  state.canCreate = true;
   state.error = null;
   state.data = {
     funding: {
@@ -58,9 +71,9 @@ beforeEach(() => {
         amount: "5000.00",
         originalProjectCost: "25000.00",
         percentage: "20.000000",
-        status: "pending",
-        disbursementRequestId: 17,
-        requestNumber: "DR-2026-0001",
+        status: "boq_approved",
+        disbursementRequestId: null,
+        requestNumber: null,
         createdAt: new Date("2026-11-03"),
         items: [
           {
@@ -77,45 +90,35 @@ beforeEach(() => {
 });
 
 describe("project change order view", () => {
-  it("shows original value, additional items, computed percentage, revised value, and the linked payment request", () => {
+  it("shows the order and financial summary without the removed labels or shortcuts", () => {
     const html = render();
     for (const text of [
       "25,000.00",
       "5,000.00",
-      "20.00",
-      "30,000.00",
+      "20.00%",
       "بند إضافي",
-      "بانتظار اعتماد مُعد الطلب",
-      "/disbursements/requests/17",
-    ])
+      "الفائض المتاح لأوامر التغيير",
+      "إضافة بند لجدول الكميات",
+      "اعتماد أمر التغيير للمشروع والانتقال لقسم جدول الكميات",
+    ]) {
       expect(html).toContain(text);
+    }
+    expect(html).not.toContain("تحديد المورد");
+    for (const removed of ["نهائي غير قابل للتعديل", "معتمد في جدول الكميات - جاهز للتحويل للصندوق", "عرض البنود في قسم جدول الكميات", "الانتقال لصفحة الصندوق لتحويل المبلغ"]) expect(html).not.toContain(removed);
   });
-  it("hides creation for read-only viewers", () => {
-    state.canCreate = false;
-    const html = render();
-    expect(html).not.toContain("أمر تغيير جديد</button>");
-    expect(html).toContain("CO-2026-0001");
-  });
-  it("disables creation when all surplus has been reserved", () => {
+
+  it("shows change orders as closed and hides creation when available surplus is zero", () => {
     state.data.funding.available = 0;
     const html = render();
-    expect(html).toMatch(
-      /<button[^>]*disabled[^>]*>[\s\S]*?أمر تغيير جديد<\/button>/
-    );
+    expect(html).toContain("أوامر التغيير مغلقة لعدم وجود فائض متاح للمشروع");
+    expect(html).not.toContain("إضافة أمر تغيير جديد");
+    expect(html).not.toContain("إضافة بند لجدول الكميات");
+    expect(html).toContain("CO-2026-0001");
   });
+
   it("hides creation on closed projects while preserving order history", () => {
     const html = render(true);
-    expect(html).not.toContain("أمر تغيير جديد</button>");
+    expect(html).not.toContain("إضافة أمر تغيير جديد");
     expect(html).toContain("CO-2026-0001");
-    expect(html).toContain("المشروع مغلق");
-  });
-  it("explains a missing approved cost and disables order creation", () => {
-    state.data.funding = null;
-    state.data.fundingError = "يجب تحديد تكلفة المشروع المعتمدة";
-    const html = render();
-    expect(html).toContain(state.data.fundingError);
-    expect(html).toMatch(
-      /<button[^>]*disabled[^>]*>[\s\S]*?أمر تغيير جديد<\/button>/
-    );
   });
 });
