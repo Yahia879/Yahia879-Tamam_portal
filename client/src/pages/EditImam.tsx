@@ -2,7 +2,8 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
+import { mosqueHasImam } from "@shared/mosquePermissions";
 import DashboardLayout from "@/components/DashboardLayout";
 import {
   Card,
@@ -38,10 +39,13 @@ type ImamFormValues = z.infer<typeof imamSchema>;
 export default function EditImam({ params }: { params: { id: string } }) {
   const mosqueId = parseInt(params.id, 10);
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const canAddImam = usePermission("mosques.add_imam");
+  const canEditMosque = usePermission("mosques.edit");
   const utils = trpc.useUtils();
 
   const { data: mosque, isLoading: isMosqueLoading } = trpc.mosques.getById.useQuery({ id: mosqueId });
+  const hasImam = mosque ? mosqueHasImam(mosque) : false;
+  const canSave = hasImam ? canEditMosque : canAddImam;
 
   const form = useForm<ImamFormValues>({
     resolver: zodResolver(imamSchema),
@@ -64,7 +68,7 @@ export default function EditImam({ params }: { params: { id: string } }) {
 
   const updateImamMutation = trpc.mosques.updateImam.useMutation({
     onSuccess: () => {
-      toast.success("تم تحديث بيانات الإمام بنجاح");
+      toast.success(hasImam ? "تم تحديث بيانات الإمام بنجاح" : "تم تسجيل بيانات الإمام بنجاح");
       utils.mosques.getById.invalidate({ id: mosqueId });
       setLocation(`/mosques/${mosqueId}`);
     },
@@ -74,6 +78,7 @@ export default function EditImam({ params }: { params: { id: string } }) {
   });
 
   const onSubmit = (values: ImamFormValues) => {
+    if (!canSave) return;
     updateImamMutation.mutate({
       id: mosqueId,
       ...values,
@@ -90,7 +95,7 @@ export default function EditImam({ params }: { params: { id: string } }) {
 
   return (
     <DashboardLayout>
-      <PermissionGuard permissions={["mosques.edit", "mosques.create"]}>
+      <PermissionGuard permission={hasImam ? "mosques.edit" : "mosques.add_imam"}>
         <div className="max-w-4xl mx-auto">
           <Button variant="ghost" onClick={() => setLocation(`/mosques/${mosqueId}`)} className="mb-4">
             <ArrowLeft className="w-4 h-4 ml-2" />
@@ -101,7 +106,7 @@ export default function EditImam({ params }: { params: { id: string } }) {
             <CardHeader>
               <CardTitle className="text-2xl flex items-center gap-3">
                 <User className="w-6 h-6 text-primary" />
-                تسجيل / تحديث بيانات الإمام
+                {hasImam ? "تحديث بيانات الإمام" : "تسجيل بيانات الإمام"}
               </CardTitle>
               <CardDescription>
                 أدخل بيانات الإمام الخاصة بمسجد: {mosque?.name}
@@ -159,7 +164,7 @@ export default function EditImam({ params }: { params: { id: string } }) {
                     )}
                   />
                   <div className="pt-4 flex justify-end">
-                    <Button type="submit" className="gradient-primary text-white" disabled={updateImamMutation.isPending}>
+                    <Button type="submit" className="gradient-primary text-white" disabled={!canSave || updateImamMutation.isPending}>
                       <Save className="w-4 h-4 ml-2" />
                       {updateImamMutation.isPending ? "جاري الحفظ..." : "حفظ التغييرات"}
                     </Button>

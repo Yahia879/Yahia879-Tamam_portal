@@ -62,6 +62,7 @@ import Mosques from "../client/src/pages/Mosques";
 import MosqueDetails from "../client/src/pages/MosqueDetails";
 import MosquesMap from "../client/src/pages/MosquesMap";
 import PermissionRouteGuard from "../client/src/components/PermissionRouteGuard";
+import EditImam from "../client/src/pages/EditImam";
 
 beforeEach(() => {
   vi.stubGlobal("React", React);
@@ -124,7 +125,7 @@ describe("mosque page controls for the general administrator", () => {
     const buttons = html.match(/<button\b[^>]*>[\s\S]*?<\/button>/g) ?? [];
     for (const [label, targetStatus] of [["اعتماد", "approved"], ["رفض", "rejected"]]) {
       const controls = buttons.filter(b => new RegExp(`${label}\\s*</button>`).test(b));
-      expect(controls).toHaveLength(2);
+      expect(controls).toHaveLength(label === "اعتماد" && status === "approved" ? 0 : 2);
       for (const control of controls) expect(control.includes('disabled=""')).toBe(status === targetStatus);
     }
     state.permissions = ["mosques.view"];
@@ -159,8 +160,30 @@ describe("mosque page controls for the general administrator", () => {
     state.permissions.push("mosques.edit");
     html = renderToStaticMarkup(<MosqueDetails />);
     expect(html).toMatch(/تعديل\s*<\/button>/);
-    expect(html).toContain("تسجيل بيانات الإمام");
+    expect(html).not.toMatch(/تسجيل بيانات الإمام\s*<\/button>/);
     expect(html).toContain("إكمال البيانات");
+  });
+  it("shows imam registration only with its dedicated permission, and only when no imam is registered", () => {
+    state.permissions = ["mosques.view_details", "mosques.add_imam"];
+    expect(renderToStaticMarkup(<MosqueDetails />)).toMatch(/تسجيل بيانات الإمام\s*<\/button>/);
+    state.permissions = ["mosques.view_details", "mosques.edit"];
+    expect(renderToStaticMarkup(<MosqueDetails />)).not.toMatch(/تسجيل بيانات الإمام\s*<\/button>/);
+    state.permissions.push("mosques.add_imam");
+    state.data["mosques.getById"].imamName = "إمام مسجل";
+    expect(renderToStaticMarkup(<MosqueDetails />)).not.toMatch(/تسجيل بيانات الإمام\s*<\/button>/);
+    state.data["mosques.getById"].imamName = null;
+    state.data["mosques.getById"].registeredByUser = { requesterType: "imam", name: "إمام المسجد" };
+    expect(renderToStaticMarkup(<MosqueDetails />)).not.toMatch(/تسجيل بيانات الإمام\s*<\/button>/);
+  });
+  it("opens the registration form with add-imam permission without requiring mosque editing or creation", () => {
+    state.permissions = ["mosques.add_imam"];
+    expect(renderToStaticMarkup(<EditImam params={{ id: "17" }} />)).toContain("الاسم الكامل");
+    state.permissions = ["mosques.edit"];
+    expect(renderToStaticMarkup(<EditImam params={{ id: "17" }} />)).not.toContain("الاسم الكامل");
+    state.data["mosques.getById"].imamName = "إمام مسجل";
+    expect(renderToStaticMarkup(<EditImam params={{ id: "17" }} />)).toContain("الاسم الكامل");
+    state.permissions = ["mosques.add_imam"];
+    expect(renderToStaticMarkup(<EditImam params={{ id: "17" }} />)).not.toContain("الاسم الكامل");
   });
 
   it("ignores the stale wildcard in the auth snapshot after permission refresh", () => {

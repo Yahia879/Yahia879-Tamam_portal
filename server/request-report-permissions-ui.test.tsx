@@ -2,6 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { REQUEST_REPORT_TYPES, REQUEST_REPORT_VIEW_PERMISSIONS } from "../shared/requestReportPermissions";
+import { REQUEST_MANAGEMENT_REQUIREMENTS } from "../shared/requestPermissions";
 
 const state = vi.hoisted(() => ({
   permissions: [] as string[], reports: [] as any[],
@@ -75,7 +76,7 @@ describe("request report page permissions", () => {
   });
 
   it.each(REQUEST_REPORT_TYPES)("shows intervention only for the granted %s type", type => {
-    state.permissions = [...REQUEST_REPORT_VIEW_PERMISSIONS, `pending_reports.intervene_${type}`];
+    state.permissions = [...REQUEST_REPORT_VIEW_PERMISSIONS, `pending_reports.intervene_${type}`, ...REQUEST_MANAGEMENT_REQUIREMENTS];
     state.reports.forEach(report => {
       report.isCompleted = report.reportType === "quick_request";
       report.isLate = !report.isCompleted;

@@ -1,6 +1,8 @@
+import { MOSQUE_PERMISSIONS } from "@shared/mosquePermissions";
 import { BENEFICIARY_PERMISSIONS } from "@shared/beneficiaryPermissions";
+import { useLinkedPermissionConfirmation } from "@/components/permissions/useLinkedPermissionConfirmation";
 import { CALENDAR_PERMISSIONS, CALENDAR_PERMISSION_IDS, calendarPermissionOverrides } from "@shared/calendarPermissions";
-import { sectionPermissionPrerequisite, sectionPermissionDependents } from "@shared/sectionPermissions";
+import { sectionPermissionPrerequisite, sectionPermissionPrerequisites, sectionPermissionDependents } from "@shared/sectionPermissions";
 import { REQUEST_REPORT_PERMISSIONS } from "@shared/requestReportPermissions";
 import { custodyPermissionSelection } from "@shared/custodyPermissions";
 import { GENERAL_QUOTATION_PERMISSIONS, GENERAL_QUOTATION_LABELS } from "@shared/quotationPermissions";
@@ -409,6 +411,7 @@ export default function UserPermissions() {
 
 
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  const { confirmLinkedPermissions, dependencyConfirmationDialog } = useLinkedPermissionConfirmation();
 
 
 
@@ -679,8 +682,7 @@ export default function UserPermissions() {
   const isChecked = (permissionId: string): boolean => {
     if (CALENDAR_PERMISSION_IDS.includes(permissionId) && permissionId !== "appointments.view_own" &&
         (overrides["appointments.view_own"] ?? rolePermissions?.includes("appointments.view_own"))) return false;
-    const requiredView = sectionPermissionPrerequisite(permissionId);
-    if (requiredView && !isChecked(requiredView)) return false;
+    if (sectionPermissionPrerequisites(permissionId).some(required => !isChecked(required))) return false;
 
 
 
@@ -783,6 +785,9 @@ export default function UserPermissions() {
   const handleTogglePermission = (permId: string) => {
     if (CALENDAR_PERMISSION_IDS.includes(permId)) {
       const enabled = !isChecked(permId);
+      if (enabled && confirmLinkedPermissions([permId], isChecked, permissions => {
+        setOverrides(prev => permissions.reduce((next, id) => calendarPermissionOverrides(next, rolePermissions ?? [], id, true), prev));
+      })) return;
       setOverrides(prev => calendarPermissionOverrides(prev, rolePermissions ?? [], permId, enabled));
       return;
     }
@@ -791,6 +796,16 @@ export default function UserPermissions() {
       toast.warning(permId.startsWith("beneficiary_evaluations.") ? "يجب تفعيل صلاحية سجل استبيانات التقييم أولاً" : "يجب تفعيل صلاحية عرض هذا النوع من التقارير أولاً");
       return;
     }
+    if (!isChecked(permId) && confirmLinkedPermissions([permId], isChecked, permissions => {
+      setOverrides(prev => {
+        const next = { ...prev };
+        for (const permission of permissions) {
+          if (rolePermissions?.includes(permission)) delete next[permission];
+          else next[permission] = true;
+        }
+        return next;
+      });
+    })) return;
 
 
 
@@ -3288,6 +3303,9 @@ export default function UserPermissions() {
     if (modulePerms.length && modulePerms.every(p => CALENDAR_PERMISSION_IDS.includes(p.id))) {
       const normal = modulePerms.map(p => p.id).filter(id => id !== "appointments.view_own");
       const enabled = !normal.every(isChecked);
+      if (enabled && confirmLinkedPermissions(normal, isChecked, permissions => {
+        setOverrides(prev => permissions.reduce((next, id) => calendarPermissionOverrides(next, rolePermissions ?? [], id, true), prev));
+      })) return;
       setOverrides(prev => {
         let next = calendarPermissionOverrides(prev, rolePermissions ?? [], "appointments.view_own", false);
         for (const id of normal) next = calendarPermissionOverrides(next, rolePermissions ?? [], id, enabled);
@@ -3303,6 +3321,27 @@ export default function UserPermissions() {
 
 
     const allSelected = permIds.every(id => isChecked(id));
+    if (!allSelected && confirmLinkedPermissions(permIds, isChecked, permissions => {
+      setOverrides(prev => {
+        const next = { ...prev };
+        for (const permission of permissions) {
+          if (rolePermissions?.includes(permission)) delete next[permission];
+          else next[permission] = true;
+        }
+        return next;
+      });
+    })) return;
+    if (allSelected && permIds.some(id => sectionPermissionDependents(id).length)) {
+      setOverrides(prev => {
+        const next = { ...prev };
+        for (const permission of Array.from(new Set([...permIds, ...permIds.flatMap(sectionPermissionDependents)]))) {
+          if (rolePermissions?.includes(permission)) next[permission] = false;
+          else delete next[permission];
+        }
+        return next;
+      });
+      return;
+    }
 
 
 
@@ -4011,7 +4050,7 @@ export default function UserPermissions() {
 
 
       permissionId,
-      granted: granted && (!sectionPermissionPrerequisite(permissionId) || isChecked(sectionPermissionPrerequisite(permissionId)!)),
+      granted: granted && sectionPermissionPrerequisites(permissionId).every(isChecked),
 
 
 
@@ -4164,6 +4203,7 @@ export default function UserPermissions() {
 
 
         view_details: "عرض تفاصيل المسجد",
+        add_imam: "إضافة إمام للمسجد",
 
         edit: "تعديل بيانات المسجد",
 
@@ -5729,7 +5769,7 @@ export default function UserPermissions() {
 
 
 
-        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "view_details", "edit", "delete", "reject", "approve"] },
+        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: MOSQUE_PERMISSIONS.map(p => p.action) },
 
 
 
@@ -8303,6 +8343,7 @@ export default function UserPermissions() {
 
 
 
+      {dependencyConfirmationDialog}
       <DisbursementPermConfirmationModal
 
 

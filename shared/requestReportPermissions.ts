@@ -1,3 +1,4 @@
+import { REQUEST_MANAGEMENT_REQUIREMENTS } from "./requestPermissions";
 export const REQUEST_REPORT_TYPES = ["field_visit", "quick_response", "quick_request", "final_report"] as const;
 export type RequestReportType = typeof REQUEST_REPORT_TYPES[number];
 
@@ -23,14 +24,16 @@ export function isRequestReportType(type: unknown): type is RequestReportType {
 
 export function requestReportAccess(permissions: readonly string[]) {
   const canView = (type: unknown) => isRequestReportType(type) && permissions.includes(`pending_reports.view_${type}`);
-  const canIntervene = (type: unknown) => canView(type) && permissions.includes(`pending_reports.intervene_${type}`);
+  const canIntervene = (type: unknown) => canView(type) && permissions.includes(`pending_reports.intervene_${type}`) &&
+    REQUEST_MANAGEMENT_REQUIREMENTS.every(permission => permissions.includes(permission));
   return { canView, canIntervene, canEnter: REQUEST_REPORT_TYPES.some(canView) };
 }
 
 export function requestReportPermissionSelection(permissions: string[]): string[] {
   return permissions.filter(p => {
     const prerequisite = requestReportInterventionPrerequisite(p);
-    return !RETIRED_REQUEST_REPORT_PERMISSIONS.includes(p) && (!prerequisite || permissions.includes(prerequisite));
+    return !RETIRED_REQUEST_REPORT_PERMISSIONS.includes(p) && (!prerequisite ||
+      (permissions.includes(prerequisite) && REQUEST_MANAGEMENT_REQUIREMENTS.every(required => permissions.includes(required))));
   });
 }
 

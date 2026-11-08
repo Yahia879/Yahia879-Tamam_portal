@@ -4,6 +4,7 @@ export const REQUEST_SECTION_PERMISSION_IDS = [
   "requests.manage_as_quick_response", "requests.upload_final_report", "requests.create_quick_request",
   "sedana_requests.view", "sedana_requests.desk_review", "sedana_requests.manage",
 ];
+export const REQUEST_MANAGEMENT_REQUIREMENTS = ["requests.view", "requests.view_details"];
 export const REQUEST_LIST_ENTRY_PERMISSIONS = ["requests.view", "sedana_requests.view", "sedana_requests.manage"];
 export function isRequestSectionPermission(permission: string) {
   return permission === "requests" || permission.startsWith("requests.") ||

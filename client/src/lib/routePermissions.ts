@@ -1,6 +1,6 @@
 import { custodyAccess, type CustodyUser } from "@shared/custodyPermissions";
 import { REQUEST_REPORT_VIEW_PERMISSIONS } from "@shared/requestReportPermissions";
-import { CALENDAR_ENTRY_PERMISSIONS } from "@shared/calendarPermissions";
+import { CALENDAR_ENTRY_PERMISSIONS, calendarAccess } from "@shared/calendarPermissions";
 import { REQUEST_LIST_ENTRY_PERMISSIONS, isRequestSectionPermission } from "@shared/requestPermissions";
 import { isDashboardViewerUser } from "./dashboardViewer";
 
@@ -443,7 +443,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/forms-customization\/registration\/[^/]+$/, permission: ["forms_customization.registration", "settings_center"] },
 
   // المساجد
-  { pattern: /^\/mosques\/\d+\/edit-imam$/, permission: "mosques.edit" },
+  { pattern: /^\/mosques\/\d+\/edit-imam$/, permission: ["mosques.add_imam", "mosques.edit"] },
   { pattern: /^\/mosques\/\d+\/edit$/, permission: "mosques.edit" },
   { pattern: /^\/mosques\/\d+$/, permission: ["mosques.view_details", "mosque_map.view_details"] },
 
@@ -689,7 +689,7 @@ export function hasRouteAccess(
     }
   }
   if (pathname.replace(/\/$/, "") === "/field-visits/calendar") {
-    return CALENDAR_ENTRY_PERMISSIONS.some(p => userPermissions.includes(p));
+    return calendarAccess(userPermissions).canEnter;
   }
   if (pathname.replace(/\/$/, "") === "/beneficiary-satisfaction") {
     return ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log"].some(p => userPermissions.includes(p));

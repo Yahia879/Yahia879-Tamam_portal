@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getTableName } from "drizzle-orm";
 import type { TrpcContext } from "./_core/context";
 import { hasRouteAccess } from "../client/src/lib/routePermissions";
+import { MOSQUE_PERMISSION_IDS } from "../shared/mosquePermissions";
 
-const permissionIds = ["view", "create", "view_details", "edit", "delete", "reject", "approve"].map(p => `mosques.${p}`);
+const permissionIds = MOSQUE_PERMISSION_IDS;
 const mapPermissions = ["mosque_map.view", "mosque_map.view_details"];
 const state = vi.hoisted(() => ({
   role: "super_admin",
+  creatorType: null as string | null,
   selected: [] as string[],
   direct: [] as { permissionId: string; granted: boolean }[],
   legacy: [] as string[],
@@ -18,11 +20,11 @@ vi.mock("./db", () => ({
   getDb: async () => {
     function rows(table: any) {
       const name = getTableName(table);
-      if (name === "users") return [{ id: 0, role: state.role }];
+      if (name === "users") return [{ id: 0, role: state.role, requesterType: state.creatorType }];
       if (name === "roles") return [{ id: state.role, description: JSON.stringify(state.selected), isActive: true }];
       if (name === "role_permissions") return state.legacy.map(permissionId => ({ roleId: state.role, permissionId }));
       if (name === "user_permissions") return state.direct;
-      if (name === "permissions") return [...["view", "create", "view_details", "edit", "delete", "reject", "approve"].map(p => `mosques.${p}`), "mosque_map.view", "mosque_map.view_details"].map(id => ({ id }));
+      if (name === "permissions") return [...MOSQUE_PERMISSION_IDS, "mosque_map.view", "mosque_map.view_details"].map(id => ({ id }));
       return state.records[name] ?? [];
     }
     function query(table?: any): any {
@@ -55,6 +57,7 @@ const caller = () => mosquesRouter.createCaller({ user: { id: 0, role: state.rol
 
 beforeEach(() => {
   state.role = "super_admin";
+  state.creatorType = null;
   state.selected = ["mosques.view"];
   state.direct = [];
   state.legacy = [];
@@ -103,6 +106,37 @@ describe("mosque permissions remain independent", () => {
 
 describe.each(["super_admin", "system_admin", "general_manager", "projects_office", "custom_role_test"])("mosque boundaries for %s", role => {
   beforeEach(() => { state.role = role; });
+  it("adds an imam with the dedicated grant and honors its revocation without requiring mosque editing or creation", async () => {
+    state.selected = ["mosques.add_imam"];
+    expect(hasRouteAccess("/mosques/17/edit-imam", role, await calculateUserPermissions(0), false)).toBe(true);
+    expect(hasRouteAccess("/mosques/17/edit", role, await calculateUserPermissions(0), false)).toBe(false);
+    await expect(caller().updateImam({ id: 17, imamName: "إمام جديد", imamPhone: "0500000000" })).resolves.toMatchObject({ success: true });
+    state.writes = []; state.direct = [{ permissionId: "mosques.add_imam", granted: false }];
+    expect(hasRouteAccess("/mosques/17/edit-imam", role, await calculateUserPermissions(0), false)).toBe(false);
+    await expect(caller().updateImam({ id: 17, imamName: "إمام جديد", imamPhone: "0500000000" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(state.writes).toEqual([]);
+  });
+  it("does not let mosque editing grant imam creation through either update endpoint", async () => {
+    state.selected = ["mosques.edit"];
+    await expect(caller().updateImam({ id: 17, imamName: "إمام جديد", imamPhone: "0500000000" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller().update({ id: 17, imamName: "إمام جديد" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(state.writes).toEqual([]);
+    state.records.mosques[0].imamName = "إمام سابق";
+    await expect(caller().updateImam({ id: 17, imamName: "اسم محدث", imamPhone: "0500000000" })).resolves.toMatchObject({ success: true });
+  });
+  it("does not let add-imam permission replace an existing imam or the registrant imam", async () => {
+    state.selected = ["mosques.add_imam"];
+    state.records.mosques[0].imamName = "إمام سابق";
+    await expect(caller().updateImam({ id: 17, imamName: "إمام جديد", imamPhone: "0500000000" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    state.records.mosques[0].imamName = null; state.creatorType = "imam";
+    await expect(caller().updateImam({ id: 17, imamName: "إمام جديد", imamPhone: "0500000000" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(state.writes).toEqual([]);
+  });
+  it("loads mosque data needed by the add-imam form with its dedicated permission", async () => {
+    state.selected = ["mosques.add_imam"];
+    state.records.mosques = [{ mosque: { id: 17, name: "مسجد", registeredBy: 99 } }];
+    await expect(caller().getById({ id: 17 })).resolves.toMatchObject({ id: 17 });
+  });
 
   it("allows the list and blocks details, creation and editing for view-only users", async () => {
     const permissions = await calculateUserPermissions(0);

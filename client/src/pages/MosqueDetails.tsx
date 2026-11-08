@@ -24,6 +24,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { PROGRAM_LABELS, STAGE_LABELS } from "@shared/constants";
 import { toast } from "sonner";
 import { PermissionGuard } from "@/components/PermissionGuard";
+import { mosqueHasImam } from "@shared/mosquePermissions";
 
 const approvalLabels: Record<string, string> = {
   pending: "قيد المراجعة",
@@ -44,6 +45,7 @@ export default function MosqueDetails() {
   const mosqueId = parseInt(params.id || "0");
 
   const { data: mosque, isLoading } = trpc.mosques.getById.useQuery({ id: mosqueId });
+  const hasImam = mosque ? mosqueHasImam(mosque) : false;
   const { data: requestsData } = trpc.requests.search.useQuery(
     { mosqueId, page: 1, limit: 50 },
     { enabled: !!mosqueId }
@@ -276,7 +278,7 @@ export default function MosqueDetails() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {mosque.imamName ? (
+                {mosque.imamName?.trim() ? (
                   <div className="space-y-3">
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm text-muted-foreground">الاسم:</span>
@@ -319,7 +321,7 @@ export default function MosqueDetails() {
                     <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-center">
                       <p className="text-sm text-amber-900 font-medium mb-3">لم يتم تسجيل بيانات الإمام</p>
                       <p className="text-xs text-amber-700 mb-4">أضف معلومات الإمام لإكمال بيانات المسجد</p>
-                      <PermissionGuard permission="mosques.edit">
+                      <PermissionGuard permission="mosques.add_imam">
                         <Button
                           className="w-full bg-amber-600 hover:bg-amber-700 text-white"
                           onClick={() => setLocation(`/mosques/${mosqueId}/edit-imam`)}
@@ -335,7 +337,7 @@ export default function MosqueDetails() {
             </Card>
 
             {/* معلومات إضافية للمسجد */}
-            {((!mosque.imamName && mosque.registeredByUser?.requesterType !== "imam") || !mosque.address) && (
+            {(!hasImam || !mosque.address) && (
               <Card className="border-0 shadow-sm bg-blue-50 border border-blue-200">
                 <CardHeader>
                   <CardTitle className="text-blue-900 flex items-center gap-2">
@@ -345,7 +347,7 @@ export default function MosqueDetails() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 text-sm text-blue-800">
-                    {(!mosque.imamName && mosque.registeredByUser?.requesterType !== "imam") && (
+                    {!hasImam && (
                       <div className="flex items-start gap-2">
                         <span className="text-lg">•</span>
                         <span>بيانات الإمام</span>

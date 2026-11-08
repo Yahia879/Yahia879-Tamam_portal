@@ -1,3 +1,4 @@
+import { REQUEST_MANAGEMENT_REQUIREMENTS } from "./requestPermissions";
 export const CALENDAR_EVENT_TYPES = ["field_visit", "quick_response", "final_report", "custom"] as const;
 export type CalendarEventType = typeof CALENDAR_EVENT_TYPES[number];
 export const CALENDAR_PERMISSIONS = [
@@ -9,6 +10,7 @@ export const CALENDAR_PERMISSIONS = [
   { action: "view_own", nameAr: "عرض زياراتي الميدانية الخاصة بي فقط" },
 ] as const;
 export const CALENDAR_PERMISSION_IDS = CALENDAR_PERMISSIONS.map(p => `appointments.${p.action}`);
+export const CALENDAR_MANAGEMENT_PERMISSION_IDS = CALENDAR_PERMISSION_IDS.filter(p => p !== "appointments.view_own");
 export const CALENDAR_ENTRY_PERMISSIONS = [...CALENDAR_PERMISSION_IDS];
 export const RETIRED_CALENDAR_PERMISSIONS = ["appointments.view_all", "appointments.view", "appointments.add", "appointments.edit", "appointments", "appointments_calendar"];
 export function calendarPermissionConflicts(permission: string): string[] {
@@ -37,10 +39,11 @@ export function calendarPermissionSelection(permissions: string[]) {
 }
 export function calendarAccess(permissions: readonly string[]) {
   const ownOnly = permissions.includes("appointments.view_own");
+  const hasRequestAccess = REQUEST_MANAGEMENT_REQUIREMENTS.every(p => permissions.includes(p));
   const canView = (type: unknown) => CALENDAR_EVENT_TYPES.includes(type as CalendarEventType) &&
-    (ownOnly || permissions.includes(`appointments.view_${type}`));
+    (ownOnly || (hasRequestAccess && permissions.includes(`appointments.view_${type}`)));
   const ownFieldVisitsOnly = ownOnly;
   const readableTypes = CALENDAR_EVENT_TYPES.filter(canView);
-  const canCreateCustom = !ownOnly && permissions.includes("appointments.create_custom");
+  const canCreateCustom = !ownOnly && hasRequestAccess && permissions.includes("appointments.create_custom");
   return { canView, ownOnly, ownFieldVisitsOnly, readableTypes, canRead: readableTypes.length > 0, canCreateCustom, canEnter: readableTypes.length > 0 || canCreateCustom };
 }

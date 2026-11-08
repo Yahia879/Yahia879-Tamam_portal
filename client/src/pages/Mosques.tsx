@@ -380,19 +380,19 @@ export default function Mosques() {
                             {hasMosqueActions && (
                               <TableCell>
                                 <div className="flex items-center gap-2">
-                                  <PermissionGuard permission="mosques.approve">
+                                  {mosque.approvalStatus !== "approved" && <PermissionGuard permission="mosques.approve">
                                     <Button
                                       size="sm"
                                       variant="outline"
                                       className="text-green-600 border-green-300 hover:bg-green-50"
                                       onClick={() => handleApprove(mosque.id)}
-                                      disabled={approveMutation.isPending || mosque.approvalStatus === "approved"}
-                                      title={mosque.approvalStatus === "approved" ? "المسجد معتمد بالفعل" : "اعتماد المسجد"}
+                                      disabled={approveMutation.isPending}
+                                      title="اعتماد المسجد"
                                     >
                                       <CheckCircle className="w-4 h-4 ml-1" />
                                       اعتماد
                                     </Button>
-                                  </PermissionGuard>
+                                  </PermissionGuard>}
                                   <PermissionGuard permission="mosques.reject">
                                     <Button
                                       size="sm"
@@ -529,19 +529,19 @@ export default function Mosques() {
 
                           {(canApproveMosques || canRejectMosques) && (
                             <div className="flex items-center gap-2">
-                              <PermissionGuard permission="mosques.approve">
+                              {mosque.approvalStatus !== "approved" && <PermissionGuard permission="mosques.approve">
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   className="h-8 text-[11px] text-green-600 border-green-300 hover:bg-green-50 px-2"
                                   onClick={() => handleApprove(mosque.id)}
-                                  disabled={approveMutation.isPending || mosque.approvalStatus === "approved"}
-                                  title={mosque.approvalStatus === "approved" ? "المسجد معتمد بالفعل" : "اعتماد المسجد"}
+                                  disabled={approveMutation.isPending}
+                                  title="اعتماد المسجد"
                                 >
                                   <CheckCircle className="w-3 h-3 ml-1" />
                                   اعتماد
                                 </Button>
-                              </PermissionGuard>
+                              </PermissionGuard>}
                               <PermissionGuard permission="mosques.reject">
                                 <Button
                                   size="sm"

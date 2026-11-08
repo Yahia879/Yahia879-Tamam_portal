@@ -1,4 +1,6 @@
+import { MOSQUE_PERMISSIONS } from "@shared/mosquePermissions";
 import { BENEFICIARY_PERMISSIONS } from "@shared/beneficiaryPermissions";
+import { useLinkedPermissionConfirmation } from "@/components/permissions/useLinkedPermissionConfirmation";
 import { CALENDAR_PERMISSIONS, CALENDAR_PERMISSION_IDS, toggleCalendarPermission } from "@shared/calendarPermissions";
 import { sectionPermissionSelection, sectionPermissionPrerequisite, sectionPermissionDependents } from "@shared/sectionPermissions";
 import { REQUEST_REPORT_PERMISSIONS } from "@shared/requestReportPermissions";
@@ -72,6 +74,8 @@ export default function RolePermissions() {
 
   const utils = trpc.useUtils();
   const [selectedPerms, setSelectedPerms] = useState<string[]>([]);
+  const validSelectedPerms = useMemo(() => sectionPermissionSelection(selectedPerms), [selectedPerms]);
+  const { confirmLinkedPermissions, dependencyConfirmationDialog } = useLinkedPermissionConfirmation();
   const [showDisbursementModal, setShowDisbursementModal] = useState(false);
   const [pendingDisbursementAction, setPendingDisbursementAction] = useState<(() => void) | null>(null);
 
@@ -149,6 +153,9 @@ export default function RolePermissions() {
 
   const handleTogglePermission = (permId: string) => {
     if (CALENDAR_PERMISSION_IDS.includes(permId)) {
+      if (!selectedPerms.includes(permId) && confirmLinkedPermissions([permId], id => selectedPerms.includes(id), permissions => {
+        setSelectedPerms(prev => permissions.reduce((next, id) => toggleCalendarPermission(next, id, true), prev));
+      })) return;
       setSelectedPerms(prev => toggleCalendarPermission(prev, permId, !prev.includes(permId)));
       return;
     }
@@ -157,6 +164,9 @@ export default function RolePermissions() {
       toast.warning(permId.startsWith("beneficiary_evaluations.") ? "يجب تفعيل صلاحية سجل استبيانات التقييم أولاً" : "يجب تفعيل صلاحية عرض هذا النوع من التقارير أولاً");
       return;
     }
+    if (!selectedPerms.includes(permId) && confirmLinkedPermissions([permId], id => selectedPerms.includes(id), permissions => {
+      setSelectedPerms(prev => Array.from(new Set([...prev, ...permissions])));
+    })) return;
     // التحقق من صلاحية إنشاء أمر صرف لأمر الشراء وتأكيد تفعيل صلاحيات أوامر الصرف
     if (
       (permId === "purchase_orders.create_disbursement" || permId === "orders_and_letters.purchase_orders_create_disbursement") &&
@@ -798,6 +808,9 @@ export default function RolePermissions() {
   const handleToggleModuleAll = (modulePerms: any[]) => {
     if (modulePerms.length && modulePerms.every(p => CALENDAR_PERMISSION_IDS.includes(p.id))) {
       const normal = modulePerms.map(p => p.id).filter(id => id !== "appointments.view_own");
+      if (!normal.every(id => selectedPerms.includes(id)) && confirmLinkedPermissions(normal, id => selectedPerms.includes(id), permissions => {
+        setSelectedPerms(prev => permissions.reduce((next, id) => toggleCalendarPermission(next, id, true), prev));
+      })) return;
       setSelectedPerms(prev => normal.every(id => prev.includes(id))
         ? prev.filter(id => !CALENDAR_PERMISSION_IDS.includes(id))
         : [...prev.filter(id => !CALENDAR_PERMISSION_IDS.includes(id)), ...normal]);
@@ -805,8 +818,11 @@ export default function RolePermissions() {
     }
     const permIds = modulePerms.map(p => p.id);
     const allSelected = permIds.every(id => selectedPerms.includes(id));
+    if (!allSelected && confirmLinkedPermissions(permIds, id => selectedPerms.includes(id), permissions => {
+      setSelectedPerms(prev => Array.from(new Set([...prev, ...permissions])));
+    })) return;
     if (allSelected) {
-      setSelectedPerms(prev => prev.filter(id => !permIds.includes(id)));
+      setSelectedPerms(prev => sectionPermissionSelection(prev.filter(id => !permIds.includes(id))));
     } else {
       const hasPoDisbursement = permIds.includes("purchase_orders.create_disbursement") || permIds.includes("orders_and_letters.purchase_orders_create_disbursement");
       const needsApproval = hasPoDisbursement && (!selectedPerms.includes("disbursement_orders.view") || !selectedPerms.includes("disbursement_orders.create_direct"));
@@ -1188,6 +1204,7 @@ export default function RolePermissions() {
             { id: "mosques.view", nameAr: "عرض قائمة المساجد" },
             { id: "mosques.create", nameAr: "إضافة مسجد جديد" },
             { id: "mosques.view_details", nameAr: "عرض تفاصيل المسجد" },
+            { id: "mosques.add_imam", nameAr: "إضافة إمام للمسجد" },
             { id: "mosques.edit", nameAr: "تعديل بيانات المسجد" },
             { id: "mosques.reject", nameAr: "رفض المسجد" },
             { id: "mosques.approve", nameAr: "اعتماد المساجد" },
@@ -1451,7 +1468,7 @@ export default function RolePermissions() {
     {
       title: "المساجد والطلبات",
       modules: [
-        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "view_details", "edit", "delete", "reject", "approve"] },
+        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: MOSQUE_PERMISSIONS.map(p => p.action) },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view", "view_details"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "transfer_to_beneficiary", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report", "create_quick_request"] },
         { id: "sedana_requests", nameAr: "طلبات سدانة", icon: Sparkles, perms: ["view", "desk_review", "manage"] },
@@ -1667,7 +1684,7 @@ export default function RolePermissions() {
     {
       title: "المساجد والطلبات",
       modules: [
-        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "view_details", "edit", "delete", "reject", "approve"] },
+        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: MOSQUE_PERMISSIONS.map(p => p.action) },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view", "view_details"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "transfer_to_beneficiary", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"] },
         { id: "sedana_requests", nameAr: "طلبات سدانة", icon: Sparkles, perms: ["view", "desk_review", "manage"] },
@@ -2118,6 +2135,7 @@ export default function RolePermissions() {
         create: "إضافة مسجد",
         add: "إضافة مسجد",
         view_details: "عرض تفاصيل المسجد",
+        add_imam: "إضافة إمام للمسجد",
         edit: "تعديل بيانات المسجد",
         update: "تعديل بيانات المسجد",
         delete: "حذف المسجد",
@@ -2597,7 +2615,8 @@ export default function RolePermissions() {
 
   // منطق التحقق من الصلاحية
   const isPermissionGranted = (permId: string) => {
-    if (permId.startsWith("requests.") || permId.startsWith("sedana_requests.") || permId.startsWith("pending_reports.") || permId.startsWith("beneficiary_evaluations.") || permId.startsWith("appointments.")) return sectionPermissionSelection(selectedPerms).includes(permId);
+    if (permId.startsWith("mosques.")) return validSelectedPerms.includes(permId);
+    if (permId.startsWith("requester_") || permId.startsWith("escalation.") || permId.startsWith("requests.") || permId.startsWith("sedana_requests.") || permId.startsWith("pending_reports.") || permId.startsWith("beneficiary_evaluations.") || permId.startsWith("appointments.")) return validSelectedPerms.includes(permId);
     const isInventory =
       permId.startsWith("sedana_quotations") ||
       permId.startsWith("orders_and_letters") ||
@@ -2724,7 +2743,7 @@ export default function RolePermissions() {
                       // إظهار خيار "مواعيد الخاصة بي" فقط عند تخصيص الفريق الميداني
                       return true;
                     });
-                    const activePerms = isSuperAdmin && !["requests", "sedana_requests", "pending_reports", "beneficiary_evaluations", "appointments"].includes(module.id)
+                    const activePerms = isSuperAdmin && !module.id.startsWith("requester_") && !["mosques", "escalation", "requests", "sedana_requests", "pending_reports", "beneficiary_evaluations", "appointments"].includes(module.id)
                       ? modulePerms.filter((p: any) => {
                         const isInventory =
                           p.id.startsWith("sedana_quotations") ||
@@ -2758,7 +2777,7 @@ export default function RolePermissions() {
                               <CardTitle className="text-lg sm:text-xl font-bold truncate">{module.nameAr}</CardTitle>
                             </div>
                             <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-1 sm:mt-0">
-                              {modulePerms.length > 0 && (!isSuperAdmin || group.title === "إدارة المخزون") && (
+                              {modulePerms.length > 0 && (!isSuperAdmin || group.title === "إدارة المخزون" || module.id.startsWith("requester_") || ["mosques", "escalation", "requests", "sedana_requests", "pending_reports", "beneficiary_evaluations", "appointments"].includes(module.id)) && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -2866,6 +2885,7 @@ export default function RolePermissions() {
         </div>
       </div>
 
+      {dependencyConfirmationDialog}
       <DisbursementPermConfirmationModal
         open={showDisbursementModal}
         onOpenChange={setShowDisbursementModal}

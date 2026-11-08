@@ -2,6 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CALENDAR_EVENT_TYPES } from "../shared/calendarPermissions";
+import { REQUEST_MANAGEMENT_REQUIREMENTS } from "../shared/requestPermissions";
 
 const state = vi.hoisted(() => ({ permissions: [] as string[], data: {} as Record<string, any>, queries: [] as { path: string; enabled: boolean; input: any }[] }));
 vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => ({ user: { id: 1, role: "super_admin", permissions: ["*"] } }) }));
@@ -50,7 +51,7 @@ beforeEach(() => {
 
 describe("calendar controls with explicit permissions", () => {
   it.each(CALENDAR_EVENT_TYPES)("only renders %s appointments and its statistic card", type => {
-    state.permissions = [`appointments.view_${type}`];
+    state.permissions = [`appointments.view_${type}`, ...REQUEST_MANAGEMENT_REQUIREMENTS];
     const html = renderToStaticMarkup(<FieldVisitsCalendar />);
     for (const other of CALENDAR_EVENT_TYPES) expect(html.includes(`EVENT_${other}`)).toBe(type === other);
     const labels = { field_visit: "الزيارات الميدانية", quick_response: "الاستجابة السريعة", final_report: "التقرير الختامي", custom: "الأحداث المخصصة" };
@@ -61,7 +62,7 @@ describe("calendar controls with explicit permissions", () => {
     expect(query.enabled).toBe(true);
   });
   it("shows creation independently while disabling unauthorized read queries", () => {
-    state.permissions = ["appointments.create_custom"];
+    state.permissions = ["appointments.create_custom", ...REQUEST_MANAGEMENT_REQUIREMENTS];
     const html = renderToStaticMarkup(<FieldVisitsCalendar />);
     expect(html).toContain("إضافة حدث مخصص");
     expect(html).not.toContain("EVENT_");

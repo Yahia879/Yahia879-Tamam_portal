@@ -5,8 +5,16 @@ import { getDb } from "../db";
 import { mosques, mosqueImages, auditLogs, mosqueRequests, InsertMosque, users } from "../../drizzle/schema";
 import { eq, and, like, desc, sql, or } from "drizzle-orm";
 import { notifyNewMosque, notifyMosqueApproval, createNotification } from "./notifications";
-import { checkPermission } from "../permissions";
+import { checkPermission, calculateUserPermissions } from "../permissions";
 import { normalizeMosqueApprovalStatus } from "../../shared/mosqueMapStatus";
+import { mosqueHasImam } from "../../shared/mosquePermissions";
+
+async function hasRecordedImam(db: NonNullable<Awaited<ReturnType<typeof getDb>>>, mosque: Pick<typeof mosques.$inferSelect, "imamName" | "registeredBy">) {
+  if (mosqueHasImam(mosque)) return true;
+  if (mosque.registeredBy === null) return false;
+  const [registrant] = await db.select({ requesterType: users.requesterType }).from(users).where(eq(users.id, mosque.registeredBy)).limit(1);
+  return mosqueHasImam({ registeredByUser: registrant });
+}
 
 // مخطط إنشاء مسجد جديد
 const createMosqueSchema = z.object({
@@ -121,6 +129,10 @@ export const mosquesRouter = router({
       if (ctx.user.role === "service_requester" && !isOwner) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل هذا المسجد" });
       }
+      if ([input.imamName, input.imamPhone, input.imamEmail].some(value => value?.trim()) &&
+          !(await hasRecordedImam(db, existingMosque[0])) && !(await checkPermission(ctx.user.id, "mosques.add_imam"))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة إمام للمسجد" });
+      }
 
       const { id, ...updateData } = input;
       const updateValues: Record<string, unknown> = {};
@@ -165,6 +177,7 @@ export const mosquesRouter = router({
       if (ctx.user.role !== "service_requester" &&
           !(await checkPermission(ctx.user.id, "mosques.view_details")) &&
           !(await checkPermission(ctx.user.id, "mosques.edit")) &&
+          !(await checkPermission(ctx.user.id, "mosques.add_imam")) &&
           !(await checkPermission(ctx.user.id, "mosque_map.view_details"))) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض تفاصيل المسجد" });
       }
@@ -507,9 +520,11 @@ export const mosquesRouter = router({
       imamEmail: z.string().email().optional().or(z.literal('')),
     }))
     .mutation(async ({ input, ctx }) => {
-      const hasEditPerm = await checkPermission(ctx.user.id, "mosques.edit");
-      if (!hasEditPerm) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل بيانات الإمام" });
+      const permissions = await calculateUserPermissions(ctx.user.id);
+      const canAddImam = permissions.includes("mosques.add_imam");
+      const canEditImam = permissions.includes("mosques.edit");
+      if (!canAddImam && !canEditImam) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتسجيل بيانات الإمام" });
       }
 
       const db = await getDb();
@@ -519,6 +534,10 @@ export const mosquesRouter = router({
 
       if (!originalMosque) {
         throw new TRPCError({ code: "NOT_FOUND", message: "المسجد غير موجود" });
+      }
+      const hasImam = await hasRecordedImam(db, originalMosque);
+      if (hasImam ? !canEditImam : !canAddImam) {
+        throw new TRPCError({ code: "FORBIDDEN", message: hasImam ? "ليس لديك صلاحية لتعديل بيانات الإمام" : "ليس لديك صلاحية لإضافة إمام للمسجد" });
       }
 
       await db.update(mosques).set({

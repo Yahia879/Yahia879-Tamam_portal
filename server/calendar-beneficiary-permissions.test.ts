@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getTableName } from "drizzle-orm";
 import { MySqlDialect } from "drizzle-orm/mysql-core";
 import type { TrpcContext } from "./_core/context";
-import { CALENDAR_EVENT_TYPES, CALENDAR_PERMISSION_IDS, calendarAccess, calendarPermissionSelection, toggleCalendarPermission, calendarPermissionOverrides } from "../shared/calendarPermissions";
+import { CALENDAR_EVENT_TYPES, CALENDAR_PERMISSION_IDS, CALENDAR_MANAGEMENT_PERMISSION_IDS, calendarAccess, calendarPermissionSelection, toggleCalendarPermission, calendarPermissionOverrides } from "../shared/calendarPermissions";
+import { REQUEST_MANAGEMENT_REQUIREMENTS } from "../shared/requestPermissions";
 import { BENEFICIARY_PERMISSION_IDS, BENEFICIARY_LOG_ACTIONS } from "../shared/beneficiaryPermissions";
 import { RETIRED_SECTION_PERMISSIONS, sectionPermissionSelection, sectionPermissionPrerequisite, sectionPermissionDependents } from "../shared/sectionPermissions";
 import { hasRouteAccess } from "../client/src/lib/routePermissions";
@@ -84,8 +85,21 @@ beforeEach(() => {
 
 describe.each(["super_admin", "system_admin", "custom_role_calendar"])("calendar permissions for %s", role => {
   beforeEach(() => { state.role = role; });
+  it.each(REQUEST_MANAGEMENT_REQUIREMENTS)("blocks standard calendar reads and writes after revoking %s", async required => {
+    state.permissions = [...CALENDAR_MANAGEMENT_PERMISSION_IDS, ...REQUEST_MANAGEMENT_REQUIREMENTS];
+    state.overrides = [{ permissionId: required, granted: false }];
+    const effective = await calculateUserPermissions(0);
+    expect(hasRouteAccess("/field-visits/calendar", role, effective, false)).toBe(false);
+    await expect(calendar().getUnifiedEvents({})).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(calendar().getCalendarSummaryStats(range)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(calendar().createCustomEvent({ title: "Custom event", eventDate: "2026-11-08" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(state.writes).toEqual([]);
+    state.permissions = ["appointments.view_own"];
+    expect(hasRouteAccess("/field-visits/calendar", role, await calculateUserPermissions(0), false)).toBe(true);
+    expect((await calendar().getUnifiedEvents({})).every(event => event.assignedToId === 0)).toBe(true);
+  });
   it.each(CALENDAR_EVENT_TYPES)("returns only %s events and statistics", async type => {
-    state.permissions = [`appointments.view_${type}`];
+    state.permissions = [`appointments.view_${type}`, ...REQUEST_MANAGEMENT_REQUIREMENTS];
     const events = await calendar().getUnifiedEvents({});
     expect(events.length).toBeGreaterThan(0);
     expect(events.every(event => event.type === type)).toBe(true);
@@ -111,10 +125,10 @@ describe.each(["super_admin", "system_admin", "custom_role_calendar"])("calendar
     await expect(calendar().createCustomEvent({ title: "Custom event", eventDate: "2026-11-08" })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
   it("requires a separate custom-event creation permission", async () => {
-    state.permissions = ["appointments.view_custom"];
+    state.permissions = ["appointments.view_custom", ...REQUEST_MANAGEMENT_REQUIREMENTS];
     await expect(calendar().createCustomEvent({ title: "Custom event", eventDate: "2026-11-08" })).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(state.writes).toEqual([]);
-    state.permissions = ["appointments.create_custom"];
+    state.permissions = ["appointments.create_custom", ...REQUEST_MANAGEMENT_REQUIREMENTS];
     expect(hasRouteAccess("/field-visits/calendar", role, await calculateUserPermissions(0), false)).toBe(true);
     await expect(calendar().createCustomEvent({ title: "Custom event", eventDate: "2026-11-08" })).resolves.toMatchObject({ success: true });
     await expect(calendar().getUnifiedEvents({})).rejects.toMatchObject({ code: "FORBIDDEN" });
@@ -124,7 +138,7 @@ describe.each(["super_admin", "system_admin", "custom_role_calendar"])("calendar
       state.permissions = [permission];
       await expect(calendar().getCalendarSummaryStats(range)).rejects.toMatchObject({ code: "FORBIDDEN" });
     }
-    state.permissions = ["appointments.view_final_report"];
+    state.permissions = ["appointments.view_final_report", ...REQUEST_MANAGEMENT_REQUIREMENTS];
     state.legacy = [...CALENDAR_PERMISSION_IDS];
     expect((await calculateUserPermissions(0)).filter(p => p.startsWith("appointments."))).toEqual(["appointments.view_final_report"]);
   });
@@ -182,7 +196,7 @@ describe("beneficiary survey log prerequisites", () => {
 });
 
 it("allows custom-event creators to edit their own events without granting management of other users' events", async () => {
-  state.permissions = ["appointments.view_custom", "appointments.create_custom"];
+  state.permissions = ["appointments.view_custom", "appointments.create_custom", ...REQUEST_MANAGEMENT_REQUIREMENTS];
   await expect(calendar().updateCustomEvent({ id: 6, title: "Updated event", eventDate: "2026-11-08" })).resolves.toMatchObject({ success: true });
   state.writes = [];
   await expect(calendar().deleteCustomEvent({ id: 7 })).rejects.toMatchObject({ code: "FORBIDDEN" });

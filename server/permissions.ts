@@ -1,7 +1,9 @@
+import { MOSQUE_PERMISSION_IDS } from "../shared/mosquePermissions";
 import { BENEFICIARY_PERMISSION_IDS } from "../shared/beneficiaryPermissions";
 import { CALENDAR_PERMISSIONS, CALENDAR_PERMISSION_IDS, calendarPermissionConflicts } from "../shared/calendarPermissions";
 import { isRequestSectionPermission, REQUEST_SECTION_PERMISSION_IDS } from "../shared/requestPermissions";
-import { sectionPermissionSelection, sectionPermissionPrerequisite, sectionPermissionDependents, RETIRED_SECTION_PERMISSIONS } from "../shared/sectionPermissions";
+import { sectionPermissionSelection, sectionPermissionPrerequisites, sectionPermissionDependents, RETIRED_SECTION_PERMISSIONS } from "../shared/sectionPermissions";
+import { linkedPermissionGrantPlan, linkedPermissionLabel, isBeneficiaryManagementPermission, BENEFICIARY_MANAGEMENT_REQUIREMENT_IDS } from "../shared/linkedPermissionDependencies";
 import { CUSTODY_PERMISSION_ACTIONS, CUSTODY_PERSONAL_PERMISSIONS, custodyPermissionOptions } from "../shared/custodyPermissions";
 import { GENERAL_QUOTATION_PERMISSIONS, GENERAL_QUOTATION_PERMISSION_IDS, quotationPermissionOptions } from "../shared/quotationPermissions";
 import { CONTRACT_PERMISSIONS, CONTRACT_PERMISSION_IDS, contractPermissionOptions } from "../shared/contractPermissions";
@@ -86,7 +88,7 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   ],
 
-  mosques: ["mosques.view", "mosques.create", "mosques.view_details", "mosques.edit", "mosques.delete", "mosques.reject", "mosques.approve"],
+  mosques: MOSQUE_PERMISSION_IDS,
 
   "mosques.view_details": ["mosques.view_details"],
 
@@ -3004,6 +3006,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "mosque_map.view_details", moduleId: "mosques", action: "view_details", nameAr: "عرض التفاصيل", nameEn: "View Mosque Details from Map" },
 
       { id: "mosques.view_details", moduleId: "mosques", action: "view_details", nameAr: "عرض تفاصيل المسجد", nameEn: "View Mosque Details" },
+      { id: "mosques.add_imam", moduleId: "mosques", action: "add_imam", nameAr: "إضافة إمام للمسجد", nameEn: "Add Mosque Imam" },
 
       { id: "mosques.reject", moduleId: "mosques", action: "reject", nameAr: "رفض المسجد", nameEn: "Reject Mosque" },
 
@@ -4598,7 +4601,8 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
     rolePermissionsData.push(...rolePermsResult.filter(rp =>
       !customizedQuotationRoles.has(rp.roleId) ||
       !(rp.permissionId === "mosques" || rp.permissionId.startsWith("mosques.") ||
-        isRequestSectionPermission(rp.permissionId) ||
+        isRequestSectionPermission(rp.permissionId) || isBeneficiaryManagementPermission(rp.permissionId) ||
+        rp.permissionId === "escalation" || rp.permissionId.startsWith("escalation.") ||
         rp.permissionId === "pending_reports" || rp.permissionId.startsWith("pending_reports.") ||
         rp.permissionId.startsWith("beneficiary_evaluations") || rp.permissionId === "beneficiary_satisfaction" || rp.permissionId.startsWith("appointments") ||
         rp.permissionId === "mosques_map" || rp.permissionId === "mosque_map" || rp.permissionId.startsWith("mosque_map.") ||
@@ -4665,7 +4669,8 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
       // الصلاحيات المستبعدة وصلاحيات إدارة المخزون لا تُمنح تلقائياً بالـ Wildcard
 
       const isInv = (
-        isRequestSectionPermission(p.id) ||
+        isRequestSectionPermission(p.id) || isBeneficiaryManagementPermission(p.id) ||
+        p.id === "escalation" || p.id.startsWith("escalation.") ||
         p.id === "mosques" || p.id.startsWith("mosques.") ||
         p.id === "pending_reports" || p.id.startsWith("pending_reports.") ||
         p.id.startsWith("beneficiary_evaluations") || p.id === "beneficiary_satisfaction" || p.id.startsWith("appointments") ||
@@ -7230,7 +7235,7 @@ export const permissionsRouter = router({
             customizedPermissions = true;
 
             Array.from(permsSet).forEach(p => {
-              if (isRequestSectionPermission(p) || p === "pending_reports" || p.startsWith("pending_reports.") || p.startsWith("beneficiary_evaluations") || p === "beneficiary_satisfaction" || p.startsWith("appointments") || p === "mosques" || p.startsWith("mosques.") || p === "mosques_map" || p === "mosque_map" || p.startsWith("mosque_map.") || p === "quotations" || p.startsWith("quotations.") || p === "sedana_quotations" || p.startsWith("sedana_quotations.") || p === "custody_requests" || p.startsWith("custody_requests.")) permsSet.delete(p);
+              if (isRequestSectionPermission(p) || isBeneficiaryManagementPermission(p) || p === "escalation" || p.startsWith("escalation.") || p === "pending_reports" || p.startsWith("pending_reports.") || p.startsWith("beneficiary_evaluations") || p === "beneficiary_satisfaction" || p.startsWith("appointments") || p === "mosques" || p.startsWith("mosques.") || p === "mosques_map" || p === "mosque_map" || p.startsWith("mosque_map.") || p === "quotations" || p.startsWith("quotations.") || p === "sedana_quotations" || p.startsWith("sedana_quotations.") || p === "custody_requests" || p.startsWith("custody_requests.")) permsSet.delete(p);
             });
             parsed.forEach(p => permsSet.add(p));
 
@@ -7247,7 +7252,7 @@ export const permissionsRouter = router({
       permsSet.delete("escalation.view");
       permsSet.delete("escalation");
       if (!customizedPermissions && ["super_admin", "system_admin"].includes(input.roleId)) {
-        [...REQUEST_SECTION_PERMISSION_IDS.filter(p => !EXCLUDED_ADMIN_PERMISSIONS.includes(p)), ...REQUEST_REPORT_PERMISSION_IDS, ...BENEFICIARY_PERMISSION_IDS, ...CALENDAR_PERMISSION_IDS.filter(p => p !== "appointments.view_own")].forEach(p => permsSet.add(p));
+        ["mosques.add_imam", ...BENEFICIARY_MANAGEMENT_REQUIREMENT_IDS, "requester_accounts.create", ...REQUEST_SECTION_PERMISSION_IDS.filter(p => !EXCLUDED_ADMIN_PERMISSIONS.includes(p)), ...REQUEST_REPORT_PERMISSION_IDS, ...BENEFICIARY_PERMISSION_IDS, ...CALENDAR_PERMISSION_IDS.filter(p => p !== "appointments.view_own")].forEach(p => permsSet.add(p));
       }
 
       // Expand legacy section grants for the editor, then save only the checked actions.
@@ -7346,6 +7351,8 @@ export const permissionsRouter = router({
 
 
 
+      const missingLinked = linkedPermissionGrantPlan(input.permissions, p => input.permissions.includes(p)).missing;
+      if (missingLinked.length) throw new TRPCError({ code: "BAD_REQUEST", message: `يجب تفعيل الصلاحيات المرتبطة أولاً: ${missingLinked.map(linkedPermissionLabel).join("، ")}` });
       const cleanedPerms = sectionPermissionSelection(input.permissions).filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation"].includes(p));
 
       // إنشاء الدور مع تخزين الصلاحيات المخصصة في حقل الوصف كـ JSON
@@ -7536,6 +7543,8 @@ export const permissionsRouter = router({
 
 
 
+      const missingLinked = input.permissions ? linkedPermissionGrantPlan(input.permissions, p => input.permissions!.includes(p)).missing : [];
+      if (missingLinked.length) throw new TRPCError({ code: "BAD_REQUEST", message: `يجب تفعيل الصلاحيات المرتبطة أولاً: ${missingLinked.map(linkedPermissionLabel).join("، ")}` });
       const cleanedPerms = input.permissions ? sectionPermissionSelection(input.permissions).filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation"].includes(p)) : undefined;
 
       // تحديث بيانات الدور (الاسم والوصف)
@@ -8301,11 +8310,11 @@ export const permissionsRouter = router({
       const reportOverrides = new Map(cleanedInputPerms.map(p => [p.permissionId, p.granted]));
       const willHavePermission = (id: string) => reportOverrides.has(id) ? reportOverrides.get(id)! : inheritedPermissions.includes(id);
       for (const permission of cleanedInputPerms) {
-        const requiredView = sectionPermissionPrerequisite(permission.permissionId);
-        if (permission.granted && requiredView && !willHavePermission(requiredView)) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: requiredView === "beneficiary_evaluations.evaluations_log"
+        const missing = sectionPermissionPrerequisites(permission.permissionId).filter(required => !willHavePermission(required));
+        if (permission.granted && missing.length) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: missing.includes("beneficiary_evaluations.evaluations_log")
             ? "يجب تفعيل صلاحية سجل استبيانات التقييم أولاً"
-            : "يجب تفعيل صلاحية عرض نوع التقرير قبل تفعيل صلاحية التدخل فيه" });
+            : `يجب تفعيل الصلاحيات المرتبطة أولاً: ${missing.map(linkedPermissionLabel).join("، ")}` });
         }
       }
       for (const permission of [...cleanedInputPerms]) {

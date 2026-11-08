@@ -3,6 +3,7 @@ import { getTableName } from "drizzle-orm";
 import type { TrpcContext } from "./_core/context";
 import { REQUEST_REPORT_PERMISSION_IDS, REQUEST_REPORT_TYPES, requestReportAccess, isQuickRequestReport, requestReportPermissionSelection, requestReportInterventionPrerequisite, requestReportDependentIntervention } from "../shared/requestReportPermissions";
 import { hasRouteAccess } from "../client/src/lib/routePermissions";
+import { REQUEST_MANAGEMENT_REQUIREMENTS } from "../shared/requestPermissions";
 
 const state = vi.hoisted(() => ({
   role: "super_admin", selected: [] as string[], legacy: [] as string[],
@@ -51,7 +52,7 @@ const caller = () => requestsRouter.createCaller(ctx());
 
 beforeEach(() => {
   state.role = "super_admin";
-  state.selected = [...REQUEST_REPORT_PERMISSION_IDS];
+  state.selected = [...REQUEST_REPORT_PERMISSION_IDS, ...REQUEST_MANAGEMENT_REQUIREMENTS];
   state.legacy = [];
   state.direct = [];
   state.writes = [];
@@ -119,7 +120,7 @@ describe("report access and intervention boundaries", () => {
 
   it.each(REQUEST_REPORT_TYPES)("allows intervention for %s only with its own permission", async type => {
     state.role = "custom_role_reports";
-    state.selected = [`pending_reports.view_${type}`, `pending_reports.intervene_${type}`];
+    state.selected = [`pending_reports.view_${type}`, `pending_reports.intervene_${type}`, ...REQUEST_MANAGEMENT_REQUIREMENTS];
     const request = state.requests[REQUEST_REPORT_TYPES.indexOf(type)];
     state.requests = [request];
     if (type === "final_report") {
@@ -148,7 +149,7 @@ describe("report access and intervention boundaries", () => {
     const view = `pending_reports.view_${type}`;
     const intervention = `pending_reports.intervene_${type}`;
     const other = REQUEST_REPORT_TYPES.find(t => t !== type)!;
-    state.selected = [intervention, `pending_reports.view_${other}`];
+    state.selected = [intervention, `pending_reports.view_${other}`, ...REQUEST_MANAGEMENT_REQUIREMENTS];
     expect(requestReportInterventionPrerequisite(intervention)).toBe(view);
     expect(requestReportDependentIntervention(view)).toBe(intervention);
     expect(requestReportPermissionSelection(state.selected)).not.toContain(intervention);
@@ -161,10 +162,10 @@ describe("report access and intervention boundaries", () => {
     expect(await calculateUserPermissions(0)).not.toContain(intervention);
   });
   it("combines report view and intervention grants from roles and individual permissions", async () => {
-    state.selected = ["pending_reports.intervene_field_visit"];
+    state.selected = ["pending_reports.intervene_field_visit", ...REQUEST_MANAGEMENT_REQUIREMENTS];
     state.direct = [{ permissionId: "pending_reports.view_field_visit", granted: true }];
     expect(await calculateUserPermissions(0)).toContain("pending_reports.intervene_field_visit");
-    state.selected = ["pending_reports.view_field_visit"];
+    state.selected = ["pending_reports.view_field_visit", ...REQUEST_MANAGEMENT_REQUIREMENTS];
     state.direct = [{ permissionId: "pending_reports.intervene_field_visit", granted: true }];
     expect(await calculateUserPermissions(0)).toContain("pending_reports.intervene_field_visit");
   });
@@ -182,7 +183,7 @@ describe("report access and intervention boundaries", () => {
     await expect(finalCaller.list()).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
   it("does not let a quick-response permission read or modify quick-request reports", async () => {
-    state.selected = ["pending_reports.view_quick_response", "pending_reports.intervene_quick_response"];
+    state.selected = ["pending_reports.view_quick_response", "pending_reports.intervene_quick_response", ...REQUEST_MANAGEMENT_REQUIREMENTS];
     state.requests = [state.requests[2]];
     await expect(caller().getById({ id: 3, reportType: "quick_response" })).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(caller().addQuickResponseReport({ requestId: 3, intervention: true, responseDate: "2026-11-08", issueDescription: "issue", actionsTaken: "actions" })).rejects.toMatchObject({ code: "FORBIDDEN" });
