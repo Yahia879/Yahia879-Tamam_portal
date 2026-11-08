@@ -1,3 +1,4 @@
+import { REQUEST_LIST_ENTRY_PERMISSIONS } from "@shared/requestPermissions";
 import { custodyAccess } from "@shared/custodyPermissions";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { isDashboardViewerUser } from "@/lib/dashboardViewer";
@@ -323,19 +324,17 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   const mosqueItems: MenuItem[] = [];
   if (has("mosques.view"))                 mosqueItems.push({ icon: Building2,     label: "المساجد",               path: "/mosques" });
   if (has("mosque_map.view"))              mosqueItems.push({ icon: MapPin,        label: "خريطة المساجد",         path: "/mosques/map" });
-  if (has("requests") || has("requests.view") || has("requests.create") || has("requests.view_details") || has("sedana_requests.view") || has("sedana_requests.manage") || has("sedana_requests"))                     mosqueItems.push({ icon: FileText,      label: isEn ? "Requests" : "الطلبات",               path: "/requests" });
+  if (REQUEST_LIST_ENTRY_PERMISSIONS.some(has))                     mosqueItems.push({ icon: FileText,      label: isEn ? "Requests" : "الطلبات",               path: "/requests" });
   if (has("escalation.delayed_requests") || has("escalation.delayed_beneficiaries")) {
     mosqueItems.push({ icon: AlertTriangle, label: isEn ? "Admin Escalation" : "التصعيد الإداري", path: "/escalation" });
   }
   if (["field_visit", "quick_response", "quick_request", "final_report"].some(type => has(`pending_reports.view_${type}`))) {
     mosqueItems.push({ icon: ShieldAlert, label: "تقارير الطلبات", path: "/pending-reports" });
   }
-  if (has("appointments_calendar"))        mosqueItems.push({ icon: Clock,         label: "تقويم المواعيد",        path: "/field-visits/calendar" });
+  if (["view_field_visit", "view_quick_response", "view_final_report", "view_custom", "view_own", "create_custom"].some(action => has(`appointments.${action}`))) mosqueItems.push({ icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" });
   if (
     has("beneficiary_evaluations.view") || 
-    has("beneficiary_evaluations.evaluations_log") ||
-    has("beneficiary_evaluations.dispatch_log") ||
-    has("beneficiary_evaluations.contacts")
+    has("beneficiary_evaluations.evaluations_log")
   ) {
     mosqueItems.push({ icon: HeartHandshake, label: isEn ? "Beneficiary Satisfaction" : "رضا المستفيدين", path: "/beneficiary-satisfaction" });
   }

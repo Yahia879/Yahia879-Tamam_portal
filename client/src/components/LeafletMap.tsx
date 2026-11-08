@@ -4,6 +4,7 @@ import L from 'leaflet';
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from 'react';
 import { Map as MapIcon, Globe } from 'lucide-react';
+import { MOSQUE_MARKER_COLORS } from '@shared/mosqueMapStatus';
 
 // Fix for default marker icons in React
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -37,13 +38,11 @@ interface LeafletMapProps {
 const createStatusIcon = (status?: string, size: number = 32) => {
   let color = '#3b82f6'; // الأزرق الافتراضي
   
-  if (status === 'approved') color = '#22c55e'; // أخضر للمعتمد
-  else if (status === 'pending') color = '#f59e0b'; // برتقالي لقيد المراجعة
-  else if (status === 'rejected') color = '#ef4444'; // أحمر للمرفوض
+  if (status === 'approved' || status === 'pending' || status === 'rejected') color = MOSQUE_MARKER_COLORS[status];
 
   const svgIcon = `
     <svg width="${size}" height="${size}" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M16 2C11.03 2 7 6.03 7 11C7 18.75 16 30 16 30C16 30 25 18.75 25 11C25 6.03 20.97 2 16 2ZM16 15C13.79 15 12 13.21 12 11C12 8.79 13.79 7 16 7C18.21 7 20 8.79 20 11C20 13.21 18.21 15 16 15Z" fill="${color}" stroke="white" stroke-width="1.5"/>
+      <path d="M16 2C11.03 2 7 6.03 7 11C7 18.75 16 30 16 30C16 30 25 18.75 25 11C25 6.03 20.97 2 16 2ZM16 15C13.79 15 12 13.21 12 11C12 8.79 13.79 7 16 7C18.21 7 20 8.79 20 11C20 13.21 18.21 15 16 15Z" fill="${color}" style="fill: ${color};" stroke="white" stroke-width="1.5"/>
     </svg>
   `;
 
@@ -56,22 +55,24 @@ const createStatusIcon = (status?: string, size: number = 32) => {
   });
 };
 
-function ChangeView({ center, zoom }: { center: [number, number], zoom: number }) {
+function ChangeView({ center: [latitude, longitude], zoom }: { center: [number, number], zoom: number }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, zoom);
-  }, [center, zoom, map]);
+    map.setView([latitude, longitude], zoom);
+  }, [latitude, longitude, zoom, map]);
   return null;
 }
 
 function FitBounds({ markers }: { markers: any[] }) {
   const map = useMap();
+  const coordinatesKey = JSON.stringify(markers.map(m => [m.position.lat, m.position.lng]));
   useEffect(() => {
-    if (markers.length > 0) {
-      const bounds = L.latLngBounds(markers.map(m => [m.position.lat, m.position.lng]));
+    const coordinates = JSON.parse(coordinatesKey);
+    if (coordinates.length > 0) {
+      const bounds = L.latLngBounds(coordinates);
       map.fitBounds(bounds, { padding: [50, 50] });
     }
-  }, [markers, map]);
+  }, [coordinatesKey, map]);
   return null;
 }
 
@@ -117,7 +118,7 @@ export function LeafletMap({
         
         {markers.map((marker) => (
           <Marker 
-            key={marker.id} 
+            key={`${marker.id}:${marker.status ?? 'default'}`}
             position={[marker.position.lat, marker.position.lng]}
             icon={createStatusIcon(marker.status, markerIconSize)}
           >

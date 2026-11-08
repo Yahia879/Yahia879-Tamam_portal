@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
   permissions: [] as string[], data: {} as Record<string, any>, location: "/mosques",
-  queries: [] as { path: string; enabled: boolean }[],
+  queries: [] as { path: string; enabled: boolean; options: any }[],
 }));
 vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => ({ user: { id: 1, role: "super_admin", permissions: ["*"] } }) }));
 vi.mock("wouter", () => ({
@@ -46,7 +46,7 @@ vi.mock("@/lib/trpc", () => {
         if (name === "useQuery") return (_input: any, options: any = {}) => {
           const key = path.join(".");
           const enabled = options.enabled !== false;
-          state.queries.push({ path: key, enabled });
+          state.queries.push({ path: key, enabled, options });
           return { data: enabled ? key === "permissions.getUserPermissions" ? state.permissions : state.data[key] : undefined, isLoading: false };
         };
         if (name === "useMutation") return () => ({ mutate: vi.fn(), isPending: false });
@@ -190,8 +190,34 @@ describe("mosque map permission controls", () => {
     const html = renderToStaticMarkup(<MosquesMap />);
     expect(html.match(/data-map-marker=""/g)).toHaveLength(3);
     for (const color of ["#22c55e", "#f59e0b", "#ef4444"]) expect(html).toContain(`fill="${color}"`);
+    for (const color of ["#22c55e", "#f59e0b", "#ef4444"]) expect(html).toContain(`style="fill: ${color};"`);
     expect(html).not.toContain("عرض التفاصيل");
     expect(state.queries.find(q => q.path === "mosques.search")?.enabled).toBe(true);
+  });
+
+  it("normalizes mosque status values consistently for pins and popup badges", () => {
+    state.data["mosques.search"].mosques.forEach((mosque: any) => { mosque.approvalStatus = ` ${mosque.approvalStatus.toUpperCase()} `; });
+    const html = renderToStaticMarkup(<MosquesMap />);
+    for (const color of ["#22c55e", "#f59e0b", "#ef4444"]) expect(html).toContain(`fill="${color}"`);
+    expect(html).not.toContain('fill="#3b82f6"');
+  });
+  it("colors the encoded status values returned by the database instead of falling back to a single color", () => {
+    state.data["mosques.search"].mosques.forEach((mosque: any) => {
+      mosque.approvalStatus = "\0" + mosque.approvalStatus.split("").join("\0");
+    });
+    const html = renderToStaticMarkup(<MosquesMap />);
+    for (const color of ["#22c55e", "#f59e0b", "#ef4444"]) expect(html).toContain(`fill="${color}"`);
+    expect(html).not.toContain('fill="#3b82f6"');
+  });
+
+  it("refreshes mosque states while open and updates the marker when a mosque is rejected", () => {
+    renderToStaticMarkup(<MosquesMap />);
+    const options = state.queries.find(q => q.path === "mosques.search")?.options;
+    expect(options).toMatchObject({ staleTime: 0, refetchOnMount: "always", refetchOnWindowFocus: true, refetchInterval: 5000 });
+    state.data["mosques.search"].mosques[0].approvalStatus = "rejected";
+    const html = renderToStaticMarkup(<MosquesMap />);
+    expect(html).not.toContain('fill="#22c55e"');
+    expect(html.match(/fill="#ef4444"/g)).toHaveLength(2);
   });
 
   it("shows details buttons only with map details permission and removes them on revocation", () => {

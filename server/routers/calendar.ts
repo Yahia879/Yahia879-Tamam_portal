@@ -11,7 +11,16 @@ import {
 import { eq, and, gte, lte, ne, sql, desc, or, like } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { createNotification } from "./notifications";
-import { checkPermission } from "../permissions";
+import { calculateUserPermissions, permissionProcedure } from "../permissions";
+import { CALENDAR_EVENT_TYPES, calendarAccess } from "../../shared/calendarPermissions";
+
+async function assertCanManageCustomEvent(db: any, id: number, userId: number) {
+  const access = calendarAccess(await calculateUserPermissions(userId));
+  if (!access.canCreateCustom || !access.canView("custom")) throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإدارة الحدث المخصص" });
+  const [event] = await db.select().from(customCalendarEvents).where(eq(customCalendarEvents.id, id)).limit(1);
+  if (!event) throw new TRPCError({ code: "NOT_FOUND", message: "الحدث غير موجود" });
+  if (event.createdBy !== userId) throw new TRPCError({ code: "FORBIDDEN", message: "يمكنك إدارة الأحداث التي أضفتها فقط" });
+}
 
 export const calendarRouter = router({
   // 1. جلب المواعيد الموحدة (الزيارات الميدانية + الاستجابة السريعة + التقرير الختامي + الأحداث المخصصة)
@@ -19,7 +28,9 @@ export const calendarRouter = router({
     .input(
       z.object({
         startDate: z.string().optional(), // YYYY-MM-DD
-        endDate: z.string().optional(),   // YYYY-MM-DD
+        endDate: z.string().optional(), // YYYY-MM-DD
+        types: z.array(z.enum(CALENDAR_EVENT_TYPES)).optional(),
+        ownFieldVisitsOnly: z.boolean().optional(),
         eventType: z.enum(["all", "field_visit", "quick_response", "final_report", "custom"]).default("all"),
         assignedTo: z.number().optional().nullable(),
         programType: z.string().optional().nullable(),
@@ -33,15 +44,16 @@ export const calendarRouter = router({
       const unifiedEvents: any[] = [];
       const search = input.search?.trim().toLowerCase() || "";
 
-      // التحقق من صلاحيات العرض: عرض الكل vs عرض الزيارات الخاصة بي فقط
-      const hasViewAll = await checkPermission(ctx.user.id, "appointments.view_all");
-      const hasViewOwn = await checkPermission(ctx.user.id, "appointments.view_own");
-      const enforceOwnOnly = !hasViewAll;
+      // تطبيق صلاحيات أنواع المواعيد ونطاق الزيارات الخاصة بالمستخدم
+      const access = calendarAccess(await calculateUserPermissions(ctx.user.id));
+      if (!access.canRead) throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض المواعيد" });
+      const canView = (type: typeof CALENDAR_EVENT_TYPES[number]) => access.canView(type) && (!input.types || input.types.includes(type));
+      const enforceOwnOnly = access.ownFieldVisitsOnly || input.ownFieldVisitsOnly === true;
 
       // -------------------------------------------------------------
       // 1. الزيارات الميدانية (Field Visits)
       // -------------------------------------------------------------
-      if (input.eventType === "all" || input.eventType === "field_visit") {
+      if (canView("field_visit") && (input.eventType === "all" || input.eventType === "field_visit")) {
         const visitConditions: any[] = [
           sql`${fieldVisits.scheduledDate} IS NOT NULL`,
           sql`COALESCE(${fieldVisits.status}, 'scheduled') != 'cancelled'`,
@@ -226,7 +238,7 @@ export const calendarRouter = router({
       // -------------------------------------------------------------
       // 2. الاستجابة السريعة (Quick Response)
       // -------------------------------------------------------------
-      if (input.eventType === "all" || input.eventType === "quick_response") {
+      if (canView("quick_response") && (input.eventType === "all" || input.eventType === "quick_response")) {
         const quickConditions: any[] = [
           eq(mosqueRequests.requestTrack, "quick_response"),
           sql`${mosqueRequests.quickResponseScheduledDate} IS NOT NULL`,
@@ -319,7 +331,7 @@ export const calendarRouter = router({
       // -------------------------------------------------------------
       // 3. التقرير الختامي (Final Report)
       // -------------------------------------------------------------
-      if (input.eventType === "all" || input.eventType === "final_report") {
+      if (canView("final_report") && (input.eventType === "all" || input.eventType === "final_report")) {
         const finalConditions: any[] = [
           sql`${mosqueRequests.finalReportScheduledDate} IS NOT NULL`,
         ];
@@ -410,7 +422,7 @@ export const calendarRouter = router({
       // -------------------------------------------------------------
       // 4. الأحداث والمهام المخصصة (Custom Events)
       // -------------------------------------------------------------
-      if (input.eventType === "all" || input.eventType === "custom") {
+      if (canView("custom") && (input.eventType === "all" || input.eventType === "custom")) {
         const customConditions: any[] = [];
 
         if (input.startDate) {
@@ -432,6 +444,7 @@ export const calendarRouter = router({
             title: customCalendarEvents.title,
             description: customCalendarEvents.description,
             eventType: customCalendarEvents.eventType,
+            createdById: customCalendarEvents.createdBy,
             eventDate: sql<string>`DATE_FORMAT(${customCalendarEvents.eventDate}, '%Y-%m-%d')`,
             startTime: customCalendarEvents.startTime,
             endTime: customCalendarEvents.endTime,
@@ -479,6 +492,7 @@ export const calendarRouter = router({
             type: "custom",
             typeLabel: eventTypeMap[c.eventType] || "حدث مخصص",
             customCategory: c.eventType,
+            createdById: c.createdById,
             title: c.title,
             description: c.description || undefined,
             date: c.eventDate,
@@ -517,7 +531,7 @@ export const calendarRouter = router({
     }),
 
   // 2. إنشاء حدث مخصص جديد
-  createCustomEvent: protectedProcedure
+  createCustomEvent: permissionProcedure("appointments.create_custom")
     .input(
       z.object({
         title: z.string().min(2, "عنوان الحدث مطلوب"),
@@ -591,6 +605,7 @@ export const calendarRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      await assertCanManageCustomEvent(db, input.id, ctx.user.id);
       await db.update(customCalendarEvents).set({
         title: input.title,
         description: input.description || null,
@@ -612,10 +627,11 @@ export const calendarRouter = router({
   // 4. حذف حدث مخصص
   deleteCustomEvent: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      await assertCanManageCustomEvent(db, input.id, ctx.user.id);
       await db.delete(customCalendarEvents).where(eq(customCalendarEvents.id, input.id));
       return { success: true, message: "تم حذف الحدث بنجاح" };
     }),
@@ -626,6 +642,8 @@ export const calendarRouter = router({
       z.object({
         startDate: z.string(),
         endDate: z.string(),
+        types: z.array(z.enum(CALENDAR_EVENT_TYPES)).optional(),
+        ownFieldVisitsOnly: z.boolean().optional(),
       })
     )
     .query(async ({ input, ctx }) => {
@@ -635,8 +653,10 @@ export const calendarRouter = router({
       const todayStr = new Date().toISOString().split("T")[0];
 
       // التحقق من صلاحيات العرض
-      const hasViewAll = await checkPermission(ctx.user.id, "appointments.view_all");
-      const enforceOwnOnly = !hasViewAll;
+      const access = calendarAccess(await calculateUserPermissions(ctx.user.id));
+      if (!access.canRead) throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض المواعيد" });
+      const canView = (type: typeof CALENDAR_EVENT_TYPES[number]) => access.canView(type) && (!input.types || input.types.includes(type));
+      const enforceOwnOnly = access.ownFieldVisitsOnly || input.ownFieldVisitsOnly === true;
 
       // 1. عدد الزيارات الميدانية (دمج الجدولين بدون تكرار)
       const visitCountConditions: any[] = [
@@ -649,10 +669,10 @@ export const calendarRouter = router({
         visitCountConditions.push(eq(fieldVisits.assignedTo, ctx.user.id));
       }
 
-      const [fieldVisitsCount] = await db
+      const [fieldVisitsCount] = canView("field_visit") ? await db
         .select({ count: sql<number>`count(DISTINCT ${fieldVisits.requestId})` })
         .from(fieldVisits)
-        .where(and(...visitCountConditions));
+        .where(and(...visitCountConditions)) : [{ count: 0 }];
 
       const reqVisitCountConditions: any[] = [
         sql`${mosqueRequests.fieldVisitScheduledDate} IS NOT NULL`,
@@ -664,10 +684,10 @@ export const calendarRouter = router({
         reqVisitCountConditions.push(eq(mosqueRequests.fieldVisitAssignedTo, ctx.user.id));
       }
 
-      const [reqVisitsCount] = await db
+      const [reqVisitsCount] = canView("field_visit") ? await db
         .select({ count: sql<number>`count(*)` })
         .from(mosqueRequests)
-        .where(and(...reqVisitCountConditions));
+        .where(and(...reqVisitCountConditions)) : [{ count: 0 }];
 
       // 2. عدد مهام الاستجابة السريعة
       const quickCountConditions: any[] = [
@@ -676,14 +696,13 @@ export const calendarRouter = router({
         sql`DATE(${mosqueRequests.quickResponseScheduledDate}) >= DATE(${input.startDate})`,
         sql`DATE(${mosqueRequests.quickResponseScheduledDate}) <= DATE(${input.endDate})`
       ];
-      if (enforceOwnOnly) {
-        quickCountConditions.push(eq(mosqueRequests.assignedTo, ctx.user.id));
-      }
 
-      const [quickResponseCount] = await db
+
+      if (enforceOwnOnly) quickCountConditions.push(eq(mosqueRequests.assignedTo, ctx.user.id));
+      const [quickResponseCount] = canView("quick_response") ? await db
         .select({ count: sql<number>`count(*)` })
         .from(mosqueRequests)
-        .where(and(...quickCountConditions));
+        .where(and(...quickCountConditions)) : [{ count: 0 }];
 
       // 3. عدد التقارير الختامية
       const finalCountConditions: any[] = [
@@ -691,28 +710,26 @@ export const calendarRouter = router({
         sql`DATE(${mosqueRequests.finalReportScheduledDate}) >= DATE(${input.startDate})`,
         sql`DATE(${mosqueRequests.finalReportScheduledDate}) <= DATE(${input.endDate})`
       ];
-      if (enforceOwnOnly) {
-        finalCountConditions.push(eq(mosqueRequests.finalReportAssignedTo, ctx.user.id));
-      }
 
-      const [finalReportsCount] = await db
+
+      if (enforceOwnOnly) finalCountConditions.push(eq(mosqueRequests.finalReportAssignedTo, ctx.user.id));
+      const [finalReportsCount] = canView("final_report") ? await db
         .select({ count: sql<number>`count(*)` })
         .from(mosqueRequests)
-        .where(and(...finalCountConditions));
+        .where(and(...finalCountConditions)) : [{ count: 0 }];
 
       // 4. عدد الأحداث المخصصة
       const customCountConditions: any[] = [
         sql`DATE(${customCalendarEvents.eventDate}) >= DATE(${input.startDate})`,
         sql`DATE(${customCalendarEvents.eventDate}) <= DATE(${input.endDate})`
       ];
-      if (enforceOwnOnly) {
-        customCountConditions.push(eq(customCalendarEvents.assignedTo, ctx.user.id));
-      }
 
-      const [customEventsCount] = await db
+
+      if (enforceOwnOnly) customCountConditions.push(eq(customCalendarEvents.assignedTo, ctx.user.id));
+      const [customEventsCount] = canView("custom") ? await db
         .select({ count: sql<number>`count(*)` })
         .from(customCalendarEvents)
-        .where(and(...customCountConditions));
+        .where(and(...customCountConditions)) : [{ count: 0 }];
 
       // 5. مواعيد اليوم
       const todayVisitCond: any[] = [
@@ -731,23 +748,28 @@ export const calendarRouter = router({
         eq(mosqueRequests.requestTrack, "quick_response"), 
         sql`DATE(${mosqueRequests.quickResponseScheduledDate}) = DATE(${todayStr})`
       ];
-      if (enforceOwnOnly) todayQuickCond.push(eq(mosqueRequests.assignedTo, ctx.user.id));
+
 
       const todayFinalCond: any[] = [
         sql`DATE(${mosqueRequests.finalReportScheduledDate}) = DATE(${todayStr})`
       ];
-      if (enforceOwnOnly) todayFinalCond.push(eq(mosqueRequests.finalReportAssignedTo, ctx.user.id));
+
 
       const todayCustomCond: any[] = [
         sql`DATE(${customCalendarEvents.eventDate}) = DATE(${todayStr})`
       ];
-      if (enforceOwnOnly) todayCustomCond.push(eq(customCalendarEvents.assignedTo, ctx.user.id));
 
-      const [todayFieldVisits] = await db.select({ count: sql<number>`count(DISTINCT ${fieldVisits.requestId})` }).from(fieldVisits).where(and(...todayVisitCond));
-      const [todayReqVisits] = await db.select({ count: sql<number>`count(*)` }).from(mosqueRequests).where(and(...todayReqCond));
-      const [todayQuick] = await db.select({ count: sql<number>`count(*)` }).from(mosqueRequests).where(and(...todayQuickCond));
-      const [todayFinal] = await db.select({ count: sql<number>`count(*)` }).from(mosqueRequests).where(and(...todayFinalCond));
-      const [todayCustom] = await db.select({ count: sql<number>`count(*)` }).from(customCalendarEvents).where(and(...todayCustomCond));
+
+      if (enforceOwnOnly) {
+        todayQuickCond.push(eq(mosqueRequests.assignedTo, ctx.user.id));
+        todayFinalCond.push(eq(mosqueRequests.finalReportAssignedTo, ctx.user.id));
+        todayCustomCond.push(eq(customCalendarEvents.assignedTo, ctx.user.id));
+      }
+      const [todayFieldVisits] = canView("field_visit") ? await db.select({ count: sql<number>`count(DISTINCT ${fieldVisits.requestId})` }).from(fieldVisits).where(and(...todayVisitCond)) : [{ count: 0 }];
+      const [todayReqVisits] = canView("field_visit") ? await db.select({ count: sql<number>`count(*)` }).from(mosqueRequests).where(and(...todayReqCond)) : [{ count: 0 }];
+      const [todayQuick] = canView("quick_response") ? await db.select({ count: sql<number>`count(*)` }).from(mosqueRequests).where(and(...todayQuickCond)) : [{ count: 0 }];
+      const [todayFinal] = canView("final_report") ? await db.select({ count: sql<number>`count(*)` }).from(mosqueRequests).where(and(...todayFinalCond)) : [{ count: 0 }];
+      const [todayCustom] = canView("custom") ? await db.select({ count: sql<number>`count(*)` }).from(customCalendarEvents).where(and(...todayCustomCond)) : [{ count: 0 }];
 
       const vCount = Number(fieldVisitsCount?.count || 0) + Number(reqVisitsCount?.count || 0);
       const qCount = Number(quickResponseCount?.count || 0);

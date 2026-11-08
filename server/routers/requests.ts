@@ -2,6 +2,8 @@ import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { permissionProcedure, checkPermission, calculateUserPermissions } from "../permissions";
 import { REQUEST_REPORT_TYPES, requestReportAccess, isQuickRequestReport } from "../../shared/requestReportPermissions";
+import { beneficiaryAccess } from "../../shared/beneficiaryPermissions";
+import { requestListAccess } from "../../shared/requestPermissions";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import { 
@@ -407,7 +409,7 @@ export const requestsRouter = router({
 
       // التحقق من صلاحية إنشاء الطلب
       // يُسمح لكل من: الموظفين الحاصلين على صلاحية requests.create، وطالبي الخدمة (service_requester)
-      const hasPermission = await checkPermission(ctx.user.id, "requests.create");
+      const hasPermission = await checkPermission(ctx.user.id, input.programType === "sedana" ? "sedana_requests.manage" : "requests.create");
       const isRequester = ctx.user.role === "service_requester";
 
       if (!hasPermission && !isRequester) {
@@ -942,6 +944,9 @@ export const requestsRouter = router({
         if (!general) conditions.push(eq(mosqueRequests.programType, "sedana"));
         if (!sedana) conditions.push(sql`(${mosqueRequests.programType} IS NULL OR ${mosqueRequests.programType} != 'sedana')`);
       }
+      if (input.boqPreparationsView && !userPermissions.some(p => ["boq.view", "boq.add", "boq.edit"].includes(p))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض جداول الكميات" });
+      }
 
 
       // المدير العام ومكتب المشاريع يرون جميع الطلبات
@@ -979,43 +984,13 @@ export const requestsRouter = router({
       
       // الأدوار الإدارية أو من يملك صلاحية requests.view_details يرون جميع الطلبات (لا تضيف شروط)
 
-      // شرط برنامج "سدانة"
-      const isSuperOrSystemAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role || "");
-      const isProcurementOfficer = ctx.user.role === "procurement_officer";
-      const isFinancialOrInventory = ctx.user.role === "financial" || userPermissions.includes("orders_and_letters") || userPermissions.includes("orders_and_letters.view") || userPermissions.includes("purchase_orders.view") || userPermissions.includes("csr_letters.view");
-      const hasSedanaPermission = userPermissions.includes("sedana_requests.view") || 
-        userPermissions.includes("sedana_requests.manage") || 
-        userPermissions.includes("sedana_requests.desk_review") ||
-        userPermissions.includes("quotations.view_sedana") ||
-        userPermissions.includes("sedana_quotations.view") ||
-        userPermissions.includes("sedana_quotations.export_pdf") ||
-        userPermissions.includes("sedana_quotations.add") ||
-        userPermissions.includes("sedana_quotations.recommend");
-      const canViewSedana = isSuperOrSystemAdmin || isProcurementOfficer || isFinancialOrInventory || hasSedanaPermission;
-      const hasGeneralRequestsView = userPermissions.includes("requests.view") || userPermissions.includes("requests.view_details") || userPermissions.includes("*");
-
-      if (!input.quotationsView && input.currentStage === "financial_eval_and_approval") {
-        const canViewSedanaInQuotations = userPermissions.includes("sedana_quotations.view") || userPermissions.includes("quotations.view_sedana") || userPermissions.includes("*");
-        if (!canViewSedanaInQuotations) {
-          conditions.push(
-            sql`(${mosqueRequests.programType} IS NULL OR ${mosqueRequests.programType} != 'sedana')`
-          );
-        }
-      }
-
-      if (!input.quotationsView && (isProcurementOfficer || (hasSedanaPermission && !hasGeneralRequestsView)) && !hasGeneralRequestsView) {
-        // مخصص لبرنامج سدانة فقط إذا كان يملك صلاحية سدانة بدون صلاحية عامة لعرض الطلبات
-        conditions.push(eq(mosqueRequests.programType, "sedana"));
-      } else if (!input.quotationsView && input.programType === "sedana") {
-        if (!canViewSedana) {
-          conditions.push(sql`1 = 0`);
-        }
-      } else if (!input.quotationsView && (input.excludeSedana || (!isSuperOrSystemAdmin && !input.programType && !isProcurementOfficer && !isFinancialOrInventory && !hasSedanaPermission))) {
-        if (!isSuperOrSystemAdmin || input.excludeSedana) {
-          conditions.push(
-            sql`(${mosqueRequests.programType} IS NULL OR ${mosqueRequests.programType} != 'sedana')`
-          );
-        }
+      // تصفية قائمة الطلبات وإحصائياتها بالصلاحيات الفعلية لجميع الأدوار.
+      // تبقى قراءات عروض الأسعار وجداول الكميات خاضعة لصلاحيات أقسامها.
+      if (!input.quotationsView && !input.boqPreparationsView) {
+        const access = requestListAccess(userPermissions);
+        if (!access.canRead) throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض الطلبات" });
+        if (!access.canViewGeneral) conditions.push(eq(mosqueRequests.programType, "sedana"));
+        if (!access.canViewSedana || input.excludeSedana) conditions.push(sql`(${mosqueRequests.programType} IS NULL OR ${mosqueRequests.programType} != 'sedana')`);
       }
 
       if (input.search) {
@@ -1519,7 +1494,7 @@ export const requestsRouter = router({
       const userPermissions = await calculateUserPermissions(ctx.user.id);
       const hasViewDetailsPermission = userPermissions.includes("requests.view_details");
       const isSedanaRequest = request[0].programType === 'sedana';
-      const hasSedanaManagePermission = isSedanaRequest && (userPermissions.includes("sedana_requests.manage") || userPermissions.includes("*"));
+      const hasSedanaManagePermission = isSedanaRequest && userPermissions.includes("sedana_requests.manage");
 
       if (!allowedRoles.includes(ctx.user.role) && !hasViewDetailsPermission && !hasSedanaManagePermission) {
         const currentStageName = STAGE_LABELS[oldStage] || oldStage;
@@ -2738,9 +2713,8 @@ export const requestsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const hasPerm = await checkPermission(ctx.user.id, "requests.add_review_note");
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
 
-      if (!hasPerm && !isAdmin) {
+      if (!hasPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إضافة ملاحظة على مراجعة الطلب" });
       }
 
@@ -3343,11 +3317,7 @@ export const requestsRouter = router({
       requiresProject: z.boolean().default(false),
     }))
     .mutation(async ({ input, ctx }) => {
-      const hasPermission = 
-        ["super_admin", "system_admin"].includes(ctx.user.role) ||
-        ctx.user.role === "quick_response" ||
-        (await checkPermission(ctx.user.id, "requests.create_quick_request")) ||
-        (await checkPermission(ctx.user.id, "requests.manage_as_quick_response"));
+      const hasPermission = await checkPermission(ctx.user.id, "requests.create_quick_request");
       if (!hasPermission) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة طلب استجابة سريعة" });
       }
@@ -6178,6 +6148,8 @@ export const requestsRouter = router({
       }).optional()
     )
     .query(async ({ input, ctx }) => {
+      const evaluationAccess = beneficiaryAccess(await calculateUserPermissions(ctx.user.id));
+      if (!evaluationAccess.canEnter) throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض رضا المستفيدين" });
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
@@ -6230,10 +6202,9 @@ export const requestsRouter = router({
         mosqueList.forEach((m) => mosqueMap.set(m.id, m.name));
       }
 
-      const { calculateUserPermissions } = await import("../permissions");
-      const userPerms = await calculateUserPermissions(ctx.user.id);
-      const canViewEvaluationsLog = userPerms.includes("beneficiary_evaluations.evaluations_log");
-      const canHide = userPerms.includes("beneficiary_evaluations.hide");
+      const canViewEvaluationsLog = evaluationAccess.canViewLog;
+      const canHide = evaluationAccess.canHide;
+      const canViewReply = evaluationAccess.canViewReply;
 
       // تحضير العناصر مع تحليل الـ notes وحساب متوسط كافة حقول التقييم
       let items = allEvaluations.map((e) => {
@@ -6244,6 +6215,7 @@ export const requestsRouter = router({
           parsedNotes = { comments: e.notes };
         }
 
+        if (!canViewReply) delete parsedNotes.reply;
         const answers = parsedNotes.answers || parsedNotes || {};
         const computedAverage = computeEvaluationAverage(e.notes, e.rating);
 
@@ -6293,7 +6265,7 @@ export const requestsRouter = router({
           isHidden: Boolean(parsedNotes.isHidden),
           hiddenBy: parsedNotes.hiddenBy || null,
           answers: answers,
-          rawNotes: e.notes,
+          rawNotes: canViewReply ? e.notes : JSON.stringify(parsedNotes),
         };
       });
 
@@ -6727,8 +6699,7 @@ export const requestsRouter = router({
       const userPermissions = await calculateUserPermissions(ctx.user.id);
       if (
         !userPermissions.includes("beneficiary_evaluations.resend_reminder") &&
-        !userPermissions.includes("beneficiary_evaluations.send_reminder") &&
-        !userPermissions.includes("*")
+        !userPermissions.includes("beneficiary_evaluations.send_reminder")
       ) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إعادة التذكير" });
       }

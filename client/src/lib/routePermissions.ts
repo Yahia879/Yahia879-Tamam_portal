@@ -1,5 +1,7 @@
 import { custodyAccess, type CustodyUser } from "@shared/custodyPermissions";
 import { REQUEST_REPORT_VIEW_PERMISSIONS } from "@shared/requestReportPermissions";
+import { CALENDAR_ENTRY_PERMISSIONS } from "@shared/calendarPermissions";
+import { REQUEST_LIST_ENTRY_PERMISSIONS, isRequestSectionPermission } from "@shared/requestPermissions";
 import { isDashboardViewerUser } from "./dashboardViewer";
 
 /**
@@ -133,11 +135,11 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   // /mosques/:id و /mosques/:id/edit تُعالج بنمط regex
 
   // ── الطلبات ──
-  "/requests": ["requests.view", "sedana_requests.view", "sedana_requests.manage"],
+  "/requests": REQUEST_LIST_ENTRY_PERMISSIONS,
   "/requests/new": "requests.create",
-  "/requests/quick-create": ["requests.create_quick_request", "requests.manage_as_quick_response"],
+  "/requests/quick-create": "requests.create_quick_request",
   "/field-visits": "requests.view",
-  "/field-visits/calendar": "appointments_calendar",
+  "/field-visits/calendar": CALENDAR_ENTRY_PERMISSIONS,
   "/escalation": ["escalation.delayed_requests", "escalation.delayed_beneficiaries"],
   "/admin-escalation": ["escalation.delayed_requests", "escalation.delayed_beneficiaries"],
 
@@ -284,8 +286,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/beneficiary-satisfaction": [
     "beneficiary_evaluations.view",
     "beneficiary_evaluations.evaluations_log",
-    "beneficiary_evaluations.dispatch_log",
-    "beneficiary_evaluations.contacts",
   ],
   "/financial-report": [
     "financial_report",
@@ -678,6 +678,22 @@ export function hasRouteAccess(
   hasCustomRole: boolean,
   user?: CustodyUser,
 ): boolean {
+  if (pathname.replace(/\/$/, "") === "/requests") {
+    return REQUEST_LIST_ENTRY_PERMISSIONS.some(p => userPermissions.includes(p));
+  }
+  if (pathname.startsWith("/requests/") && userRole !== "service_requester") {
+    const required = getRequiredPermission(pathname.replace(/\/$/, ""));
+    const permissions = Array.isArray(required) ? required : typeof required === "string" ? [required] : [];
+    if (permissions.length && permissions.every(isRequestSectionPermission)) {
+      return permissions.some(p => userPermissions.includes(p));
+    }
+  }
+  if (pathname.replace(/\/$/, "") === "/field-visits/calendar") {
+    return CALENDAR_ENTRY_PERMISSIONS.some(p => userPermissions.includes(p));
+  }
+  if (pathname.replace(/\/$/, "") === "/beneficiary-satisfaction") {
+    return ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log"].some(p => userPermissions.includes(p));
+  }
   if (pathname === "/pending-reports" || pathname === "/pending-reports/") {
     return REQUEST_REPORT_VIEW_PERMISSIONS.some(p => userPermissions.includes(p));
   }

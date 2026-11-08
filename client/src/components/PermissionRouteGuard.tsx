@@ -22,7 +22,7 @@ interface PermissionRouteGuardProps {
 export default function PermissionRouteGuard({ children }: PermissionRouteGuardProps) {
   const { user, loading } = useAuth();
   const [location, navigate] = useLocation();
-  const needsLivePermissions = (location === "/mosques" || location.startsWith("/mosques/") || location.replace(/\/$/, "") === "/pending-reports") &&
+  const needsLivePermissions = (location === "/mosques" || location.startsWith("/mosques/") || location === "/requests" || location.startsWith("/requests/") || ["/pending-reports", "/beneficiary-satisfaction", "/field-visits/calendar"].includes(location.replace(/\/$/, ""))) &&
     user?.role !== "service_requester";
   const { data: livePermissions, isLoading: livePermissionsLoading } = trpc.permissions.getUserPermissions.useQuery(
     { userId: user?.id ?? 0 },

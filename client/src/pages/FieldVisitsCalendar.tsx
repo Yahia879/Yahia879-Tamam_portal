@@ -1,3 +1,4 @@
+import { calendarAccess } from "@shared/calendarPermissions";
 import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { 
@@ -52,7 +53,7 @@ import { ar } from "date-fns/locale";
 import DashboardLayout from "@/components/DashboardLayout";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { usePermission } from "@/hooks/usePermission";
+import { useUserPermissions } from "@/hooks/usePermission";
 
 // تصنيفات المواعيد وألوانها المتناسقة مع هوية المنصة (Teal / Primary)
 const TRACK_CONFIG = {
@@ -113,8 +114,11 @@ const PRIORITY_OPTIONS = [
 
 function FieldVisitsCalendarContent() {
   const { user } = useAuth();
-  const hasViewAll = usePermission("appointments.view_all");
-  const isOwnOnly = !hasViewAll;
+  const permissions = useUserPermissions();
+  const access = calendarAccess(permissions);
+  const canCreateCustom = access.canCreateCustom;
+  const isOwnOnly = access.ownOnly;
+  const canManageCustomEvent = (event: any) => canCreateCustom && access.canView("custom") && event.createdById === user?.id;
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentMonthDate, setCurrentMonthDate] = useState<Date>(new Date());
@@ -122,6 +126,7 @@ function FieldVisitsCalendarContent() {
   
   // الفلاتر
   const [selectedTrack, setSelectedTrack] = useState<"all" | "field_visit" | "quick_response" | "final_report" | "custom">("all");
+  const effectiveTrack = selectedTrack === "all" || access.canView(selectedTrack) ? selectedTrack : "all";
   const [selectedStaffId, setSelectedStaffId] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -151,27 +156,33 @@ function FieldVisitsCalendarContent() {
 
   // جلب موظفي المنصة لاختيار المسؤول
   const { data: staffUsers = [] } = trpc.users.getStaffUsers.useQuery(undefined, {
-    enabled: !isOwnOnly
+    enabled: canCreateCustom || (access.canRead && !isOwnOnly)
   });
 
   // جلب المواعيد الموحدة
   const { 
-    data: events = [], 
+    data: calendarEvents = [],
     isLoading: isLoadingEvents,
     refetch: refetchEvents
   } = trpc.calendar.getUnifiedEvents.useQuery({
     startDate: startDateStr,
     endDate: endDateStr,
-    eventType: selectedTrack,
+    eventType: effectiveTrack,
+    types: access.readableTypes,
+    ownFieldVisitsOnly: access.ownFieldVisitsOnly,
     assignedTo: !isOwnOnly && selectedStaffId !== "all" ? Number(selectedStaffId) : undefined,
     search: searchQuery || undefined,
-  });
+  }, { enabled: access.canRead, staleTime: 0, refetchOnWindowFocus: true });
+  const events = useMemo(() => calendarEvents.filter((event: any) => access.canView(event.type) &&
+    (!access.ownOnly || event.assignedToId === user?.id)), [calendarEvents, permissions, user?.id]);
 
   // جلب إحصائيات الشهر
   const { data: stats } = trpc.calendar.getCalendarSummaryStats.useQuery({
     startDate: startDateStr,
     endDate: endDateStr,
-  });
+    types: access.readableTypes,
+    ownFieldVisitsOnly: access.ownFieldVisitsOnly,
+  }, { enabled: access.canRead, staleTime: 0, refetchOnWindowFocus: true });
 
   // طفرات إضافة وتعديل وحذف الحدث المخصص
   const createEventMutation = trpc.calendar.createCustomEvent.useMutation({
@@ -227,6 +238,7 @@ function FieldVisitsCalendarContent() {
   };
 
   const handleOpenNewEventModal = () => {
+    if (!canCreateCustom) return;
     resetEventForm();
     setEventFormData((prev) => ({
       ...prev,
@@ -236,6 +248,7 @@ function FieldVisitsCalendarContent() {
   };
 
   const handleOpenEditEventModal = (event: any) => {
+    if (!canManageCustomEvent(event)) return;
     setEditingEventId(event.rawId);
     setEventFormData({
       title: event.title || "",
@@ -379,7 +392,7 @@ function FieldVisitsCalendarContent() {
             </button>
           </div>
 
-          {hasViewAll && (
+          {canCreateCustom && (
             <Button
               onClick={handleOpenNewEventModal}
               className="gap-2 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-sm shadow-primary/20 h-9 px-4 text-xs"
@@ -394,7 +407,7 @@ function FieldVisitsCalendarContent() {
       {/* 2. Top Stats KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {/* Field Visits */}
-        <Card 
+        {access.canView("field_visit") && <Card
           onClick={() => setSelectedTrack(selectedTrack === "field_visit" ? "all" : "field_visit")}
           className={`cursor-pointer transition-all border rounded-3xl hover:shadow-sm ${
             selectedTrack === "field_visit" 
@@ -411,10 +424,10 @@ function FieldVisitsCalendarContent() {
               <h3 className="text-xl font-black text-teal-700 dark:text-teal-300 mt-0.5">{stats?.fieldVisits ?? 0}</h3>
             </div>
           </CardContent>
-        </Card>
+        </Card>}
 
         {/* Quick Response */}
-        <Card 
+        {access.canView("quick_response") && <Card
           onClick={() => setSelectedTrack(selectedTrack === "quick_response" ? "all" : "quick_response")}
           className={`cursor-pointer transition-all border rounded-3xl hover:shadow-sm ${
             selectedTrack === "quick_response" 
@@ -431,10 +444,10 @@ function FieldVisitsCalendarContent() {
               <h3 className="text-xl font-black text-amber-700 dark:text-amber-300 mt-0.5">{stats?.quickResponse ?? 0}</h3>
             </div>
           </CardContent>
-        </Card>
+        </Card>}
 
         {/* Final Reports */}
-        <Card 
+        {access.canView("final_report") && <Card
           onClick={() => setSelectedTrack(selectedTrack === "final_report" ? "all" : "final_report")}
           className={`cursor-pointer transition-all border rounded-3xl hover:shadow-sm ${
             selectedTrack === "final_report" 
@@ -451,10 +464,10 @@ function FieldVisitsCalendarContent() {
               <h3 className="text-xl font-black text-emerald-700 dark:text-emerald-300 mt-0.5">{stats?.finalReports ?? 0}</h3>
             </div>
           </CardContent>
-        </Card>
+        </Card>}
 
         {/* Custom Events */}
-        <Card 
+        {access.canView("custom") && <Card
           onClick={() => setSelectedTrack(selectedTrack === "custom" ? "all" : "custom")}
           className={`cursor-pointer transition-all border rounded-3xl hover:shadow-sm ${
             selectedTrack === "custom" 
@@ -471,10 +484,10 @@ function FieldVisitsCalendarContent() {
               <h3 className="text-xl font-black text-sky-700 dark:text-sky-300 mt-0.5">{stats?.customEvents ?? 0}</h3>
             </div>
           </CardContent>
-        </Card>
+        </Card>}
 
         {/* Today's Events */}
-        <Card 
+        {access.canRead && <Card
           onClick={goToToday}
           className="cursor-pointer transition-all border rounded-3xl hover:shadow-sm bg-primary/5 hover:bg-primary/10 border-primary/20 col-span-2 sm:col-span-1"
         >
@@ -487,7 +500,7 @@ function FieldVisitsCalendarContent() {
               <h3 className="text-xl font-black text-primary mt-0.5">{stats?.todayCount ?? 0}</h3>
             </div>
           </CardContent>
-        </Card>
+        </Card>}
       </div>
 
       {/* 3. Filters Toolbar */}
@@ -496,7 +509,7 @@ function FieldVisitsCalendarContent() {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             {/* Category Pills */}
             <div className="flex flex-wrap items-center gap-1.5">
-              {(["all", "field_visit", "quick_response", "final_report", "custom"] as const).map((key) => {
+              {(["all", ...access.readableTypes] as const).map((key) => {
                 const conf = TRACK_CONFIG[key];
                 const isSelected = selectedTrack === key;
                 return (
@@ -692,7 +705,7 @@ function FieldVisitsCalendarContent() {
                   {selectedDayEvents.length} مهمة مجدولة لهذا اليوم
                 </CardDescription>
               </div>
-              {hasViewAll && (
+              {canCreateCustom && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -710,7 +723,7 @@ function FieldVisitsCalendarContent() {
                 <div className="py-12 text-center text-muted-foreground">
                   <CalendarDays className="h-10 w-10 mx-auto opacity-30 mb-2" />
                   <p className="text-xs font-medium">لا توجد مواعيد مجدولة لهذا اليوم</p>
-                  {hasViewAll && (
+                  {canCreateCustom && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -788,7 +801,7 @@ function FieldVisitsCalendarContent() {
                           <div />
                         )}
 
-                        {hasViewAll && ev.type === "custom" && (
+                        {canManageCustomEvent(ev) && ev.type === "custom" && (
                           <div className="flex items-center gap-1">
                             <Button
                               size="icon"
@@ -866,7 +879,7 @@ function FieldVisitsCalendarContent() {
                     </div>
                     <div className="col-span-10 sm:col-span-11 space-y-2">
                       {hourEvents.length === 0 ? (
-                        hasViewAll ? (
+                        canCreateCustom ? (
                           <div 
                             className="h-8 rounded-xl border border-dashed border-border/40 flex items-center px-3 text-xs text-muted-foreground/50 hover:bg-muted/20 transition-all cursor-pointer"
                             onClick={() => {
@@ -999,7 +1012,7 @@ function FieldVisitsCalendarContent() {
       )}
 
       {/* 7. Add / Edit Custom Event Modal Dialog (Enhanced & Expanded UI) */}
-      <Dialog open={isEventModalOpen} onOpenChange={setIsEventModalOpen}>
+      <Dialog open={isEventModalOpen && canCreateCustom && (!editingEventId || access.canView("custom"))} onOpenChange={setIsEventModalOpen}>
         <DialogContent className="max-w-xl sm:max-w-xl w-full rounded-3xl p-6 sm:p-7 border border-border/80 shadow-2xl bg-card dark:bg-slate-900">
           {/* Header */}
           <div className="flex items-center gap-3.5 text-right w-full pb-4 border-b border-border/60">

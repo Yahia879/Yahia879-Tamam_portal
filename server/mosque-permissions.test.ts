@@ -63,6 +63,14 @@ beforeEach(() => {
 });
 
 describe("mosque permissions remain independent", () => {
+  it("returns canonical approval states from search and mosque details when stored states contain null characters", async () => {
+    state.selected = ["mosques.view", "mosques.view_details"];
+    const encodedStatus = "\0a\0p\0p\0r\0o\0v\0e\0d";
+    state.records.mosques[0].approvalStatus = encodedStatus;
+    expect((await caller().search({})).mosques[0].approvalStatus).toBe("approved");
+    state.records.mosques = [{ mosque: { id: 17, name: "مسجد", approvalStatus: encodedStatus } }];
+    expect((await caller().getById({ id: 17 })).approvalStatus).toBe("approved");
+  });
   it.each(permissionIds)("honors an administrator's explicit revocation of %s", async permission => {
     state.selected = ["*", "mosques", ...permissionIds];
     state.direct = [{ permissionId: permission, granted: false }];

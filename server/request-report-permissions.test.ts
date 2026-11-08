@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getTableName } from "drizzle-orm";
 import type { TrpcContext } from "./_core/context";
-import { REQUEST_REPORT_PERMISSION_IDS, REQUEST_REPORT_TYPES, requestReportAccess, isQuickRequestReport } from "../shared/requestReportPermissions";
+import { REQUEST_REPORT_PERMISSION_IDS, REQUEST_REPORT_TYPES, requestReportAccess, isQuickRequestReport, requestReportPermissionSelection, requestReportInterventionPrerequisite, requestReportDependentIntervention } from "../shared/requestReportPermissions";
 import { hasRouteAccess } from "../client/src/lib/routePermissions";
 
 const state = vi.hoisted(() => ({
@@ -119,7 +119,7 @@ describe("report access and intervention boundaries", () => {
 
   it.each(REQUEST_REPORT_TYPES)("allows intervention for %s only with its own permission", async type => {
     state.role = "custom_role_reports";
-    state.selected = [`pending_reports.intervene_${type}`];
+    state.selected = [`pending_reports.view_${type}`, `pending_reports.intervene_${type}`];
     const request = state.requests[REQUEST_REPORT_TYPES.indexOf(type)];
     state.requests = [request];
     if (type === "final_report") {
@@ -143,6 +143,30 @@ describe("report access and intervention boundaries", () => {
     state.selected = [`pending_reports.view_${type}`];
     expect(requestReportAccess(await calculateUserPermissions(0)).canIntervene(type)).toBe(false);
     await expect(caller().getById({ id: 1, reportType: type, reportAccess: "intervene" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+  it.each(REQUEST_REPORT_TYPES)("requires the matching view permission to activate %s intervention", async type => {
+    const view = `pending_reports.view_${type}`;
+    const intervention = `pending_reports.intervene_${type}`;
+    const other = REQUEST_REPORT_TYPES.find(t => t !== type)!;
+    state.selected = [intervention, `pending_reports.view_${other}`];
+    expect(requestReportInterventionPrerequisite(intervention)).toBe(view);
+    expect(requestReportDependentIntervention(view)).toBe(intervention);
+    expect(requestReportPermissionSelection(state.selected)).not.toContain(intervention);
+    expect(requestReportAccess(state.selected).canIntervene(type)).toBe(false);
+    expect(await calculateUserPermissions(0)).not.toContain(intervention);
+    await expect(caller().getById({ id: 1, reportType: type, reportAccess: "intervene" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    state.selected.push(view);
+    expect(await calculateUserPermissions(0)).toContain(intervention);
+    state.direct = [{ permissionId: view, granted: false }];
+    expect(await calculateUserPermissions(0)).not.toContain(intervention);
+  });
+  it("combines report view and intervention grants from roles and individual permissions", async () => {
+    state.selected = ["pending_reports.intervene_field_visit"];
+    state.direct = [{ permissionId: "pending_reports.view_field_visit", granted: true }];
+    expect(await calculateUserPermissions(0)).toContain("pending_reports.intervene_field_visit");
+    state.selected = ["pending_reports.view_field_visit"];
+    state.direct = [{ permissionId: "pending_reports.intervene_field_visit", granted: true }];
+    expect(await calculateUserPermissions(0)).toContain("pending_reports.intervene_field_visit");
   });
   it("rejects a scoped preview of a report type that was not granted", async () => {
     state.selected = ["pending_reports.view_field_visit"];

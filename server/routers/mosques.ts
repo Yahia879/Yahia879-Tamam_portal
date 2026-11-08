@@ -6,6 +6,7 @@ import { mosques, mosqueImages, auditLogs, mosqueRequests, InsertMosque, users }
 import { eq, and, like, desc, sql, or } from "drizzle-orm";
 import { notifyNewMosque, notifyMosqueApproval, createNotification } from "./notifications";
 import { checkPermission } from "../permissions";
+import { normalizeMosqueApprovalStatus } from "../../shared/mosqueMapStatus";
 
 // مخطط إنشاء مسجد جديد
 const createMosqueSchema = z.object({
@@ -191,6 +192,7 @@ export const mosquesRouter = router({
       const row = result[0];
       const mosque = {
         ...row.mosque,
+        approvalStatus: normalizeMosqueApprovalStatus(row.mosque.approvalStatus),
         registeredByUser: row.registeredByUserName ? {
           name: row.registeredByUserName,
           phone: row.registeredByUserPhone,
@@ -260,7 +262,7 @@ export const mosquesRouter = router({
       const countResult = await countQuery;
       const total = countResult[0]?.count || 0;
 
-      return { mosques: results, total };
+      return { mosques: results.map(mosque => ({ ...mosque, approvalStatus: normalizeMosqueApprovalStatus(mosque.approvalStatus) })), total };
     }),
 
   // الحصول على المساجد المسجلة بواسطة المستخدم الحالي (مع الفلترة والبحث والصفحات)
@@ -329,12 +331,13 @@ export const mosquesRouter = router({
 
       for (const row of statsRows) {
         const count = Number(row.count) || 0;
+        const approvalStatus = normalizeMosqueApprovalStatus(row.approvalStatus);
         stats.total += count;
-        if (row.approvalStatus === "approved") {
+        if (approvalStatus === "approved") {
           stats.approved += count;
-        } else if (row.approvalStatus === "pending") {
+        } else if (approvalStatus === "pending") {
           stats.pending += count;
-        } else if (row.approvalStatus === "rejected") {
+        } else if (approvalStatus === "rejected") {
           stats.rejected += count;
         }
       }
@@ -356,7 +359,7 @@ export const mosquesRouter = router({
         .offset(offset);
 
       return {
-        mosques: results,
+        mosques: results.map(mosque => ({ ...mosque, approvalStatus: normalizeMosqueApprovalStatus(mosque.approvalStatus) })),
         total,
         page,
         limit,
@@ -589,7 +592,8 @@ export const mosquesRouter = router({
     const db = await getDb();
     if (!db) return [];
 
-    return await db.select().from(mosques).where(eq(mosques.approvalStatus, "pending")).orderBy(desc(mosques.createdAt));
+    const results = await db.select().from(mosques).where(eq(mosques.approvalStatus, "pending")).orderBy(desc(mosques.createdAt));
+    return results.map(mosque => ({ ...mosque, approvalStatus: normalizeMosqueApprovalStatus(mosque.approvalStatus) }));
   }),
 
   // الحصول على قائمة المدن
@@ -648,7 +652,11 @@ export const mosquesRouter = router({
       total: total[0]?.count || 0,
       byCity: Object.fromEntries(byCity.map(c => [c.city, c.count])),
       byGovernorate: Object.fromEntries(byGovernorate.filter(g => g.governorate).map(g => [g.governorate, g.count])),
-      byApprovalStatus: Object.fromEntries(byApprovalStatus.map(s => [s.status, s.count])),
+      byApprovalStatus: byApprovalStatus.reduce((counts, row) => {
+        const status = normalizeMosqueApprovalStatus(row.status);
+        counts[status] = (counts[status] ?? 0) + Number(row.count);
+        return counts;
+      }, {} as Record<string, number>),
     };
   }),
 });

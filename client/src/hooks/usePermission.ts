@@ -43,10 +43,14 @@ export function isProcurementOrFinancePermission(permission: string): boolean {
  */
 export function isStrictPermission(permission: string): boolean {
   return (
+    permission === "requests" || permission.startsWith("requests.") ||
+    permission === "sedana_requests" || permission.startsWith("sedana_requests.") ||
     isInventoryPermission(permission) ||
     isProcurementOrFinancePermission(permission) ||
     permission === "mosques" || permission.startsWith("mosques.") ||
     permission === "pending_reports" || permission.startsWith("pending_reports.") ||
+    permission.startsWith("beneficiary_evaluations") || permission === "beneficiary_satisfaction" ||
+    permission.startsWith("appointments") ||
     permission === "mosques_map" || permission === "mosque_map" || permission.startsWith("mosque_map.") ||
     permission === "escalation.delayed_requests" ||
     permission === "escalation.delayed_beneficiaries"

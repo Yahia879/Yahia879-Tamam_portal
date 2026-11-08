@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { useUserPermissions } from "@/hooks/usePermission";
+import { requestListAccess } from "@shared/requestPermissions";
 import DashboardLayout from "@/components/DashboardLayout";
 import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { Button } from "@/components/ui/button";
@@ -187,19 +189,10 @@ export default function Requests({
   const isFirstMount = useRef(true);
 
   const isEn = user?.role === "quick_response" && lang === "en";
-  const userPermissions = (user as any)?.permissions ?? [];
-  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const canViewSedana = isAdmin || userPermissions.includes("sedana_requests.view") || userPermissions.includes("sedana_requests.manage");
-  const canViewGeneral = isAdmin || userPermissions.includes("requests.view") || userPermissions.includes("requests.view_details") || userPermissions.includes("*");
+  const userPermissions = useUserPermissions();
+  const access = requestListAccess(userPermissions);
+  const { canViewSedana, canViewGeneral } = access;
   const isExecutiveDirector = ["executive_director", "general_manager"].includes(user?.role || "");
-  const canViewDetails = isAdmin || 
-                         userPermissions.includes("requests.view_details") || 
-                         userPermissions.includes("requests.manage_as_field_team") ||
-                         userPermissions.includes("requests.manage_as_quick_response") ||
-                         userPermissions.includes("requests.upload_final_report") ||
-                         userPermissions.includes("sedana_requests.view") ||
-                         userPermissions.includes("sedana_requests.desk_review") ||
-                         userPermissions.includes("sedana_requests.manage");
 
   // عدد الطلبات التي بانتظار تأكيد الإغلاق من المدير التنفيذي
   const { data: pendingClosureData } = trpc.requests.getPendingClosureCount.useQuery(undefined, {
@@ -298,22 +291,23 @@ export default function Requests({
     page,
     limit,
   }, {
+    enabled: access.canRead,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
 
-  const rawRequests = requestsData?.requests || [];
+  const rawRequests = access.canRead ? requestsData?.requests || [] : [];
   const requests = canViewSedana
     ? (canViewGeneral ? rawRequests : rawRequests.filter((r: any) => (r.request?.programType || r.programType) === "sedana"))
     : rawRequests.filter((r: any) => (r.request?.programType || r.programType) !== "sedana");
-  const total = requestsData?.total || 0;
+  const total = access.canRead ? requestsData?.total || 0 : 0;
   const totalPages = Math.ceil(total / limit);
 
   const stats = {
-    total: requestsData?.total || 0,
-    underReview: requestsData?.stats?.under_review || 0,
-    inProgress: requestsData?.stats?.in_progress || 0,
-    completed: requestsData?.stats?.completed || 0,
+    total,
+    underReview: access.canRead ? requestsData?.stats?.under_review || 0 : 0,
+    inProgress: access.canRead ? requestsData?.stats?.in_progress || 0 : 0,
+    completed: access.canRead ? requestsData?.stats?.completed || 0 : 0,
   };
 
   const handlePageChange = (newPage: number) => {
@@ -350,7 +344,7 @@ export default function Requests({
                   </Link>
                 </PermissionGuard>
               )}
-              {(user?.role === "quick_response" || userPermissions.includes("requests.create_quick_request")) && (
+              {userPermissions.includes("requests.create_quick_request") && (
                 <>
                   <Link href="/requests/quick-create">
                     <Button 
@@ -591,6 +585,7 @@ export default function Requests({
                     {requests.map((request: any) => {
                       const status = statusConfig[request.status] || statusConfig.pending;
                       const isSedana = request.programType?.toLowerCase() === "sedana";
+                      const canViewDetails = access.canViewDetails(request.programType);
                       const isQuick = request.requestTrack === "quick_response" || request.technicalEvalDecision === "quick_response";
                       const isDonation = request.technicalEvalDecision === "convert_to_donation";
                       const isPendingClosure = request.closureStatus === "pending_confirmation" && isExecutiveDirector;

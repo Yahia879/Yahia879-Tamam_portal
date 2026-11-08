@@ -1,7 +1,11 @@
+import { BENEFICIARY_PERMISSION_IDS } from "../shared/beneficiaryPermissions";
+import { CALENDAR_PERMISSIONS, CALENDAR_PERMISSION_IDS, calendarPermissionConflicts } from "../shared/calendarPermissions";
+import { isRequestSectionPermission, REQUEST_SECTION_PERMISSION_IDS } from "../shared/requestPermissions";
+import { sectionPermissionSelection, sectionPermissionPrerequisite, sectionPermissionDependents, RETIRED_SECTION_PERMISSIONS } from "../shared/sectionPermissions";
 import { CUSTODY_PERMISSION_ACTIONS, CUSTODY_PERSONAL_PERMISSIONS, custodyPermissionOptions } from "../shared/custodyPermissions";
 import { GENERAL_QUOTATION_PERMISSIONS, GENERAL_QUOTATION_PERMISSION_IDS, quotationPermissionOptions } from "../shared/quotationPermissions";
 import { CONTRACT_PERMISSIONS, CONTRACT_PERMISSION_IDS, contractPermissionOptions } from "../shared/contractPermissions";
-import { REQUEST_REPORT_PERMISSIONS, REQUEST_REPORT_PERMISSION_IDS, RETIRED_REQUEST_REPORT_PERMISSIONS, requestReportPermissionSelection } from "../shared/requestReportPermissions";
+import { REQUEST_REPORT_PERMISSIONS, REQUEST_REPORT_PERMISSION_IDS } from "../shared/requestReportPermissions";
 import { eq, and, or, ne, sql, inArray, notInArray, isNull, like } from "drizzle-orm";
 
 import { getDb } from "./db";
@@ -57,27 +61,7 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   View_Tickets: ["View_Tickets"],
 
-  beneficiary_evaluations: [
-
-    "beneficiary_evaluations.view",
-
-    "beneficiary_evaluations.evaluations_log",
-
-    "beneficiary_evaluations.view_details",
-
-    "beneficiary_evaluations.view_reply",
-
-    "beneficiary_evaluations.dispatch_log",
-
-    "beneficiary_evaluations.resend_reminder",
-
-    "beneficiary_evaluations.contacts",
-
-    "beneficiary_evaluations.reply",
-
-    "beneficiary_evaluations.hide",
-
-  ],
+  beneficiary_evaluations: BENEFICIARY_PERMISSION_IDS,
 
   "beneficiary_evaluations.view": ["beneficiary_evaluations.view"],
 
@@ -86,40 +70,11 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
   "beneficiary_evaluations.view_details": ["beneficiary_evaluations.view_details"],
 
   "beneficiary_evaluations.view_reply": ["beneficiary_evaluations.view_reply"],
-
-  "beneficiary_evaluations.dispatch_log": ["beneficiary_evaluations.dispatch_log"],
-
-  "beneficiary_evaluations.resend_reminder": ["beneficiary_evaluations.resend_reminder"],
-
-  "beneficiary_evaluations.send_reminder": ["beneficiary_evaluations.resend_reminder"],
-
-  "beneficiary_evaluations.contacts": ["beneficiary_evaluations.contacts"],
-
   "beneficiary_evaluations.reply": ["beneficiary_evaluations.reply"],
 
   "beneficiary_evaluations.hide": ["beneficiary_evaluations.hide"],
 
-  beneficiary_satisfaction: [
-
-    "beneficiary_evaluations.view",
-
-    "beneficiary_evaluations.evaluations_log",
-
-    "beneficiary_evaluations.view_details",
-
-    "beneficiary_evaluations.view_reply",
-
-    "beneficiary_evaluations.dispatch_log",
-
-    "beneficiary_evaluations.resend_reminder",
-
-    "beneficiary_evaluations.contacts",
-
-    "beneficiary_evaluations.reply",
-
-    "beneficiary_evaluations.hide",
-
-  ],
+  beneficiary_satisfaction: BENEFICIARY_PERMISSION_IDS,
 
   staff_management: [
 
@@ -155,7 +110,7 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   "requests.manage_as_quick_response": ["requests.view", "requests.edit", "requests.manage_as_quick_response"],
 
-  appointments_calendar: ["field_visits.view", "appointments.view"],
+  appointments_calendar: CALENDAR_PERMISSION_IDS.filter(p => p !== "appointments.view_own"),
 
   projects: ["projects.view", "projects.view_details", "projects.create_multi_mosque", "projects.assign_as_manager", "projects.financials", "projects.edit_support_and_fees", "projects.add_receipt_voucher"],
 
@@ -1120,12 +1075,9 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
 
 
-  appointments: ["field_visits.view"],
+  appointments: CALENDAR_PERMISSION_IDS.filter(p => p !== "appointments.view_own"),
 
   "appointments.view": ["field_visits.view"],
-
-  "appointments.view_all": ["field_visits.view"],
-
   "appointments.view_own": ["field_visits.view"],
 
 
@@ -1709,33 +1661,9 @@ async function ensureRequestsPermissionsExist(db: any) {
 
       },
 
-      {
 
-        id: "beneficiary_evaluations.dispatch_log",
 
-        moduleId: "beneficiary_evaluations",
 
-        action: "dispatch_log",
-
-        nameAr: "سجل الإرسال",
-
-        nameEn: "Dispatch Survey Log"
-
-      },
-
-      {
-
-        id: "beneficiary_evaluations.contacts",
-
-        moduleId: "beneficiary_evaluations",
-
-        action: "contacts",
-
-        nameAr: "المستفيدين المعتمدين والاستفسارات",
-
-        nameEn: "Approved Beneficiaries & Inquiries"
-
-      },
 
       {
 
@@ -1935,15 +1863,15 @@ async function ensureRequestsPermissionsExist(db: any) {
 
       board_member: ["board_member"],
 
-      general_manager: ["requests.view", "requests.create", "requests.view_details", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.resend_reminder", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "quotations.view", "quotations.approve"],
+      general_manager: ["requests.view", "requests.create", "requests.view_details", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "quotations.view", "quotations.approve"],
 
-      executive_director: ["requests.view", "requests.create", "requests.view_details", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.resend_reminder", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "quotations.view", "quotations.approve"],
+      executive_director: ["requests.view", "requests.create", "requests.view_details", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "quotations.view", "quotations.approve"],
 
       procurement_officer: ["quotations.view", "quotations.create", "quotations.add"],
 
       dashboard_viewer: ["information_dashboard.view", "information_dashboard"],
 
-      projects_office: ["requests.view", "requests.create", "requests.view_details", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.resend_reminder", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide"],
+      projects_office: ["requests.view", "requests.create", "requests.view_details", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide"],
 
       field_team: ["requests.view", "requests.manage_as_field_team"],
 
@@ -1955,9 +1883,9 @@ async function ensureRequestsPermissionsExist(db: any) {
 
       corporate_comm: ["requests.view", "requests.upload_final_report"],
 
-      super_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.resend_reminder", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "escalation.delayed_requests", "escalation.delayed_beneficiaries"],
+      super_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "escalation.delayed_requests", "escalation.delayed_beneficiaries"],
 
-      system_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.resend_reminder", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "escalation.delayed_requests", "escalation.delayed_beneficiaries"],
+      system_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "escalation.delayed_requests", "escalation.delayed_beneficiaries"],
 
     };
 
@@ -2443,6 +2371,9 @@ async function ensureAllCustomPermissionsExist(db: any) {
     }
 
 
+
+    const [calendarModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "appointments")).limit(1);
+    if (!calendarModule) await db.insert(modules).values({ id: "appointments", nameAr: "تقويم المواعيد", nameEn: "Appointments Calendar", icon: "Calendar", displayOrder: 12, isActive: true });
 
     // Ensure 'pending_reports' module exists in the modules table
 
@@ -3054,11 +2985,11 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       { id: "beneficiary_evaluations.view_reply", moduleId: "beneficiary_evaluations", action: "view_reply", nameAr: "عرض الرد", nameEn: "View Reply" },
 
-      { id: "beneficiary_evaluations.dispatch_log", moduleId: "beneficiary_evaluations", action: "dispatch_log", nameAr: "سجل الإرسال", nameEn: "Dispatch Survey Log" },
 
-      { id: "beneficiary_evaluations.resend_reminder", moduleId: "beneficiary_evaluations", action: "resend_reminder", nameAr: "إعادة تذكير", nameEn: "Resend Reminder" },
 
-      { id: "beneficiary_evaluations.contacts", moduleId: "beneficiary_evaluations", action: "contacts", nameAr: "المستفيدين المعتمدين والاستفسارات", nameEn: "Approved Beneficiaries & Inquiries" },
+
+
+
 
       { id: "beneficiary_evaluations.reply", moduleId: "beneficiary_evaluations", action: "reply", nameAr: "إضافة رد على التقييم", nameEn: "Reply to Evaluation" },
 
@@ -3084,9 +3015,9 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
       { id: "requests.transfer_to_beneficiary", moduleId: "requests", action: "transfer_to_beneficiary", nameAr: "تحويل الطلب لمستفيد", nameEn: "Transfer Request to Beneficiary" },
 
-      { id: "appointments.view_all", moduleId: "settings", action: "view_all", nameAr: "عرض كافة المواعيد والزيارات للمنشأة", nameEn: "View All Appointments" },
 
-      { id: "appointments.view_own", moduleId: "settings", action: "view_own", nameAr: "عرض زياراتي الميدانية الخاصة بي فقط", nameEn: "View Own Appointments" },
+
+      ...CALENDAR_PERMISSIONS.map(p => ({ id: `appointments.${p.action}`, moduleId: "appointments", action: p.action, nameAr: p.nameAr, nameEn: p.action.replaceAll("_", " ") })),
 
       { id: "projects.view_details", moduleId: "projects", action: "view_details", nameAr: "عرض تفاصيل المشروع وادارته", nameEn: "View Project Details" },
 
@@ -3701,9 +3632,9 @@ async function ensureAllCustomPermissionsExist(db: any) {
       await db.delete(userPermissions).where(inArray(userPermissions.permissionId, retiredContractIds));
       await db.delete(permissions).where(inArray(permissions.id, retiredContractIds));
     }
-    await db.delete(rolePermissions).where(inArray(rolePermissions.permissionId, RETIRED_REQUEST_REPORT_PERMISSIONS));
-    await db.delete(userPermissions).where(inArray(userPermissions.permissionId, RETIRED_REQUEST_REPORT_PERMISSIONS));
-    await db.delete(permissions).where(inArray(permissions.id, RETIRED_REQUEST_REPORT_PERMISSIONS));
+    await db.delete(rolePermissions).where(inArray(rolePermissions.permissionId, RETIRED_SECTION_PERMISSIONS));
+    await db.delete(userPermissions).where(inArray(userPermissions.permissionId, RETIRED_SECTION_PERMISSIONS));
+    await db.delete(permissions).where(inArray(permissions.id, RETIRED_SECTION_PERMISSIONS));
 
     const retiredQuotationPermissions = await db.select({ id: permissions.id }).from(permissions)
       .where(and(like(permissions.id, "quotations.%"), notInArray(permissions.id, GENERAL_QUOTATION_PERMISSION_IDS)));
@@ -4668,7 +4599,9 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
     rolePermissionsData.push(...rolePermsResult.filter(rp =>
       !customizedQuotationRoles.has(rp.roleId) ||
       !(rp.permissionId === "mosques" || rp.permissionId.startsWith("mosques.") ||
+        isRequestSectionPermission(rp.permissionId) ||
         rp.permissionId === "pending_reports" || rp.permissionId.startsWith("pending_reports.") ||
+        rp.permissionId.startsWith("beneficiary_evaluations") || rp.permissionId === "beneficiary_satisfaction" || rp.permissionId.startsWith("appointments") ||
         rp.permissionId === "mosques_map" || rp.permissionId === "mosque_map" || rp.permissionId.startsWith("mosque_map.") ||
         rp.permissionId === "quotations" || rp.permissionId.startsWith("quotations.") ||
         rp.permissionId === "sedana_quotations" || rp.permissionId.startsWith("sedana_quotations.") ||
@@ -4714,7 +4647,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
   // إضافة الصلاحيات المجمعة من كل المصادر
 
-  requestReportPermissionSelection(rolePermissionsData).forEach(p => allPermissions.add(p));
+  rolePermissionsData.filter(p => !RETIRED_SECTION_PERMISSIONS.includes(p)).forEach(p => allPermissions.add(p));
 
 
 
@@ -4733,8 +4666,10 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
       // الصلاحيات المستبعدة وصلاحيات إدارة المخزون لا تُمنح تلقائياً بالـ Wildcard
 
       const isInv = (
+        isRequestSectionPermission(p.id) ||
         p.id === "mosques" || p.id.startsWith("mosques.") ||
         p.id === "pending_reports" || p.id.startsWith("pending_reports.") ||
+        p.id.startsWith("beneficiary_evaluations") || p.id === "beneficiary_satisfaction" || p.id.startsWith("appointments") ||
         p.id === "mosques_map" || p.id === "mosque_map" || p.id.startsWith("mosque_map.") ||
         p.id === "custody_requests" || p.id.startsWith("custody_requests.") ||
         p.id === "quotations" || p.id.startsWith("quotations.") ||
@@ -4779,8 +4714,9 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
     const expanded = PERMISSION_EXPANSION[perm];
     const section = perm === "mosques_map" ? "mosque_map" : perm;
+    if (isRequestSectionPermission(perm) && perm.includes(".")) continue;
 
-    if (expanded && !(["mosques", "mosque_map", "contracts", "quotations", "custody_requests"].includes(section) && permissionsToExpand.some(p => p.startsWith(`${section}.`)))) {
+    if (expanded && !(["requests", "sedana_requests", "beneficiary_evaluations", "beneficiary_satisfaction", "appointments", "appointments_calendar", "mosques", "mosque_map", "contracts", "quotations", "custody_requests"].includes(section) && permissionsToExpand.some(p => p.startsWith(`${section}.`)))) {
 
       expanded.forEach(sub => {
 
@@ -4821,7 +4757,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
   const revokedPermissions = new Set<string>();
 
   userPermsData.forEach(perm => {
-    if (RETIRED_REQUEST_REPORT_PERMISSIONS.includes(perm.permissionId)) return;
+    if (RETIRED_SECTION_PERMISSIONS.includes(perm.permissionId)) return;
 
     if (perm.granted) {
 
@@ -4831,7 +4767,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
       const expanded = PERMISSION_EXPANSION[perm.permissionId];
 
-      if (expanded) {
+      if (expanded && !(isRequestSectionPermission(perm.permissionId) && perm.permissionId.includes("."))) {
 
         expanded.forEach(sub => allPermissions.add(sub));
 
@@ -6730,7 +6666,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
 
 
-  return requestReportPermissionSelection(Array.from(allPermissions));
+  return sectionPermissionSelection(Array.from(allPermissions));
 
 }
 
@@ -6890,7 +6826,7 @@ export const permissionsRouter = router({
 
       ...module,
 
-      permissions: permissionsData.filter(p => p.moduleId === module.id && !RETIRED_REQUEST_REPORT_PERMISSIONS.includes(p.id))
+      permissions: permissionsData.filter(p => p.moduleId === module.id && !RETIRED_SECTION_PERMISSIONS.includes(p.id))
 
     }));
 
@@ -7295,7 +7231,7 @@ export const permissionsRouter = router({
             customizedPermissions = true;
 
             Array.from(permsSet).forEach(p => {
-              if (p === "pending_reports" || p.startsWith("pending_reports.") || p === "mosques" || p.startsWith("mosques.") || p === "mosques_map" || p === "mosque_map" || p.startsWith("mosque_map.") || p === "quotations" || p.startsWith("quotations.") || p === "sedana_quotations" || p.startsWith("sedana_quotations.") || p === "custody_requests" || p.startsWith("custody_requests.")) permsSet.delete(p);
+              if (isRequestSectionPermission(p) || p === "pending_reports" || p.startsWith("pending_reports.") || p.startsWith("beneficiary_evaluations") || p === "beneficiary_satisfaction" || p.startsWith("appointments") || p === "mosques" || p.startsWith("mosques.") || p === "mosques_map" || p === "mosque_map" || p.startsWith("mosque_map.") || p === "quotations" || p.startsWith("quotations.") || p === "sedana_quotations" || p.startsWith("sedana_quotations.") || p === "custody_requests" || p.startsWith("custody_requests.")) permsSet.delete(p);
             });
             parsed.forEach(p => permsSet.add(p));
 
@@ -7312,10 +7248,16 @@ export const permissionsRouter = router({
       permsSet.delete("escalation.view");
       permsSet.delete("escalation");
       if (!customizedPermissions && ["super_admin", "system_admin"].includes(input.roleId)) {
-        REQUEST_REPORT_PERMISSION_IDS.forEach(p => permsSet.add(p));
+        [...REQUEST_SECTION_PERMISSION_IDS.filter(p => !EXCLUDED_ADMIN_PERMISSIONS.includes(p)), ...REQUEST_REPORT_PERMISSION_IDS, ...BENEFICIARY_PERMISSION_IDS, ...CALENDAR_PERMISSION_IDS.filter(p => p !== "appointments.view_own")].forEach(p => permsSet.add(p));
       }
 
       // Expand legacy section grants for the editor, then save only the checked actions.
+      if (permsSet.has("requests") && !Array.from(permsSet).some(p => p.startsWith("requests."))) {
+        PERMISSION_EXPANSION.requests.forEach(p => permsSet.add(p));
+      }
+      if (permsSet.has("sedana_requests") && !Array.from(permsSet).some(p => p.startsWith("sedana_requests."))) {
+        REQUEST_SECTION_PERMISSION_IDS.filter(p => p.startsWith("sedana_requests.")).forEach(p => permsSet.add(p));
+      }
       if (permsSet.has("mosques") && !Array.from(permsSet).some(p => p.startsWith("mosques."))) {
         PERMISSION_EXPANSION.mosques.forEach(p => permsSet.add(p));
       }
@@ -7327,7 +7269,7 @@ export const permissionsRouter = router({
       permsSet.delete("mosque_map");
       permsSet.delete("mosques_map");
 
-      return requestReportPermissionSelection(custodyPermissionOptions(quotationPermissionOptions(contractPermissionOptions(Array.from(permsSet)))));
+      return sectionPermissionSelection(custodyPermissionOptions(quotationPermissionOptions(contractPermissionOptions(Array.from(permsSet)))));
 
     }),
 
@@ -7405,7 +7347,7 @@ export const permissionsRouter = router({
 
 
 
-      const cleanedPerms = requestReportPermissionSelection(input.permissions).filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation"].includes(p));
+      const cleanedPerms = sectionPermissionSelection(input.permissions).filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation"].includes(p));
 
       // إنشاء الدور مع تخزين الصلاحيات المخصصة في حقل الوصف كـ JSON
 
@@ -7595,7 +7537,7 @@ export const permissionsRouter = router({
 
 
 
-      const cleanedPerms = input.permissions ? requestReportPermissionSelection(input.permissions).filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation"].includes(p)) : undefined;
+      const cleanedPerms = input.permissions ? sectionPermissionSelection(input.permissions).filter(p => !["mosques", "mosque_map", "mosques_map", "escalation.view", "escalation"].includes(p)) : undefined;
 
       // تحديث بيانات الدور (الاسم والوصف)
 
@@ -8347,7 +8289,33 @@ export const permissionsRouter = router({
 
       await ensureAllCustomPermissionsExist(db);
 
-      const cleanedInputPerms = input.permissions.filter(p => !RETIRED_REQUEST_REPORT_PERMISSIONS.includes(p.permissionId) && p.permissionId !== "escalation.view" && p.permissionId !== "escalation");
+      let cleanedInputPerms = input.permissions.filter(p => !RETIRED_SECTION_PERMISSIONS.includes(p.permissionId) && p.permissionId !== "escalation.view" && p.permissionId !== "escalation");
+      const inheritedPermissions = await calculateUserPermissions(input.userId, false);
+      const ownsCalendar = cleanedInputPerms.some(p => p.permissionId === "appointments.view_own" && p.granted);
+      if (ownsCalendar) cleanedInputPerms = cleanedInputPerms.map(p =>
+        calendarPermissionConflicts("appointments.view_own").includes(p.permissionId) ? { ...p, granted: false } : p);
+      for (const permission of [...cleanedInputPerms]) {
+        if (permission.granted) for (const conflict of calendarPermissionConflicts(permission.permissionId)) {
+          if (!cleanedInputPerms.some(p => p.permissionId === conflict)) cleanedInputPerms.push({ permissionId: conflict, granted: false });
+        }
+      }
+      const reportOverrides = new Map(cleanedInputPerms.map(p => [p.permissionId, p.granted]));
+      const willHavePermission = (id: string) => reportOverrides.has(id) ? reportOverrides.get(id)! : inheritedPermissions.includes(id);
+      for (const permission of cleanedInputPerms) {
+        const requiredView = sectionPermissionPrerequisite(permission.permissionId);
+        if (permission.granted && requiredView && !willHavePermission(requiredView)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: requiredView === "beneficiary_evaluations.evaluations_log"
+            ? "يجب تفعيل صلاحية سجل استبيانات التقييم أولاً"
+            : "يجب تفعيل صلاحية عرض نوع التقرير قبل تفعيل صلاحية التدخل فيه" });
+        }
+      }
+      for (const permission of [...cleanedInputPerms]) {
+        for (const dependent of sectionPermissionDependents(permission.permissionId)) {
+          if (!permission.granted && !reportOverrides.has(dependent) && inheritedPermissions.includes(dependent)) {
+            cleanedInputPerms.push({ permissionId: dependent, granted: false, reason: "إلغاء الصلاحية التابعة تبعاً لإلغاء صلاحية العرض" });
+          }
+        }
+      }
 
       // التأكد من وجود كافة المعرفات في جدول الصلاحيات قبل الربط لتفادي أخطاء المفاتيح الأجنبية
 

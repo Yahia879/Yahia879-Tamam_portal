@@ -1,3 +1,6 @@
+import { BENEFICIARY_PERMISSIONS } from "@shared/beneficiaryPermissions";
+import { CALENDAR_PERMISSIONS, CALENDAR_PERMISSION_IDS, calendarPermissionOverrides } from "@shared/calendarPermissions";
+import { sectionPermissionPrerequisite, sectionPermissionDependents } from "@shared/sectionPermissions";
 import { REQUEST_REPORT_PERMISSIONS } from "@shared/requestReportPermissions";
 import { custodyPermissionSelection } from "@shared/custodyPermissions";
 import { GENERAL_QUOTATION_PERMISSIONS, GENERAL_QUOTATION_LABELS } from "@shared/quotationPermissions";
@@ -673,7 +676,11 @@ export default function UserPermissions() {
 
 
 
-  const isChecked = (permissionId: string) => {
+  const isChecked = (permissionId: string): boolean => {
+    if (CALENDAR_PERMISSION_IDS.includes(permissionId) && permissionId !== "appointments.view_own" &&
+        (overrides["appointments.view_own"] ?? rolePermissions?.includes("appointments.view_own"))) return false;
+    const requiredView = sectionPermissionPrerequisite(permissionId);
+    if (requiredView && !isChecked(requiredView)) return false;
 
 
 
@@ -774,6 +781,16 @@ export default function UserPermissions() {
 
 
   const handleTogglePermission = (permId: string) => {
+    if (CALENDAR_PERMISSION_IDS.includes(permId)) {
+      const enabled = !isChecked(permId);
+      setOverrides(prev => calendarPermissionOverrides(prev, rolePermissions ?? [], permId, enabled));
+      return;
+    }
+    const requiredView = sectionPermissionPrerequisite(permId);
+    if (requiredView && !isChecked(permId) && !isChecked(requiredView)) {
+      toast.warning(permId.startsWith("beneficiary_evaluations.") ? "يجب تفعيل صلاحية سجل استبيانات التقييم أولاً" : "يجب تفعيل صلاحية عرض هذا النوع من التقارير أولاً");
+      return;
+    }
 
 
 
@@ -2852,6 +2869,7 @@ export default function UserPermissions() {
 
 
 
+        sectionPermissionDependents(permId).forEach(cascadeRevoke);
         if (permId === "mosques.view") cascadeRevoke("mosques.");
 
 
@@ -3267,6 +3285,16 @@ export default function UserPermissions() {
 
 
   const handleToggleModuleAll = (modulePerms: any[]) => {
+    if (modulePerms.length && modulePerms.every(p => CALENDAR_PERMISSION_IDS.includes(p.id))) {
+      const normal = modulePerms.map(p => p.id).filter(id => id !== "appointments.view_own");
+      const enabled = !normal.every(isChecked);
+      setOverrides(prev => {
+        let next = calendarPermissionOverrides(prev, rolePermissions ?? [], "appointments.view_own", false);
+        for (const id of normal) next = calendarPermissionOverrides(next, rolePermissions ?? [], id, enabled);
+        return next;
+      });
+      return;
+    }
 
 
 
@@ -3983,10 +4011,7 @@ export default function UserPermissions() {
 
 
       permissionId,
-
-
-
-      granted,
+      granted: granted && (!sectionPermissionPrerequisite(permissionId) || isChecked(sectionPermissionPrerequisite(permissionId)!)),
 
 
 
@@ -4216,47 +4241,7 @@ export default function UserPermissions() {
 
 
 
-      beneficiary_evaluations: {
-
-
-
-        view: "عرض إحصائيات رضا المستفيدين",
-
-
-
-        evaluations_log: "سجل استبيانات التقييم",
-
-
-
-        view_details: "عرض التفاصيل",
-
-
-
-        view_reply: "عرض الرد",
-
-
-
-        dispatch_log: "سجل الإرسال",
-
-
-
-        resend_reminder: "إعادة تذكير",
-
-
-
-        contacts: "المستفيدين المعتمدين والاستفسارات",
-
-
-
-        reply: "إضافة رد على التقييم",
-
-
-
-        hide: "إخفاء وإظهار التقييمات",
-
-
-
-      },
+      beneficiary_evaluations: Object.fromEntries(BENEFICIARY_PERMISSIONS.map(p => [p.action, p.nameAr])),
 
 
 
@@ -5593,23 +5578,7 @@ export default function UserPermissions() {
 
 
 
-      appointments: {
-
-
-
-        view: "عرض تقويم المواعيد والزيارات",
-
-
-
-        view_all: "عرض كافة المواعيد والزيارات للمنشأة",
-
-
-
-        view_own: "عرض زياراتي الميدانية الخاصة بي فقط"
-
-
-
-      },
+      appointments: Object.fromEntries(CALENDAR_PERMISSIONS.map(p => [p.action, p.nameAr])),
 
 
 
@@ -5805,11 +5774,11 @@ export default function UserPermissions() {
 
 
 
-        { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
+        { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: CALENDAR_PERMISSIONS.map(p => p.action) },
 
 
 
-        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view", "evaluations_log", "view_details", "view_reply", "dispatch_log", "resend_reminder", "contacts", "reply", "hide"] },
+        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: BENEFICIARY_PERMISSIONS.map(p => p.action) },
 
 
 
@@ -7867,8 +7836,8 @@ export default function UserPermissions() {
 
 
 
-                            const isDisabled = 
-
+                            const isDisabled =
+                              (!!sectionPermissionPrerequisite(perm.id) && !isChecked(sectionPermissionPrerequisite(perm.id)!)) ||
                               (perm.id.startsWith("custody_requests.") && !["custody_requests.view", "custody_requests.create", "custody_requests.request_exception"].includes(perm.id) && !isChecked("custody_requests.view")) ||
 
                               (perm.id.startsWith("receipt_vouchers.") && perm.id !== "receipt_vouchers.view" && !isChecked("receipt_vouchers.view")) ||
@@ -7987,13 +7956,6 @@ export default function UserPermissions() {
 
 
                               (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !isChecked("reports.view_stats")) ||
-
-
-
-                              (perm.id.startsWith("beneficiary_evaluations.") && perm.id !== "beneficiary_evaluations.view" && !isChecked("beneficiary_evaluations.view")) ||
-
-
-
                               (perm.id.startsWith("sedana_quotations.") && perm.id !== "sedana_quotations.view" && !isChecked("sedana_quotations.view")) ||
 
 

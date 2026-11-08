@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { normalizeMosqueApprovalStatus } from "@shared/mosqueMapStatus";
 import { LeafletMap } from "@/components/LeafletMap";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,9 +26,18 @@ export default function MosquesMap() {
     search: searchQuery || undefined,
     city: cityFilter !== "all" ? cityFilter : undefined,
     limit: 500,
-  }, { enabled: canViewMap });
+  }, {
+    enabled: canViewMap,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 5000,
+  });
 
-  const mosques = mosquesData?.mosques || [];
+  const mosques = useMemo(() => (mosquesData?.mosques || []).map(mosque => ({
+    ...mosque,
+    approvalStatus: normalizeMosqueApprovalStatus(mosque.approvalStatus),
+  })), [mosquesData?.mosques]);
 
   // حساب الإحصائيات الحالية
   const stats = {

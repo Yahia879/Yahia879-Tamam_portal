@@ -23,12 +23,27 @@ export function isRequestReportType(type: unknown): type is RequestReportType {
 
 export function requestReportAccess(permissions: readonly string[]) {
   const canView = (type: unknown) => isRequestReportType(type) && permissions.includes(`pending_reports.view_${type}`);
-  const canIntervene = (type: unknown) => isRequestReportType(type) && permissions.includes(`pending_reports.intervene_${type}`);
+  const canIntervene = (type: unknown) => canView(type) && permissions.includes(`pending_reports.intervene_${type}`);
   return { canView, canIntervene, canEnter: REQUEST_REPORT_TYPES.some(canView) };
 }
 
 export function requestReportPermissionSelection(permissions: string[]): string[] {
-  return permissions.filter(p => !RETIRED_REQUEST_REPORT_PERMISSIONS.includes(p));
+  return permissions.filter(p => {
+    const prerequisite = requestReportInterventionPrerequisite(p);
+    return !RETIRED_REQUEST_REPORT_PERMISSIONS.includes(p) && (!prerequisite || permissions.includes(prerequisite));
+  });
+}
+
+export function requestReportInterventionPrerequisite(permission: string): string | null {
+  const type = permission.replace(/^pending_reports\.intervene_/, "");
+  return permission.startsWith("pending_reports.intervene_") && isRequestReportType(type)
+    ? `pending_reports.view_${type}` : null;
+}
+
+export function requestReportDependentIntervention(permission: string): string | null {
+  const type = permission.replace(/^pending_reports\.view_/, "");
+  return permission.startsWith("pending_reports.view_") && isRequestReportType(type)
+    ? `pending_reports.intervene_${type}` : null;
 }
 
 // Quick requests are identified by their source, rather than their completion stage.

@@ -1,3 +1,4 @@
+import { beneficiaryAccess } from "@shared/beneficiaryPermissions";
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -77,12 +78,10 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   const serverPermissions = useUserPermissions();
 
   // فحص الصلاحيات الدقيقة لقسم رضا المستفيدين (مطابقة تماماً لآلية صفحة الطلبات Requests.tsx)
-  const userPerms = serverPermissions.length > 0 ? serverPermissions : (((user?.permissions as string[]) || []));
+  const userPerms = serverPermissions;
+  const access = beneficiaryAccess(userPerms);
 
-  const canViewPage = userPerms.includes("beneficiary_evaluations.view") || 
-                      userPerms.includes("beneficiary_evaluations.evaluations_log") ||
-                      userPerms.includes("beneficiary_evaluations.dispatch_log") ||
-                      userPerms.includes("beneficiary_evaluations.contacts");
+  const canViewPage = access.canEnter;
 
   // سجل استبيانات التقييم (جدول وقائمة التقييمات)
   // يظهر فقط عند تفعيل صلاحية سجل استبيانات التقييم
@@ -93,22 +92,22 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   const canViewDetails = userPerms.includes("beneficiary_evaluations.view_details");
 
   // عرض الرد في سجل استبيانات التقييم
-  const canViewReply = userPerms.includes("beneficiary_evaluations.view_reply");
+  const canViewReply = access.canViewReply;
 
   // سجل الإرسال
-  const canViewDispatchLogs = userPerms.includes("beneficiary_evaluations.dispatch_log");
+  const canViewDispatchLogs = false;
 
   // إعادة تذكير في سجل الإرسال
-  const canResendReminder = userPerms.includes("beneficiary_evaluations.resend_reminder") || userPerms.includes("beneficiary_evaluations.send_reminder");
+  const canResendReminder = false;
 
   // المستفيدين المعتمدين والاستفسارات
-  const canViewContacts = userPerms.includes("beneficiary_evaluations.contacts");
+  const canViewContacts = false;
 
   // إضافة رد على التقييم
-  const canReply = userPerms.includes("beneficiary_evaluations.reply");
+  const canReply = access.canReply;
 
   // إخفاء وإظهار التقييمات
-  const canHide = userPerms.includes("beneficiary_evaluations.hide");
+  const canHide = access.canHide;
 
   const [activeTab, setActiveTab] = useState<string>("evaluations");
   const [searchQuery, setSearchQuery] = useState("");
@@ -305,7 +304,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
     search: searchQuery.trim() ? searchQuery.trim() : undefined,
     ratingFilter: ratingFilterVal,
     programType: programFilterVal,
-  });
+  }, { enabled: canViewPage, staleTime: 0, refetchOnWindowFocus: true });
   const { data: evalFormConfig } = trpc.forms.getEvaluationFormConfig.useQuery();
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
   const { data: allPrograms = [] } = trpc.programs.getAll.useQuery();
@@ -1683,7 +1682,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
     )}
 
         {/* Modal: Full Survey Details Styled Exactly Like RequestEvaluation */}
-        <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
+        <Dialog open={isDetailModalOpen && canViewEvaluationsLog && canViewDetails} onOpenChange={setIsDetailModalOpen}>
           <DialogContent className="max-w-3xl sm:max-w-4xl w-[95vw] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl" dir="rtl">
             {selectedEval && (
               <div className="font-sans">
@@ -1859,7 +1858,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                     )}
 
                     {/* الرد الرسمي للجمعية إن وجد */}
-                    {selectedEval.reply ? (
+                    {selectedEval.reply ? canViewReply && (
                       <div className="p-4 sm:p-5 rounded-2xl bg-teal-500/10 border border-teal-500/25 space-y-2 text-right">
                         <div className="flex items-center justify-between flex-wrap gap-2">
                           <span className="text-xs sm:text-sm font-bold text-teal-800 dark:text-teal-300 flex items-center gap-1.5">
@@ -1939,7 +1938,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
         </Dialog>
 
         {/* نافذة عرض الرد الرسمي للاطلاع */}
-        <Dialog open={isViewReplyModalOpen} onOpenChange={setIsViewReplyModalOpen}>
+        <Dialog open={isViewReplyModalOpen && canViewReply} onOpenChange={setIsViewReplyModalOpen}>
           <DialogContent className="max-w-lg w-[95vw] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl" dir="rtl">
             {viewReplyEval && (
               <div>
@@ -2035,7 +2034,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
         </Dialog>
 
         {/* حوار إضافة الرد الرسمي على التقييم */}
-        <Dialog open={replyDialogOpen} onOpenChange={setReplyDialogOpen}>
+        <Dialog open={replyDialogOpen && canReply} onOpenChange={setReplyDialogOpen}>
           <DialogContent className="max-w-lg w-[95vw] p-6 rounded-2xl border border-border shadow-2xl" dir="rtl">
             <DialogHeader className="text-right space-y-1">
               <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2 text-right">
@@ -2125,7 +2124,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
         </Dialog>
 
         {/* حوار إرسال استبيان مخصص أو إدخال البريد الإلكتروني */}
-        <Dialog open={isCustomSurveyOpen} onOpenChange={setIsCustomSurveyOpen}>
+        <Dialog open={isCustomSurveyOpen && canViewContacts} onOpenChange={setIsCustomSurveyOpen}>
           <DialogContent className="max-w-md w-[95vw] p-6 rounded-2xl border border-border shadow-2xl" dir="rtl">
             <DialogHeader className="text-right space-y-1">
               <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2 text-right">
@@ -2254,7 +2253,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
         {/* حوار تأكيد إرسال استبيان قياس الرضا عند النقر على زر الإجراء */}
         <AlertDialog
-          open={Boolean(confirmSurveyContact)}
+          open={Boolean(confirmSurveyContact) && canViewContacts}
           onOpenChange={(open) => !open && setConfirmSurveyContact(null)}
         >
           <AlertDialogContent className="max-w-md w-[95vw] p-6 rounded-2xl border border-border shadow-2xl" dir="rtl">

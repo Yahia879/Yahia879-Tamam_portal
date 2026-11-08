@@ -1,3 +1,6 @@
+import { BENEFICIARY_PERMISSIONS } from "@shared/beneficiaryPermissions";
+import { CALENDAR_PERMISSIONS, CALENDAR_PERMISSION_IDS, toggleCalendarPermission } from "@shared/calendarPermissions";
+import { sectionPermissionSelection, sectionPermissionPrerequisite, sectionPermissionDependents } from "@shared/sectionPermissions";
 import { REQUEST_REPORT_PERMISSIONS } from "@shared/requestReportPermissions";
 import { custodyPermissionSelection } from "@shared/custodyPermissions";
 import { GENERAL_QUOTATION_PERMISSIONS, GENERAL_QUOTATION_LABELS, quotationPermissionSelection } from "@shared/quotationPermissions";
@@ -84,7 +87,7 @@ export default function RolePermissions() {
 
   useEffect(() => {
     if (rolePermissions) {
-      const sanitized = rolePermissions.filter(p => p !== "escalation.view" && p !== "escalation");
+      const sanitized = sectionPermissionSelection(rolePermissions.filter(p => p !== "escalation.view" && p !== "escalation"));
       if (roleId === "project_manager") {
         setSelectedPerms(sanitized.filter(p => !p.startsWith("financial_reports.") && !p.startsWith("settings_contracts.")));
       } else {
@@ -133,7 +136,7 @@ export default function RolePermissions() {
 
   const handleSaveChanges = () => {
     if (!roleId) return;
-    let finalPerms = custodyPermissionSelection(quotationPermissionSelection(contractPermissionSelection(selectedPerms)))
+    let finalPerms = custodyPermissionSelection(quotationPermissionSelection(contractPermissionSelection(sectionPermissionSelection(selectedPerms))))
       .filter(p => p !== "escalation.view" && p !== "escalation");
     if (roleId === "project_manager") {
       finalPerms = finalPerms.filter(p => !p.startsWith("financial_reports.") && !p.startsWith("settings_contracts."));
@@ -145,6 +148,15 @@ export default function RolePermissions() {
   };
 
   const handleTogglePermission = (permId: string) => {
+    if (CALENDAR_PERMISSION_IDS.includes(permId)) {
+      setSelectedPerms(prev => toggleCalendarPermission(prev, permId, !prev.includes(permId)));
+      return;
+    }
+    const requiredView = sectionPermissionPrerequisite(permId);
+    if (requiredView && !selectedPerms.includes(permId) && !selectedPerms.includes(requiredView)) {
+      toast.warning(permId.startsWith("beneficiary_evaluations.") ? "يجب تفعيل صلاحية سجل استبيانات التقييم أولاً" : "يجب تفعيل صلاحية عرض هذا النوع من التقارير أولاً");
+      return;
+    }
     // التحقق من صلاحية إنشاء أمر صرف لأمر الشراء وتأكيد تفعيل صلاحيات أوامر الصرف
     if (
       (permId === "purchase_orders.create_disbursement" || permId === "orders_and_letters.purchase_orders_create_disbursement") &&
@@ -477,6 +489,8 @@ export default function RolePermissions() {
 
       if (isAlreadySelected) {
         let next = prev.filter(id => id !== permId);
+        const dependents = sectionPermissionDependents(permId);
+        next = next.filter(id => !dependents.includes(id));
         // عند إلغاء تفعيل صلاحية 'عرض المساجد'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات المساجد الأخرى
         if (permId === "mosques.view") {
           next = next.filter(id => !id.startsWith("mosques."));
@@ -782,6 +796,13 @@ export default function RolePermissions() {
   };
 
   const handleToggleModuleAll = (modulePerms: any[]) => {
+    if (modulePerms.length && modulePerms.every(p => CALENDAR_PERMISSION_IDS.includes(p.id))) {
+      const normal = modulePerms.map(p => p.id).filter(id => id !== "appointments.view_own");
+      setSelectedPerms(prev => normal.every(id => prev.includes(id))
+        ? prev.filter(id => !CALENDAR_PERMISSION_IDS.includes(id))
+        : [...prev.filter(id => !CALENDAR_PERMISSION_IDS.includes(id)), ...normal]);
+      return;
+    }
     const permIds = modulePerms.map(p => p.id);
     const allSelected = permIds.every(id => selectedPerms.includes(id));
     if (allSelected) {
@@ -1217,11 +1238,7 @@ export default function RolePermissions() {
           id: "appointments",
           nameAr: "تقويم المواعيد",
           icon: Calendar,
-          permissions: [
-            { id: "appointments.view", nameAr: "عرض تقويم المواعيد" },
-            { id: "appointments.add", nameAr: "إضافة موعد جديد" },
-            { id: "appointments.edit", nameAr: "تعديل موعد" },
-          ]
+          permissions: CALENDAR_PERMISSIONS.map(p => ({ id: `appointments.${p.action}`, nameAr: p.nameAr }))
         },
         {
           id: "projects",
@@ -1441,7 +1458,7 @@ export default function RolePermissions() {
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "transfer_to_beneficiary", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report", "create_quick_request"] },
         { id: "sedana_requests", nameAr: "طلبات سدانة", icon: Sparkles, perms: ["view", "desk_review", "manage"] },
         { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["delayed_requests", "delayed_beneficiaries"] },
-        { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
+        { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: CALENDAR_PERMISSIONS.map(p => p.action) },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials", "edit_support_and_fees", "add_receipt_voucher"] },
         { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
       ]
@@ -1658,8 +1675,8 @@ export default function RolePermissions() {
         { id: "sedana_requests", nameAr: "طلبات سدانة", icon: Sparkles, perms: ["view", "desk_review", "manage"] },
         { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["delayed_requests", "delayed_beneficiaries"] },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: REQUEST_REPORT_PERMISSIONS.map(p => p.action) },
-        { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
-        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view", "evaluations_log", "view_details", "view_reply", "dispatch_log", "resend_reminder", "contacts", "reply", "hide"] },
+        { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: CALENDAR_PERMISSIONS.map(p => p.action) },
+        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: BENEFICIARY_PERMISSIONS.map(p => p.action) },
       ]
     },
     {
@@ -2124,17 +2141,7 @@ export default function RolePermissions() {
         delayed_requests: "الطلبات المتأخرة",
         delayed_beneficiaries: "المستفيدون المعلقون",
       },
-      beneficiary_evaluations: {
-        view: "عرض إحصائيات رضا المستفيدين",
-        evaluations_log: "سجل استبيانات التقييم",
-        view_details: "عرض التفاصيل",
-        view_reply: "عرض الرد",
-        dispatch_log: "سجل الإرسال",
-        resend_reminder: "إعادة تذكير",
-        contacts: "المستفيدين المعتمدين والاستفسارات",
-        reply: "إضافة رد على التقييم",
-        hide: "إخفاء وإظهار التقييمات",
-      },
+      beneficiary_evaluations: Object.fromEntries(BENEFICIARY_PERMISSIONS.map(p => [p.action, p.nameAr])),
       projects: {
         view: "عرض المشاريع",
         view_details: "عرض تفاصيل المشروع وادارته",
@@ -2465,14 +2472,7 @@ export default function RolePermissions() {
         view: "عرض الخريطة الجغرافية للمساجد",
         view_details: "عرض التفاصيل"
       },
-      appointments: {
-        view: "عرض تقويم المواعيد",
-        view_all: "عرض كافة مواعيد المنشأة",
-        view_own: "عرض المواعيد الخاصة بي",
-        add: "إضافة موعد جديد",
-        edit: "تعديل موعد",
-        delete: "حذف موعد"
-      },
+      appointments: Object.fromEntries(CALENDAR_PERMISSIONS.map(p => [p.action, p.nameAr])),
       technical_support: {
         view: "عرض التذاكر",
         create: "إرسال التذاكر"
@@ -2600,6 +2600,7 @@ export default function RolePermissions() {
 
   // منطق التحقق من الصلاحية
   const isPermissionGranted = (permId: string) => {
+    if (permId.startsWith("requests.") || permId.startsWith("sedana_requests.") || permId.startsWith("pending_reports.") || permId.startsWith("beneficiary_evaluations.") || permId.startsWith("appointments.")) return sectionPermissionSelection(selectedPerms).includes(permId);
     const isInventory =
       permId.startsWith("sedana_quotations") ||
       permId.startsWith("orders_and_letters") ||
@@ -2724,12 +2725,9 @@ export default function RolePermissions() {
                     const rawPerms = module.permissions || [];
                     const modulePerms = rawPerms.filter((p: any) => {
                       // إظهار خيار "مواعيد الخاصة بي" فقط عند تخصيص الفريق الميداني
-                      if (p.id === "appointments.view_own" && roleId !== "field_team") {
-                        return false;
-                      }
                       return true;
                     });
-                    const activePerms = isSuperAdmin
+                    const activePerms = isSuperAdmin && !["requests", "sedana_requests", "pending_reports", "beneficiary_evaluations", "appointments"].includes(module.id)
                       ? modulePerms.filter((p: any) => {
                         const isInventory =
                           p.id.startsWith("sedana_quotations") ||
@@ -2789,7 +2787,8 @@ export default function RolePermissions() {
                             {modulePerms.map((perm: any) => {
                               const isChecked = isPermissionGranted(perm.id);
                               const isDisabled =
-                                  (perm.id.startsWith("custody_requests.") && !["custody_requests.view", "custody_requests.create", "custody_requests.request_exception"].includes(perm.id) && !selectedPerms.includes("custody_requests.view")) ||
+                              (!!sectionPermissionPrerequisite(perm.id) && !selectedPerms.includes(sectionPermissionPrerequisite(perm.id)!)) ||
+                              (perm.id.startsWith("custody_requests.") && !["custody_requests.view", "custody_requests.create", "custody_requests.request_exception"].includes(perm.id) && !selectedPerms.includes("custody_requests.view")) ||
                                   (perm.id.startsWith("receipt_vouchers.") && perm.id !== "receipt_vouchers.view" && !selectedPerms.includes("receipt_vouchers.view")) ||
                                   (perm.id.startsWith("fund.") && perm.id !== "fund.view" && !selectedPerms.includes("fund.view")) ||
                                   (perm.id.startsWith("contracts.") && ["contracts.create", "contracts.edit", "contracts.approve", "contracts.edit_approved", "contracts.export"].includes(perm.id) && !selectedPerms.includes("contracts.view")) || (perm.id.startsWith("contracts.") && ["contracts.template_add", "contracts.template_edit", "contracts.template_delete", "contracts.preamble_add", "contracts.preamble_edit", "contracts.clause_add", "contracts.clause_edit", "contracts.clause_delete"].includes(perm.id) && !selectedPerms.includes("contracts.template_view")) ||
@@ -2818,7 +2817,6 @@ export default function RolePermissions() {
                                 (perm.id.startsWith("requester_inquiries.") && perm.id !== "requester_inquiries.view" && !selectedPerms.includes("requester_inquiries.view")) ||
                                 (perm.id.startsWith("requester_sedana.") && perm.id !== "requester_sedana.view" && !selectedPerms.includes("requester_sedana.view")) ||
                                 (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !selectedPerms.includes("reports.view_stats")) ||
-                                (perm.id.startsWith("beneficiary_evaluations.") && perm.id !== "beneficiary_evaluations.view" && !selectedPerms.includes("beneficiary_evaluations.view")) ||
                                 (perm.id.startsWith("settings_org.signers_") && perm.id !== "settings_org.signers_view" && !selectedPerms.includes("settings_org.signers_view")) ||
                                 (perm.id.startsWith("settings_branding.") && perm.id !== "settings_branding.view" && !selectedPerms.includes("settings_branding.view")) ||
                                 (perm.id.startsWith("settings_categories.") && perm.id !== "settings_categories.view" && !selectedPerms.includes("settings_categories.view")) ||

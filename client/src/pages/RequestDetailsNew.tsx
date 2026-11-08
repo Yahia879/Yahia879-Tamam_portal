@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { usePermission } from "@/hooks/usePermission";
+import { usePermission, useUserPermissions } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -74,15 +74,15 @@ export default function RequestDetailsNew() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const requestId = parseInt(id!);
-  const canAddReviewNote = usePermission("requests.add_review_note") || user?.role === "super_admin" || user?.role === "system_admin";
+  const canAddReviewNote = usePermission("requests.add_review_note");
   const canTransferToBeneficiary = usePermission("requests.transfer_to_beneficiary");
 
   const userRole = user?.role ?? "";
   const isBaseRole = Boolean(userRole && Object.prototype.hasOwnProperty.call(BASE_ROLE_PERMISSIONS, userRole));
   const hasCustomRole = !!(user as any)?.customRole || (!!userRole && !isBaseRole);
-  const userPermissions: string[] = (user as any)?.permissions ?? [];
+  const userPermissions = useUserPermissions();
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const canManageSedana = isAdmin || userPermissions.includes("sedana_requests.manage") || userPermissions.includes("*");
+  const canManageSedana = userPermissions.includes("sedana_requests.manage");
   const isExecutiveDirector = ["executive_director", "general_manager"].includes(user?.role || "");
   const canAssignAdmin = Boolean(
     user && (
@@ -1285,7 +1285,7 @@ export default function RequestDetailsNew() {
 
   // تحديد ما إذا كان المستخدم مستفيداً
   const isRequester = user?.role === 'service_requester';
-  const hasViewDetailsPermission = user?.role === 'super_admin' || user?.role === 'system_admin' || userPermissions.includes("requests.view_details");
+  const hasViewDetailsPermission = userPermissions.includes("requests.view_details");
   const isDirectQuickRequest = request?.requestTrack === 'quick_response' && request?.currentStage === 'closed';
   const showQuickRequestLayout = !!isDirectQuickRequest;
   const isFieldTeam = ((user?.role as string) === 'field_team' || userPermissions.includes("requests.manage_as_field_team")) && !userPermissions.includes("requests.view_details");
@@ -2330,7 +2330,7 @@ export default function RequestDetailsNew() {
                       detailsButton={
                         request.programType === 'sedana' &&
                         ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage) &&
-                        (isAdmin || userPermissions.includes("sedana_requests.desk_review") || userPermissions.includes("*"))
+                        userPermissions.includes("sedana_requests.desk_review")
                           ? {
                               label: 'عرض التفاصيل',
                               onClick: () => setLocation(`/requests/${requestId}/sedana-evaluation`),
