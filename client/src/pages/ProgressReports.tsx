@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { uploadReportAttachments, type ReportAttachment, type ReportUploadProgress } from "@/lib/reportAttachments";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -265,43 +266,6 @@ const compressImage = (
   });
 };
 
-const uploadFile = async (fileObj: { name: string; base64: string }): Promise<string> => {
-  if (!fileObj.base64.startsWith("data:")) {
-    return fileObj.base64; // It is already a URL (e.g. from an existing report)
-  }
-  
-  try {
-    const parts = fileObj.base64.split(",");
-    const mime = parts[0].match(/:(.*?);/)?.[1] || "application/octet-stream";
-    const bstr = atob(parts[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n);
-    }
-    
-    const file = new File([u8arr], fileObj.name, { type: mime });
-    const formData = new FormData();
-    formData.append("file", file);
-    
-    const response = await fetch("/api/upload?folder=progress-reports", {
-      method: "POST",
-      body: formData,
-    });
-    
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`فشل رفع الملف: ${errText}`);
-    }
-    
-    const data = await response.json();
-    return data.url;
-  } catch (err: any) {
-    throw new Error(err.message || `حدث خطأ أثناء معالجة الملف ${fileObj.name}`);
-  }
-};
-
 export default function ProgressReports({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
   const [location, navigate] = useLocation();
@@ -342,6 +306,10 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   const [page, setPage, resetPage] = usePersistedPage("progress_reports_page");
   const limit = 10;
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submissionLock = useRef(false);
+  const [submissionPhase, setSubmissionPhase] = useState<"uploading" | "saving" | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<ReportUploadProgress | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [editingReportId, setEditingReportId] = useState<number | null>(null);
 
   // حالة نموذج إنشاء مستخلص جديد
@@ -355,6 +323,8 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   const [invoiceRecommendations, setInvoiceRecommendations] = useState("");
 
   const resetInvoiceForm = () => {
+    setUploadError(null);
+    setUploadProgress(null);
     setSelectedProjectId(null);
     setSelectedContractId(null);
     setInvoiceTitle("");
@@ -415,7 +385,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
-  const [uploadedFiles, setUploadedFiles] = useState<{ name: string; size: number; base64: string; type: string }[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<(ReportAttachment & { size: number; type: string })[]>([]);
   
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [approvalNotes, setApprovalNotes] = useState("");
@@ -522,6 +492,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (submissionLock.current || isSubmitting) return;
     const filesList = e.target.files;
     if (!filesList) return;
 
@@ -531,6 +502,9 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     const maxTotalSizeBytes = 10 * 1024 * 1024; // 10MB
 
     const newFiles = Array.from(filesList);
+    submissionLock.current = true;
+    setUploadError(null);
+    setUploadProgress(null);
     setIsSubmitting(true);
 
     try {
@@ -609,7 +583,9 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
       console.error(err);
       toast.error("حدث خطأ أثناء معالجة الملفات");
     } finally {
+      submissionLock.current = false;
       setIsSubmitting(false);
+      e.target.value = "";
     }
   };
 
@@ -1046,6 +1022,8 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
   // إعادة تعيين النموذج
   const resetNewReport = () => {
+    setUploadError(null);
+    setUploadProgress(null);
     setSelectedPaymentId(null);
     setEditingReportId(null);
     setUploadedFiles([]);
@@ -1105,6 +1083,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
   // معالجة اختيار الدفعة وملء الحقول تلقائياً
   const handleSelectPayment = (payment: any) => {
+    if (submissionLock.current) return;
     if (isAdvancePayment(payment)) {
       toast.info("دفعة مقدمة لا ينشأ لها تقرير انجاز");
       return;
@@ -1400,8 +1379,26 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     setActiveTab("edit");
   };
 
+  const uploadPendingAttachments = async () => {
+    setUploadError(null);
+    setSubmissionPhase("uploading");
+    try {
+      const urls = await uploadReportAttachments(uploadedFiles, setUploadProgress, (file, url) => {
+        // Keep each successful upload even if a later file or the report save fails.
+        setUploadedFiles(prev => prev.map(item => item === file ? { ...item, uploadedUrl: url } : item));
+      });
+      setSubmissionPhase("saving");
+      return urls;
+    } catch (error) {
+      console.error("Report attachment upload failed:", error);
+      setUploadError(error instanceof Error ? error.message : "تعذر رفع المرفقات. أعد المحاولة.");
+      return null;
+    }
+  };
+
   // إنشاء أو تعديل تقرير
   const handleCreateReport = async () => {
+    if (submissionLock.current || isSubmitting) return;
     if (!newReport.projectId) {
       toast.error("يرجى اختيار المشروع");
       return;
@@ -1418,6 +1415,14 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
       toast.error("نسبة الإنجاز لا يمكن أن تتجاوز 100%");
       return;
     }
+    if (!editingReportId && hasIncompleteSchedule) {
+      toast.error("لا يمكن صرف تقرير إنجاز حتى تجدول كل دفعات المشروع");
+      return;
+    }
+    if (!editingReportId && !selectedPaymentId) {
+      toast.error("يرجى اختيار الدفعة المرتبطة بالتقرير");
+      return;
+    }
 
     const prefix = isMilestonesProject ? "الأعمال المجدولة للمستخلص" : "الأعمال المجدولة للدفعة";
     const tag = isMilestonesProject 
@@ -1425,24 +1430,11 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
       : `[معرف الدفعة: ${selectedPaymentId}]`;
     const combinedWorkSummary = `${prefix}:\n${newReport.workSummary}\n\nالأعمال المنفذة فعلياً:\n${newReport.actualWorkDone}\n\n${tag}`;
     
+    submissionLock.current = true;
     setIsSubmitting(true);
     try {
-      // 1. رفع كافة المرفقات الجديدة للـ OneDrive عبر REST API
-      const uploadedUrls: string[] = [];
-      for (const fileObj of uploadedFiles) {
-        if (fileObj.base64.startsWith("data:")) {
-          try {
-            const url = await uploadFile(fileObj);
-            uploadedUrls.push(url);
-          } catch (uploadErr: any) {
-            toast.error(uploadErr.message || `حدث خطأ أثناء رفع الملف ${fileObj.name}`);
-            setIsSubmitting(false);
-            return;
-          }
-        } else {
-          uploadedUrls.push(fileObj.base64);
-        }
-      }
+      const uploadedUrls = await uploadPendingAttachments();
+      if (!uploadedUrls) return;
 
       if (editingReportId) {
         await updateMutation.mutateAsync({
@@ -1460,12 +1452,6 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
           photos: uploadedUrls,
         });
       } else {
-        if (hasIncompleteSchedule) {
-          toast.error("لا يمكن صرف تقرير إنجاز حتى تجدول كل دفعات المشروع");
-          setIsSubmitting(false);
-          return;
-        }
-
         await createMutation.mutateAsync({
           ...newReport,
           budgetSpent: "0",
@@ -1477,12 +1463,15 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     } catch (error) {
       console.error("Error creating/updating report:", error);
     } finally {
+      submissionLock.current = false;
+      setSubmissionPhase(null);
       setIsSubmitting(false);
     }
   };
 
   // إنشاء أو تعديل مستخلص للمشاريع بنظام المستخلصات
   const handleCreateInvoice = async () => {
+    if (submissionLock.current || isSubmitting) return;
     if (editingReportId) {
       if (!hasInvoiceEditPermission) {
         toast.error("ليس لديك صلاحية لتعديل المستخلص");
@@ -1515,23 +1504,11 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
       return;
     }
 
+    submissionLock.current = true;
     setIsSubmitting(true);
     try {
-      const uploadedUrls: string[] = [];
-      for (const fileObj of uploadedFiles) {
-        if (fileObj.base64.startsWith("data:")) {
-          try {
-            const url = await uploadFile(fileObj);
-            uploadedUrls.push(url);
-          } catch (uploadErr: any) {
-            toast.error(uploadErr.message || `حدث خطأ أثناء رفع الملف ${fileObj.name}`);
-            setIsSubmitting(false);
-            return;
-          }
-        } else {
-          uploadedUrls.push(fileObj.base64);
-        }
-      }
+      const uploadedUrls = await uploadPendingAttachments();
+      if (!uploadedUrls) return;
 
       const combinedWorkSummary = [
         `[نوع: مستخلص إنجاز مالي]`,
@@ -1583,6 +1560,8 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
       console.error("Error creating invoice:", err);
       toast.error(err.message || "حدث خطأ أثناء حفظ المستخلص");
     } finally {
+      submissionLock.current = false;
+      setSubmissionPhase(null);
       setIsSubmitting(false);
     }
   };
@@ -1774,10 +1753,57 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const savingLabel = editingReportId
+    ? "جاري حفظ التعديلات…"
+    : activeTab === "create-invoice" ? "جاري إنشاء المستخلص…" : "جاري إنشاء التقرير…";
+  const submissionLabel = submissionPhase === "uploading" && uploadProgress?.total
+    ? `جاري رفع المرفقات… ${Math.min(uploadProgress.completed + 1, uploadProgress.total)} من ${uploadProgress.total}`
+    : submissionPhase === "saving" ? savingLabel : "جاري تجهيز الملفات…";
+  const uploadFeedback = (
+    <>
+      {submissionPhase && (
+        <div role="status" aria-live="polite" className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+          <p className="flex items-center gap-2 text-sm font-semibold">
+            <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden="true" />
+            {submissionLabel}
+          </p>
+          {uploadProgress && uploadProgress.total > 0 && (
+            <>
+              <Progress
+                value={uploadProgress.completed / uploadProgress.total * 100}
+                aria-label="تقدم رفع المرفقات"
+                aria-valuenow={uploadProgress.completed}
+                aria-valuemax={uploadProgress.total}
+              />
+              <p className="text-xs text-muted-foreground">
+                تم رفع {uploadProgress.completed} من {uploadProgress.total} مرفقات
+              </p>
+              {submissionPhase === "uploading" && uploadProgress.currentFile && (
+                <p className="truncate text-xs text-muted-foreground">{uploadProgress.currentFile}</p>
+              )}
+            </>
+          )}
+          <p className="text-xs text-muted-foreground">يرجى إبقاء الصفحة مفتوحة حتى اكتمال الحفظ.</p>
+        </div>
+      )}
+      {uploadError && (
+        <div role="alert" className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+          <p className="text-sm font-semibold text-destructive">{uploadError}</p>
+          <p className="text-xs text-muted-foreground">
+            لم يتم إرسال النموذج للحفظ. تم الاحتفاظ بالمرفقات التي رُفعت بنجاح، وستُستكمل الملفات المتبقية عند إعادة المحاولة.
+          </p>
+          <Button type="button" variant="outline" onClick={activeTab === "create-invoice" ? handleCreateInvoice : handleCreateReport}>
+            <RotateCcw className="ml-2 h-4 w-4" />
+            إعادة محاولة الرفع والحفظ
+          </Button>
+        </div>
+      )}
+    </>
+  );
 
   if (activeTab === "create" || activeTab === "edit") {
     const formContent = (
-      <div className="space-y-6 max-w-4xl mx-auto">
+      <fieldset disabled={isSubmitting} aria-busy={isSubmitting} className="space-y-6 max-w-4xl mx-auto min-w-0">
           {/* Page Header */}
           <div className="flex items-center justify-between border-b pb-4">
             <div className="flex items-center gap-3">
@@ -2171,7 +2197,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                       {/* File preview list */}
                       {uploadedFiles.length > 0 && (
                         <div className="space-y-2 pt-2">
-                          <h4 className="text-xs font-bold text-muted-foreground">الملفات المرفوعة ({uploadedFiles.length})</h4>
+                          <h4 className="text-xs font-bold text-muted-foreground">المرفقات المختارة ({uploadedFiles.length})</h4>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {uploadedFiles.map((file, idx) => (
                               <div key={idx} className="flex items-center justify-between border border-border/80 bg-background rounded-lg p-2.5 shadow-xs relative">
@@ -2187,6 +2213,9 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                                     <p className="text-xs font-bold text-foreground truncate">{file.name}</p>
                                     <p className="text-[10px] text-muted-foreground font-mono">
                                       {file.size > 0 ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : "مرفق جاهز"}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground">
+                                      {file.uploadedUrl || !file.base64.startsWith("data:") ? "تم الرفع" : "بانتظار الرفع عند الحفظ"}
                                     </p>
                                   </div>
                                 </div>
@@ -2236,7 +2265,8 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 </Card>
 
                 {/* Form Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-border/40">
+                {uploadFeedback}
+                <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-border/40">
                   <Button
                     variant="outline"
                     size="lg"
@@ -2266,7 +2296,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                     {(isSubmitting || (editingReportId ? updateMutation.isPending : createMutation.isPending)) ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>{editingReportId ? "جاري حفظ التعديلات..." : "جاري الحفظ والإنشاء..."}</span>
+                        <span>{submissionLabel}</span>
                       </>
                     ) : (
                       <span>{editingReportId ? "حفظ التعديلات" : "حفظ وإنشاء التقرير"}</span>
@@ -2276,14 +2306,14 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               </>
             )}
           </div>
-        </div>
+      </fieldset>
       );
     return embedded ? formContent : <DashboardLayout>{formContent}</DashboardLayout>;
   }
 
   if (activeTab === "create-invoice") {
     const invoiceFormContent = (
-      <div className="space-y-6 max-w-4xl mx-auto">
+      <fieldset disabled={isSubmitting} aria-busy={isSubmitting} className="space-y-6 max-w-4xl mx-auto min-w-0">
         {/* Page Header */}
         <div className="flex items-center justify-between border-b pb-4">
           <div className="flex items-center gap-3">
@@ -2520,7 +2550,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
               {uploadedFiles.length > 0 && (
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground font-semibold">الملفات المرفوعة ({uploadedFiles.length}):</Label>
+                  <Label className="text-xs text-muted-foreground font-semibold">المرفقات المختارة ({uploadedFiles.length}):</Label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {uploadedFiles.map((file, idx) => (
                       <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/30 text-xs">
@@ -2528,6 +2558,9 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                           <FileText className="w-4 h-4 text-primary flex-shrink-0" />
                           <span className="truncate font-medium">{file.name}</span>
                           <span className="text-muted-foreground text-[10px]">({(file.size / 1024).toFixed(1)} ك.ب)</span>
+                          <span className="text-muted-foreground text-[10px]">
+                            {file.uploadedUrl || !file.base64.startsWith("data:") ? "تم الرفع" : "بانتظار الرفع"}
+                          </span>
                         </div>
                         <Button
                           type="button"
@@ -2574,7 +2607,8 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
           </Card>
 
           {/* Actions bar */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t">
+          {uploadFeedback}
+          <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t">
             <Button
               type="button"
               variant="outline"
@@ -2605,7 +2639,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               {isSubmitting || (editingReportId ? updateMutation.isPending : createMutation.isPending) ? (
                 <>
                   <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-                  {editingReportId ? "جاري حفظ تعديلات المستخلص..." : "جاري حفظ وإنشاء المستخلص..."}
+                  {submissionLabel}
                 </>
               ) : (
                 <>
@@ -2616,7 +2650,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
             </Button>
           </div>
         </div>
-      </div>
+      </fieldset>
     );
     return embedded ? invoiceFormContent : <DashboardLayout>{invoiceFormContent}</DashboardLayout>;
   }
