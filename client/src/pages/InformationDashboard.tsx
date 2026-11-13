@@ -53,13 +53,31 @@ export default function InformationDashboard() {
   const isSuperAdmin = user?.role === "super_admin";
   const isSystemAdmin = user?.role === "system_admin";
   const isDashboardViewer = isDashboardViewerUser(user);
-  const hasInfoPerm = useAnyPermission(["information_dashboard.view", "information_dashboard"]);
+  const hasAnyTabPerm = useAnyPermission([
+    "information_dashboard.digital_screen",
+    "information_dashboard.mosques",
+    "information_dashboard.requests",
+    "information_dashboard.procurement",
+    "information_dashboard.financial",
+  ]);
+  const hasInfoPerm = useAnyPermission(["information_dashboard.view", "information_dashboard"]) || hasAnyTabPerm;
   const canView = isSuperAdmin || isSystemAdmin || isDashboardViewer || hasInfoPerm;
   const { data: directPermissions } = trpc.permissions.getUserPermissions.useQuery(
     { userId: user?.id ?? 0 },
     { enabled: !!user, staleTime: 5000, refetchOnWindowFocus: true, refetchOnMount: true }
   );
   const permissions = directPermissions ?? user?.permissions ?? [];
+
+  const canAccessTab = (tabId: string) => {
+    if (isSuperAdmin || isSystemAdmin || permissions.includes("*")) return true;
+    const hasAnySpecificTabPerm = permissions.some(p => 
+      p.startsWith("information_dashboard.") && p !== "information_dashboard.view"
+    );
+    if (hasAnySpecificTabPerm) {
+      return permissions.includes(`information_dashboard.${tabId}`);
+    }
+    return canView;
+  };
   const sidebarPaths = getMenuGroupsFromPermissions(
     permissions,
     isDashboardViewer ? "dashboard_viewer" : user?.role || "",
@@ -548,30 +566,42 @@ export default function InformationDashboard() {
 
 
 
-  // تحديد التبويبات المتاحة حسب التخصيص
+  // تحديد التبويبات المتاحة حسب الصلاحيات والتخصيص
   const availableTabs = useMemo(() => {
-    const tabs = [
-      { id: "all" as const, label: "عرض شامل", icon: LayoutGrid, color: "text-primary", badge: "الكل", sectionId: null },
+    const allSectionTabs = [
       { id: "digital_screen" as const, label: "الشاشة الرقمية", icon: Tv, color: "text-violet-600", badge: "رقمية", sectionId: "section_digital_screen" },
       { id: "mosques" as const, label: "المساجد والتغطية", icon: Building2, color: "text-emerald-600", badge: "المساجد", sectionId: "section_mosques" },
       { id: "requests" as const, label: "الطلبات والبرامج", icon: FileText, color: "text-blue-600", badge: "الطلبات", sectionId: "section_requests" },
       { id: "procurement" as const, label: "المشاريع والعقود", icon: Briefcase, color: "text-amber-600", badge: "المشاريع", sectionId: "section_procurement" },
       { id: "financial" as const, label: "المالية والصرف", icon: SaudiRiyal, color: "text-teal-600", badge: "المالية", sectionId: "section_financial" },
     ];
-    return tabs.filter((t) => !t.sectionId || isDetailedElementEnabled(t.sectionId));
-  }, [detailedDashboardConfig, enabledDetailedElementIds]);
+
+    const permittedSections = allSectionTabs.filter((t) => 
+      canAccessTab(t.id) && (!t.sectionId || isDetailedElementEnabled(t.sectionId))
+    );
+
+    // إتاحة خيار "عرض شامل" تلقائياً للمصرح لهم بأكثر من قسم
+    if (permittedSections.length > 1) {
+      return [
+        { id: "all" as const, label: "عرض شامل", icon: LayoutGrid, color: "text-primary", badge: "الكل", sectionId: null },
+        ...permittedSections,
+      ];
+    }
+
+    return permittedSections;
+  }, [detailedDashboardConfig, enabledDetailedElementIds, permissions, canView, isSuperAdmin, isSystemAdmin]);
 
   useEffect(() => {
-    if (activeTab !== "all") {
+    if (availableTabs.length > 0) {
       const isCurrentTabAvailable = availableTabs.some((t) => t.id === activeTab);
       if (!isCurrentTabAvailable) {
-        setActiveTab("all");
+        setActiveTab(availableTabs[0].id);
       }
     }
   }, [availableTabs, activeTab]);
 
   // التحقق من الصلاحية
-  if (!isUserLoading && user && !canView) {
+  if (!isUserLoading && user && (!canView || availableTabs.length === 0)) {
     return (
       <div className="min-h-screen w-full bg-slate-50/60 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
         <div className="flex flex-col items-center justify-center text-center space-y-4 max-w-md p-8 rounded-2xl border border-border bg-card shadow-sm">
@@ -710,7 +740,7 @@ export default function InformationDashboard() {
         {/* ========================================================================= */}
         {/* 0. تبويب الشاشة الرقمية (فقط كروت رقمية بدون أي مخططات أو جداول) */}
         {/* ========================================================================= */}
-        {isDetailedElementEnabled("section_digital_screen") && (activeTab === "all" || activeTab === "digital_screen") && (
+        {canAccessTab("digital_screen") && isDetailedElementEnabled("section_digital_screen") && (activeTab === "all" || activeTab === "digital_screen") && (
           <section id="section-digital-screen" className="space-y-8 animate-in fade-in-50 duration-200 scroll-mt-36">
             {/* هيدر الشاشة الرقمية */}
             <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-gradient-to-r from-violet-500/15 via-purple-500/10 to-transparent border border-violet-500/25 shadow-xs">
@@ -822,7 +852,7 @@ export default function InformationDashboard() {
         {/* ========================================================================= */}
         {/* 1. قسم المساجد والزيارات الميدانية */}
         {/* ========================================================================= */}
-        {isDetailedElementEnabled("section_mosques") && (activeTab === "all" || activeTab === "mosques") && (
+        {canAccessTab("mosques") && isDetailedElementEnabled("section_mosques") && (activeTab === "all" || activeTab === "mosques") && (
           <section id="section-mosques" className={`space-y-6 scroll-mt-36 ${activeTab === "all" && isDetailedElementEnabled("section_digital_screen") ? "pt-6 border-t-2 border-border/80" : "pt-2"}`}>
             {/* هيدر قسم المساجد */}
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 shadow-xs">
@@ -869,7 +899,7 @@ export default function InformationDashboard() {
         {/* ========================================================================= */}
         {/* 2. قسم الطلبات وبرامج الخدمات */}
         {/* ========================================================================= */}
-        {isDetailedElementEnabled("section_requests") && (activeTab === "all" || activeTab === "requests") && (
+        {canAccessTab("requests") && isDetailedElementEnabled("section_requests") && (activeTab === "all" || activeTab === "requests") && (
           <section id="section-requests" className="space-y-6 pt-6 border-t-2 border-border/80 scroll-mt-36">
             {/* هيدر قسم الطلبات */}
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500/10 via-blue-500/5 to-transparent border border-blue-500/20 shadow-xs">
@@ -916,7 +946,7 @@ export default function InformationDashboard() {
         {/* ========================================================================= */}
         {/* 3. قسم المشاريع والعقود والمشتريات */}
         {/* ========================================================================= */}
-        {isDetailedElementEnabled("section_procurement") && (activeTab === "all" || activeTab === "procurement") && (
+        {canAccessTab("procurement") && isDetailedElementEnabled("section_procurement") && (activeTab === "all" || activeTab === "procurement") && (
           <section id="section-procurement" className="space-y-6 pt-6 border-t-2 border-border/80 scroll-mt-36">
             {/* هيدر قسم المشاريع والعقود */}
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 shadow-xs">
@@ -979,7 +1009,7 @@ export default function InformationDashboard() {
         {/* ========================================================================= */}
         {/* 4. قسم المالية وأوامر الصرف والتدفقات */}
         {/* ========================================================================= */}
-        {isDetailedElementEnabled("section_financial") && (activeTab === "all" || activeTab === "financial") && (
+        {canAccessTab("financial") && isDetailedElementEnabled("section_financial") && (activeTab === "all" || activeTab === "financial") && (
           <section id="section-financial" className="space-y-6 pt-6 border-t-2 border-border/80 scroll-mt-36">
             {/* هيدر قسم المالية */}
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-teal-500/10 via-teal-500/5 to-transparent border border-teal-500/20 shadow-xs">
