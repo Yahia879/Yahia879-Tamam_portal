@@ -76,7 +76,12 @@ const superAdminGroups = [
   {
     title: "الرئيسية",
     modules: [
-      { id: "information_dashboard", nameAr: "لوحة المعلومات", icon: LayoutDashboard, perms: ["view"] },
+      {
+        id: "information_dashboard",
+        nameAr: "لوحة المعلومات",
+        icon: LayoutDashboard,
+        perms: ["view", "digital_screen", "mosques", "requests", "procurement", "financial"]
+      },
       {
         id: "board_leadership",
         nameAr: "مجلس الإدارة والقيادة العليا",
@@ -445,6 +450,11 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
   const mapping: Record<string, Record<string, string>> = {
     information_dashboard: {
       view: "عرض لوحة المعلومات",
+      digital_screen: "الشاشة الرقمية",
+      mosques: "المساجد والتغطية",
+      requests: "الطلبات والبرامج",
+      procurement: "المشاريع والعقود",
+      financial: "المالية والصرف",
     },
     analytics_hub: {
       custom: "اللوحة المخصصة",
@@ -1526,6 +1536,10 @@ export default function RoleEdit() {
         if (permId === "settings_categories.view") {
           next = next.filter(id => !id.startsWith("settings_categories."));
         }
+        // عند إلغاء تفعيل صلاحية عرض لوحة المعلومات
+        if (permId === "information_dashboard.view" || permId === "information_dashboard") {
+          next = next.filter(id => !id.startsWith("information_dashboard."));
+        }
         // عند إلغاء تفعيل صلاحية عرض النماذج والحقول
         if (permId === "forms_customization.view") {
           next = next.filter(id => !id.startsWith("forms_customization."));
@@ -1568,6 +1582,9 @@ export default function RoleEdit() {
         return next;
       } else {
         let next = [...prev, permId];
+        if (permId.startsWith("information_dashboard.") && !next.includes("information_dashboard.view")) {
+          next.push("information_dashboard.view");
+        }
         if (permId.startsWith("staff_notifications.") && !next.includes("staff_notifications.view")) {
           next.push("staff_notifications.view");
         }
