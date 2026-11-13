@@ -7683,6 +7683,13 @@ export default function UserPermissions() {
 
 
                         remind: "board_leadership.remind",
+                        bank_transfers: "board_leadership.bank_transfers",
+                        bank_transfers_view_order: "board_leadership.bank_transfers_view_order",
+                        bank_transfers_view_request: "board_leadership.bank_transfers_view_request",
+                        bank_transfers_notes: "board_leadership.bank_transfers_notes",
+                        bank_transfers_view_justification: "board_leadership.bank_transfers_view_justification",
+                        bank_transfers_approve: "board_leadership.bank_transfers_approve",
+                        bank_transfers_reject: "board_leadership.bank_transfers_reject",
 
 
 
