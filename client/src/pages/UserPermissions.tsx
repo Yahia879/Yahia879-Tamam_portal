@@ -4180,7 +4180,6 @@ export default function UserPermissions() {
 
       board_leadership: {
         board_chairman: "عرض مركز الاعتماد المالي",
-        board_member: "عرض لوحة عضو مجلس الإدارة",
         remind: "إرسال تذكير بالاعتماد",
         bank_transfers: "عرض قائمة أوامر الصرف المعتمدة للتحويل البنكي",
         bank_transfers_view_order: "عرض أمر الصرف المعتمد",
@@ -4189,6 +4188,7 @@ export default function UserPermissions() {
         bank_transfers_view_justification: "عرض مبررات الإلغاء والرفض",
         bank_transfers_approve: "الاعتماد من صاحب الصلاحية",
         bank_transfers_reject: "رفض الطلب",
+        board_member: "عرض لوحة عضو مجلس الإدارة",
       },
 
 
@@ -5779,7 +5779,6 @@ export default function UserPermissions() {
 
         perms: [
           "board_chairman",
-          "board_member",
           "remind",
           "bank_transfers",
           "bank_transfers_view_order",
@@ -5787,7 +5786,8 @@ export default function UserPermissions() {
           "bank_transfers_notes",
           "bank_transfers_view_justification",
           "bank_transfers_approve",
-          "bank_transfers_reject"
+          "bank_transfers_reject",
+          "board_member"
         ]
 
 
