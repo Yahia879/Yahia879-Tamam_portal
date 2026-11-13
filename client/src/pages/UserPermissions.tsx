@@ -2764,6 +2764,13 @@ export default function UserPermissions() {
 
 
 
+        } else if (permId.startsWith("information_dashboard.") && permId !== "information_dashboard.view") {
+          const defVal = rolePermissions?.includes("information_dashboard.view") || false;
+          if (defVal) {
+            delete updated["information_dashboard.view"];
+          } else {
+            updated["information_dashboard.view"] = true;
+          }
         } else if (permId.startsWith("forms_customization.") && permId !== "forms_customization.view") {
 
 
@@ -2937,6 +2944,7 @@ export default function UserPermissions() {
 
 
 
+        if (permId === "information_dashboard.view" || permId === "information_dashboard") cascadeRevoke("information_dashboard.");
         if (permId === "forms_customization.view") cascadeRevoke("forms_customization.");
 
 
@@ -4131,13 +4139,12 @@ export default function UserPermissions() {
 
 
       information_dashboard: {
-
-
-
         view: "عرض لوحة المعلومات",
-
-
-
+        digital_screen: "الشاشة الرقمية",
+        mosques: "المساجد والتغطية",
+        requests: "الطلبات والبرامج",
+        procurement: "المشاريع والعقود",
+        financial: "المالية والصرف",
       },
 
 
@@ -5721,7 +5728,12 @@ export default function UserPermissions() {
 
 
 
-        { id: "information_dashboard", nameAr: "لوحة المعلومات", icon: LayoutDashboard, perms: ["view"] },
+        {
+          id: "information_dashboard",
+          nameAr: "لوحة المعلومات",
+          icon: LayoutDashboard,
+          perms: ["view", "digital_screen", "mosques", "requests", "procurement", "financial"]
+        },
 
 
 
