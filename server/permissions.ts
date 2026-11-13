@@ -55,13 +55,18 @@ import { z } from "zod";
 export const PERMISSION_EXPANSION: Record<string, string[]> = {
   pending_reports: REQUEST_REPORT_PERMISSION_IDS,
 
-  "information_dashboard.view": ["information_dashboard.view"],
   "information_dashboard.digital_screen": ["information_dashboard.digital_screen"],
   "information_dashboard.mosques": ["information_dashboard.mosques"],
   "information_dashboard.requests": ["information_dashboard.requests"],
   "information_dashboard.procurement": ["information_dashboard.procurement"],
   "information_dashboard.financial": ["information_dashboard.financial"],
-  information_dashboard: ["information_dashboard.view"],
+  information_dashboard: [
+    "information_dashboard.digital_screen",
+    "information_dashboard.mosques",
+    "information_dashboard.requests",
+    "information_dashboard.procurement",
+    "information_dashboard.financial"
+  ],
 
   Create_Ticket: ["Create_Ticket"],
 
@@ -1876,7 +1881,6 @@ async function ensureRequestsPermissionsExist(db: any) {
       procurement_officer: ["quotations.view", "quotations.create", "quotations.add"],
 
       dashboard_viewer: [
-        "information_dashboard.view",
         "information_dashboard",
         "information_dashboard.digital_screen",
         "information_dashboard.mosques",
@@ -2333,7 +2337,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
 
     const infoDashTabPerms = [
-      { id: "information_dashboard.view", action: "view", nameAr: "عرض لوحة المعلومات", nameEn: "View Information Dashboard", description: "عرض لوحة المعلومات المفصلة لكافة التبويبات والمخططات والإحصائيات" },
       { id: "information_dashboard.digital_screen", action: "digital_screen", nameAr: "الشاشة الرقمية", nameEn: "Digital Screen Tab", description: "عرض تبويب الشاشة الرقمية والمؤشرات الإحصائية المباشرة" },
       { id: "information_dashboard.mosques", action: "mosques", nameAr: "المساجد والتغطية", nameEn: "Mosques & Coverage Tab", description: "عرض تبويب المساجد والتغطية الميدانية" },
       { id: "information_dashboard.requests", action: "requests", nameAr: "الطلبات والبرامج", nameEn: "Requests & Programs Tab", description: "عرض تبويب الطلبات والبرامج ومراحل المعالجة" },
@@ -4533,7 +4536,6 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
     rolePermissionsData.push(
       "information_dashboard",
-      "information_dashboard.view",
       "information_dashboard.digital_screen",
       "information_dashboard.mosques",
       "information_dashboard.requests",
@@ -7709,7 +7711,6 @@ export const permissionsRouter = router({
 
         dashboard_viewer: [
           "information_dashboard",
-          "information_dashboard.view",
           "information_dashboard.digital_screen",
           "information_dashboard.mosques",
           "information_dashboard.requests",
