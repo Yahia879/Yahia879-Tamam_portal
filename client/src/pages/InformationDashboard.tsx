@@ -53,15 +53,6 @@ export default function InformationDashboard() {
   const isSuperAdmin = user?.role === "super_admin";
   const isSystemAdmin = user?.role === "system_admin";
   const isDashboardViewer = isDashboardViewerUser(user);
-  const hasAnyTabPerm = useAnyPermission([
-    "information_dashboard.digital_screen",
-    "information_dashboard.mosques",
-    "information_dashboard.requests",
-    "information_dashboard.procurement",
-    "information_dashboard.financial",
-  ]);
-  const hasInfoPerm = useAnyPermission(["information_dashboard.view", "information_dashboard"]) || hasAnyTabPerm;
-  const canView = isSuperAdmin || isSystemAdmin || isDashboardViewer || hasInfoPerm;
   const { data: directPermissions } = trpc.permissions.getUserPermissions.useQuery(
     { userId: user?.id ?? 0 },
     { enabled: !!user, staleTime: 5000, refetchOnWindowFocus: true, refetchOnMount: true }
@@ -70,14 +61,18 @@ export default function InformationDashboard() {
 
   const canAccessTab = (tabId: string) => {
     if (isSuperAdmin || isSystemAdmin || permissions.includes("*")) return true;
-    const hasAnySpecificTabPerm = permissions.some(p => 
-      p.startsWith("information_dashboard.") && p !== "information_dashboard.view"
-    );
-    if (hasAnySpecificTabPerm) {
-      return permissions.includes(`information_dashboard.${tabId}`);
-    }
-    return canView;
+    return permissions.includes(`information_dashboard.${tabId}`);
   };
+
+  const hasAnyTabPerm = [
+    "digital_screen",
+    "mosques",
+    "requests",
+    "procurement",
+    "financial"
+  ].some(tabId => canAccessTab(tabId));
+
+  const canView = isSuperAdmin || isSystemAdmin || isDashboardViewer || hasAnyTabPerm;
   const sidebarPaths = getMenuGroupsFromPermissions(
     permissions,
     isDashboardViewer ? "dashboard_viewer" : user?.role || "",
