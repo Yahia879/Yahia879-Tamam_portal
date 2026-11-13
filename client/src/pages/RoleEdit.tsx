@@ -88,7 +88,6 @@ const superAdminGroups = [
         icon: Shield,
         perms: [
           "board_chairman",
-          "board_member",
           "remind",
           "bank_transfers",
           "bank_transfers_view_order",
@@ -96,7 +95,8 @@ const superAdminGroups = [
           "bank_transfers_notes",
           "bank_transfers_view_justification",
           "bank_transfers_approve",
-          "bank_transfers_reject"
+          "bank_transfers_reject",
+          "board_member"
         ]
       }
     ]
@@ -480,7 +480,6 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     },
     board_leadership: {
       board_chairman: "عرض مركز الاعتماد المالي",
-      board_member: "عرض لوحة عضو مجلس الإدارة",
       remind: "إرسال تذكير بالاعتماد",
       bank_transfers: "عرض قائمة أوامر الصرف المعتمدة للتحويل البنكي",
       bank_transfers_view_order: "عرض أمر الصرف المعتمد",
@@ -489,6 +488,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       bank_transfers_view_justification: "عرض مبررات الإلغاء والرفض",
       bank_transfers_approve: "الاعتماد من صاحب الصلاحية",
       bank_transfers_reject: "رفض الطلب",
+      board_member: "عرض لوحة عضو مجلس الإدارة",
     },
     pending_reports: Object.fromEntries(REQUEST_REPORT_PERMISSIONS.map(p => [p.action, p.nameAr])),
     signing: {
@@ -1839,6 +1839,13 @@ export default function RoleEdit() {
               board_chairman: "board_chairman",
               board_member: "board_member",
               remind: "board_leadership.remind",
+              bank_transfers: "board_leadership.bank_transfers",
+              bank_transfers_view_order: "board_leadership.bank_transfers_view_order",
+              bank_transfers_view_request: "board_leadership.bank_transfers_view_request",
+              bank_transfers_notes: "board_leadership.bank_transfers_notes",
+              bank_transfers_view_justification: "board_leadership.bank_transfers_view_justification",
+              bank_transfers_approve: "board_leadership.bank_transfers_approve",
+              bank_transfers_reject: "board_leadership.bank_transfers_reject",
             };
             id = boardIds[p] || id;
           }
