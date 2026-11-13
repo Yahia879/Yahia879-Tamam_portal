@@ -180,6 +180,15 @@ export default function BoardDashboard({
   const canPerformActions = isChairmanRole || hasChairmanActionPerm || isAdminRole;
   const canRemind = userPermissions.includes("board_leadership.remind") || userPermissions.includes("board_chairman_remind") || canPerformActions;
 
+  // صلاحيات قائمة أوامر الصرف المعتمدة للتحويل البنكي وإجراءاتها
+  const canViewBankTransfers = canPerformActions || userPermissions.includes("board_leadership.bank_transfers");
+  const canViewOrderAction = canPerformActions || userPermissions.includes("board_leadership.bank_transfers_view_order");
+  const canViewRequestAction = canPerformActions || userPermissions.includes("board_leadership.bank_transfers_view_request");
+  const canNotesAction = canPerformActions || userPermissions.includes("board_leadership.bank_transfers_notes");
+  const canViewJustificationAction = canPerformActions || userPermissions.includes("board_leadership.bank_transfers_view_justification");
+  const canApproveAction = canPerformActions || userPermissions.includes("board_leadership.bank_transfers_approve");
+  const canRejectAction = canPerformActions || userPermissions.includes("board_leadership.bank_transfers_reject");
+
   // نافذة إرسال تذكير بالاعتماد
   const [reminderModal, setReminderModal] = useState<{
     open: boolean;
@@ -524,6 +533,7 @@ export default function BoardDashboard({
               </div>
 
             {/* أدوات البحث والتصفية المباشرة */}
+            {canViewBankTransfers && (
             <Card id="chairman-orders-table" className="border border-border/80 shadow-sm rounded-2xl bg-card overflow-hidden">
               <CardHeader className="p-5 sm:p-6 pb-4 border-b border-border/60 bg-gradient-to-r from-muted/40 via-card to-primary/5 text-right">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -775,30 +785,28 @@ export default function BoardDashboard({
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end" className="w-56 rounded-xl p-1.5 font-medium text-xs shadow-lg border border-border bg-popover text-popover-foreground space-y-0.5">
                                         {/* خيارات عرض التفاصيل للمخولين */}
-                                        {canPerformActions && (
-                                          <>
-                                            <DropdownMenuItem
-                                              onClick={() => setLocation(`/disbursement-orders/${order.orderId || order.id}/print`)}
-                                              className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-semibold hover:bg-muted focus:bg-muted text-foreground transition-colors"
-                                            >
-                                              <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                                              <span>عرض أمر الصرف المعتمد</span>
-                                            </DropdownMenuItem>
+                                        {canViewOrderAction && (
+                                          <DropdownMenuItem
+                                            onClick={() => setLocation(`/disbursement-orders/${order.orderId || order.id}/print`)}
+                                            className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-semibold hover:bg-muted focus:bg-muted text-foreground transition-colors"
+                                          >
+                                            <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                            <span>عرض أمر الصرف المعتمد</span>
+                                          </DropdownMenuItem>
+                                        )}
 
-                                            {!order.isCustom && !!order.requestId && (
-                                              <DropdownMenuItem
-                                                onClick={() => setLocation(`/disbursements/requests/${order.requestId}/print`)}
-                                                className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-semibold hover:bg-muted focus:bg-muted text-foreground transition-colors"
-                                              >
-                                                <FileText className="w-4 h-4 text-primary shrink-0" />
-                                                <span>عرض تقرير طلب الصرف المعتمد</span>
-                                              </DropdownMenuItem>
-                                            )}
-                                          </>
+                                        {canViewRequestAction && !order.isCustom && !!order.requestId && (
+                                          <DropdownMenuItem
+                                            onClick={() => setLocation(`/disbursements/requests/${order.requestId}/print`)}
+                                            className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-semibold hover:bg-muted focus:bg-muted text-foreground transition-colors"
+                                          >
+                                            <FileText className="w-4 h-4 text-primary shrink-0" />
+                                            <span>عرض تقرير طلب الصرف المعتمد</span>
+                                          </DropdownMenuItem>
                                         )}
 
                                         {/* خيار إضافة ومتابعة الملاحظات والتوجيهات (غير محدود ومتاح دائماً قبل الاعتماد والرفض) */}
-                                        {canPerformActions && isNeedsApproval && (
+                                        {canNotesAction && isNeedsApproval && (
                                           <DropdownMenuItem
                                             onClick={() => setNotesConversationModal({
                                               open: true,
@@ -818,8 +826,8 @@ export default function BoardDashboard({
                                           </DropdownMenuItem>
                                         )}
 
-{/* خيار عرض الملاحظات والردود للأوامر غير النشطة أو بعد الاعتماد */}
-                                        {!isNeedsApproval && (order.executiveNotes || (order as any).notesCount > 0) && (
+                                        {/* خيار عرض الملاحظات والردود للأوامر غير النشطة أو بعد الاعتماد */}
+                                        {canNotesAction && !isNeedsApproval && (order.executiveNotes || (order as any).notesCount > 0) && (
                                           <DropdownMenuItem
                                             onClick={() => setNotesConversationModal({
                                               open: true,
@@ -838,7 +846,7 @@ export default function BoardDashboard({
                                         )}
 
                                         {/* خيار 'عرض مبررات الإلغاء/الرفض' عند وجود سبب */}
-                                        {(order.rejectionReason || (order as any).cancellationReason || (order as any).orderStatus === "rejected" || (order as any).status === "rejected") && (
+                                        {canViewJustificationAction && (order.rejectionReason || (order as any).cancellationReason || (order as any).orderStatus === "rejected" || (order as any).status === "rejected") && (
                                           <DropdownMenuItem
                                             onClick={() => setViewJustificationModal({
                                               open: true,
@@ -856,31 +864,35 @@ export default function BoardDashboard({
 
 
                                         {/* خيارات الاعتماد والرفض المباشر للمخولين فقط (تختفي عندما يكون الطلب معتمداً بالفعل) */}
-                                        {canPerformActions && isNeedsApproval && (
+                                        {isNeedsApproval && (canApproveAction || canRejectAction) && (
                                           <>
                                             <DropdownMenuSeparator className="my-1 border-border/60" />
 
-                                            <DropdownMenuItem
-                                              onClick={() => setConfirmApproveOrder({
-                                                id: order.id,
-                                                orderNumber: order.orderNumber,
-                                                amount: order.amount,
-                                                beneficiaryName: order.beneficiaryName,
-                                              })}
-                                              disabled={approvingId === order.id}
-                                              className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 focus:bg-emerald-50 dark:focus:bg-emerald-950/30 transition-colors"
-                                            >
-                                              <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                              <span>الاعتماد من صاحب الصلاحية</span>
-                                            </DropdownMenuItem>
+                                            {canApproveAction && (
+                                              <DropdownMenuItem
+                                                onClick={() => setConfirmApproveOrder({
+                                                  id: order.id,
+                                                  orderNumber: order.orderNumber,
+                                                  amount: order.amount,
+                                                  beneficiaryName: order.beneficiaryName,
+                                                })}
+                                                disabled={approvingId === order.id}
+                                                className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 focus:bg-emerald-50 dark:focus:bg-emerald-950/30 transition-colors"
+                                              >
+                                                <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                <span>الاعتماد من صاحب الصلاحية</span>
+                                              </DropdownMenuItem>
+                                            )}
 
-                                            <DropdownMenuItem
-                                              onClick={() => setRejectingOrder({ id: order.id, orderNumber: order.orderNumber })}
-                                              className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 focus:bg-rose-50 dark:focus:bg-rose-950/30 transition-colors"
-                                            >
-                                              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
-                                              <span>رفض الطلب</span>
-                                            </DropdownMenuItem>
+                                            {canRejectAction && (
+                                              <DropdownMenuItem
+                                                onClick={() => setRejectingOrder({ id: order.id, orderNumber: order.orderNumber })}
+                                                className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 focus:bg-rose-50 dark:focus:bg-rose-950/30 transition-colors"
+                                              >
+                                                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                                                <span>رفض الطلب</span>
+                                              </DropdownMenuItem>
+                                            )}
                                           </>
                                         )}
                                       </DropdownMenuContent>
@@ -916,6 +928,7 @@ export default function BoardDashboard({
                 })()}
               </CardContent>
             </Card>
+            )}
           </div>
           );
         })()}
