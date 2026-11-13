@@ -458,6 +458,22 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل قائمة أوامر الصرف المعتمدة للتحويل البنكي إذا كان عرض مركز الاعتماد معطلاً
+    if (permId === "board_leadership.bank_transfers") {
+      if (!selectedPerms.includes("board_chairman")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض مركز الاعتماد المالي' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية لأوامر الصرف المعتمدة للتحويل البنكي إذا كان عرض القائمة أو مركز الاعتماد معطلاً
+    if (permId.startsWith("board_leadership.bank_transfers_")) {
+      if (!selectedPerms.includes("board_leadership.bank_transfers")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض قائمة أوامر الصرف المعتمدة للتحويل البنكي' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية لمفوضي التوقيع إذا كانت صلاحية عرض القائمة معطلة
     if (permId.startsWith("settings_org.signers_") && permId !== "settings_org.signers_view") {
       if (!selectedPerms.includes("settings_org.signers_view")) {
@@ -652,9 +668,14 @@ export default function RolePermissions() {
           next = next.filter(id => !id.startsWith("orders_and_letters.purchase_orders_"));
         }
 
-        // عند إلغاء تفعيل صلاحية 'عرض مركز الاعتماد المالي'، نقوم تلقائياً بإلغاء تفعيل إرسال التذكير
+        // عند إلغاء تفعيل صلاحية 'عرض مركز الاعتماد المالي'، نقوم تلقائياً بإلغاء تفعيل إرسال التذكير وقائمة التحويل البنكي وتفرعاتها
         if (permId === "board_chairman") {
-          next = next.filter(id => id !== "board_leadership.remind");
+          next = next.filter(id => id !== "board_leadership.remind" && id !== "board_leadership.bank_transfers" && !id.startsWith("board_leadership.bank_transfers_"));
+        }
+
+        // عند إلغاء تفعيل 'عرض قائمة أوامر الصرف المعتمدة للتحويل البنكي'
+        if (permId === "board_leadership.bank_transfers") {
+          next = next.filter(id => !id.startsWith("board_leadership.bank_transfers_"));
         }
 
         // عند إلغاء تفعيل صلاحية عرض إعدادات الجمعية
@@ -798,6 +819,19 @@ export default function RolePermissions() {
         if (permId.startsWith("orders_and_letters.purchase_orders_")) {
           if (!next.includes("orders_and_letters.purchase_orders")) {
             next.push("orders_and_letters.purchase_orders");
+          }
+        }
+        if (permId === "board_leadership.bank_transfers") {
+          if (!next.includes("board_chairman")) {
+            next.push("board_chairman");
+          }
+        }
+        if (permId.startsWith("board_leadership.bank_transfers_")) {
+          if (!next.includes("board_leadership.bank_transfers")) {
+            next.push("board_leadership.bank_transfers");
+          }
+          if (!next.includes("board_chairman")) {
+            next.push("board_chairman");
           }
         }
         return next;
@@ -1682,7 +1716,18 @@ export default function RolePermissions() {
         id: "board_leadership",
         nameAr: "مجلس الإدارة والقيادة العليا",
         icon: Shield,
-        perms: ["board_chairman", "board_member", "remind"]
+        perms: [
+          "board_chairman",
+          "board_member",
+          "remind",
+          "bank_transfers",
+          "bank_transfers_view_order",
+          "bank_transfers_view_request",
+          "bank_transfers_notes",
+          "bank_transfers_view_justification",
+          "bank_transfers_approve",
+          "bank_transfers_reject"
+        ]
       }
       ]
     },
@@ -2131,6 +2176,13 @@ export default function RolePermissions() {
         board_chairman: "عرض مركز الاعتماد المالي",
         board_member: "عرض لوحة عضو مجلس الإدارة",
         remind: "إرسال تذكير بالاعتماد",
+        bank_transfers: "عرض قائمة أوامر الصرف المعتمدة للتحويل البنكي",
+        bank_transfers_view_order: "عرض أمر الصرف المعتمد",
+        bank_transfers_view_request: "عرض تقرير طلب الصرف المعتمد",
+        bank_transfers_notes: "إضافة ومتابعة الملاحظات",
+        bank_transfers_view_justification: "عرض مبررات الإلغاء والرفض",
+        bank_transfers_approve: "الاعتماد من صاحب الصلاحية",
+        bank_transfers_reject: "رفض الطلب",
       },
       pending_reports: Object.fromEntries(REQUEST_REPORT_PERMISSIONS.map(p => [p.action, p.nameAr])),
       signing: {
@@ -2820,6 +2872,8 @@ export default function RolePermissions() {
                                   (perm.id.startsWith("disbursements.") && perm.id !== "disbursements.view" && perm.id !== "disbursements.sign" && !selectedPerms.includes("disbursements.view")) ||
                                   (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && perm.id !== "disbursement_orders.sign" && !selectedPerms.includes("disbursement_orders.view")) ||
                                   (perm.id === "board_leadership.remind" && !selectedPerms.includes("board_chairman")) ||
+                                  (perm.id === "board_leadership.bank_transfers" && !selectedPerms.includes("board_chairman")) ||
+                                  (perm.id.startsWith("board_leadership.bank_transfers_") && (!selectedPerms.includes("board_leadership.bank_transfers") || !selectedPerms.includes("board_chairman"))) ||
                                 (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
                                 (perm.id.startsWith("mosque_map.") && perm.id !== "mosque_map.view" && !selectedPerms.includes("mosque_map.view")) ||
                                 (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||
