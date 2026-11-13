@@ -1272,6 +1272,14 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   "board_leadership.board_member": ["board_member"],
 
+  "board_leadership.bank_transfers": ["board_leadership.bank_transfers"],
+  "board_leadership.bank_transfers_view_order": ["board_leadership.bank_transfers_view_order"],
+  "board_leadership.bank_transfers_view_request": ["board_leadership.bank_transfers_view_request"],
+  "board_leadership.bank_transfers_notes": ["board_leadership.bank_transfers_notes"],
+  "board_leadership.bank_transfers_view_justification": ["board_leadership.bank_transfers_view_justification"],
+  "board_leadership.bank_transfers_approve": ["board_leadership.bank_transfers_approve"],
+  "board_leadership.bank_transfers_reject": ["board_leadership.bank_transfers_reject"],
+
   // مالية سدانة
 
   "orders_and_letters.disbursement_orders": [
@@ -3559,6 +3567,13 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "disbursement_orders.remind", moduleId: "disbursements", action: "remind", nameAr: "إرسال تذكير بالاعتماد", nameEn: "Send Approval Reminder" },
 
       { id: "board_leadership.remind", moduleId: "board", action: "remind", nameAr: "إرسال تذكير بالاعتماد", nameEn: "Send Approval Reminder" },
+      { id: "board_leadership.bank_transfers", moduleId: "board", action: "bank_transfers", nameAr: "عرض قائمة أوامر الصرف المعتمدة للتحويل البنكي", nameEn: "View Approved Bank Transfer Orders" },
+      { id: "board_leadership.bank_transfers_view_order", moduleId: "board", action: "bank_transfers_view_order", nameAr: "عرض أمر الصرف المعتمد", nameEn: "View Approved Disbursement Order" },
+      { id: "board_leadership.bank_transfers_view_request", moduleId: "board", action: "bank_transfers_view_request", nameAr: "عرض تقرير طلب الصرف المعتمد", nameEn: "View Approved Disbursement Request" },
+      { id: "board_leadership.bank_transfers_notes", moduleId: "board", action: "bank_transfers_notes", nameAr: "إضافة ومتابعة الملاحظات", nameEn: "Add and Follow Notes" },
+      { id: "board_leadership.bank_transfers_view_justification", moduleId: "board", action: "bank_transfers_view_justification", nameAr: "عرض مبررات الإلغاء والرفض", nameEn: "View Cancellation or Rejection Reason" },
+      { id: "board_leadership.bank_transfers_approve", moduleId: "board", action: "bank_transfers_approve", nameAr: "الاعتماد من صاحب الصلاحية", nameEn: "Approve as Authority" },
+      { id: "board_leadership.bank_transfers_reject", moduleId: "board", action: "bank_transfers_reject", nameAr: "رفض الطلب", nameEn: "Reject Request" },
 
       { id: "custody_requests.view", moduleId: "custody_requests", action: "view", nameAr: "عرض قسم العهدة المالية", nameEn: "View Financial Custody" },
 
@@ -6424,7 +6439,13 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
 
 
-  if (allPermissions.has("board_chairman") || allPermissions.has("board_member") || allPermissions.has("board_leadership.remind") || allPermissions.has("board_chairman_remind")) {
+  if (
+    allPermissions.has("board_chairman") ||
+    allPermissions.has("board_member") ||
+    allPermissions.has("board_leadership.remind") ||
+    allPermissions.has("board_chairman_remind") ||
+    allPermissions.has("board_leadership.bank_transfers")
+  ) {
 
     allPermissions.add("board_leadership");
 
