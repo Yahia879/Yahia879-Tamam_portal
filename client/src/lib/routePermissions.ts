@@ -123,7 +123,15 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/board-dashboard": ["board_chairman", "board_member", "board_chairman_view"],
   "/board-executive": ["board_chairman", "board_chairman_view"],
   "/board-analytics": "board_member",
-  "/information-dashboard": ["information_dashboard", "information_dashboard.view"],
+  "/information-dashboard": [
+    "information_dashboard",
+    "information_dashboard.view",
+    "information_dashboard.digital_screen",
+    "information_dashboard.mosques",
+    "information_dashboard.requests",
+    "information_dashboard.procurement",
+    "information_dashboard.financial"
+  ],
 
   // ── لوحة التحكم ──
   "/dashboard": ["dashboard", "dashboard.view", "mosques", "requests", "projects", "suppliers", "staff_management", "settings_center"],
