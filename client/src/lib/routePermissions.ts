@@ -124,8 +124,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/board-executive": ["board_chairman", "board_chairman_view"],
   "/board-analytics": "board_member",
   "/information-dashboard": [
-    "information_dashboard",
-    "information_dashboard.view",
     "information_dashboard.digital_screen",
     "information_dashboard.mosques",
     "information_dashboard.requests",
@@ -940,7 +938,15 @@ export function getUserHomeRoute(user: any): string {
   }
 
   // 2.5 مستخدم لوحة المعلومات
-  if (user.role === "dashboard_viewer" || userPerms.includes("information_dashboard") || userPerms.includes("information_dashboard.view")) {
+  const hasInfoDashboardTab = [
+    "information_dashboard.digital_screen",
+    "information_dashboard.mosques",
+    "information_dashboard.requests",
+    "information_dashboard.procurement",
+    "information_dashboard.financial"
+  ].some(perm => userPerms.includes(perm));
+
+  if (user.role === "dashboard_viewer" || hasInfoDashboardTab) {
     return "/information-dashboard";
   }
 
