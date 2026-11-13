@@ -13,7 +13,6 @@ const MODULES = [
 ];
 
 const PERMISSIONS = [
-  { id: "information_dashboard.view", nameAr: "عرض لوحة المعلومات", nameEn: "View Information Dashboard", moduleId: "information_dashboard", action: "view" },
   { id: "information_dashboard.digital_screen", nameAr: "الشاشة الرقمية", nameEn: "Digital Screen Tab", moduleId: "information_dashboard", action: "digital_screen" },
   { id: "information_dashboard.mosques", nameAr: "المساجد والتغطية", nameEn: "Mosques & Coverage Tab", moduleId: "information_dashboard", action: "mosques" },
   { id: "information_dashboard.requests", nameAr: "الطلبات والبرامج", nameEn: "Requests & Programs Tab", moduleId: "information_dashboard", action: "requests" },
