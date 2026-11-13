@@ -304,7 +304,16 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   if (role !== "dashboard_viewer" && canSeeDashboard) {
     mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
   }
-  if (has("information_dashboard") || has("information_dashboard.view") || has("*")) {
+  if (
+    has("information_dashboard") ||
+    has("information_dashboard.view") ||
+    has("information_dashboard.digital_screen") ||
+    has("information_dashboard.mosques") ||
+    has("information_dashboard.requests") ||
+    has("information_dashboard.procurement") ||
+    has("information_dashboard.financial") ||
+    has("*")
+  ) {
     mainItems.push({ icon: Layers, label: isEn ? "Information Dashboard" : "لوحة المعلومات", path: "/information-dashboard" });
   }
   if (has("board_chairman") || has("board_chairman_view")) {
