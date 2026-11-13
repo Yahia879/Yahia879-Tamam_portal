@@ -14,6 +14,11 @@ const MODULES = [
 
 const PERMISSIONS = [
   { id: "information_dashboard.view", nameAr: "عرض لوحة المعلومات", nameEn: "View Information Dashboard", moduleId: "information_dashboard", action: "view" },
+  { id: "information_dashboard.digital_screen", nameAr: "الشاشة الرقمية", nameEn: "Digital Screen Tab", moduleId: "information_dashboard", action: "digital_screen" },
+  { id: "information_dashboard.mosques", nameAr: "المساجد والتغطية", nameEn: "Mosques & Coverage Tab", moduleId: "information_dashboard", action: "mosques" },
+  { id: "information_dashboard.requests", nameAr: "الطلبات والبرامج", nameEn: "Requests & Programs Tab", moduleId: "information_dashboard", action: "requests" },
+  { id: "information_dashboard.procurement", nameAr: "المشاريع والعقود", nameEn: "Procurement & Contracts Tab", moduleId: "information_dashboard", action: "procurement" },
+  { id: "information_dashboard.financial", nameAr: "المالية والصرف", nameEn: "Financial & Disbursement Tab", moduleId: "information_dashboard", action: "financial" },
   { id: "requester_accounts.view", nameAr: "عرض حسابات المستفيدين", nameEn: "View Requester Accounts", moduleId: "requester_accounts", action: "view" },
   { id: "requester_accounts.create", nameAr: "إضافة حساب مستفيد", nameEn: "Create Requester Account", moduleId: "requester_accounts", action: "create" },
   { id: "requester_accounts.edit", nameAr: "تعديل حساب مستفيد", nameEn: "Edit Requester Account", moduleId: "requester_accounts", action: "edit" },
