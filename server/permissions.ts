@@ -56,7 +56,11 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
   pending_reports: REQUEST_REPORT_PERMISSION_IDS,
 
   "information_dashboard.view": ["information_dashboard.view"],
-
+  "information_dashboard.digital_screen": ["information_dashboard.digital_screen"],
+  "information_dashboard.mosques": ["information_dashboard.mosques"],
+  "information_dashboard.requests": ["information_dashboard.requests"],
+  "information_dashboard.procurement": ["information_dashboard.procurement"],
+  "information_dashboard.financial": ["information_dashboard.financial"],
   information_dashboard: ["information_dashboard.view"],
 
   Create_Ticket: ["Create_Ticket"],
@@ -1871,7 +1875,15 @@ async function ensureRequestsPermissionsExist(db: any) {
 
       procurement_officer: ["quotations.view", "quotations.create", "quotations.add"],
 
-      dashboard_viewer: ["information_dashboard.view", "information_dashboard"],
+      dashboard_viewer: [
+        "information_dashboard.view",
+        "information_dashboard",
+        "information_dashboard.digital_screen",
+        "information_dashboard.mosques",
+        "information_dashboard.requests",
+        "information_dashboard.procurement",
+        "information_dashboard.financial"
+      ],
 
       projects_office: ["requests.view", "requests.create", "requests.view_details", "escalation.delayed_requests", "escalation.delayed_beneficiaries", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_reply", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide"],
 
@@ -2320,28 +2332,28 @@ async function ensureAllCustomPermissionsExist(db: any) {
 
 
 
-    const [existingInfoDashPerm] = await db.select({ id: permissions.id }).from(permissions).where(eq(permissions.id, "information_dashboard.view")).limit(1);
+    const infoDashTabPerms = [
+      { id: "information_dashboard.view", action: "view", nameAr: "عرض لوحة المعلومات", nameEn: "View Information Dashboard", description: "عرض لوحة المعلومات المفصلة لكافة التبويبات والمخططات والإحصائيات" },
+      { id: "information_dashboard.digital_screen", action: "digital_screen", nameAr: "الشاشة الرقمية", nameEn: "Digital Screen Tab", description: "عرض تبويب الشاشة الرقمية والمؤشرات الإحصائية المباشرة" },
+      { id: "information_dashboard.mosques", action: "mosques", nameAr: "المساجد والتغطية", nameEn: "Mosques & Coverage Tab", description: "عرض تبويب المساجد والتغطية الميدانية" },
+      { id: "information_dashboard.requests", action: "requests", nameAr: "الطلبات والبرامج", nameEn: "Requests & Programs Tab", description: "عرض تبويب الطلبات والبرامج ومراحل المعالجة" },
+      { id: "information_dashboard.procurement", action: "procurement", nameAr: "المشاريع والعقود", nameEn: "Procurement & Contracts Tab", description: "عرض تبويب المشاريع والعقود وشبكة الموردين" },
+      { id: "information_dashboard.financial", action: "financial", nameAr: "المالية والصرف", nameEn: "Financial & Disbursement Tab", description: "عرض تبويب المالية وأوامر الصرف والتدفقات" },
+    ];
 
-    if (!existingInfoDashPerm) {
-
-      await db.insert(permissions).values({
-
-        id: "information_dashboard.view",
-
-        moduleId: "information_dashboard",
-
-        action: "view",
-
-        nameAr: "عرض لوحة المعلومات",
-
-        nameEn: "View Information Dashboard",
-
-        description: "عرض لوحة المعلومات المفصلة لكافة التبويبات والمخططات والإحصائيات"
-
-      });
-
-      console.log("Inserted missing permission: information_dashboard.view");
-
+    for (const p of infoDashTabPerms) {
+      const [existing] = await db.select({ id: permissions.id }).from(permissions).where(eq(permissions.id, p.id)).limit(1);
+      if (!existing) {
+        await db.insert(permissions).values({
+          id: p.id,
+          moduleId: "information_dashboard",
+          action: p.action,
+          nameAr: p.nameAr,
+          nameEn: p.nameEn,
+          description: p.description,
+        });
+        console.log(`Inserted missing permission: ${p.id}`);
+      }
     }
 
 
@@ -4519,7 +4531,15 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
   if ((userData?.role === "dashboard_viewer" || roleIds.includes("dashboard_viewer")) && !hasCustomRole) {
 
-    rolePermissionsData.push("information_dashboard", "information_dashboard.view");
+    rolePermissionsData.push(
+      "information_dashboard",
+      "information_dashboard.view",
+      "information_dashboard.digital_screen",
+      "information_dashboard.mosques",
+      "information_dashboard.requests",
+      "information_dashboard.procurement",
+      "information_dashboard.financial"
+    );
 
   }
 
@@ -7687,7 +7707,15 @@ export const permissionsRouter = router({
 
         procurement_officer: ["quotations.view", "quotations.create", "quotations.add"],
 
-        dashboard_viewer: ["information_dashboard"],
+        dashboard_viewer: [
+          "information_dashboard",
+          "information_dashboard.view",
+          "information_dashboard.digital_screen",
+          "information_dashboard.mosques",
+          "information_dashboard.requests",
+          "information_dashboard.procurement",
+          "information_dashboard.financial"
+        ],
 
         service_requester: ["requests.view", "requests.create", "mosques.view"]
 
