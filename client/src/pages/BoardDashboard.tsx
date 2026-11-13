@@ -174,20 +174,20 @@ export default function BoardDashboard({
 
   const isChairmanRole = currentUser?.role === "board_chairman";
   const hasChairmanActionPerm = userPermissions.includes("board_chairman") || userPermissions.includes("board_leadership.board_chairman");
-  const isAdminRole = ["super_admin", "system_admin"].includes(currentUser?.role || "");
+  const isSuperAdmin = currentUser?.role === "super_admin" || currentUser?.role === "system_admin" || userPermissions.includes("*");
 
   // الصلاحيات التنفيذية والمعاينة الشاملة تظهر لمن لديه صلاحية رئيس مجلس الإدارة أو المشرف العام
-  const canPerformActions = isChairmanRole || hasChairmanActionPerm || isAdminRole;
-  const canRemind = userPermissions.includes("board_leadership.remind") || userPermissions.includes("board_chairman_remind") || canPerformActions;
+  const canPerformActions = isChairmanRole || hasChairmanActionPerm || isSuperAdmin;
+  const canRemind = isSuperAdmin || userPermissions.includes("board_leadership.remind") || userPermissions.includes("board_chairman_remind");
 
   // صلاحيات قائمة أوامر الصرف المعتمدة للتحويل البنكي وإجراءاتها
-  const canViewBankTransfers = canPerformActions || userPermissions.includes("board_leadership.bank_transfers");
-  const canViewOrderAction = canPerformActions || userPermissions.includes("board_leadership.bank_transfers_view_order");
-  const canViewRequestAction = canPerformActions || userPermissions.includes("board_leadership.bank_transfers_view_request");
-  const canNotesAction = canPerformActions || userPermissions.includes("board_leadership.bank_transfers_notes");
-  const canViewJustificationAction = canPerformActions || userPermissions.includes("board_leadership.bank_transfers_view_justification");
-  const canApproveAction = canPerformActions || userPermissions.includes("board_leadership.bank_transfers_approve");
-  const canRejectAction = canPerformActions || userPermissions.includes("board_leadership.bank_transfers_reject");
+  const canViewBankTransfers = isSuperAdmin || userPermissions.includes("board_leadership.bank_transfers");
+  const canViewOrderAction = isSuperAdmin || userPermissions.includes("board_leadership.bank_transfers_view_order");
+  const canViewRequestAction = isSuperAdmin || userPermissions.includes("board_leadership.bank_transfers_view_request");
+  const canNotesAction = isSuperAdmin || userPermissions.includes("board_leadership.bank_transfers_notes");
+  const canViewJustificationAction = isSuperAdmin || userPermissions.includes("board_leadership.bank_transfers_view_justification");
+  const canApproveAction = isSuperAdmin || userPermissions.includes("board_leadership.bank_transfers_approve");
+  const canRejectAction = isSuperAdmin || userPermissions.includes("board_leadership.bank_transfers_reject");
 
   // نافذة إرسال تذكير بالاعتماد
   const [reminderModal, setReminderModal] = useState<{
