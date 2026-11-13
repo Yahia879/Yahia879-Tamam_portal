@@ -226,6 +226,7 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
 
   const hasDashboardView = usePermission("information_dashboard") || 
                            usePermission("information_dashboard.view") || 
+                           usePermission("information_dashboard.financial") ||
                            usePermission("analytics_hub.financial_report") ||
                            user?.role === "dashboard_viewer";
   const canView = canViewProjects || canViewContracts || canViewRequests || canViewOrders || canViewReceiptVouchers || canExport || (embedded && hasDashboardView);
