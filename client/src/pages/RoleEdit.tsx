@@ -118,7 +118,7 @@ const superAdminGroups = [
     title: "الهندسة والمشاريع",
     modules: [
       { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials", "edit_support_and_fees", "add_receipt_voucher"] },
-      { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve", "revoke_approval", "exception_approve"] },
+      { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve", "revoke_approval", "exception_approve", "view_revoke_reason"] },
       { id: "progress_invoices", nameAr: "المستخلصات", icon: FileSpreadsheet, perms: ["view", "add", "edit", "approve", "revoke_approval", "exception_approve"] },
       { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
       { id: "reports", nameAr: "التقارير الفنية", icon: FileBarChart, perms: ["view_stats", "export_data"] },
@@ -677,6 +677,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       approve: "اعتماد تقارير الإنجاز",
       revoke_approval: "إلغاء الاعتماد",
       exception_approve: "استثناء اعتماد مدير المشروع",
+      view_revoke_reason: "عرض سبب إلغاء الاعتماد",
     },
     progress_invoices: {
       view: "عرض المستخلصات",
