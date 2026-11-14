@@ -1,5 +1,7 @@
 import { trpc } from "../lib/trpc";
 import { useAuth } from "../_core/hooks/useAuth";
+import { isInformationDashboardPermission } from "@shared/informationDashboardPermissions";
+import { isBoardAnalyticsPermission } from "@shared/boardAnalyticsPermissions";
 
 /**
  * التحقق مما إذا كانت الصلاحية تابعة لقسم إدارة المخزون
@@ -43,6 +45,8 @@ export function isProcurementOrFinancePermission(permission: string): boolean {
  */
 export function isStrictPermission(permission: string): boolean {
   return (
+    isInformationDashboardPermission(permission) ||
+    isBoardAnalyticsPermission(permission) ||
     permission === "requests" || permission.startsWith("requests.") ||
     permission === "sedana_requests" || permission.startsWith("sedana_requests.") ||
     isInventoryPermission(permission) ||

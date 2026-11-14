@@ -1,3 +1,4 @@
+import { BOARD_ANALYTICS_PERMISSIONS } from "@shared/boardAnalyticsPermissions";
 import { MOSQUE_PERMISSIONS } from "@shared/mosquePermissions";
 import { BENEFICIARY_PERMISSIONS } from "@shared/beneficiaryPermissions";
 import { useLinkedPermissionConfirmation } from "@/components/permissions/useLinkedPermissionConfirmation";
@@ -4168,6 +4169,7 @@ export default function UserPermissions() {
 
 
 
+      board_analytics: Object.fromEntries(BOARD_ANALYTICS_PERMISSIONS.map(permission => [permission.action, permission.nameAr])),
       information_dashboard: {
         digital_screen: "الشاشة الرقمية",
         mosques: "المساجد والتغطية",
@@ -5759,6 +5761,12 @@ export default function UserPermissions() {
           nameAr: "لوحة المعلومات",
           icon: LayoutDashboard,
           perms: ["digital_screen", "mosques", "requests", "procurement", "financial"]
+        },
+        {
+          id: "board_analytics",
+          nameAr: "لوحة الإدارة العليا",
+          icon: LayoutDashboard,
+          perms: BOARD_ANALYTICS_PERMISSIONS.map(permission => permission.action),
         },
 
 

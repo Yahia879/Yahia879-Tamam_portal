@@ -2,9 +2,10 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { calculateUserPermissions } from "../permissions";
+import { calculateUserPermissions, getRoleInformationDashboardPermissions } from "../permissions";
+import { informationDashboardTabs, hasAllInformationDashboardTabs, canCustomizeDashboardElement, roleInformationDashboardPermissions, INFORMATION_DASHBOARD_PERMISSION_IDS } from "../../shared/informationDashboardPermissions";
 import { brandSettings, programs, evaluationTokens, mosqueRequests, mosques, users, roles, rolePermissions, userRoleAssignments, userPermissions } from "../../drizzle/schema";
-import { eq, like, inArray, and, or, isNull, isNotNull, ne, gt } from "drizzle-orm";
+import { eq, like, inArray, and, or, isNull, ne, gt } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 export const formFieldOptionSchema = z.object({
@@ -534,6 +535,20 @@ export const detailedDashboardCustomizationSchema = z.object({
   enabledElementIds: z.array(z.string()).default(DEFAULT_ENABLED_DETAILED_DASHBOARD_IDS),
 });
 
+async function getDashboardTargetTabs(actorId: number, targetType: string, targetId?: string) {
+  if (targetType !== "global" && !targetId) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "يجب تحديد المستخدم أو الدور المطلوب تخصيصه" });
+  }
+  if (targetType === "role") {
+    return informationDashboardTabs(await getRoleInformationDashboardPermissions(targetId!));
+  }
+  const userId = targetType === "user" ? Number(targetId) : actorId;
+  if (!Number.isSafeInteger(userId) || userId <= 0) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "معرف المستخدم غير صالح" });
+  }
+  return informationDashboardTabs(await calculateUserPermissions(userId));
+}
+
 export const formsRouter = router({
   // ==================== استمارة التقييم ====================
 
@@ -978,7 +993,7 @@ export const formsRouter = router({
   // ==================== تخصيص لوحة القيادة المفصلة (مدير النظام) ====================
 
   // جلب إعدادات اللوحة المفصلة (يدعم الفلترة حسب المستخدم أو الدور أو النوع)
-  getDetailedDashboardCustomizationConfig: publicProcedure
+  getDetailedDashboardCustomizationConfig: protectedProcedure
     .input(
       z.object({
         targetType: z.enum(["global", "role", "user"]).optional(),
@@ -987,12 +1002,23 @@ export const formsRouter = router({
         roleId: z.string().optional(),
       }).optional()
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
+      const allowedTabIds = await getDashboardTargetTabs(
+        ctx.user.id,
+        input?.userId ? "user" : input?.targetType || "global",
+        input?.userId ? String(input.userId) : input?.targetId,
+      );
+      const elements = DETAILED_DASHBOARD_ELEMENT_DEFINITIONS.filter(element =>
+        canCustomizeDashboardElement(element.category, allowedTabIds, element.id));
+      const allowedElementIds = new Set(elements.map(element => element.id));
+      const categories = DETAILED_DASHBOARD_CATEGORIES.filter(category =>
+        category.id === "all" || elements.some(element => element.category === category.id));
       const defaultResponse = {
-        enabledElementIds: DEFAULT_ENABLED_DETAILED_DASHBOARD_IDS,
-        categories: DETAILED_DASHBOARD_CATEGORIES,
-        elements: DETAILED_DASHBOARD_ELEMENT_DEFINITIONS,
+        enabledElementIds: DEFAULT_ENABLED_DETAILED_DASHBOARD_IDS.filter(id => allowedElementIds.has(id)),
+        categories,
+        elements,
+        allowedTabIds,
         isCustomized: false,
         targetType: input?.targetType || "global",
         targetId: input?.targetId,
@@ -1018,9 +1044,10 @@ export const formsRouter = router({
               const validated = detailedDashboardCustomizationSchema.safeParse(parsed);
               if (validated.success) {
                 return {
-                  enabledElementIds: validated.data.enabledElementIds,
-                  categories: DETAILED_DASHBOARD_CATEGORIES,
-                  elements: DETAILED_DASHBOARD_ELEMENT_DEFINITIONS,
+                  enabledElementIds: validated.data.enabledElementIds.filter(id => allowedElementIds.has(id)),
+                  categories,
+                  elements,
+                  allowedTabIds,
                   isCustomized: true,
                   targetType: "user" as const,
                   targetId: String(input.userId),
@@ -1044,9 +1071,10 @@ export const formsRouter = router({
               const validated = detailedDashboardCustomizationSchema.safeParse(parsed);
               if (validated.success) {
                 return {
-                  enabledElementIds: validated.data.enabledElementIds,
-                  categories: DETAILED_DASHBOARD_CATEGORIES,
-                  elements: DETAILED_DASHBOARD_ELEMENT_DEFINITIONS,
+                  enabledElementIds: validated.data.enabledElementIds.filter(id => allowedElementIds.has(id)),
+                  categories,
+                  elements,
+                  allowedTabIds,
                   isCustomized: true,
                   targetType: "role" as const,
                   targetId: input.roleId,
@@ -1068,9 +1096,10 @@ export const formsRouter = router({
             const validated = detailedDashboardCustomizationSchema.safeParse(parsed);
             if (validated.success) {
               return {
-                enabledElementIds: validated.data.enabledElementIds,
-                categories: DETAILED_DASHBOARD_CATEGORIES,
-                elements: DETAILED_DASHBOARD_ELEMENT_DEFINITIONS,
+                enabledElementIds: validated.data.enabledElementIds.filter(id => allowedElementIds.has(id)),
+                categories,
+                elements,
+                allowedTabIds,
                 isCustomized: true,
                 targetType: "global" as const,
                 targetId: undefined,
@@ -1101,9 +1130,10 @@ export const formsRouter = router({
           const validated = detailedDashboardCustomizationSchema.safeParse(parsed);
           if (validated.success) {
             return {
-              enabledElementIds: validated.data.enabledElementIds,
-              categories: DETAILED_DASHBOARD_CATEGORIES,
-              elements: DETAILED_DASHBOARD_ELEMENT_DEFINITIONS,
+              enabledElementIds: validated.data.enabledElementIds.filter(id => allowedElementIds.has(id)),
+              categories,
+              elements,
+              allowedTabIds,
               isCustomized: true,
               targetType: input?.targetType || "global",
               targetId: input?.targetId,
@@ -1155,113 +1185,35 @@ export const formsRouter = router({
     if (!db) return { roles: [], users: [] };
 
     try {
-      // 1. تحديد الأدوار التي تملك صلاحية لوحة المعلومات
-      const allRoles = await db.select().from(roles);
-      const rolePermRows = await db
-        .select({ roleId: rolePermissions.roleId, permissionId: rolePermissions.permissionId })
-        .from(rolePermissions)
-        .where(inArray(rolePermissions.permissionId, ["information_dashboard", "information_dashboard.view", "*"]));
-
-      const eligibleRoleIds = new Set<string>(["super_admin", "system_admin", "dashboard_viewer"]);
-      rolePermRows.forEach((rp) => eligibleRoleIds.add(rp.roleId));
-
-      for (const r of allRoles) {
-        if (r.description) {
-          try {
-            const parsed = JSON.parse(r.description);
-            if (
-              Array.isArray(parsed) &&
-              parsed.some((p: string) =>
-                ["information_dashboard", "information_dashboard.view", "*"].includes(p)
-              )
-            ) {
-              eligibleRoleIds.add(r.id);
-            }
-          } catch {}
-        }
-      }
-
+      const [allRoles, rolePermRows, allUsers, userRoleRows, userPermRows] = await Promise.all([
+        db.select().from(roles),
+        db.select().from(rolePermissions).where(inArray(rolePermissions.permissionId, INFORMATION_DASHBOARD_PERMISSION_IDS)),
+        db.select({ id: users.id, name: users.name, email: users.email, role: users.role })
+          .from(users).where(or(ne(users.status, "suspended"), isNull(users.status))),
+        db.select().from(userRoleAssignments).where(
+          or(isNull(userRoleAssignments.expiresAt), gt(userRoleAssignments.expiresAt, new Date()))),
+        db.select().from(userPermissions).where(and(
+          inArray(userPermissions.permissionId, INFORMATION_DASHBOARD_PERMISSION_IDS),
+          or(isNull(userPermissions.expiresAt), gt(userPermissions.expiresAt, new Date())))),
+      ]);
+      const roleGrants = new Map(allRoles.map(role => [role.id,
+        roleInformationDashboardPermissions(role.id, role.description,
+          rolePermRows.filter(row => row.roleId === role.id).map(row => row.permissionId)),
+      ]));
       const eligibleRoles = allRoles
-        .filter((r) => eligibleRoleIds.has(r.id) && (r.isActive === null || r.isActive === undefined || Boolean(r.isActive)))
-        .map((r) => ({
-          id: r.id,
-          name: r.nameEn || r.id,
-          nameAr: r.nameAr || r.nameEn || r.id,
-          nameEn: r.nameEn || r.id,
-          isSystem: Boolean(r.isSystem),
-        }));
-
-      // 2. تحديد المستخدمين الذين يملكون صلاحية لوحة المعلومات
-      const allUsers = await db
-        .select({
-          id: users.id,
-          name: users.name,
-          email: users.email,
-          role: users.role,
-          status: users.status,
-        })
-        .from(users)
-        .where(or(ne(users.status, "suspended"), isNull(users.status)));
-
-      const userRoleRows = await db
-        .select({ userId: userRoleAssignments.userId, roleId: userRoleAssignments.roleId })
-        .from(userRoleAssignments)
-        .where(
-          and(
-            isNotNull(userRoleAssignments.userId),
-            or(isNull(userRoleAssignments.expiresAt), gt(userRoleAssignments.expiresAt, new Date()))
-          )
-        );
-
-      const userPermRows = await db
-        .select({
-          userId: userPermissions.userId,
-          permissionId: userPermissions.permissionId,
-          granted: userPermissions.granted,
-        })
-        .from(userPermissions)
-        .where(
-          and(
-            isNotNull(userPermissions.userId),
-            inArray(userPermissions.permissionId, ["information_dashboard", "information_dashboard.view", "*"])
-          )
-        );
-
-      const userAdditionalRolesMap = new Map<number, string[]>();
-      userRoleRows.forEach((ur) => {
-        if (ur.userId) {
-          if (!userAdditionalRolesMap.has(ur.userId)) userAdditionalRolesMap.set(ur.userId, []);
-          userAdditionalRolesMap.get(ur.userId)!.push(ur.roleId);
-        }
+        .filter(role => (roleGrants.get(role.id)?.length || 0) > 0 && role.isActive !== false && (role.isActive as unknown) !== 0)
+        .map(role => ({ id: role.id, name: role.nameEn || role.id, nameAr: role.nameAr || role.nameEn || role.id,
+          nameEn: role.nameEn || role.id, isSystem: Boolean(role.isSystem) }));
+      const eligibleUsers = allUsers.filter(user => {
+        const assignedRoles = userRoleRows.filter(row => row.userId === user.id).map(row => row.roleId);
+        const hasCustomRole = assignedRoles.some(id => id.startsWith("custom_role_"));
+        if (user.role && (!hasCustomRole || ["super_admin", "system_admin"].includes(user.role))) assignedRoles.push(user.role);
+        const grants = new Set(assignedRoles.flatMap(id => roleGrants.get(id) || []));
+        const overrides = userPermRows.filter(row => row.userId === user.id);
+        overrides.filter(row => Boolean(row.granted)).forEach(row => grants.add(row.permissionId));
+        overrides.filter(row => !row.granted).forEach(row => grants.delete(row.permissionId));
+        return grants.size > 0;
       });
-
-      const grantedPermUsers = new Set<number>();
-      const revokedPermUsers = new Set<number>();
-      userPermRows.forEach((up) => {
-        if (up.userId) {
-          if (up.granted === true || (up.granted as unknown) === 1) {
-            grantedPermUsers.add(up.userId);
-          } else if (up.granted === false || (up.granted as unknown) === 0) {
-            revokedPermUsers.add(up.userId);
-          }
-        }
-      });
-
-      const eligibleUsers = allUsers
-        .filter((u) => {
-          if (revokedPermUsers.has(u.id)) return false;
-          if (grantedPermUsers.has(u.id)) return true;
-          if (u.role && eligibleRoleIds.has(u.role)) return true;
-          const addRoles = userAdditionalRolesMap.get(u.id) || [];
-          if (addRoles.some((r) => eligibleRoleIds.has(r))) return true;
-          return false;
-        })
-        .map((u) => ({
-          id: u.id,
-          name: u.name,
-          email: u.email,
-          role: u.role,
-        }));
 
       return { roles: eligibleRoles, users: eligibleUsers };
     } catch (err) {
@@ -1306,13 +1258,35 @@ export const formsRouter = router({
         desc = `تخصيص لوحة المعلومات للمستخدم رقم: ${input.targetId}`;
       }
 
-      const serializedValue = JSON.stringify(input);
+      const allowedTabs = await getDashboardTargetTabs(ctx.user.id, input.targetType, input.targetId);
+      if (allowedTabs.length === 0) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "لا توجد تبويبات مسندة يمكن تخصيصها" });
+      }
+      const allowedIds = new Set(DETAILED_DASHBOARD_ELEMENT_DEFINITIONS
+        .filter(element => canCustomizeDashboardElement(element.category, allowedTabs, element.id))
+        .map(element => element.id));
+      if (input.enabledElementIds.some(id => !allowedIds.has(id))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "يجب إسناد صلاحية التبويب قبل تخصيص عناصره" });
+      }
 
       const [existing] = await db
         .select()
         .from(brandSettings)
         .where(eq(brandSettings.settingKey, settingKey))
         .limit(1);
+
+      // Editing the global layout through a restricted set of tabs must not
+      // hide the other tabs for their authorized viewers.
+      let enabledElementIds = input.enabledElementIds;
+      if (input.targetType === "global") {
+        let previousIds = DEFAULT_ENABLED_DETAILED_DASHBOARD_IDS;
+        try {
+          const previous = detailedDashboardCustomizationSchema.safeParse(JSON.parse(existing?.settingValue || "null"));
+          if (previous.success) previousIds = previous.data.enabledElementIds;
+        } catch {}
+        enabledElementIds = Array.from(new Set([...enabledElementIds, ...previousIds.filter(id => !allowedIds.has(id))]));
+      }
+      const serializedValue = JSON.stringify({ ...input, enabledElementIds });
 
       if (existing) {
         await db
@@ -1378,6 +1352,33 @@ export const formsRouter = router({
         settingKey = `detailed_dashboard_role_${input.targetId}`;
       } else if (input?.targetType === "user" && input?.targetId) {
         settingKey = `detailed_dashboard_user_${input.targetId}`;
+      }
+
+      const allowedTabs = await getDashboardTargetTabs(ctx.user.id, tType, input?.targetId);
+      if (allowedTabs.length === 0) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "لا توجد تبويبات مسندة يمكن تخصيصها" });
+      }
+      if (tType === "global" && !hasAllInformationDashboardTabs(allowedTabs)) {
+        const [existing] = await db.select().from(brandSettings)
+          .where(eq(brandSettings.settingKey, settingKey)).limit(1);
+        if (existing) {
+          let previousIds = DEFAULT_ENABLED_DETAILED_DASHBOARD_IDS;
+          try {
+            const parsed = detailedDashboardCustomizationSchema.safeParse(JSON.parse(existing.settingValue || "null"));
+            if (parsed.success) previousIds = parsed.data.enabledElementIds;
+          } catch {}
+          const allowedIds = new Set(DETAILED_DASHBOARD_ELEMENT_DEFINITIONS
+            .filter(element => canCustomizeDashboardElement(element.category, allowedTabs, element.id)).map(element => element.id));
+          const enabledElementIds = Array.from(new Set([
+            ...previousIds.filter(id => !allowedIds.has(id)),
+            ...DEFAULT_ENABLED_DETAILED_DASHBOARD_IDS.filter(id => allowedIds.has(id)),
+          ]));
+          await db.update(brandSettings).set({
+            settingValue: JSON.stringify({ targetType: "global", enabledElementIds }),
+            updatedBy: ctx.user.id, updatedAt: new Date(),
+          }).where(eq(brandSettings.settingKey, settingKey));
+        }
+        return { success: true, message: "تمت استعادة الإعدادات الافتراضية للتبويبات المسندة بنجاح" };
       }
 
       await db

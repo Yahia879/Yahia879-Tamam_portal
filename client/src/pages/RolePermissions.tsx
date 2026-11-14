@@ -1,3 +1,4 @@
+import { BOARD_ANALYTICS_PERMISSIONS } from "@shared/boardAnalyticsPermissions";
 import { MOSQUE_PERMISSIONS } from "@shared/mosquePermissions";
 import { BENEFICIARY_PERMISSIONS } from "@shared/beneficiaryPermissions";
 import { useLinkedPermissionConfirmation } from "@/components/permissions/useLinkedPermissionConfirmation";
@@ -1712,6 +1713,12 @@ export default function RolePermissions() {
           icon: LayoutDashboard,
           perms: ["digital_screen", "mosques", "requests", "procurement", "financial"]
         },
+        {
+          id: "board_analytics",
+          nameAr: "لوحة الإدارة العليا",
+          icon: LayoutDashboard,
+          perms: BOARD_ANALYTICS_PERMISSIONS.map(permission => permission.action),
+        },
       {
         id: "board_leadership",
         nameAr: "مجلس الإدارة والقيادة العليا",
@@ -2072,6 +2079,7 @@ export default function RolePermissions() {
   // دالة مساعدة لتحويل الأفعال العامة إلى مسميات مهنية وصفية
   const getDescriptiveLabel = (moduleId: string, action: string) => {
     const mapping: Record<string, Record<string, string>> = {
+      board_analytics: Object.fromEntries(BOARD_ANALYTICS_PERMISSIONS.map(permission => [permission.action, permission.nameAr])),
       information_dashboard: {
         digital_screen: "الشاشة الرقمية",
         mosques: "المساجد والتغطية",
@@ -2684,6 +2692,7 @@ export default function RolePermissions() {
 
   // منطق التحقق من الصلاحية
   const isPermissionGranted = (permId: string) => {
+    if (permId.startsWith("board_analytics.") || permId.startsWith("information_dashboard.")) return validSelectedPerms.includes(permId);
     if (permId.startsWith("mosques.")) return validSelectedPerms.includes(permId);
     if (permId.startsWith("requester_") || permId.startsWith("escalation.") || permId.startsWith("requests.") || permId.startsWith("sedana_requests.") || permId.startsWith("pending_reports.") || permId.startsWith("beneficiary_evaluations.") || permId.startsWith("appointments.")) return validSelectedPerms.includes(permId);
     const isInventory =
@@ -2812,7 +2821,7 @@ export default function RolePermissions() {
                       // إظهار خيار "مواعيد الخاصة بي" فقط عند تخصيص الفريق الميداني
                       return true;
                     });
-                    const activePerms = isSuperAdmin && !module.id.startsWith("requester_") && !["mosques", "escalation", "requests", "sedana_requests", "pending_reports", "beneficiary_evaluations", "appointments"].includes(module.id)
+                    const activePerms = isSuperAdmin && !module.id.startsWith("requester_") && !["board_analytics", "information_dashboard", "mosques", "escalation", "requests", "sedana_requests", "pending_reports", "beneficiary_evaluations", "appointments"].includes(module.id)
                       ? modulePerms.filter((p: any) => {
                         const isInventory =
                           p.id.startsWith("sedana_quotations") ||
@@ -2846,7 +2855,7 @@ export default function RolePermissions() {
                               <CardTitle className="text-lg sm:text-xl font-bold truncate">{module.nameAr}</CardTitle>
                             </div>
                             <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-1 sm:mt-0">
-                              {modulePerms.length > 0 && (!isSuperAdmin || group.title === "إدارة المخزون" || module.id.startsWith("requester_") || ["mosques", "escalation", "requests", "sedana_requests", "pending_reports", "beneficiary_evaluations", "appointments"].includes(module.id)) && (
+                              {modulePerms.length > 0 && (!isSuperAdmin || group.title === "إدارة المخزون" || module.id.startsWith("requester_") || ["board_analytics", "information_dashboard", "mosques", "escalation", "requests", "sedana_requests", "pending_reports", "beneficiary_evaluations", "appointments"].includes(module.id)) && (
                                 <Button
                                   variant="ghost"
                                   size="sm"

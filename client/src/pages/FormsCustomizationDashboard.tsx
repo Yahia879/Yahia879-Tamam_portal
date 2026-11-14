@@ -67,6 +67,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { ROLE_LABELS } from "@shared/constants";
+import { hasAllInformationDashboardTabs } from "@shared/informationDashboardPermissions";
 import BoardDashboard from "@/pages/BoardDashboard";
 import FinancialReport from "@/pages/FinancialReport";
 import Reports from "@/pages/Reports";
@@ -145,7 +146,7 @@ export default function FormsCustomizationDashboard() {
   const [userSearchQuery, setUserSearchQuery] = useState<string>("");
 
   // تبويب المعاينة الفعالة
-  const [previewTab, setPreviewTab] = useState<string>("all");
+  const [selectedPreviewTab, setPreviewTab] = useState<string>("all");
 
   // المعرفات المفعلة والمستبعدة
   const [enabledIds, setEnabledIds] = useState<string[]>([]);
@@ -156,7 +157,9 @@ export default function FormsCustomizationDashboard() {
 
   // جلب الأدوار والمستخدمين المؤهلين فقط (من يملكون صلاحية الوصول إلى لوحة المعلومات)
   const { data: eligibleTargets, isLoading: isLoadingTargets } =
-    trpc.forms.getEligibleDashboardTargets.useQuery();
+    trpc.forms.getEligibleDashboardTargets.useQuery(undefined, {
+      staleTime: 0, refetchInterval: 5000, refetchOnWindowFocus: true,
+    });
   const eligibleRoles = eligibleTargets?.roles || [];
   const eligibleUsers = eligibleTargets?.users || [];
 
@@ -214,6 +217,9 @@ export default function FormsCustomizationDashboard() {
     },
     {
       enabled: targetType === "global" || !!currentTargetId,
+      staleTime: 0,
+      refetchInterval: 5000,
+      refetchOnWindowFocus: true,
     }
   );
 
@@ -264,6 +270,18 @@ export default function FormsCustomizationDashboard() {
   });
 
   const allElements = useMemo(() => configData?.elements || [], [configData]);
+  const allowedTabIds = configData?.allowedTabIds || [];
+  const canAccessTab = (tab: string) => allowedTabIds.some(id => id === tab);
+  const previewTabs = [
+    { id: "all", label: "عرض شامل", icon: LayoutGrid, color: "text-primary" },
+    { id: "digital_screen", label: "الشاشة الرقمية", icon: Tv, color: "text-violet-600", sectionId: "section_digital_screen" },
+    { id: "mosques", label: "المساجد والتغطية", icon: Building2, color: "text-emerald-600", sectionId: "section_mosques" },
+    { id: "requests", label: "الطلبات والبرامج", icon: FileText, color: "text-blue-600", sectionId: "section_requests" },
+    { id: "procurement", label: "المشاريع والعقود", icon: Briefcase, color: "text-amber-600", sectionId: "section_procurement" },
+    { id: "financial", label: "المالية والصرف", icon: SaudiRiyal, color: "text-teal-600", sectionId: "section_financial" },
+  ].filter(tab => tab.id === "all" ? hasAllInformationDashboardTabs(allowedTabIds) : canAccessTab(tab.id));
+  const previewTab = previewTabs.some(tab => tab.id === selectedPreviewTab)
+    ? selectedPreviewTab : previewTabs[0]?.id;
 
   // العناصر المستبعدة حالياً (المخفية)
   const removedElements = useMemo(() => {
@@ -281,6 +299,7 @@ export default function FormsCustomizationDashboard() {
 
   // إزالة عنصر (إخفاؤه من اللوحة عبر زر X)
   const handleRemoveElement = (id: string, title?: string) => {
+    if (!allElements.some(element => element.id === id)) return;
     setEnabledIds((prev) => prev.filter((item) => item !== id));
     toast.info(`تم إخفاء "${title || id}" ونقله لصندوق الاستعادة`, {
       action: {
@@ -293,6 +312,7 @@ export default function FormsCustomizationDashboard() {
 
   // استعادة عنصر إلى اللوحة
   const handleRestoreElement = (id: string, title?: string) => {
+    if (!allElements.some(element => element.id === id)) return;
     setEnabledIds((prev) => Array.from(new Set([...prev, id])));
     toast.success(`تمت استعادة "${title || id}" إلى اللوحة`);
   };
@@ -1120,6 +1140,10 @@ export default function FormsCustomizationDashboard() {
             <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
             <p className="text-xs text-muted-foreground">جاري تحميل المعاينة التفاعلية للوحة المعلومات...</p>
           </div>
+        ) : previewTabs.length === 0 ? (
+          <div className="p-8 text-center rounded-2xl border border-dashed border-border text-muted-foreground">
+            لا توجد تبويبات مسندة لهذا المستخدم أو الدور يمكن تخصيصها.
+          </div>
         ) : (
           /* ========================================================================= */
           /* وضع المعاينة التفاعلية الحية المباشرة (مطابق تماماً لـ InformationDashboard) */
@@ -1131,14 +1155,7 @@ export default function FormsCustomizationDashboard() {
                 <span className="text-xs font-bold text-muted-foreground shrink-0 ml-1 hidden xl:inline">
                   معاينة الأقسام:
                 </span>
-                {[
-                  { id: "all", label: "عرض شامل", icon: LayoutGrid, color: "text-primary" },
-                  { id: "digital_screen", label: "الشاشة الرقمية", icon: Tv, color: "text-violet-600", sectionId: "section_digital_screen" },
-                  { id: "mosques", label: "المساجد والتغطية", icon: Building2, color: "text-emerald-600", sectionId: "section_mosques" },
-                  { id: "requests", label: "الطلبات والبرامج", icon: FileText, color: "text-blue-600", sectionId: "section_requests" },
-                  { id: "procurement", label: "المشاريع والعقود", icon: Briefcase, color: "text-amber-600", sectionId: "section_procurement" },
-                  { id: "financial", label: "المالية والصرف", icon: SaudiRiyal, color: "text-teal-600", sectionId: "section_financial" },
-                ].map((tab) => {
+                {previewTabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = previewTab === tab.id;
                   const isSecDisabled = tab.sectionId && !isDetailedElementEnabled(tab.sectionId);
@@ -1167,7 +1184,7 @@ export default function FormsCustomizationDashboard() {
             {/* ========================================================================= */}
             {/* 0. تبويب الشاشة الرقمية بالمعاينة والتخصيص */}
             {/* ========================================================================= */}
-            {(previewTab === "all" || previewTab === "digital_screen") && (
+            {canAccessTab("digital_screen") && (previewTab === "all" || previewTab === "digital_screen") && (
               <div className="space-y-8 pt-2">
                 {isDetailedElementEnabled("section_digital_screen") ? (
                   <section id="section-digital-screen" className="space-y-8">
@@ -1300,7 +1317,7 @@ export default function FormsCustomizationDashboard() {
             {/* ========================================================================= */}
             {/* 1. قسم المساجد والزيارات الميدانية */}
             {/* ========================================================================= */}
-            {(previewTab === "all" || previewTab === "mosques") && (
+            {canAccessTab("mosques") && (previewTab === "all" || previewTab === "mosques") && (
               <div className={`space-y-6 ${previewTab === "all" && isDetailedElementEnabled("section_digital_screen") ? "pt-6 border-t-2 border-border/80" : "pt-2"}`}>
                 {isDetailedElementEnabled("section_mosques") ? (
                   <section id="section-mosques" className="space-y-6 pt-2">
@@ -1392,7 +1409,7 @@ export default function FormsCustomizationDashboard() {
             {/* ========================================================================= */}
             {/* 2. قسم الطلبات وبرامج الخدمات */}
             {/* ========================================================================= */}
-            {(previewTab === "all" || previewTab === "requests") && (
+            {canAccessTab("requests") && (previewTab === "all" || previewTab === "requests") && (
               <div className="space-y-6 pt-6 border-t-2 border-border/80">
                 {isDetailedElementEnabled("section_requests") ? (
                   <section id="section-requests" className="space-y-6">
@@ -1484,7 +1501,7 @@ export default function FormsCustomizationDashboard() {
             {/* ========================================================================= */}
             {/* 3. قسم المشاريع والعقود والمشتريات */}
             {/* ========================================================================= */}
-            {(previewTab === "all" || previewTab === "procurement") && (
+            {canAccessTab("procurement") && (previewTab === "all" || previewTab === "procurement") && (
               <div className="space-y-6 pt-6 border-t-2 border-border/80">
                 {isDetailedElementEnabled("section_procurement") ? (
                   <section id="section-procurement" className="space-y-6">
@@ -1590,7 +1607,7 @@ export default function FormsCustomizationDashboard() {
             {/* ========================================================================= */}
             {/* 4. قسم المالية وأوامر الصرف والتدفقات */}
             {/* ========================================================================= */}
-            {(previewTab === "all" || previewTab === "financial") && (
+            {canAccessTab("financial") && (previewTab === "all" || previewTab === "financial") && (
               <div className="space-y-6 pt-6 border-t-2 border-border/80">
                 {isDetailedElementEnabled("section_financial") ? (
                   <section id="section-financial" className="space-y-6">

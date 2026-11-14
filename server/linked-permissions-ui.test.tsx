@@ -3,6 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { BENEFICIARY_MANAGEMENT_REQUIREMENT_IDS, REQUEST_MANAGEMENT_REQUIREMENTS } from "../shared/linkedPermissionDependencies";
 import { REQUEST_REPORT_PERMISSION_IDS } from "../shared/requestReportPermissions";
 import { CALENDAR_MANAGEMENT_PERMISSION_IDS } from "../shared/calendarPermissions";
+import { BOARD_ANALYTICS_PERMISSION_IDS } from "../shared/boardAnalyticsPermissions";
 
 // Exercise page handlers and confirmation dialogs without a browser or DOM.
 const state = vi.hoisted(() => ({ slots: [] as any[], cursor: 0, effects: [] as (() => void)[], dirty: false, data: {} as Record<string, any> }));
@@ -106,6 +107,15 @@ function decide(tree: React.ReactNode, confirm: boolean) {
 }
 
 describe.each(["RoleEdit", "RolePermissions", "UserPermissions"])("linked permission confirmation on %s", page => {
+  it.each(BOARD_ANALYTICS_PERMISSION_IDS)("offers independent administrator checkboxes for %s", id => {
+    let tree = render(page);
+    expect(checked(tree, id)).toBe(false);
+    row(tree, id).props.onClick(); tree = render(page);
+    expect(checked(tree, id)).toBe(true);
+    for (const other of BOARD_ANALYTICS_PERMISSION_IDS.filter(permission => permission !== id)) expect(checked(tree, other)).toBe(false);
+    row(tree, id).props.onClick(); tree = render(page);
+    expect(checked(tree, id)).toBe(false);
+  });
   it("does not offer the retired manual fund-transfer permission", () => {
     const tree = render(page);
     expect(elements(tree).some(el => el.key === "fund.view")).toBe(true);

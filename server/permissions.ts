@@ -1,4 +1,6 @@
 import { MOSQUE_PERMISSION_IDS } from "../shared/mosquePermissions";
+import { BOARD_ANALYTICS_PERMISSIONS, BOARD_ANALYTICS_PERMISSION_IDS, isBoardAnalyticsPermission } from "../shared/boardAnalyticsPermissions";
+import { INFORMATION_DASHBOARD_PERMISSION_IDS, isInformationDashboardPermission, roleInformationDashboardPermissions } from "../shared/informationDashboardPermissions";
 import { BENEFICIARY_PERMISSION_IDS } from "../shared/beneficiaryPermissions";
 import { CALENDAR_PERMISSIONS, CALENDAR_PERMISSION_IDS, calendarPermissionConflicts } from "../shared/calendarPermissions";
 import { isRequestSectionPermission, REQUEST_SECTION_PERMISSION_IDS } from "../shared/requestPermissions";
@@ -53,6 +55,8 @@ import { z } from "zod";
  */
 
 export const PERMISSION_EXPANSION: Record<string, string[]> = {
+  board_analytics: [],
+  ...Object.fromEntries(BOARD_ANALYTICS_PERMISSION_IDS.map(permission => [permission, [permission]])),
   pending_reports: REQUEST_REPORT_PERMISSION_IDS,
 
   "information_dashboard.digital_screen": ["information_dashboard.digital_screen"],
@@ -60,13 +64,7 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
   "information_dashboard.requests": ["information_dashboard.requests"],
   "information_dashboard.procurement": ["information_dashboard.procurement"],
   "information_dashboard.financial": ["information_dashboard.financial"],
-  information_dashboard: [
-    "information_dashboard.digital_screen",
-    "information_dashboard.mosques",
-    "information_dashboard.requests",
-    "information_dashboard.procurement",
-    "information_dashboard.financial"
-  ],
+  information_dashboard: [],
 
   Create_Ticket: ["Create_Ticket"],
 
@@ -2317,6 +2315,14 @@ async function ensureRequestersPermissionsExist(db: any) {
 async function ensureAllCustomPermissionsExist(db: any) {
 
   try {
+    const [boardAnalyticsModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "board_analytics")).limit(1);
+    if (!boardAnalyticsModule) {
+      await db.insert(modules).values({ id: "board_analytics", nameAr: "لوحة الإدارة العليا", nameEn: "Executive Management Dashboard", icon: "BarChart3", displayOrder: 1, isActive: true });
+    }
+    for (const permission of BOARD_ANALYTICS_PERMISSIONS) {
+      const [existing] = await db.select({ id: permissions.id }).from(permissions).where(eq(permissions.id, permission.id)).limit(1);
+      if (!existing) await db.insert(permissions).values({ ...permission, moduleId: "board_analytics" });
+    }
 
     // Ensure 'information_dashboard' module and permission exist
 
@@ -4551,18 +4557,6 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
 
 
-  if ((userData?.role === "dashboard_viewer" || roleIds.includes("dashboard_viewer")) && !hasCustomRole) {
-
-    rolePermissionsData.push(
-      "information_dashboard",
-      "information_dashboard.digital_screen",
-      "information_dashboard.mosques",
-      "information_dashboard.requests",
-      "information_dashboard.procurement",
-      "information_dashboard.financial"
-    );
-
-  }
 
 
 
@@ -4639,9 +4633,16 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
     }
 
+    if (roleIds.includes("dashboard_viewer") && !customizedQuotationRoles.has("dashboard_viewer")) {
+      rolePermissionsData.push(...INFORMATION_DASHBOARD_PERMISSION_IDS);
+    }
+    if (roleIds.includes("board_member") && !customizedQuotationRoles.has("board_member")) {
+      rolePermissionsData.push(...BOARD_ANALYTICS_PERMISSION_IDS);
+    }
+
     rolePermissionsData.push(...rolePermsResult.filter(rp =>
       !customizedQuotationRoles.has(rp.roleId) ||
-      !(rp.permissionId === "mosques" || rp.permissionId.startsWith("mosques.") ||
+      !(isBoardAnalyticsPermission(rp.permissionId) || isInformationDashboardPermission(rp.permissionId) || rp.permissionId === "mosques" || rp.permissionId.startsWith("mosques.") ||
         isRequestSectionPermission(rp.permissionId) || isBeneficiaryManagementPermission(rp.permissionId) ||
         rp.permissionId === "escalation" || rp.permissionId.startsWith("escalation.") ||
         rp.permissionId === "pending_reports" || rp.permissionId.startsWith("pending_reports.") ||
@@ -4710,6 +4711,8 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
       // الصلاحيات المستبعدة وصلاحيات إدارة المخزون لا تُمنح تلقائياً بالـ Wildcard
 
       const isInv = (
+        isBoardAnalyticsPermission(p.id) ||
+        isInformationDashboardPermission(p.id) ||
         isRequestSectionPermission(p.id) || isBeneficiaryManagementPermission(p.id) ||
         p.id === "escalation" || p.id.startsWith("escalation.") ||
         p.id === "mosques" || p.id.startsWith("mosques.") ||
@@ -6739,6 +6742,18 @@ export async function checkPermission(userId: number, permission: string): Promi
 
 }
 
+// Resolve the dashboard grants of a customization target with the same role
+// precedence as calculateUserPermissions: saved checkbox values replace rows.
+export async function getRoleInformationDashboardPermissions(roleId: string): Promise<string[]> {
+  const db = await getDb();
+  if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+  const [role] = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
+  if (!role) throw new TRPCError({ code: "NOT_FOUND", message: "الدور غير موجود" });
+  if (role.isActive === false || (role.isActive as unknown) === 0) return [];
+  const rows = await db.select().from(rolePermissions).where(eq(rolePermissions.roleId, roleId));
+  return roleInformationDashboardPermissions(roleId, role.description, rows.map(row => row.permissionId));
+}
+
 
 
 /**
@@ -7284,7 +7299,7 @@ export const permissionsRouter = router({
             customizedPermissions = true;
 
             Array.from(permsSet).forEach(p => {
-              if (isRequestSectionPermission(p) || isBeneficiaryManagementPermission(p) || p === "escalation" || p.startsWith("escalation.") || p === "pending_reports" || p.startsWith("pending_reports.") || p.startsWith("beneficiary_evaluations") || p === "beneficiary_satisfaction" || p.startsWith("appointments") || p === "mosques" || p.startsWith("mosques.") || p === "mosques_map" || p === "mosque_map" || p.startsWith("mosque_map.") || p === "quotations" || p.startsWith("quotations.") || p === "sedana_quotations" || p.startsWith("sedana_quotations.") || p === "custody_requests" || p.startsWith("custody_requests.")) permsSet.delete(p);
+              if (isBoardAnalyticsPermission(p) || isInformationDashboardPermission(p) || isRequestSectionPermission(p) || isBeneficiaryManagementPermission(p) || p === "escalation" || p.startsWith("escalation.") || p === "pending_reports" || p.startsWith("pending_reports.") || p.startsWith("beneficiary_evaluations") || p === "beneficiary_satisfaction" || p.startsWith("appointments") || p === "mosques" || p.startsWith("mosques.") || p === "mosques_map" || p === "mosque_map" || p.startsWith("mosque_map.") || p === "quotations" || p.startsWith("quotations.") || p === "sedana_quotations" || p.startsWith("sedana_quotations.") || p === "custody_requests" || p.startsWith("custody_requests.")) permsSet.delete(p);
             });
             parsed.forEach(p => permsSet.add(p));
 
@@ -7302,6 +7317,13 @@ export const permissionsRouter = router({
       permsSet.delete("escalation");
       if (!customizedPermissions && ["super_admin", "system_admin"].includes(input.roleId)) {
         ["mosques.add_imam", ...BENEFICIARY_MANAGEMENT_REQUIREMENT_IDS, "requester_accounts.create", ...REQUEST_SECTION_PERMISSION_IDS.filter(p => !EXCLUDED_ADMIN_PERMISSIONS.includes(p)), ...REQUEST_REPORT_PERMISSION_IDS, ...BENEFICIARY_PERMISSION_IDS, ...CALENDAR_PERMISSION_IDS.filter(p => p !== "appointments.view_own")].forEach(p => permsSet.add(p));
+      }
+
+      if (!customizedPermissions && ["super_admin", "system_admin", "dashboard_viewer"].includes(input.roleId)) {
+        INFORMATION_DASHBOARD_PERMISSION_IDS.forEach(p => permsSet.add(p));
+      }
+      if (!customizedPermissions && ["super_admin", "system_admin", "board_member"].includes(input.roleId)) {
+        BOARD_ANALYTICS_PERMISSION_IDS.forEach(p => permsSet.add(p));
       }
 
       // Expand legacy section grants for the editor, then save only the checked actions.

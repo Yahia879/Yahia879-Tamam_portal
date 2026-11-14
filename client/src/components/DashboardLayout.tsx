@@ -1,3 +1,4 @@
+import { BOARD_ANALYTICS_PERMISSION_IDS } from "@shared/boardAnalyticsPermissions";
 import { REQUEST_LIST_ENTRY_PERMISSIONS } from "@shared/requestPermissions";
 import { custodyAccess } from "@shared/custodyPermissions";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -309,8 +310,7 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
     has("information_dashboard.mosques") ||
     has("information_dashboard.requests") ||
     has("information_dashboard.procurement") ||
-    has("information_dashboard.financial") ||
-    (has("*") && ["super_admin", "system_admin"].includes(role));
+    has("information_dashboard.financial");
 
   if (hasAnyInfoDashboardTab) {
     mainItems.push({ icon: Layers, label: isEn ? "Information Dashboard" : "لوحة المعلومات", path: "/information-dashboard" });
@@ -318,7 +318,7 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   if (has("board_chairman") || has("board_chairman_view")) {
     mainItems.push({ icon: BadgeCheck, label: isEn ? "Financial Approval Center" : "مركز الاعتماد المالي", path: "/board-executive" });
   }
-  if (has("board_member")) {
+  if (BOARD_ANALYTICS_PERMISSION_IDS.some(permission => has(permission))) {
     mainItems.push({ icon: PieChart, label: isEn ? "Executive Management Dashboard" : "لوحة الإدارة العليا", path: "/board-analytics" });
   }
   if (mainItems.length > 0) {

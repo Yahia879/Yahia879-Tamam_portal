@@ -16,7 +16,9 @@ import {
 } from "../../drizzle/schema";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
-import { checkPermission } from "../permissions";
+import { calculateUserPermissions, checkPermission } from "../permissions";
+import { boardAnalyticsTabs } from "../../shared/boardAnalyticsPermissions";
+import { informationDashboardTabs } from "../../shared/informationDashboardPermissions";
 
 const STAGE_LABELS: Record<string, string> = {
   submitted: "تقديم الطلب",
@@ -85,7 +87,9 @@ export const boardRouter = router({
       const isDashboardViewer = ctx.user.role === "dashboard_viewer" || 
                                 await checkPermission(ctx.user.id, "information_dashboard.view") || 
                                 await checkPermission(ctx.user.id, "information_dashboard");
-      const canAccessBoard = isChairman || isChairmanView || isMember || isAdminRole || hasMemberPerm || isDashboardViewer;
+      const effectivePermissions = await calculateUserPermissions(ctx.user.id);
+      const canAccessBoard = isChairman || isChairmanView || isMember || isAdminRole || hasMemberPerm || isDashboardViewer ||
+        boardAnalyticsTabs(effectivePermissions).length > 0 || informationDashboardTabs(effectivePermissions).length > 0;
 
       if (!canAccessBoard) {
         throw new TRPCError({

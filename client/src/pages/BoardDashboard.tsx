@@ -43,6 +43,7 @@ import {
   Bell, PenLine, RotateCcw
 } from "lucide-react";
 import { DisbursementOrderNotesDialog } from "@/components/DisbursementOrderNotesDialog";
+import { BOARD_ANALYTICS_PERMISSIONS, boardAnalyticsTabs } from "@shared/boardAnalyticsPermissions";
 
 const CHART_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"];
 
@@ -106,7 +107,7 @@ export default function BoardDashboard({
   hideCards?: boolean;
 }) {
   const [location, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [selectedTab, setActiveTab] = useState(initialTab);
 
   useEffect(() => {
     if (initialTab) {
@@ -169,8 +170,16 @@ export default function BoardDashboard({
 
   const { data: currentUser } = trpc.auth.me.useQuery();
   const { data: userPermissions = [] } = trpc.permissions.getUserPermissions.useQuery(
-    currentUser?.id ? { userId: currentUser.id } : ({} as any)
+    { userId: currentUser?.id ?? 0 },
+    { enabled: !!currentUser?.id, staleTime: 0, refetchInterval: 5000, refetchOnWindowFocus: true, refetchOnMount: true },
   );
+  const isExecutiveRoute = !forceAnalytics && location === "/board-executive";
+  const isAnalyticsRoute = forceAnalytics || location.replace(/\/$/, "") === "/board-analytics";
+  const availableAnalyticsTabs = embedded
+    ? BOARD_ANALYTICS_PERMISSIONS.map(permission => permission.action)
+    : boardAnalyticsTabs(userPermissions);
+  const canAccessAnalyticsTab = (tab: string) => availableAnalyticsTabs.some(allowed => allowed === tab);
+  const activeTab = canAccessAnalyticsTab(selectedTab) ? selectedTab : availableAnalyticsTabs[0];
 
   const isChairmanRole = currentUser?.role === "board_chairman";
   const hasChairmanActionPerm = userPermissions.includes("board_chairman") || userPermissions.includes("board_leadership.board_chairman");
@@ -224,6 +233,7 @@ export default function BoardDashboard({
     status: selectedStatus,
     orderType: orderTypeFilter,
   }, {
+    enabled: embedded || !isAnalyticsRoute || availableAnalyticsTabs.length > 0,
     staleTime: 0,
     placeholderData: (prev) => prev,
   });
@@ -312,8 +322,6 @@ export default function BoardDashboard({
   });
 
   // تحديد نوع الصفحات والتوجيه بناءً على المسار والصلاحيات
-  const isExecutiveRoute = !forceAnalytics && location === "/board-executive";
-  const isAnalyticsRoute = forceAnalytics || location === "/board-analytics";
 
   // إذا دخل على المسار العام /board-dashboard نحدد الصفحة حسب صلاحياته
   const isChairmanView = !forceAnalytics && (isExecutiveRoute || (!isAnalyticsRoute && data?.isChairman));
@@ -333,6 +341,17 @@ export default function BoardDashboard({
   // حساب المبالغ الكلية والطلبات المعلقة للأوامر المعتمدة من الاستجابة المباشرة
   const totalApprovedAmount = data?.chairmanData?.totalApprovedAmount || 0;
   const pendingCount = data?.chairmanData?.statusCounts?.pending_approval ?? 0;
+
+  if (!embedded && !isChairmanView && availableAnalyticsTabs.length === 0) {
+    return (
+      <DashboardLayout>
+        <div className="container py-16 text-center" dir="rtl">
+          <h1 className="text-xl font-bold">غير مصرح لك بالوصول</h1>
+          <p className="mt-3 text-muted-foreground">لا توجد تبويبات مسندة لك في لوحة الإدارة العليا.</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   const content = (
     <div className="container py-8 max-w-7xl mx-auto space-y-8 text-right" dir="rtl">
@@ -939,6 +958,7 @@ export default function BoardDashboard({
             {!hideTabs && (
               <div className="w-full" dir="rtl">
               <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto bg-slate-100/90 dark:bg-slate-800/90 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 gap-2 sm:gap-3">
+                {canAccessAnalyticsTab("mosques") && (
                 <TabsTrigger
                   value="mosques"
                   className="rounded-xl px-3 sm:px-4 py-2.5 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
@@ -946,7 +966,9 @@ export default function BoardDashboard({
                   <Building2 className="w-4 h-4 text-emerald-500 shrink-0" />
                   <span>إحصائيات المساجد</span>
                 </TabsTrigger>
+                )}
 
+                {canAccessAnalyticsTab("requests") && (
                 <TabsTrigger
                   value="requests"
                   className="rounded-xl px-3 sm:px-4 py-2.5 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
@@ -954,7 +976,9 @@ export default function BoardDashboard({
                   <FileText className="w-4 h-4 text-blue-500 shrink-0" />
                   <span>إحصائيات الطلبات</span>
                 </TabsTrigger>
+                )}
 
+                {canAccessAnalyticsTab("procurement") && (
                 <TabsTrigger
                   value="procurement"
                   className="rounded-xl px-3 sm:px-4 py-2.5 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
@@ -962,7 +986,9 @@ export default function BoardDashboard({
                   <Truck className="w-4 h-4 text-orange-500 shrink-0" />
                   <span>المشتريات والعقود</span>
                 </TabsTrigger>
+                )}
 
+                {canAccessAnalyticsTab("financials") && (
                 <TabsTrigger
                   value="financials"
                   className="rounded-xl px-3 sm:px-4 py-2.5 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
@@ -970,11 +996,13 @@ export default function BoardDashboard({
                   <Wallet className="w-4 h-4 text-amber-500 shrink-0" />
                   <span>المالية والصرف</span>
                 </TabsTrigger>
+                )}
               </TabsList>
               </div>
             )}
 
             {/* 1️⃣ تبويب إحصائيات المساجد */}
+            {canAccessAnalyticsTab("mosques") && (
             <TabsContent value="mosques" className="space-y-8 animate-in fade-in-50 duration-300">
               {!hideCards && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1147,8 +1175,10 @@ export default function BoardDashboard({
                 </Card>
               </div>
             </TabsContent>
+            )}
 
             {/* 2️⃣ تبويب إحصائيات الطلبات */}
+            {canAccessAnalyticsTab("requests") && (
             <TabsContent value="requests" className="space-y-8 animate-in fade-in-50 duration-300">
               {!hideCards && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1289,8 +1319,10 @@ export default function BoardDashboard({
                 </Card>
               </div>
             </TabsContent>
+            )}
 
             {/* 3️⃣ تبويب المشتريات والعقود والموردين */}
+            {canAccessAnalyticsTab("procurement") && (
             <TabsContent value="procurement" className="space-y-8 animate-in fade-in-50 duration-300">
               {!hideCards && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1505,8 +1537,10 @@ export default function BoardDashboard({
                 </Card>
               )}
             </TabsContent>
+            )}
 
             {/* 4️⃣ تبويب الأمور المالية والصرف */}
+            {canAccessAnalyticsTab("financials") && (
             <TabsContent value="financials" className="space-y-8 animate-in fade-in-50 duration-300">
               {!hideCards && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1683,6 +1717,7 @@ export default function BoardDashboard({
                 </Card>
               </div>
             </TabsContent>
+            )}
           </Tabs>
         )}
 

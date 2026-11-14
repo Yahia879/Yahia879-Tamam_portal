@@ -3,6 +3,8 @@ import { REQUEST_REPORT_VIEW_PERMISSIONS } from "@shared/requestReportPermission
 import { CALENDAR_ENTRY_PERMISSIONS, calendarAccess } from "@shared/calendarPermissions";
 import { REQUEST_LIST_ENTRY_PERMISSIONS, isRequestSectionPermission } from "@shared/requestPermissions";
 import { isDashboardViewerUser } from "./dashboardViewer";
+import { informationDashboardTabs } from "@shared/informationDashboardPermissions";
+import { BOARD_ANALYTICS_PERMISSION_IDS, boardAnalyticsTabs } from "@shared/boardAnalyticsPermissions";
 
 /**
  * خريطة صلاحيات المسارات (Route-Permission Map)
@@ -122,7 +124,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   // ── لوحة التحكم للمجلس ──
   "/board-dashboard": ["board_chairman", "board_member", "board_chairman_view"],
   "/board-executive": ["board_chairman", "board_chairman_view"],
-  "/board-analytics": "board_member",
+  "/board-analytics": BOARD_ANALYTICS_PERMISSION_IDS,
   "/information-dashboard": [
     "information_dashboard.digital_screen",
     "information_dashboard.mosques",
@@ -684,6 +686,12 @@ export function hasRouteAccess(
   hasCustomRole: boolean,
   user?: CustodyUser,
 ): boolean {
+  if (pathname.replace(/\/$/, "") === "/board-analytics") {
+    return boardAnalyticsTabs(userPermissions).length > 0;
+  }
+  if (pathname.replace(/\/$/, "") === "/information-dashboard") {
+    return informationDashboardTabs(userPermissions).length > 0;
+  }
   if (pathname.replace(/\/$/, "") === "/requests") {
     return REQUEST_LIST_ENTRY_PERMISSIONS.some(p => userPermissions.includes(p));
   }

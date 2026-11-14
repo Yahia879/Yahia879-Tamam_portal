@@ -8,7 +8,7 @@ import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { ROLE_LABELS } from "@shared/constants";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { isDashboardViewerUser } from "@/lib/dashboardViewer";
-import { useAnyPermission } from "@/hooks/usePermission";
+import { informationDashboardTabs, hasAllInformationDashboardTabs } from "@shared/informationDashboardPermissions";
 import { trpc } from "@/lib/trpc";
 import {
   LogOut,
@@ -50,29 +50,16 @@ export default function InformationDashboard() {
   const [, navigate] = useLocation();
   const { user, loading: isUserLoading, logout } = useAuth();
 
-  const isSuperAdmin = user?.role === "super_admin";
-  const isSystemAdmin = user?.role === "system_admin";
   const isDashboardViewer = isDashboardViewerUser(user);
   const { data: directPermissions } = trpc.permissions.getUserPermissions.useQuery(
     { userId: user?.id ?? 0 },
-    { enabled: !!user, staleTime: 5000, refetchOnWindowFocus: true, refetchOnMount: true }
+    { enabled: !!user, staleTime: 0, refetchInterval: 5000, refetchOnWindowFocus: true, refetchOnMount: true }
   );
   const permissions = directPermissions ?? user?.permissions ?? [];
 
-  const canAccessTab = (tabId: string) => {
-    if (isSuperAdmin || isSystemAdmin || permissions.includes("*")) return true;
-    return permissions.includes(`information_dashboard.${tabId}`);
-  };
-
-  const hasAnyTabPerm = [
-    "digital_screen",
-    "mosques",
-    "requests",
-    "procurement",
-    "financial"
-  ].some(tabId => canAccessTab(tabId));
-
-  const canView = isSuperAdmin || isSystemAdmin || isDashboardViewer || hasAnyTabPerm;
+  const permittedTabIds = informationDashboardTabs(permissions);
+  const canAccessTab = (tabId: string) => permittedTabIds.some(tab => tab === tabId);
+  const canView = permittedTabIds.length > 0;
   const sidebarPaths = getMenuGroupsFromPermissions(
     permissions,
     isDashboardViewer ? "dashboard_viewer" : user?.role || "",
@@ -90,7 +77,7 @@ export default function InformationDashboard() {
   };
 
   type SectionTab = "all" | "digital_screen" | "mosques" | "requests" | "procurement" | "financial";
-  const [activeTab, setActiveTab] = useState<SectionTab>(() => {
+  const [selectedTab, setActiveTab] = useState<SectionTab>(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get("tab") as SectionTab;
@@ -153,9 +140,9 @@ export default function InformationDashboard() {
   const { data: detailedDashboardConfig } = trpc.forms.getDetailedDashboardCustomizationConfig.useQuery(
     {
       userId: user?.id,
-      roleId: user?.role,
+      roleId: (user && "customRole" in user ? user.customRole?.id : undefined) || user?.role,
     },
-    { enabled: !!user }
+    { enabled: !!user, staleTime: 0, refetchInterval: 5000, refetchOnWindowFocus: true, refetchOnMount: true }
   );
 
   const enabledDetailedElementIds = useMemo(() => {
@@ -575,8 +562,8 @@ export default function InformationDashboard() {
       canAccessTab(t.id) && (!t.sectionId || isDetailedElementEnabled(t.sectionId))
     );
 
-    // إتاحة خيار "عرض شامل" تلقائياً للمصرح لهم بأكثر من قسم
-    if (permittedSections.length > 1) {
+    // العرض الشامل يتطلب إسناد صلاحيات التبويبات الخمسة.
+    if (hasAllInformationDashboardTabs(permittedTabIds) && permittedSections.length > 0) {
       return [
         { id: "all" as const, label: "عرض شامل", icon: LayoutGrid, color: "text-primary", badge: "الكل", sectionId: null },
         ...permittedSections,
@@ -584,16 +571,20 @@ export default function InformationDashboard() {
     }
 
     return permittedSections;
-  }, [detailedDashboardConfig, enabledDetailedElementIds, permissions, canView, isSuperAdmin, isSystemAdmin]);
+  }, [detailedDashboardConfig, enabledDetailedElementIds, permissions]);
+
+  // Resolve immediately so a revoked or URL-selected tab cannot render for one frame.
+  const activeTab = availableTabs.some(tab => tab.id === selectedTab)
+    ? selectedTab : availableTabs[0]?.id;
 
   useEffect(() => {
     if (availableTabs.length > 0) {
-      const isCurrentTabAvailable = availableTabs.some((t) => t.id === activeTab);
+      const isCurrentTabAvailable = availableTabs.some((t) => t.id === selectedTab);
       if (!isCurrentTabAvailable) {
-        setActiveTab(availableTabs[0].id);
+        handleTabChange(availableTabs[0].id);
       }
     }
-  }, [availableTabs, activeTab]);
+  }, [availableTabs, selectedTab]);
 
   // التحقق من الصلاحية
   if (!isUserLoading && user && (!canView || availableTabs.length === 0)) {

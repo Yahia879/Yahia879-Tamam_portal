@@ -1,3 +1,4 @@
+import { BOARD_ANALYTICS_PERMISSIONS } from "@shared/boardAnalyticsPermissions";
 import { MOSQUE_PERMISSIONS } from "@shared/mosquePermissions";
 import { BENEFICIARY_PERMISSIONS } from "@shared/beneficiaryPermissions";
 import { useLinkedPermissionConfirmation } from "@/components/permissions/useLinkedPermissionConfirmation";
@@ -82,6 +83,12 @@ const superAdminGroups = [
         icon: LayoutDashboard,
         perms: ["digital_screen", "mosques", "requests", "procurement", "financial"]
       },
+        {
+          id: "board_analytics",
+          nameAr: "لوحة الإدارة العليا",
+          icon: LayoutDashboard,
+          perms: BOARD_ANALYTICS_PERMISSIONS.map(permission => permission.action),
+        },
       {
         id: "board_leadership",
         nameAr: "مجلس الإدارة والقيادة العليا",
@@ -459,6 +466,7 @@ const superAdminGroups = [
 
 const getDescriptiveLabel = (moduleId: string, action: string) => {
   const mapping: Record<string, Record<string, string>> = {
+      board_analytics: Object.fromEntries(BOARD_ANALYTICS_PERMISSIONS.map(permission => [permission.action, permission.nameAr])),
     information_dashboard: {
       digital_screen: "الشاشة الرقمية",
       mosques: "المساجد والتغطية",

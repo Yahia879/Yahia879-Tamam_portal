@@ -44,7 +44,7 @@ describe("dashboard viewer routes", () => {
     expect(isDashboardViewerUser({ role: "financial", customRole: { nameAr: "الإدارة المالية" } })).toBe(false);
   });
   it("uses the information dashboard as its home and blocks the administrative dashboard", () => {
-    const permissions = ["information_dashboard.view", "dashboard", "*"];
+    const permissions = ["information_dashboard.digital_screen", "dashboard", "*"];
     expect(getUserHomeRoute({ role: "dashboard_viewer", permissions })).toBe("/information-dashboard");
     expect(hasRouteAccess("/dashboard", "dashboard_viewer", permissions, false)).toBe(false);
     expect(hasRouteAccess("/dashboard/", "dashboard_viewer", permissions, false)).toBe(false);
