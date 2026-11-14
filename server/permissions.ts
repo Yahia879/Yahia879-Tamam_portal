@@ -479,7 +479,7 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   "sedana_quotations.approve": ["sedana_quotations.approve", "sedana_quotations.view"],
 
-  progress_reports: ["progress_reports.view", "progress_reports.add", "progress_reports.edit", "progress_reports.approve", "progress_reports.revoke_approval", "progress_reports.exception_approve"],
+  progress_reports: ["progress_reports.view", "progress_reports.add", "progress_reports.edit", "progress_reports.approve", "progress_reports.revoke_approval", "progress_reports.exception_approve", "progress_reports.view_revoke_reason"],
 
   progress_invoices: ["progress_invoices.view", "progress_invoices.add", "progress_invoices.edit", "progress_invoices.approve", "progress_invoices.revoke_approval", "progress_invoices.exception_approve"],
 
@@ -1220,6 +1220,8 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
   "progress_reports.revoke_approval": ["progress_reports.revoke_approval", "progress_reports.view"],
 
   "progress_reports.exception_approve": ["progress_reports.exception_approve", "progress_reports.view"],
+
+  "progress_reports.view_revoke_reason": ["progress_reports.view_revoke_reason", "progress_reports.view"],
 
 
 
@@ -3188,6 +3190,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "progress_reports.revoke_approval", moduleId: "reports", action: "revoke_approval", nameAr: "إلغاء الاعتماد", nameEn: "Revoke Approval of Progress Reports" },
 
       { id: "progress_reports.exception_approve", moduleId: "reports", action: "exception_approve", nameAr: "استثناء اعتماد مدير المشروع", nameEn: "Exception Approve Progress Reports" },
+
+      { id: "progress_reports.view_revoke_reason", moduleId: "reports", action: "view_revoke_reason", nameAr: "عرض سبب إلغاء الاعتماد", nameEn: "View Approval Revocation Reason" },
 
       { id: "progress_invoices.view", moduleId: "reports", action: "view", nameAr: "عرض المستخلصات", nameEn: "View Progress Invoices" },
 
@@ -6101,7 +6105,9 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
     allPermissions.has("progress_reports.revoke_approval") ||
 
-    allPermissions.has("progress_reports.exception_approve")
+    allPermissions.has("progress_reports.exception_approve") ||
+
+    allPermissions.has("progress_reports.view_revoke_reason")
 
   ) {
 
