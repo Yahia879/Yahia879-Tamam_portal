@@ -4,6 +4,7 @@ import { BENEFICIARY_MANAGEMENT_REQUIREMENT_IDS, REQUEST_MANAGEMENT_REQUIREMENTS
 import { REQUEST_REPORT_PERMISSION_IDS } from "../shared/requestReportPermissions";
 import { CALENDAR_MANAGEMENT_PERMISSION_IDS } from "../shared/calendarPermissions";
 import { BOARD_ANALYTICS_PERMISSION_IDS } from "../shared/boardAnalyticsPermissions";
+import { PROGRESS_INVOICE_PERMISSION_IDS } from "../shared/progressInvoicePermissions";
 
 // Exercise page handlers and confirmation dialogs without a browser or DOM.
 const state = vi.hoisted(() => ({ slots: [] as any[], cursor: 0, effects: [] as (() => void)[], dirty: false, data: {} as Record<string, any> }));
@@ -107,6 +108,18 @@ function decide(tree: React.ReactNode, confirm: boolean) {
 }
 
 describe.each(["RoleEdit", "RolePermissions", "UserPermissions"])("linked permission confirmation on %s", page => {
+  it.each(PROGRESS_INVOICE_PERMISSION_IDS.filter(permission => permission !== "progress_invoices.view"))("honors independent administrator selection and view revocation for %s", id => {
+    const selected = ["progress_invoices.view"];
+    state.data["permissions.getRolePermissions"] = selected;
+    state.data["permissions.getUserRolePermissions"] = selected;
+    state.data["permissions.getUserPermissions"] = selected;
+    let tree = render(page);
+    expect(checked(tree, id)).toBe(false);
+    row(tree, id).props.onClick(); tree = render(page);
+    expect(checked(tree, id)).toBe(true);
+    row(tree, "progress_invoices.view").props.onClick(); tree = render(page);
+    expect(checked(tree, id)).toBe(false);
+  });
   it.each(BOARD_ANALYTICS_PERMISSION_IDS)("offers independent administrator checkboxes for %s", id => {
     let tree = render(page);
     expect(checked(tree, id)).toBe(false);

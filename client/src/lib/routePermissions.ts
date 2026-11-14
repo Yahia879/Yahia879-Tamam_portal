@@ -272,7 +272,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
 
   // ── تقارير الإنجاز والمشاريع والمستخلصات ──
   "/progress-reports": ["progress_reports", "progress_reports.view"],
-  "/progress-invoices": ["progress_invoices", "progress_invoices.view"],
+  "/progress-invoices": "progress_invoices.view",
   "/milestones/new": ["projects", "contracts", "progress_reports", "progress_invoices", "projects.view_details"],
   "/project-reports": ["project_reports", "project_reports.view", "project_reports.create", "progress_reports", "progress_reports.view", "reports.view"],
   "/project-reports/new": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],
@@ -686,6 +686,9 @@ export function hasRouteAccess(
   hasCustomRole: boolean,
   user?: CustodyUser,
 ): boolean {
+  if (pathname.replace(/\/$/, "") === "/progress-invoices") {
+    return userPermissions.includes("progress_invoices.view");
+  }
   if (pathname.replace(/\/$/, "") === "/board-analytics") {
     return boardAnalyticsTabs(userPermissions).length > 0;
   }

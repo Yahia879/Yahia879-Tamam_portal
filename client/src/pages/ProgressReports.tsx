@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { uploadReportAttachments, type ReportAttachment, type ReportUploadProgress } from "@/lib/reportAttachments";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
+import { isProgressInvoice, progressInvoiceAccess } from "@shared/progressInvoicePermissions";
 import DashboardLayout from "@/components/DashboardLayout";
 import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
@@ -418,11 +419,16 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   const hasReportRevokeApprovalPermission = usePermission("progress_reports.revoke_approval");
   const hasReportViewRevokeReasonPermission = usePermission("progress_reports.view_revoke_reason");
 
-  const hasInvoiceAddPermission = usePermission("progress_invoices.add");
-  const hasInvoiceEditPermission = usePermission("progress_invoices.edit");
-  const hasInvoiceApprovePermission = usePermission("progress_invoices.approve");
-  const hasInvoiceExceptionApprove = usePermission("progress_invoices.exception_approve");
-  const hasInvoiceRevokeApprovalPermission = usePermission("progress_invoices.revoke_approval");
+  const { data: liveInvoicePermissions } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user, staleTime: 0, refetchInterval: 5000, refetchOnMount: true, refetchOnWindowFocus: true },
+  );
+  const invoiceAccess = progressInvoiceAccess(liveInvoicePermissions ?? user?.permissions ?? []);
+  const hasInvoiceAddPermission = invoiceAccess.canAdd;
+  const hasInvoiceEditPermission = invoiceAccess.canEdit;
+  const hasInvoiceApprovePermission = invoiceAccess.canApprove;
+  const hasInvoiceExceptionApprove = invoiceAccess.canExceptionApprove;
+  const hasInvoiceRevokeApprovalPermission = invoiceAccess.canRevoke;
 
   const canCreateReport = isInvoiceMode ? hasInvoiceAddPermission : hasReportAddPermission;
   const canEditReport = isInvoiceMode ? hasInvoiceEditPermission : hasReportEditPermission;
@@ -437,20 +443,16 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
   const canReviewReportItem = (item?: any) => {
     const inv = item ? isInvoiceReport(item) : isInvoiceMode;
-    return inv
-      ? Boolean(hasInvoiceApprovePermission || hasReportApprovePermission)
-      : Boolean(hasReportApprovePermission || hasInvoiceApprovePermission);
+    return inv ? hasInvoiceApprovePermission : hasReportApprovePermission;
   };
 
   const canExceptionApproveItem = (item?: any) => {
-    return Boolean(hasInvoiceExceptionApprove || hasReportExceptionApprove);
+    return (item ? isInvoiceReport(item) : isInvoiceMode) ? hasInvoiceExceptionApprove : hasReportExceptionApprove;
   };
 
   const canRevokeApprovalItem = (item?: any) => {
     const inv = item ? isInvoiceReport(item) : isInvoiceMode;
-    return inv
-      ? Boolean(hasInvoiceRevokeApprovalPermission || hasReportRevokeApprovalPermission)
-      : Boolean(hasReportRevokeApprovalPermission || hasInvoiceRevokeApprovalPermission);
+    return inv ? hasInvoiceRevokeApprovalPermission : hasReportRevokeApprovalPermission;
   };
 
   const canViewRevokeReasonItem = (item?: any) => {
@@ -595,13 +597,17 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   };
 
   // استعلام لكافة تقارير الإنجاز لحساب الإحصائيات العامة بشكل دائم
-  const { data: allReportsData, refetch: refetchAllReports } = trpc.progressReports.list.useQuery();
+  const { data: allReportsData, refetch: refetchAllReports } = trpc.progressReports.list.useQuery(
+    isInvoiceMode ? { kind: "invoice" } : undefined,
+    { enabled: !isInvoiceMode || invoiceAccess.canView },
+  );
 
   // استعلام تقارير الإنجاز المفلترة والمبحوثة من الـ backend
   const { data: reportsData, refetch: refetchReports } = trpc.progressReports.list.useQuery({
+    kind: isInvoiceMode ? "invoice" : undefined,
     status: statusFilter !== "all" ? statusFilter as any : undefined,
     search: searchTerm ? searchTerm : undefined,
-  });
+  }, { enabled: !isInvoiceMode || invoiceAccess.canView });
 
   // استعلام طلبات الصرف للتحقق من التقارير المحولة
   const { data: disbursementRequestsData, refetch: refetchDisbursementRequests } = trpc.disbursements.listRequests.useQuery({
@@ -629,13 +635,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
   const isInvoiceReport = (r: any) => {
     if (!r) return isInvoiceMode;
-    const ws = r.workSummary || "";
-    const title = (r.title || "").toLowerCase();
-    return Boolean(
-      ws.includes("[نوع: مستخلص") ||
-      ws.includes("[معرف المستخلص:") ||
-      title.includes("مستخلص")
-    );
+    return isProgressInvoice(r);
   };
 
   const cleanDisplayWorkSummary = (summary?: string | null) => {
@@ -1721,7 +1721,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     if (!user || !report) return false;
     
     // بالنسبة للـ super admin: المستخلصات والتقارير التي بحاجة لاعتماد تتلون بالأخضر دائماً
-    if (isSuperAdmin && (report.status === "pending" || report.status === "submitted" || report.status === "draft" || report.status === "pending_executive")) {
+    if (isSuperAdmin && !isInvoiceReport(report) && (report.status === "pending" || report.status === "submitted" || report.status === "draft" || report.status === "pending_executive")) {
       return true;
     }
     
@@ -1751,6 +1751,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   });
   const total = sortedReports.length;
   const totalPages = Math.ceil(total / limit);
+  const showActionsColumn = !isInvoiceMode || invoiceAccess.hasActions;
   const paginatedReports = sortedReports.slice((page - 1) * limit, page * limit);
 
   const handlePageChange = (newPage: number) => {
@@ -1805,6 +1806,11 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
       )}
     </>
   );
+
+  if (isInvoiceMode && (!invoiceAccess.canView ||
+      (activeTab === "create-invoice" && !(editingReportId ? invoiceAccess.canEdit : invoiceAccess.canAdd)))) {
+    return <DashboardLayout><div className="py-16 text-center" dir="rtl">غير مصرح لك بالوصول إلى هذا الإجراء في المستخلصات</div></DashboardLayout>;
+  }
 
   if (activeTab === "create" || activeTab === "edit") {
     const formContent = (
@@ -2685,7 +2691,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold"
               >
                 <Plus className="w-4 h-4 ml-2" />
-                إنشاء مستخلص جديد
+                إضافة مستخلص
               </Button>
             ) : (
               <Button onClick={() => setActiveTab("create")}>
@@ -2779,13 +2785,13 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
             {filteredReports.length > 0 ? (
               <div>
                 {/* Table Header (Desktop Only) */}
-                <div className="hidden md:grid grid-cols-[auto_1.2fr_1fr_1fr_1fr_auto] gap-4 px-5 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right">
+                <div className={`hidden md:grid ${showActionsColumn ? "grid-cols-[auto_1.2fr_1fr_1fr_1fr_auto]" : "grid-cols-[auto_1.2fr_1fr_1fr_1fr]"} gap-4 px-5 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right`}>
                   <div className="w-10"></div>
                   <div>{mainViewTab === "invoices" ? "المستخلص" : "التقرير"}</div>
                   <div>{mainViewTab === "invoices" ? "المشروع والعقد" : "المشروع"}</div>
                   <div>نسبة الإنجاز</div>
                   <div>الحالة</div>
-                  <div className="w-20 text-center">الإجراءات</div>
+                  {showActionsColumn && <div className="w-20 text-center">الإجراءات</div>}
                 </div>
 
                 {/* Rows / Cards */}
@@ -2803,6 +2809,13 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                     const contractNumMatch = (report.workSummary || "").match(/\[رقم العقد:\s*([^\]]+)\]/);
                     const contractNumberText = contractNumMatch ? contractNumMatch[1] : null;
 
+                    const hasRowActions = !isInv || (
+                      (canEditItem(report) && !isReportConverted(report) && !isDisbursementApproved(report) && ["draft", "pending", "submitted"].includes(report.status)) ||
+                      (canReviewReportItem(report) && ((["draft", "pending", "submitted"].includes(report.status) && isProjectManager) || (report.status === "pending_executive" && isExecutiveDirector))) ||
+                      (canRevokeApprovalItem(report) && report.status === "approved") ||
+                      (canExceptionApproveItem(report) && !isProjectManager && ["draft", "pending", "submitted"].includes(report.status))
+                    );
+
                     const renderDropdownContent = () => (
                       <DropdownMenuContent align="end" className="w-56 text-right font-medium bg-background border border-border shadow-md rounded-lg p-1 z-50">
                         {/* عرض التقرير أو المستخلص PDF */}
@@ -2816,18 +2829,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                           <span>{isInv ? "عرض المستخلص PDF" : "عرض تقرير الإنجاز"}</span>
                         </DropdownMenuItem>
 
-                        {/* إنشاء طلب صرف للمستخلص إذا كان معتمداً */}
-                        {isInv && report.status === "approved" && (
-                          <DropdownMenuItem
-                            onClick={() => {
-                              navigate(`/disbursements/new?reportId=${report.id}`);
-                            }}
-                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md transition-colors text-emerald-700 font-bold"
-                          >
-                            <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>إنشاء طلب صرف للمستخلص</span>
-                          </DropdownMenuItem>
-                        )}
+
 
                         {/* تعديل التقرير أو المستخلص */}
                         {!isReportConverted(report) && report.status !== "pending_executive" && report.status !== "approved" && report.status !== "revoked" && report.status !== "rejected" && !isDisbursementApproved(report) && canEditItem(report) && (
@@ -2940,7 +2942,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                               className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors text-rose-600"
                             >
                               <XCircle className="w-3.5 h-3.5 text-rose-500" />
-                              <span>{isInv ? "إلغاء المستخلص" : "إلغاء تقرير الإنجاز"}</span>
+                              <span>{isInv ? "رفض المستخلص" : "إلغاء تقرير الإنجاز"}</span>
                             </DropdownMenuItem>
                           </>
                         )}
@@ -2969,7 +2971,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                               className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors text-rose-600"
                             >
                               <XCircle className="w-3.5 h-3.5 text-rose-500" />
-                              <span>{isInv ? "إلغاء المستخلص" : "إلغاء تقرير الإنجاز"}</span>
+                              <span>{isInv ? "رفض المستخلص" : "إلغاء تقرير الإنجاز"}</span>
                             </DropdownMenuItem>
                           </>
                         )}
@@ -2979,7 +2981,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                     return (
                       <div
                         key={report.id}
-                        className={`grid grid-cols-1 md:grid-cols-[auto_1.2fr_1fr_1fr_1fr_auto] gap-3 md:gap-4 px-5 py-4 hover:bg-muted/30 transition-all cursor-pointer items-center text-right ${
+                        className={`grid grid-cols-1 ${showActionsColumn ? "md:grid-cols-[auto_1.2fr_1fr_1fr_1fr_auto]" : "md:grid-cols-[auto_1.2fr_1fr_1fr_1fr]"} gap-3 md:gap-4 px-5 py-4 hover:bg-muted/30 transition-all cursor-pointer items-center text-right ${
                           isPendingMyAction ? "bg-emerald-100/75 dark:bg-emerald-950/60 hover:bg-emerald-200/70 dark:hover:bg-emerald-900/70 border-r-4 border-r-emerald-700 dark:border-r-emerald-400 shadow-xs" : ""
                         }`}
                         onClick={() => handleViewDetails(report)}
@@ -3065,6 +3067,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                             </div>
                           </div>
                           <div className="text-left md:text-right shrink-0 md:mt-1 flex items-center gap-1">
+                            {showActionsColumn && hasRowActions && (
                             <div className="md:hidden" onClick={(e) => e.stopPropagation()}>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -3079,6 +3082,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                                 {renderDropdownContent()}
                               </DropdownMenu>
                             </div>
+                        )}
                             <p className="text-[10px] md:text-xs text-muted-foreground">
                               {new Date(report.reportDate).toLocaleDateString("ar-SA")}
                             </p>
@@ -3139,6 +3143,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                         </div>
 
                         {/* Actions (Desktop Only) */}
+                        {showActionsColumn && hasRowActions && (
                         <div className="hidden md:flex justify-center" onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -3153,6 +3158,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                             {renderDropdownContent()}
                           </DropdownMenu>
                         </div>
+                        )}
                       </div>
                     );
                   })}
@@ -3353,8 +3359,8 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 </Button>
               )}
 
-              {/* زر إنشاء طلب صرف للمستخلص أو التقرير المعتمد */}
-              {selectedReport && selectedReport.status === "approved" && (
+              {/* تحويل تقرير الإنجاز المعتمد إلى طلب صرف */}
+              {selectedReport && !isInvoiceReport(selectedReport) && selectedReport.status === "approved" && (
                 <Button
                   onClick={() => {
                     setShowDetailsDialog(false);
@@ -3363,7 +3369,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold gap-1.5"
                 >
                   <CreditCard className="w-4 h-4 ml-1" />
-                  {isInvoiceReport(selectedReport) ? "إنشاء طلب صرف للمستخلص" : "تحويل إلى طلب صرف"}
+                  تحويل إلى طلب صرف
                 </Button>
               )}
               
