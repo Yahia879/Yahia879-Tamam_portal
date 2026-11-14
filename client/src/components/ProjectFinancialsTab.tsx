@@ -489,8 +489,10 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
   // صافي حصة المورد بعد استقطاع حصة الجمعية (لا تنجمع مع قيمة المورد بل تستقطع منها)
   const supplierNetShare = Math.max(0, supplierBaseAmount - calculatedAdminFeeAmount);
-  // إجمالي التكلفة الكلية للمشروع يطابق دائماً القيمة المتفق عليها
-  const totalRequiredCost = supplierBaseAmount;
+  // إجمالي مبالغ أوامر التغيير للمشروع
+  const changeOrdersTotal = typeof (data as any)?.changeOrdersTotal === "number" ? (data as any).changeOrdersTotal : 0;
+  // إجمالي التكلفة الكلية للمشروع تشمل القيمة المتفق عليها مع المورد + إجمالي أوامر التغيير المطلوب دعمها
+  const totalRequiredCost = supplierBaseAmount + changeOrdersTotal;
 
   const currentSupportAmount = validSupportSources.reduce((sum, s) => sum + (s.amount || 0), 0) || supportAmount || 0;
   const coverageDifference = currentSupportAmount - totalRequiredCost;
@@ -779,7 +781,10 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
               </div>
               <p className="text-sm text-gray-700 mt-2">
                 {isVouchersFullyCovered 
-                  ? "إجمالي مبالغ سندات القبض المعتمدة كافٍ لتغطية التكلفة الكلية للمشروع (شاملة حصة المورد والأجور الإدارية للجمعية)."
+                  ? (changeOrdersTotal > 0
+                      ? "إجمالي مبالغ سندات القبض المعتمدة كافٍ لتغطية التكلفة الكلية للمشروع (شاملة حصة المورد والأجور الإدارية وأوامر التغيير)."
+                      : "إجمالي مبالغ سندات القبض المعتمدة كافٍ لتغطية التكلفة الكلية للمشروع (شاملة حصة المورد والأجور الإدارية للجمعية)."
+                    )
                   : (
                     <span className="inline-flex items-center flex-wrap gap-1">
                       <span>تنبيه: يوجد عجز في تحصيل دفعات المشروع بمقدار ({Math.abs(vouchersCoverageDifference).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
@@ -792,7 +797,13 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
             </div>
 
             {/* Visual Formula summary */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 bg-white/80 p-3 rounded-lg border text-xs shadow-xs w-full md:w-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 bg-white/80 p-3 rounded-lg border text-xs shadow-xs w-full md:w-auto">
+              <div className="text-center p-2 border-r last:border-r-0 bg-blue-50/40 rounded-sm">
+                <span className="text-muted-foreground block">مبلغ أوامر التغيير</span>
+                <span className="font-bold text-indigo-700 text-sm mt-0.5 inline-block font-sans">
+                  {changeOrdersTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
               <div className="text-center p-2 border-r last:border-r-0">
                 <span className="text-muted-foreground block">مبلغ المورد (الصافي)</span>
                 <span className="font-bold text-gray-900 text-sm mt-0.5 inline-block font-sans">
@@ -817,7 +828,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   {currentSupportAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
-              <div className="text-center p-2 bg-emerald-50/60 rounded-sm border border-emerald-200/60 col-span-2 sm:col-span-1">
+              <div className="text-center p-2 bg-emerald-50/60 rounded-sm border border-emerald-200/60">
                 <span className="text-muted-foreground block font-semibold text-emerald-950">إجمالي الدعم المقبوض</span>
                 <span className={`font-bold text-sm mt-0.5 inline-block font-sans ${isVouchersFullyCovered ? "text-green-700" : "text-amber-700"}`}>
                   {vouchersTotalReceived.toLocaleString("en-US", { minimumFractionDigits: 2 })}
@@ -1196,6 +1207,14 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                       {supplierNetShare.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                     </span>
                   </div>
+                  {changeOrdersTotal > 0 && (
+                    <div className="flex items-center justify-between border-t border-indigo-200/60 pt-2 text-[11px]">
+                      <span className="text-muted-foreground">إجمالي مبالغ أوامر التغيير المضافة:</span>
+                      <span className="font-bold text-indigo-700 font-sans inline-flex items-center gap-1">
+                        {changeOrdersTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {financialNotes && (

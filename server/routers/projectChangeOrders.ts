@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { asc, desc, eq, sql } from "drizzle-orm";
+import { asc, desc, eq, or, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
@@ -50,9 +50,16 @@ async function authorizeView(userId: number) {
   });
 }
 
-function creationSurplus(projectSurplus: number, fundSpendable: number, unrequestedTotal: number) {
+function creationSurplus(
+  projectSurplus: number,
+  fundSpendable: number,
+  unrequestedTotal: number
+) {
   // Fund cash can cover existing orders, but cannot fund a new order's creation.
-  const unfundedOrders = Math.max(0, unrequestedTotal - Math.max(0, fundSpendable));
+  const unfundedOrders = Math.max(
+    0,
+    unrequestedTotal - Math.max(0, fundSpendable)
+  );
   return Math.max(0, money(projectSurplus - unfundedOrders));
 }
 
@@ -80,24 +87,28 @@ export const projectChangeOrdersRouter = router({
         .where(eq(projectChangeOrders.projectId, input.projectId))
         .orderBy(desc(projectChangeOrders.id));
 
-      const orders = rows.map(({ order, requestStatus, requestNumber, approverName }) => {
-        let computedStatus = order.status || "pending_boq";
-        if (order.disbursementRequestId && requestStatus) {
-          if (requestStatus === "paid") computedStatus = "paid";
-          else if (requestStatus === "approved") computedStatus = "approved";
-          else if (requestStatus === "rejected") computedStatus = "rejected";
-          else computedStatus = "disbursement_created";
-        }
+      const orders = rows.map(
+        ({ order, requestStatus, requestNumber, approverName }) => {
+          let computedStatus = order.status || "pending_boq";
+          if (order.disbursementRequestId && requestStatus) {
+            if (requestStatus === "paid") computedStatus = "paid";
+            else if (requestStatus === "approved") computedStatus = "approved";
+            else if (requestStatus === "rejected") computedStatus = "rejected";
+            else computedStatus = "disbursement_created";
+          }
 
-        return {
-          ...order,
-          status: computedStatus,
-          requestStatus,
-          requestNumber,
-          approverName,
-          items: (order.itemsJson ? JSON.parse(order.itemsJson) : []) as PricedChangeOrderItem[],
-        };
-      });
+          return {
+            ...order,
+            status: computedStatus,
+            requestStatus,
+            requestNumber,
+            approverName,
+            items: (order.itemsJson
+              ? JSON.parse(order.itemsJson)
+              : []) as PricedChangeOrderItem[],
+          };
+        }
+      );
 
       const activeTotal = money(
         orders
@@ -107,7 +118,9 @@ export const projectChangeOrdersRouter = router({
 
       const unrequestedActiveTotal = money(
         orders
-          .filter(order => order.status !== "rejected" && !order.disbursementRequestId)
+          .filter(
+            order => order.status !== "rejected" && !order.disbursementRequestId
+          )
           .reduce((sum, order) => sum + Number(order.amount), 0)
       );
 
@@ -123,7 +136,11 @@ export const projectChangeOrdersRouter = router({
           pendingTransfer: available.changeOrderAvailable,
           projectSurplus: available.surplusAvailable,
           fundSurplus: Math.max(0, fund.spendable),
-          available: creationSurplus(available.surplusAvailable, fund.spendable, unrequestedActiveTotal),
+          available: creationSurplus(
+            available.surplusAvailable,
+            fund.spendable,
+            unrequestedActiveTotal
+          ),
           originalProjectCost: Number(
             orders.at(-1)?.originalProjectCost || available.projectCost
           ),
@@ -132,6 +149,30 @@ export const projectChangeOrdersRouter = router({
         if (!(error instanceof TRPCError) || error.code !== "BAD_REQUEST")
           throw error;
         fundingError = error.message;
+      }
+
+      if (!funding?.originalProjectCost) {
+        const [projectRow] = await db
+          .select({ budget: projects.budget, actualCost: projects.actualCost })
+          .from(projects)
+          .where(eq(projects.id, input.projectId))
+          .limit(1);
+        if (projectRow) {
+          const fallbackCost = Number(
+            projectRow.budget || projectRow.actualCost || 0
+          );
+          if (funding) {
+            funding.originalProjectCost = fallbackCost;
+          } else {
+            funding = {
+              pendingTransfer: 0,
+              projectSurplus: 0,
+              fundSurplus: 0,
+              available: 0,
+              originalProjectCost: fallbackCost,
+            };
+          }
+        }
       }
 
       return {
@@ -180,11 +221,17 @@ export const projectChangeOrdersRouter = router({
           .limit(1);
 
         if (!project) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "المشروع غير موجود" });
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "المشروع غير موجود",
+          });
         }
 
         if (project.programType === "sedana") {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "أوامر التغيير غير متاحة لمشاريع سدانة" });
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "أوامر التغيير غير متاحة لمشاريع سدانة",
+          });
         }
 
         if (["completed", "cancelled"].includes(project.status || "")) {
@@ -202,7 +249,10 @@ export const projectChangeOrdersRouter = router({
             .limit(1);
 
           if (request?.programType === "sedana") {
-            throw new TRPCError({ code: "BAD_REQUEST", message: "أوامر التغيير غير متاحة لمشاريع سدانة" });
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "أوامر التغيير غير متاحة لمشاريع سدانة",
+            });
           }
 
           if (
@@ -212,16 +262,18 @@ export const projectChangeOrdersRouter = router({
           ) {
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: "لا يمكن إضافة أمر تغيير بعد إغلاق الطلب المرتبط بالمشروع",
+              message:
+                "لا يمكن إضافة أمر تغيير بعد إغلاق الطلب المرتبط بالمشروع",
             });
           }
         }
 
-        const available = await getProjectFundableAmounts(tx, input.projectId);
-        const fund = await getFundAvailable(tx, {
-          restrictionType: "project",
-          restrictedProjectId: input.projectId,
-        });
+        let available: any = null;
+        try {
+          available = await getProjectFundableAmounts(tx, input.projectId);
+        } catch {
+          available = null;
+        }
 
         const existingOrders = await tx
           .select()
@@ -229,31 +281,21 @@ export const projectChangeOrdersRouter = router({
           .where(eq(projectChangeOrders.projectId, input.projectId))
           .orderBy(asc(projectChangeOrders.id));
 
-        const unrequestedActiveTotal = money(
-          existingOrders
-            .filter(
-              (order: any) =>
-                order.status !== "rejected" && !order.disbursementRequestId
-            )
-            .reduce((sum: number, order: any) => sum + Number(order.amount || 0), 0)
-        );
-
-        const availableSurplus = creationSurplus(available.surplusAvailable, fund.spendable, unrequestedActiveTotal);
-
-        if (
-          priced.total <= 0 ||
-          Math.round(priced.total * 100) > Math.round(availableSurplus * 100)
-        ) {
+        if (priced.total <= 0) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: `لا يمكن إضافة أمر تغيير بقيمة (${priced.total.toFixed(2)} ريال) تتجاوز الفائض المتاح للمشروع (${availableSurplus.toFixed(2)} ريال)`,
+            message: "يجب أن تكون قيمة أمر التغيير أكبر من صفر",
           });
         }
 
         const firstOrder = existingOrders[0];
 
         const originalProjectCost = Number(
-          firstOrder?.originalProjectCost || available.projectCost
+          firstOrder?.originalProjectCost ||
+            available?.projectCost ||
+            project.budget ||
+            project.actualCost ||
+            0
         );
 
         const percentage = changeOrderPercentage(
@@ -262,8 +304,10 @@ export const projectChangeOrdersRouter = router({
         );
 
         // توليد رقم تسلسلي لأمر التغيير
-        const orderSeq = (existingOrders.length + 1).toString().padStart(3, "0");
-        const orderNumber = `CO-${project.projectNumber || 'PRJ' + input.projectId}-${orderSeq}`;
+        const orderSeq = (existingOrders.length + 1)
+          .toString()
+          .padStart(3, "0");
+        const orderNumber = `CO-${project.projectNumber || "PRJ" + input.projectId}-${orderSeq}`;
 
         const [inserted] = await tx.insert(projectChangeOrders).values({
           orderNumber,
@@ -304,11 +348,68 @@ export const projectChangeOrdersRouter = router({
           });
         }
 
-        // تحديث القسم المسؤول في الطلب آلياً
+        // تحديث ميزانية وتكلفة المشروع لتزداد بقيمة أمر التغيير
+        const [boqSumRow] = await tx
+          .select({
+            total: sql<string>`COALESCE(SUM(CAST(${quantitySchedules.totalPrice} AS DECIMAL(15,2))), 0)`,
+          })
+          .from(quantitySchedules)
+          .where(
+            project.requestId
+              ? or(
+                  eq(quantitySchedules.projectId, input.projectId),
+                  eq(quantitySchedules.requestId, project.requestId)
+                )
+              : eq(quantitySchedules.projectId, input.projectId)
+          );
+
+        const calculatedBoqTotal = boqSumRow?.total
+          ? Number(boqSumRow.total)
+          : 0;
+        const currentBudget = Number(project.budget || 0);
+        const updatedBudget =
+          currentBudget > 0
+            ? (currentBudget + priced.total).toFixed(2)
+            : calculatedBoqTotal > 0
+              ? calculatedBoqTotal.toFixed(2)
+              : priced.total.toFixed(2);
+
+        const currentActualCost = Number(project.actualCost || 0);
+        const updatedActualCost =
+          currentActualCost > 0
+            ? (currentActualCost + priced.total).toFixed(2)
+            : calculatedBoqTotal > 0
+              ? calculatedBoqTotal.toFixed(2)
+              : priced.total.toFixed(2);
+
+        await tx
+          .update(projects)
+          .set({
+            budget: updatedBudget,
+            actualCost: updatedActualCost,
+            updatedAt: new Date(),
+          })
+          .where(eq(projects.id, input.projectId));
+
+        // تحديث القسم المسؤول والميزانية المعتمدة في الطلب آلياً
         if (project.requestId) {
+          const [currentReq] = await tx
+            .select({ approvedBudget: mosqueRequests.approvedBudget })
+            .from(mosqueRequests)
+            .where(eq(mosqueRequests.id, project.requestId))
+            .limit(1);
+
+          const currentReqBudget = Number(currentReq?.approvedBudget || 0);
           await tx
             .update(mosqueRequests)
             .set({
+              ...(currentReqBudget > 0
+                ? {
+                    approvedBudget: (currentReqBudget + priced.total).toFixed(
+                      2
+                    ),
+                  }
+                : {}),
               currentResponsibleDepartment: "الإدارة المالية والصندوق",
             })
             .where(eq(mosqueRequests.id, project.requestId));
@@ -359,7 +460,8 @@ export const projectChangeOrdersRouter = router({
       ) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "إنشاء طلب الصرف من الصندوق يتطلب صلاحية إنشاء طلب صرف من الصندوق",
+          message:
+            "إنشاء طلب الصرف من الصندوق يتطلب صلاحية إنشاء طلب صرف من الصندوق",
         });
       }
 
@@ -373,7 +475,10 @@ export const projectChangeOrdersRouter = router({
         .limit(1);
 
       if (!order) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "أمر التغيير غير موجود" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "أمر التغيير غير موجود",
+        });
       }
 
       if (order.disbursementRequestId) {
@@ -387,11 +492,14 @@ export const projectChangeOrdersRouter = router({
       if (orderAmount <= 0) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "يجب اعتماد وتسعير بنود أمر التغيير في جدول الكميات أولاً قبل الصرف",
+          message:
+            "يجب اعتماد وتسعير بنود أمر التغيير في جدول الكميات أولاً قبل الصرف",
         });
       }
 
-      const pricedItems = JSON.parse(order.itemsJson || "[]") as PricedChangeOrderItem[];
+      const pricedItems = JSON.parse(
+        order.itemsJson || "[]"
+      ) as PricedChangeOrderItem[];
       const workDescription = pricedItems
         .map(
           item =>

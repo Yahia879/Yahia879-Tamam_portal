@@ -5,7 +5,13 @@ import {
   changeOrderPercentage,
   priceChangeOrderItems,
 } from "@shared/projectChangeOrders";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,7 +66,10 @@ const formatPercent = (value: unknown) =>
     maximumFractionDigits: 2,
   })}%`;
 
-const statusLabels: Record<string, { label: string; className: string; icon: any }> = {
+const statusLabels: Record<
+  string,
+  { label: string; className: string; icon: any }
+> = {
   pending_boq: {
     label: "معتمد في جدول الكميات",
     className: "bg-blue-50 text-blue-800 border-blue-300",
@@ -120,7 +129,8 @@ export function ProjectChangeOrdersTab({
     { enabled: projectId > 0 }
   );
 
-  const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery();
+  const { data: allCategories = [] } =
+    trpc.categories.getAllCategories.useQuery();
   const categoriesMap = useMemo(() => {
     const map: Record<string, string> = {
       construction: "أعمال إنشائية",
@@ -142,7 +152,7 @@ export function ProjectChangeOrdersTab({
   // حساب إجمالي البنود المضافة
   const pricedDraft = useMemo(() => {
     return priceChangeOrderItems(
-      items.map((item) => ({
+      items.map(item => ({
         name: item.itemName,
         description: item.itemDescription || undefined,
         unit: item.unit,
@@ -156,24 +166,14 @@ export function ProjectChangeOrdersTab({
 
   const originalCost = Number(data?.funding?.originalProjectCost || 0);
   const currentActiveTotal = Number(data?.activeTotal || 0);
-  const availableSurplus = Math.max(0, Math.min(
-    Number(data?.funding?.available || 0), Number(data?.funding?.projectSurplus || 0)
-  ));
-  const noSurplus = !isLoading && !!data?.funding && !data.fundingError && availableSurplus <= 0;
-  const creationLocked = closed || noSurplus;
-  const isExceedingSurplus =
-    pricedDraft.total > 0 &&
-    Math.round(pricedDraft.total * 100) > Math.round(availableSurplus * 100);
-  const canCreateOrder =
-    !creationLocked &&
-    !data?.fundingError &&
-    availableSurplus > 0 &&
-    !isExceedingSurplus;
+  const totalProjectValue = originalCost + currentActiveTotal;
+  const creationLocked = closed;
+  const canCreateOrder = !creationLocked && pricedDraft.total > 0;
 
   const createMutation = trpc.projectChangeOrders.create.useMutation({
-    onSuccess: async (result) => {
+    onSuccess: async result => {
       toast.success(
-        `تم اعتماد أمر التغيير (${result.orderNumber}) وإضافة البنود إلى جدول الكميات بنجاح`
+        `تم اعتماد أمر التغيير (${result.orderNumber}) وزيادة قيمة المشروع وإضافة البنود إلى جدول الكميات بنجاح`
       );
       setSubmissionKey(crypto.randomUUID());
       setTitle("");
@@ -181,7 +181,9 @@ export function ProjectChangeOrdersTab({
       setItems([]);
       await Promise.all([
         utils.projectChangeOrders.list.invalidate({ projectId }),
+        utils.projects.getById.invalidate({ id: projectId }),
         utils.projects.getBOQ.invalidate(),
+        utils.projects.getAll.invalidate(),
         utils.fund.transferableProjects.invalidate(),
         utils.fund.projectAvailability.invalidate({ projectId }),
       ]);
@@ -190,14 +192,10 @@ export function ProjectChangeOrdersTab({
         onNavigateToBoq();
       }
     },
-    onError: (error) => toast.error(error.message),
+    onError: error => toast.error(error.message),
   });
 
   const handleOpenAddItem = () => {
-    if (availableSurplus <= 0) {
-      toast.error("لا يوجد فائض متاح في المشروع لإضافة أمر تغيير");
-      return;
-    }
     setEditingItem(null);
     setBoqDialogOpen(true);
   };
@@ -217,36 +215,22 @@ export function ProjectChangeOrdersTab({
     unitPrice: number;
   }) => {
     const nextItems = editingItem
-      ? items.map((it) =>
+      ? items.map(it =>
           it.id === editingItem.id ? { ...it, ...itemData } : it
         )
       : [...items, { id: crypto.randomUUID(), ...itemData }];
 
-    const nextPriced = priceChangeOrderItems(
-      nextItems.map((it) => ({
-        name: it.itemName,
-        unit: it.unit,
-        quantity: it.quantity,
-        unitPrice: it.unitPrice,
-      }))
-    );
-
-    if (Math.round(nextPriced.total * 100) > Math.round(availableSurplus * 100)) {
-      toast.error(
-        `لا يمكن إضافة البند: إجمالي أمر التغيير (${formatMoney(nextPriced.total)} ريال) يتجاوز الفائض المتاح (${formatMoney(availableSurplus)} ريال)`
-      );
-      return;
-    }
-
     setItems(nextItems);
     toast.success(
-      editingItem ? "تم تحديث البند قبل الاعتماد" : "تم إرفاق البند بأمر التغيير"
+      editingItem
+        ? "تم تحديث البند قبل الاعتماد"
+        : "تم إرفاق البند بأمر التغيير"
     );
     setEditingItem(null);
   };
 
   const handleRemoveItem = (id: string) => {
-    setItems((prev) => prev.filter((it) => it.id !== id));
+    setItems(prev => prev.filter(it => it.id !== id));
   };
 
   const submitCreate = () => {
@@ -263,10 +247,8 @@ export function ProjectChangeOrdersTab({
       toast.error("يرجى إضافة بند واحد على الأقل لجدول الكميات");
       return;
     }
-    if (isExceedingSurplus || availableSurplus <= 0) {
-      toast.error(
-        `لا يمكن إضافة أمر تغيير بقيمة تتجاوز الفائض المتاح للمشروع (${formatMoney(availableSurplus)} ريال)`
-      );
+    if (pricedDraft.total <= 0) {
+      toast.error("يجب أن تكون قيمة أمر التغيير أكبر من صفر");
       return;
     }
 
@@ -275,7 +257,7 @@ export function ProjectChangeOrdersTab({
       submissionKey,
       title: title.trim(),
       reason: reason.trim(),
-      items: items.map((item) => ({
+      items: items.map(item => ({
         name: item.itemName.trim(),
         description: item.itemDescription?.trim() || undefined,
         unit: item.unit.trim(),
@@ -301,7 +283,7 @@ export function ProjectChangeOrdersTab({
               <SaudiRiyal className="inline h-3.5 w-3.5" />
             </p>
             <span className="text-[11px] text-muted-foreground">
-              تبقى ثابتة للمقارنة
+              القيمة الأساسية قبل أوامر التغيير
             </span>
           </CardContent>
         </Card>
@@ -321,6 +303,21 @@ export function ProjectChangeOrdersTab({
           </CardContent>
         </Card>
 
+        <Card className="border-emerald-200 bg-emerald-50/40 shadow-xs">
+          <CardContent className="p-4">
+            <span className="text-xs font-bold text-emerald-900">
+              قيمة المشروع بعد أوامر التغيير
+            </span>
+            <p className="mt-1 font-sans text-xl font-black text-emerald-950">
+              {formatMoney(totalProjectValue)}{" "}
+              <SaudiRiyal className="inline h-3.5 w-3.5" />
+            </p>
+            <span className="text-[11px] text-emerald-700">
+              القيمة الإجمالية المحدثة للمشروع
+            </span>
+          </CardContent>
+        </Card>
+
         <Card className="border-amber-200 bg-amber-50/40 shadow-xs">
           <CardContent className="p-4">
             <span className="text-xs font-bold text-amber-900">
@@ -336,21 +333,6 @@ export function ProjectChangeOrdersTab({
             </span>
           </CardContent>
         </Card>
-
-        <Card className="border-emerald-200 bg-emerald-50/40 shadow-xs">
-          <CardContent className="p-4">
-            <span className="text-xs font-bold text-emerald-900">
-              الفائض المتاح لأوامر التغيير
-            </span>
-            <p className="mt-1 font-sans text-xl font-black text-emerald-950">
-              {formatMoney(availableSurplus)}{" "}
-              <SaudiRiyal className="inline h-3.5 w-3.5" />
-            </p>
-            <span className="text-[11px] text-emerald-700">
-              الحد الأعلى المسموح به لإضافة أمر تغيير
-            </span>
-          </CardContent>
-        </Card>
       </div>
 
       {data?.fundingError && (
@@ -361,44 +343,41 @@ export function ProjectChangeOrdersTab({
       )}
 
       {creationLocked && (
-        <div className="flex items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950" role="status">
+        <div
+          className="flex items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950"
+          role="status"
+        >
           <Lock className="h-5 w-5 shrink-0" />
           <p className="text-sm font-bold">
-            {closed ? "أوامر التغيير مغلقة لأن المشروع مغلق" : "أوامر التغيير مغلقة لعدم وجود فائض متاح للمشروع"}
+            {closed
+              ? "أوامر التغيير مغلقة لأن المشروع مغلق أو مكتمل"
+              : "أوامر التغيير مغلقة"}
           </p>
         </div>
       )}
-      {/* 2. نموذج إضافة أمر تغيير جديد ضمن حدود الفائض المتاح فقط */}
-      {!creationLocked && !isLoading && !data?.fundingError && (
+      {/* 2. نموذج إضافة أمر تغيير جديد */}
+      {!creationLocked && !isLoading && (
         <Card className="border-teal-200 shadow-xs">
           <CardHeader className="border-b bg-teal-50/40">
             <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
               <Plus className="h-5 w-5 text-teal-600" />
-              إضافة أمر تغيير جديد (ضمن الفائض المتاح للمشروع)
+              إضافة أمر تغيير جديد (يزيد على قيمة وتكلفة المشروع)
             </CardTitle>
             <CardDescription className="text-xs text-slate-600">
-              الحد المتاح لإضافة أمر تغيير جديد هو {formatMoney(availableSurplus)} ريال.
+              يمكنك إضافة أمر التغيير حتى في حال عدم توفر فائض مالي كافٍ؛ سيتم
+              اعتماد البنود وإدراجها في جدول الكميات وزيادة قيمة المشروع
+              تلقائياً.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5 pt-5">
-            {availableSurplus <= 0 && !data?.fundingError && (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-bold text-rose-800 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
-                <span>
-                  لا يوجد فائض متاح في المشروع حالياً لإضافة أمر تغيير جديد.
-                </span>
-              </div>
-            )}
-
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="co-title">عنوان أمر التغيير *</Label>
                 <Input
                   id="co-title"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={e => setTitle(e.target.value)}
                   placeholder="مثال: أعمال إضافية في التكييف والكهرباء"
-                  disabled={availableSurplus <= 0}
                 />
               </div>
 
@@ -407,10 +386,9 @@ export function ProjectChangeOrdersTab({
                 <Textarea
                   id="co-reason"
                   value={reason}
-                  onChange={(e) => setReason(e.target.value)}
+                  onChange={e => setReason(e.target.value)}
                   placeholder="اشرح الحاجة الفنية لبنود أمر التغيير..."
                   rows={3}
-                  disabled={availableSurplus <= 0}
                 />
               </div>
             </div>
@@ -424,13 +402,13 @@ export function ProjectChangeOrdersTab({
                     بنود جدول الكميات الخاصة بأمر التغيير ({items.length})
                   </h4>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    اضغط على &quot;إضافة بند لجدول الكميات&quot; لفتح واجهة إضافة البند المعتمدة في جدول الكميات
+                    اضغط على &quot;إضافة بند لجدول الكميات&quot; لفتح واجهة
+                    إضافة البند المعتمدة في جدول الكميات
                   </p>
                 </div>
                 <Button
                   type="button"
                   onClick={handleOpenAddItem}
-                  disabled={availableSurplus <= 0 || Boolean(data?.fundingError)}
                   className="bg-teal-600 hover:bg-teal-700 text-white font-bold gap-1.5"
                   size="sm"
                 >
@@ -446,7 +424,8 @@ export function ProjectChangeOrdersTab({
                     لم يتم إضافة بنود لأمر التغيير بعد
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    اضغط على زر &quot;إضافة بند لجدول الكميات&quot; لإضافة البنود المطلوبة ضمن الفائض المتاح
+                    اضغط على زر &quot;إضافة بند لجدول الكميات&quot; لإضافة
+                    البنود المطلوبة
                   </p>
                 </div>
               ) : (
@@ -478,7 +457,7 @@ export function ProjectChangeOrdersTab({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {items.map((item) => {
+                      {items.map(item => {
                         const rowTotal =
                           (Number(item.quantity) || 0) *
                           (Number(item.unitPrice) || 0);
@@ -496,7 +475,9 @@ export function ProjectChangeOrdersTab({
                             </TableCell>
                             <TableCell className="text-xs font-medium">
                               <div>
-                                <span className="font-bold">{item.itemName}</span>
+                                <span className="font-bold">
+                                  {item.itemName}
+                                </span>
                                 {item.itemDescription && (
                                   <p className="text-[11px] text-muted-foreground mt-0.5">
                                     {item.itemDescription}
@@ -504,7 +485,9 @@ export function ProjectChangeOrdersTab({
                                 )}
                               </div>
                             </TableCell>
-                            <TableCell className="text-xs">{item.unit}</TableCell>
+                            <TableCell className="text-xs">
+                              {item.unit}
+                            </TableCell>
                             <TableCell className="text-xs font-bold font-mono">
                               {item.quantity}
                             </TableCell>
@@ -554,9 +537,10 @@ export function ProjectChangeOrdersTab({
                     </span>
                     <div className="flex items-center gap-4">
                       <span className="text-slate-600">
-                        المتبقي من الفائض بعد الأمر:{" "}
-                        <strong className="font-sans text-slate-900">
-                          {formatMoney(Math.max(0, availableSurplus - pricedDraft.total))} ر.س
+                        قيمة المشروع الإجمالية المتوقعة بعد الإضافة:{" "}
+                        <strong className="font-sans text-emerald-800">
+                          {formatMoney(totalProjectValue + pricedDraft.total)}{" "}
+                          ر.س
                         </strong>
                       </span>
                       <span className="font-sans text-base font-black text-teal-700 inline-flex items-center gap-1">
@@ -565,15 +549,6 @@ export function ProjectChangeOrdersTab({
                       </span>
                     </div>
                   </div>
-                </div>
-              )}
-
-              {isExceedingSurplus && (
-                <div className="rounded-xl border border-rose-300 bg-rose-50 p-3 text-xs font-bold text-rose-800 flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
-                  <span>
-                    لا يمكن إضافة أمر تغيير بقيمة ({formatMoney(pricedDraft.total)} ريال) تتجاوز الفائض المتاح للمشروع ({formatMoney(availableSurplus)} ريال).
-                  </span>
                 </div>
               )}
             </div>
@@ -594,7 +569,8 @@ export function ProjectChangeOrdersTab({
                 ) : (
                   <CheckCircle2 className="h-4 w-4" />
                 )}
-                اعتماد أمر التغيير للمشروع والانتقال لقسم جدول الكميات
+                اعتماد أمر التغيير للمشروع وزيادة قيمته والانتقال لقسم جدول
+                الكميات
               </Button>
             </div>
           </CardContent>
@@ -609,7 +585,8 @@ export function ProjectChangeOrdersTab({
             سجل أوامر التغيير وبنود جدول الكميات الإضافية
           </CardTitle>
           <CardDescription className="text-xs">
-            أوامر التغيير المضافة نهائية ولا يمكن تعديلها بعد إضافتها، ويتم تحويل قيمتها إلى الصندوق من صفحة الصندوق لإنشاء طلب صرف من الصندوق.
+            أوامر التغيير المضافة نهائية ولا يمكن تعديلها بعد إضافتها، ويتم
+            تحويل قيمتها إلى الصندوق من صفحة الصندوق لإنشاء طلب صرف من الصندوق.
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-4">
@@ -624,7 +601,7 @@ export function ProjectChangeOrdersTab({
             </p>
           ) : (
             <div className="space-y-4">
-              {data.orders.map((order) => {
+              {data.orders.map(order => {
                 const statusInfo =
                   statusLabels[order.status] || statusLabels.boq_approved;
                 const StatusIcon = statusInfo.icon;
@@ -647,13 +624,17 @@ export function ProjectChangeOrdersTab({
                           >
                             {order.orderNumber}
                           </Badge>
-                          {!["boq_approved", "pending_boq"].includes(order.status) && <Badge
-                            variant="outline"
-                            className={`flex items-center gap-1 text-xs font-semibold ${statusInfo.className}`}
-                          >
-                            <StatusIcon className="h-3 w-3" />
-                            {statusInfo.label}
-                          </Badge>}
+                          {!["boq_approved", "pending_boq"].includes(
+                            order.status
+                          ) && (
+                            <Badge
+                              variant="outline"
+                              className={`flex items-center gap-1 text-xs font-semibold ${statusInfo.className}`}
+                            >
+                              <StatusIcon className="h-3 w-3" />
+                              {statusInfo.label}
+                            </Badge>
+                          )}
                           {orderAmount > 0 && (
                             <Badge
                               variant="outline"
@@ -712,7 +693,10 @@ export function ProjectChangeOrdersTab({
                             {order.items.map((item: any, idx: number) => (
                               <TableRow key={idx}>
                                 <TableCell className="text-xs">
-                                  <Badge variant="outline" className="text-[11px]">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[11px]"
+                                  >
                                     {categoriesMap[item.category] ||
                                       item.category ||
                                       "بنود أوامر التغيير"}
@@ -728,7 +712,9 @@ export function ProjectChangeOrdersTab({
                                     )}
                                   </div>
                                 </TableCell>
-                                <TableCell className="text-xs">{item.unit}</TableCell>
+                                <TableCell className="text-xs">
+                                  {item.unit}
+                                </TableCell>
                                 <TableCell className="text-xs font-mono">
                                   {item.quantity}
                                 </TableCell>
@@ -747,17 +733,23 @@ export function ProjectChangeOrdersTab({
 
                     {order.disbursementRequestId && (
                       <div className="pt-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1.5 text-emerald-700 border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100 font-bold"
-                            onClick={() =>
-                              navigate(`/disbursements/${order.disbursementRequestId}`)
-                            }
-                          >
-                            <span>طلب الصرف {order.requestNumber || `#${order.disbursementRequestId}`}</span>
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5 text-emerald-700 border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100 font-bold"
+                          onClick={() =>
+                            navigate(
+                              `/disbursements/${order.disbursementRequestId}`
+                            )
+                          }
+                        >
+                          <span>
+                            طلب الصرف{" "}
+                            {order.requestNumber ||
+                              `#${order.disbursementRequestId}`}
+                          </span>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     )}
                   </div>

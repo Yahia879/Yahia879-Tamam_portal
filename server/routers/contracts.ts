@@ -1,4 +1,7 @@
-import { contractEditPermission, isApprovedContract } from "../../shared/contractPermissions";
+import {
+  contractEditPermission,
+  isApprovedContract,
+} from "../../shared/contractPermissions";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
@@ -30,31 +33,59 @@ import {
   userRoleAssignments,
   roles,
   projectFinancialDetails,
+  projectChangeOrders,
   disbursementRequests,
   disbursementOrders,
 } from "../../drizzle/schema";
 import { eq, desc, and, or, sql, asc, ne, isNull, inArray } from "drizzle-orm";
-import { notifyContractCreation, notifyContractApproval } from "./notifications";
+import {
+  notifyContractCreation,
+  notifyContractApproval,
+} from "./notifications";
 
-// دالة لتحديث التكلفة الفعلية للمشروع بناءً على مجموع العقود
+// دالة لتحديث التكلفة الفعلية للمشروع بناءً على مجموع العقود وأوامر التغيير المعتمدة
 async function syncProjectActualCost(db: any, projectId: number) {
   try {
     const [result] = await db
-      .select({ total: sql<string>`SUM(CAST(contractAmount AS DECIMAL(15,2)))` })
+      .select({
+        total: sql<string>`SUM(CAST(contractAmount AS DECIMAL(15,2)))`,
+      })
       .from(contractsEnhanced)
       .where(eq(contractsEnhanced.projectId, projectId));
-    
-    const total = parseFloat(result?.total || "0");
-    
+
+    const contractsTotal = parseFloat(result?.total || "0");
+
+    let changeOrdersTotal = 0;
+    try {
+      const [coResult] = await db
+        .select({
+          total: sql<string>`COALESCE(SUM(CAST(amount AS DECIMAL(15,2))), 0)`,
+        })
+        .from(projectChangeOrders)
+        .where(
+          and(
+            eq(projectChangeOrders.projectId, projectId),
+            ne(projectChangeOrders.status, "rejected")
+          )
+        );
+      changeOrdersTotal = parseFloat(coResult?.total || "0");
+    } catch {
+      changeOrdersTotal = 0;
+    }
+
+    const total = contractsTotal + changeOrdersTotal;
+
     await db
       .update(projects)
-      .set({ 
+      .set({
         actualCost: total.toString(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(projects.id, projectId));
-    
-    console.log(`[Sync] Updated project ${projectId} actualCost to ${total}`);
+
+    console.log(
+      `[Sync] Updated project ${projectId} actualCost to ${total} (contracts: ${contractsTotal}, change orders: ${changeOrdersTotal})`
+    );
   } catch (e) {
     console.error(`[Sync] Error updating project ${projectId} actualCost:`, e);
   }
@@ -63,22 +94,27 @@ async function syncProjectActualCost(db: any, projectId: number) {
 import { numberToArabicText as baseNumberToArabicText } from "../../shared/tafqeet";
 
 function numberToArabicText(num: number): string {
-  return baseNumberToArabicText(num, { prefix: "فقط ", suffix: " لا غير", currency: "ريال" });
+  return baseNumberToArabicText(num, {
+    prefix: "فقط ",
+    suffix: " لا غير",
+    currency: "ريال",
+  });
 }
 
-
 // دالة توليد رقم العقد
-async function generateContractNumber(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<{ number: string; year: number; sequence: number }> {
+async function generateContractNumber(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>
+): Promise<{ number: string; year: number; sequence: number }> {
   const currentYear = new Date().getFullYear();
-  
+
   // البحث عن التسلسل الحالي للسنة
   const [existing] = await db
     .select()
     .from(contractNumberSequence)
     .where(eq(contractNumberSequence.year, currentYear));
-  
+
   let sequence: number;
-  
+
   if (existing) {
     sequence = existing.lastSequence + 1;
     await db
@@ -92,24 +128,26 @@ async function generateContractNumber(db: NonNullable<Awaited<ReturnType<typeof 
       lastSequence: sequence,
     });
   }
-  
+
   // تنسيق الرقم: CNT-YYYY-XXXX
   const contractNumber = `CNT-${currentYear}-${String(sequence).padStart(4, "0")}`;
-  
+
   return { number: contractNumber, year: currentYear, sequence };
 }
 
 export const contractsRouter = router({
   // ==================== إعدادات الجمعية ====================
-  
+
   // جلب إعدادات الجمعية
-  getOrganizationSettings: permissionProcedure("contracts.view").query(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("قاعدة البيانات غير متاحة");
-    const [settings] = await db.select().from(organizationSettings).limit(1);
-    return settings || null;
-  }),
-  
+  getOrganizationSettings: permissionProcedure("contracts.view").query(
+    async () => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      const [settings] = await db.select().from(organizationSettings).limit(1);
+      return settings || null;
+    }
+  ),
+
   // حفظ/تحديث إعدادات الجمعية
   saveOrganizationSettings: permissionProcedure("settings.edit")
     .input(
@@ -140,11 +178,11 @@ export const contractsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-    if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+
       // التحقق من وجود إعدادات سابقة
       const [existing] = await db.select().from(organizationSettings).limit(1);
-      
+
       if (existing) {
         // تحديث الإعدادات الموجودة
         await db
@@ -154,7 +192,7 @@ export const contractsRouter = router({
             updatedBy: ctx.user.id,
           })
           .where(eq(organizationSettings.id, existing.id));
-        
+
         return { success: true, id: existing.id };
       } else {
         // إنشاء إعدادات جديدة
@@ -162,40 +200,50 @@ export const contractsRouter = router({
           ...input,
           updatedBy: ctx.user.id,
         });
-        
+
         return { success: true, id: result.insertId };
       }
     }),
-  
+
   // ==================== العقود ====================
-  
+
   // جلب قائمة العقود
   list: permissionProcedure("contracts.view")
     .input(
-      z.object({
-        status: z.enum(contractStatuses).optional(),
-        contractType: z.enum(contractTypes).optional(),
-        projectId: z.number().optional(),
-        page: z.number().default(1),
-        limit: z.number().default(10),
-      }).optional()
+      z
+        .object({
+          status: z.enum(contractStatuses).optional(),
+          contractType: z.enum(contractTypes).optional(),
+          projectId: z.number().optional(),
+          page: z.number().default(1),
+          limit: z.number().default(10),
+        })
+        .optional()
     )
     .query(async ({ input }) => {
       const db = await getDb();
-    if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      const { status, contractType, projectId, page = 1, limit = 10 } = input || {};
-      
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      const {
+        status,
+        contractType,
+        projectId,
+        page = 1,
+        limit = 10,
+      } = input || {};
+
       let query = db.select().from(contractsEnhanced);
-      
+
       const conditions = [];
       if (status) conditions.push(eq(contractsEnhanced.status, status));
-      if (contractType) conditions.push(eq(contractsEnhanced.contractType, contractType));
-      if (projectId) conditions.push(eq(contractsEnhanced.projectId, projectId));
-      
+      if (contractType)
+        conditions.push(eq(contractsEnhanced.contractType, contractType));
+      if (projectId)
+        conditions.push(eq(contractsEnhanced.projectId, projectId));
+
       if (conditions.length > 0) {
         query = query.where(and(...conditions)) as typeof query;
       }
-      
+
       try {
         const contracts = await query
           .orderBy(desc(contractsEnhanced.createdAt))
@@ -203,9 +251,13 @@ export const contractsRouter = router({
           .offset((page - 1) * limit);
 
         // جمع كافة معرفات الطلبات والمشاريع المرتبطة لمعرفة ما إذا كان الطلب مغلقاً
-        const directReqIds = contracts.map(c => c.requestId).filter((id): id is number => typeof id === "number" && id > 0);
-        const pIds = contracts.map(c => c.projectId).filter((id): id is number => typeof id === "number" && id > 0);
-        
+        const directReqIds = contracts
+          .map(c => c.requestId)
+          .filter((id): id is number => typeof id === "number" && id > 0);
+        const pIds = contracts
+          .map(c => c.projectId)
+          .filter((id): id is number => typeof id === "number" && id > 0);
+
         const projectReqMap = new Map<number, number>();
         if (pIds.length > 0) {
           const projs = await db
@@ -219,10 +271,9 @@ export const contractsRouter = router({
           }
         }
 
-        const allReqIds = Array.from(new Set([
-          ...directReqIds,
-          ...Array.from(projectReqMap.values()),
-        ]));
+        const allReqIds = Array.from(
+          new Set([...directReqIds, ...Array.from(projectReqMap.values())])
+        );
 
         const closedReqIdSet = new Set<number>();
         if (allReqIds.length > 0) {
@@ -235,9 +286,12 @@ export const contractsRouter = router({
             })
             .from(mosqueRequests)
             .where(inArray(mosqueRequests.id, allReqIds));
-          
+
           for (const r of reqs) {
-            const isClosed = r.currentStage === 'closed' || r.status === 'completed' || r.closureStatus === 'confirmed';
+            const isClosed =
+              r.currentStage === "closed" ||
+              r.status === "completed" ||
+              r.closureStatus === "confirmed";
             if (isClosed) {
               closedReqIdSet.add(r.id);
             }
@@ -245,19 +299,23 @@ export const contractsRouter = router({
         }
 
         const enrichedContracts = contracts.map(c => {
-          const effReqId = c.requestId || (c.projectId ? projectReqMap.get(c.projectId) : undefined);
-          const isRequestClosed = effReqId ? closedReqIdSet.has(effReqId) : false;
+          const effReqId =
+            c.requestId ||
+            (c.projectId ? projectReqMap.get(c.projectId) : undefined);
+          const isRequestClosed = effReqId
+            ? closedReqIdSet.has(effReqId)
+            : false;
           return {
             ...c,
             isRequestClosed,
           };
         });
-        
+
         // جلب العدد الإجمالي
         const [countResult] = await db
           .select({ count: sql<number>`count(*)` })
           .from(contractsEnhanced);
-        
+
         return {
           contracts: enrichedContracts,
           total: countResult?.count || 0,
@@ -272,17 +330,19 @@ export const contractsRouter = router({
         );
       }
     }),
-  
+
   // جلب عقد بواسطة requestId
   getByRequestId: permissionProcedure("contracts.view")
-    .input(z.object({ 
-      requestId: z.number(),
-      supplierId: z.number().optional() 
-    }))
+    .input(
+      z.object({
+        requestId: z.number(),
+        supplierId: z.number().optional(),
+      })
+    )
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      
+
       const conditions = [eq(contractsEnhanced.requestId, input.requestId)];
       if (input.supplierId) {
         conditions.push(eq(contractsEnhanced.supplierId, input.supplierId));
@@ -294,7 +354,7 @@ export const contractsRouter = router({
         .where(and(...conditions))
         .orderBy(desc(contractsEnhanced.createdAt))
         .limit(1);
-      
+
       return contract || null;
     }),
 
@@ -304,27 +364,37 @@ export const contractsRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      
+
       const contractsList = await db
         .select()
         .from(contractsEnhanced)
         .where(eq(contractsEnhanced.requestId, input.requestId))
         .orderBy(desc(contractsEnhanced.createdAt));
-      
+
       if (contractsList.length > 0) {
         const approvedQs = await db
           .select()
           .from(quotations)
-          .where(and(
-            eq(quotations.requestId, input.requestId),
-            inArray(quotations.status, ["accepted", "approved"])
-          ));
+          .where(
+            and(
+              eq(quotations.requestId, input.requestId),
+              inArray(quotations.status, ["accepted", "approved"])
+            )
+          );
         const qMap = new Map(approvedQs.map(q => [q.supplierId, q]));
         for (const c of contractsList) {
           const cAmt = c.contractAmount ? parseFloat(c.contractAmount) : 0;
           if (cAmt <= 0 && c.supplierId && qMap.has(c.supplierId)) {
             const q = qMap.get(c.supplierId)!;
-            const qAmt = parseFloat(String(q.approvedAmount || q.negotiatedAmount || q.finalAmount || q.totalAmount || "0"));
+            const qAmt = parseFloat(
+              String(
+                q.approvedAmount ||
+                  q.negotiatedAmount ||
+                  q.finalAmount ||
+                  q.totalAmount ||
+                  "0"
+              )
+            );
             if (qAmt > 0) {
               c.contractAmount = String(qAmt);
               c.contractAmountText = numberToArabicText(qAmt);
@@ -343,8 +413,8 @@ export const contractsRouter = router({
     .input(z.object({ id: z.number(), lightweight: z.boolean().optional() }))
     .query(async ({ input }) => {
       const db = await getDb();
-    if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+
       const [contractData] = await db
         .select({
           contract: contractsEnhanced,
@@ -354,30 +424,48 @@ export const contractsRouter = router({
           projectRequestId: projects.requestId,
         })
         .from(contractsEnhanced)
-        .leftJoin(signatories, eq(contractsEnhanced.signatoryId, signatories.id))
+        .leftJoin(
+          signatories,
+          eq(contractsEnhanced.signatoryId, signatories.id)
+        )
         .leftJoin(projects, eq(contractsEnhanced.projectId, projects.id))
-        .leftJoin(contractTemplates, eq(contractsEnhanced.templateId, contractTemplates.id))
+        .leftJoin(
+          contractTemplates,
+          eq(contractsEnhanced.templateId, contractTemplates.id)
+        )
         .where(eq(contractsEnhanced.id, input.id));
-      
+
       if (!contractData) {
         throw new Error("العقد غير موجود");
       }
-      
+
       const { contract, signatory, projectName } = contractData;
 
       // إذا لم تكن قيمة العقد محددة مسبقاً، نأخذها كقيمة افتراضية من عرض السعر المعتمد
-      const currentContractAmt = contract.contractAmount ? parseFloat(contract.contractAmount) : 0;
-      if (currentContractAmt <= 0 && contract.requestId && contract.supplierId) {
+      const currentContractAmt = contract.contractAmount
+        ? parseFloat(contract.contractAmount)
+        : 0;
+      if (
+        currentContractAmt <= 0 &&
+        contract.requestId &&
+        contract.supplierId
+      ) {
         const [appQ] = await db
           .select()
           .from(quotations)
-          .where(and(
-            eq(quotations.requestId, contract.requestId),
-            eq(quotations.supplierId, contract.supplierId),
-            inArray(quotations.status, ["accepted", "approved"])
-          ))
+          .where(
+            and(
+              eq(quotations.requestId, contract.requestId),
+              eq(quotations.supplierId, contract.supplierId),
+              inArray(quotations.status, ["accepted", "approved"])
+            )
+          )
           .limit(1);
-        const approvedVal = appQ?.approvedAmount || appQ?.negotiatedAmount || appQ?.finalAmount || appQ?.totalAmount;
+        const approvedVal =
+          appQ?.approvedAmount ||
+          appQ?.negotiatedAmount ||
+          appQ?.finalAmount ||
+          appQ?.totalAmount;
         if (approvedVal) {
           const qVal = parseFloat(String(approvedVal));
           if (qVal > 0) {
@@ -390,7 +478,14 @@ export const contractsRouter = router({
       }
 
       // البحث عن المستخدم المرتبط بالمفوض أو المدير التنفيذي للتحقق من حالة إظهار التوقيع في المستندات
-      let targetUser: { id: number; signatureUrl: string | null; showSignatureInDocuments: boolean | null; name: string; signatureName: string | null; signatureDepartment: string | null } | null = null;
+      let targetUser: {
+        id: number;
+        signatureUrl: string | null;
+        showSignatureInDocuments: boolean | null;
+        name: string;
+        signatureName: string | null;
+        signatureDepartment: string | null;
+      } | null = null;
 
       if (signatory?.userId) {
         const [u] = await db
@@ -439,7 +534,10 @@ export const contractsRouter = router({
             and(
               isNull(users.deletedAt),
               eq(users.status, "active" as any),
-              inArray(users.role, ["general_manager" as any, "executive_director" as any])
+              inArray(users.role, [
+                "general_manager" as any,
+                "executive_director" as any,
+              ])
             )
           )
           .limit(1);
@@ -448,7 +546,8 @@ export const contractsRouter = router({
 
       // التحقق مما إذا كان المستخدم/المفوض قد ألغى إظهار التوقيع الرسمي في المستندات
       const showSigInDocs = targetUser
-        ? (targetUser.showSignatureInDocuments !== false && (targetUser.showSignatureInDocuments as any) !== 0)
+        ? targetUser.showSignatureInDocuments !== false &&
+          (targetUser.showSignatureInDocuments as any) !== 0
         : true;
 
       let firstPartySignatureUrl: string | null =
@@ -457,8 +556,17 @@ export const contractsRouter = router({
         (showSigInDocs ? targetUser?.signatureUrl : null) ||
         null;
 
-      let firstPartySignatoryName: string | null = (contract as any).firstPartySignatoryName || signatory?.name || targetUser?.signatureName || targetUser?.name || null;
-      let firstPartySignatoryTitle: string | null = (contract as any).firstPartySignatoryTitle || signatory?.title || targetUser?.signatureDepartment || "المدير التنفيذي";
+      let firstPartySignatoryName: string | null =
+        (contract as any).firstPartySignatoryName ||
+        signatory?.name ||
+        targetUser?.signatureName ||
+        targetUser?.name ||
+        null;
+      let firstPartySignatoryTitle: string | null =
+        (contract as any).firstPartySignatoryTitle ||
+        signatory?.title ||
+        targetUser?.signatureDepartment ||
+        "المدير التنفيذي";
 
       if (signatory && !signatory.signatureUrl && firstPartySignatureUrl) {
         signatory.signatureUrl = firstPartySignatureUrl;
@@ -466,11 +574,13 @@ export const contractsRouter = router({
 
       // جلب الدفعات:
       // 1. الدفعات المجدولة في العقد من contractPayments
-      let paymentsList: any[] = input.lightweight ? [] : await db
-        .select()
-        .from(contractPayments)
-        .where(eq(contractPayments.contractId, input.id))
-        .orderBy(contractPayments.phaseOrder);
+      let paymentsList: any[] = input.lightweight
+        ? []
+        : await db
+            .select()
+            .from(contractPayments)
+            .where(eq(contractPayments.contractId, input.id))
+            .orderBy(contractPayments.phaseOrder);
 
       // 2. الدفعات المضافة / اليدوية المرتبطة بنفس العقد أو المشروع
       if (!input.lightweight) {
@@ -478,8 +588,11 @@ export const contractsRouter = router({
           .select()
           .from(payments)
           .where(
-            contract.projectId 
-              ? or(eq(payments.contractId, input.id), eq(payments.projectId, contract.projectId))
+            contract.projectId
+              ? or(
+                  eq(payments.contractId, input.id),
+                  eq(payments.projectId, contract.projectId)
+                )
               : eq(payments.contractId, input.id)
           )
           .orderBy(payments.createdAt);
@@ -490,15 +603,22 @@ export const contractsRouter = router({
             contractId: input.id,
             phaseOrder: paymentsList.length + idx + 1,
             name: p.description || `الدفعة ${paymentsList.length + idx + 1}`,
-            phaseName: p.description || `الدفعة ${paymentsList.length + idx + 1}`,
-            percentage: p.completionPercentage ? String(p.completionPercentage) : "0",
+            phaseName:
+              p.description || `الدفعة ${paymentsList.length + idx + 1}`,
+            percentage: p.completionPercentage
+              ? String(p.completionPercentage)
+              : "0",
             amount: String(p.amount || 0),
             dueDate: p.paidAt || p.createdAt || null,
             status: p.status || "pending",
             type: p.paymentType || "progress",
             description: p.description || "",
             notes: p.description || null,
-            completionPercentage: p.completionPercentage !== undefined && p.completionPercentage !== null ? Number(p.completionPercentage) : null,
+            completionPercentage:
+              p.completionPercentage !== undefined &&
+              p.completionPercentage !== null
+                ? Number(p.completionPercentage)
+                : null,
           }));
           paymentsList = [...paymentsList, ...manualFormatted];
         }
@@ -507,12 +627,18 @@ export const contractsRouter = router({
       // دمج أصناف الدفعات المحفوظة في paymentScheduleJson لبرامج سدانة
       if (contract.paymentScheduleJson && paymentsList.length > 0) {
         try {
-          const parsed = typeof contract.paymentScheduleJson === "string" 
-            ? JSON.parse(contract.paymentScheduleJson) 
-            : contract.paymentScheduleJson;
+          const parsed =
+            typeof contract.paymentScheduleJson === "string"
+              ? JSON.parse(contract.paymentScheduleJson)
+              : contract.paymentScheduleJson;
           if (Array.isArray(parsed)) {
             paymentsList = paymentsList.map((p, idx) => {
-              const matching = parsed[idx] || parsed.find((sp: any) => sp.name === p.phaseName || String(sp.id) === String(p.id));
+              const matching =
+                parsed[idx] ||
+                parsed.find(
+                  (sp: any) =>
+                    sp.name === p.phaseName || String(sp.id) === String(p.id)
+                );
               return {
                 ...p,
                 items: Array.isArray(matching?.items) ? matching.items : [],
@@ -525,11 +651,16 @@ export const contractsRouter = router({
       }
 
       // 3. احتياطي: إذا لم تكن هناك دفعات في الجداول، يتم جلبها من JSON المحفوظ بالعقد
-      if (!input.lightweight && paymentsList.length === 0 && contract.paymentScheduleJson) {
+      if (
+        !input.lightweight &&
+        paymentsList.length === 0 &&
+        contract.paymentScheduleJson
+      ) {
         try {
-          const parsed = typeof contract.paymentScheduleJson === 'string'
-            ? JSON.parse(contract.paymentScheduleJson)
-            : contract.paymentScheduleJson;
+          const parsed =
+            typeof contract.paymentScheduleJson === "string"
+              ? JSON.parse(contract.paymentScheduleJson)
+              : contract.paymentScheduleJson;
           if (Array.isArray(parsed) && parsed.length > 0) {
             paymentsList = parsed.map((p: any, idx: number) => ({
               id: p.id || `payment_${idx + 1}`,
@@ -539,20 +670,33 @@ export const contractsRouter = router({
               phaseName: p.name || p.phaseName || `الدفعة ${idx + 1}`,
               percentage: p.percentage ? String(p.percentage) : "0",
               amount: String(p.amount || 0),
-              dueDate: p.dueDate ? (String(p.dueDate).includes('T') ? new Date(p.dueDate) : new Date(`${p.dueDate}T12:00:00`)) : null,
+              dueDate: p.dueDate
+                ? String(p.dueDate).includes("T")
+                  ? new Date(p.dueDate)
+                  : new Date(`${p.dueDate}T12:00:00`)
+                : null,
               status: p.status || (p.isPaid ? "paid" : "pending"),
               type: p.type || "progress",
               description: p.description || p.notes || "",
               notes: p.notes || p.description || null,
-              completionPercentage: p.completionPercentage !== undefined && p.completionPercentage !== null ? Number(p.completionPercentage) : null,
+              completionPercentage:
+                p.completionPercentage !== undefined &&
+                p.completionPercentage !== null
+                  ? Number(p.completionPercentage)
+                  : null,
               isPaid: Boolean(p.isPaid || p.status === "paid"),
-              agreedAmount: p.agreedAmount ? parseFloat(p.agreedAmount) : parseFloat(p.amount || 0),
+              agreedAmount: p.agreedAmount
+                ? parseFloat(p.agreedAmount)
+                : parseFloat(p.amount || 0),
               paidAmount: p.paidAmount ? parseFloat(p.paidAmount) : 0,
               items: Array.isArray(p.items) ? p.items : [],
             }));
           }
         } catch (e) {
-          console.error("Error parsing paymentScheduleJson fallback in contracts.getById:", e);
+          console.error(
+            "Error parsing paymentScheduleJson fallback in contracts.getById:",
+            e
+          );
         }
       }
 
@@ -563,50 +707,94 @@ export const contractsRouter = router({
             .select()
             .from(disbursementRequests)
             .where(
-              contract.projectId 
-                ? or(eq(disbursementRequests.contractId, input.id), eq(disbursementRequests.projectId, contract.projectId))
+              contract.projectId
+                ? or(
+                    eq(disbursementRequests.contractId, input.id),
+                    eq(disbursementRequests.projectId, contract.projectId)
+                  )
                 : eq(disbursementRequests.contractId, input.id)
             );
 
           const contractDisbIds = contractDisbursements.map(d => d.id);
-          const contractOrders = contractDisbIds.length > 0 
-            ? await db.select().from(disbursementOrders).where(inArray(disbursementOrders.disbursementRequestId, contractDisbIds))
-            : [];
+          const contractOrders =
+            contractDisbIds.length > 0
+              ? await db
+                  .select()
+                  .from(disbursementOrders)
+                  .where(
+                    inArray(
+                      disbursementOrders.disbursementRequestId,
+                      contractDisbIds
+                    )
+                  )
+              : [];
 
           paymentsList = paymentsList.map((p, idx) => {
-            const disbs = contractDisbursements.filter(d => 
-              d.contractPaymentId === p.id || (p.id && String(d.paymentId) === String(p.id))
+            const disbs = contractDisbursements.filter(
+              d =>
+                d.contractPaymentId === p.id ||
+                (p.id && String(d.paymentId) === String(p.id))
             );
             const pDisbIds = disbs.map(d => d.id);
-            const executed = contractOrders.filter(o => pDisbIds.includes(o.disbursementRequestId) && o.status === "executed");
-            const paidOrdersSum = executed.reduce((sum, o) => sum + parseFloat(String(o.amount || 0)), 0);
-            
+            const executed = contractOrders.filter(
+              o =>
+                pDisbIds.includes(o.disbursementRequestId) &&
+                o.status === "executed"
+            );
+            const paidOrdersSum = executed.reduce(
+              (sum, o) => sum + parseFloat(String(o.amount || 0)),
+              0
+            );
+
             const agreedAmt = parseFloat(String(p.amount || 0));
-            let actualPaid = (p.status === "paid" && paidOrdersSum === 0) 
-              ? agreedAmt 
-              : (paidOrdersSum > 0 ? paidOrdersSum : (disbs.some(d => d.status === "paid") ? disbs.filter(d => d.status === "paid").reduce((s, d) => s + parseFloat(String(d.amount || 0)), 0) : 0));
-            
-            const isFullyPaid = p.status === "paid" || (actualPaid >= agreedAmt && agreedAmt > 0);
+            let actualPaid =
+              p.status === "paid" && paidOrdersSum === 0
+                ? agreedAmt
+                : paidOrdersSum > 0
+                  ? paidOrdersSum
+                  : disbs.some(d => d.status === "paid")
+                    ? disbs
+                        .filter(d => d.status === "paid")
+                        .reduce(
+                          (s, d) => s + parseFloat(String(d.amount || 0)),
+                          0
+                        )
+                    : 0;
+
+            const isFullyPaid =
+              p.status === "paid" || (actualPaid >= agreedAmt && agreedAmt > 0);
             const isPartiallyPaid = !isFullyPaid && actualPaid > 0;
             const isPaid = isFullyPaid || isPartiallyPaid;
 
             const matchedDisb = disbs[0];
-            const rawDueDate = p.dueDate || p.paidAt || matchedDisb?.dateMiladi || null;
+            const rawDueDate =
+              p.dueDate || p.paidAt || matchedDisb?.dateMiladi || null;
             let formattedDueDate: string | null = null;
             if (rawDueDate) {
               try {
                 const d = new Date(rawDueDate);
                 if (!isNaN(d.getTime())) {
-                  formattedDueDate = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+                  formattedDueDate = new Intl.DateTimeFormat("en-CA", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                  }).format(d);
                 } else {
                   const s = String(rawDueDate);
-                  formattedDueDate = s.includes('T') ? s.split('T')[0] : s.split(' ')[0];
+                  formattedDueDate = s.includes("T")
+                    ? s.split("T")[0]
+                    : s.split(" ")[0];
                 }
               } catch (e) {
                 formattedDueDate = String(rawDueDate);
               }
             }
-            const resolvedNotes = p.notes || p.description || matchedDisb?.description || matchedDisb?.title || "";
+            const resolvedNotes =
+              p.notes ||
+              p.description ||
+              matchedDisb?.description ||
+              matchedDisb?.title ||
+              "";
 
             return {
               ...p,
@@ -616,13 +804,20 @@ export const contractsRouter = router({
               amount: String(agreedAmt),
               agreedAmount: agreedAmt,
               paidAmount: actualPaid,
-              status: isFullyPaid ? "paid" : (isPartiallyPaid ? "partially_paid" : p.status || "pending"),
+              status: isFullyPaid
+                ? "paid"
+                : isPartiallyPaid
+                  ? "partially_paid"
+                  : p.status || "pending",
               isPaid: isPaid,
               isPartiallyPaid: isPartiallyPaid,
             };
           });
         } catch (disbErr) {
-          console.error("Error computing paid payments in contracts.getById:", disbErr);
+          console.error(
+            "Error computing paid payments in contracts.getById:",
+            disbErr
+          );
         }
 
         // ترتيب الدفعات حسب التاريخ تصاعدياً
@@ -630,33 +825,48 @@ export const contractsRouter = router({
           const dA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
           const dB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
           if (dA !== dB) return dA - dB;
-          const cA = a.completionPercentage !== undefined && a.completionPercentage !== null ? Number(a.completionPercentage) : Infinity;
-          const cB = b.completionPercentage !== undefined && b.completionPercentage !== null ? Number(b.completionPercentage) : Infinity;
+          const cA =
+            a.completionPercentage !== undefined &&
+            a.completionPercentage !== null
+              ? Number(a.completionPercentage)
+              : Infinity;
+          const cB =
+            b.completionPercentage !== undefined &&
+            b.completionPercentage !== null
+              ? Number(b.completionPercentage)
+              : Infinity;
           return cA - cB;
         });
       }
-      
+
       // جلب إعدادات الجمعية
-      const [orgSettings] = input.lightweight ? [null] : await db.select().from(organizationSettings).limit(1);
+      const [orgSettings] = input.lightweight
+        ? [null]
+        : await db.select().from(organizationSettings).limit(1);
 
       // جلب بنود العقد الفعلية
-      const clauseValues = input.lightweight ? [] : await db
-        .select({
-          id: contractClauseValues.id,
-          clauseId: contractClauseValues.clauseId,
-          title: contractClauseValues.title,
-          customContent: contractClauseValues.customContent,
-          orderIndex: contractClauseValues.orderIndex,
-          isIncluded: contractClauseValues.isIncluded,
-          originalTitle: contractClauses.title,
-          originalTitleAr: contractClauses.titleAr,
-          originalContent: contractClauses.content,
-        })
-        .from(contractClauseValues)
-        .leftJoin(contractClauses, eq(contractClauseValues.clauseId, contractClauses.id))
-        .where(eq(contractClauseValues.contractId, input.id))
-        .orderBy(asc(contractClauseValues.orderIndex));
-      
+      const clauseValues = input.lightweight
+        ? []
+        : await db
+            .select({
+              id: contractClauseValues.id,
+              clauseId: contractClauseValues.clauseId,
+              title: contractClauseValues.title,
+              customContent: contractClauseValues.customContent,
+              orderIndex: contractClauseValues.orderIndex,
+              isIncluded: contractClauseValues.isIncluded,
+              originalTitle: contractClauses.title,
+              originalTitleAr: contractClauses.titleAr,
+              originalContent: contractClauses.content,
+            })
+            .from(contractClauseValues)
+            .leftJoin(
+              contractClauses,
+              eq(contractClauseValues.clauseId, contractClauses.id)
+            )
+            .where(eq(contractClauseValues.contractId, input.id))
+            .orderBy(asc(contractClauseValues.orderIndex));
+
       let financialDetail: any = null;
       if (contract.projectId) {
         const [fd] = await db
@@ -672,14 +882,21 @@ export const contractsRouter = router({
       if (financialDetail) {
         const feeVal = parseFloat(financialDetail.adminFeeValue || "0");
         const feeAmt = parseFloat(financialDetail.adminFeeAmount || "0");
-        if (financialDetail.adminFeeType === "fixed" && (feeVal > 0 || feeAmt > 0)) {
+        if (
+          financialDetail.adminFeeType === "fixed" &&
+          (feeVal > 0 || feeAmt > 0)
+        ) {
           computedMgmtAmt = feeAmt > 0 ? feeAmt : feeVal;
-        } else if (financialDetail.adminFeeType === "percentage" && feeVal > 0) {
+        } else if (
+          financialDetail.adminFeeType === "percentage" &&
+          feeVal > 0
+        ) {
           computedMgmtAmt = (cAmt * feeVal) / 100;
         }
       }
 
-      const effectiveReqId = contract.requestId || contractData.projectRequestId;
+      const effectiveReqId =
+        contract.requestId || contractData.projectRequestId;
       let isRequestClosed = false;
       if (effectiveReqId) {
         const [linkedReq] = await db
@@ -692,7 +909,10 @@ export const contractsRouter = router({
           .from(mosqueRequests)
           .where(eq(mosqueRequests.id, effectiveReqId));
         if (linkedReq) {
-          isRequestClosed = linkedReq.currentStage === "closed" || linkedReq.status === "completed" || linkedReq.closureStatus === "confirmed";
+          isRequestClosed =
+            linkedReq.currentStage === "closed" ||
+            linkedReq.status === "completed" ||
+            linkedReq.closureStatus === "confirmed";
         }
       }
 
@@ -704,7 +924,8 @@ export const contractsRouter = router({
           firstPartySignatoryTitle,
           firstPartySignatureUrl,
           projectName: projectName || null,
-          introTemplate: contract.customIntro || contractData.introTemplate || null,
+          introTemplate:
+            contract.customIntro || contractData.introTemplate || null,
           customIntro: contract.customIntro || null,
           description: contract.description || null,
           managementAmount: computedMgmtAmt,
@@ -717,7 +938,7 @@ export const contractsRouter = router({
         clauseValues,
       };
     }),
-  
+
   // إنشاء عقد جديد
   create: permissionProcedure("contracts.create")
     .input(
@@ -729,7 +950,7 @@ export const contractsRouter = router({
         projectId: z.number().optional(),
         requestId: z.number().optional(),
         supplierId: z.number().optional(),
-        
+
         // بيانات الطرف الثاني
         secondPartyName: z.string().min(1, "اسم الطرف الثاني مطلوب"),
         secondPartyCommercialRegister: z.string().optional(),
@@ -741,12 +962,12 @@ export const contractsRouter = router({
         secondPartyBankName: z.string().optional(),
         secondPartyIban: z.string().optional(),
         secondPartyAccountName: z.string().optional(),
-        
+
         // بيانات المسجد
         mosqueName: z.string().optional(),
         mosqueNeighborhood: z.string().optional(),
         mosqueCity: z.string().optional(),
-        
+
         // قيمة ومدة العقد
         contractAmount: z.number().min(0, "قيمة العقد يجب أن تكون أكبر من صفر"),
         managementPercentage: z.number().optional().default(0),
@@ -754,27 +975,27 @@ export const contractsRouter = router({
         managementFeeType: z.enum(["percentage", "fixed"]).optional(),
         duration: z.number().min(1, "مدة العقد مطلوبة"),
         durationUnit: z.enum(durationUnits).default("months"),
-        
+
         // التواريخ
         contractDate: z.string().optional(),
         contractDateHijri: z.string().optional(),
         startDate: z.string().optional(),
-        
+
         // القالب
         templateId: z.number().optional(),
-        
+
         // مفوض التوقيع
         signatoryId: z.number().optional(),
-        
+
         // البنود الإضافية
         customTerms: z.string().optional(),
         customNotifications: z.string().optional(),
         customGeneralTerms: z.string().optional(),
-        
+
         // جدول الدفعات ونظام الصرف
         paymentSchedule: z.string().optional(),
         paymentSystem: z.enum(["installments", "milestones"]).optional(),
-        
+
         // بنود العقد المخصصة (JSON string)
         clauseValues: z.string().optional(),
         customClausesJson: z.any().optional(),
@@ -783,38 +1004,54 @@ export const contractsRouter = router({
         supportedAmount: z.number().optional().nullable(),
         currentStep: z.number().optional().default(1),
         status: z.enum(["draft", "pending_approval"]).optional(),
-        
+
         // الدفعات (للتوافق مع الكود القديم)
-        payments: z.array(
-          z.object({
-            phaseName: z.string(),
-            amount: z.number(),
-            phaseOrder: z.number(),
-          })
-        ).optional(),
+        payments: z
+          .array(
+            z.object({
+              phaseName: z.string(),
+              amount: z.number(),
+              phaseOrder: z.number(),
+            })
+          )
+          .optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-    if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+
       // توليد رقم العقد
-      const { number: contractNumber, year, sequence } = await generateContractNumber(db);
-      
+      const {
+        number: contractNumber,
+        year,
+        sequence,
+      } = await generateContractNumber(db);
+
       // تحديد قيمة العقد: نعتمد القيمة المدخلة من المستخدم، وإن لم تكن محددة نأخذها من عرض السعر المعتمد
       let effectiveContractAmount = input.contractAmount;
-      if (effectiveContractAmount === undefined || effectiveContractAmount === null || effectiveContractAmount <= 0) {
+      if (
+        effectiveContractAmount === undefined ||
+        effectiveContractAmount === null ||
+        effectiveContractAmount <= 0
+      ) {
         if (input.requestId && input.supplierId) {
           const [appQ] = await db
             .select()
             .from(quotations)
-            .where(and(
-              eq(quotations.requestId, input.requestId),
-              eq(quotations.supplierId, input.supplierId),
-              inArray(quotations.status, ["accepted", "approved"])
-            ))
+            .where(
+              and(
+                eq(quotations.requestId, input.requestId),
+                eq(quotations.supplierId, input.supplierId),
+                inArray(quotations.status, ["accepted", "approved"])
+              )
+            )
             .limit(1);
-          const approvedVal = appQ?.approvedAmount || appQ?.negotiatedAmount || appQ?.finalAmount || appQ?.totalAmount;
+          const approvedVal =
+            appQ?.approvedAmount ||
+            appQ?.negotiatedAmount ||
+            appQ?.finalAmount ||
+            appQ?.totalAmount;
           if (approvedVal) {
             const qVal = parseFloat(String(approvedVal));
             if (qVal > 0) {
@@ -826,15 +1063,27 @@ export const contractsRouter = router({
 
       // تحويل المبلغ إلى نص عربي
       const contractAmountText = numberToArabicText(effectiveContractAmount);
-      
+
       // إنشاء العقد
-      const signatoryIdValue = (input.signatoryId && typeof input.signatoryId === 'number' && input.signatoryId > 0) ? input.signatoryId : undefined;
-      console.log('signatoryId value:', signatoryIdValue);
-      
+      const signatoryIdValue =
+        input.signatoryId &&
+        typeof input.signatoryId === "number" &&
+        input.signatoryId > 0
+          ? input.signatoryId
+          : undefined;
+      console.log("signatoryId value:", signatoryIdValue);
+
       // تحذير عند إنشاء عقد بدون requestId
       if (input.projectId && !input.requestId) {
-        console.warn('[Contract Create] ⚠️ Project provided without requestId - stage update will not work automatically');
-        console.warn('[Contract Create] projectId:', input.projectId, 'requestId:', input.requestId);
+        console.warn(
+          "[Contract Create] ⚠️ Project provided without requestId - stage update will not work automatically"
+        );
+        console.warn(
+          "[Contract Create] projectId:",
+          input.projectId,
+          "requestId:",
+          input.requestId
+        );
       }
 
       // التحقق من أن طلب سدانة في مرحلة "التشغيل والتنفيذ" قبل إبرام العقد
@@ -862,12 +1111,13 @@ export const contractsRouter = router({
           if (!allowedExecutionStages.includes(req.currentStage)) {
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: "لا يمكن إنشاء عقد لطلب سدانة إلا بعد انتقال الطلب إلى مرحلة 'التشغيل والتنفيذ'",
+              message:
+                "لا يمكن إنشاء عقد لطلب سدانة إلا بعد انتقال الطلب إلى مرحلة 'التشغيل والتنفيذ'",
             });
           }
         }
       }
-      
+
       const contractData: any = {
         contractNumber,
         contractYear: year,
@@ -880,7 +1130,8 @@ export const contractsRouter = router({
         requestId: input.requestId ?? null,
         supplierId: input.supplierId,
         secondPartyName: input.secondPartyName,
-        secondPartyCommercialRegister: input.secondPartyCommercialRegister ?? null,
+        secondPartyCommercialRegister:
+          input.secondPartyCommercialRegister ?? null,
         secondPartyRepresentative: input.secondPartyRepresentative ?? null,
         secondPartyTitle: input.secondPartyTitle ?? null,
         secondPartyAddress: input.secondPartyAddress ?? null,
@@ -895,18 +1146,38 @@ export const contractsRouter = router({
         contractAmount: String(effectiveContractAmount),
         contractAmountText,
         managementPercentage: (() => {
-          if (input.managementFeeType === "fixed" && input.managementAmount !== undefined) {
-            return effectiveContractAmount > 0 ? ((input.managementAmount / effectiveContractAmount) * 100).toFixed(2) : "0.00";
+          if (
+            input.managementFeeType === "fixed" &&
+            input.managementAmount !== undefined
+          ) {
+            return effectiveContractAmount > 0
+              ? (
+                  (input.managementAmount / effectiveContractAmount) *
+                  100
+                ).toFixed(2)
+              : "0.00";
           }
-          if (input.managementAmount !== undefined && (input.managementPercentage === undefined || input.managementPercentage === 0)) {
-            return effectiveContractAmount > 0 ? ((input.managementAmount / effectiveContractAmount) * 100).toFixed(2) : "0.00";
+          if (
+            input.managementAmount !== undefined &&
+            (input.managementPercentage === undefined ||
+              input.managementPercentage === 0)
+          ) {
+            return effectiveContractAmount > 0
+              ? (
+                  (input.managementAmount / effectiveContractAmount) *
+                  100
+                ).toFixed(2)
+              : "0.00";
           }
           return (input.managementPercentage ?? 0).toFixed(2);
         })(),
         duration: input.duration,
         durationUnit: input.durationUnit,
         contractDate: input.contractDate ? new Date(input.contractDate) : null,
-        contractDateHijri: (input.contractDateHijri && input.contractDateHijri.trim() !== '') ? input.contractDateHijri : null,
+        contractDateHijri:
+          input.contractDateHijri && input.contractDateHijri.trim() !== ""
+            ? input.contractDateHijri
+            : null,
         startDate: input.startDate ? new Date(input.startDate) : null,
         endDate: (() => {
           if (!input.startDate || !input.duration) return null;
@@ -916,7 +1187,7 @@ export const contractsRouter = router({
           if (unit === "days") {
             end.setDate(end.getDate() + input.duration);
           } else if (unit === "weeks") {
-            end.setDate(end.getDate() + (input.duration * 7));
+            end.setDate(end.getDate() + input.duration * 7);
           } else if (unit === "months") {
             end.setMonth(end.getMonth() + input.duration);
           } else if (unit === "years") {
@@ -931,13 +1202,23 @@ export const contractsRouter = router({
         signatoryId: signatoryIdValue ? signatoryIdValue : null,
         paymentScheduleJson: (() => {
           if (!input.paymentSchedule) {
-            return input.paymentSystem ? { paymentSystem: input.paymentSystem, schedule: [] } : null;
+            return input.paymentSystem
+              ? { paymentSystem: input.paymentSystem, schedule: [] }
+              : null;
           }
           try {
-            const parsed = typeof input.paymentSchedule === 'string' ? JSON.parse(input.paymentSchedule) : input.paymentSchedule;
-            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            const parsed =
+              typeof input.paymentSchedule === "string"
+                ? JSON.parse(input.paymentSchedule)
+                : input.paymentSchedule;
+            if (
+              parsed &&
+              typeof parsed === "object" &&
+              !Array.isArray(parsed)
+            ) {
               return {
-                paymentSystem: input.paymentSystem || parsed.paymentSystem || "installments",
+                paymentSystem:
+                  input.paymentSystem || parsed.paymentSystem || "installments",
                 ...parsed,
               };
             }
@@ -949,8 +1230,16 @@ export const contractsRouter = router({
             return null;
           }
         })(),
-        clauseValuesJson: input.clauseValues ? (typeof input.clauseValues === 'string' ? JSON.parse(input.clauseValues) : input.clauseValues) : null,
-        customClausesJson: input.customClausesJson ? (typeof input.customClausesJson === 'string' ? JSON.parse(input.customClausesJson) : input.customClausesJson) : null,
+        clauseValuesJson: input.clauseValues
+          ? typeof input.clauseValues === "string"
+            ? JSON.parse(input.clauseValues)
+            : input.clauseValues
+          : null,
+        customClausesJson: input.customClausesJson
+          ? typeof input.customClausesJson === "string"
+            ? JSON.parse(input.customClausesJson)
+            : input.customClausesJson
+          : null,
         documentUrl: null,
         signedDocumentUrl: null,
         approvedBy: null,
@@ -959,13 +1248,18 @@ export const contractsRouter = router({
         createdBy: ctx.user.id,
         supportingEntity: input.supportingEntity ?? null,
         supportType: input.supportType ?? null,
-        supportedAmount: input.supportedAmount ? String(input.supportedAmount) : null,
+        supportedAmount: input.supportedAmount
+          ? String(input.supportedAmount)
+          : null,
         currentStep: input.currentStep ?? 1,
       };
-      
-      console.log('Contract data to insert:', JSON.stringify(contractData, null, 2));
+
+      console.log(
+        "Contract data to insert:",
+        JSON.stringify(contractData, null, 2)
+      );
       const [result] = await db.insert(contractsEnhanced).values(contractData);
-      
+
       const contractId = result.insertId;
 
       await notifyContractCreation(
@@ -977,30 +1271,48 @@ export const contractsRouter = router({
         contractData.requestId,
         contractData.projectId
       );
-      
+
       // تحديث التكلفة الفعلية للمشروع إذا كان مرتبطاً بمشروع
       if (input.projectId) {
         await syncProjectActualCost(db, input.projectId);
       }
-      
+
       // إضافة الدفعات من paymentSchedule JSON فقط إذا كان العقد بنظام الدفعات المجدولة
       if (input.paymentSchedule) {
         try {
-          const scheduleParsed = typeof input.paymentSchedule === 'string' ? JSON.parse(input.paymentSchedule) : input.paymentSchedule;
-          const isMilestonesSystem = input.paymentSystem === "milestones" || (scheduleParsed && scheduleParsed.paymentSystem === "milestones");
-          const schedule = Array.isArray(scheduleParsed) ? scheduleParsed : (scheduleParsed?.schedule || []);
+          const scheduleParsed =
+            typeof input.paymentSchedule === "string"
+              ? JSON.parse(input.paymentSchedule)
+              : input.paymentSchedule;
+          const isMilestonesSystem =
+            input.paymentSystem === "milestones" ||
+            (scheduleParsed && scheduleParsed.paymentSystem === "milestones");
+          const schedule = Array.isArray(scheduleParsed)
+            ? scheduleParsed
+            : scheduleParsed?.schedule || [];
 
-          if (!isMilestonesSystem && Array.isArray(schedule) && schedule.length > 0) {
+          if (
+            !isMilestonesSystem &&
+            Array.isArray(schedule) &&
+            schedule.length > 0
+          ) {
             await db.insert(contractPayments).values(
               schedule.map((p: any, index: number) => ({
                 contractId,
                 phaseName: p.name || `الدفعة ${index + 1}`,
                 amount: String(p.amount || 0),
                 phaseOrder: index,
-                dueDate: p.dueDate ? (p.dueDate.includes('T') ? new Date(p.dueDate) : new Date(`${p.dueDate}T12:00:00`)) : null,
+                dueDate: p.dueDate
+                  ? p.dueDate.includes("T")
+                    ? new Date(p.dueDate)
+                    : new Date(`${p.dueDate}T12:00:00`)
+                  : null,
                 status: "pending" as const,
                 notes: p.description || null,
-                completionPercentage: p.completionPercentage !== undefined ? Number(p.completionPercentage) : null,
+                completionPercentage:
+                  p.completionPercentage !== undefined
+                    ? Number(p.completionPercentage)
+                    : null,
               }))
             );
           }
@@ -1010,18 +1322,21 @@ export const contractsRouter = router({
       } else if (input.payments && input.payments.length > 0) {
         // التوافق مع الكود القديم
         await db.insert(contractPayments).values(
-          input.payments.map((p) => ({
+          input.payments.map(p => ({
             contractId,
             phaseName: p.phaseName,
             amount: String(p.amount),
             phaseOrder: p.phaseOrder,
             status: "pending" as const,
             notes: (p as any).notes || (p as any).description || null,
-            completionPercentage: (p as any).completionPercentage !== undefined ? Number((p as any).completionPercentage) : null,
+            completionPercentage:
+              (p as any).completionPercentage !== undefined
+                ? Number((p as any).completionPercentage)
+                : null,
           }))
         );
       }
-      
+
       // حفظ قيم البنود المخصصة
       if (input.clauseValues) {
         try {
@@ -1042,7 +1357,7 @@ export const contractsRouter = router({
           console.error("خطأ في تحليل بنود العقد:", e);
         }
       }
-      
+
       // إضافة سجل في التاريخ إذا كان العقد مرتبط بطلب
       if (input.requestId) {
         try {
@@ -1050,13 +1365,13 @@ export const contractsRouter = router({
             requestId: input.requestId,
             userId: ctx.user.id,
             action: `تم إنشاء عقد جديد برقم ${contractNumber}`,
-            notes: `عقد: ${input.contractTitle} - الطرف الثاني: ${input.secondPartyName} - القيمة: ${input.contractAmount.toLocaleString('ar-SA')} ريال`,
+            notes: `عقد: ${input.contractTitle} - الطرف الثاني: ${input.secondPartyName} - القيمة: ${input.contractAmount.toLocaleString("ar-SA")} ريال`,
           });
         } catch (e) {
           console.error("خطأ في إضافة سجل التاريخ:", e);
         }
       }
-      
+
       // مزامنة الأجور الإدارية وعرض السعر المعتمد مع البيانات المالية للمشروع عند إنشاء العقد
       if (input.projectId) {
         try {
@@ -1076,7 +1391,9 @@ export const contractsRouter = router({
                   eq(quotations.supplierId, input.supplierId),
                   or(
                     eq(quotations.projectId, input.projectId),
-                    input.requestId ? eq(quotations.requestId, input.requestId) : sql`1=0`
+                    input.requestId
+                      ? eq(quotations.requestId, input.requestId)
+                      : sql`1=0`
                   ),
                   inArray(quotations.status, ["accepted", "approved"])
                 )
@@ -1088,21 +1405,38 @@ export const contractsRouter = router({
           }
 
           const contractAmt = input.contractAmount;
-          let feeType: "fixed" | "percentage" = input.managementFeeType || existingFin?.adminFeeType || "percentage";
+          let feeType: "fixed" | "percentage" =
+            input.managementFeeType ||
+            existingFin?.adminFeeType ||
+            "percentage";
           let feeVal = existingFin?.adminFeeValue || "0.00";
           let feeAmt = existingFin?.adminFeeAmount || "0.00";
 
-          if (input.managementAmount !== undefined || input.managementPercentage !== undefined || input.managementFeeType !== undefined) {
+          if (
+            input.managementAmount !== undefined ||
+            input.managementPercentage !== undefined ||
+            input.managementFeeType !== undefined
+          ) {
             if (feeType === "fixed") {
-              const amount = input.managementAmount !== undefined
-                ? input.managementAmount
-                : (input.managementPercentage ? (contractAmt * input.managementPercentage) / 100 : 0);
+              const amount =
+                input.managementAmount !== undefined
+                  ? input.managementAmount
+                  : input.managementPercentage
+                    ? (contractAmt * input.managementPercentage) / 100
+                    : 0;
               feeVal = amount.toFixed(2);
               feeAmt = amount.toFixed(2);
             } else {
-              const pct = input.managementPercentage !== undefined
-                ? input.managementPercentage
-                : (contractAmt > 0 && input.managementAmount !== undefined ? parseFloat(((input.managementAmount / contractAmt) * 100).toFixed(2)) : 0);
+              const pct =
+                input.managementPercentage !== undefined
+                  ? input.managementPercentage
+                  : contractAmt > 0 && input.managementAmount !== undefined
+                    ? parseFloat(
+                        ((input.managementAmount / contractAmt) * 100).toFixed(
+                          2
+                        )
+                      )
+                    : 0;
               const amount = (contractAmt * pct) / 100;
               feeVal = pct.toFixed(2);
               feeAmt = amount.toFixed(2);
@@ -1110,12 +1444,15 @@ export const contractsRouter = router({
           }
 
           if (existingFin) {
-            await db.update(projectFinancialDetails)
+            await db
+              .update(projectFinancialDetails)
               .set({
                 adminFeeType: feeType,
                 adminFeeValue: feeVal,
                 adminFeeAmount: feeAmt,
-                ...(linkedQuotationId ? { approvedQuotationId: linkedQuotationId } : {}),
+                ...(linkedQuotationId
+                  ? { approvedQuotationId: linkedQuotationId }
+                  : {}),
                 updatedAt: new Date(),
               })
               .where(eq(projectFinancialDetails.id, existingFin.id));
@@ -1125,17 +1462,19 @@ export const contractsRouter = router({
               adminFeeType: feeType,
               adminFeeValue: feeVal,
               adminFeeAmount: feeAmt,
-              ...(linkedQuotationId ? { approvedQuotationId: linkedQuotationId } : {}),
+              ...(linkedQuotationId
+                ? { approvedQuotationId: linkedQuotationId }
+                : {}),
             });
           }
         } catch (e) {
           console.error("خطأ في مزامنة الأجور الإدارية عند إنشاء العقد:", e);
         }
       }
-      
+
       return { success: true, id: contractId, contractNumber };
     }),
-  
+
   // تحديث عقد
   update: permissionProcedure(["contracts.edit", "contracts.edit_approved"])
     .input(
@@ -1185,30 +1524,48 @@ export const contractsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-    if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      const { id, paymentSchedule, clauseValues, managementAmount, managementFeeType, ...updateData } = input;
-      
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      const {
+        id,
+        paymentSchedule,
+        clauseValues,
+        managementAmount,
+        managementFeeType,
+        ...updateData
+      } = input;
+
       // التحقق من أن العقد في حالة مسودة
       const [contract] = await db
         .select()
         .from(contractsEnhanced)
         .where(eq(contractsEnhanced.id, id));
-      
+
       if (!contract) {
         throw new Error("العقد غير موجود");
       }
-      
+
       const requiredEditPermission = contractEditPermission(contract);
-      if (!await checkPermission(ctx.user.id, requiredEditPermission)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: `ليس لديك صلاحية: ${requiredEditPermission}` });
+      if (!(await checkPermission(ctx.user.id, requiredEditPermission))) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `ليس لديك صلاحية: ${requiredEditPermission}`,
+        });
       }
-      if (input.status && input.status !== contract.status &&
-          !["draft", "pending_approval"].includes(input.status)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "يجب اعتماد العقد من إجراء اعتماد العقد" });
+      if (
+        input.status &&
+        input.status !== contract.status &&
+        !["draft", "pending_approval"].includes(input.status)
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "يجب اعتماد العقد من إجراء اعتماد العقد",
+        });
       }
 
       // التحقق مما إذا كان الطلب المرتبط مغلقاً
-      let effReqId = ((updateData as any).requestId as number | undefined) || contract.requestId;
+      let effReqId =
+        ((updateData as any).requestId as number | undefined) ||
+        contract.requestId;
       if (!effReqId && contract.projectId) {
         const [proj] = await db
           .select({ requestId: projects.requestId })
@@ -1219,47 +1576,75 @@ export const contractsRouter = router({
       }
       if (effReqId) {
         const [linkedReq] = await db
-          .select({ currentStage: mosqueRequests.currentStage, status: mosqueRequests.status, closureStatus: mosqueRequests.closureStatus })
+          .select({
+            currentStage: mosqueRequests.currentStage,
+            status: mosqueRequests.status,
+            closureStatus: mosqueRequests.closureStatus,
+          })
           .from(mosqueRequests)
           .where(eq(mosqueRequests.id, effReqId))
           .limit(1);
-        if (linkedReq && (linkedReq.currentStage === "closed" || linkedReq.status === "completed" || linkedReq.closureStatus === "confirmed")) {
+        if (
+          linkedReq &&
+          (linkedReq.currentStage === "closed" ||
+            linkedReq.status === "completed" ||
+            linkedReq.closureStatus === "confirmed")
+        ) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "لا يمكن تعديل العقد لأن الطلب المرتبط بالمشروع مغلق نهائياً",
+            message:
+              "لا يمكن تعديل العقد لأن الطلب المرتبط بالمشروع مغلق نهائياً",
           });
         }
       }
-      
+
       // تحديث المبلغ بالنص إذا تم تغيير المبلغ
       const updates: Record<string, unknown> = { ...updateData };
       if (input.status) {
         if (isApprovedContract(contract)) {
           updates.status = contract.status;
         } else {
-          updates.status = isApprovedContract(contract) ? contract.status : input.status;
+          updates.status = isApprovedContract(contract)
+            ? contract.status
+            : input.status;
         }
       }
       // تحديد قيمة العقد: إذا قام المستخدم بإدخال أو تعديل القيمة، نعتمدها هي أولاً
-      if (updateData.contractAmount !== undefined && updateData.contractAmount !== null && Number(updateData.contractAmount) > 0) {
+      if (
+        updateData.contractAmount !== undefined &&
+        updateData.contractAmount !== null &&
+        Number(updateData.contractAmount) > 0
+      ) {
         const val = Number(updateData.contractAmount);
         updates.contractAmount = String(val);
         updates.contractAmountText = numberToArabicText(val);
       } else {
-        const reqId = (updates.requestId as number | undefined) || contract.requestId;
-        const suppId = (updates.supplierId as number | undefined) || contract.supplierId;
+        const reqId =
+          (updates.requestId as number | undefined) || contract.requestId;
+        const suppId =
+          (updates.supplierId as number | undefined) || contract.supplierId;
         let approvedQuotationAmt: number | null = null;
-        if (reqId && suppId && (!contract.contractAmount || parseFloat(contract.contractAmount) <= 0)) {
+        if (
+          reqId &&
+          suppId &&
+          (!contract.contractAmount || parseFloat(contract.contractAmount) <= 0)
+        ) {
           const [appQ] = await db
             .select()
             .from(quotations)
-            .where(and(
-              eq(quotations.requestId, reqId),
-              eq(quotations.supplierId, suppId),
-              inArray(quotations.status, ["accepted", "approved"])
-            ))
+            .where(
+              and(
+                eq(quotations.requestId, reqId),
+                eq(quotations.supplierId, suppId),
+                inArray(quotations.status, ["accepted", "approved"])
+              )
+            )
             .limit(1);
-          const approvedVal = appQ?.approvedAmount || appQ?.negotiatedAmount || appQ?.finalAmount || appQ?.totalAmount;
+          const approvedVal =
+            appQ?.approvedAmount ||
+            appQ?.negotiatedAmount ||
+            appQ?.finalAmount ||
+            appQ?.totalAmount;
           if (approvedVal) {
             const qVal = parseFloat(String(approvedVal));
             if (qVal > 0) {
@@ -1273,36 +1658,55 @@ export const contractsRouter = router({
           updates.contractAmountText = numberToArabicText(approvedQuotationAmt);
         } else if (contract.contractAmount) {
           updates.contractAmount = String(contract.contractAmount);
-          updates.contractAmountText = contract.contractAmountText || numberToArabicText(parseFloat(contract.contractAmount));
+          updates.contractAmountText =
+            contract.contractAmountText ||
+            numberToArabicText(parseFloat(contract.contractAmount));
         }
       }
-      const contractAmt = parseFloat((updates.contractAmount as string) || contract.contractAmount || "0");
+      const contractAmt = parseFloat(
+        (updates.contractAmount as string) || contract.contractAmount || "0"
+      );
       if (managementFeeType === "fixed" && managementAmount !== undefined) {
-        const computedPct = contractAmt > 0 ? parseFloat(((managementAmount / contractAmt) * 100).toFixed(2)) : 0;
+        const computedPct =
+          contractAmt > 0
+            ? parseFloat(((managementAmount / contractAmt) * 100).toFixed(2))
+            : 0;
         updates.managementPercentage = computedPct.toFixed(2);
       } else if (updateData.managementPercentage !== undefined) {
         updates.managementPercentage = String(updateData.managementPercentage);
       } else if (managementAmount !== undefined) {
-        const computedPct = contractAmt > 0 ? parseFloat(((managementAmount / contractAmt) * 100).toFixed(2)) : 0;
+        const computedPct =
+          contractAmt > 0
+            ? parseFloat(((managementAmount / contractAmt) * 100).toFixed(2))
+            : 0;
         updates.managementPercentage = computedPct.toFixed(2);
       }
       if (updateData.contractDate) {
         updates.contractDate = new Date(updateData.contractDate);
       }
       if (updateData.supportedAmount !== undefined) {
-        updates.supportedAmount = updateData.supportedAmount ? String(updateData.supportedAmount) : null;
+        updates.supportedAmount = updateData.supportedAmount
+          ? String(updateData.supportedAmount)
+          : null;
       }
       if (input.startDate !== undefined) {
         updates.startDate = input.startDate ? new Date(input.startDate) : null;
       }
 
       // Calculate endDate based on updated or existing startDate, duration, durationUnit
-      const finalStartDate = updates.startDate !== undefined 
-        ? (updates.startDate as Date | null) 
-        : (contract.startDate ? new Date(contract.startDate) : null);
-        
-      const finalDuration = input.duration !== undefined ? input.duration : contract.duration;
-      const finalDurationUnit = input.durationUnit !== undefined ? input.durationUnit : contract.durationUnit;
+      const finalStartDate =
+        updates.startDate !== undefined
+          ? (updates.startDate as Date | null)
+          : contract.startDate
+            ? new Date(contract.startDate)
+            : null;
+
+      const finalDuration =
+        input.duration !== undefined ? input.duration : contract.duration;
+      const finalDurationUnit =
+        input.durationUnit !== undefined
+          ? input.durationUnit
+          : contract.durationUnit;
 
       if (finalStartDate && finalDuration) {
         const end = new Date(finalStartDate);
@@ -1310,11 +1714,11 @@ export const contractsRouter = router({
         if (unit === "days") {
           end.setDate(end.getDate() + finalDuration);
         } else if (unit === "weeks") {
-          end.setDate(end.getDate() + (finalDuration * 7));
+          end.setDate(end.getDate() + finalDuration * 7);
         } else if (unit === "months") {
-           end.setMonth(end.getMonth() + finalDuration);
+          end.setMonth(end.getMonth() + finalDuration);
         } else if (unit === "years") {
-           end.setFullYear(end.getFullYear() + finalDuration);
+          end.setFullYear(end.getFullYear() + finalDuration);
         }
         updates.endDate = end;
       } else {
@@ -1323,10 +1727,14 @@ export const contractsRouter = router({
 
       // إضافة الحقول الجديدة للتحديث
       if (paymentSchedule !== undefined) {
-        let parsed = typeof paymentSchedule === 'string' ? JSON.parse(paymentSchedule) : paymentSchedule;
-        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        let parsed =
+          typeof paymentSchedule === "string"
+            ? JSON.parse(paymentSchedule)
+            : paymentSchedule;
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
           updates.paymentScheduleJson = {
-            paymentSystem: input.paymentSystem || parsed.paymentSystem || "installments",
+            paymentSystem:
+              input.paymentSystem || parsed.paymentSystem || "installments",
             ...parsed,
           };
         } else {
@@ -1338,26 +1746,32 @@ export const contractsRouter = router({
       } else if (input.paymentSystem !== undefined) {
         const cur = contract.paymentScheduleJson as any;
         updates.paymentScheduleJson = {
-          ...(cur && typeof cur === 'object' && !Array.isArray(cur) ? cur : { schedule: Array.isArray(cur) ? cur : [] }),
+          ...(cur && typeof cur === "object" && !Array.isArray(cur)
+            ? cur
+            : { schedule: Array.isArray(cur) ? cur : [] }),
           paymentSystem: input.paymentSystem,
         };
       }
       if (clauseValues) {
-        updates.clauseValuesJson = typeof clauseValues === 'string' ? JSON.parse(clauseValues) : clauseValues;
+        updates.clauseValuesJson =
+          typeof clauseValues === "string"
+            ? JSON.parse(clauseValues)
+            : clauseValues;
       }
       if (updateData.customClausesJson !== undefined) {
         let parsedCustom: any = null;
         if (updateData.customClausesJson) {
           try {
-            parsedCustom = typeof updateData.customClausesJson === 'string' 
-              ? JSON.parse(updateData.customClausesJson) 
-              : updateData.customClausesJson;
+            parsedCustom =
+              typeof updateData.customClausesJson === "string"
+                ? JSON.parse(updateData.customClausesJson)
+                : updateData.customClausesJson;
           } catch (e) {
             console.error("Error parsing customClausesJson in update:", e);
           }
         }
         // الحفاظ على customClausesJson كـ object إذا كان يحتوي على draftStep
-        if (parsedCustom !== null && typeof parsedCustom === 'object') {
+        if (parsedCustom !== null && typeof parsedCustom === "object") {
           updates.customClausesJson = parsedCustom;
         } else {
           updates.customClausesJson = null;
@@ -1377,14 +1791,16 @@ export const contractsRouter = router({
         updates.currentStep = input.currentStep;
       }
       if (input.status !== undefined) {
-        updates.status = isApprovedContract(contract) ? contract.status : input.status;
+        updates.status = isApprovedContract(contract)
+          ? contract.status
+          : input.status;
       }
-      
+
       // التأكد من تحديث مفوض التوقيع بشكل صريح
       if (input.signatoryId !== undefined) {
         updates.signatoryId = input.signatoryId;
       }
-      
+
       await db
         .update(contractsEnhanced)
         .set(updates)
@@ -1393,9 +1809,16 @@ export const contractsRouter = router({
       // تحديث الدفعات إذا تم توفير جدول جديد ولم يكن العقد بنظام المستخلصات
       if (paymentSchedule) {
         try {
-          const scheduleParsed = typeof paymentSchedule === 'string' ? JSON.parse(paymentSchedule) : paymentSchedule;
-          const isMilestonesSystem = input.paymentSystem === "milestones" || (scheduleParsed && scheduleParsed.paymentSystem === "milestones");
-          const schedule = Array.isArray(scheduleParsed) ? scheduleParsed : (scheduleParsed?.schedule || []);
+          const scheduleParsed =
+            typeof paymentSchedule === "string"
+              ? JSON.parse(paymentSchedule)
+              : paymentSchedule;
+          const isMilestonesSystem =
+            input.paymentSystem === "milestones" ||
+            (scheduleParsed && scheduleParsed.paymentSystem === "milestones");
+          const schedule = Array.isArray(scheduleParsed)
+            ? scheduleParsed
+            : scheduleParsed?.schedule || [];
 
           if (!isMilestonesSystem && Array.isArray(schedule)) {
             // جلب الدفعات الحالية للعقد
@@ -1410,38 +1833,76 @@ export const contractsRouter = router({
               .select()
               .from(disbursementRequests)
               .where(
-                contract.projectId 
-                  ? or(eq(disbursementRequests.contractId, id), eq(disbursementRequests.projectId, contract.projectId))
+                contract.projectId
+                  ? or(
+                      eq(disbursementRequests.contractId, id),
+                      eq(disbursementRequests.projectId, contract.projectId)
+                    )
                   : eq(disbursementRequests.contractId, id)
               );
             const disbIds = contractDisbursements.map(d => d.id);
-            const contractOrders = disbIds.length > 0 
-              ? await db.select().from(disbursementOrders).where(inArray(disbursementOrders.disbursementRequestId, disbIds))
-              : [];
+            const contractOrders =
+              disbIds.length > 0
+                ? await db
+                    .select()
+                    .from(disbursementOrders)
+                    .where(
+                      inArray(disbursementOrders.disbursementRequestId, disbIds)
+                    )
+                : [];
 
             const getPaymentPaidInfo = (ep: any) => {
-              const disbs = contractDisbursements.filter(d => 
-                d.contractPaymentId === ep.id || (ep.id && String(d.paymentId) === String(ep.id))
+              const disbs = contractDisbursements.filter(
+                d =>
+                  d.contractPaymentId === ep.id ||
+                  (ep.id && String(d.paymentId) === String(ep.id))
               );
               const pDisbIds = disbs.map(d => d.id);
-              const executed = contractOrders.filter(o => pDisbIds.includes(o.disbursementRequestId) && o.status === "executed");
-              const paidOrdersSum = executed.reduce((sum, o) => sum + parseFloat(String(o.amount || 0)), 0);
-              
-              const agreedAmt = parseFloat(String(ep.amount || 0));
-              let actualPaid = (ep.status === "paid" && paidOrdersSum === 0) 
-                ? agreedAmt 
-                : (paidOrdersSum > 0 ? paidOrdersSum : (disbs.some(d => d.status === "paid") ? disbs.filter(d => d.status === "paid").reduce((s, d) => s + parseFloat(String(d.amount || 0)), 0) : 0));
+              const executed = contractOrders.filter(
+                o =>
+                  pDisbIds.includes(o.disbursementRequestId) &&
+                  o.status === "executed"
+              );
+              const paidOrdersSum = executed.reduce(
+                (sum, o) => sum + parseFloat(String(o.amount || 0)),
+                0
+              );
 
-              const isFullyPaid = ep.status === "paid" || (actualPaid >= agreedAmt && agreedAmt > 0);
+              const agreedAmt = parseFloat(String(ep.amount || 0));
+              let actualPaid =
+                ep.status === "paid" && paidOrdersSum === 0
+                  ? agreedAmt
+                  : paidOrdersSum > 0
+                    ? paidOrdersSum
+                    : disbs.some(d => d.status === "paid")
+                      ? disbs
+                          .filter(d => d.status === "paid")
+                          .reduce(
+                            (s, d) => s + parseFloat(String(d.amount || 0)),
+                            0
+                          )
+                      : 0;
+
+              const isFullyPaid =
+                ep.status === "paid" ||
+                (actualPaid >= agreedAmt && agreedAmt > 0);
               const isPartiallyPaid = !isFullyPaid && actualPaid > 0;
               const isPaid = isFullyPaid || isPartiallyPaid;
 
-              return { isPaid, isFullyPaid, isPartiallyPaid, actualPaid, agreedAmt };
+              return {
+                isPaid,
+                isFullyPaid,
+                isPartiallyPaid,
+                actualPaid,
+                agreedAmt,
+              };
             };
 
             const isPaymentPaid = (ep: any) => getPaymentPaidInfo(ep).isPaid;
 
-            const existingMap = new Map(existingPayments.map(ep => [ep.id, ep]));
+            const existingMap = new Map(
+              existingPayments.map(ep => [ep.id, ep])
+            );
             const processedIds = new Set<number>();
 
             // تحديث الدفعات القائمة أو إضافة دفعات جديدة
@@ -1449,17 +1910,24 @@ export const contractsRouter = router({
               const p = schedule[i];
               let matchId: number | null = null;
               if (p.id) {
-                const sId = String(p.id).replace(/^cp-/, "").replace(/^payment-/, "");
+                const sId = String(p.id)
+                  .replace(/^cp-/, "")
+                  .replace(/^payment-/, "");
                 const num = Number(sId);
                 if (!isNaN(num) && existingMap.has(num)) {
                   matchId = num;
                 }
               }
-              if (matchId === null && i < existingPayments.length && !processedIds.has(existingPayments[i].id)) {
+              if (
+                matchId === null &&
+                i < existingPayments.length &&
+                !processedIds.has(existingPayments[i].id)
+              ) {
                 matchId = existingPayments[i].id;
               }
 
-              const existing = matchId !== null ? existingMap.get(matchId) : null;
+              const existing =
+                matchId !== null ? existingMap.get(matchId) : null;
               const paid = existing ? isPaymentPaid(existing) : false;
 
               if (existing) {
@@ -1479,9 +1947,17 @@ export const contractsRouter = router({
                     phaseName: p.name || p.phaseName || `الدفعة ${i + 1}`,
                     amount: String(p.amount || 0),
                     phaseOrder: i,
-                    dueDate: p.dueDate ? (String(p.dueDate).includes('T') ? new Date(p.dueDate) : new Date(`${p.dueDate}T12:00:00`)) : null,
+                    dueDate: p.dueDate
+                      ? String(p.dueDate).includes("T")
+                        ? new Date(p.dueDate)
+                        : new Date(`${p.dueDate}T12:00:00`)
+                      : null,
                     notes: p.description || p.notes || null,
-                    completionPercentage: (p.completionPercentage !== undefined && p.completionPercentage !== null) ? Number(p.completionPercentage) : null,
+                    completionPercentage:
+                      p.completionPercentage !== undefined &&
+                      p.completionPercentage !== null
+                        ? Number(p.completionPercentage)
+                        : null,
                   };
                   await db
                     .update(contractPayments)
@@ -1495,9 +1971,17 @@ export const contractsRouter = router({
                   phaseName: p.name || p.phaseName || `الدفعة ${i + 1}`,
                   amount: String(p.amount || 0),
                   phaseOrder: i,
-                  dueDate: p.dueDate ? (String(p.dueDate).includes('T') ? new Date(p.dueDate) : new Date(`${p.dueDate}T12:00:00`)) : null,
+                  dueDate: p.dueDate
+                    ? String(p.dueDate).includes("T")
+                      ? new Date(p.dueDate)
+                      : new Date(`${p.dueDate}T12:00:00`)
+                    : null,
                   notes: p.description || p.notes || null,
-                  completionPercentage: (p.completionPercentage !== undefined && p.completionPercentage !== null) ? Number(p.completionPercentage) : null,
+                  completionPercentage:
+                    p.completionPercentage !== undefined &&
+                    p.completionPercentage !== null
+                      ? Number(p.completionPercentage)
+                      : null,
                   status: "pending" as const,
                 });
               }
@@ -1507,12 +1991,19 @@ export const contractsRouter = router({
             for (const excess of existingPayments) {
               if (!processedIds.has(excess.id)) {
                 if (isPaymentPaid(excess)) {
-                  console.warn(`Cannot delete paid payment ${excess.id}, keeping it.`);
+                  console.warn(
+                    `Cannot delete paid payment ${excess.id}, keeping it.`
+                  );
                 } else {
                   try {
-                    await db.delete(contractPayments).where(eq(contractPayments.id, excess.id));
+                    await db
+                      .delete(contractPayments)
+                      .where(eq(contractPayments.id, excess.id));
                   } catch (delErr) {
-                    console.warn(`Cannot delete excess payment ${excess.id} due to references:`, delErr);
+                    console.warn(
+                      `Cannot delete excess payment ${excess.id} due to references:`,
+                      delErr
+                    );
                   }
                 }
               }
@@ -1526,7 +2017,13 @@ export const contractsRouter = router({
               .orderBy(contractPayments.phaseOrder);
 
             const syncedSchedule = freshPayments.map(fp => {
-              const { isPaid, isFullyPaid, isPartiallyPaid, actualPaid, agreedAmt } = getPaymentPaidInfo(fp);
+              const {
+                isPaid,
+                isFullyPaid,
+                isPartiallyPaid,
+                actualPaid,
+                agreedAmt,
+              } = getPaymentPaidInfo(fp);
               return {
                 id: `payment-${fp.id}`,
                 name: fp.phaseName,
@@ -1534,19 +2031,32 @@ export const contractsRouter = router({
                 amount: agreedAmt,
                 agreedAmount: agreedAmt,
                 paidAmount: actualPaid,
-                status: isFullyPaid ? "paid" : (isPartiallyPaid ? "partially_paid" : fp.status),
+                status: isFullyPaid
+                  ? "paid"
+                  : isPartiallyPaid
+                    ? "partially_paid"
+                    : fp.status,
                 isPaid: isPaid,
                 isPartiallyPaid: isPartiallyPaid,
-                dueDate: fp.dueDate ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(fp.dueDate)) : "",
+                dueDate: fp.dueDate
+                  ? new Intl.DateTimeFormat("en-CA", {
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                    }).format(new Date(fp.dueDate))
+                  : "",
                 notes: fp.notes,
                 description: fp.notes,
                 completionPercentage: fp.completionPercentage,
               };
             });
 
-            await db.update(contractsEnhanced).set({
-              paymentScheduleJson: JSON.stringify(syncedSchedule)
-            }).where(eq(contractsEnhanced.id, id));
+            await db
+              .update(contractsEnhanced)
+              .set({
+                paymentScheduleJson: JSON.stringify(syncedSchedule),
+              })
+              .where(eq(contractsEnhanced.id, id));
           }
         } catch (e) {
           console.error("خطأ في تحديث جدول الدفعات:", e);
@@ -1559,8 +2069,10 @@ export const contractsRouter = router({
           const clauses = JSON.parse(clauseValues);
           if (Array.isArray(clauses)) {
             // حذف قيم البنود القديمة
-            await db.delete(contractClauseValues).where(eq(contractClauseValues.contractId, id));
-            
+            await db
+              .delete(contractClauseValues)
+              .where(eq(contractClauseValues.contractId, id));
+
             // إضافة قيم البنود الجديدة
             if (clauses.length > 0) {
               await db.insert(contractClauseValues).values(
@@ -1579,40 +2091,56 @@ export const contractsRouter = router({
           console.error("خطأ في تحديث بنود العقد:", e);
         }
       }
-      
+
       // تحديث التكلفة الفعلية للمشروع إذا كان مرتبطاً بمشروع
       if (contract.projectId) {
         await syncProjectActualCost(db, contract.projectId);
 
         // مزامنة الأجور الإدارية مع البيانات المالية للمشروع
-        if (managementAmount !== undefined || updateData.managementPercentage !== undefined || managementFeeType !== undefined) {
+        if (
+          managementAmount !== undefined ||
+          updateData.managementPercentage !== undefined ||
+          managementFeeType !== undefined
+        ) {
           const [existingFin] = await db
             .select()
             .from(projectFinancialDetails)
             .where(eq(projectFinancialDetails.projectId, contract.projectId));
 
-          const finalContractAmt = parseFloat((updates.contractAmount as string) || contract.contractAmount || "0");
-          let feeType: "fixed" | "percentage" = managementFeeType || existingFin?.adminFeeType || "percentage";
+          const finalContractAmt = parseFloat(
+            (updates.contractAmount as string) || contract.contractAmount || "0"
+          );
+          let feeType: "fixed" | "percentage" =
+            managementFeeType || existingFin?.adminFeeType || "percentage";
           let feeVal = "0.00";
           let feeAmt = "0.00";
 
           if (feeType === "fixed") {
-            const amount = managementAmount !== undefined
-              ? managementAmount
-              : (updateData.managementPercentage !== undefined ? (finalContractAmt * updateData.managementPercentage) / 100 : parseFloat(existingFin?.adminFeeAmount || "0"));
+            const amount =
+              managementAmount !== undefined
+                ? managementAmount
+                : updateData.managementPercentage !== undefined
+                  ? (finalContractAmt * updateData.managementPercentage) / 100
+                  : parseFloat(existingFin?.adminFeeAmount || "0");
             feeVal = amount.toFixed(2);
             feeAmt = amount.toFixed(2);
           } else {
-            const pct = updateData.managementPercentage !== undefined
-              ? updateData.managementPercentage
-              : (finalContractAmt > 0 && managementAmount !== undefined ? parseFloat(((managementAmount / finalContractAmt) * 100).toFixed(2)) : parseFloat(existingFin?.adminFeeValue || "0"));
+            const pct =
+              updateData.managementPercentage !== undefined
+                ? updateData.managementPercentage
+                : finalContractAmt > 0 && managementAmount !== undefined
+                  ? parseFloat(
+                      ((managementAmount / finalContractAmt) * 100).toFixed(2)
+                    )
+                  : parseFloat(existingFin?.adminFeeValue || "0");
             const amount = (finalContractAmt * pct) / 100;
             feeVal = pct.toFixed(2);
             feeAmt = amount.toFixed(2);
           }
 
           if (existingFin) {
-            await db.update(projectFinancialDetails)
+            await db
+              .update(projectFinancialDetails)
               .set({
                 adminFeeType: feeType,
                 adminFeeValue: feeVal,
@@ -1630,30 +2158,33 @@ export const contractsRouter = router({
           }
         }
       }
-      
+
       return { success: true };
     }),
-  
+
   // اعتماد العقد
   approve: permissionProcedure("contracts.approve")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-    if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+
       const [contract] = await db
         .select()
         .from(contractsEnhanced)
         .where(eq(contractsEnhanced.id, input.id));
-      
+
       if (!contract) {
         throw new Error("العقد غير موجود");
       }
-      
-      if (contract.status !== "draft" && contract.status !== "pending_approval") {
+
+      if (
+        contract.status !== "draft" &&
+        contract.status !== "pending_approval"
+      ) {
         throw new Error("لا يمكن اعتماد هذا العقد");
       }
-      
+
       // التحقق من عدم وجود عقد معتمد آخر لنفس المشروع
       if (contract.projectId) {
         const existingApprovedContract = await db
@@ -1666,16 +2197,21 @@ export const contractsRouter = router({
               ne(contractsEnhanced.id, input.id)
             )
           );
-        
+
         if (existingApprovedContract.length > 0) {
-          throw new Error("يوجد عقد معتمد مسبقاً لهذا المشروع. لا يمكن اعتماد أكثر من عقد واحد لنفس المشروع.");
+          throw new Error(
+            "يوجد عقد معتمد مسبقاً لهذا المشروع. لا يمكن اعتماد أكثر من عقد واحد لنفس المشروع."
+          );
         }
       }
-      
+
       // توثيق وحفظ توقيع الطرف الأول كـ Snapshot
-      let fName = (contract as any).firstPartySignatoryName || "م. عبدالهادي آل فائق";
-      let fTitle = (contract as any).firstPartySignatoryTitle || "المدير التنفيذي";
-      let fUrl: string | null = (contract as any).firstPartySignatureUrl || null;
+      let fName =
+        (contract as any).firstPartySignatoryName || "م. عبدالهادي آل فائق";
+      let fTitle =
+        (contract as any).firstPartySignatoryTitle || "المدير التنفيذي";
+      let fUrl: string | null =
+        (contract as any).firstPartySignatureUrl || null;
 
       if (contract.signatoryId) {
         const [sig] = await db
@@ -1705,7 +2241,10 @@ export const contractsRouter = router({
         if (appUser) {
           fName = appUser.signatureName || appUser.name || fName;
           fTitle = appUser.signatureDepartment || fTitle;
-          if (appUser.showSignatureInDocuments !== false && (appUser.showSignatureInDocuments as any) !== 0) {
+          if (
+            appUser.showSignatureInDocuments !== false &&
+            (appUser.showSignatureInDocuments as any) !== 0
+          ) {
             fUrl = appUser.signatureUrl || null;
           }
         }
@@ -1733,7 +2272,12 @@ export const contractsRouter = router({
         contract.projectId
       );
       // تحديث حالة المشروع إلى "قيد التنفيذ" عند اعتماد العقد وتحديث الميزانية
-      console.log('[Contract Approve] Starting stage update - projectId:', contract.projectId, 'requestId:', contract.requestId);
+      console.log(
+        "[Contract Approve] Starting stage update - projectId:",
+        contract.projectId,
+        "requestId:",
+        contract.requestId
+      );
       if (contract.projectId) {
         // 4 من 6 مراحل مكتملة = 67%
         await db
@@ -1745,7 +2289,7 @@ export const contractsRouter = router({
             updatedAt: new Date(),
           })
           .where(eq(projects.id, contract.projectId));
-        
+
         // تحديث مراحل المشروع: المرحلة الرابعة (التعاقد) مكتملة، والمرحلة الخامسة (صرف المدفوعات) قيد التنفيذ
         await db
           .update(projectPhases)
@@ -1755,7 +2299,12 @@ export const contractsRouter = router({
             endDate: new Date(),
             updatedAt: new Date(),
           })
-          .where(and(eq(projectPhases.projectId, contract.projectId), eq(projectPhases.phaseOrder, 4)));
+          .where(
+            and(
+              eq(projectPhases.projectId, contract.projectId),
+              eq(projectPhases.phaseOrder, 4)
+            )
+          );
 
         await db
           .update(projectPhases)
@@ -1765,48 +2314,67 @@ export const contractsRouter = router({
             startDate: new Date(),
             updatedAt: new Date(),
           })
-          .where(and(eq(projectPhases.projectId, contract.projectId), eq(projectPhases.phaseOrder, 5)));
-        
+          .where(
+            and(
+              eq(projectPhases.projectId, contract.projectId),
+              eq(projectPhases.phaseOrder, 5)
+            )
+          );
+
         await syncProjectActualCost(db, contract.projectId);
-        
-        console.log('[Contract Approve] Project status updated to in_progress and actualCost synced');
-        
+
+        console.log(
+          "[Contract Approve] Project status updated to in_progress and actualCost synced"
+        );
+
         // تحديث مرحلة الطلب إلى "execution" عند اعتماد العقد
         if (contract.requestId) {
-          const [request] = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, contract.requestId)).limit(1);
-          const isSedana = request?.programType === 'sedana';
-          
+          const [request] = await db
+            .select()
+            .from(mosqueRequests)
+            .where(eq(mosqueRequests.id, contract.requestId))
+            .limit(1);
+          const isSedana = request?.programType === "sedana";
+
           let shouldTransitionToExecution = true;
           if (isSedana) {
             // جلب كافة عروض الأسعار المقبولة للطلب
             const acceptedQuotes = await db
               .select()
               .from(quotations)
-              .where(and(
-                eq(quotations.requestId, contract.requestId),
-                inArray(quotations.status, ["accepted", "approved"])
-              ));
-            
+              .where(
+                and(
+                  eq(quotations.requestId, contract.requestId),
+                  inArray(quotations.status, ["accepted", "approved"])
+                )
+              );
+
             // جلب كافة العقود المسجلة للطلب
             const allReqContracts = await db
               .select()
               .from(contractsEnhanced)
               .where(eq(contractsEnhanced.requestId, contract.requestId));
-            
+
             const approvedSupplierIds = new Set(
               allReqContracts
                 .filter(c => c.status === "approved" || c.id === contract.id)
                 .map(c => c.supplierId)
             );
-            
-            const allSuppliersCovered = acceptedQuotes.length > 0 
-              ? acceptedQuotes.every(q => approvedSupplierIds.has(q.supplierId))
-              : true;
+
+            const allSuppliersCovered =
+              acceptedQuotes.length > 0
+                ? acceptedQuotes.every(q =>
+                    approvedSupplierIds.has(q.supplierId)
+                  )
+                : true;
             shouldTransitionToExecution = allSuppliersCovered;
           }
 
           if (shouldTransitionToExecution) {
-            console.log('[Contract Approve] Updating request stage to execution for requestId:', contract.requestId);
+            console.log(
+              "[Contract Approve] Updating request stage to execution for requestId:",
+              contract.requestId
+            );
             await db
               .update(mosqueRequests)
               .set({
@@ -1814,17 +2382,19 @@ export const contractsRouter = router({
                 updatedAt: new Date(),
               })
               .where(eq(mosqueRequests.id, contract.requestId));
-            
+
             await db.insert(requestHistory).values({
               requestId: contract.requestId,
               userId: ctx.user.id,
               action: "اعتماد العقد",
-              notes: isSedana 
+              notes: isSedana
                 ? `تم اعتماد كافة عقود الموردين وتحويل المشروع إلى مرحلة التنفيذ`
                 : `تم اعتماد العقد رقم ${contract.contractNumber} وتحويل المشروع إلى مرحلة التنفيذ`,
             });
           } else {
-            console.log('[Contract Approve] Multi-vendor contract approved, waiting for remaining contracts');
+            console.log(
+              "[Contract Approve] Multi-vendor contract approved, waiting for remaining contracts"
+            );
             await db.insert(requestHistory).values({
               requestId: contract.requestId,
               userId: ctx.user.id,
@@ -1833,15 +2403,20 @@ export const contractsRouter = router({
             });
           }
         } else {
-          console.log('[Contract Approve] No requestId found, skipping request stage update');
+          console.log(
+            "[Contract Approve] No requestId found, skipping request stage update"
+          );
         }
       } else {
-        console.log('[Contract Approve] No projectId found, skipping updates');
+        console.log("[Contract Approve] No projectId found, skipping updates");
       }
-      
-      return { success: true, message: "تم اعتماد العقد وتحويل المشروع إلى مرحلة التنفيذ" };
+
+      return {
+        success: true,
+        message: "تم اعتماد العقد وتحويل المشروع إلى مرحلة التنفيذ",
+      };
     }),
-  
+
   // تفعيل العقد
   activate: permissionProcedure("contracts.edit_approved")
     .input(
@@ -1852,25 +2427,25 @@ export const contractsRouter = router({
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
-    if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+
       const [contract] = await db
         .select()
         .from(contractsEnhanced)
         .where(eq(contractsEnhanced.id, input.id));
-      
+
       if (!contract) {
         throw new Error("العقد غير موجود");
       }
-      
+
       if (contract.status !== "approved") {
         throw new Error("يجب اعتماد العقد أولاً");
       }
-      
+
       // حساب تاريخ الانتهاء
       const startDate = new Date(input.startDate);
       const endDate = new Date(startDate);
-      
+
       switch (contract.durationUnit) {
         case "days":
           endDate.setDate(endDate.getDate() + contract.duration);
@@ -1883,7 +2458,7 @@ export const contractsRouter = router({
           endDate.setMonth(endDate.getMonth() + contract.duration);
           break;
       }
-      
+
       await db
         .update(contractsEnhanced)
         .set({
@@ -1892,42 +2467,42 @@ export const contractsRouter = router({
           endDate,
         })
         .where(eq(contractsEnhanced.id, input.id));
-      
+
       return { success: true };
     }),
-  
+
   // تحويل العقد إلى مشروع
   convertToProject: permissionProcedure("contracts.edit_approved")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-    if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+
       const [contract] = await db
         .select()
         .from(contractsEnhanced)
         .where(eq(contractsEnhanced.id, input.id));
-      
+
       if (!contract) {
         throw new Error("العقد غير موجود");
       }
-      
+
       if (contract.status !== "approved" && contract.status !== "active") {
         throw new Error("يجب اعتماد العقد أولاً");
       }
-      
+
       if (contract.projectId) {
         throw new Error("العقد مرتبط بمشروع بالفعل");
       }
-      
+
       // إنشاء مشروع جديد
       const projectNumber = `PRJ-${contract.contractNumber}`;
-      
+
       // التحقق من وجود requestId
       if (!contract.requestId) {
         throw new Error("العقد غير مرتبط بطلب");
       }
-      
+
       const [projectResult] = await db.insert(projects).values({
         projectNumber,
         name: contract.contractTitle,
@@ -1935,20 +2510,23 @@ export const contractsRouter = router({
         status: "planning",
         budget: contract.contractAmount,
       });
-      
+
       // ربط العقد بالمشروع
       await db
         .update(contractsEnhanced)
         .set({ projectId: projectResult.insertId })
         .where(eq(contractsEnhanced.id, input.id));
-      
+
       return { success: true, projectId: projectResult.insertId };
     }),
-  
+
   // ==================== دفعات العقد ====================
-  
+
   // تحديث دفعات العقد
-  updatePayments: permissionProcedure(["contracts.edit", "contracts.edit_approved"])
+  updatePayments: permissionProcedure([
+    "contracts.edit",
+    "contracts.edit_approved",
+  ])
     .input(
       z.object({
         contractId: z.number(),
@@ -1967,12 +2545,21 @@ export const contractsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-    if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      
-      const [contract] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, input.contractId));
-      if (!contract) throw new TRPCError({ code: "NOT_FOUND", message: "العقد غير موجود" });
-      if (!await checkPermission(ctx.user.id, contractEditPermission(contract))) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل هذا العقد" });
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+
+      const [contract] = await db
+        .select()
+        .from(contractsEnhanced)
+        .where(eq(contractsEnhanced.id, input.contractId));
+      if (!contract)
+        throw new TRPCError({ code: "NOT_FOUND", message: "العقد غير موجود" });
+      if (
+        !(await checkPermission(ctx.user.id, contractEditPermission(contract)))
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ليس لديك صلاحية تعديل هذا العقد",
+        });
       }
 
       const existingPayments = await db
@@ -1988,9 +2575,16 @@ export const contractsRouter = router({
           phaseName: p.phaseName,
           amount: String(p.amount),
           phaseOrder: p.phaseOrder ?? i,
-          dueDate: p.dueDate ? (p.dueDate.includes('T') ? new Date(p.dueDate) : new Date(`${p.dueDate}T12:00:00`)) : null,
+          dueDate: p.dueDate
+            ? p.dueDate.includes("T")
+              ? new Date(p.dueDate)
+              : new Date(`${p.dueDate}T12:00:00`)
+            : null,
           notes: p.notes || null,
-          completionPercentage: p.completionPercentage !== undefined ? p.completionPercentage : null,
+          completionPercentage:
+            p.completionPercentage !== undefined
+              ? p.completionPercentage
+              : null,
         };
 
         if (i < existingPayments.length) {
@@ -2010,16 +2604,18 @@ export const contractsRouter = router({
         const excessPayments = existingPayments.slice(input.payments.length);
         for (const excess of excessPayments) {
           try {
-            await db.delete(contractPayments).where(eq(contractPayments.id, excess.id));
+            await db
+              .delete(contractPayments)
+              .where(eq(contractPayments.id, excess.id));
           } catch (delErr) {
             console.warn(`Cannot delete excess payment ${excess.id}:`, delErr);
           }
         }
       }
-      
+
       return { success: true };
     }),
-  
+
   // تسجيل دفعة
   recordPayment: permissionProcedure("financial.approve")
     .input(
@@ -2029,8 +2625,8 @@ export const contractsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-    if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+
       await db
         .update(contractPayments)
         .set({
@@ -2039,12 +2635,12 @@ export const contractsRouter = router({
           paidBy: ctx.user.id,
         })
         .where(eq(contractPayments.id, input.paymentId));
-      
+
       return { success: true };
     }),
-  
+
   // ==================== الموردين ====================
-  
+
   // جلب قائمة الموردين
   getSuppliers: permissionProcedure([
     "contracts.create",
@@ -2059,14 +2655,19 @@ export const contractsRouter = router({
       .from(suppliers)
       .where(eq(suppliers.status, "active"))
       .orderBy(suppliers.name);
-    
+
     return suppliersList;
   }),
 
   // ==================== قوالب العقود ====================
 
   // الحصول على جميع قوالب العقود
-  getTemplates: permissionProcedure(["contracts.template_view", "contracts.create", "contracts.edit", "contracts.edit_approved"]).query(async () => {
+  getTemplates: permissionProcedure([
+    "contracts.template_view",
+    "contracts.create",
+    "contracts.edit",
+    "contracts.edit_approved",
+  ]).query(async () => {
     const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
     const templates = await db
@@ -2092,7 +2693,7 @@ export const contractsRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      
+
       const [template] = await db
         .select()
         .from(contractTemplates)
@@ -2130,8 +2731,14 @@ export const contractsRouter = router({
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
 
-      if (input.introTemplate?.trim() && !await checkPermission(ctx.user.id, "contracts.preamble_add")) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إضافة تمهيد" });
+      if (
+        input.introTemplate?.trim() &&
+        !(await checkPermission(ctx.user.id, "contracts.preamble_add"))
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ليس لديك صلاحية إضافة تمهيد",
+        });
       }
 
       // إذا كان القالب الافتراضي، إلغاء الافتراضي من القوالب الأخرى
@@ -2152,7 +2759,11 @@ export const contractsRouter = router({
     }),
 
   // تحديث قالب
-  updateTemplate: permissionProcedure(["contracts.template_edit", "contracts.preamble_add", "contracts.preamble_edit"])
+  updateTemplate: permissionProcedure([
+    "contracts.template_edit",
+    "contracts.preamble_add",
+    "contracts.preamble_edit",
+  ])
     .input(
       z.object({
         id: z.number(),
@@ -2178,16 +2789,27 @@ export const contractsRouter = router({
         .select()
         .from(contractTemplates)
         .where(eq(contractTemplates.id, id));
-      
-      if (!template) throw new TRPCError({ code: "NOT_FOUND", message: "القالب غير موجود" });
-      if (Object.keys(data).some(key => key !== "introTemplate") &&
-          !await checkPermission(ctx.user.id, "contracts.template_edit")) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل القالب" });
+
+      if (!template)
+        throw new TRPCError({ code: "NOT_FOUND", message: "القالب غير موجود" });
+      if (
+        Object.keys(data).some(key => key !== "introTemplate") &&
+        !(await checkPermission(ctx.user.id, "contracts.template_edit"))
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ليس لديك صلاحية تعديل القالب",
+        });
       }
       if (data.introTemplate !== undefined) {
-        const permission = template.introTemplate?.trim() ? "contracts.preamble_edit" : "contracts.preamble_add";
-        if (!await checkPermission(ctx.user.id, permission)) {
-          throw new TRPCError({ code: "FORBIDDEN", message: `ليس لديك صلاحية: ${permission}` });
+        const permission = template.introTemplate?.trim()
+          ? "contracts.preamble_edit"
+          : "contracts.preamble_add";
+        if (!(await checkPermission(ctx.user.id, permission))) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: `ليس لديك صلاحية: ${permission}`,
+          });
         }
       }
 
@@ -2215,13 +2837,13 @@ export const contractsRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      
+
       // التحقق من أنه ليس قالب نظام
       const [template] = await db
         .select()
         .from(contractTemplates)
         .where(eq(contractTemplates.id, input.id));
-      
+
       // السماح بحذف جميع القوالب
 
       // فك ارتباط البنود مع قيم العقود السابقة أولاً
@@ -2253,7 +2875,12 @@ export const contractsRouter = router({
   // ==================== بنود العقود ====================
 
   // الحصول على بنود قالب معين
-  getTemplateClauses: permissionProcedure(["contracts.template_view", "contracts.create", "contracts.edit", "contracts.edit_approved"])
+  getTemplateClauses: permissionProcedure([
+    "contracts.template_view",
+    "contracts.create",
+    "contracts.edit",
+    "contracts.edit_approved",
+  ])
     .input(z.object({ templateId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -2267,7 +2894,12 @@ export const contractsRouter = router({
     }),
 
   // الحصول على البنود العامة (غير مرتبطة بقالب)
-  getGlobalClauses: permissionProcedure(["contracts.template_view", "contracts.create", "contracts.edit", "contracts.edit_approved"]).query(async () => {
+  getGlobalClauses: permissionProcedure([
+    "contracts.template_view",
+    "contracts.create",
+    "contracts.edit",
+    "contracts.edit_approved",
+  ]).query(async () => {
     const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
     const clauses = await db
@@ -2303,7 +2935,7 @@ export const contractsRouter = router({
           .select()
           .from(contractTemplates)
           .where(eq(contractTemplates.id, input.templateId));
-        
+
         // السماح بالإضافة حتى لقوالب النظام
       }
 
@@ -2337,14 +2969,20 @@ export const contractsRouter = router({
           template: contractTemplates,
         })
         .from(contractClauses)
-        .leftJoin(contractTemplates, eq(contractClauses.templateId, contractTemplates.id))
+        .leftJoin(
+          contractTemplates,
+          eq(contractClauses.templateId, contractTemplates.id)
+        )
         .where(eq(contractClauses.id, id));
 
       if (!clause) throw new Error("البند غير موجود");
 
       // السماح بتعديل جميع البنود
 
-      await db.update(contractClauses).set(data as any).where(eq(contractClauses.id, id));
+      await db
+        .update(contractClauses)
+        .set(data as any)
+        .where(eq(contractClauses.id, id));
       return { success: true };
     }),
 
@@ -2362,7 +3000,10 @@ export const contractsRouter = router({
           template: contractTemplates,
         })
         .from(contractClauses)
-        .leftJoin(contractTemplates, eq(contractClauses.templateId, contractTemplates.id))
+        .leftJoin(
+          contractTemplates,
+          eq(contractClauses.templateId, contractTemplates.id)
+        )
         .where(eq(contractClauses.id, input.id));
 
       if (!clause) throw new Error("البند غير موجود");
@@ -2501,7 +3142,10 @@ export const contractsRouter = router({
             eq(contractTemplates.isActive, true)
           )
         )
-        .orderBy(desc(contractTemplates.isDefault), desc(contractTemplates.createdAt));
+        .orderBy(
+          desc(contractTemplates.isDefault),
+          desc(contractTemplates.createdAt)
+        );
 
       return templates;
     }),
@@ -2526,7 +3170,11 @@ export const contractsRouter = router({
       }
 
       // توليد رقم عقد جديد
-      const { number: contractNumber, year, sequence } = await generateContractNumber(db);
+      const {
+        number: contractNumber,
+        year,
+        sequence,
+      } = await generateContractNumber(db);
 
       // إنشاء العقد المكرر
       const [result] = await db.insert(contractsEnhanced).values({
@@ -2539,7 +3187,8 @@ export const contractsRouter = router({
         requestId: null, // لا نربط بنفس الطلب
         supplierId: originalContract.supplierId,
         secondPartyName: originalContract.secondPartyName,
-        secondPartyCommercialRegister: originalContract.secondPartyCommercialRegister,
+        secondPartyCommercialRegister:
+          originalContract.secondPartyCommercialRegister,
         secondPartyRepresentative: originalContract.secondPartyRepresentative,
         secondPartyTitle: originalContract.secondPartyTitle,
         secondPartyAddress: originalContract.secondPartyAddress,
@@ -2582,7 +3231,7 @@ export const contractsRouter = router({
 
       if (originalPayments.length > 0) {
         await db.insert(contractPayments).values(
-          originalPayments.map((p) => ({
+          originalPayments.map(p => ({
             contractId: newContractId,
             phaseName: p.phaseName,
             amount: p.amount,
@@ -2603,7 +3252,7 @@ export const contractsRouter = router({
 
       if (originalClauseValues.length > 0) {
         await db.insert(contractClauseValues).values(
-          originalClauseValues.map((c) => ({
+          originalClauseValues.map(c => ({
             contractId: newContractId,
             clauseId: c.clauseId,
             customContent: c.customContent,
@@ -2651,16 +3300,16 @@ export const contractsRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      
+
       const [contract] = await db
         .select()
         .from(contractsEnhanced)
         .where(eq(contractsEnhanced.id, input.id));
-      
+
       if (!contract) {
         return { canModify: false, reason: "العقد غير موجود" };
       }
-      
+
       // التحقق من وجود دفعات مصروفة
       const paidPayments = await db
         .select()
@@ -2671,30 +3320,33 @@ export const contractsRouter = router({
             eq(contractPayments.status, "paid")
           )
         );
-      
+
       if (paidPayments.length > 0) {
-        return { 
-          canModify: false, 
+        return {
+          canModify: false,
           reason: "لا يمكن تعديل العقد لأنه تم صرف دفعات له",
-          paidPaymentsCount: paidPayments.length
+          paidPaymentsCount: paidPayments.length,
         };
       }
-      
+
       // العقود المعتمدة تحتاج موافقة
       if (contract.status === "approved" || contract.status === "active") {
-        return { 
-          canModify: true, 
+        return {
+          canModify: true,
           requiresApproval: true,
-          reason: "العقد معتمد - يحتاج التعديل إلى موافقة"
+          reason: "العقد معتمد - يحتاج التعديل إلى موافقة",
         };
       }
-      
+
       // المسودات يمكن تعديلها مباشرة
       return { canModify: true, requiresApproval: false };
     }),
 
   // إنشاء طلب تعديل
-  requestModification: permissionProcedure(["contracts.edit", "contracts.edit_approved"])
+  requestModification: permissionProcedure([
+    "contracts.edit",
+    "contracts.edit_approved",
+  ])
     .input(
       z.object({
         contractId: z.number(),
@@ -2708,19 +3360,24 @@ export const contractsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      
+
       // التحقق من وجود العقد
       const [contract] = await db
         .select()
         .from(contractsEnhanced)
         .where(eq(contractsEnhanced.id, input.contractId));
-      
+
       if (!contract) {
         throw new Error("العقد غير موجود");
       }
-      
-      if (!await checkPermission(ctx.user.id, contractEditPermission(contract))) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل هذا العقد" });
+
+      if (
+        !(await checkPermission(ctx.user.id, contractEditPermission(contract)))
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ليس لديك صلاحية تعديل هذا العقد",
+        });
       }
 
       // التحقق من عدم وجود دفعات مصروفة
@@ -2733,11 +3390,11 @@ export const contractsRouter = router({
             eq(contractPayments.status, "paid")
           )
         );
-      
+
       if (paidPayments.length > 0) {
         throw new Error("لا يمكن تعديل العقد لأنه تم صرف دفعات له");
       }
-      
+
       // إنشاء طلب التعديل
       const [result] = await db.insert(contractModificationRequests).values({
         contractId: input.contractId,
@@ -2748,7 +3405,7 @@ export const contractsRouter = router({
         justification: input.justification,
         requestedBy: ctx.user.id,
       });
-      
+
       return { success: true, id: result.insertId };
     }),
 
@@ -2763,7 +3420,7 @@ export const contractsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      
+
       // تحديث حالة الطلب
       await db
         .update(contractModificationRequests)
@@ -2774,7 +3431,7 @@ export const contractsRouter = router({
           reviewNotes: input.reviewNotes,
         })
         .where(eq(contractModificationRequests.id, input.requestId));
-      
+
       return { success: true };
     }),
 
@@ -2789,7 +3446,7 @@ export const contractsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      
+
       await db
         .update(contractModificationRequests)
         .set({
@@ -2799,7 +3456,7 @@ export const contractsRouter = router({
           reviewNotes: input.reviewNotes,
         })
         .where(eq(contractModificationRequests.id, input.requestId));
-      
+
       return { success: true };
     }),
 
@@ -2809,13 +3466,13 @@ export const contractsRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      
+
       const requests = await db
         .select()
         .from(contractModificationRequests)
         .where(eq(contractModificationRequests.contractId, input.contractId))
         .orderBy(desc(contractModificationRequests.createdAt));
-      
+
       return requests;
     }),
 
@@ -2825,13 +3482,13 @@ export const contractsRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      
+
       const logs = await db
         .select()
         .from(contractModificationLogs)
         .where(eq(contractModificationLogs.contractId, input.contractId))
         .orderBy(desc(contractModificationLogs.modifiedAt));
-      
+
       return logs;
     }),
 });

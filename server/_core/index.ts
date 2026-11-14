@@ -27,11 +27,16 @@ import "dotenv/config";
 import { startCompletedProjectSurplusSettlement } from "../completed-project-surplus";
 import express from "express";
 
-// Ensure NODE_ENV is set, default to development unless running from dist
-if (!process.env.NODE_ENV) {
-  process.env.NODE_ENV = import.meta.url.includes("/dist/")
-    ? "production"
-    : "development";
+// Detect if running the bundled build from dist
+const isRunningFromDist =
+  (import.meta.url && import.meta.url.replace(/\\/g, "/").includes("/dist/")) ||
+  (process.argv[1] && process.argv[1].replace(/\\/g, "/").includes("/dist/"));
+
+// Ensure NODE_ENV is set properly
+if (isRunningFromDist) {
+  process.env.NODE_ENV = "production";
+} else if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = "development";
 }
 
 import { createServer } from "http";
@@ -180,7 +185,7 @@ async function startServer() {
   });
 
   // development mode uses Vite, production mode uses static files
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === "development" && !isRunningFromDist) {
     await setupVite(app, server);
   } else {
     serveStatic(app);

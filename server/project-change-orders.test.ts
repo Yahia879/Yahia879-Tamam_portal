@@ -13,6 +13,8 @@ const state = vi.hoisted(() => ({
   requests: [] as any[],
   movements: [] as any[],
   projectCost: 25000,
+  projectBudget: "25000.00",
+  projectActualCost: "25000.00",
   initialSurplus: 10000,
   initialFund: 0,
   projectStatus: "in_progress",
@@ -107,10 +109,19 @@ vi.mock("./db", async () => {
                     status: state.projectStatus,
                     programType: state.projectProgram,
                     requestId: 1,
+                    budget: state.projectBudget,
+                    actualCost: state.projectActualCost,
                   },
                 ];
               if (table === schema.mosqueRequests)
-                return [{ id: 1, currentStage: state.requestStage, programType: state.requestProgram }];
+                return [
+                  {
+                    id: 1,
+                    currentStage: state.requestStage,
+                    programType: state.requestProgram,
+                    approvedBudget: state.projectBudget,
+                  },
+                ];
               let rows =
                 table === schema.projectChangeOrders
                   ? state.orders
@@ -130,6 +141,13 @@ vi.mock("./db", async () => {
               }
               if (fields?.count) {
                 return [{ count: rows.length }];
+              }
+              if (fields?.total) {
+                const total = rows.reduce(
+                  (s: number, it: any) => s + Number(it.totalPrice || 0),
+                  0
+                );
+                return [{ total: total.toFixed(2) }];
               }
               rows = [...rows].sort((a, b) =>
                 descending ? b.id - a.id : a.id - b.id
@@ -178,6 +196,12 @@ vi.mock("./db", async () => {
             const { params } = dialect.sqlToQuery(condition);
             const target = state.orders.find(row => row.id === params[0]);
             if (target) Object.assign(target, values);
+          }
+          if (table === schema.projects) {
+            if (values.budget !== undefined)
+              state.projectBudget = values.budget;
+            if (values.actualCost !== undefined)
+              state.projectActualCost = values.actualCost;
           }
           return [{ affectedRows: 1 }];
         },
@@ -254,6 +278,8 @@ beforeEach(() => {
     requests: [],
     movements: [],
     projectCost: 25000,
+    projectBudget: "25000.00",
+    projectActualCost: "25000.00",
     initialSurplus: 10000,
     initialFund: 0,
     projectStatus: "in_progress",
@@ -296,43 +322,53 @@ describe("change order calculations", () => {
   });
 });
 
-describe("project change order surplus & immutability rules", () => {
-  it("rejects creation when only the fund has money and project surplus is zero", async () => {
+describe("project change order rules & value increments", () => {
+  it("allows creating change order even when project surplus is zero and increments project budget and actual cost", async () => {
     state.initialSurplus = 0;
-    state.initialFund = 10000;
-    expect((await caller().list({ projectId: 1 })).funding).toMatchObject({ projectSurplus: 0, fundSurplus: 10000, available: 0 });
-    await expect(caller().create(input(0.01))).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    expect(state.orders).toEqual([]);
-    expect(state.boqItems).toEqual([]);
+    state.initialFund = 0;
+    const result = await caller().create(input(5000));
+    expect(result.created).toBe(true);
+    expect(state.orders).toHaveLength(1);
+    expect(state.boqItems).toHaveLength(1);
+    expect(state.projectBudget).toBe("30000.00");
+    expect(state.projectActualCost).toBe("30000.00");
   });
-  it("rejects creation after all project surplus has been transferred to the fund", async () => {
+  it("allows creating change order after project surplus has been transferred to the fund", async () => {
     state.movements = [{ movementType: "surplus", amount: "10000" }];
-    expect((await caller().list({ projectId: 1 })).funding?.available).toBe(0);
-    await expect(caller().create(input(500))).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    expect(state.orders).toEqual([]);
+    const result = await caller().create(input(500));
+    expect(result.created).toBe(true);
+    expect(state.orders).toHaveLength(1);
+    expect(state.projectBudget).toBe("25500.00");
+    expect(state.projectActualCost).toBe("25500.00");
   });
-  it("caps a new order by the surplus still inside the project after a partial transfer", async () => {
+  it("allows creating an order that exceeds project surplus and adds to project value", async () => {
     state.movements = [{ movementType: "surplus", amount: "8000" }];
-    expect((await caller().list({ projectId: 1 })).funding?.available).toBe(2000);
-    await expect(caller().create(input(2000.01))).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    await expect(caller().create(input(2000))).resolves.toMatchObject({ created: true });
+    const result = await caller().create(input(5000));
+    expect(result.created).toBe(true);
+    expect(state.projectBudget).toBe("30000.00");
+    expect(state.projectActualCost).toBe("30000.00");
   });
-  it("keeps room for a new order when the preceding order has already been funded", async () => {
-    state.initialSurplus = 1500;
+  it("keeps room for multiple orders and accumulates project value increments", async () => {
+    state.initialSurplus = 0;
     await caller().create(input(1000));
-    state.movements = [{ movementType: "surplus", amount: "1000" }];
-    expect((await caller().list({ projectId: 1 })).funding?.available).toBe(500);
-    await expect(caller().create(input(500))).resolves.toMatchObject({ created: true });
-    expect((await caller().list({ projectId: 1 })).funding?.available).toBe(0);
+    expect(state.projectBudget).toBe("26000.00");
+    await caller().create(input(500));
+    expect(state.projectBudget).toBe("26500.00");
+    expect(state.orders).toHaveLength(2);
   });
-  it.each(["project", "request"])("prevents creating an order when the %s identifies a Sedana project", async source => {
-    if (source === "project") state.projectProgram = "sedana";
-    else state.requestProgram = "sedana";
-    await expect(caller().create(input(500))).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    expect(state.orders).toEqual([]);
-    expect(state.boqItems).toEqual([]);
-  });
-  it("creates change order within available surplus and inserts final items into BOQ", async () => {
+  it.each(["project", "request"])(
+    "prevents creating an order when the %s identifies a Sedana project",
+    async source => {
+      if (source === "project") state.projectProgram = "sedana";
+      else state.requestProgram = "sedana";
+      await expect(caller().create(input(500))).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+      });
+      expect(state.orders).toEqual([]);
+      expect(state.boqItems).toEqual([]);
+    }
+  );
+  it("creates change order and inserts final items into BOQ", async () => {
     const result = await caller().create(input(5000));
     expect(result.orderNumber).toMatch(/^CO-/);
     expect(state.orders[0]).toMatchObject({
@@ -352,31 +388,6 @@ describe("project change order surplus & immutability rules", () => {
       isChangeOrder: true,
       changeOrderId: result.id,
     });
-    expect((await caller().list({ projectId: 1 })).funding?.available).toBe(
-      5000
-    );
-  });
-
-  it("rejects adding a change order that exceeds the available surplus", async () => {
-    await expect(caller().create(input(10000.01))).rejects.toMatchObject({
-      code: "BAD_REQUEST",
-    });
-    expect(state.orders).toHaveLength(0);
-    expect(state.boqItems).toHaveLength(0);
-  });
-
-  it("does not let concurrent or subsequent orders spend the same surplus", async () => {
-    const results = await Promise.allSettled([
-      caller().create(input(7000)),
-      caller().create(input(7000)),
-    ]);
-    expect(
-      results.filter(result => result.status === "fulfilled")
-    ).toHaveLength(1);
-    expect(state.orders).toHaveLength(1);
-    expect((await caller().list({ projectId: 1 })).funding?.available).toBe(
-      3000
-    );
   });
 
   it("prevents modifying a change order after it has been added", async () => {
@@ -384,7 +395,9 @@ describe("project change order surplus & immutability rules", () => {
     await expect(
       caller().approveBoq({
         changeOrderId: created.id,
-        items: [{ name: "بند معدل", unit: "بند", quantity: 1, unitPrice: 3000 }],
+        items: [
+          { name: "بند معدل", unit: "بند", quantity: 1, unitPrice: 3000 },
+        ],
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",

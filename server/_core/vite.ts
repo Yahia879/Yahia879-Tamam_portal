@@ -30,12 +30,13 @@ export async function setupVite(app: Express, server: Server) {
     const url = req.originalUrl;
 
     try {
-      const clientTemplate = path.resolve(
-        __dirname,
-        "../..",
-        "client",
-        "index.html"
-      );
+      const candidateTemplates = [
+        path.resolve(process.cwd(), "client", "index.html"),
+        path.resolve(__dirname, "../..", "client", "index.html"),
+        path.resolve(__dirname, "..", "client", "index.html"),
+      ];
+      const clientTemplate =
+        candidateTemplates.find((p) => fs.existsSync(p)) || candidateTemplates[0];
 
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
@@ -54,10 +55,14 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
+  const candidatePaths = [
+    path.resolve(process.cwd(), "dist", "public"),
+    path.resolve(__dirname, "public"),
+    path.resolve(__dirname, "../..", "dist", "public"),
+  ];
   const distPath =
-    process.env.NODE_ENV === "development"
-      ? path.resolve(__dirname, "../..", "dist", "public")
-      : path.resolve(__dirname, "public");
+    candidatePaths.find((p) => fs.existsSync(p)) || candidatePaths[0];
+
   if (!fs.existsSync(distPath)) {
     console.error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`
