@@ -416,6 +416,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   const hasReportApprovePermission = usePermission("progress_reports.approve");
   const hasReportExceptionApprove = usePermission("progress_reports.exception_approve");
   const hasReportRevokeApprovalPermission = usePermission("progress_reports.revoke_approval");
+  const hasReportViewRevokeReasonPermission = usePermission("progress_reports.view_revoke_reason");
 
   const hasInvoiceAddPermission = usePermission("progress_invoices.add");
   const hasInvoiceEditPermission = usePermission("progress_invoices.edit");
@@ -450,6 +451,10 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     return inv
       ? Boolean(hasInvoiceRevokeApprovalPermission || hasReportRevokeApprovalPermission)
       : Boolean(hasReportRevokeApprovalPermission || hasInvoiceRevokeApprovalPermission);
+  };
+
+  const canViewRevokeReasonItem = (item?: any) => {
+    return Boolean(hasReportViewRevokeReasonPermission);
   };
   
   const [newReport, setNewReport] = useState({
@@ -2837,18 +2842,33 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                           </DropdownMenuItem>
                         )}
 
-                        {/* عرض سبب الإلغاء */}
-                        {(report.status === "rejected" || report.status === "revoked") && (
+                        {/* عرض سبب إلغاء الاعتماد */}
+                        {report.status === "revoked" && canViewRevokeReasonItem(report) && (
                           <DropdownMenuItem
                             onClick={() => {
                               setSelectedReport(report);
-                              setViewRejectionReasonText(report.rejectionReason || (report.status === "revoked" ? "تم إلغاء اعتماد هذا التقرير" : "تم رفض التقرير"));
+                              setViewRejectionReasonText(report.rejectionReason || "تم إلغاء اعتماد هذا التقرير");
                               setShowViewRejectionDialog(true);
                             }}
                             className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-rose-600 font-bold"
                           >
                             <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
-                            <span>{report.status === "revoked" ? "عرض سبب إلغاء الاعتماد" : "عرض سبب إلغاء التقرير"}</span>
+                            <span>عرض سبب إلغاء الاعتماد</span>
+                          </DropdownMenuItem>
+                        )}
+
+                        {/* عرض سبب إلغاء/رفض التقرير */}
+                        {report.status === "rejected" && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedReport(report);
+                              setViewRejectionReasonText(report.rejectionReason || "تم رفض التقرير");
+                              setShowViewRejectionDialog(true);
+                            }}
+                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-rose-600 font-bold"
+                          >
+                            <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
+                            <span>عرض سبب إلغاء التقرير</span>
                           </DropdownMenuItem>
                         )}
 
