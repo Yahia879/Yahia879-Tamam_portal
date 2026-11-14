@@ -4846,6 +4846,8 @@ export default function UserPermissions() {
 
         exception_approve: "استثناء اعتماد مدير المشروع",
 
+        view_revoke_reason: "عرض سبب إلغاء الاعتماد",
+
 
 
       },
@@ -5892,7 +5894,7 @@ export default function UserPermissions() {
 
 
 
-        { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve", "revoke_approval", "exception_approve"] },
+        { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve", "revoke_approval", "exception_approve", "view_revoke_reason"] },
 
 
 
