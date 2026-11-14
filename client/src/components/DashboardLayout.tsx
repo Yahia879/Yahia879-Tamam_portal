@@ -359,7 +359,7 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   if (has("projects") || has("projects.view") || has("projects.view_details") || has("projects.create_multi_mosque") || has("projects.financials") || has("projects.edit_support_and_fees") || has("projects.add_receipt_voucher")) {
     engineeringItems.push({ icon: ClipboardList, label: "المشاريع",              path: "/projects" });
   }
-  if (has("progress_reports") || has("progress_reports.view") || has("progress_reports.add") || has("progress_reports.edit") || has("progress_reports.approve") || has("progress_reports.revoke_approval") || has("progress_reports.exception_approve")) {
+  if (has("progress_reports.view")) {
     engineeringItems.push({ icon: TrendingUp,  label: "تقارير الإنجاز", path: "/progress-reports" });
   }
   if (has("progress_invoices.view")) {

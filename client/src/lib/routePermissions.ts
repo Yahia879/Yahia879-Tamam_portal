@@ -271,7 +271,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/custody-requests/new": ["custody_requests.create"],
 
   // ── تقارير الإنجاز والمشاريع والمستخلصات ──
-  "/progress-reports": ["progress_reports", "progress_reports.view"],
+  "/progress-reports": "progress_reports.view",
   "/progress-invoices": "progress_invoices.view",
   "/milestones/new": ["projects", "contracts", "progress_reports", "progress_invoices", "projects.view_details"],
   "/project-reports": ["project_reports", "project_reports.view", "project_reports.create", "progress_reports", "progress_reports.view", "reports.view"],
@@ -686,6 +686,9 @@ export function hasRouteAccess(
   hasCustomRole: boolean,
   user?: CustodyUser,
 ): boolean {
+  if (pathname.replace(/\/$/, "") === "/progress-reports") {
+    return userPermissions.includes("progress_reports.view");
+  }
   if (pathname.replace(/\/$/, "") === "/progress-invoices") {
     return userPermissions.includes("progress_invoices.view");
   }

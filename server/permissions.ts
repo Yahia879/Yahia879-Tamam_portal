@@ -1,5 +1,6 @@
 import { MOSQUE_PERMISSION_IDS } from "../shared/mosquePermissions";
 import { isProgressInvoicePermission, PROGRESS_INVOICE_PERMISSION_IDS } from "../shared/progressInvoicePermissions";
+import { isProgressReportPermission, PROGRESS_REPORT_PERMISSION_IDS } from "../shared/progressReportPermissions";
 import { BOARD_ANALYTICS_PERMISSIONS, BOARD_ANALYTICS_PERMISSION_IDS, isBoardAnalyticsPermission } from "../shared/boardAnalyticsPermissions";
 import { INFORMATION_DASHBOARD_PERMISSION_IDS, isInformationDashboardPermission, roleInformationDashboardPermissions } from "../shared/informationDashboardPermissions";
 import { BENEFICIARY_PERMISSION_IDS } from "../shared/beneficiaryPermissions";
@@ -4643,7 +4644,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
     rolePermissionsData.push(...rolePermsResult.filter(rp =>
       !customizedQuotationRoles.has(rp.roleId) ||
-      !(isProgressInvoicePermission(rp.permissionId) || isBoardAnalyticsPermission(rp.permissionId) || isInformationDashboardPermission(rp.permissionId) || rp.permissionId === "mosques" || rp.permissionId.startsWith("mosques.") ||
+      !(isProgressReportPermission(rp.permissionId) || isProgressInvoicePermission(rp.permissionId) || isBoardAnalyticsPermission(rp.permissionId) || isInformationDashboardPermission(rp.permissionId) || rp.permissionId === "mosques" || rp.permissionId.startsWith("mosques.") ||
         isRequestSectionPermission(rp.permissionId) || isBeneficiaryManagementPermission(rp.permissionId) ||
         rp.permissionId === "escalation" || rp.permissionId.startsWith("escalation.") ||
         rp.permissionId === "pending_reports" || rp.permissionId.startsWith("pending_reports.") ||
@@ -4712,6 +4713,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
       // الصلاحيات المستبعدة وصلاحيات إدارة المخزون لا تُمنح تلقائياً بالـ Wildcard
 
       const isInv = (
+        isProgressReportPermission(p.id) ||
         isProgressInvoicePermission(p.id) ||
         isBoardAnalyticsPermission(p.id) ||
         isInformationDashboardPermission(p.id) ||
@@ -4766,9 +4768,10 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
     const section = perm === "mosques_map" ? "mosque_map" : perm;
     if (isRequestSectionPermission(perm) && perm.includes(".")) continue;
 
-    if (expanded && !(["requests", "sedana_requests", "beneficiary_evaluations", "beneficiary_satisfaction", "appointments", "appointments_calendar", "mosques", "mosque_map", "contracts", "quotations", "custody_requests", "progress_invoices"].includes(section) && permissionsToExpand.some(p => p.startsWith(`${section}.`)))) {
+    if (expanded && !(["requests", "sedana_requests", "beneficiary_evaluations", "beneficiary_satisfaction", "appointments", "appointments_calendar", "mosques", "mosque_map", "contracts", "quotations", "custody_requests", "progress_invoices", "progress_reports"].includes(section) && permissionsToExpand.some(p => p.startsWith(`${section}.`)))) {
 
       expanded.forEach(sub => {
+        if (PROGRESS_REPORT_PERMISSION_IDS.includes(sub) && perm !== "progress_reports" && !PROGRESS_REPORT_PERMISSION_IDS.includes(perm)) return;
 
         if (!effectiveExcludedAdminPerms.includes(sub)) {
 
@@ -4819,7 +4822,10 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
       if (expanded && !(isRequestSectionPermission(perm.permissionId) && perm.permissionId.includes("."))) {
 
-        expanded.forEach(sub => allPermissions.add(sub));
+        expanded.forEach(sub => {
+          if (PROGRESS_REPORT_PERMISSION_IDS.includes(sub) && perm.permissionId !== "progress_reports" && !PROGRESS_REPORT_PERMISSION_IDS.includes(perm.permissionId)) return;
+          allPermissions.add(sub);
+        });
 
       }
 
@@ -7301,7 +7307,7 @@ export const permissionsRouter = router({
             customizedPermissions = true;
 
             Array.from(permsSet).forEach(p => {
-              if (isProgressInvoicePermission(p) || isBoardAnalyticsPermission(p) || isInformationDashboardPermission(p) || isRequestSectionPermission(p) || isBeneficiaryManagementPermission(p) || p === "escalation" || p.startsWith("escalation.") || p === "pending_reports" || p.startsWith("pending_reports.") || p.startsWith("beneficiary_evaluations") || p === "beneficiary_satisfaction" || p.startsWith("appointments") || p === "mosques" || p.startsWith("mosques.") || p === "mosques_map" || p === "mosque_map" || p.startsWith("mosque_map.") || p === "quotations" || p.startsWith("quotations.") || p === "sedana_quotations" || p.startsWith("sedana_quotations.") || p === "custody_requests" || p.startsWith("custody_requests.")) permsSet.delete(p);
+              if (isProgressReportPermission(p) || isProgressInvoicePermission(p) || isBoardAnalyticsPermission(p) || isInformationDashboardPermission(p) || isRequestSectionPermission(p) || isBeneficiaryManagementPermission(p) || p === "escalation" || p.startsWith("escalation.") || p === "pending_reports" || p.startsWith("pending_reports.") || p.startsWith("beneficiary_evaluations") || p === "beneficiary_satisfaction" || p.startsWith("appointments") || p === "mosques" || p.startsWith("mosques.") || p === "mosques_map" || p === "mosque_map" || p.startsWith("mosque_map.") || p === "quotations" || p.startsWith("quotations.") || p === "sedana_quotations" || p.startsWith("sedana_quotations.") || p === "custody_requests" || p.startsWith("custody_requests.")) permsSet.delete(p);
             });
             parsed.forEach(p => permsSet.add(p));
 
@@ -7328,6 +7334,7 @@ export const permissionsRouter = router({
         BOARD_ANALYTICS_PERMISSION_IDS.forEach(p => permsSet.add(p));
       }
       if (!customizedPermissions && ["super_admin", "system_admin"].includes(input.roleId)) {
+        PROGRESS_REPORT_PERMISSION_IDS.filter(permission => !EXCLUDED_ADMIN_PERMISSIONS.includes(permission)).forEach(permission => permsSet.add(permission));
         PROGRESS_INVOICE_PERMISSION_IDS.filter(permission => !EXCLUDED_ADMIN_PERMISSIONS.includes(permission)).forEach(permission => permsSet.add(permission));
       }
 

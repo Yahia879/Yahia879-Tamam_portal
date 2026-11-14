@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
 import { checkPermission } from "../permissions";
 import { isProgressInvoice } from "../../shared/progressInvoicePermissions";
+import { isAchievementProgressReport } from "../../shared/progressReportPermissions";
 import { getDb } from "../db";
 import { progressReports, projects, users, disbursementRequests, disbursementOrders, contractPayments, payments, contracts, contractsEnhanced } from "../../drizzle/schema";
 import { notifyProgressReportCreation, notifyProgressReportApproval, createNotification } from "./notifications";
@@ -213,7 +214,7 @@ export const progressReportsRouter = router({
         (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director" ||
         (user as any)?.customRole?.nameAr === "الرئيس التنفيذي";
 
-      const hasReportApprove = (await checkPermission(ctx.user.id, "progress_reports.approve")) || ["admin", "super_admin"].includes(userRole);
+      const hasReportApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
       const hasInvoiceApprove = await checkPermission(ctx.user.id, "progress_invoices.approve");
 
       const isInvoiceCondition = sql`(${progressReports.workSummary} LIKE '%[نوع: مستخلص%' OR ${progressReports.title} LIKE '%مستخلص%')`;
@@ -296,7 +297,7 @@ export const progressReportsRouter = router({
   list: protectedProcedure
     .input(
       z.object({
-        kind: z.literal("invoice").optional(),
+        kind: z.enum(["invoice", "report"]).optional(),
         projectId: z.number().optional(),
         status: z.string().optional(),
         search: z.string().optional(),
@@ -307,6 +308,9 @@ export const progressReportsRouter = router({
     .query(async ({ input, ctx }) => {
       if (input?.kind === "invoice" && !await checkPermission(ctx.user.id, "progress_invoices.view")) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض المستخلصات" });
+      }
+      if (input?.kind === "report" && !await checkPermission(ctx.user.id, "progress_reports.view")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض تقارير الإنجاز" });
       }
       const hasView = await checkPermission(ctx.user.id, "progress_reports.view") || await checkPermission(ctx.user.id, "progress_invoices.view") || await checkPermission(ctx.user.id, "project_reports.view") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve") || await checkPermission(ctx.user.id, "progress_invoices.approve");
@@ -331,6 +335,9 @@ export const progressReportsRouter = router({
       const conditions = [];
       if (input?.kind === "invoice") {
         conditions.push(sql`(${progressReports.workSummary} LIKE '%[نوع: مستخلص%' OR ${progressReports.workSummary} LIKE '%[معرف المستخلص:%' OR ${progressReports.title} LIKE '%مستخلص%')`);
+      }
+      if (input?.kind === "report") {
+        conditions.push(sql`NOT (COALESCE(${progressReports.workSummary}, '') LIKE '%[نوع: مستخلص%' OR COALESCE(${progressReports.workSummary}, '') LIKE '%[معرف المستخلص:%' OR COALESCE(${progressReports.title}, '') LIKE '%مستخلص%')`);
       }
       
       if (input?.projectId) {
@@ -424,7 +431,9 @@ export const progressReportsRouter = router({
         .limit(input?.limit || 50)
         .offset(input?.offset || 0);
 
-      return reports;
+      const canReadRevocationReason = await checkPermission(ctx.user.id, "progress_reports.view_revoke_reason");
+      return reports.map(report => isAchievementProgressReport(report) && report.status === "revoked" && !canReadRevocationReason
+        ? { ...report, rejectionReason: null } : report);
     }),
 
   // تفاصيل تقرير
@@ -551,6 +560,11 @@ export const progressReportsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض المستخلصات" });
       }
 
+      if (isAchievementProgressReport(report) && !await checkPermission(ctx.user.id, "progress_reports.view")) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+      const canReadRevocationReason = !isAchievementProgressReport(report) || await checkPermission(ctx.user.id, "progress_reports.view_revoke_reason");
+
       const [defaultExecUser] = await db
         .select({
           id: users.id,
@@ -570,6 +584,7 @@ export const progressReportsRouter = router({
 
       return {
         ...report,
+        rejectionReason: report.status === "revoked" && !canReadRevocationReason ? null : report.rejectionReason,
         approvedBySignatureName: report.approvedBySignatureName || (report as any).liveApprovedBySignatureName,
         approvedBySignatureDepartment: report.approvedBySignatureDepartment || (report as any).liveApprovedBySignatureDepartment,
         approvedBySignatureUrl: (report.approvedBySignatureUrl !== null && report.approvedBySignatureUrl !== undefined)
@@ -604,10 +619,12 @@ export const progressReportsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const invoice = isProgressInvoice(input);
+      const achievement = isAchievementProgressReport(input);
       const hasAdd = invoice
         ? await checkPermission(ctx.user.id, "progress_invoices.add")
+        : achievement ? await checkPermission(ctx.user.id, "progress_reports.add")
         : await checkPermission(ctx.user.id, "progress_reports.add") || await checkPermission(ctx.user.id, "project_reports.create");
-      const hasGeneric = !invoice && await checkPermission(ctx.user.id, "reports.create");
+      const hasGeneric = !invoice && !achievement && await checkPermission(ctx.user.id, "reports.create");
 
       if (!hasAdd && !hasGeneric) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإنشاء تقرير مشاريع" });
@@ -779,7 +796,9 @@ export const progressReportsRouter = router({
       const [existingReport] = await db.select().from(progressReports).where(eq(progressReports.id, input.id));
       if (!existingReport) throw new TRPCError({ code: "NOT_FOUND" });
       const invoice = isProgressInvoice(existingReport) || isProgressInvoice({ ...existingReport, ...input });
+      const achievement = isAchievementProgressReport(existingReport) || isAchievementProgressReport({ ...existingReport, ...input });
       const hasEdit = invoice ? await checkPermission(ctx.user.id, "progress_invoices.edit")
+        : achievement ? await checkPermission(ctx.user.id, "progress_reports.edit")
         : await checkPermission(ctx.user.id, "progress_reports.edit") || await checkPermission(ctx.user.id, "project_reports.create") || await checkPermission(ctx.user.id, "reports.create");
       if (!hasEdit) throw new TRPCError({ code: "FORBIDDEN" });
 
@@ -846,6 +865,10 @@ export const progressReportsRouter = router({
       if (!report) throw new TRPCError({ code: "NOT_FOUND" });
       if (isProgressInvoice(report)) {
         const permitted = await checkPermission(ctx.user.id, "progress_invoices.add") || await checkPermission(ctx.user.id, "progress_invoices.edit");
+        if (!permitted) throw new TRPCError({ code: "FORBIDDEN" });
+        if (!["draft", "pending", "submitted"].includes(report.status || "")) throw new TRPCError({ code: "BAD_REQUEST" });
+      } else if (isAchievementProgressReport(report)) {
+        const permitted = await checkPermission(ctx.user.id, "progress_reports.add") || await checkPermission(ctx.user.id, "progress_reports.edit");
         if (!permitted) throw new TRPCError({ code: "FORBIDDEN" });
         if (!["draft", "pending", "submitted"].includes(report.status || "")) throw new TRPCError({ code: "BAD_REQUEST" });
       } else {
@@ -1155,8 +1178,8 @@ export const progressReportsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "تقرير الإنجاز غير موجود" });
       }
 
-      if (isProgressInvoice(report)) {
-        if (!await checkPermission(ctx.user.id, "progress_invoices.approve")) throw new TRPCError({ code: "FORBIDDEN" });
+      if (isProgressInvoice(report) || isAchievementProgressReport(report)) {
+        if (!await checkPermission(ctx.user.id, isProgressInvoice(report) ? "progress_invoices.approve" : "progress_reports.approve")) throw new TRPCError({ code: "FORBIDDEN" });
         const [project] = await db.select({ managerId: projects.managerId }).from(projects).where(eq(projects.id, report.projectId));
         const isManagerStage = ["draft", "pending", "submitted"].includes(report.status || "") && project?.managerId === ctx.user.id;
         const executive = ["general_manager", "executive_director"].includes(ctx.user.role) ||
@@ -1234,9 +1257,10 @@ export const progressReportsRouter = router({
 
       const invoice = isProgressInvoice(report);
       const hasRevokeApproval = await checkPermission(ctx.user.id, invoice ? "progress_invoices.revoke_approval" : "progress_reports.revoke_approval");
-      if (invoice && report.status !== "approved") throw new TRPCError({ code: "BAD_REQUEST" });
+      const achievement = isAchievementProgressReport(report);
+      if ((invoice || achievement) && report.status !== "approved") throw new TRPCError({ code: "BAD_REQUEST" });
 
-      if (!hasRevokeApproval && (invoice || !isSuperAdmin)) {
+      if (!hasRevokeApproval && (invoice || achievement || !isSuperAdmin)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "ليس لديك صلاحية لإلغاء اعتماد هذا التقرير.",
@@ -1323,7 +1347,7 @@ export const progressReportsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "تقرير المشاريع غير موجود" });
       }
 
-      if (isProgressInvoice(report)) throw new TRPCError({ code: "FORBIDDEN", message: "يجب استخدام سلسلة اعتماد المستخلص بين مدير المشروع والمدير التنفيذي" });
+      if (isProgressInvoice(report) || isAchievementProgressReport(report)) throw new TRPCError({ code: "FORBIDDEN", message: "يجب استخدام سلسلة الاعتماد بين مدير المشروع والمدير التنفيذي" });
 
       await db
         .update(progressReports)
@@ -1363,7 +1387,7 @@ export const progressReportsRouter = router({
       if (!db) throw new Error("Database not available");
 
       const [report] = await db.select().from(progressReports).where(eq(progressReports.id, input.id));
-      if (report && isProgressInvoice(report)) throw new TRPCError({ code: "FORBIDDEN", message: "يجب استخدام سلسلة اعتماد المستخلص بين مدير المشروع والمدير التنفيذي" });
+      if (report && (isProgressInvoice(report) || isAchievementProgressReport(report))) throw new TRPCError({ code: "FORBIDDEN", message: "يجب استخدام سلسلة الاعتماد بين مدير المشروع والمدير التنفيذي" });
 
       await db
         .update(progressReports)

@@ -3,8 +3,8 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { uploadReportAttachments, type ReportAttachment, type ReportUploadProgress } from "@/lib/reportAttachments";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { usePermission } from "@/hooks/usePermission";
 import { isProgressInvoice, progressInvoiceAccess } from "@shared/progressInvoicePermissions";
+import { isSeparateProjectReport, progressReportAccess } from "@shared/progressReportPermissions";
 import DashboardLayout from "@/components/DashboardLayout";
 import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
@@ -406,24 +406,22 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
     (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
 
-  const isSuperAdmin = user?.role === "super_admin" || user?.role === "system_admin";
-
   const utils = trpc.useUtils();
   // التحقق من الصلاحيات
   const isInvoiceMode = mainViewTab === "invoices" || isInvoicePath;
 
-  const hasReportAddPermission = usePermission("progress_reports.add");
-  const hasReportEditPermission = usePermission("progress_reports.edit");
-  const hasReportApprovePermission = usePermission("progress_reports.approve");
-  const hasReportExceptionApprove = usePermission("progress_reports.exception_approve");
-  const hasReportRevokeApprovalPermission = usePermission("progress_reports.revoke_approval");
-  const hasReportViewRevokeReasonPermission = usePermission("progress_reports.view_revoke_reason");
-
-  const { data: liveInvoicePermissions } = trpc.permissions.getUserPermissions.useQuery(
+  const { data: liveProgressPermissions } = trpc.permissions.getUserPermissions.useQuery(
     { userId: user?.id ?? 0 },
     { enabled: !!user, staleTime: 0, refetchInterval: 5000, refetchOnMount: true, refetchOnWindowFocus: true },
   );
-  const invoiceAccess = progressInvoiceAccess(liveInvoicePermissions ?? user?.permissions ?? []);
+  const permissions = liveProgressPermissions ?? user?.permissions ?? [];
+  const reportAccess = progressReportAccess(permissions);
+  const invoiceAccess = progressInvoiceAccess(permissions);
+  const hasReportAddPermission = reportAccess.canAdd;
+  const hasReportEditPermission = reportAccess.canEdit;
+  const hasReportApprovePermission = reportAccess.canApprove;
+  const hasReportExceptionApprove = reportAccess.canExceptionApprove;
+  const hasReportRevokeApprovalPermission = reportAccess.canRevoke;
   const hasInvoiceAddPermission = invoiceAccess.canAdd;
   const hasInvoiceEditPermission = invoiceAccess.canEdit;
   const hasInvoiceApprovePermission = invoiceAccess.canApprove;
@@ -456,7 +454,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   };
 
   const canViewRevokeReasonItem = (item?: any) => {
-    return Boolean(hasReportViewRevokeReasonPermission);
+    return !(item ? isInvoiceReport(item) : isInvoiceMode) && reportAccess.canViewRevokeReason;
   };
   
   const [newReport, setNewReport] = useState({
@@ -598,16 +596,25 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
   // استعلام لكافة تقارير الإنجاز لحساب الإحصائيات العامة بشكل دائم
   const { data: allReportsData, refetch: refetchAllReports } = trpc.progressReports.list.useQuery(
-    isInvoiceMode ? { kind: "invoice" } : undefined,
-    { enabled: !isInvoiceMode || invoiceAccess.canView },
+    { kind: isInvoiceMode ? "invoice" : "report" },
+    { enabled: isInvoiceMode ? invoiceAccess.canView : reportAccess.canView },
   );
 
   // استعلام تقارير الإنجاز المفلترة والمبحوثة من الـ backend
   const { data: reportsData, refetch: refetchReports } = trpc.progressReports.list.useQuery({
-    kind: isInvoiceMode ? "invoice" : undefined,
+    kind: isInvoiceMode ? "invoice" : "report",
     status: statusFilter !== "all" ? statusFilter as any : undefined,
     search: searchTerm ? searchTerm : undefined,
-  }, { enabled: !isInvoiceMode || invoiceAccess.canView });
+  }, { enabled: isInvoiceMode ? invoiceAccess.canView : reportAccess.canView });
+
+  const previousReasonAccess = useRef(reportAccess.canViewRevokeReason);
+  useEffect(() => {
+    if (previousReasonAccess.current !== reportAccess.canViewRevokeReason && !isInvoiceMode && reportAccess.canView) {
+      void refetchReports();
+      void refetchAllReports();
+    }
+    previousReasonAccess.current = reportAccess.canViewRevokeReason;
+  }, [reportAccess.canViewRevokeReason, reportAccess.canView, isInvoiceMode, refetchReports, refetchAllReports]);
 
   // استعلام طلبات الصرف للتحقق من التقارير المحولة
   const { data: disbursementRequestsData, refetch: refetchDisbursementRequests } = trpc.disbursements.listRequests.useQuery({
@@ -615,22 +622,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   });
   
   const isExcludedProjectReport = (r: any) => {
-    const titleLower = (r.title || "").toLowerCase();
-    const reportNumUpper = (r.reportNumber || "").toUpperCase();
-    return (
-      titleLower.includes("زيارة") ||
-      titleLower.includes("visit") ||
-      reportNumUpper.includes("VISIT") ||
-      titleLower.includes("نصف") ||
-      titleLower.includes("شهري") ||
-      titleLower.includes("ربعي") ||
-      titleLower.includes("semi") ||
-      titleLower.includes("monthly") ||
-      titleLower.includes("quarterly") ||
-      reportNumUpper.includes("SEMI") ||
-      reportNumUpper.includes("MONTH") ||
-      reportNumUpper.includes("Q")
-    );
+    return isSeparateProjectReport(r);
   };
 
   const isInvoiceReport = (r: any) => {
@@ -1720,11 +1712,6 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   const checkPendingMyAction = (report: any) => {
     if (!user || !report) return false;
     
-    // بالنسبة للـ super admin: المستخلصات والتقارير التي بحاجة لاعتماد تتلون بالأخضر دائماً
-    if (isSuperAdmin && !isInvoiceReport(report) && (report.status === "pending" || report.status === "submitted" || report.status === "draft" || report.status === "pending_executive")) {
-      return true;
-    }
-    
     // المرحلة الأولى: بانتظار اعتماد مدير المشروع (فقط لمدير المشروع المعين للمشروع بشرط امتلاك صلاحية الاعتماد)
     if (report.status === "pending" || report.status === "submitted" || report.status === "draft") {
       const isProjectManager = Boolean(report.projectManagerId && Number(report.projectManagerId) === Number(user.id));
@@ -1751,7 +1738,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   });
   const total = sortedReports.length;
   const totalPages = Math.ceil(total / limit);
-  const showActionsColumn = !isInvoiceMode || invoiceAccess.hasActions;
+  const showActionsColumn = isInvoiceMode ? invoiceAccess.hasActions : reportAccess.hasActions;
   const paginatedReports = sortedReports.slice((page - 1) * limit, page * limit);
 
   const handlePageChange = (newPage: number) => {
@@ -1810,6 +1797,10 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   if (isInvoiceMode && (!invoiceAccess.canView ||
       (activeTab === "create-invoice" && !(editingReportId ? invoiceAccess.canEdit : invoiceAccess.canAdd)))) {
     return <DashboardLayout><div className="py-16 text-center" dir="rtl">غير مصرح لك بالوصول إلى هذا الإجراء في المستخلصات</div></DashboardLayout>;
+  }
+  if (!isInvoiceMode && (!reportAccess.canView ||
+      (activeTab === "create" && !reportAccess.canAdd) || (activeTab === "edit" && !reportAccess.canEdit))) {
+    return <DashboardLayout><div className="py-16 text-center" dir="rtl">غير مصرح لك بالوصول إلى هذا الإجراء في تقارير الإنجاز</div></DashboardLayout>;
   }
 
   if (activeTab === "create" || activeTab === "edit") {
@@ -2696,7 +2687,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
             ) : (
               <Button onClick={() => setActiveTab("create")}>
                 <Plus className="w-4 h-4 ml-2" />
-                تقرير جديد
+                إضافة تقرير إنجاز
               </Button>
             )
           )}
@@ -2809,11 +2800,12 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                     const contractNumMatch = (report.workSummary || "").match(/\[رقم العقد:\s*([^\]]+)\]/);
                     const contractNumberText = contractNumMatch ? contractNumMatch[1] : null;
 
-                    const hasRowActions = !isInv || (
+                    const hasRowActions = (
                       (canEditItem(report) && !isReportConverted(report) && !isDisbursementApproved(report) && ["draft", "pending", "submitted"].includes(report.status)) ||
                       (canReviewReportItem(report) && ((["draft", "pending", "submitted"].includes(report.status) && isProjectManager) || (report.status === "pending_executive" && isExecutiveDirector))) ||
                       (canRevokeApprovalItem(report) && report.status === "approved") ||
-                      (canExceptionApproveItem(report) && !isProjectManager && ["draft", "pending", "submitted"].includes(report.status))
+                      (canExceptionApproveItem(report) && !isProjectManager && ["draft", "pending", "submitted"].includes(report.status)) ||
+                      (canViewRevokeReasonItem(report) && report.status === "revoked")
                     );
 
                     const renderDropdownContent = () => (
@@ -2942,7 +2934,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                               className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors text-rose-600"
                             >
                               <XCircle className="w-3.5 h-3.5 text-rose-500" />
-                              <span>{isInv ? "رفض المستخلص" : "إلغاء تقرير الإنجاز"}</span>
+                              <span>{isInv ? "رفض المستخلص" : "رفض تقرير الإنجاز"}</span>
                             </DropdownMenuItem>
                           </>
                         )}
@@ -2971,7 +2963,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                               className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors text-rose-600"
                             >
                               <XCircle className="w-3.5 h-3.5 text-rose-500" />
-                              <span>{isInv ? "رفض المستخلص" : "إلغاء تقرير الإنجاز"}</span>
+                              <span>{isInv ? "رفض المستخلص" : "رفض تقرير الإنجاز"}</span>
                             </DropdownMenuItem>
                           </>
                         )}
@@ -3359,19 +3351,6 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 </Button>
               )}
 
-              {/* تحويل تقرير الإنجاز المعتمد إلى طلب صرف */}
-              {selectedReport && !isInvoiceReport(selectedReport) && selectedReport.status === "approved" && (
-                <Button
-                  onClick={() => {
-                    setShowDetailsDialog(false);
-                    navigate(`/disbursements/new?reportId=${selectedReport.id}`);
-                  }}
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold gap-1.5"
-                >
-                  <CreditCard className="w-4 h-4 ml-1" />
-                  تحويل إلى طلب صرف
-                </Button>
-              )}
               
               {/* زر الاعتماد العادي للمرحلة الأولى أو الثانية */}
               {selectedReport && canReviewReportItem(selectedReport) && (
@@ -3428,7 +3407,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         </Dialog>
 
         {/* نافذة اعتماد تقرير الإنجاز */}
-        <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+        <Dialog open={showApproveDialog && canReviewReportItem(selectedReport)} onOpenChange={setShowApproveDialog}>
           <DialogContent dir="rtl">
             <DialogHeader className="text-right sm:text-right">
               <DialogTitle className="text-right sm:text-right">
@@ -3488,7 +3467,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         </Dialog>
 
         {/* نافذة إلغاء / رفض تقرير الإنجاز */}
-        <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <Dialog open={showRejectDialog && canReviewReportItem(selectedReport)} onOpenChange={setShowRejectDialog}>
           <DialogContent dir="rtl">
             <DialogHeader className="text-right sm:text-right">
               <DialogTitle className="text-right sm:text-right">
@@ -3531,7 +3510,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         </Dialog>
 
         {/* نافذة إلغاء الاعتماد */}
-        <Dialog open={showRevokeDialog} onOpenChange={setShowRevokeDialog}>
+        <Dialog open={showRevokeDialog && canRevokeApprovalItem(selectedReport)} onOpenChange={setShowRevokeDialog}>
           <DialogContent dir="rtl">
             <DialogHeader className="text-right sm:text-right">
               <DialogTitle className="text-amber-700 dark:text-amber-400 flex items-center gap-2 text-right sm:text-right">
@@ -3581,7 +3560,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         </Dialog>
 
         {/* نافذة استثناء اعتماد مدير المشروع */}
-        <Dialog open={showExceptionDialog} onOpenChange={setShowExceptionDialog}>
+        <Dialog open={showExceptionDialog && canExceptionApproveItem(selectedReport)} onOpenChange={setShowExceptionDialog}>
           <DialogContent dir="rtl">
             <DialogHeader className="text-right sm:text-right">
               <DialogTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-500 text-right sm:text-right">
@@ -3667,7 +3646,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         </Dialog>
 
         {/* نافذة عرض سبب إلغاء التقرير */}
-        <Dialog open={showViewRejectionDialog} onOpenChange={setShowViewRejectionDialog}>
+        <Dialog open={showViewRejectionDialog && (selectedReport?.status !== "revoked" || canViewRevokeReasonItem(selectedReport))} onOpenChange={setShowViewRejectionDialog}>
           <DialogContent dir="rtl" className="max-w-md">
             <DialogHeader className="text-right sm:text-right">
               <DialogTitle className="flex items-center gap-2 text-rose-700 dark:text-rose-400 text-right sm:text-right">

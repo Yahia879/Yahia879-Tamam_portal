@@ -3,6 +3,7 @@ import { useAuth } from "../_core/hooks/useAuth";
 import { isInformationDashboardPermission } from "@shared/informationDashboardPermissions";
 import { isBoardAnalyticsPermission } from "@shared/boardAnalyticsPermissions";
 import { isProgressInvoicePermission } from "@shared/progressInvoicePermissions";
+import { isProgressReportPermission } from "@shared/progressReportPermissions";
 
 /**
  * التحقق مما إذا كانت الصلاحية تابعة لقسم إدارة المخزون
@@ -49,6 +50,7 @@ export function isStrictPermission(permission: string): boolean {
     isInformationDashboardPermission(permission) ||
     isBoardAnalyticsPermission(permission) ||
     isProgressInvoicePermission(permission) ||
+    isProgressReportPermission(permission) ||
     permission === "requests" || permission.startsWith("requests.") ||
     permission === "sedana_requests" || permission.startsWith("sedana_requests.") ||
     isInventoryPermission(permission) ||
