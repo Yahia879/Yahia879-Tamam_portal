@@ -378,6 +378,7 @@ function Router() {
       <Route path="/projects/:id/invoices/new">{params => <AdminRoute component={() => <NewMilestoneRequest params={params} />} />}</Route>
       <Route path="/projects/:id/milestones/new">{params => <AdminRoute component={() => <NewMilestoneRequest params={params} />} />}</Route>
       <Route path="/projects/:id">{() => <AdminRoute component={ProjectDetailsPage} />}</Route>
+      <Route path="/project/:id">{() => <AdminRoute component={ProjectDetailsPage} />}</Route>
       <Route path="/project-management">{() => <AdminRoute component={ProjectManagement} />}</Route>
       <Route path="/project-reports">{() => <AdminRoute component={ProjectReportsHubPage} />}</Route>
       <Route path="/project-reports/new">{() => <AdminRoute component={NewProjectReportPage} />}</Route>

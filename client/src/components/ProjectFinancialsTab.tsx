@@ -58,6 +58,7 @@ import {
   PenLine,
 } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
+import { projectAccess } from "@shared/projectPermissions";
 import { toast } from "sonner";
 
 interface ProjectFinancialsTabProps {
@@ -65,11 +66,17 @@ interface ProjectFinancialsTabProps {
 }
 
 export default function ProjectFinancialsTab({ projectId }: ProjectFinancialsTabProps) {
+  const { user } = useAuth();
+  const { data: permissions = [] } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user, staleTime: 0, refetchInterval: 5000, refetchOnMount: true, refetchOnWindowFocus: true },
+  );
+  const access = projectAccess(permissions);
   const utils = trpc.useUtils();
   const [, navigate] = useLocation();
 
   // 1. Fetch Financial Data
-  const { data, isLoading, refetch } = trpc.projects.getFinancialData.useQuery({ projectId });
+  const { data, isLoading, refetch } = trpc.projects.getFinancialData.useQuery({ projectId, scope: "project" }, { enabled: access.canViewFinancials });
   const { data: fundable } = trpc.fund.projectAvailability.useQuery({ projectId });
 
   // 2. Fetch Support Categories
@@ -154,16 +161,13 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
   const [approvedQuotationId, setApprovedQuotationId] = useState<number | null>(null);
   const [supportEntity, setSupportEntity] = useState<string>("");
   const [customSupportEntity, setCustomSupportEntity] = useState<string>("");
-  const { user } = useAuth();
   const isFaaa8User = user?.email === "solayani@manarah.org.sa";
   const hasExceptionApprove = usePermission("receipt_vouchers.exception_approve");
-  const hasFinancials = usePermission("projects.financials");
-  const canTransferToFund = usePermission("projects.financials");
+  const hasFinancials = access.canViewFinancials;
+  const canTransferToFund = hasFinancials;
   const canDisburseFromFund = usePermission("disbursements.create_from_fund");
-  const canEditSupportPerm = usePermission("projects.edit_support_and_fees");
-  const canAddReceiptPerm = usePermission("projects.add_receipt_voucher");
-  const canEditSupportAndFees = hasFinancials && canEditSupportPerm;
-  const canAddReceiptVoucher = hasFinancials && canAddReceiptPerm;
+  const canEditSupportAndFees = access.canEditSupportAndFees;
+  const canAddReceiptVoucher = access.canAddReceiptVoucher;
 
   const [activeSupporterTab, setActiveSupporterTab] = useState<string>("all");
   const [supportAmount, setSupportAmount] = useState<number>(0);
@@ -615,6 +619,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
   // Handlers
   const handleSaveFinancials = () => {
+    if (!canEditSupportAndFees) return;
     const validSources = supportSources.filter(s => (s.entity && s.entity.trim() !== "") || s.amount > 0);
     const finalSources = validSources.length > 0 ? validSources : supportSources;
     const totalSupport = finalSources.reduce((sum, s) => sum + (s.amount || 0), 0);
@@ -701,6 +706,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
   };
 
   const handleSaveVoucher = () => {
+    if (!editingVoucherId && !canAddReceiptVoucher) return;
     const amountNum = parseFloat(voucherAmount);
     if (!voucherAmount || isNaN(amountNum) || amountNum <= 0) {
       toast.error("يرجى إدخال مبلغ الدفعة المقبوضة بشكل صحيح أكبر من صفر");
@@ -736,6 +742,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     } else {
       createVoucherMutation.mutate({
         projectId,
+        source: "project_financials",
         amount: amountNum,
         receiptDate: voucherDate,
         payerName: finalPayerName,
@@ -747,6 +754,8 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
       });
     }
   };
+
+  if (!hasFinancials) return null;
 
   if (isLoading) {
     return (
@@ -968,7 +977,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
           </CardHeader>
 
           <CardContent className="pt-4 space-y-4">
-            {isEditingFinancials ? (
+            {isEditingFinancials && canEditSupportAndFees ? (
               <div className="space-y-4 text-xs">
                 {/* قائمة الجهات الداعمة */}
                 <div className="space-y-3">
@@ -1731,7 +1740,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
       </Card>
 
       {/* Dialog to Add/Edit Receipt Voucher */}
-      <Dialog open={isVoucherModalOpen} onOpenChange={setIsVoucherModalOpen}>
+      <Dialog open={isVoucherModalOpen && (!!editingVoucherId || canAddReceiptVoucher)} onOpenChange={setIsVoucherModalOpen}>
         <DialogContent className="dir-rtl text-right max-w-2xl sm:max-w-3xl w-[92vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader className="text-right">
             <DialogTitle className="text-base font-bold flex items-center gap-2 text-right">

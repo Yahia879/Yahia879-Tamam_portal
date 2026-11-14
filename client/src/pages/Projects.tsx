@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useUserPermissions } from "@/hooks/usePermission";
+import { projectAccess } from "@shared/projectPermissions";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -84,14 +84,13 @@ export default function Projects() {
   const [page, setPage, resetPage] = usePersistedPage("projects_table_page");
   const limit = 20;
 
-  const serverPermissions = useUserPermissions();
-  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const canViewDetails = isAdmin || serverPermissions.includes("projects.view_details");
-  const canViewFinancials = serverPermissions.includes("projects.financials") || serverPermissions.includes("projects.edit_support_and_fees") || serverPermissions.includes("projects.add_receipt_voucher");
-  const canAccessProjectPage = canViewDetails || canViewFinancials;
-  const canCreateProject = 
-    isAdmin || 
-    serverPermissions.includes("projects.create_multi_mosque");
+  const { data: serverPermissions = [] } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user, staleTime: 0, refetchInterval: 5000, refetchOnMount: true, refetchOnWindowFocus: true },
+  );
+  const access = projectAccess(serverPermissions);
+  const canAccessProjectPage = access.canViewDetails;
+  const canCreateProject = access.canCreate;
 
   // خيارات نوع المشروع
   const typeFilterOptions = useMemo(() => [
@@ -108,7 +107,7 @@ export default function Projects() {
     type: typeFilter !== "all" ? typeFilter : undefined,
     page,
     limit,
-  });
+  }, { enabled: access.canView });
 
   const projectsList = data?.projects || [];
   const total = data?.total || 0;
@@ -119,6 +118,8 @@ export default function Projects() {
     setPage(newPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  if (!access.canView) return <DashboardLayout><div className="py-16 text-center" dir="rtl">غير مصرح لك بعرض المشاريع</div></DashboardLayout>;
 
   return (
     <DashboardLayout>
@@ -135,7 +136,7 @@ export default function Projects() {
                 className="gradient-primary text-white font-bold gap-2 shadow-sm rounded-xl px-5 h-11 self-start sm:self-auto"
               >
                 <Plus className="w-5 h-5" />
-                <span>إضافة مشروع لعدة مساجد</span>
+                <span>إضافة مشروع متعدد المساجد</span>
               </Button>
             </Link>
           )}
@@ -282,7 +283,7 @@ export default function Projects() {
                         <TableHead className="text-right">نسبة الإنجاز</TableHead>
                         <TableHead className="text-right">الميزانية</TableHead>
                         <TableHead className="text-right">تاريخ الإنشاء</TableHead>
-                        {canAccessProjectPage && <TableHead className="w-[50px]"></TableHead>}
+                        {canAccessProjectPage && <TableHead className="text-center">الإجراءات</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -380,7 +381,7 @@ export default function Projects() {
                                   <Link href={`/projects/${project.id}`}>
                                     <DropdownMenuItem>
                                       <Eye className="w-4 h-4 ml-2" />
-                                      {canViewFinancials && !canViewDetails ? "عرض المالية" : "عرض التفاصيل"}
+                                      عرض تفاصيل المشروع
                                     </DropdownMenuItem>
                                   </Link>
                                 </DropdownMenuContent>
@@ -450,7 +451,7 @@ export default function Projects() {
                               <Link href={`/projects/${project.id}`}>
                                 <DropdownMenuItem>
                                   <Eye className="w-4 h-4 ml-2" />
-                                  {canViewFinancials && !canViewDetails ? "عرض المالية" : "عرض التفاصيل"}
+                                  عرض تفاصيل المشروع
                                 </DropdownMenuItem>
                               </Link>
                             </DropdownMenuContent>

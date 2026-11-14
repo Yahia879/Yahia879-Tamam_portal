@@ -5,6 +5,7 @@ import { REQUEST_LIST_ENTRY_PERMISSIONS, isRequestSectionPermission } from "@sha
 import { isDashboardViewerUser } from "./dashboardViewer";
 import { informationDashboardTabs } from "@shared/informationDashboardPermissions";
 import { BOARD_ANALYTICS_PERMISSION_IDS, boardAnalyticsTabs } from "@shared/boardAnalyticsPermissions";
+import { projectAccess } from "@shared/projectPermissions";
 
 /**
  * خريطة صلاحيات المسارات (Route-Permission Map)
@@ -152,8 +153,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/admin-escalation": ["escalation.delayed_requests", "escalation.delayed_beneficiaries"],
 
   // ── المشاريع ──
-  "/projects": ["projects.view", "projects.view_details", "projects.create_multi_mosque", "projects.financials", "projects.edit_support_and_fees", "projects.add_receipt_voucher"],
-  "/projects/new": ["projects.create_multi_mosque", "projects.create", "projects"],
+  "/projects": "projects.view",
+  "/projects/new": "projects.create_multi_mosque",
   "/project-management": ["projects.view", "projects.view_details"],
 
   // ── إدارة المستخدمين ──
@@ -476,7 +477,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/field-visits\/report\/\d+$/, permission: ["requests.view_details", "requests.manage_as_field_team"] },
 
   // المشاريع
-  { pattern: /^\/projects\/\d+$/, permission: ["projects.view_details", "projects.financials", "projects.edit_support_and_fees", "projects.add_receipt_voucher"] },
+  { pattern: /^\/projects?\/\d+$/, permission: ["projects.view_details", "projects.financials"] },
   { pattern: /^\/projects\/\d+\/(invoices|milestones)\/new$/, permission: ["projects.view_details", "projects", "progress_reports", "progress_invoices", "contracts"] },
   { pattern: /^\/milestones\/new\/\d+$/, permission: ["projects.view_details", "projects", "progress_reports", "progress_invoices", "contracts"] },
 
@@ -686,6 +687,10 @@ export function hasRouteAccess(
   hasCustomRole: boolean,
   user?: CustodyUser,
 ): boolean {
+  const projectsAccess = projectAccess(userPermissions);
+  if (pathname.replace(/\/$/, "") === "/projects") return projectsAccess.canView;
+  if (pathname.replace(/\/$/, "") === "/projects/new") return projectsAccess.canCreate;
+  if (/^\/projects?\/\d+\/?$/.test(pathname)) return projectsAccess.canOpenProject;
   if (pathname.replace(/\/$/, "") === "/progress-reports") {
     return userPermissions.includes("progress_reports.view");
   }

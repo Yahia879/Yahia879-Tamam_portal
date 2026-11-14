@@ -24,6 +24,7 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { projectAccess } from "@shared/projectPermissions";
 
 interface SelectedMosqueItem {
   mosqueId: number;
@@ -34,6 +35,11 @@ interface SelectedMosqueItem {
 
 export default function NewMultiMosqueProjectPage() {
   const { user } = useAuth();
+  const { data: permissions = [] } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user, staleTime: 0, refetchInterval: 5000, refetchOnMount: true, refetchOnWindowFocus: true },
+  );
+  const canCreateProject = projectAccess(permissions).canCreate;
   const [, navigate] = useLocation();
 
   // نموذج الخطوات (Step 1 -> Step 2 -> Step 3)
@@ -49,9 +55,8 @@ export default function NewMultiMosqueProjectPage() {
   const [mosqueSearchQuery, setMosqueSearchQuery] = useState("");
   const [selectedMosques, setSelectedMosques] = useState<SelectedMosqueItem[]>([]);
 
-  // جلب مدراء المشاريع (المستخدمين الذين يحملون دور مدير مشروع أو صلاحية تعيين كمدير للمشاريع)
+  // جلب المستخدمين الذين يملكون صلاحية التعيين كمدير للمشاريع.
   const { data: usersResponse, isLoading: loadingUsers } = trpc.users.getAll.useQuery({
-    roles: ["project_manager"],
     permission: "projects.assign_as_manager",
     limit: 100,
     includeAll: true,
@@ -132,6 +137,7 @@ export default function NewMultiMosqueProjectPage() {
   };
 
   const handleSubmit = () => {
+    if (!canCreateProject) return;
     if (!validateStep1() || !validateStep2()) return;
 
     createMultiProjectMutation.mutate({
@@ -144,6 +150,8 @@ export default function NewMultiMosqueProjectPage() {
       })),
     });
   };
+
+  if (!canCreateProject) return <DashboardLayout><div className="py-16 text-center" dir="rtl">غير مصرح لك بإضافة مشروع متعدد المساجد</div></DashboardLayout>;
 
   return (
     <DashboardLayout>

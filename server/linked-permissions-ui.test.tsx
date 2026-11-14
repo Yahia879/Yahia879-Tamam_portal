@@ -6,6 +6,7 @@ import { CALENDAR_MANAGEMENT_PERMISSION_IDS } from "../shared/calendarPermission
 import { BOARD_ANALYTICS_PERMISSION_IDS } from "../shared/boardAnalyticsPermissions";
 import { PROGRESS_INVOICE_PERMISSION_IDS } from "../shared/progressInvoicePermissions";
 import { PROGRESS_REPORT_PERMISSION_IDS } from "../shared/progressReportPermissions";
+import { PROJECT_PERMISSION_IDS } from "../shared/projectPermissions";
 
 // Exercise page handlers and confirmation dialogs without a browser or DOM.
 const state = vi.hoisted(() => ({ slots: [] as any[], cursor: 0, effects: [] as (() => void)[], dirty: false, data: {} as Record<string, any> }));
@@ -55,6 +56,8 @@ beforeAll(async () => {
     RolePermissions: (await import("../client/src/pages/RolePermissions")).default,
     UserPermissions: (await import("../client/src/pages/UserPermissions")).default,
   };
+  const Financials = (await import("../client/src/components/ProjectFinancialsTab")).default;
+  pages.ProjectFinancials = () => Financials({ projectId: 323 });
 });
 beforeEach(() => {
   state.slots = []; state.cursor = 0; state.effects = []; state.dirty = false;
@@ -109,6 +112,18 @@ function decide(tree: React.ReactNode, confirm: boolean) {
 }
 
 describe.each(["RoleEdit", "RolePermissions", "UserPermissions"])("linked permission confirmation on %s", page => {
+  it.each(PROJECT_PERMISSION_IDS.filter(permission => permission !== "projects.view"))("honors independent project administrator selection and view revocation for %s", id => {
+    const selected = ["projects.view", "fund.view", ...(["projects.edit_support_and_fees", "projects.add_receipt_voucher"].includes(id) ? ["projects.financials"] : [])];
+    state.data["permissions.getRolePermissions"] = selected;
+    state.data["permissions.getUserRolePermissions"] = selected;
+    state.data["permissions.getUserPermissions"] = selected;
+    let tree = render(page);
+    expect(checked(tree, id)).toBe(false);
+    row(tree, id).props.onClick(); tree = render(page);
+    expect(checked(tree, id)).toBe(true);
+    row(tree, "projects.view").props.onClick(); tree = render(page);
+    expect(checked(tree, id)).toBe(false);
+  });
   it.each(PROGRESS_REPORT_PERMISSION_IDS.filter(permission => permission !== "progress_reports.view"))("honors independent report administrator selection and view revocation for %s", id => {
     const selected = ["progress_reports.view"];
     state.data["permissions.getRolePermissions"] = selected;
@@ -223,5 +238,36 @@ describe.each(["RoleEdit", "RolePermissions", "UserPermissions"])("linked permis
     expect(checked(tree, "pending_reports.intervene_field_visit")).toBe(false);
     decide(tree, true); tree = render(page);
     for (const id of [...REQUEST_REPORT_PERMISSION_IDS, ...REQUEST_MANAGEMENT_REQUIREMENTS]) expect(checked(tree, id)).toBe(true);
+  });
+});
+
+describe("project financial form authorization", () => {
+  beforeEach(() => {
+    state.data["projects.getFinancialData"] = { project: { id: 323, name: "مشروع" }, allQuotations: [], receiptVouchers: [], financialDetail: null };
+    state.data["permissions.getUserPermissions"] = ["projects.view", "projects.financials"];
+  });
+  const button = (tree: React.ReactNode, label: string) => elements(tree).find(element => element.props.onClick && text(element).trim() === label);
+  it("opens supporter and administrative fee inputs only with editing permission and hides them after revocation", () => {
+    let tree = render("ProjectFinancials");
+    expect(button(tree, "تعديل البيانات")).toBeUndefined();
+    state.data["permissions.getUserPermissions"].push("projects.edit_support_and_fees");
+    tree = render("ProjectFinancials");
+    button(tree, "تعديل البيانات")!.props.onClick(); tree = render("ProjectFinancials");
+    expect(button(tree, "إضافة داعم آخر")).toBeDefined();
+    expect(text(tree)).toContain("الأجور الإدارية (المهندسين والجمعية)");
+    state.data["permissions.getUserPermissions"] = ["projects.view", "projects.financials"];
+    tree = render("ProjectFinancials");
+    expect(button(tree, "إضافة داعم آخر")).toBeUndefined();
+    expect(button(tree, "حفظ البيانات")).toBeUndefined();
+  });
+  it("opens the current voucher creation dialog only with the project grant and closes it after revocation", () => {
+    state.data["permissions.getUserPermissions"].push("projects.add_receipt_voucher");
+    let tree = render("ProjectFinancials");
+    button(tree, "تسجيل سند قبض جديد")!.props.onClick(); tree = render("ProjectFinancials");
+    expect(elements(tree).some(element => element.props.open === true && text(element).includes("تسجيل سند قبض جديد"))).toBe(true);
+    state.data["permissions.getUserPermissions"] = ["projects.view", "projects.financials"];
+    tree = render("ProjectFinancials");
+    expect(elements(tree).some(element => element.props.open === true && text(element).includes("تسجيل سند قبض جديد"))).toBe(false);
+    expect(button(tree, "تسجيل سند قبض جديد")).toBeUndefined();
   });
 });

@@ -2692,7 +2692,7 @@ export default function RolePermissions() {
 
   // منطق التحقق من الصلاحية
   const isPermissionGranted = (permId: string) => {
-    if (permId.startsWith("progress_reports.") || permId.startsWith("progress_invoices.") || permId.startsWith("board_analytics.") || permId.startsWith("information_dashboard.")) return validSelectedPerms.includes(permId);
+    if (permId.startsWith("projects.") || permId.startsWith("progress_reports.") || permId.startsWith("progress_invoices.") || permId.startsWith("board_analytics.") || permId.startsWith("information_dashboard.")) return validSelectedPerms.includes(permId);
     if (permId.startsWith("mosques.")) return validSelectedPerms.includes(permId);
     if (permId.startsWith("requester_") || permId.startsWith("escalation.") || permId.startsWith("requests.") || permId.startsWith("sedana_requests.") || permId.startsWith("pending_reports.") || permId.startsWith("beneficiary_evaluations.") || permId.startsWith("appointments.")) return validSelectedPerms.includes(permId);
     const isInventory =
@@ -2821,7 +2821,7 @@ export default function RolePermissions() {
                       // إظهار خيار "مواعيد الخاصة بي" فقط عند تخصيص الفريق الميداني
                       return true;
                     });
-                    const activePerms = isSuperAdmin && !module.id.startsWith("requester_") && !["progress_reports", "progress_invoices", "board_analytics", "information_dashboard", "mosques", "escalation", "requests", "sedana_requests", "pending_reports", "beneficiary_evaluations", "appointments"].includes(module.id)
+                    const activePerms = isSuperAdmin && !module.id.startsWith("requester_") && !["projects", "progress_reports", "progress_invoices", "board_analytics", "information_dashboard", "mosques", "escalation", "requests", "sedana_requests", "pending_reports", "beneficiary_evaluations", "appointments"].includes(module.id)
                       ? modulePerms.filter((p: any) => {
                         const isInventory =
                           p.id.startsWith("sedana_quotations") ||
@@ -2855,7 +2855,7 @@ export default function RolePermissions() {
                               <CardTitle className="text-lg sm:text-xl font-bold truncate">{module.nameAr}</CardTitle>
                             </div>
                             <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-1 sm:mt-0">
-                              {modulePerms.length > 0 && (!isSuperAdmin || group.title === "إدارة المخزون" || module.id.startsWith("requester_") || ["progress_reports", "progress_invoices", "board_analytics", "information_dashboard", "mosques", "escalation", "requests", "sedana_requests", "pending_reports", "beneficiary_evaluations", "appointments"].includes(module.id)) && (
+                              {modulePerms.length > 0 && (!isSuperAdmin || group.title === "إدارة المخزون" || module.id.startsWith("requester_") || ["projects", "progress_reports", "progress_invoices", "board_analytics", "information_dashboard", "mosques", "escalation", "requests", "sedana_requests", "pending_reports", "beneficiary_evaluations", "appointments"].includes(module.id)) && (
                                 <Button
                                   variant="ghost"
                                   size="sm"

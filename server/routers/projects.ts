@@ -6,6 +6,7 @@ import {
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
+import { projectAccess } from "../../shared/projectPermissions";
 import {
   projects,
   projectMosques,
@@ -422,6 +423,16 @@ function generateQuotationNumber(): string {
   return `${prefix}-${timestamp}-${random}`;
 }
 
+async function requireEligibleProjectManager(db: NonNullable<Awaited<ReturnType<typeof getDb>>>, managerId: number) {
+  const [candidate] = await db.select({ id: users.id, status: users.status, deletedAt: users.deletedAt })
+    .from(users).where(eq(users.id, managerId)).limit(1);
+  const { calculateUserPermissions } = await import("../permissions");
+  if (!candidate || candidate.status !== "active" || candidate.deletedAt ||
+      !projectAccess(await calculateUserPermissions(managerId)).canAssignAsManager) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "المستخدم المحدد لا يملك صلاحية التعيين كمدير للمشاريع" });
+  }
+}
+
 export const projectsRouter = router({
   // الحصول على جميع المشاريع (للتوافق مع الكود القديم)
   getAll: protectedProcedure
@@ -622,20 +633,8 @@ export const projectsRouter = router({
 
       const { calculateUserPermissions } = await import("../permissions");
       const userPermissions = await calculateUserPermissions(ctx.user.id);
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      if (
-        !isAdmin &&
-        !userPermissions.includes("projects.view") &&
-        !userPermissions.includes("projects.view_details") &&
-        !userPermissions.includes("projects.financials") &&
-        !userPermissions.includes("progress_reports.view") &&
-        !userPermissions.includes("progress_invoices.view") &&
-        !userPermissions.includes("disbursements.view")
-      ) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "ليس لديك صلاحية لعرض سجل المشاريع",
-        });
+      if (!projectAccess(userPermissions).canView) {
+        throw new TRPCError({ code: "FORBIDDEN" });
       }
 
       const conditions = [];
@@ -817,7 +816,7 @@ export const projectsRouter = router({
 
   // الحصول على مشروع بالتفاصيل
   getById: protectedProcedure
-    .input(z.object({ id: z.number(), lightweight: z.boolean().optional() }))
+    .input(z.object({ id: z.number(), lightweight: z.boolean().optional(), scope: z.literal("project_page").optional() }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db)
@@ -828,6 +827,9 @@ export const projectsRouter = router({
 
       const { calculateUserPermissions } = await import("../permissions");
       const userPermissions = await calculateUserPermissions(ctx.user.id);
+      if (input.scope === "project_page" && !projectAccess(userPermissions).canOpenProject) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض تفاصيل المشروع" });
+      }
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
       if (
         !isAdmin &&
@@ -2038,6 +2040,11 @@ export const projectsRouter = router({
           message: "قاعدة البيانات غير متاحة",
         });
 
+      const { calculateUserPermissions } = await import("../permissions");
+      if (!projectAccess(await calculateUserPermissions(ctx.user.id)).canViewDetails) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+
       const { id, ...updateData } = input;
 
       // جلب مدير المشروع الحالي واسم المشروع وتفاصيله قبل التحديث
@@ -2050,6 +2057,10 @@ export const projectsRouter = router({
         .from(projects)
         .where(eq(projects.id, id))
         .limit(1);
+
+      if (input.managerId !== undefined && input.managerId !== oldProject?.managerId) {
+        await requireEligibleProjectManager(db, input.managerId);
+      }
 
       const updateValues: any = {};
       if (updateData.name) updateValues.name = updateData.name;
@@ -5950,8 +5961,15 @@ export const projectsRouter = router({
 
   // ==================== تفاصيل البيانات المالية والدعم للمشروع ====================
   getFinancialData: protectedProcedure
-    .input(z.object({ projectId: z.number() }))
-    .query(async ({ input }) => {
+    .input(z.object({ projectId: z.number(), scope: z.literal("project").optional() }))
+    .query(async ({ input, ctx }) => {
+      const { calculateUserPermissions } = await import("../permissions");
+      const permissions = await calculateUserPermissions(ctx.user.id);
+      const canReadFinancials = projectAccess(permissions).canViewFinancials;
+      const relatedRead = ["contracts.view", "contracts.create", "contracts.edit", "disbursements.view", "disbursements.create", "disbursements.create_project_linked", "receipt_vouchers.view", "receipt_vouchers.create_project"].some(permission => permissions.includes(permission));
+      if (!canReadFinancials && (input.scope === "project" || !relatedRead)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض مالية المشروع" });
+      }
       const db = await getDb();
       if (!db)
         throw new TRPCError({
@@ -6262,18 +6280,8 @@ export const projectsRouter = router({
 
       const { calculateUserPermissions } = await import("../permissions");
       const userPermissions = await calculateUserPermissions(ctx.user.id);
-      const isAdmin = ["super_admin", "system_admin", "financial"].includes(
-        ctx.user.role
-      );
-      if (
-        !isAdmin &&
-        !userPermissions.includes("projects.edit_support_and_fees") &&
-        !userPermissions.includes("projects.financials")
-      ) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "ليس لديك صلاحية لتعديل بيانات الداعمين والأجور الإدارية",
-        });
+      if (!projectAccess(userPermissions).canEditSupportAndFees) {
+        throw new TRPCError({ code: "FORBIDDEN" });
       }
 
       const [existing] = await db
@@ -6491,6 +6499,7 @@ export const projectsRouter = router({
   createReceiptVoucher: protectedProcedure
     .input(
       z.object({
+        source: z.literal("project_financials").optional(),
         projectId: z.number().optional().nullable(),
         category: z
           .enum(["project_linked", "restricted", "unrestricted"])
@@ -6516,6 +6525,10 @@ export const projectsRouter = router({
 
       const { calculateUserPermissions } = await import("../permissions");
       const userPermissions = await calculateUserPermissions(ctx.user.id);
+
+      if (input.source === "project_financials" && !projectAccess(userPermissions).canAddReceiptVoucher) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إضافة سند من مالية المشروع" });
+      }
 
       const category = input.projectId
         ? "project_linked"
@@ -7247,26 +7260,11 @@ export const projectsRouter = router({
           message: "قاعدة البيانات غير متاحة",
         });
 
-      const allowedRoles = [
-        "super_admin",
-        "system_admin",
-        "projects_office",
-        "financial",
-        "financial_manager",
-      ];
       const { calculateUserPermissions } = await import("../permissions");
-      const userPerms = await calculateUserPermissions(ctx.user.id);
-
-      if (
-        !allowedRoles.includes(ctx.user.role) &&
-        !userPerms.includes("projects.create") &&
-        !userPerms.includes("projects")
-      ) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "ليس لديك صلاحية إنشاء مشروع جديد",
-        });
+      if (!projectAccess(await calculateUserPermissions(ctx.user.id)).canCreate) {
+        throw new TRPCError({ code: "FORBIDDEN" });
       }
+      await requireEligibleProjectManager(db, input.managerId);
 
       const projectNumber = await generateProjectNumber(db);
 

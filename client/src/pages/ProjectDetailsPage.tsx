@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useUserPermissions } from "@/hooks/usePermission";
+import { projectAccess } from "@shared/projectPermissions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -208,21 +208,27 @@ export default function ProjectDetailsPage() {
 
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
   // جلب الصلاحيات المحسوبة من السيرفر (تأخذ بالاعتبار الأدوار + الحجب الخاص والحظر)
-  const serverPermissions = useUserPermissions();
-  const canChangeManager = isAdmin || user?.role === 'projects_office';
+  const { data: serverPermissions = [] } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user, staleTime: 0, refetchInterval: 5000, refetchOnMount: true, refetchOnWindowFocus: true },
+  );
+  const access = projectAccess(serverPermissions);
+  const canChangeManager = access.canViewDetails && (isAdmin || user?.role === 'projects_office');
   // صلاحية عرض تفاصيل المشروع → تعرض جميع الأقسام (إلا إذا تم حجبها خاصاً)
-  const canViewDetails = serverPermissions.includes("projects.view_details");
-  const canEditProjectName = canViewDetails || isAdmin;
+  const canViewDetails = access.canViewDetails;
+  const canEditProjectName = canViewDetails;
   // صلاحية مالية المشاريع → تعرض قسم المالية
-  const canViewFinancials = serverPermissions.includes("projects.financials") || serverPermissions.includes("projects.edit_support_and_fees") || serverPermissions.includes("projects.add_receipt_voucher");
+  const canViewFinancials = access.canViewFinancials;
   // إذا كان المستخدم يملك فقط صلاحية المالية بدون صلاحية عرض التفاصيل
   const financialsOnly = canViewFinancials && !canViewDetails;
 
   // جلب تفاصيل المشروع
   const { data: project, isLoading, error: projectError, refetch } = trpc.projects.getById.useQuery({ 
     id: parseInt(id || "0"),
+    scope: "project_page",
   }, {
     retry: false,
+    enabled: access.canOpenProject,
   });
 
   // جلب تقارير الإنجاز والمستخلصات الخاصة بالمشروع
@@ -262,9 +268,9 @@ export default function ProjectDetailsPage() {
   // جلب مديري المشاريع المتاحين
   const { data: managersResult } = trpc.users.getAll.useQuery(
     {
-      roles: ['project_manager'],
       permission: 'projects.assign_as_manager',
       limit: 100,
+      includeAll: true,
     },
     {
       enabled: !!canChangeManager
@@ -668,6 +674,10 @@ export default function ProjectDetailsPage() {
 
     return Object.values(itemsMap);
   }, [isSedanaProgram, project]);
+
+  if (!access.canOpenProject) {
+    return <DashboardLayout><div className="py-16 text-center" dir="rtl">غير مصرح لك بعرض تفاصيل المشروع</div></DashboardLayout>;
+  }
 
   if (isLoading) {
     return (
