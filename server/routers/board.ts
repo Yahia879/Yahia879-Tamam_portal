@@ -52,6 +52,7 @@ export const boardRouter = router({
           search: z.string().optional().default(""),
           status: z.string().optional().default("all"),
           orderType: z.string().optional().default("all"),
+          scope: z.literal("board_executive").optional(),
         })
         .optional()
     )
@@ -88,6 +89,9 @@ export const boardRouter = router({
                                 await checkPermission(ctx.user.id, "information_dashboard.view") || 
                                 await checkPermission(ctx.user.id, "information_dashboard");
       const effectivePermissions = await calculateUserPermissions(ctx.user.id);
+      if (input?.scope === "board_executive" && !effectivePermissions.includes("board_chairman")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Missing financial approval center permission" });
+      }
       const canAccessBoard = isChairman || isChairmanView || isMember || isAdminRole || hasMemberPerm || isDashboardViewer ||
         boardAnalyticsTabs(effectivePermissions).length > 0 || informationDashboardTabs(effectivePermissions).length > 0;
 

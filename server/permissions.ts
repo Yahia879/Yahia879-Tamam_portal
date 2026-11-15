@@ -1276,6 +1276,7 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   "board_leadership.board_member": ["board_member"],
 
+  "board_leadership.bank_transfers_view_order_report": ["board_leadership.bank_transfers_view_order_report"],
   "board_leadership.bank_transfers": ["board_leadership.bank_transfers"],
   "board_leadership.bank_transfers_view_order": ["board_leadership.bank_transfers_view_order"],
   "board_leadership.bank_transfers_view_request": ["board_leadership.bank_transfers_view_request"],
@@ -3583,6 +3584,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "board_leadership.remind", moduleId: "board", action: "remind", nameAr: "إرسال تذكير بالاعتماد", nameEn: "Send Approval Reminder" },
       { id: "board_leadership.bank_transfers", moduleId: "board", action: "bank_transfers", nameAr: "عرض قائمة أوامر الصرف المعتمدة للتحويل البنكي", nameEn: "View Approved Bank Transfer Orders" },
       { id: "board_leadership.bank_transfers_view_order", moduleId: "board", action: "bank_transfers_view_order", nameAr: "عرض أمر الصرف المعتمد", nameEn: "View Approved Disbursement Order" },
+      { id: "board_leadership.bank_transfers_view_order_report", moduleId: "board", action: "bank_transfers_view_order_report", nameAr: "عرض تقرير أمر الصرف", nameEn: "View Disbursement Order Report" },
       { id: "board_leadership.bank_transfers_view_request", moduleId: "board", action: "bank_transfers_view_request", nameAr: "عرض تقرير طلب الصرف المعتمد", nameEn: "View Approved Disbursement Request" },
       { id: "board_leadership.bank_transfers_notes", moduleId: "board", action: "bank_transfers_notes", nameAr: "إضافة ومتابعة الملاحظات", nameEn: "Add and Follow Notes" },
       { id: "board_leadership.bank_transfers_view_justification", moduleId: "board", action: "bank_transfers_view_justification", nameAr: "عرض مبررات الإلغاء والرفض", nameEn: "View Cancellation or Rejection Reason" },
@@ -6201,7 +6203,8 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
   const hasOrgForCenter = allPermissions.has("settings_org.view") || Array.from(allPermissions).some(p => p.startsWith("settings_org."));
 
-  const hasNotifForCenter = allPermissions.has("staff_notifications.view") || Array.from(allPermissions).some(p => p.startsWith("staff_notifications."));
+  const hasNotifForCenter = allPermissions.has("staff_notifications.view") ||
+    Array.from(allPermissions).some(p => p.startsWith("staff_notifications.") || p.startsWith("notification_center."));
 
   const hasFormsForCenter = allPermissions.has("forms_customization.view") || Array.from(allPermissions).some(p => p.startsWith("forms_customization."));
 
@@ -6717,7 +6720,7 @@ export async function calculateUserPermissions(userId: number, includeUserOverri
 
   const finalHasOrg = Array.from(allPermissions).some(p => p.startsWith("settings_org"));
 
-  const finalHasNotif = Array.from(allPermissions).some(p => p.startsWith("staff_notifications"));
+  const finalHasNotif = Array.from(allPermissions).some(p => p.startsWith("staff_notifications") || p.startsWith("notification_center."));
 
   const finalHasForms = Array.from(allPermissions).some(p => p.startsWith("forms_customization"));
 

@@ -1731,7 +1731,7 @@ export default function UserPermissions() {
     }
 
     if (permId.startsWith("board_leadership.bank_transfers_")) {
-      if (!isChecked("board_leadership.bank_transfers")) {
+      if (!isChecked("board_chairman")) {
         toast.warning("يجب تفعيل صلاحية 'عرض قائمة أوامر الصرف المعتمدة للتحويل البنكي' أولاً");
         return;
       }
@@ -2807,26 +2807,6 @@ export default function UserPermissions() {
 
 
 
-        } else if (permId === "board_leadership.bank_transfers") {
-          const defVal = rolePermissions?.includes("board_chairman") || false;
-          if (defVal) {
-            delete updated["board_chairman"];
-          } else {
-            updated["board_chairman"] = true;
-          }
-        } else if (permId.startsWith("board_leadership.bank_transfers_")) {
-          const defValBank = rolePermissions?.includes("board_leadership.bank_transfers") || false;
-          if (defValBank) {
-            delete updated["board_leadership.bank_transfers"];
-          } else {
-            updated["board_leadership.bank_transfers"] = true;
-          }
-          const defValChairman = rolePermissions?.includes("board_chairman") || false;
-          if (defValChairman) {
-            delete updated["board_chairman"];
-          } else {
-            updated["board_chairman"] = true;
-          }
         }
 
 
@@ -4185,6 +4165,7 @@ export default function UserPermissions() {
         remind: "إرسال تذكير بالاعتماد",
         bank_transfers: "عرض قائمة أوامر الصرف المعتمدة للتحويل البنكي",
         bank_transfers_view_order: "عرض أمر الصرف المعتمد",
+        bank_transfers_view_order_report: "عرض تقرير أمر الصرف",
         bank_transfers_view_request: "عرض تقرير طلب الصرف المعتمد",
         bank_transfers_notes: "إضافة ومتابعة الملاحظات",
         bank_transfers_view_justification: "عرض مبررات الإلغاء والرفض",
@@ -5790,14 +5771,11 @@ export default function UserPermissions() {
         perms: [
           "board_chairman",
           "remind",
-          "bank_transfers",
-          "bank_transfers_view_order",
+          "bank_transfers_view_order_report",
           "bank_transfers_view_request",
           "bank_transfers_notes",
-          "bank_transfers_view_justification",
           "bank_transfers_approve",
           "bank_transfers_reject",
-          "board_member"
         ]
 
 
@@ -7695,6 +7673,7 @@ export default function UserPermissions() {
                         remind: "board_leadership.remind",
                         bank_transfers: "board_leadership.bank_transfers",
                         bank_transfers_view_order: "board_leadership.bank_transfers_view_order",
+                        bank_transfers_view_order_report: "board_leadership.bank_transfers_view_order_report",
                         bank_transfers_view_request: "board_leadership.bank_transfers_view_request",
                         bank_transfers_notes: "board_leadership.bank_transfers_notes",
                         bank_transfers_view_justification: "board_leadership.bank_transfers_view_justification",
@@ -7956,7 +7935,7 @@ export default function UserPermissions() {
 
 (perm.id === "board_leadership.remind" && !isChecked("board_chairman")) ||
 (perm.id === "board_leadership.bank_transfers" && !isChecked("board_chairman")) ||
-(perm.id.startsWith("board_leadership.bank_transfers_") && (!isChecked("board_leadership.bank_transfers") || !isChecked("board_chairman"))) ||
+(perm.id.startsWith("board_leadership.bank_transfers_") && !isChecked("board_chairman")) ||
 
 
 

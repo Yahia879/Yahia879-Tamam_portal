@@ -2600,15 +2600,20 @@ export const disbursementsRouter = router({
 
   // جلب أمر صرف بالتفصيل
   getOrderById: protectedProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.number(), scope: z.literal("board_order_report").optional() }))
     .query(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
       const hasViewRequests = await checkPermission(ctx.user.id, "disbursements.view");
       const hasViewOrders = await checkPermission(ctx.user.id, "disbursement_orders.view");
+      const hasBoardOrderReport = await checkPermission(ctx.user.id, "board_leadership.bank_transfers_view_order_report");
       const hasChairman = await checkPermission(ctx.user.id, "board_chairman");
       const hasChairmanView = await checkPermission(ctx.user.id, "board_chairman_view");
 
-      if (!isAdmin && !hasViewRequests && !hasViewOrders && !hasChairman && !hasChairmanView) {
+      if (input.scope === "board_order_report" && !isAdmin && !hasViewRequests && !hasViewOrders && !hasBoardOrderReport) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Missing disbursement order report permission" });
+      }
+
+      if (!isAdmin && !hasViewRequests && !hasViewOrders && !hasBoardOrderReport && !hasChairman && !hasChairmanView) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض تفاصيل أمر الصرف" });
       }
 
@@ -3630,6 +3635,14 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
       }
 
+      if (order.status === "approved") {
+        const { calculateUserPermissions } = await import("../permissions");
+        const boardPermissions = await calculateUserPermissions(ctx.user.id);
+        if (!boardPermissions.includes("board_chairman") || !boardPermissions.includes("board_leadership.bank_transfers_approve")) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "لا تملك صلاحية الاعتماد من صاحب الصلاحية" });
+        }
+      }
+
       // 1. إذا كان أمر الصرف معتمداً مسبقاً (approved)، ورئيس مجلس الإدارة أو الأدمن يعتمده في لوحة القيادة -> يصبح منفذاً (executed)
       if (order.status === "approved") {
         if (!hasBoardChairmanOrderPerm && !["super_admin", "system_admin", "board_chairman"].includes(ctx.user.role)) {
@@ -3879,8 +3892,16 @@ export const disbursementsRouter = router({
 
   // جلب سجل الملاحظات والردود غير المحدودة لأمر الصرف
   getOrderNotes: protectedProcedure
-    .input(z.object({ orderId: z.number() }))
+    .input(z.object({ orderId: z.number(), side: z.enum(["board", "finance"]).optional() }))
     .query(async ({ input, ctx }) => {
+      const isBoardNotesView = input.side === "board" || (input.side === undefined && ["board_chairman", "board_chairman_view", "super_admin", "system_admin"].includes(ctx.user.role));
+      if (isBoardNotesView) {
+        const { calculateUserPermissions } = await import("../permissions");
+        const boardPermissions = await calculateUserPermissions(ctx.user.id);
+        if (!boardPermissions.includes("board_chairman") || !boardPermissions.includes("board_leadership.bank_transfers_notes")) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "لا تملك صلاحية إضافة ومتابعة الملاحظات" });
+        }
+      }
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
@@ -4011,6 +4032,13 @@ export const disbursementsRouter = router({
 
       const isBoardRole = ["board_chairman", "board_chairman_view", "super_admin", "system_admin"].includes(ctx.user.role);
       const side = input.side || (isBoardRole ? "board" : "finance");
+      if (side === "board") {
+        const { calculateUserPermissions } = await import("../permissions");
+        const boardPermissions = await calculateUserPermissions(ctx.user.id);
+        if (!boardPermissions.includes("board_chairman") || !boardPermissions.includes("board_leadership.bank_transfers_notes")) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "لا تملك صلاحية إضافة ومتابعة الملاحظات" });
+        }
+      }
 
       const senderName = ctx.user.name || (side === "board" ? "صاحب الصلاحية" : "المسؤول");
       const senderRole = ctx.user.role || (side === "board" ? "board_chairman" : "financial");
@@ -4072,6 +4100,11 @@ export const disbursementsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const { calculateUserPermissions } = await import("../permissions");
+      const boardPermissions = await calculateUserPermissions(ctx.user.id);
+      if (!boardPermissions.includes("board_chairman") || !boardPermissions.includes("board_leadership.bank_transfers_notes")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "لا تملك صلاحية إضافة ومتابعة الملاحظات" });
+      }
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
@@ -4369,6 +4402,14 @@ export const disbursementsRouter = router({
       }
       if (orderData.status === "executed") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "استخدم مسار إلغاء اعتماد أمر الصرف المنفذ" });
+      }
+
+      if (orderData.status === "approved") {
+        const { calculateUserPermissions } = await import("../permissions");
+        const boardPermissions = await calculateUserPermissions(ctx.user.id);
+        if (!boardPermissions.includes("board_chairman") || !boardPermissions.includes("board_leadership.bank_transfers_reject")) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "لا تملك صلاحية رفض الطلب" });
+        }
       }
 
       const userEmail = ctx.user.email;

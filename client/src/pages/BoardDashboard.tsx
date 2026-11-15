@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { DisbursementOrderNotesDialog } from "@/components/DisbursementOrderNotesDialog";
 import { BOARD_ANALYTICS_PERMISSIONS, boardAnalyticsTabs } from "@shared/boardAnalyticsPermissions";
+import { boardExecutiveAccess } from "@shared/boardExecutivePermissions";
 
 const CHART_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"];
 
@@ -181,22 +182,14 @@ export default function BoardDashboard({
   const canAccessAnalyticsTab = (tab: string) => availableAnalyticsTabs.some(allowed => allowed === tab);
   const activeTab = canAccessAnalyticsTab(selectedTab) ? selectedTab : availableAnalyticsTabs[0];
 
-  const isChairmanRole = currentUser?.role === "board_chairman";
-  const hasChairmanActionPerm = userPermissions.includes("board_chairman") || userPermissions.includes("board_leadership.board_chairman");
-  const isSuperAdmin = currentUser?.role === "super_admin" || currentUser?.role === "system_admin" || userPermissions.includes("*");
-
-  // الصلاحيات التنفيذية والمعاينة الشاملة تظهر لمن لديه صلاحية رئيس مجلس الإدارة أو المشرف العام
-  const canPerformActions = isChairmanRole || hasChairmanActionPerm || isSuperAdmin;
-  const canRemind = isSuperAdmin || userPermissions.includes("board_leadership.remind") || userPermissions.includes("board_chairman_remind");
-
-  // صلاحيات قائمة أوامر الصرف المعتمدة للتحويل البنكي وإجراءاتها
-  const canViewBankTransfers = isSuperAdmin || userPermissions.includes("board_leadership.bank_transfers");
-  const canViewOrderAction = isSuperAdmin || userPermissions.includes("board_leadership.bank_transfers_view_order");
-  const canViewRequestAction = isSuperAdmin || userPermissions.includes("board_leadership.bank_transfers_view_request");
-  const canNotesAction = isSuperAdmin || userPermissions.includes("board_leadership.bank_transfers_notes");
-  const canViewJustificationAction = isSuperAdmin || userPermissions.includes("board_leadership.bank_transfers_view_justification");
-  const canApproveAction = isSuperAdmin || userPermissions.includes("board_leadership.bank_transfers_approve");
-  const canRejectAction = isSuperAdmin || userPermissions.includes("board_leadership.bank_transfers_reject");
+  const executiveAccess = boardExecutiveAccess(userPermissions);
+  const canViewBankTransfers = isExecutiveRoute && executiveAccess.canView;
+  const canViewOrderReportAction = executiveAccess.canViewOrderReport;
+  const canViewRequestAction = executiveAccess.canViewRequest;
+  const canNotesAction = executiveAccess.canAddNotes;
+  const canApproveAction = executiveAccess.canApprove;
+  const canRejectAction = executiveAccess.canReject;
+  const canShowOrderActions = canViewOrderReportAction || canViewRequestAction || canNotesAction || canApproveAction || canRejectAction;
 
   // نافذة إرسال تذكير بالاعتماد
   const [reminderModal, setReminderModal] = useState<{
@@ -232,6 +225,7 @@ export default function BoardDashboard({
     search: debouncedSearch,
     status: selectedStatus,
     orderType: orderTypeFilter,
+    scope: isExecutiveRoute ? "board_executive" : undefined,
   }, {
     enabled: embedded || !isAnalyticsRoute || availableAnalyticsTabs.length > 0,
     staleTime: 0,
@@ -675,7 +669,7 @@ export default function BoardDashboard({
                               <TableHead className="py-3.5 px-4 text-center font-bold text-slate-800 dark:text-slate-200">ارتباط الطلب</TableHead>
                               <TableHead className="py-3.5 px-4 text-right font-bold text-slate-800 dark:text-slate-200">المبلغ</TableHead>
                               <TableHead className="py-3.5 px-4 text-right font-bold text-slate-800 dark:text-slate-200">الحالة</TableHead>
-                              <TableHead className="py-3.5 px-4 text-center font-bold text-slate-800 dark:text-slate-200">الإجراءات</TableHead>
+                              {canShowOrderActions && <TableHead className="py-3.5 px-4 text-center font-bold text-slate-800 dark:text-slate-200">الإجراءات</TableHead>}
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -795,7 +789,7 @@ export default function BoardDashboard({
                                   </TableCell>
 
                                   {/* قائمة الإجراءات المتناسقة مع المنظومة */}
-                                  <TableCell className="py-3.5 px-4 text-center whitespace-nowrap">
+                                  {canShowOrderActions && <TableCell className="py-3.5 px-4 text-center whitespace-nowrap">
                                     <DropdownMenu dir="rtl">
                                       <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground">
@@ -804,16 +798,15 @@ export default function BoardDashboard({
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end" className="w-56 rounded-xl p-1.5 font-medium text-xs shadow-lg border border-border bg-popover text-popover-foreground space-y-0.5">
                                         {/* خيارات عرض التفاصيل للمخولين */}
-                                        {canViewOrderAction && (
+                                        {canViewOrderReportAction && (
                                           <DropdownMenuItem
                                             onClick={() => setLocation(`/disbursement-orders/${order.orderId || order.id}/print`)}
                                             className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-semibold hover:bg-muted focus:bg-muted text-foreground transition-colors"
                                           >
-                                            <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                                            <span>عرض أمر الصرف المعتمد</span>
+                                            <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                            <span>عرض تقرير أمر الصرف</span>
                                           </DropdownMenuItem>
                                         )}
-
                                         {canViewRequestAction && !order.isCustom && !!order.requestId && (
                                           <DropdownMenuItem
                                             onClick={() => setLocation(`/disbursements/requests/${order.requestId}/print`)}
@@ -865,22 +858,6 @@ export default function BoardDashboard({
                                         )}
 
                                         {/* خيار 'عرض مبررات الإلغاء/الرفض' عند وجود سبب */}
-                                        {canViewJustificationAction && (order.rejectionReason || (order as any).cancellationReason || (order as any).orderStatus === "rejected" || (order as any).status === "rejected") && (
-                                          <DropdownMenuItem
-                                            onClick={() => setViewJustificationModal({
-                                              open: true,
-                                              title: (order as any).cancellationConfirmedAt ? "سبب إلغاء اعتماد أمر الصرف" : "مبررات عدم اعتماد التحويل وسبب الرفض",
-                                              subtitle: `تفاصيل سبب ${(order as any).cancellationConfirmedAt ? "الإلغاء" : "الرفض"} المدون لأمر الصرف رقم (${order.orderNumber})`,
-                                              orderNumber: order.orderNumber,
-                                              reason: (order as any).cancellationReason || order.rejectionReason || "لا يوجد سبب مدون",
-                                            })}
-                                            className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 focus:bg-rose-50 dark:focus:bg-rose-950/30 transition-colors"
-                                          >
-                                            <Info className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
-                                            <span>{(order as any).cancellationConfirmedAt ? "عرض سبب الإلغاء" : "عرض مبررات الرفض"}</span>
-                                          </DropdownMenuItem>
-                                        )}
-
 
                                         {/* خيارات الاعتماد والرفض المباشر للمخولين فقط (تختفي عندما يكون الطلب معتمداً بالفعل) */}
                                         {isNeedsApproval && (canApproveAction || canRejectAction) && (
@@ -916,7 +893,7 @@ export default function BoardDashboard({
                                         )}
                                       </DropdownMenuContent>
                                     </DropdownMenu>
-                                  </TableCell>
+                                  </TableCell>}
                                 </TableRow>
                               );
                             })}

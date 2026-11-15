@@ -124,7 +124,7 @@ export interface RoutePermission {
 export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   // ── لوحة التحكم للمجلس ──
   "/board-dashboard": ["board_chairman", "board_member", "board_chairman_view"],
-  "/board-executive": ["board_chairman", "board_chairman_view"],
+  "/board-executive": "board_chairman",
   "/board-analytics": BOARD_ANALYTICS_PERMISSION_IDS,
   "/information-dashboard": [
     "information_dashboard.digital_screen",
@@ -552,10 +552,10 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
 
   // أوامر الصرف
   { pattern: /^\/disbursement-orders\/new\/\d+$/, permission: ["disbursement_orders.create", "disbursement_orders.create_direct"] },
-  { pattern: /^\/disbursement-orders\/\d+\/print$/, permission: ["disbursement_orders", "disbursement_orders.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
+  { pattern: /^\/disbursement-orders\/\d+\/print$/, permission: ["disbursement_orders", "disbursement_orders.view", "board_leadership.bank_transfers_view_order_report"] },
   { pattern: /^\/disbursement-orders\/\d+$/, permission: ["disbursement_orders", "disbursement_orders.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
   { pattern: /^\/disbursements\/orders\/new\/\d+$/, permission: ["disbursement_orders", "disbursement_orders.create", "disbursement_orders.create_direct"] },
-  { pattern: /^\/disbursements\/orders\/\d+\/print$/, permission: ["disbursement_orders", "disbursement_orders.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
+  { pattern: /^\/disbursements\/orders\/\d+\/print$/, permission: ["disbursement_orders", "disbursement_orders.view", "board_leadership.bank_transfers_view_order_report"] },
 
   // العهد المالية
   { pattern: /^\/custody-requests\/[^/]+$/, permission: ["custody_requests", "custody_requests.view"] },
@@ -687,6 +687,9 @@ export function hasRouteAccess(
   hasCustomRole: boolean,
   user?: CustodyUser,
 ): boolean {
+  if (pathname.replace(/\/$/, "") === "/board-executive") {
+    return userPermissions.includes("board_chairman");
+  }
   const projectsAccess = projectAccess(userPermissions);
   if (pathname.replace(/\/$/, "") === "/projects") return projectsAccess.canView;
   if (pathname.replace(/\/$/, "") === "/projects/new") return projectsAccess.canCreate;

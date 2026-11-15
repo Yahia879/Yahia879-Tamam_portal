@@ -115,9 +115,6 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
   if (role !== "dashboard_viewer" && (["super_admin", "system_admin"].includes(role) || isExecDirector || role !== "service_requester")) {
     mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
   }
-  if (role === "board_chairman") {
-    mainItems.push({ icon: BadgeCheck, label: isEn ? "Financial Approval Center" : "مركز الاعتماد المالي", path: "/board-executive" });
-  }
   if (role === "board_member") {
     mainItems.push({ icon: PieChart, label: isEn ? "Executive Management Dashboard" : "لوحة الإدارة العليا", path: "/board-analytics" });
   }
@@ -315,7 +312,7 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   if (hasAnyInfoDashboardTab) {
     mainItems.push({ icon: Layers, label: isEn ? "Information Dashboard" : "لوحة المعلومات", path: "/information-dashboard" });
   }
-  if (has("board_chairman") || has("board_chairman_view")) {
+  if (has("board_chairman")) {
     mainItems.push({ icon: BadgeCheck, label: isEn ? "Financial Approval Center" : "مركز الاعتماد المالي", path: "/board-executive" });
   }
   if (BOARD_ANALYTICS_PERMISSION_IDS.some(permission => has(permission))) {
@@ -511,12 +508,12 @@ export const getMenuGroupsFromPermissions = (permissions: string[], role: string
   // 6. الإعدادات
   const settingsItems: MenuItem[] = [];
   const hasFormsPerm = has("*") || permissions.some((p) => p.startsWith("forms_customization"));
-  const hasNotifPerm = has("*") || permissions.some((p) => p.startsWith("staff_notifications"));
+  const hasNotifPerm = has("*") || permissions.some((p) => p.startsWith("staff_notifications") || p.startsWith("notification_center."));
   const hasOrgPerm = has("*") || permissions.some((p) => p.startsWith("settings_org"));
 
   // لا يظهر قسم مركز الإعدادات إلا إذا كان الشخص أو الدور يملك صلاحية واحدة على الأقل من أقسام:
   // 1. تخصيص النماذج (forms_customization)
-  // 2. تخصيص الإشعارات (staff_notifications)
+  // 2. تخصيص الإشعارات ومركز الإشعارات
   // 3. إعدادات الجمعية (settings_org)
   const canViewSettingsCenter = hasFormsPerm || hasNotifPerm || hasOrgPerm;
 

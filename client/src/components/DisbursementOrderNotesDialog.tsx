@@ -88,7 +88,7 @@ export function DisbursementOrderNotesDialog({
   const utils = trpc.useUtils();
 
   const { data, isLoading, refetch } = trpc.disbursements.getOrderNotes.useQuery(
-    { orderId },
+    { orderId, side },
     {
       enabled: open && orderId > 0,
       staleTime: 5000,

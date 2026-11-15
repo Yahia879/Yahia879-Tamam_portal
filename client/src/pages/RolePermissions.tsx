@@ -469,7 +469,7 @@ export default function RolePermissions() {
 
     // منع تفعيل أي صلاحية فرعية لأوامر الصرف المعتمدة للتحويل البنكي إذا كان عرض القائمة أو مركز الاعتماد معطلاً
     if (permId.startsWith("board_leadership.bank_transfers_")) {
-      if (!selectedPerms.includes("board_leadership.bank_transfers")) {
+      if (!selectedPerms.includes("board_chairman")) {
         toast.warning("يجب تفعيل صلاحية 'عرض قائمة أوامر الصرف المعتمدة للتحويل البنكي' أولاً");
         return;
       }
@@ -828,9 +828,6 @@ export default function RolePermissions() {
           }
         }
         if (permId.startsWith("board_leadership.bank_transfers_")) {
-          if (!next.includes("board_leadership.bank_transfers")) {
-            next.push("board_leadership.bank_transfers");
-          }
           if (!next.includes("board_chairman")) {
             next.push("board_chairman");
           }
@@ -1726,14 +1723,11 @@ export default function RolePermissions() {
         perms: [
           "board_chairman",
           "remind",
-          "bank_transfers",
-          "bank_transfers_view_order",
+          "bank_transfers_view_order_report",
           "bank_transfers_view_request",
           "bank_transfers_notes",
-          "bank_transfers_view_justification",
           "bank_transfers_approve",
           "bank_transfers_reject",
-          "board_member"
         ]
       }
       ]
@@ -2185,6 +2179,7 @@ export default function RolePermissions() {
         remind: "إرسال تذكير بالاعتماد",
         bank_transfers: "عرض قائمة أوامر الصرف المعتمدة للتحويل البنكي",
         bank_transfers_view_order: "عرض أمر الصرف المعتمد",
+        bank_transfers_view_order_report: "عرض تقرير أمر الصرف",
         bank_transfers_view_request: "عرض تقرير طلب الصرف المعتمد",
         bank_transfers_notes: "إضافة ومتابعة الملاحظات",
         bank_transfers_view_justification: "عرض مبررات الإلغاء والرفض",
@@ -2658,7 +2653,8 @@ export default function RolePermissions() {
               remind: "board_leadership.remind",
               bank_transfers: "board_leadership.bank_transfers",
               bank_transfers_view_order: "board_leadership.bank_transfers_view_order",
-              bank_transfers_view_request: "board_leadership.bank_transfers_view_request",
+                        bank_transfers_view_order_report: "board_leadership.bank_transfers_view_order_report",
+                        bank_transfers_view_request: "board_leadership.bank_transfers_view_request",
               bank_transfers_notes: "board_leadership.bank_transfers_notes",
               bank_transfers_view_justification: "board_leadership.bank_transfers_view_justification",
               bank_transfers_approve: "board_leadership.bank_transfers_approve",
@@ -2890,7 +2886,7 @@ export default function RolePermissions() {
                                   (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && perm.id !== "disbursement_orders.sign" && !selectedPerms.includes("disbursement_orders.view")) ||
                                   (perm.id === "board_leadership.remind" && !selectedPerms.includes("board_chairman")) ||
                                   (perm.id === "board_leadership.bank_transfers" && !selectedPerms.includes("board_chairman")) ||
-                                  (perm.id.startsWith("board_leadership.bank_transfers_") && (!selectedPerms.includes("board_leadership.bank_transfers") || !selectedPerms.includes("board_chairman"))) ||
+                                  (perm.id.startsWith("board_leadership.bank_transfers_") && !selectedPerms.includes("board_chairman")) ||
                                 (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
                                 (perm.id.startsWith("mosque_map.") && perm.id !== "mosque_map.view" && !selectedPerms.includes("mosque_map.view")) ||
                                 (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||

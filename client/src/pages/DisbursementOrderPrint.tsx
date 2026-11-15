@@ -82,6 +82,7 @@ export default function DisbursementOrderPrint() {
   const orderId = parseInt(params.id || "0");
   const [, navigate] = useLocation();
   const hasOrderDirectView = usePermission("disbursement_orders.view");
+  const hasBoardOrderReport = usePermission("board_leadership.bank_transfers_view_order_report");
   const permOrdersApprove = usePermission("disbursement_orders.approve");
   const permOrdersSign = usePermission("disbursement_orders.sign");
   const permDisbursementsApprove = usePermission("disbursements.approve");
@@ -95,7 +96,6 @@ export default function DisbursementOrderPrint() {
   const isChairmanRole = currentUser?.role === "board_chairman";
   const userPermissionsList = (currentUser as any)?.permissions || [];
   const hasChairmanInPerms = 
-    isChairmanRole ||
     hasChairmanPerm || 
     hasChairmanViewPerm || 
     hasLeadershipChairmanView || 
@@ -109,7 +109,7 @@ export default function DisbursementOrderPrint() {
     userPermissionsList.includes("board.board_chairman") ||
     userPermissionsList.includes("board.board_chairman_view");
 
-  const hasOrderViewPermission = hasOrderDirectView || hasChairmanInPerms;
+  const hasOrderViewPermission = hasOrderDirectView || hasBoardOrderReport;
 
   const [showCreatorSignature, setShowCreatorSignature] = useState<boolean>(true);
   const [showExecutiveDirectorSignature, setShowExecutiveDirectorSignature] = useState<boolean>(true);
@@ -135,7 +135,7 @@ export default function DisbursementOrderPrint() {
   });
 
   const { data: order, isLoading, refetch: refetchOrder } = trpc.disbursements.getOrderById.useQuery(
-    { id: parseInt(params.id || "0") },
+    { id: parseInt(params.id || "0"), scope: "board_order_report" },
     { enabled: !!params.id }
   );
 
