@@ -109,3 +109,25 @@ it("grants support editing and voucher creation independently", () => {
   expect(renderToStaticMarkup(<Financials projectId={323} />)).toContain("تسجيل سند قبض جديد");
   expect(renderToStaticMarkup(<Financials projectId={323} />)).not.toContain("تعديل البيانات");
 });
+
+describe("clickable project name in projects list based on permissions", () => {
+  it.each([
+    ["view_details", "projects.view_details"],
+    ["financials", "projects.financials"],
+    ["edit_support_and_fees", "projects.edit_support_and_fees"],
+    ["add_receipt_voucher", "projects.add_receipt_voucher"],
+  ])("makes project name clickable when user has %s permission", (_label, permission) => {
+    state.permissions = ["projects.view", permission];
+    const html = renderToStaticMarkup(<Projects />);
+    expect(html).toContain('href="/projects/323"');
+    expect(html).toContain(">مشروع تجريبي</a>");
+  });
+
+  it("keeps project name as plain non-clickable text when user has view-only permission", () => {
+    state.permissions = ["projects.view"];
+    const html = renderToStaticMarkup(<Projects />);
+    expect(html).not.toContain('href="/projects/323"');
+    expect(html).toContain("مشروع تجريبي");
+    expect(html).not.toContain(">مشروع تجريبي</a>");
+  });
+});

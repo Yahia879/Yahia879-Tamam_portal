@@ -89,7 +89,7 @@ export default function Projects() {
     { enabled: !!user, staleTime: 0, refetchInterval: 5000, refetchOnMount: true, refetchOnWindowFocus: true },
   );
   const access = projectAccess(serverPermissions);
-  const canAccessProjectPage = access.canViewDetails;
+  const canAccessProjectPage = access.canOpenProject;
   const canCreateProject = access.canCreate;
 
   // خيارات نوع المشروع
@@ -314,7 +314,16 @@ export default function Projects() {
                               )}
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <p className="font-medium text-foreground group-hover:text-primary transition-colors">{project.name}</p>
+                                  {canAccessProjectPage ? (
+                                    <Link
+                                      href={`/projects/${project.id}`}
+                                      className="font-medium text-foreground hover:text-primary transition-colors hover:underline cursor-pointer"
+                                    >
+                                      {project.name}
+                                    </Link>
+                                  ) : (
+                                    <p className="font-medium text-foreground">{project.name}</p>
+                                  )}
                                   {project.isMultiMosque && (
                                     <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] py-0 px-1.5 font-semibold">
                                       عدّة مساجد
@@ -424,7 +433,16 @@ export default function Projects() {
                           )}
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <p className="font-bold truncate">{project.name}</p>
+                              {canAccessProjectPage ? (
+                                <Link
+                                  href={`/projects/${project.id}`}
+                                  className="font-bold truncate text-foreground hover:text-primary transition-colors hover:underline cursor-pointer"
+                                >
+                                  {project.name}
+                                </Link>
+                              ) : (
+                                <p className="font-bold truncate">{project.name}</p>
+                              )}
                               {(!project.requestId || project.isMultiMosque) && (
                                 <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] py-0 px-1 font-semibold">
                                   عدّة مساجد

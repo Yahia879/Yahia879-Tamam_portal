@@ -477,7 +477,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/field-visits\/report\/\d+$/, permission: ["requests.view_details", "requests.manage_as_field_team"] },
 
   // المشاريع
-  { pattern: /^\/projects?\/\d+$/, permission: ["projects.view_details", "projects.financials"] },
+  { pattern: /^\/projects?\/\d+$/, permission: ["projects.view_details", "projects.financials", "projects.edit_support_and_fees", "projects.add_receipt_voucher"] },
   { pattern: /^\/projects\/\d+\/(invoices|milestones)\/new$/, permission: ["projects.view_details", "projects", "progress_reports", "progress_invoices", "contracts"] },
   { pattern: /^\/milestones\/new\/\d+$/, permission: ["projects.view_details", "projects", "progress_reports", "progress_invoices", "contracts"] },
 

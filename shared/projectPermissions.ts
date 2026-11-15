@@ -19,6 +19,12 @@ export function projectAccess(permissions: readonly string[]) {
   const canViewFinancials = canView && permissions.includes("projects.financials");
   const canEditSupportAndFees = canViewFinancials && permissions.includes("projects.edit_support_and_fees");
   const canAddReceiptVoucher = canViewFinancials && permissions.includes("projects.add_receipt_voucher");
+  const canOpenProject = canView && (
+    canViewDetails ||
+    canViewFinancials ||
+    permissions.includes("projects.edit_support_and_fees") ||
+    permissions.includes("projects.add_receipt_voucher")
+  );
   return { canView, canViewDetails, canCreate, canAssignAsManager, canViewFinancials, canEditSupportAndFees, canAddReceiptVoucher,
-    canOpenProject: canViewDetails || canViewFinancials };
+    canOpenProject };
 }
