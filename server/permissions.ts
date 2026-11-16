@@ -8,7 +8,7 @@ import { BENEFICIARY_PERMISSION_IDS } from "../shared/beneficiaryPermissions";
 import { CALENDAR_PERMISSIONS, CALENDAR_PERMISSION_IDS, calendarPermissionConflicts } from "../shared/calendarPermissions";
 import { isRequestSectionPermission, REQUEST_SECTION_PERMISSION_IDS } from "../shared/requestPermissions";
 import { sectionPermissionSelection, sectionPermissionPrerequisites, sectionPermissionDependents, RETIRED_SECTION_PERMISSIONS } from "../shared/sectionPermissions";
-import { linkedPermissionGrantPlan, linkedPermissionLabel, isBeneficiaryManagementPermission, BENEFICIARY_MANAGEMENT_REQUIREMENT_IDS } from "../shared/linkedPermissionDependencies";
+import { linkedPermissionGrantPlan, linkedPermissionPrerequisites, linkedPermissionLabel, isBeneficiaryManagementPermission, BENEFICIARY_MANAGEMENT_REQUIREMENT_IDS } from "../shared/linkedPermissionDependencies";
 import { CUSTODY_PERMISSION_ACTIONS, CUSTODY_PERSONAL_PERMISSIONS, custodyPermissionOptions } from "../shared/custodyPermissions";
 import { GENERAL_QUOTATION_PERMISSIONS, GENERAL_QUOTATION_PERMISSION_IDS, quotationPermissionOptions } from "../shared/quotationPermissions";
 import { CONTRACT_PERMISSIONS, CONTRACT_PERMISSION_IDS, contractPermissionOptions } from "../shared/contractPermissions";
@@ -1013,7 +1013,7 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   // إدارة المستفيدين - 5 تبويبات مخصصة
 
-  requester_accounts: ["users.view", "users.edit"],
+  requester_accounts: ["users.view", "users.edit", "users.delete"],
 
   "requester_accounts.view": ["users.view"],
 
@@ -1024,6 +1024,8 @@ export const PERMISSION_EXPANSION: Record<string, string[]> = {
   "requester_accounts.approve": ["users.edit"],
 
   "requester_accounts.suspend": ["users.edit"],
+
+  "requester_accounts.delete": ["users.delete", "users.edit"],
 
 
 
@@ -3071,6 +3073,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "requester_accounts.approve", moduleId: "requester_accounts", action: "approve", nameAr: "اعتماد الحساب", nameEn: "Approve Beneficiary Account" },
 
       { id: "requester_accounts.suspend", moduleId: "requester_accounts", action: "suspend", nameAr: "إيقاف الحساب", nameEn: "Suspend Beneficiary Account" },
+
+      { id: "requester_accounts.delete", moduleId: "requester_accounts", action: "delete", nameAr: "حذف المستفيد", nameEn: "Delete Beneficiary Account" },
 
       // 2. طلبات الاستثناء
 
@@ -7332,7 +7336,7 @@ export const permissionsRouter = router({
       permsSet.delete("escalation.view");
       permsSet.delete("escalation");
       if (!customizedPermissions && ["super_admin", "system_admin"].includes(input.roleId)) {
-        ["mosques.add_imam", ...BENEFICIARY_MANAGEMENT_REQUIREMENT_IDS, "requester_accounts.create", ...REQUEST_SECTION_PERMISSION_IDS.filter(p => !EXCLUDED_ADMIN_PERMISSIONS.includes(p)), ...REQUEST_REPORT_PERMISSION_IDS, ...BENEFICIARY_PERMISSION_IDS, ...CALENDAR_PERMISSION_IDS.filter(p => p !== "appointments.view_own")].forEach(p => permsSet.add(p));
+        ["mosques.add_imam", ...BENEFICIARY_MANAGEMENT_REQUIREMENT_IDS, "requester_accounts.create", "requester_accounts.delete", ...REQUEST_SECTION_PERMISSION_IDS.filter(p => !EXCLUDED_ADMIN_PERMISSIONS.includes(p)), ...REQUEST_REPORT_PERMISSION_IDS, ...BENEFICIARY_PERMISSION_IDS, ...CALENDAR_PERMISSION_IDS.filter(p => p !== "appointments.view_own")].forEach(p => permsSet.add(p));
       }
 
       if (!customizedPermissions && ["super_admin", "system_admin", "dashboard_viewer"].includes(input.roleId)) {
@@ -8414,6 +8418,10 @@ export const permissionsRouter = router({
           throw new TRPCError({ code: "BAD_REQUEST", message: missing.includes("beneficiary_evaluations.evaluations_log")
             ? "يجب تفعيل صلاحية سجل استبيانات التقييم أولاً"
             : `يجب تفعيل الصلاحيات المرتبطة أولاً: ${missing.map(linkedPermissionLabel).join("، ")}` });
+        }
+        const missingLinked = linkedPermissionPrerequisites(permission.permissionId).filter(required => !willHavePermission(required));
+        if (permission.granted && missingLinked.length) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: `يجب تفعيل الصلاحيات المرتبطة أولاً: ${missingLinked.map(linkedPermissionLabel).join("، ")}` });
         }
       }
       for (const permission of [...cleanedInputPerms]) {

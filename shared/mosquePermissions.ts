@@ -10,5 +10,9 @@ export const MOSQUE_PERMISSIONS = [
 ] as const;
 export const MOSQUE_PERMISSION_IDS = MOSQUE_PERMISSIONS.map(p => `mosques.${p.action}`);
 export function mosqueHasImam(mosque: { imamName?: string | null; registeredByUser?: { requesterType?: string | null } | null }) {
-  return Boolean(mosque.imamName?.trim() || mosque.registeredByUser?.requesterType === "imam");
+  return Boolean(
+    mosque.imamName?.trim() || 
+    mosque.registeredByUser?.requesterType === "imam" || 
+    mosque.registeredByUser?.requesterType === "إمام"
+  );
 }

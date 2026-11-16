@@ -297,7 +297,7 @@ export default function MosqueDetails() {
                       </div>
                     )}
                   </div>
-                ) : (mosque.registeredByUser?.requesterType === "imam") ? (
+                ) : (mosque.registeredByUser?.requesterType === "imam" || mosque.registeredByUser?.requesterType === "إمام") ? (
                   <div className="space-y-3">
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm text-muted-foreground">الاسم:</span>
@@ -306,7 +306,7 @@ export default function MosqueDetails() {
                     {mosque.registeredByUser.phone && (
                       <div className="flex items-center gap-2">
                         <Phone className="w-4 h-4 text-muted-foreground" />
-                        <span>{mosque.registeredByUser.phone}</span>
+                        <span dir="ltr">{mosque.registeredByUser.phone}</span>
                       </div>
                     )}
                     {mosque.registeredByUser.email && (
@@ -335,6 +335,38 @@ export default function MosqueDetails() {
                 )}
               </CardContent>
             </Card>
+
+            {/* معلومات المؤذن (إذا كان مسجل المسجد مؤذناً) */}
+            {(mosque.registeredByUser?.requesterType === "muezzin" || mosque.registeredByUser?.requesterType === "مؤذن") && (
+              <Card className="border-0 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-teal-600" />
+                    المؤذن
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm text-muted-foreground">الاسم:</span>
+                      <span className="font-medium">{mosque.registeredByUser.name}</span>
+                    </div>
+                    {mosque.registeredByUser.phone && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-muted-foreground" />
+                        <span dir="ltr">{mosque.registeredByUser.phone}</span>
+                      </div>
+                    )}
+                    {mosque.registeredByUser.email && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <span>{mosque.registeredByUser.email}</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* معلومات إضافية للمسجد */}
             {(!hasImam || !mosque.address) && (

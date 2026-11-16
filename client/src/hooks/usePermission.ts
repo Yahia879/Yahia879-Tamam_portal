@@ -65,7 +65,8 @@ export function isStrictPermission(permission: string): boolean {
     permission.startsWith("appointments") ||
     permission === "mosques_map" || permission === "mosque_map" || permission.startsWith("mosque_map.") ||
     permission === "escalation.delayed_requests" ||
-    permission === "escalation.delayed_beneficiaries"
+    permission === "escalation.delayed_beneficiaries" ||
+    permission === "requester_accounts" || permission.startsWith("requester_accounts.")
   );
 }
 

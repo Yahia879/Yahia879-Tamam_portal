@@ -31,14 +31,31 @@ export function isBeneficiaryManagementPermission(permission: string) {
   return ["requester_accounts", "requester_exceptions", "requester_donations", "requester_inquiries", "requester_sedana"]
     .some(module => permission === module || permission.startsWith(`${module}.`));
 }
-export const LINKED_PERMISSION_TARGETS = [...REQUEST_REPORT_INTERVENTION_PERMISSIONS, ...CALENDAR_MANAGEMENT_PERMISSION_IDS, "escalation.delayed_requests", "escalation.delayed_beneficiaries"];
+export const LINKED_PERMISSION_TARGETS = [
+  ...REQUEST_REPORT_INTERVENTION_PERMISSIONS, 
+  ...CALENDAR_MANAGEMENT_PERMISSION_IDS, 
+  "escalation.delayed_requests", 
+  "escalation.delayed_beneficiaries",
+  "requester_accounts.view_details",
+];
 export function linkedPermissionPrerequisites(permission: string): string[] {
   if (REQUEST_REPORT_INTERVENTION_PERMISSIONS.includes(permission) || CALENDAR_MANAGEMENT_PERMISSION_IDS.includes(permission) || permission === "escalation.delayed_requests") return REQUEST_MANAGEMENT_REQUIREMENTS;
-  return permission === "escalation.delayed_beneficiaries" ? BENEFICIARY_MANAGEMENT_REQUIREMENT_IDS : [];
+  if (permission === "escalation.delayed_beneficiaries") return BENEFICIARY_MANAGEMENT_REQUIREMENT_IDS;
+  if (permission === "requester_accounts.view_details") {
+    return [
+      "requests.view",
+      "requests.view_details",
+      "mosques.view",
+      "mosques.view_details",
+    ];
+  }
+  return [];
 }
 export function linkedPermissionLabel(permission: string) {
   if (permission === "requests.view") return "عرض كافة الطلبات";
   if (permission === "requests.view_details") return "عرض تفاصيل الطلب وإدارته";
+  if (permission === "mosques.view") return "عرض كافة المساجد";
+  if (permission === "mosques.view_details") return "عرض تفاصيل المسجد";
   return BENEFICIARY_MANAGEMENT_REQUIREMENTS.find(([id]) => id === permission)?.[1] ??
     REQUEST_REPORT_PERMISSIONS.find(p => `pending_reports.${p.action}` === permission)?.nameAr ?? permission;
 }

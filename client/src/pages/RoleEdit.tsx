@@ -239,7 +239,7 @@ const superAdminGroups = [
   {
     title: "إدارة المستفيدين",
     modules: [
-      { id: "requester_accounts", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "view_details", "create", "approve", "suspend"] },
+      { id: "requester_accounts", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "view_details", "create", "approve", "suspend", "delete"] },
       { id: "requester_exceptions", nameAr: "طلبات الاستثناء", icon: FileText, perms: ["view", "approve", "reject"] },
       { id: "requester_donations", nameAr: "طلبات التبرعات", icon: Gift, perms: ["view", "review", "approve", "send_email", "send_whatsapp"] },
       { id: "requester_inquiries", nameAr: "الاستفسارات العامة", icon: MessageSquareQuote, perms: ["view", "review", "mark_reviewed", "send_email", "send_whatsapp"] },
@@ -734,7 +734,8 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       view_details: "عرض تفاصيل الحساب",
       create: "إضافة مستفيد",
       approve: "اعتماد الحساب",
-      suspend: "إيقاف الحساب"
+      suspend: "إيقاف الحساب",
+      delete: "حذف المستفيد"
     },
     requester_exceptions: {
       view: "عرض طلبات الاستثناء",
@@ -1648,6 +1649,7 @@ export default function RoleEdit() {
             "requester_accounts.create",
             "requester_accounts.approve",
             "requester_accounts.suspend",
+            "requester_accounts.delete",
             "requester_exceptions.view",
             "requester_exceptions.approve",
             "requester_exceptions.reject",
@@ -1783,6 +1785,7 @@ export default function RoleEdit() {
             "requester_accounts.create",
             "requester_accounts.approve",
             "requester_accounts.suspend",
+            "requester_accounts.delete",
             "requester_exceptions.view",
             "requester_exceptions.approve",
             "requester_exceptions.reject",

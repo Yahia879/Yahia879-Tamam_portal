@@ -1,4 +1,4 @@
-import DashboardLayout from "@/components/DashboardLayout";
+﻿import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -23,7 +23,22 @@ import {
   Minimize2,
   Edit,
   Loader2,
+  Building2,
+  ExternalLink,
+  Users,
+  Trash2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { PROGRAM_LABELS, STAGE_LABELS } from "@shared/constants";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -47,6 +62,20 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
   active: { label: "مُعتمد", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400", icon: CheckCircle2 },
   suspended: { label: "موقوف", color: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400", icon: XCircle },
   blocked: { label: "محظور", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400", icon: XCircle },
+};
+
+const mosqueApprovalConfig: Record<string, { label: string; className: string }> = {
+  pending: { label: "قيد المراجعة", className: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200" },
+  approved: { label: "معتمد", className: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200" },
+  rejected: { label: "مرفوض", className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200" },
+};
+
+const requestStatusConfig: Record<string, { label: string; className: string }> = {
+  pending: { label: "قيد المراجعة", className: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200" },
+  in_progress: { label: "قيد التنفيذ", className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200" },
+  completed: { label: "مكتمل", className: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200" },
+  rejected: { label: "مرفوض", className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200" },
+  cancelled: { label: "ملغي", className: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200" },
 };
 
 import { calculateBeneficiarySLA } from "@/lib/slaHelper";
@@ -77,8 +106,11 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
   const { user: currentUser } = useAuth();
   const canViewDetails = usePermission("requester_accounts.view_details");
   const canApprove = usePermission("requester_accounts.approve");
+  const canDelete = usePermission("requester_accounts.delete");
   const hasEditPermission = usePermission("users.edit");
   const canEdit = hasEditPermission || ["super_admin", "system_admin"].includes(currentUser?.role || "");
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [fullscreenUrl, setFullscreenUrl] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
@@ -99,6 +131,11 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
 
   const { data: user, isLoading, refetch } = trpc.users.getById.useQuery(
     { id: userId },
+    { enabled: !isNaN(userId) && canViewDetails }
+  );
+
+  const { data: activityData, isLoading: isLoadingActivity } = trpc.users.getRequesterRelatedActivity.useQuery(
+    { userId },
     { enabled: !isNaN(userId) && canViewDetails }
   );
 
@@ -187,6 +224,17 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء تحديث البيانات");
+    },
+  });
+
+  const deleteUserMutation = trpc.users.delete.useMutation({
+    onSuccess: async () => {
+      toast.success("تم حذف حساب المستفيد بنجاح");
+      await utils.users.getAll.invalidate();
+      navigate("/requester-approvals");
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "حدث خطأ أثناء حذف الحساب");
     },
   });
 
@@ -651,6 +699,18 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                               <span>إيقاف الحساب</span>
                             </>
                           )}
+                        </Button>
+                      )}
+
+                      {/* زر حذف المستفيد للحسابات المرفوضة / الموقوفة */}
+                      {user.status === "suspended" && canDelete && (
+                        <Button
+                          disabled={deleteUserMutation.isPending}
+                          onClick={() => setShowDeleteConfirm(true)}
+                          className="bg-rose-600 hover:bg-rose-700 text-white font-bold gap-2 px-6 rounded-xl transition-all shadow-sm"
+                        >
+                          <Trash2 className="w-4.5 h-4.5" />
+                          حذف المستفيد
                         </Button>
                       )}
 
@@ -1119,6 +1179,199 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
             </Card>
           )}
         </div>
+
+        {/* سجل المساجد المرتبطة */}
+        <Card className="border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl overflow-hidden">
+          <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-base sm:text-lg font-bold">سجل المساجد المرتبطة</CardTitle>
+                  <CardDescription className="text-xs">
+                    المساجد التي قام هذا المستفيد بتسجيلها أو يرتبط بها كإمام أو مؤذن
+                  </CardDescription>
+                </div>
+              </div>
+              <Badge variant="secondary" className="font-bold">
+                {activityData?.mosques?.length || 0} مساجد
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {isLoadingActivity ? (
+              <div className="p-8 text-center text-muted-foreground flex items-center justify-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-sm">جاري تحميل سجل المساجد...</span>
+              </div>
+            ) : !activityData?.mosques || activityData.mosques.length === 0 ? (
+              <div className="p-8 text-center space-y-2">
+                <Building2 className="w-10 h-10 text-muted-foreground/40 mx-auto" />
+                <p className="text-sm font-medium text-muted-foreground">لا توجد مساجد مسجلة مرتبطة بهذا الحساب</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border/60">
+                {activityData.mosques.map((m: any) => {
+                  const statusObj = mosqueApprovalConfig[m.approvalStatus] || {
+                    label: m.approvalStatus || "غير محدد",
+                    className: "bg-slate-100 text-slate-700 border-slate-200",
+                  };
+                  return (
+                    <div
+                      key={m.id}
+                      className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors"
+                    >
+                      <div className="space-y-1.5 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-foreground text-sm sm:text-base">{m.name}</span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusObj.className}`}>
+                            {statusObj.label}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                          {(m.city || m.district) && (
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-3.5 h-3.5" />
+                              <span>{[m.city, m.district].filter(Boolean).join(" - ")}</span>
+                            </div>
+                          )}
+                          {m.capacity && (
+                            <div className="flex items-center gap-1">
+                              <Users className="w-3.5 h-3.5" />
+                              <span>السعة: {m.capacity} مصلٍ</span>
+                            </div>
+                          )}
+                          {m.imamName && (
+                            <div className="flex items-center gap-1">
+                              <User className="w-3.5 h-3.5" />
+                              <span>الإمام: {m.imamName}</span>
+                            </div>
+                          )}
+                          {m.createdAt && (
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5" />
+                              <span>تاريخ التسجيل: {formatDateEnglish(m.createdAt)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1.5 text-xs font-bold"
+                          onClick={() => navigate(`/mosques/${m.id}`)}
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          عرض المسجد
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* سجل الطلبات المرتبطة */}
+        <Card className="border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl overflow-hidden">
+          <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-base sm:text-lg font-bold">سجل الطلبات المرتبطة</CardTitle>
+                  <CardDescription className="text-xs">
+                    طلبات الخدمة المقدمة من قبل هذا المستفيد أو لمساجده
+                  </CardDescription>
+                </div>
+              </div>
+              <Badge variant="secondary" className="font-bold">
+                {activityData?.requests?.length || 0} طلبات
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {isLoadingActivity ? (
+              <div className="p-8 text-center text-muted-foreground flex items-center justify-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-sm">جاري تحميل سجل الطلبات...</span>
+              </div>
+            ) : !activityData?.requests || activityData.requests.length === 0 ? (
+              <div className="p-8 text-center space-y-2">
+                <FileText className="w-10 h-10 text-muted-foreground/40 mx-auto" />
+                <p className="text-sm font-medium text-muted-foreground">لا توجد طلبات خدمة مسجلة مرتبطة بهذا الحساب</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border/60">
+                {activityData.requests.map((r: any) => {
+                  const programName = PROGRAM_LABELS[r.programType] || r.programType;
+                  const stageName = STAGE_LABELS[r.currentStage] || r.currentStage;
+                  const statusObj = requestStatusConfig[r.status] || {
+                    label: r.status || "غير محدد",
+                    className: "bg-slate-100 text-slate-700 border-slate-200",
+                  };
+                  return (
+                    <div
+                      key={r.id}
+                      className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors"
+                    >
+                      <div className="space-y-1.5 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs font-bold bg-muted px-2 py-0.5 rounded text-foreground">
+                            {r.requestNumber}
+                          </span>
+                          <span className="font-bold text-foreground text-sm sm:text-base">
+                            {programName}
+                          </span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusObj.className}`}>
+                            {statusObj.label}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                          {r.mosqueName && (
+                            <div className="flex items-center gap-1 font-medium text-foreground/80">
+                              <Building2 className="w-3.5 h-3.5 text-teal-600" />
+                              <span>{r.mosqueName}</span>
+                            </div>
+                          )}
+                          {stageName && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-muted-foreground">المرحلة:</span>
+                              <span className="font-medium text-foreground/70">{stageName}</span>
+                            </div>
+                          )}
+                          {r.createdAt && (
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5" />
+                              <span>تاريخ التقديم: {formatDateEnglish(r.createdAt)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1.5 text-xs font-bold"
+                          onClick={() => navigate(`/requests/${r.id}`)}
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          عرض الطلب
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* مودال العرض ملء الشاشة للمستند المرفق */}
@@ -1170,6 +1423,47 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
           </div>
         </div>
       )}
+
+      {/* حوار تأكيد حذف المستفيد نهائياً */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent className="rounded-2xl max-w-md" dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right font-bold text-base flex items-center gap-2 text-rose-600">
+              <Trash2 className="w-5 h-5 text-rose-600" />
+              تأكيد حذف المستفيد
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-right text-xs leading-relaxed text-muted-foreground">
+              هل أنت متأكد من رغبتك في حذف حساب المستفيد <strong className="text-foreground font-bold">"{user.name}"</strong> نهائياً؟
+              <br />
+              <span className="text-rose-500 font-semibold mt-1.5 block">
+                تنبيه: هذا الإجراء لا يمكن التراجع عنه وسيتم إزالة الحساب وكافة بياناته نهائياً من المنظومة.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2 justify-end">
+            <AlertDialogCancel disabled={deleteUserMutation.isPending} className="rounded-lg text-xs font-bold">
+              إلغاء
+            </AlertDialogCancel>
+            <Button
+              onClick={() => deleteUserMutation.mutate({ id: user.id })}
+              disabled={deleteUserMutation.isPending}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs gap-1.5"
+            >
+              {deleteUserMutation.isPending ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>جاري الحذف...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>تأكيد الحذف نهائياً</span>
+                </>
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }

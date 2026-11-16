@@ -165,6 +165,7 @@ export default function RequesterApprovals() {
   const canCreateAccounts = usePermission("requester_accounts.create");
   const canApproveAccounts = usePermission("requester_accounts.approve");
   const canSuspendAccounts = usePermission("requester_accounts.suspend");
+  const canDeleteAccounts = usePermission("requester_accounts.delete");
 
   const canViewExceptions = usePermission("requester_exceptions.view");
   const canApproveExceptions = usePermission("requester_exceptions.approve");
@@ -325,7 +326,7 @@ export default function RequesterApprovals() {
   // جلب حسابات المستخدمين
   const { data: usersResponse, isLoading, refetch } = trpc.users.getAll.useQuery({
     role: "service_requester",
-    limit: 100,
+    limit: 2000,
   }, {
     enabled: canViewAccounts
   });
@@ -346,6 +347,22 @@ export default function RequesterApprovals() {
     },
     onError: (err: any) => {
       toast.error(err.message || "حدث خطأ أثناء تحديث الحساب");
+    },
+  });
+
+  const [deleteConfirmUser, setDeleteConfirmUser] = useState<{ id: number; name: string } | null>(null);
+
+  const deleteUserMutation = trpc.users.delete.useMutation({
+    onSuccess: async () => {
+      toast.success("تم حذف حساب المستفيد بنجاح");
+      await Promise.all([
+        utils.users.getAll.invalidate(),
+        refetch(),
+      ]);
+      setDeleteConfirmUser(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "حدث خطأ أثناء حذف الحساب");
     },
   });
 
@@ -430,10 +447,10 @@ export default function RequesterApprovals() {
 
   // إحصائيات الحسابات
   const stats = {
-    total: requesters.length,
-    pending: requesters.filter(u => u.status === "pending").length,
-    active: requesters.filter(u => u.status === "active").length,
-    suspended: requesters.filter(u => u.status === "suspended").length,
+    total: usersResponse?.totalCount ?? requesters.length,
+    pending: usersResponse?.pendingCount ?? requesters.filter(u => u.status === "pending").length,
+    active: usersResponse?.activeCount ?? requesters.filter(u => u.status === "active").length,
+    suspended: usersResponse?.suspendedCount ?? requesters.filter(u => u.status === "suspended").length,
   };
 
   const handleAction = (userId: number, name: string, action: "active" | "suspended") => {
@@ -956,6 +973,18 @@ export default function RequesterApprovals() {
                                       إيقاف
                                     </Button>
                                   )}
+                                  {(user.status === "suspended" || user.status === "rejected") && canDeleteAccounts && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      disabled={deleteUserMutation.isPending}
+                                      className="h-8 text-xs text-rose-600 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-bold rounded-xl gap-1"
+                                      onClick={() => setDeleteConfirmUser({ id: user.id, name: user.name ?? "المستفيد" })}
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5 ml-1" />
+                                      حذف
+                                    </Button>
+                                  )}
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -1070,6 +1099,17 @@ export default function RequesterApprovals() {
                                     <span>إيقاف الحساب</span>
                                   </>
                                 )}
+                              </Button>
+                            )}
+                            {(user.status === "suspended" || user.status === "rejected") && canDeleteAccounts && (
+                              <Button
+                                variant="outline"
+                                disabled={deleteUserMutation.isPending}
+                                className="w-full h-9 text-rose-600 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-bold gap-2 rounded-xl transition-all"
+                                onClick={() => setDeleteConfirmUser({ id: user.id, name: user.name ?? "المستفيد" })}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                <span>حذف المستفيد</span>
                               </Button>
                             )}
                           </div>
@@ -2371,6 +2411,51 @@ export default function RequesterApprovals() {
                     <XCircle className="w-3.5 h-3.5" />
                   )}
                   <span>{confirmAction?.action === "active" ? "اعتماد الحساب" : "إيقاف الحساب"}</span>
+                </>
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* حوار تأكيد حذف المستفيد نهائياً */}
+      <AlertDialog open={!!deleteConfirmUser} onOpenChange={(open) => !open && setDeleteConfirmUser(null)}>
+        <AlertDialogContent className="rounded-2xl max-w-md" dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right font-bold text-base flex items-center gap-2 text-rose-600">
+              <Trash2 className="w-5 h-5 text-rose-600" />
+              تأكيد حذف المستفيد
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-right text-xs leading-relaxed text-muted-foreground">
+              هل أنت متأكد من رغبتك في حذف حساب المستفيد <strong className="text-foreground font-bold">"{deleteConfirmUser?.name}"</strong> نهائياً؟
+              <br />
+              <span className="text-rose-500 font-semibold mt-1.5 block">
+                تنبيه: هذا الإجراء لا يمكن التراجع عنه وسيتم إزالة الحساب وبياناته نهائياً من المنظومة.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2 justify-end">
+            <AlertDialogCancel disabled={deleteUserMutation.isPending} className="rounded-lg text-xs font-bold">
+              إلغاء
+            </AlertDialogCancel>
+            <Button
+              onClick={() => {
+                if (deleteConfirmUser) {
+                  deleteUserMutation.mutate({ id: deleteConfirmUser.id });
+                }
+              }}
+              disabled={deleteUserMutation.isPending}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs gap-1.5"
+            >
+              {deleteUserMutation.isPending ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>جاري الحذف...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>تأكيد الحذف نهائياً</span>
                 </>
               )}
             </Button>

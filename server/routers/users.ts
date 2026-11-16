@@ -2,7 +2,7 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { permissionProcedure } from "../permissions";
 import { getDb } from "../db";
-import { users, employees, userRoleAssignments, passwordResetTokens, roles, auditLogs } from "../../drizzle/schema";
+import { users, employees, userRoleAssignments, passwordResetTokens, roles, auditLogs, mosques, mosqueRequests } from "../../drizzle/schema";
 import { eq, count, and, inArray, notInArray, desc, like, or, sql, isNull, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { randomBytes, pbkdf2Sync } from "crypto";
@@ -59,6 +59,7 @@ export const usersRouter = router({
       let totalCount = 0;
       let activeCount = 0;
       let suspendedCount = 0;
+      let pendingCount = 0;
 
       if (permission) {
         let whereClause: any = eq(users.status, "active");
@@ -135,19 +136,27 @@ export const usersRouter = router({
           .where(whereClause);
         totalCount = countResult.value;
         
-        if (!role) {
-          const [activeResult] = await db
-            .select({ value: count() })
-            .from(users)
-            .where(and(whereClause, eq(users.status, "active")));
-          activeCount = activeResult.value;
+        const activeCondition = whereClause ? and(whereClause, eq(users.status, "active")) : eq(users.status, "active");
+        const suspendedCondition = whereClause ? and(whereClause, eq(users.status, "suspended")) : eq(users.status, "suspended");
+        const pendingCondition = whereClause ? and(whereClause, eq(users.status, "pending")) : eq(users.status, "pending");
 
-          const [suspendedResult] = await db
-            .select({ value: count() })
-            .from(users)
-            .where(and(whereClause, eq(users.status, "suspended")));
-          suspendedCount = suspendedResult.value;
-        }
+        const [activeResult] = await db
+          .select({ value: count() })
+          .from(users)
+          .where(activeCondition);
+        activeCount = activeResult.value;
+
+        const [suspendedResult] = await db
+          .select({ value: count() })
+          .from(users)
+          .where(suspendedCondition);
+        suspendedCount = suspendedResult.value;
+
+        const [pendingResult] = await db
+          .select({ value: count() })
+          .from(users)
+          .where(pendingCondition);
+        pendingCount = pendingResult.value;
 
         // جلب البيانات مع الترتيب والتقسيم
         items = await db
@@ -219,12 +228,13 @@ export const usersRouter = router({
         totalCount,
         activeCount,
         suspendedCount,
+        pendingCount,
         totalPages: Math.ceil(totalCount / limit),
       };
     }),
 
   // Get user by ID
-  getById: permissionProcedure("users.view")
+  getById: permissionProcedure(["users.view", "requester_accounts.view", "requester_accounts.view_details"])
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -235,6 +245,88 @@ export const usersRouter = router({
         .where(eq(users.id, input.id))
         .limit(1);
       return user;
+    }),
+
+  // Get activity records (mosques and requests) associated with a requester
+  getRequesterRelatedActivity: protectedProcedure
+    .input(z.object({ userId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database connection failed" });
+
+      const isSelf = ctx.user.id === input.userId;
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const canView = isSelf || isAdmin || 
+        userPermissions.includes("users.view") || 
+        userPermissions.includes("requester_accounts.view_details") ||
+        userPermissions.includes("requester_accounts.view");
+
+      if (!canView) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض هذا السجل" });
+      }
+
+      // جلب بيانات المستخدم لمعرفة رقم الجوال والبريد
+      const [targetUser] = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
+      if (!targetUser) {
+        return { mosques: [], requests: [] };
+      }
+
+      // جلب المساجد المسجلة بواسطة المستخدم أو المرتبطة ببياناته
+      const mosqueConditions: any[] = [eq(mosques.registeredBy, input.userId)];
+      if (targetUser.phone?.trim()) {
+        mosqueConditions.push(eq(mosques.imamPhone, targetUser.phone.trim()));
+      }
+      if (targetUser.email?.trim()) {
+        mosqueConditions.push(eq(mosques.imamEmail, targetUser.email.trim()));
+      }
+
+      const mosquesList = await db
+        .select({
+          id: mosques.id,
+          name: mosques.name,
+          city: mosques.city,
+          governorate: mosques.governorate,
+          district: mosques.district,
+          capacity: mosques.capacity,
+          approvalStatus: mosques.approvalStatus,
+          createdAt: mosques.createdAt,
+          imamName: mosques.imamName,
+          imamPhone: mosques.imamPhone,
+        })
+        .from(mosques)
+        .where(or(...mosqueConditions))
+        .orderBy(desc(mosques.createdAt));
+
+      const mosqueIds = mosquesList.map(m => m.id);
+
+      // جلب الطلبات المرتبطة بالمستخدم (إما هو مقدم الطلب أو مساجده)
+      const requestConditions: any[] = [eq(mosqueRequests.userId, input.userId)];
+      if (mosqueIds.length > 0) {
+        requestConditions.push(inArray(mosqueRequests.mosqueId, mosqueIds));
+      }
+
+      const requestsList = await db
+        .select({
+          id: mosqueRequests.id,
+          requestNumber: mosqueRequests.requestNumber,
+          mosqueId: mosqueRequests.mosqueId,
+          mosqueName: mosques.name,
+          programType: mosqueRequests.programType,
+          currentStage: mosqueRequests.currentStage,
+          status: mosqueRequests.status,
+          createdAt: mosqueRequests.createdAt,
+        })
+        .from(mosqueRequests)
+        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+        .where(or(...requestConditions))
+        .orderBy(desc(mosqueRequests.createdAt));
+
+      return {
+        mosques: mosquesList,
+        requests: requestsList,
+      };
     }),
 
   // Get user with employee info
@@ -864,7 +956,7 @@ export const usersRouter = router({
     }),
 
   // Delete user
-  delete: permissionProcedure("users.delete")
+  delete: permissionProcedure(["users.delete", "requester_accounts.delete"])
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       if (input.id === ctx.user.id) {
@@ -885,6 +977,19 @@ export const usersRouter = router({
           message: "لا يمكن حذف حساب المدير العام" 
         });
       }
+
+      if (targetUser && targetUser.role === "service_requester") {
+        const { checkPermission } = await import("../permissions");
+        const canDeleteRequester = await checkPermission(ctx.user.id, "requester_accounts.delete");
+        if (!canDeleteRequester) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية حذف المستفيد" });
+        }
+      }
+
+      // مسح التعيينات والسجلات المرتبطة لتجنب أي تعارض
+      await db.delete(userRoleAssignments).where(eq(userRoleAssignments.userId, input.id)).catch(() => {});
+      await db.update(mosques).set({ registeredBy: null }).where(eq(mosques.registeredBy, input.id)).catch(() => {});
+      await db.update(mosqueRequests).set({ userId: null }).where(eq(mosqueRequests.userId, input.id)).catch(() => {});
       
       // تنفيذ الحذف النهائي (Hard Delete)
       // بفضل قيود SET NULL في قاعدة البيانات، سيتم تصفير حقول المستخدم في السجلات المرتبطة تلقائياً

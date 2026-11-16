@@ -2296,6 +2296,7 @@ export default function UserPermissions() {
 
 
             "requester_accounts.suspend",
+            "requester_accounts.delete",
 
 
 
@@ -2848,29 +2849,7 @@ export default function UserPermissions() {
 
 
               if (defVal) {
-
-
-
-                if (p.id.startsWith("requester_")) {
-
-
-
-                  delete updated[p.id];
-
-
-
-                } else {
-
-
-
-                  updated[p.id] = false;
-
-
-
-                }
-
-
-
+                updated[p.id] = false;
               } else {
 
 
@@ -3485,29 +3464,7 @@ export default function UserPermissions() {
 
 
           if (defVal) {
-
-
-
-            if (id.startsWith("requester_")) {
-
-
-
-              delete updated[id];
-
-
-
-            } else {
-
-
-
-              updated[id] = false;
-
-
-
-            }
-
-
-
+            updated[id] = false;
           } else {
 
 
@@ -3633,6 +3590,7 @@ export default function UserPermissions() {
 
 
             "requester_accounts.suspend",
+            "requester_accounts.delete",
 
 
 
@@ -4355,7 +4313,8 @@ export default function UserPermissions() {
 
 
 
-        suspend: "إيقاف الحساب"
+        suspend: "إيقاف الحساب",
+        delete: "حذف المستفيد"
 
 
 
@@ -6215,7 +6174,7 @@ export default function UserPermissions() {
 
 
 
-        { id: "requester_accounts", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "view_details", "create", "approve", "suspend"] },
+        { id: "requester_accounts", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "view_details", "create", "approve", "suspend", "delete"] },
 
 
 
@@ -8097,37 +8056,8 @@ export default function UserPermissions() {
 
 
                             } else if (overrideState === "revoked") {
-
-
-
-                              if (perm.id.startsWith("requester_")) {
-
-
-
-                                cardClass = "border-slate-200 dark:border-slate-800 bg-background hover:bg-slate-50 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400 cursor-pointer";
-
-
-
-                                badgeElement = null;
-
-
-
-                              } else {
-
-
-
-                                cardClass = "border-red-200 bg-red-50/40 dark:bg-red-950/10 dark:border-red-900/30 text-red-950 dark:text-red-400 hover:bg-red-50/60 cursor-pointer";
-
-
-
-                                badgeElement = <Badge variant="outline" className="text-[9px] bg-red-100 text-red-800 border-red-200 font-semibold py-0 shrink-0">حجب خاص</Badge>;
-
-
-
-                              }
-
-
-
+                              cardClass = "border-red-200 bg-red-50/40 dark:bg-red-950/10 dark:border-red-900/30 text-red-950 dark:text-red-400 hover:bg-red-50/60 cursor-pointer";
+                              badgeElement = <Badge variant="outline" className="text-[9px] bg-red-100 text-red-800 border-red-200 font-semibold py-0 shrink-0">حجب خاص</Badge>;
                             } else if (rolePermissions?.includes(perm.id)) {
 
 
