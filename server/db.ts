@@ -173,6 +173,15 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
     if (!pcoColNames.includes("supplierIban")) {
       await promisePool.query("ALTER TABLE project_change_orders ADD COLUMN supplierIban VARCHAR(50) NULL");
     }
+    if (!pcoColNames.includes("paymentId")) {
+      await promisePool.query("ALTER TABLE project_change_orders ADD COLUMN paymentId INT NULL");
+    }
+    if (!pcoColNames.includes("contractPaymentId")) {
+      await promisePool.query("ALTER TABLE project_change_orders ADD COLUMN contractPaymentId INT NULL");
+    }
+    if (!pcoColNames.includes("fundingSource")) {
+      await promisePool.query("ALTER TABLE project_change_orders ADD COLUMN fundingSource VARCHAR(50) NULL");
+    }
     await promisePool.query("ALTER TABLE project_change_orders MODIFY COLUMN disbursementRequestId INT NULL").catch(() => {});
 
     const [qsCols] = (await promisePool.query("SHOW COLUMNS FROM quantity_schedules")) as any[];

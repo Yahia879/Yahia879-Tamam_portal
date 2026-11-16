@@ -12,7 +12,11 @@ vi.mock("@/lib/trpc", () => ({
   trpc: {
     useUtils: () => ({
       projectChangeOrders: { list: { invalidate: vi.fn() } },
-      projects: { getBOQ: { invalidate: vi.fn() } },
+      projects: {
+        getById: { invalidate: vi.fn() },
+        getAll: { invalidate: vi.fn() },
+        getBOQ: { invalidate: vi.fn() },
+      },
       fund: {
         transferableProjects: { invalidate: vi.fn() },
         projectAvailability: { invalidate: vi.fn() },
@@ -33,6 +37,9 @@ vi.mock("@/lib/trpc", () => ({
         }),
       },
       create: { useMutation: () => ({ isPending: false, mutate: vi.fn() }) },
+      linkToPayment: {
+        useMutation: () => ({ isPending: false, mutate: vi.fn() }),
+      },
     },
   },
 }));
@@ -97,23 +104,28 @@ describe("project change order view", () => {
       "5,000.00",
       "20.00%",
       "بند إضافي",
-      "الفائض المتاح لأوامر التغيير",
       "إضافة بند لجدول الكميات",
-      "اعتماد أمر التغيير للمشروع والانتقال لقسم جدول الكميات",
+      "اعتماد أمر التغيير للمشروع وزيادة قيمته والانتقال لقسم جدول الكميات",
     ]) {
       expect(html).toContain(text);
     }
     expect(html).not.toContain("تحديد المورد");
-    for (const removed of ["نهائي غير قابل للتعديل", "معتمد في جدول الكميات - جاهز للتحويل للصندوق", "عرض البنود في قسم جدول الكميات", "الانتقال لصفحة الصندوق لتحويل المبلغ"]) expect(html).not.toContain(removed);
+    for (const removed of [
+      "نهائي غير قابل للتعديل",
+      "معتمد في جدول الكميات - جاهز للتحويل للصندوق",
+      "عرض البنود في قسم جدول الكميات",
+      "الانتقال لصفحة الصندوق لتحويل المبلغ",
+    ])
+      expect(html).not.toContain(removed);
   });
 
-  it("shows change orders as closed and hides creation when available surplus is zero", () => {
+  it("allows creation even when surplus is zero and offers navigating to payments", () => {
     state.data.funding.available = 0;
     const html = render();
-    expect(html).toContain("أوامر التغيير مغلقة لعدم وجود فائض متاح للمشروع");
-    expect(html).not.toContain("إضافة أمر تغيير جديد");
-    expect(html).not.toContain("إضافة بند لجدول الكميات");
+    expect(html).toContain("إضافة أمر تغيير جديد");
+    expect(html).toContain("إضافة بند لجدول الكميات");
     expect(html).toContain("CO-2026-0001");
+    expect(html).toContain("الانتقال لقسم الدفعات لإضافة دفعة");
   });
 
   it("hides creation on closed projects while preserving order history", () => {
@@ -121,13 +133,13 @@ describe("project change order view", () => {
     expect(html).not.toContain("إضافة أمر تغيير جديد");
     expect(html).toContain("CO-2026-0001");
   });
-  it("does not offer creation using fund cash after all project surplus has been transferred", () => {
-    state.data.funding.projectSurplus = 0;
-    state.data.funding.fundSurplus = 10000;
-    state.data.funding.available = 10000;
+
+  it("shows linked payment button when order has paymentId", () => {
+    state.data.orders[0].paymentId = 42;
+    state.data.orders[0].paymentNumber = "PAY-2026-0042";
+    state.data.orders[0].status = "linked_to_payment";
     const html = render();
-    expect(html).toContain("أوامر التغيير مغلقة لعدم وجود فائض متاح للمشروع");
-    expect(html).not.toContain("إضافة أمر تغيير جديد");
-    expect(html).toContain("CO-2026-0001");
+    expect(html).toContain("الدفعة المرتبطة: PAY-2026-0042");
+    expect(html).toContain("مرتبط بدفعة جديدة للمشروع");
   });
 });

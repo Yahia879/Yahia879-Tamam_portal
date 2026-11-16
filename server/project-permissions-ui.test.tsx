@@ -130,4 +130,28 @@ describe("clickable project name in projects list based on permissions", () => {
     expect(html).toContain("مشروع تجريبي");
     expect(html).not.toContain(">مشروع تجريبي</a>");
   });
+
+  it("displays clarification message for clicking on donor name in project financials", () => {
+    state.permissions = ["projects.view", "projects.financials"];
+    state.data["projects.getFinancialData"] = {
+      financialDetail: {
+        supportSourcesJson: JSON.stringify([{ entity: "داعم أول", amount: 1000 }]),
+        supportAmount: 1000,
+      },
+      allQuotations: [],
+      receiptVouchers: [],
+      changeOrders: [],
+      project: { id: 323, name: "مشروع تجريبي" },
+    };
+    const html = renderToStaticMarkup(<Financials projectId={323} />);
+    expect(html).toContain("يجب الضغط على اسم الداعم لعرض كروت الدعم وسندات القبض الخاصة به فقط");
+    expect(html).toContain("داعم أول");
+    expect(html).toContain("إجمالي مبلغ الدعم المطلوب");
+    expect(html).toContain("إجمالي المقبوض فعلياً (سندات القبض)");
+    expect(html).toContain("المبلغ المتبقي للقبض");
+    expect(html).toContain("لم يتم تحديد أي داعم حالياً. انقر على اسم الداعم المطلوب");
+    // Ensure no cards or voucher tables are rendered by default before selecting a donor
+    expect(html).not.toContain("كروت الدعم وسندات القبض للداعم:");
+    expect(html).not.toContain("المقبوض فعلياً (المدفوع)");
+  });
 });

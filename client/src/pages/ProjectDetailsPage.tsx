@@ -464,6 +464,16 @@ export default function ProjectDetailsPage() {
     p.phaseOrder >= 5 && (p.status === "in_progress" || p.status === "completed")
   );
 
+  // التحقق مما إذا كان المشروع في المرحلة الخامسة : صرف المدفوعات
+  // قسم أوامر التغيير لا يفتح إلا في هذه المرحلة
+  const isPhase5DisbursementActive = Boolean(
+    project?.phases?.some(p => 
+      (p.phaseOrder === 5 || p.phaseName?.includes("صرف المدفوعات")) && 
+      p.status === "in_progress"
+    )
+  );
+  const isChangeOrdersLocked = !isPhase5DisbursementActive;
+
   // التحقق من مرحلة التعاقد (المرحلة الرابعة)
   const isContractingPhase = project?.phases?.some(p => 
     p.phaseOrder === 4 && p.status === "in_progress"
@@ -883,17 +893,19 @@ export default function ProjectDetailsPage() {
     )
   );
 
-  const effectiveContractAmount = totalContractsSum > 0 
-    ? totalContractsSum 
-    : (parseFloat(String(project?.budget || "0").replace(/,/g, "")) || 0);
+  const effectiveContractAmount = Math.max(
+    totalContractsSum,
+    parseFloat(String(project?.actualCost || "0").replace(/,/g, "")) || 0,
+    parseFloat(String(project?.budget || "0").replace(/,/g, "")) || 0
+  );
 
   const isContractFullyPaid = effectiveContractAmount > 0 && paidPaymentsSum >= (effectiveContractAmount - 0.05);
 
-  const unscheduledContractSum = Math.max(0, (totalContractsSum || effectiveContractAmount) - allPaymentsSum);
-  const remainingContractSum = Math.max(0, (totalContractsSum || effectiveContractAmount) - paidPaymentsSum);
+  const unscheduledContractSum = Math.max(0, effectiveContractAmount - allPaymentsSum);
+  const remainingContractSum = Math.max(0, effectiveContractAmount - paidPaymentsSum);
   // مبالغ الملخص معروضة بالريال الكامل؛ نوحّد سماحية التقريب مع اكتمال جدولة الدفعات.
   const paymentScheduleRoundingTolerance = 0.5;
-  const isContractFullyAllocated = (totalContractsSum > 0 || effectiveContractAmount > 0) && unscheduledContractSum <= paymentScheduleRoundingTolerance;
+  const isContractFullyAllocated = effectiveContractAmount > 0 && unscheduledContractSum <= paymentScheduleRoundingTolerance;
 
   // التحقق من اكتمال جدولة وبيانات كافة الدفعات
   const hasIncompletePaymentsData = Boolean(!isMilestonesContract && project?.payments?.some(payment => payment.source !== "manual" && (
@@ -960,7 +972,12 @@ export default function ProjectDetailsPage() {
       icon: ClipboardList, 
       badge: boqItemsCount > 0 ? `${boqItemsCount}` : undefined 
     },
-    ...(!isSedanaProgram && (canViewDetails || canViewFinancials || isAdmin) ? [{ id: "change_orders", label: "أوامر التغيير", icon: FileText }] : []),
+    ...(!isSedanaProgram && (canViewDetails || canViewFinancials || isAdmin) ? [{ 
+      id: "change_orders", 
+      label: "أوامر التغيير", 
+      icon: FileText,
+      isLocked: isChangeOrdersLocked,
+    }] : []),
     ...(!isSedanaProgram && canViewFinancials ? [{ 
       id: "financials", 
       label: "المالية", 
@@ -1295,7 +1312,14 @@ export default function ProjectDetailsPage() {
         {financialsOnly && !isSedanaProgram && (
           <div className="flex flex-wrap gap-2" role="group" aria-label="أقسام مالية المشروع">
             {!isSedanaProgram && <Button variant={activeTab === "financials" ? "default" : "outline"} onClick={() => setActiveTab("financials")}>المالية</Button>}
-            <Button variant={activeTab === "change_orders" ? "default" : "outline"} onClick={() => setActiveTab("change_orders")}>أوامر التغيير</Button>
+            <Button 
+              variant={activeTab === "change_orders" ? "default" : "outline"} 
+              onClick={() => setActiveTab("change_orders")}
+              className={`gap-1.5 ${isChangeOrdersLocked ? "opacity-75" : ""}`}
+            >
+              <span>أوامر التغيير</span>
+              {isChangeOrdersLocked && <Lock className="w-3.5 h-3.5 text-amber-500" />}
+            </Button>
           </div>
         )}
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 items-start">
@@ -2014,14 +2038,40 @@ export default function ProjectDetailsPage() {
 
               {!isSedanaProgram && (canViewDetails || canViewFinancials || isAdmin) && (
                 <TabsContent value="change_orders" className="space-y-6 mt-0">
-                  <ProjectChangeOrdersTab
-                    projectId={parseInt(id || "0")}
-                    closed={isRequestClosed || project?.status === "completed" || project?.status === "cancelled"}
-                    onNavigateToBoq={() => {
-                      setActiveTab("boq");
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                  />
+                  {isChangeOrdersLocked ? (
+                    <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
+                      <CardContent className="p-8 text-center">
+                        <div className="bg-amber-500/5 p-8 rounded-2xl border border-amber-500/20 max-w-lg mx-auto shadow-xs space-y-4">
+                          <div className="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto border border-amber-500/20">
+                            <Lock className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+                          </div>
+                          <h3 className="text-lg font-bold text-amber-900 dark:text-amber-200">
+                            قسم أوامر التغيير مقفل حالياً
+                          </h3>
+                          <p className="text-amber-800/80 dark:text-amber-300/80 text-xs sm:text-sm leading-relaxed">
+                            هذا القسم غير متاح حالياً. لا يمكن فتح أو اعتماد أوامر التغيير إلا عندما يكون المشروع في <strong>&quot;المرحلة الخامسة : صرف المدفوعات&quot;</strong> من مراحل المشروع.
+                          </p>
+                          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-semibold">
+                            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                            يتطلب وصول المشروع للمرحلة الخامسة: صرف المدفوعات
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <ProjectChangeOrdersTab
+                      projectId={parseInt(id || "0")}
+                      closed={isRequestClosed || project?.status === "completed" || project?.status === "cancelled"}
+                      onNavigateToBoq={() => {
+                        setActiveTab("boq");
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      onNavigateToPayments={() => {
+                        setActiveTab("payments");
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                    />
+                  )}
                 </TabsContent>
               )}
 
@@ -2551,7 +2601,14 @@ export default function ProjectDetailsPage() {
                                   <TableCell className="font-bold text-right py-3.5 px-4 font-sans">{payment.paymentNumber}</TableCell>
                                   <TableCell className="text-right py-3.5 px-4">
                                     <div className="flex flex-col text-right">
-                                      <span className="font-bold text-foreground text-xs sm:text-sm">{payment.description || "-"}</span>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-bold text-foreground text-xs sm:text-sm">{payment.description || "-"}</span>
+                                        {(payment.description?.includes("أمر التغيير") || payment.description?.includes("أمر تغيير")) && (
+                                          <Badge variant="outline" className="border-indigo-300 bg-indigo-50 text-indigo-900 font-bold text-[10px] shrink-0">
+                                            أمر تغيير
+                                          </Badge>
+                                        )}
+                                      </div>
                                       {payment.source !== "manual" && (
                                         payment.completionPercentage === null || 
                                         payment.completionPercentage === undefined || 

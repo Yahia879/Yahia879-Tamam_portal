@@ -12,11 +12,15 @@ const state = vi.hoisted(() => ({
   boqItems: [] as any[],
   requests: [] as any[],
   movements: [] as any[],
+  payments: [] as any[],
+  contractPayments: [] as any[],
+  contracts: [] as any[],
   projectCost: 25000,
   projectBudget: "25000.00",
   projectActualCost: "25000.00",
   initialSurplus: 10000,
   initialFund: 0,
+  phase5Status: "in_progress",
   projectStatus: "in_progress",
   projectProgram: "bunyan",
   requestProgram: "bunyan",
@@ -100,6 +104,26 @@ vi.mock("./db", async () => {
           Promise.resolve()
             .then(() => {
               if (table === schema.roles) return [];
+              if (table === schema.contractsEnhanced)
+                return state.contracts.map(c => ({
+                  id: c.id,
+                  contractNumber: c.contractNumber,
+                  supplierName: c.secondPartyName,
+                  supplierBank: c.secondPartyBankName,
+                  supplierIban: c.secondPartyIban,
+                }));
+              if (table === schema.contractPayments) return state.contractPayments;
+              if (table === schema.payments) return state.payments;
+              if (table === schema.projectPhases)
+                return [
+                  {
+                    id: 5,
+                    projectId: 1,
+                    phaseOrder: 5,
+                    phaseName: "المرحلة الخامسة : صرف المدفوعات",
+                    status: state.phase5Status,
+                  },
+                ];
               if (table === schema.projects)
                 return [
                   {
@@ -129,7 +153,11 @@ vi.mock("./db", async () => {
                     ? state.requests
                     : table === schema.quantitySchedules
                       ? state.boqItems
-                      : [];
+                      : table === schema.payments
+                        ? state.payments
+                        : table === schema.contractPayments
+                          ? state.contractPayments
+                          : [];
               if (condition) {
                 const { sql, params } = dialect.sqlToQuery(condition);
                 if (sql.includes("`submissionKey`"))
@@ -159,6 +187,12 @@ vi.mock("./db", async () => {
                     row => row.id === order.disbursementRequestId
                   )?.status,
                   requestNumber: "DR-2026-0001",
+                  paymentNumber: state.payments.find(
+                    p => p.id === order.paymentId
+                  )?.paymentNumber,
+                  paymentStatus: state.payments.find(
+                    p => p.id === order.paymentId
+                  )?.status,
                   approverName: "مسؤول جداول الكميات",
                 }));
               if (fields?.requestNumber) return rows.slice(-1);
@@ -179,7 +213,11 @@ vi.mock("./db", async () => {
               ? state.boqItems
               : table === schema.disbursementRequests
                 ? state.requests
-                : state.movements;
+                : table === schema.payments
+                  ? state.payments
+                  : table === schema.contractPayments
+                    ? state.contractPayments
+                    : state.movements;
         const id = rows.length + 1;
         rows.push({
           ...value,
@@ -230,6 +268,8 @@ vi.mock("./db", async () => {
         boqItems: state.boqItems,
         requests: state.requests,
         movements: state.movements,
+        payments: state.payments,
+        contractPayments: state.contractPayments,
       });
       try {
         return await callback(db);
@@ -277,11 +317,15 @@ beforeEach(() => {
     boqItems: [],
     requests: [],
     movements: [],
+    payments: [],
+    contractPayments: [],
+    contracts: [],
     projectCost: 25000,
     projectBudget: "25000.00",
     projectActualCost: "25000.00",
     initialSurplus: 10000,
     initialFund: 0,
+    phase5Status: "in_progress",
     projectStatus: "in_progress",
     projectProgram: "bunyan",
     requestProgram: "bunyan",
@@ -368,14 +412,29 @@ describe("project change order rules & value increments", () => {
       expect(state.boqItems).toEqual([]);
     }
   );
-  it("creates change order and inserts final items into BOQ", async () => {
+  it("creates change order with surplus: transfers to fund and creates disbursement request", async () => {
+    state.initialSurplus = 10000;
     const result = await caller().create(input(5000));
     expect(result.orderNumber).toMatch(/^CO-/);
+    expect(result.hasSurplus).toBe(true);
+    expect(result.disbursementRequestId).toBeDefined();
     expect(state.orders[0]).toMatchObject({
       amount: "5000.00",
       originalProjectCost: "25000.00",
       percentage: "20.000000",
-      status: "boq_approved",
+      status: "disbursement_created",
+      fundingSource: "fund_surplus",
+      disbursementRequestId: result.disbursementRequestId,
+    });
+    expect(state.requests).toHaveLength(1);
+    expect(state.requests[0]).toMatchObject({
+      amount: "5000.00",
+      projectId: 1,
+    });
+    expect(state.movements).toHaveLength(1);
+    expect(state.movements[0]).toMatchObject({
+      movementType: "surplus",
+      amount: "5000.00",
     });
     expect(state.boqItems).toHaveLength(1);
     expect(state.boqItems[0]).toMatchObject({
@@ -388,6 +447,61 @@ describe("project change order rules & value increments", () => {
       isChangeOrder: true,
       changeOrderId: result.id,
     });
+  });
+
+  it("creates change order without surplus: increases actual cost and budget without auto-creating a payment", async () => {
+    state.initialSurplus = 0;
+    const result = await caller().create(input(5000));
+    expect(result.orderNumber).toMatch(/^CO-/);
+    expect(result.hasSurplus).toBe(false);
+    expect(result.paymentId).toBeNull();
+    expect(state.orders[0]).toMatchObject({
+      amount: "5000.00",
+      originalProjectCost: "25000.00",
+      percentage: "20.000000",
+      status: "boq_approved",
+      fundingSource: "project_cost",
+    });
+    // لا تنشأ دفعة تلقائياً
+    expect(state.payments).toHaveLength(0);
+    expect(state.requests).toHaveLength(0);
+    expect(state.movements).toHaveLength(0);
+    // التكلفة الفعلية والميزانية تزداد
+    expect(state.projectActualCost).toBe("30000.00");
+    expect(state.projectBudget).toBe("30000.00");
+  });
+
+  it("prevents creating change order when project is not in Phase 5 (صرف المدفوعات)", async () => {
+    state.phase5Status = "pending";
+    await expect(caller().create(input(5000))).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: "لا يمكن إضافة أمر تغيير إلا عندما يكون المشروع في المرحلة الخامسة : صرف المدفوعات",
+    });
+  });
+
+  it("allows linking an unlinked change order to a new project payment via linkToPayment", async () => {
+    state.initialSurplus = 0;
+    // create without payment/disbursement directly in state
+    state.orders.push({
+      id: 1,
+      orderNumber: "CO-PRJ1-001",
+      submissionKey: crypto.randomUUID(),
+      projectId: 1,
+      title: "أمر غير مرتبط",
+      reason: "توسعة",
+      amount: "3000.00",
+      status: "boq_approved",
+      paymentId: null,
+      disbursementRequestId: null,
+    });
+    const result = await caller().linkToPayment({ changeOrderId: 1 });
+    expect(result.success).toBe(true);
+    expect(result.paymentId).toBeDefined();
+    expect(state.orders[0].paymentId).toBe(result.paymentId);
+    expect(state.orders[0].status).toBe("linked_to_payment");
+    expect(state.orders[0].fundingSource).toBe("project_payment");
+    expect(state.payments).toHaveLength(1);
+    expect(state.payments[0].amount).toBe("3000.00");
   });
 
   it("prevents modifying a change order after it has been added", async () => {
@@ -442,6 +556,26 @@ describe("project change order rules & value increments", () => {
     state.requestStage = "closed";
     await expect(caller().create(input())).rejects.toMatchObject({
       code: "BAD_REQUEST",
+    });
+  });
+
+  it("returns contract details including supplierName, supplierBank and supplierIban in list query without throwing", async () => {
+    state.contracts = [
+      {
+        id: 1,
+        contractNumber: "CNT-2026-0001",
+        secondPartyName: "شركة المقاولات المتحدة",
+        secondPartyBankName: "مصرف الراجحي",
+        secondPartyIban: "SA1234567890",
+      },
+    ];
+    const result = await caller().list({ projectId: 1 });
+    expect(result.contract).toMatchObject({
+      id: 1,
+      contractNumber: "CNT-2026-0001",
+      supplierName: "شركة المقاولات المتحدة",
+      supplierBank: "مصرف الراجحي",
+      supplierIban: "SA1234567890",
     });
   });
 

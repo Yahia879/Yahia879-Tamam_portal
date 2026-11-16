@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import {
@@ -40,6 +40,9 @@ import {
   FileText,
   Lock,
   AlertTriangle,
+  CreditCard,
+  ArrowRightLeft,
+  TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -80,6 +83,11 @@ const statusLabels: Record<
     className: "bg-blue-50 text-blue-800 border-blue-300",
     icon: Calculator,
   },
+  linked_to_payment: {
+    label: "مرتبط بدفعة جديدة للمشروع",
+    className: "bg-sky-50 text-sky-800 border-sky-300",
+    icon: CreditCard,
+  },
   disbursement_created: {
     label: "تم إنشاء طلب صرف من الصندوق",
     className: "bg-indigo-50 text-indigo-800 border-indigo-300",
@@ -106,10 +114,12 @@ export function ProjectChangeOrdersTab({
   projectId,
   closed = false,
   onNavigateToBoq,
+  onNavigateToPayments,
 }: {
   projectId: number;
   closed?: boolean;
   onNavigateToBoq?: () => void;
+  onNavigateToPayments?: () => void;
 }) {
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
@@ -119,6 +129,9 @@ export function ProjectChangeOrdersTab({
   const [title, setTitle] = useState("");
   const [reason, setReason] = useState("");
   const [items, setItems] = useState<DraftBoqItem[]>([]);
+  const [beneficiaryName, setBeneficiaryName] = useState("");
+  const [beneficiaryBank, setBeneficiaryBank] = useState("");
+  const [beneficiaryIban, setBeneficiaryIban] = useState("");
 
   // حالة نافذة إضافة/تعديل بند جدول الكميات (نفس واجهة جدول الكميات تماماً)
   const [boqDialogOpen, setBoqDialogOpen] = useState(false);
@@ -128,6 +141,20 @@ export function ProjectChangeOrdersTab({
     { projectId },
     { enabled: projectId > 0 }
   );
+
+  useEffect(() => {
+    if (data?.contract) {
+      if (!beneficiaryName && data.contract.supplierName) {
+        setBeneficiaryName(data.contract.supplierName);
+      }
+      if (!beneficiaryBank && data.contract.supplierBank) {
+        setBeneficiaryBank(data.contract.supplierBank);
+      }
+      if (!beneficiaryIban && data.contract.supplierIban) {
+        setBeneficiaryIban(data.contract.supplierIban);
+      }
+    }
+  }, [data?.contract]);
 
   const { data: allCategories = [] } =
     trpc.categories.getAllCategories.useQuery();
@@ -167,14 +194,21 @@ export function ProjectChangeOrdersTab({
   const originalCost = Number(data?.funding?.originalProjectCost || 0);
   const currentActiveTotal = Number(data?.activeTotal || 0);
   const totalProjectValue = originalCost + currentActiveTotal;
+  const surplusAvailable = Number(data?.funding?.surplusAvailable || 0);
   const creationLocked = closed;
   const canCreateOrder = !creationLocked && pricedDraft.total > 0;
 
   const createMutation = trpc.projectChangeOrders.create.useMutation({
     onSuccess: async result => {
-      toast.success(
-        `تم اعتماد أمر التغيير (${result.orderNumber}) وزيادة قيمة المشروع وإضافة البنود إلى جدول الكميات بنجاح`
-      );
+      if (result.hasSurplus) {
+        toast.success(
+          `تم اعتماد أمر التغيير (${result.orderNumber}) وتحويل مبلغه من فائض المشروع إلى الصندوق وإنشاء طلب صرف بنجاح`
+        );
+      } else {
+        toast.success(
+          `تم اعتماد أمر التغيير (${result.orderNumber}) وزيادة التكلفة الفعلية للمشروع بنجاح، ويمكنك الآن إضافة دفعة بمبلغ أمر التغيير من قسم الدفعات`
+        );
+      }
       setSubmissionKey(crypto.randomUUID());
       setTitle("");
       setReason("");
@@ -194,6 +228,16 @@ export function ProjectChangeOrdersTab({
     },
     onError: error => toast.error(error.message),
   });
+
+  const linkToPaymentMutation =
+    trpc.projectChangeOrders.linkToPayment.useMutation({
+      onSuccess: () => {
+        toast.success("تم ربط أمر التغيير بدفعة جديدة للمشروع بنجاح");
+        utils.projectChangeOrders.list.invalidate({ projectId });
+        utils.projects.getById.invalidate({ id: projectId });
+      },
+      onError: error => toast.error(error.message),
+    });
 
   const handleOpenAddItem = () => {
     setEditingItem(null);
@@ -257,6 +301,9 @@ export function ProjectChangeOrdersTab({
       submissionKey,
       title: title.trim(),
       reason: reason.trim(),
+      beneficiaryName: beneficiaryName.trim() || undefined,
+      beneficiaryBank: beneficiaryBank.trim() || undefined,
+      beneficiaryIban: beneficiaryIban.trim() || undefined,
       items: items.map(item => ({
         name: item.itemName.trim(),
         description: item.itemDescription?.trim() || undefined,
@@ -553,6 +600,75 @@ export function ProjectChangeOrdersTab({
               )}
             </div>
 
+            {/* إشعار التوجيه المالي لأمر التغيير (فائض أو زيادة تكلفة فعلية للمشروع) */}
+            {pricedDraft.total > 0 && (
+              <div
+                className={`p-4 rounded-xl border space-y-3 ${
+                  surplusAvailable >= pricedDraft.total
+                    ? "bg-emerald-50/70 border-emerald-200 text-emerald-950"
+                    : "bg-sky-50/70 border-sky-200 text-sky-950"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  {surplusAvailable >= pricedDraft.total ? (
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                  ) : (
+                    <TrendingUp className="h-5 w-5 text-sky-600 shrink-0 mt-0.5" />
+                  )}
+                  <div className="space-y-1 text-xs">
+                    <p className="font-bold text-sm">
+                      {surplusAvailable >= pricedDraft.total
+                        ? "سيتم تحويل مبلغ أمر التغيير من فائض المشروع إلى الصندوق وإنشاء طلب صرف"
+                        : "سيتم زيادة التكلفة الفعلية للمشروع بقيمة أمر التغيير"}
+                    </p>
+                    <p className="leading-relaxed text-slate-700">
+                      {surplusAvailable >= pricedDraft.total
+                        ? `يتوفر في المشروع فائض مالي بقيمة ${formatMoney(surplusAvailable)} ر.س كافٍ لتغطية أمر التغيير (${formatMoney(pricedDraft.total)} ر.س). سيتم تحويل المبلغ إلى الصندوق تلقائياً وإنشاء طلب صرف بموجبه فور الاعتماد.`
+                        : `لا يوجد فائض كافٍ في المشروع حالياً (${formatMoney(surplusAvailable)} ر.س). سيتم اعتماد أمر التغيير وزيادة التكلفة الفعلية والميزانية للمشروع بقيمة (${formatMoney(pricedDraft.total)} ر.س)، وبالتالي يمكنك إضافة دفعة مالية جديدة بالمبلغ من قسم الدفعات.`}
+                    </p>
+                  </div>
+                </div>
+
+                {surplusAvailable >= pricedDraft.total && (
+                  <div className="pt-2 border-t border-emerald-200/60">
+                    <p className="text-[11px] font-bold text-emerald-800 mb-2">
+                      بيانات المستفيد لطلب الصرف (اختياري - افتراضياً سيتم استخدام بيانات مورد العقد):
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div>
+                        <Label className="text-[11px] text-emerald-900">اسم المستفيد</Label>
+                        <Input
+                          value={beneficiaryName}
+                          onChange={e => setBeneficiaryName(e.target.value)}
+                          placeholder="اسم المورد / المقاول"
+                          className="h-8 text-xs bg-white border-emerald-200"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[11px] text-emerald-900">البنك</Label>
+                        <Input
+                          value={beneficiaryBank}
+                          onChange={e => setBeneficiaryBank(e.target.value)}
+                          placeholder="اسم البنك"
+                          className="h-8 text-xs bg-white border-emerald-200"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[11px] text-emerald-900">رقم الآيبان (IBAN)</Label>
+                        <Input
+                          value={beneficiaryIban}
+                          onChange={e => setBeneficiaryIban(e.target.value)}
+                          placeholder="SA..."
+                          className="h-8 text-xs bg-white border-emerald-200 font-mono text-left"
+                          dir="ltr"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex justify-end pt-2">
               <Button
                 type="button"
@@ -731,8 +847,8 @@ export function ProjectChangeOrdersTab({
                       </div>
                     )}
 
-                    {order.disbursementRequestId && (
-                      <div className="pt-1">
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      {order.disbursementRequestId && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -743,15 +859,52 @@ export function ProjectChangeOrdersTab({
                             )
                           }
                         >
+                          <FileText className="h-3.5 w-3.5" />
                           <span>
-                            طلب الصرف{" "}
+                            طلب صرف من الفائض{" "}
                             {order.requestNumber ||
                               `#${order.disbursementRequestId}`}
                           </span>
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
-                      </div>
-                    )}
+                      )}
+
+                      {order.paymentId && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5 text-sky-700 border-sky-200 bg-sky-50/50 hover:bg-sky-100 font-bold"
+                          onClick={() => {
+                            if (onNavigateToPayments) {
+                              onNavigateToPayments();
+                            }
+                          }}
+                        >
+                          <CreditCard className="h-3.5 w-3.5" />
+                          <span>
+                            الدفعة المرتبطة: {order.paymentNumber || `#${order.paymentId}`}
+                          </span>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+
+                      {!order.disbursementRequestId && !order.paymentId && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5 text-blue-700 border-blue-200 bg-blue-50/50 hover:bg-blue-100 font-bold"
+                          onClick={() => {
+                            if (onNavigateToPayments) {
+                              onNavigateToPayments();
+                            }
+                          }}
+                        >
+                          <CreditCard className="h-3.5 w-3.5" />
+                          <span>الانتقال لقسم الدفعات لإضافة دفعة</span>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 );
               })}

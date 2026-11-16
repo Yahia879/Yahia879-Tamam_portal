@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { useLocation } from "wouter";
+import { cn } from "@/lib/utils";
 import {
   Building2,
   FileText,
@@ -56,6 +57,8 @@ import {
   ShieldAlert,
   Layers,
   PenLine,
+  ChevronDown,
+  ChevronLeft,
 } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 import { projectAccess } from "@shared/projectPermissions";
@@ -170,6 +173,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
   const canAddReceiptVoucher = access.canAddReceiptVoucher;
 
   const [activeSupporterTab, setActiveSupporterTab] = useState<string>("all");
+  const [selectedDonorIndex, setSelectedDonorIndex] = useState<number | null>(null);
   const [supportAmount, setSupportAmount] = useState<number>(0);
   const [supportSources, setSupportSources] = useState<SupportSourceItem[]>([]);
   const [adminFeeType, setAdminFeeType] = useState<"percentage" | "fixed">("percentage");
@@ -465,8 +469,26 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
   };
 
   // Calculations
-  const validSupportSources = supportSources.filter(
-    (s) => (s.entity && s.entity.trim() !== "") || (s.amount && s.amount > 0) || (s.customEntity && s.customEntity.trim() !== "")
+  const rawSupportSources = useMemo(() => {
+    if (supportSources.length > 0) return supportSources;
+    if (data?.financialDetail?.supportSourcesJson) {
+      try {
+        const parsed = JSON.parse(data.financialDetail.supportSourcesJson);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {}
+    }
+    if (data?.financialDetail?.supportEntity && data.financialDetail.supportEntity.trim() !== "") {
+      return [{
+        entity: data.financialDetail.supportEntity,
+        customEntity: data.financialDetail.customSupportEntity || "",
+        amount: parseFloat(data.financialDetail.supportAmount || "0"),
+      }];
+    }
+    return [];
+  }, [supportSources, data]);
+
+  const validSupportSources = rawSupportSources.filter(
+    (s: any) => (s.entity && s.entity.trim() !== "") || (s.amount && s.amount > 0) || (s.customEntity && s.customEntity.trim() !== "")
   );
 
   const approvedQuotation = data?.approvedQuotation || null;
@@ -753,6 +775,372 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
         notes: voucherNotes,
       });
     }
+  };
+
+  const renderDonorCard = (source: any, sIdx: number, isInline = false) => {
+    const sName = source.entity === "اخرى" ? (source.customEntity || "جهة أخرى") : (source.entity || "داعم غير محدد");
+    const targetAmt = source.amount || 0;
+    const isGenAcc = isGeneralAccountName(sName);
+    
+    // Filter receipt vouchers for this supporter with Arabic normalization
+    const normSName = normalizeArabicText(sName);
+    const normEntity = normalizeArabicText(source.entity);
+    const normCustom = normalizeArabicText(source.customEntity);
+
+    const sVouchers = receiptVouchers.filter((v: any) => {
+      const normPayer = normalizeArabicText(v.payerName);
+      if (!normPayer) return false;
+      return (
+        normPayer === normSName ||
+        normPayer === normEntity ||
+        (normCustom && normPayer === normCustom) ||
+        (normSName && (normPayer.includes(normSName) || normSName.includes(normPayer)))
+      );
+    });
+
+    const validSVouchers = sVouchers.filter((v: any) => v.status === "approved");
+    const receivedAmt = isGenAcc ? targetAmt : validSVouchers.reduce((sum: number, v: any) => sum + parseFloat(v.amount?.toString() || "0"), 0);
+    const remainingAmt = isGenAcc ? 0 : Math.max(0, targetAmt - receivedAmt);
+    const sSurplusAmt = isGenAcc ? 0 : Math.max(0, receivedAmt - targetAmt);
+    const sRawPct = isGenAcc ? 100 : (targetAmt > 0 ? (receivedAmt / targetAmt) * 100 : (receivedAmt > 0 ? 100 : 0));
+    const sPct = sRawPct > 0 && sRawPct < 1
+      ? parseFloat(sRawPct.toFixed(2))
+      : Math.min(100, Math.round(sRawPct));
+
+    return (
+      <div 
+        key={sIdx} 
+        className={cn(
+          "p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-2.5 transition-all text-right",
+          isInline ? "bg-white border-blue-300 shadow-xs ring-1 ring-blue-100" : "hover:border-blue-300"
+        )}
+      >
+        <div className="flex items-center justify-between">
+          <Badge variant="outline" className="bg-blue-50 text-blue-900 border-blue-200 font-bold text-xs px-2.5 py-0.5">
+            {sName}
+          </Badge>
+          <Badge variant="outline" className={`text-[10px] font-bold ${sPct >= 100 ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-amber-50 text-amber-800 border-amber-300'}`}>
+            {sPct >= 100 ? 'مكتمل التحصيل 100%' : `مكتمل ${sPct}%`}
+          </Badge>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100">
+          <div className="bg-emerald-50/80 p-2 rounded-lg border border-emerald-100/90 text-right">
+            <span className="text-[10px] text-emerald-800 block font-semibold">المقبوض فعلياً (المدفوع)</span>
+            <span className="text-sm font-bold text-emerald-950 flex items-center gap-1 mt-0.5 font-sans">
+              {receivedAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3 h-3 inline" />
+            </span>
+          </div>
+
+          <div className="bg-amber-50/80 p-2 rounded-lg border border-amber-100/90 text-right">
+            <span className="text-[10px] text-amber-800 block font-semibold">المبلغ المتبقي للقبض</span>
+            <span className="text-sm font-bold text-amber-950 flex items-center gap-1 mt-0.5 font-sans">
+              {remainingAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3 h-3 inline" />
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
+          <span>إجمالي الدعم المقرر:</span>
+          <span className="font-bold text-slate-800 inline-flex items-center gap-1 font-sans">{targetAmt.toLocaleString("en-US")} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
+        </div>
+
+        {sSurplusAmt > 0 && (
+          <div className="p-2 bg-indigo-50/90 rounded-lg border border-indigo-200 flex items-center justify-between text-xs mt-1">
+            <span className="text-indigo-900 font-bold text-[11px] inline-flex items-center gap-1 font-sans">
+              فائض للداعم: {sSurplusAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3 h-3 inline" />
+            </span>
+            {canTransferToFund && (fundable?.surplusAvailable || 0) > 0 && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => navigate(`/fund/transfers/new?projectId=${projectId}&source=surplus`)}
+                className="h-6 px-2 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 hover:text-indigo-900 flex items-center gap-1 cursor-pointer"
+              >
+                <ArrowRightLeft className="w-3 h-3" />
+                <span>تحويل الفائض</span>
+              </Button>
+            )}
+          </div>
+        )}
+
+        <Progress value={sPct} className="h-1.5 bg-slate-100" />
+      </div>
+    );
+  };
+
+  const renderSupporterVouchersCard = (
+    source: { entity?: string; customEntity?: string; amount?: number },
+    sIdx: number,
+    allSources: Array<{ entity?: string; customEntity?: string; amount?: number }>
+  ) => {
+    const sName = source.entity === "اخرى" ? (source.customEntity || "جهة أخرى") : (source.entity || "داعم غير محدد");
+    const targetAmt = source.amount || 0;
+    const isGenAcc = isGeneralAccountName(sName);
+    
+    // Filter receipt vouchers for this supporter with Arabic normalization
+    const normSName = normalizeArabicText(sName);
+    const normEntity = normalizeArabicText(source.entity);
+    const normCustom = normalizeArabicText(source.customEntity);
+
+    const sVouchers = receiptVouchers.filter((v: any) => {
+      if (allSources.length === 1) return true;
+      const normPayer = normalizeArabicText(v.payerName);
+      if (!normPayer) return sIdx === 0;
+
+      const matchesThis = (
+        normPayer === normSName ||
+        normPayer === normEntity ||
+        (normCustom && normPayer === normCustom) ||
+        (normSName && (normPayer.includes(normSName) || normSName.includes(normPayer))) ||
+        (normEntity && (normPayer.includes(normEntity) || normEntity.includes(normPayer)))
+      );
+      if (matchesThis) return true;
+
+      // If this voucher does not match ANY source, show it under the first supporter
+      if (sIdx === 0) {
+        const matchesAnyOther = allSources.slice(1).some(other => {
+          const otherName = normalizeArabicText(other.entity === "اخرى" ? other.customEntity : other.entity);
+          const otherEntity = normalizeArabicText(other.entity);
+          return (otherName && (normPayer.includes(otherName) || otherName.includes(normPayer))) ||
+                 (otherEntity && (normPayer.includes(otherEntity) || otherEntity.includes(normPayer)));
+        });
+        return !matchesAnyOther;
+      }
+
+      return false;
+    });
+
+    const validSVouchers = sVouchers.filter((v: any) => v.status === "approved");
+    const receivedAmt = isGenAcc ? targetAmt : validSVouchers.reduce((sum: number, v: any) => sum + parseFloat(v.amount?.toString() || "0"), 0);
+    const remainingAmt = isGenAcc ? 0 : Math.max(0, targetAmt - receivedAmt);
+    const sRawPct = isGenAcc ? 100 : (targetAmt > 0 ? (receivedAmt / targetAmt) * 100 : (receivedAmt > 0 ? 100 : 0));
+    const sPct = sRawPct > 0 && sRawPct < 1
+      ? parseFloat(sRawPct.toFixed(2))
+      : Math.min(100, Math.round(sRawPct));
+
+    return (
+      <Card key={sIdx} className="border border-slate-200 bg-slate-50/30 overflow-hidden shadow-2xs">
+        <CardHeader className="bg-slate-100/60 pb-3 border-b py-2.5 sm:py-3 px-3 sm:px-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-blue-50 text-blue-900 border-blue-200 font-bold text-xs px-2.5 py-0.5">
+              {sName}
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              ({sVouchers.length} {sVouchers.length === 1 ? "سند" : "سندات"})
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs font-semibold">
+            <span className="text-gray-600">المطلوب: <span className="font-bold text-blue-900 inline-flex items-center gap-1">{targetAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span></span>
+            <div className="text-emerald-700">
+              المقبوض: <span className="font-bold text-emerald-800 inline-flex items-center gap-1">{receivedAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
+            </div>
+            <div className="text-amber-700">
+              المتبقي: <span className="font-bold text-amber-800 inline-flex items-center gap-1">{remainingAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-3 space-y-3">
+          {/* Supporter mini progress */}
+          {(targetAmt > 0 || isGenAcc) && (
+            <div className="space-y-1 bg-white p-2 rounded-md border text-[11px]">
+              <div className="flex justify-between items-center font-medium">
+                <span className="text-gray-600">نسبة تحصيل دفعات {sName}:</span>
+                <span className="font-bold text-emerald-700">{sPct}%</span>
+              </div>
+              <Progress value={sPct} className="h-1.5 bg-gray-100" />
+            </div>
+          )}
+
+          {/* Supporter Vouchers Table */}
+          {sVouchers.length === 0 ? (
+            <div className="text-center py-4 text-xs text-muted-foreground bg-white rounded-md border border-dashed">
+              {isGenAcc 
+                ? `تم توفير تمويل (${sName}) بالكامل من الحساب العام للجمعية بنسبة 100%. لا يلزم تسجيل سندات قبض لهذا الداعم.`
+                : `لم يتم تسجيل أي سندات قبض خاصة بـ (${sName}) حتى الآن.`
+              }
+            </div>
+          ) : (
+            <div className="border rounded-md overflow-x-auto bg-white [-webkit-overflow-scrolling:touch]">
+              <Table dir="rtl">
+                <TableHeader className="bg-slate-50/80 whitespace-nowrap">
+                  <TableRow>
+                    <TableHead className="text-right text-xs whitespace-nowrap">رقم السند</TableHead>
+                    <TableHead className="text-right text-xs whitespace-nowrap">تاريخ القبض</TableHead>
+                    <TableHead className="text-right text-xs whitespace-nowrap">المبلغ المقبوض</TableHead>
+                    <TableHead className="text-right text-xs whitespace-nowrap">وذلك مقابل</TableHead>
+                    <TableHead className="text-center text-xs whitespace-nowrap">الحالة</TableHead>
+                    <TableHead className="text-center text-xs whitespace-nowrap">إجراءات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sVouchers.map((voucher: any) => (
+                    <TableRow 
+                      key={voucher.id} 
+                      className={
+                        voucher.status === "approval_revoked"
+                          ? "bg-amber-50/40 hover:bg-amber-50/60"
+                          : voucher.status === "rejected"
+                          ? "bg-rose-50/30 hover:bg-rose-50/50"
+                          : "hover:bg-slate-50/60"
+                      }
+                    >
+                       <TableCell className="font-bold text-xs font-sans whitespace-nowrap">
+                         <span className="text-primary">{voucher.voucherNumber}</span>
+                       </TableCell>
+                       <TableCell className="text-xs whitespace-nowrap">
+                         {voucher.receiptDate ? new Date(voucher.receiptDate).toLocaleDateString("en-CA") : "-"}
+                       </TableCell>
+                       <TableCell className={`font-bold text-xs whitespace-nowrap ${
+                         voucher.status === "approval_revoked" || voucher.status === "rejected"
+                           ? "text-slate-400 line-through"
+                           : "text-emerald-700"
+                       }`}>
+                         <span className="inline-flex items-center gap-1">
+                           {parseFloat(voucher.amount.toString()).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                          <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                        </span>
+                        {voucher.status === "approval_revoked" && (
+                          <span className="text-[10px] text-amber-700 font-normal mr-1 block">(ملغى الاعتماد - غير محتسب)</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground font-medium max-w-[250px] truncate" title={getCleanVoucherNotes(voucher.notes)}>
+                         {getCleanVoucherNotes(voucher.notes)}
+                       </TableCell>
+                      <TableCell className="text-center text-xs">
+                        {voucher.status === "approved" ? (
+                          <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-[10px] px-2 py-0.5">
+                            معتمد
+                          </Badge>
+                        ) : voucher.status === "approval_revoked" ? (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 font-bold text-[10px] px-2 py-0.5 gap-1 inline-flex items-center">
+                            <RotateCcw className="h-3 w-3 text-amber-600" />
+                            ملغى الاعتماد
+                          </Badge>
+                        ) : voucher.status === "rejected" ? (
+                          <Badge variant="outline" className="bg-rose-50 text-rose-800 border-rose-300 font-bold text-[10px] px-2 py-0.5">
+                            مرفوض
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-300 font-bold text-[10px] px-2 py-0.5">
+                            قيد الاعتماد
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
+                            className="h-7 w-7 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
+                            title="معاينة وطباعة سند القبض"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+
+                          {/* زر لعرض مبررات إلغاء الاعتماد أو سبب الرفض إن وجدت */}
+                          {((voucher as any).rejectionReason || (voucher.notes && (voucher.notes.includes("إلغاء الاعتماد") || voucher.notes.includes("مرفوض")))) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setJustificationModalNote((voucher as any).rejectionReason || voucher.notes || "لا يوجد مبرر مسجل")}
+                              className="h-7 px-2 text-[10px] font-bold text-amber-800 hover:text-amber-950 hover:bg-amber-100/80 border border-amber-300 rounded-md gap-1"
+                              title="عرض مبررات إلغاء الاعتماد / السبب"
+                            >
+                              <Info className="h-3.5 w-3.5 text-amber-700" />
+                              المبررات
+                            </Button>
+                          )}
+
+                           {/* زر إلغاء الاعتماد */}
+                           {(isFaaa8User || hasExceptionApprove) && voucher.status === "approved" && (
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={() => handleOpenRevokeModal(voucher)}
+                               disabled={revokeVoucherApprovalMutation.isPending}
+                               className="h-7 px-2 text-[11px] font-bold text-amber-700 hover:text-amber-900 hover:bg-amber-100/70 border border-amber-300 rounded-md gap-1"
+                               title="إلغاء الاعتماد لإتاحة التعديل"
+                             >
+                               <RotateCcw className="h-3.5 w-3.5" />
+                               <span>إلغاء الاعتماد</span>
+                             </Button>
+                           )}
+
+                           {/* زر الاعتماد العادي للمسؤول المالي */}
+                           {isFaaa8User && voucher.status === "pending_approval" && (
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={() => {
+                                 approveVoucherMutation.mutate({ id: voucher.id });
+                               }}
+                               disabled={approveVoucherMutation.isPending}
+                               className="h-7 px-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100/70 border border-emerald-200 rounded-md gap-1"
+                               title="اعتماد سند القبض"
+                             >
+                               <CheckCircle className="h-3.5 w-3.5" />
+                               <span>اعتماد</span>
+                             </Button>
+                           )}
+
+                           {/* زر استثناء الاعتماد لمن يملك صلاحية استثناء اعتماد السند */}
+                           {hasExceptionApprove && voucher.status === "pending_approval" && (
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={() => handleOpenExceptionModal(voucher)}
+                               disabled={exceptionApproveVoucherMutation.isPending}
+                               className="h-7 px-2 text-[11px] font-bold text-amber-800 hover:text-amber-950 hover:bg-amber-100/80 border border-amber-300 rounded-md gap-1"
+                               title="استثناء اعتماد سند القبض مع ذكر السبب"
+                             >
+                               <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />
+                               <span>استثناء الاعتماد</span>
+                             </Button>
+                           )}
+
+                           {/* زر الرفض للمسؤول المالي أو صاحب صلاحية استثناء الاعتماد */}
+                           {(isFaaa8User || hasExceptionApprove) && voucher.status === "pending_approval" && (
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={() => handleOpenRejectModal(voucher)}
+                               disabled={rejectVoucherMutation.isPending}
+                               className="h-7 px-2 text-[11px] font-bold text-rose-700 hover:text-rose-900 hover:bg-rose-100/70 border border-rose-200 rounded-md gap-1"
+                               title="رفض سند القبض"
+                             >
+                               <XCircle className="h-3.5 w-3.5" />
+                               <span>رفض</span>
+                             </Button>
+                           )}
+
+                          {/* زر التعديل يظهر فقط إذا لم يكن السند معتمداً */}
+                          {voucher.status !== "approved" && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openEditVoucherModal(voucher)}
+                                className="h-7 w-7 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                title="تعديل سند القبض"
+                              >
+                                <Edit3 className="h-3.5 w-3.5" />
+                              </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
   };
 
   if (!hasFinancials) return null;
@@ -1155,6 +1543,29 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                     </Badge>
                   </div>
 
+                  {/* التوضيح المطلوب للعميل */}
+                  {validSupportSources.length > 0 && (
+                    <div className="bg-blue-50/80 border border-blue-200/90 text-blue-900 rounded-lg p-2.5 text-xs flex items-center justify-between gap-2 shadow-2xs">
+                      <div className="flex items-center gap-1.5">
+                        <Info className="w-4 h-4 text-blue-600 shrink-0" />
+                        <span className="font-medium text-[11px] sm:text-xs leading-relaxed">
+                          💡 <strong>توضيح:</strong> يجب الضغط على اسم الداعم لعرض كروت الدعم وسندات القبض الخاصة به فقط.
+                        </span>
+                      </div>
+                      {selectedDonorIndex !== null && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-1.5 text-[11px] font-bold text-blue-800 hover:text-blue-950 hover:bg-blue-100 shrink-0 cursor-pointer"
+                          onClick={() => setSelectedDonorIndex(null)}
+                        >
+                          إلغاء التحديد ✕
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
                   <div className="space-y-1.5 pt-1">
                     {validSupportSources.length === 0 ? (
                       <div className="text-center py-2 text-xs text-muted-foreground">
@@ -1163,12 +1574,45 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                     ) : (
                       validSupportSources.map((source, idx) => {
                         const name = source.entity === "اخرى" ? source.customEntity || "جهة أخرى" : source.entity || "غير محدد";
+                        const isSelected = selectedDonorIndex === idx;
                         return (
-                          <div key={idx} className="flex items-center justify-between text-xs py-1 border-b last:border-b-0 border-gray-100">
-                            <span className="text-gray-700 font-medium">{idx + 1}. {name}</span>
-                            <span className="font-bold text-blue-900 inline-flex items-center gap-1">
-                              {(source.amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
-                            </span>
+                          <div key={idx} className="border-b last:border-b-0 border-gray-100 py-0.5">
+                            <div 
+                              onClick={() => {
+                                if (selectedDonorIndex === idx) {
+                                  setSelectedDonorIndex(null);
+                                } else {
+                                  setSelectedDonorIndex(idx);
+                                  setTimeout(() => {
+                                    document.getElementById("donor-details-section")?.scrollIntoView({ behavior: "smooth" });
+                                  }, 60);
+                                }
+                              }}
+                              className={cn(
+                                "flex items-center justify-between text-xs py-1.5 px-2 rounded-md cursor-pointer transition-all duration-150 select-none group",
+                                isSelected 
+                                  ? "bg-blue-100/90 border border-blue-400 text-blue-950 font-bold shadow-2xs" 
+                                  : "hover:bg-blue-50/70 text-gray-700"
+                              )}
+                              title="اضغط لعرض كروت الدعم وسندات القبض الخاصة بهذا الداعم في الأسفل"
+                            >
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className={cn(
+                                  "truncate",
+                                  isSelected ? "text-blue-900 font-bold" : "group-hover:text-blue-700 group-hover:underline font-medium"
+                                )}>
+                                  {idx + 1}. {name}
+                                </span>
+                                {isSelected ? (
+                                  <Badge className="bg-blue-600 text-white text-[9px] py-0 px-1 font-bold">محدد ✓</Badge>
+                                ) : (
+                                  <ChevronLeft className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 shrink-0 opacity-70 transition-colors" />
+                                )}
+                              </div>
+                              <span className="font-bold text-blue-900 inline-flex items-center gap-1 shrink-0 font-sans">
+                                {(source.amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                              </span>
+                            </div>
                           </div>
                         );
                       })
@@ -1353,388 +1797,78 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
             <Progress value={collectionPercentage} className="h-2.5 bg-gray-200" />
           </div>
 
-          {/* 3.1 كروت التحصيل والقبض تفصيلياً حسب كل داعم */}
-          {validSupportSources.length > 0 && (
-            <div className="space-y-3 pt-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Building2 className="h-4 w-4 text-blue-600" />
-                  مباشر: المبالغ المدفوعة والمتبقية تفصيلياً لكل داعم ({validSupportSources.length} داعم)
-                </h4>
+          {/* عندما لا يتم تحديد داعم: لا يظهر أي كروت أو جداول سندات قبض في الأسفل */}
+          {validSupportSources.length > 0 && selectedDonorIndex === null && (
+            <div id="donor-details-section" className="p-6 bg-slate-50/80 border border-dashed border-slate-300 rounded-xl text-center space-y-2.5 my-2 shadow-2xs">
+              <div className="flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold text-slate-700">
+                <Info className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>💡 <strong>توضيح:</strong> يجب الضغط على اسم الداعم من قائمة "الجهات الداعمة للتمويل" أعلاه لعرض كروت الدعم وسندات القبض الخاصة به فقط.</span>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {validSupportSources.map((source, sIdx) => {
-                  const sName = source.entity === "اخرى" ? (source.customEntity || "جهة أخرى") : (source.entity || "داعم غير محدد");
-                  const targetAmt = source.amount || 0;
-                  const isGenAcc = isGeneralAccountName(sName);
-                  
-                  // Filter receipt vouchers for this supporter with Arabic normalization
-                  const normSName = normalizeArabicText(sName);
-                  const normEntity = normalizeArabicText(source.entity);
-                  const normCustom = normalizeArabicText(source.customEntity);
-
-                  const sVouchers = receiptVouchers.filter(v => {
-                    const normPayer = normalizeArabicText(v.payerName);
-                    if (!normPayer) return false;
-                    return (
-                      normPayer === normSName ||
-                      normPayer === normEntity ||
-                      (normCustom && normPayer === normCustom) ||
-                      (normSName && (normPayer.includes(normSName) || normSName.includes(normPayer)))
-                    );
-                  });
-
-                  const validSVouchers = sVouchers.filter(v => v.status === "approved");
-                  const receivedAmt = isGenAcc ? targetAmt : validSVouchers.reduce((sum, v) => sum + parseFloat(v.amount.toString() || "0"), 0);
-                  const remainingAmt = isGenAcc ? 0 : Math.max(0, targetAmt - receivedAmt);
-                  const sSurplusAmt = isGenAcc ? 0 : Math.max(0, receivedAmt - targetAmt);
-                  const sRawPct = isGenAcc ? 100 : (targetAmt > 0 ? (receivedAmt / targetAmt) * 100 : (receivedAmt > 0 ? 100 : 0));
-                  const sPct = sRawPct > 0 && sRawPct < 1
-                    ? parseFloat(sRawPct.toFixed(2))
-                    : Math.min(100, Math.round(sRawPct));
-
-                  return (
-                    <div key={sIdx} className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-2.5 hover:border-blue-300 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <Badge variant="outline" className="bg-blue-50 text-blue-900 border-blue-200 font-bold text-xs px-2.5 py-0.5">
-                          {sName}
-                        </Badge>
-                        <Badge variant="outline" className={`text-[10px] font-bold ${sPct >= 100 ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-amber-50 text-amber-800 border-amber-300'}`}>
-                          {sPct >= 100 ? 'مكتمل التحصيل 100%' : `مكتمل ${sPct}%`}
-                        </Badge>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100">
-                        <div className="bg-emerald-50/80 p-2 rounded-lg border border-emerald-100/90 text-right">
-                          <span className="text-[10px] text-emerald-800 block font-semibold">المقبوض فعلياً (المدفوع)</span>
-                          <span className="text-sm font-bold text-emerald-950 flex items-center gap-1 mt-0.5">
-                            {receivedAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3 h-3 inline" />
-                          </span>
-                        </div>
-
-                        <div className="bg-amber-50/80 p-2 rounded-lg border border-amber-100/90 text-right">
-                          <span className="text-[10px] text-amber-800 block font-semibold">المبلغ المتبقي للقبض</span>
-                          <span className="text-sm font-bold text-amber-950 flex items-center gap-1 mt-0.5">
-                            {remainingAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3 h-3 inline" />
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
-                        <span>إجمالي الدعم المقرر:</span>
-                        <span className="font-bold text-slate-800 inline-flex items-center gap-1">{targetAmt.toLocaleString("en-US")} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
-                      </div>
-
-                      {sSurplusAmt > 0 && (
-                        <div className="p-2 bg-indigo-50/90 rounded-lg border border-indigo-200 flex items-center justify-between text-xs mt-1">
-                          <span className="text-indigo-900 font-bold text-[11px] inline-flex items-center gap-1">
-                            فائض للداعم: {sSurplusAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3 h-3 inline" />
-                          </span>
-                          {canTransferToFund && (fundable?.surplusAvailable || 0) > 0 && <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => navigate(`/fund/transfers/new?projectId=${projectId}&source=surplus`)}
-                            className="h-6 px-2 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 hover:text-indigo-900 flex items-center gap-1 cursor-pointer"
-                          >
-                            <ArrowRightLeft className="w-3 h-3" />
-                            <span>تحويل الفائض</span>
-                          </Button>}
-                        </div>
-                      )}
-
-                      <Progress value={sPct} className="h-1.5 bg-slate-100" />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Categorized Receipt Vouchers by Supporter */}
-          {receiptVouchers.length === 0 ? (
-            <div className="text-center py-10 border-2 border-dashed rounded-lg bg-gray-50/40">
-              <Receipt className="h-12 w-12 mx-auto mb-2 text-muted-foreground/40" />
-              <p className="font-semibold text-gray-700 text-sm">لم يتم تسجيل أي سندات قبض بعد</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {canAddReceiptVoucher
-                  ? 'انقر على "تسجيل سند قبض جديد" لإضافة الدفعات المستلمة جزئياً أو كلياً من الداعم.'
-                  : 'لا توجد سندات قبض مسجلة لهذا المشروع حالياً.'}
+              <p className="text-xs text-muted-foreground">
+                لم يتم تحديد أي داعم حالياً. انقر على اسم الداعم المطلوب في قائمة "الجهات الداعمة للتمويل" أعلاه لاستعراض كروت الدعم وسندات القبض المسجلة له.
               </p>
             </div>
-          ) : (
-            <div className="space-y-6">
-              {(validSupportSources.length > 0 ? validSupportSources : [{ entity: "داعم المشروع", customEntity: "", amount: currentSupportAmount || 0 }]).map((source, sIdx, allSources) => {
-                const sName = source.entity === "اخرى" ? (source.customEntity || "جهة أخرى") : (source.entity || "داعم غير محدد");
-                const targetAmt = source.amount || 0;
-                const isGenAcc = isGeneralAccountName(sName);
-                
-                // Filter receipt vouchers for this supporter with Arabic normalization
-                const normSName = normalizeArabicText(sName);
-                const normEntity = normalizeArabicText(source.entity);
-                const normCustom = normalizeArabicText(source.customEntity);
+          )}
 
-                const sVouchers = receiptVouchers.filter(v => {
-                  if (allSources.length === 1) return true;
-                  const normPayer = normalizeArabicText(v.payerName);
-                  if (!normPayer) return sIdx === 0;
+          {/* عند الضغط على اسم داعم: يظهر كرت الدعم وسندات القبض الخاصة بالداعم المحدد فقط */}
+          {validSupportSources.length > 0 && selectedDonorIndex !== null && validSupportSources[selectedDonorIndex] && (
+            <div id="donor-details-section" className="space-y-4 pt-2">
+              <div className="flex items-center justify-between bg-blue-50/80 p-3 rounded-xl border border-blue-200 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-blue-600" />
+                  <span className="text-xs sm:text-sm font-bold text-slate-800">
+                    كروت الدعم وسندات القبض للداعم:
+                  </span>
+                  <Badge variant="outline" className="bg-blue-600 text-white border-blue-600 font-bold text-xs px-2.5 py-0.5">
+                    {validSupportSources[selectedDonorIndex].entity === "اخرى"
+                      ? (validSupportSources[selectedDonorIndex].customEntity || "جهة أخرى")
+                      : (validSupportSources[selectedDonorIndex].entity || "داعم غير محدد")}
+                  </Badge>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2.5 text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-white border-slate-300 cursor-pointer"
+                  onClick={() => setSelectedDonorIndex(null)}
+                >
+                  إغلاق تفاصيل الداعم ✕
+                </Button>
+              </div>
 
-                  const matchesThis = (
-                    normPayer === normSName ||
-                    normPayer === normEntity ||
-                    (normCustom && normPayer === normCustom) ||
-                    (normSName && (normPayer.includes(normSName) || normSName.includes(normPayer))) ||
-                    (normEntity && (normPayer.includes(normEntity) || normEntity.includes(normPayer)))
-                  );
-                  if (matchesThis) return true;
+              {/* كرت المبالغ والتحصيل للداعم المحدد */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {renderDonorCard(validSupportSources[selectedDonorIndex], selectedDonorIndex)}
+              </div>
 
-                  // If this voucher does not match ANY source, show it under the first supporter
-                  if (sIdx === 0) {
-                    const matchesAnyOther = allSources.slice(1).some(other => {
-                      const otherName = normalizeArabicText(other.entity === "اخرى" ? other.customEntity : other.entity);
-                      const otherEntity = normalizeArabicText(other.entity);
-                      return (otherName && (normPayer.includes(otherName) || otherName.includes(normPayer))) ||
-                             (otherEntity && (normPayer.includes(otherEntity) || otherEntity.includes(normPayer)));
-                    });
-                    return !matchesAnyOther;
-                  }
-
-                  return false;
-                });
-
-                const validSVouchers = sVouchers.filter(v => v.status === "approved");
-                const receivedAmt = isGenAcc ? targetAmt : validSVouchers.reduce((sum, v) => sum + parseFloat(v.amount.toString() || "0"), 0);
-                const remainingAmt = isGenAcc ? 0 : Math.max(0, targetAmt - receivedAmt);
-                const sRawPct = isGenAcc ? 100 : (targetAmt > 0 ? (receivedAmt / targetAmt) * 100 : (receivedAmt > 0 ? 100 : 0));
-                const sPct = sRawPct > 0 && sRawPct < 1
-                  ? parseFloat(sRawPct.toFixed(2))
-                  : Math.min(100, Math.round(sRawPct));
-
-                return (
-                  <Card key={sIdx} className="border border-slate-200 bg-slate-50/30 overflow-hidden shadow-2xs">
-                    <CardHeader className="bg-slate-100/60 pb-3 border-b py-2.5 sm:py-3 px-3 sm:px-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-blue-50 text-blue-900 border-blue-200 font-bold text-xs px-2.5 py-0.5">
-                          {sName}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          ({sVouchers.length} {sVouchers.length === 1 ? "سند" : "سندات"})
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs font-semibold">
-                        <span className="text-gray-600">المطلوب: <span className="font-bold text-blue-900 inline-flex items-center gap-1">{targetAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span></span>
-                        <div className="text-emerald-700">
-                          المقبوض: <span className="font-bold text-emerald-800 inline-flex items-center gap-1">{receivedAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
-                        </div>
-                        <div className="text-amber-700">
-                          المتبقي: <span className="font-bold text-amber-800 inline-flex items-center gap-1">{remainingAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
-                        </div>
-                      </div>
-                    </CardHeader>
-
-                    <CardContent className="p-3 space-y-3">
-                      {/* Supporter mini progress */}
-                      {(targetAmt > 0 || isGenAcc) && (
-                        <div className="space-y-1 bg-white p-2 rounded-md border text-[11px]">
-                          <div className="flex justify-between items-center font-medium">
-                            <span className="text-gray-600">نسبة تحصيل دفعات {sName}:</span>
-                            <span className="font-bold text-emerald-700">{sPct}%</span>
-                          </div>
-                          <Progress value={sPct} className="h-1.5 bg-gray-100" />
-                        </div>
-                      )}
-
-                      {/* Supporter Vouchers Table */}
-                      {sVouchers.length === 0 ? (
-                        <div className="text-center py-4 text-xs text-muted-foreground bg-white rounded-md border border-dashed">
-                          {isGenAcc 
-                            ? `تم توفير تمويل (${sName}) بالكامل من الحساب العام للجمعية بنسبة 100%. لا يلزم تسجيل سندات قبض لهذا الداعم.`
-                            : `لم يتم تسجيل أي سندات قبض خاصة بـ (${sName}) حتى الآن.`
-                          }
-                        </div>
-                      ) : (
-                        <div className="border rounded-md overflow-x-auto bg-white [-webkit-overflow-scrolling:touch]">
-                          <Table dir="rtl">
-                            <TableHeader className="bg-slate-50/80 whitespace-nowrap">
-                              <TableRow>
-                                <TableHead className="text-right text-xs whitespace-nowrap">رقم السند</TableHead>
-                                <TableHead className="text-right text-xs whitespace-nowrap">تاريخ القبض</TableHead>
-                                <TableHead className="text-right text-xs whitespace-nowrap">المبلغ المقبوض</TableHead>
-                                <TableHead className="text-right text-xs whitespace-nowrap">وذلك مقابل</TableHead>
-                                <TableHead className="text-center text-xs whitespace-nowrap">الحالة</TableHead>
-                                <TableHead className="text-center text-xs whitespace-nowrap">إجراءات</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {sVouchers.map((voucher) => (
-                                <TableRow 
-                                  key={voucher.id} 
-                                  className={
-                                    voucher.status === "approval_revoked"
-                                      ? "bg-amber-50/40 hover:bg-amber-50/60"
-                                      : voucher.status === "rejected"
-                                      ? "bg-rose-50/30 hover:bg-rose-50/50"
-                                      : "hover:bg-slate-50/60"
-                                  }
-                                >
-                                   <TableCell className="font-bold text-xs font-sans whitespace-nowrap">
-                                     <span className="text-primary">{voucher.voucherNumber}</span>
-                                   </TableCell>
-                                   <TableCell className="text-xs whitespace-nowrap">
-                                     {voucher.receiptDate ? new Date(voucher.receiptDate).toLocaleDateString("en-CA") : "-"}
-                                   </TableCell>
-                                   <TableCell className={`font-bold text-xs whitespace-nowrap ${
-                                     voucher.status === "approval_revoked" || voucher.status === "rejected"
-                                       ? "text-slate-400 line-through"
-                                       : "text-emerald-700"
-                                   }`}>
-                                     <span className="inline-flex items-center gap-1">
-                                       {parseFloat(voucher.amount.toString()).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                                      <SaudiRiyal className="w-3.5 h-3.5 inline" />
-                                    </span>
-                                    {voucher.status === "approval_revoked" && (
-                                      <span className="text-[10px] text-amber-700 font-normal mr-1 block">(ملغى الاعتماد - غير محتسب)</span>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="text-xs text-muted-foreground font-medium max-w-[250px] truncate" title={getCleanVoucherNotes(voucher.notes)}>
-                                     {getCleanVoucherNotes(voucher.notes)}
-                                   </TableCell>
-                                  <TableCell className="text-center text-xs">
-                                    {voucher.status === "approved" ? (
-                                      <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-[10px] px-2 py-0.5">
-                                        معتمد
-                                      </Badge>
-                                    ) : voucher.status === "approval_revoked" ? (
-                                      <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 font-bold text-[10px] px-2 py-0.5 gap-1 inline-flex items-center">
-                                        <RotateCcw className="h-3 w-3 text-amber-600" />
-                                        ملغى الاعتماد
-                                      </Badge>
-                                    ) : voucher.status === "rejected" ? (
-                                      <Badge variant="outline" className="bg-rose-50 text-rose-800 border-rose-300 font-bold text-[10px] px-2 py-0.5">
-                                        مرفوض
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-300 font-bold text-[10px] px-2 py-0.5">
-                                        قيد الاعتماد
-                                      </Badge>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="text-center">
-                                    <div className="flex items-center justify-center gap-1">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
-                                        className="h-7 w-7 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
-                                        title="معاينة وطباعة سند القبض"
-                                      >
-                                        <Eye className="h-3.5 w-3.5" />
-                                      </Button>
-
-                                      {/* زر لعرض مبررات إلغاء الاعتماد أو سبب الرفض إن وجدت */}
-                                      {((voucher as any).rejectionReason || (voucher.notes && (voucher.notes.includes("إلغاء الاعتماد") || voucher.notes.includes("مرفوض")))) && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => setJustificationModalNote((voucher as any).rejectionReason || voucher.notes || "لا يوجد مبرر مسجل")}
-                                          className="h-7 px-2 text-[10px] font-bold text-amber-800 hover:text-amber-950 hover:bg-amber-100/80 border border-amber-300 rounded-md gap-1"
-                                          title="عرض مبررات إلغاء الاعتماد / السبب"
-                                        >
-                                          <Info className="h-3.5 w-3.5 text-amber-700" />
-                                          المبررات
-                                        </Button>
-                                      )}
-
-                                       {/* زر إلغاء الاعتماد */}
-                                       {(isFaaa8User || hasExceptionApprove) && voucher.status === "approved" && (
-                                         <Button
-                                           variant="ghost"
-                                           size="sm"
-                                           onClick={() => handleOpenRevokeModal(voucher)}
-                                           disabled={revokeVoucherApprovalMutation.isPending}
-                                           className="h-7 px-2 text-[11px] font-bold text-amber-700 hover:text-amber-900 hover:bg-amber-100/70 border border-amber-300 rounded-md gap-1"
-                                           title="إلغاء الاعتماد لإتاحة التعديل"
-                                         >
-                                           <RotateCcw className="h-3.5 w-3.5" />
-                                           <span>إلغاء الاعتماد</span>
-                                         </Button>
-                                       )}
-
-                                       {/* زر الاعتماد العادي للمسؤول المالي */}
-                                       {isFaaa8User && voucher.status === "pending_approval" && (
-                                         <Button
-                                           variant="ghost"
-                                           size="sm"
-                                           onClick={() => {
-                                             approveVoucherMutation.mutate({ id: voucher.id });
-                                           }}
-                                           disabled={approveVoucherMutation.isPending}
-                                           className="h-7 px-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100/70 border border-emerald-200 rounded-md gap-1"
-                                           title="اعتماد سند القبض"
-                                         >
-                                           <CheckCircle className="h-3.5 w-3.5" />
-                                           <span>اعتماد</span>
-                                         </Button>
-                                       )}
-
-                                       {/* زر استثناء الاعتماد لمن يملك صلاحية استثناء اعتماد السند */}
-                                       {hasExceptionApprove && voucher.status === "pending_approval" && (
-                                         <Button
-                                           variant="ghost"
-                                           size="sm"
-                                           onClick={() => handleOpenExceptionModal(voucher)}
-                                           disabled={exceptionApproveVoucherMutation.isPending}
-                                           className="h-7 px-2 text-[11px] font-bold text-amber-800 hover:text-amber-950 hover:bg-amber-100/80 border border-amber-300 rounded-md gap-1"
-                                           title="استثناء اعتماد سند القبض مع ذكر السبب"
-                                         >
-                                           <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />
-                                           <span>استثناء الاعتماد</span>
-                                         </Button>
-                                       )}
-
-                                       {/* زر الرفض للمسؤول المالي أو صاحب صلاحية استثناء الاعتماد */}
-                                       {(isFaaa8User || hasExceptionApprove) && voucher.status === "pending_approval" && (
-                                         <Button
-                                           variant="ghost"
-                                           size="sm"
-                                           onClick={() => handleOpenRejectModal(voucher)}
-                                           disabled={rejectVoucherMutation.isPending}
-                                           className="h-7 px-2 text-[11px] font-bold text-rose-700 hover:text-rose-900 hover:bg-rose-100/70 border border-rose-200 rounded-md gap-1"
-                                           title="رفض سند القبض"
-                                         >
-                                           <XCircle className="h-3.5 w-3.5" />
-                                           <span>رفض</span>
-                                         </Button>
-                                       )}
-
-                                      {/* زر التعديل يظهر فقط إذا لم يكن السند معتمداً */}
-                                      {voucher.status !== "approved" && (
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => openEditVoucherModal(voucher)}
-                                            className="h-7 w-7 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                                            title="تعديل سند القبض"
-                                          >
-                                            <Edit3 className="h-3.5 w-3.5" />
-                                          </Button>
-                                      )}
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
+              {/* سندات القبض الخاصة بالداعم المحدد فقط */}
+              {renderSupporterVouchersCard(validSupportSources[selectedDonorIndex], selectedDonorIndex, validSupportSources)}
             </div>
           )}
+
+          {/* في حال عدم وجود أي جهات داعمة مسجلة في المشروع */}
+          {validSupportSources.length === 0 && (
+            receiptVouchers.length === 0 ? (
+              <div className="text-center py-10 border-2 border-dashed rounded-lg bg-gray-50/40">
+                <Receipt className="h-12 w-12 mx-auto mb-2 text-muted-foreground/40" />
+                <p className="font-semibold text-gray-700 text-sm">لم يتم تسجيل أي سندات قبض بعد</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {canAddReceiptVoucher
+                    ? 'انقر على "تسجيل سند قبض جديد" لإضافة الدفعات المستلمة جزئياً أو كلياً من الداعم.'
+                    : 'لا توجد سندات قبض مسجلة لهذا المشروع حالياً.'}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {renderSupporterVouchersCard(
+                  { entity: "داعم المشروع", customEntity: "", amount: currentSupportAmount || 0 },
+                  0,
+                  [{ entity: "داعم المشروع", customEntity: "", amount: currentSupportAmount || 0 }]
+                )}
+              </div>
+            )
+          )}
+
 
         </CardContent>
       </Card>

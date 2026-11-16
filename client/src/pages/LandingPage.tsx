@@ -66,9 +66,12 @@ export default function LandingPage() {
             {/* الشعار */}
             <div className="flex items-center gap-1.5 xs:gap-3 min-w-0">
               <img 
-                src={orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || (isScrolled ? "/logo.svg" : "/logo-white.svg")} 
+                src={orgSettings?.logoUrl || orgSettings?.secondaryLogoUrl || (isScrolled ? "/logo.svg" : "/logo-white.svg")} 
                 alt="شعار بوابة منارة" 
                 className="w-12 h-12 xs:w-14 xs:h-14 shrink-0 object-contain transition-all duration-300" 
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = isScrolled ? "/logo.svg" : "/logo-white.svg";
+                }}
               />
               <div className="min-w-0">
                 <h1 className={`font-bold text-xs xs:text-sm sm:text-base leading-tight transition-colors duration-300 truncate max-w-[90px] min-[380px]:max-w-[130px] xs:max-w-[160px] sm:max-w-[240px] md:max-w-none ${isScrolled ? "text-foreground" : "text-white"}`}>
@@ -131,26 +134,51 @@ export default function LandingPage() {
 
       {/* ═══════════════ قسم الهيرو ═══════════════ */}
       <section
-        className="relative overflow-hidden islamic-pattern"
+        className="relative overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 40%, #1e40af 100%)' }}
       >
-        <div className="container mx-auto px-4 xs:px-6 pt-24 pb-12 md:pt-36 md:pb-28">
-          <div className="max-w-3xl mx-auto text-center">
+        {/* صورة المسجد المدمجة بالخلفية مع قناع شعاعي لإخفاء العمود/المئذنة من الوسط وتوفير مساحة تنفس كاملة للنصوص */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30 mix-blend-overlay pointer-events-none"
+          style={{ 
+            backgroundImage: 'url("/hero-mosque.jpg")',
+            maskImage: 'radial-gradient(ellipse 60% 75% at 50% 50%, transparent 20%, rgba(0, 0, 0, 0.4) 55%, black 85%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 60% 75% at 50% 50%, transparent 20%, rgba(0, 0, 0, 0.4) 55%, black 85%)',
+          }}
+        />
+        {/* طبقة تدرج لوني لحماية التباين ووضوح النصوص */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse at center, rgba(13, 148, 136, 0.15) 0%, rgba(15, 118, 110, 0.3) 50%, rgba(30, 64, 175, 0.45) 100%)'
+          }}
+        />
+        <div className="absolute inset-0 opacity-5 pointer-events-none islamic-pattern" />
+
+        <div className="container relative z-10 mx-auto px-4 xs:px-6 pt-24 pb-12 md:pt-36 md:pb-28">
+          <div className="max-w-3xl mx-auto text-center px-4 py-2">
             {/* الشعار الكبير */}
             <div className="flex justify-center mb-6 md:mb-8">
               <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shadow-xl border border-white/30">
-                <img src={orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || "/logo-white.svg"} alt="شعار بوابة منارة" className="w-12 h-12 md:w-16 md:h-16 object-contain" />
+                <img 
+                  src={orgSettings?.logoUrl || orgSettings?.secondaryLogoUrl || "/logo-white.svg"} 
+                  alt="شعار بوابة منارة" 
+                  className="w-12 h-12 md:w-16 md:h-16 object-contain" 
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/logo-white.svg";
+                  }}
+                />
               </div>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6 leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6 leading-tight drop-shadow-md">
               {orgSettings?.organizationName || "بوابة منارة"}
               <span className="block text-white/80 text-xl sm:text-2xl md:text-3xl font-medium mt-1 md:mt-2">
                 {orgSettings?.organizationNameShort || "لإدارة طلبات المساجد"}
               </span>
             </h1>
 
-            <p className="text-base sm:text-lg md:text-xl text-white/85 mb-8 md:mb-10 leading-relaxed max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-white/90 mb-8 md:mb-10 leading-relaxed max-w-2xl mx-auto drop-shadow-sm">
               يمكنكم من خلال هذه البوابة رفع طلبات الخدمات المتعلقة بمساجدكم، وسنعمل جاهدين بإذن الله على دراستها والعمل على تلبيتها قدر المستطاع، بما يخدم بيوت الله ويحقق الأثر المأمول.
             </p>
 

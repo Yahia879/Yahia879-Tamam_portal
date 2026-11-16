@@ -100,6 +100,22 @@ export default function Home() {
 
       {/* قسم البطل */}
       <section className="relative py-20 lg:py-32" style={{ background: `linear-gradient(135deg, ${(orgSettings as any)?.colorPrimary1 || '#09707e'} 0%, ${(orgSettings as any)?.colorPrimary2 || '#0891b2'} 100%)` }}>
+        {/* صورة المسجد المدمجة بالخلفية مع قناع شعاعي لإخفاء العمود من الوسط وتوفير مساحة تنفس للنصوص */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30 mix-blend-overlay pointer-events-none"
+          style={{ 
+            backgroundImage: 'url("/hero-mosque.jpg")',
+            maskImage: 'radial-gradient(ellipse 60% 75% at 50% 50%, transparent 20%, rgba(0, 0, 0, 0.4) 55%, black 85%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 60% 75% at 50% 50%, transparent 20%, rgba(0, 0, 0, 0.4) 55%, black 85%)',
+          }}
+        />
+        {/* طبقة تدرج لوني لحماية التباين */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse at center, rgba(13, 148, 136, 0.15) 0%, rgba(15, 118, 110, 0.3) 50%, rgba(30, 64, 175, 0.45) 100%)'
+          }}
+        />
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }}></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
