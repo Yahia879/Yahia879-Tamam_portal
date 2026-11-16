@@ -1143,6 +1143,23 @@ export const projectsRouter = router({
         .where(eq(payments.projectId, targetProjectId))
         .orderBy(desc(payments.createdAt));
 
+      // جلب أوامر التغيير النشطة لتمييز الدفعات المرتبطة بأمر تغيير
+      const projectCoRows = await db
+        .select({
+          id: projectChangeOrders.id,
+          orderNumber: projectChangeOrders.orderNumber,
+          paymentId: projectChangeOrders.paymentId,
+          contractPaymentId: projectChangeOrders.contractPaymentId,
+          disbursementRequestId: projectChangeOrders.disbursementRequestId,
+        })
+        .from(projectChangeOrders)
+        .where(
+          and(
+            eq(projectChangeOrders.projectId, targetProjectId),
+            ne(projectChangeOrders.status, "rejected")
+          )
+        );
+
       const toLocalDateString = (d: any): string => {
         if (!d)
           return new Intl.DateTimeFormat("en-CA", {
@@ -1344,6 +1361,10 @@ export const projectsRouter = router({
           } catch (e) {}
         }
 
+        const matchedCoCp = projectCoRows.find(
+          co => co.contractPaymentId === cp.id
+        );
+
         unifiedPayments.push({
           id: `cp-${cp.id}`,
           paymentNumber: `PLAN-${cp.id}`,
@@ -1367,6 +1388,9 @@ export const projectsRouter = router({
           hasDisbursementRequest: hasDisb,
           hasProgressReport: hasReport,
           items: paymentItems,
+          isChangeOrder: Boolean(matchedCoCp),
+          changeOrderId: matchedCoCp?.id ?? null,
+          changeOrderNumber: matchedCoCp?.orderNumber ?? null,
         });
       });
 
@@ -1506,6 +1530,10 @@ export const projectsRouter = router({
           } catch (e) {}
         }
 
+        const matchedCoManual = projectCoRows.find(
+          co => co.paymentId === p.id
+        );
+
         unifiedPayments.push({
           id: `manual-${p.id}`,
           paymentNumber: p.paymentNumber,
@@ -1513,11 +1541,11 @@ export const projectsRouter = router({
           agreedAmount: agreedAmount,
           paidAmount: paidAmount,
           status: paymentStatus,
-          description: p.description,
+          description: p.description || linkedDisb?.title,
           date: toLocalDateString(rawDate),
           paidAt: paidAtDate ? toLocalDateString(paidAtDate) : null,
           source: "manual",
-          workDescription: p.description,
+          workDescription: linkedDisb?.description || p.description,
           completionPercentage:
             p.completionPercentage !== null &&
             p.completionPercentage !== undefined
@@ -1526,6 +1554,9 @@ export const projectsRouter = router({
           hasDisbursementRequest: hasDisb,
           hasProgressReport: hasReport,
           items: manualItems,
+          isChangeOrder: Boolean(matchedCoManual),
+          changeOrderId: matchedCoManual?.id ?? null,
+          changeOrderNumber: matchedCoManual?.orderNumber ?? null,
         });
       });
 
@@ -1627,6 +1658,10 @@ export const projectsRouter = router({
           );
         }
 
+        const matchedCoDisb = projectCoRows.find(
+          co => co.disbursementRequestId === d.id
+        );
+
         unifiedPayments.push({
           id: `disb-${d.id}`,
           paymentNumber: d.requestNumber,
@@ -1649,6 +1684,9 @@ export const projectsRouter = router({
           hasDisbursementRequest: isProgressDisb || hasLinkedDisbursement,
           hasProgressReport: hasReport,
           items: [],
+          isChangeOrder: Boolean(matchedCoDisb),
+          changeOrderId: matchedCoDisb?.id ?? null,
+          changeOrderNumber: matchedCoDisb?.orderNumber ?? null,
         });
       });
 
@@ -3103,6 +3141,8 @@ export const projectsRouter = router({
         projectId: z.number(),
         contractId: z.number().optional(),
         contractPaymentId: z.number().optional(),
+        changeOrderId: z.number().int().positive().optional(),
+        title: z.string().optional(),
         amount: z.number().positive(),
         paymentType: z.enum(["advance", "progress", "final", "retention"]),
         description: z.string().optional(),
@@ -3119,7 +3159,59 @@ export const projectsRouter = router({
           message: "قاعدة البيانات غير متاحة",
         });
 
-      // التحقق من أن المبلغ لا يتجاوز الإجمالي المتبقي غير المجدول للعقد
+      const activeChangeOrders = await db
+        .select({
+          id: projectChangeOrders.id,
+          projectId: projectChangeOrders.projectId,
+          amount: projectChangeOrders.amount,
+          status: projectChangeOrders.status,
+          paymentId: projectChangeOrders.paymentId,
+          contractPaymentId: projectChangeOrders.contractPaymentId,
+          disbursementRequestId: projectChangeOrders.disbursementRequestId,
+        })
+        .from(projectChangeOrders)
+        .where(
+          and(
+            eq(projectChangeOrders.projectId, input.projectId),
+            ne(projectChangeOrders.status, "rejected")
+          )
+        );
+
+      if (input.changeOrderId) {
+        const targetCo = activeChangeOrders.find(
+          co => co.id === input.changeOrderId
+        );
+        if (!targetCo) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "أمر التغيير غير موجود أو غير معتمد لهذا المشروع",
+          });
+        }
+        if (targetCo.paymentId || targetCo.disbursementRequestId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "تم إنشاء دفعة أو طلب صرف لأمر التغيير هذا مسبقاً",
+          });
+        }
+        if (Math.abs(input.amount - Number(targetCo.amount || 0)) > 0.05) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "قيمة الدفعة يجب أن تطابق قيمة أمر التغيير",
+          });
+        }
+      }
+
+      const coPaymentIds = new Set(
+        activeChangeOrders.map(co => co.paymentId).filter(Boolean)
+      );
+      const coContractPaymentIds = new Set(
+        activeChangeOrders.map(co => co.contractPaymentId).filter(Boolean)
+      );
+      const coDisbIds = new Set(
+        activeChangeOrders.map(co => co.disbursementRequestId).filter(Boolean)
+      );
+
+      // التحقق من أن المبلغ لا يتجاوز الإجمالي المتبقي غير المجدول للعقد (للدفعات غير المرتبطة بأمر تغيير)
       const projectContractsList = await db
         .select({
           id: contractsEnhanced.id,
@@ -3133,7 +3225,7 @@ export const projectsRouter = router({
         0
       );
 
-      if (totalContractAmt > 0) {
+      if (!input.changeOrderId && totalContractAmt > 0) {
         const contractIds = projectContractsList.map((c: any) => c.id);
         const existingCps =
           contractIds.length > 0
@@ -3172,6 +3264,7 @@ export const projectsRouter = router({
         let currentAllocatedSum = 0;
 
         for (const cp of existingCps) {
+          if (coContractPaymentIds.has(cp.id)) continue;
           const isAdvance = cp.phaseOrder === 0;
           const agreedAmount = parseFloat(String(cp.amount || "0"));
           const disbsForPayment = pDisbs.filter(
@@ -3213,6 +3306,7 @@ export const projectsRouter = router({
         }
 
         for (const m of existingManuals) {
+          if (coPaymentIds.has(m.id)) continue;
           const agreedAmount = parseFloat(String(m.amount || "0"));
           const disbsForM = pDisbs.filter((d: any) => d.paymentId === m.id);
           const disbIdsForM = disbsForM.map((d: any) => d.id);
@@ -3252,6 +3346,7 @@ export const projectsRouter = router({
           (d: any) =>
             !d.contractPaymentId &&
             !d.paymentId &&
+            !coDisbIds.has(d.id) &&
             d.status !== "rejected" &&
             d.status !== "cancelled"
         );
@@ -3272,6 +3367,10 @@ export const projectsRouter = router({
       }
 
       const paymentNumber = generatePaymentNumber();
+      const effectiveCompletion = input.changeOrderId
+        ? null
+        : input.completionPercentage;
+      const paymentLabel = input.title || input.description;
 
       const [payment] = await db.insert(payments).values({
         paymentNumber,
@@ -3279,8 +3378,8 @@ export const projectsRouter = router({
         contractId: input.contractId,
         amount: input.amount.toString(),
         paymentType: input.paymentType,
-        description: input.description,
-        completionPercentage: input.completionPercentage,
+        description: paymentLabel,
+        completionPercentage: effectiveCompletion,
         status: "pending",
       });
 
@@ -3291,8 +3390,8 @@ export const projectsRouter = router({
             ? new Date(input.dateMiladi)
             : new Date(`${input.dateMiladi}T12:00:00`),
         };
-        if (input.completionPercentage !== undefined) {
-          updateVals.completionPercentage = input.completionPercentage;
+        if (effectiveCompletion !== undefined) {
+          updateVals.completionPercentage = effectiveCompletion;
         }
         await db
           .update(contractPayments)
@@ -3308,16 +3407,27 @@ export const projectsRouter = router({
           contractId: input.contractId,
           contractPaymentId: input.contractPaymentId,
           paymentId: payment.insertId,
-          title: input.description || "طلب دفعة",
+          title: paymentLabel || "طلب دفعة",
           description: input.description,
           amount: input.amount.toString(),
           paymentType: input.paymentType,
           dateMiladi: input.dateMiladi.includes("T")
             ? new Date(input.dateMiladi)
             : new Date(`${input.dateMiladi}T12:00:00`),
-          completionPercentage: input.completionPercentage,
+          completionPercentage: effectiveCompletion,
           status: "pending",
         });
+      }
+
+      if (input.changeOrderId) {
+        await db
+          .update(projectChangeOrders)
+          .set({
+            paymentId: payment.insertId,
+            status: "linked_to_payment",
+            fundingSource: "project_payment",
+          })
+          .where(eq(projectChangeOrders.id, input.changeOrderId));
       }
 
       // حفظ أصناف الدفعة في العقد المرتبط
@@ -3596,8 +3706,8 @@ export const projectsRouter = router({
           projectId: payment.projectId || 0,
           contractId: payment.contractId || undefined,
           paymentId: payment.id,
-          title: payment.description || "",
-          description: payment.description || "",
+          title: disb?.title || payment.description || "",
+          description: disb?.description || payment.description || "",
           amount: mAgreedAmt,
           agreedAmount: mAgreedAmt,
           paidAmount: mActualPaid,

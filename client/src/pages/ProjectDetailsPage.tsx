@@ -501,6 +501,20 @@ export default function ProjectDetailsPage() {
   );
 
   const [selectedPaymentForItemsModal, setSelectedPaymentForItemsModal] = useState<any | null>(null);
+  const [changeOrderPickerOpen, setChangeOrderPickerOpen] = useState(false);
+
+  const { data: changeOrdersData } = trpc.projectChangeOrders.list.useQuery(
+    { projectId: parseInt(id || "0") },
+    {
+      enabled: Boolean(
+        id &&
+        parseInt(id || "0") > 0 &&
+        !isSedanaProgram &&
+        !isChangeOrdersLocked &&
+        (canViewDetails || canViewFinancials || isAdmin)
+      ),
+    }
+  );
 
   // هل يجب إظهار تبويبي العقود والدفعات؟
   // في المشاريع العادية: تظهران دائماً
@@ -906,6 +920,30 @@ export default function ProjectDetailsPage() {
   // مبالغ الملخص معروضة بالريال الكامل؛ نوحّد سماحية التقريب مع اكتمال جدولة الدفعات.
   const paymentScheduleRoundingTolerance = 0.5;
   const isContractFullyAllocated = effectiveContractAmount > 0 && unscheduledContractSum <= paymentScheduleRoundingTolerance;
+
+  const activeChangeOrders = (changeOrdersData?.orders || []).filter((co: any) => co.status !== "rejected");
+  const pendingPaymentChangeOrders = activeChangeOrders.filter((co: any) => !co.disbursementRequestId && !co.paymentId);
+  const activeChangeOrdersTotal = activeChangeOrders.reduce((sum: number, co: any) => sum + (parseFloat(String(co.amount || "0")) || 0), 0);
+  const changeOrderPaymentsSum = (project?.payments || []).reduce((sum: number, p: any) => {
+    if (!p.isChangeOrder || p.status === "rejected" || p.status === "cancelled") return sum;
+    return sum + getPaymentEffectiveAmount(p);
+  }, 0);
+
+  const baseContractAmount = totalContractsSum > 0
+    ? totalContractsSum
+    : Math.max(0, effectiveContractAmount - activeChangeOrdersTotal);
+  const basePaymentsSum = Math.max(0, allPaymentsSum - changeOrderPaymentsSum);
+  const baseUnscheduledContractSum = Math.max(0, baseContractAmount - basePaymentsSum);
+  const isBaseContractFullyAllocated = baseContractAmount > 0 && baseUnscheduledContractSum <= paymentScheduleRoundingTolerance;
+
+  const handleOpenChangeOrderPayment = () => {
+    if (isRequestClosed || !project) return;
+    if (pendingPaymentChangeOrders.length === 1) {
+      navigate(`/disbursements/new/${project.id}?changeOrderId=${pendingPaymentChangeOrders[0].id}`);
+    } else if (pendingPaymentChangeOrders.length > 1) {
+      setChangeOrderPickerOpen(true);
+    }
+  };
 
   // التحقق من اكتمال جدولة وبيانات كافة الدفعات
   const hasIncompletePaymentsData = Boolean(!isMilestonesContract && project?.payments?.some(payment => payment.source !== "manual" && (
@@ -2317,26 +2355,46 @@ export default function ProjectDetailsPage() {
                           رفع مستخلص جديد
                         </Button>}
                         {!isMilestonesContract && (
-                          <Button 
-                            variant="outline"
-                            className="rounded-xl shadow-xs text-xs font-bold h-9" 
-                            onClick={() => {
-                              if (!isRequestClosed) {
-                                navigate(`/disbursements/new/${project.id}`);
-                              }
-                            }}
-                            disabled={isRequestClosed || isContractFullyAllocated}
-                            title={
-                              isRequestClosed
-                                ? "لا يمكن إضافة دفعات لأن الطلب المرتبط بالمشروع مغلق"
-                                : isContractFullyAllocated
-                                ? "تم الوصول للحد الأقصى لقيمة العقد"
-                                : ""
-                            }
-                          >
-                            <Plus className="w-4 h-4 ml-1.5" />
-                            إضافة دفعة
-                          </Button>
+                          <>
+                            {pendingPaymentChangeOrders.length > 0 && (
+                              <Button
+                                variant="default"
+                                className="rounded-xl shadow-xs text-xs font-bold h-9 bg-indigo-600 hover:bg-indigo-700 text-white"
+                                onClick={handleOpenChangeOrderPayment}
+                                disabled={isRequestClosed}
+                                title={
+                                  isRequestClosed
+                                    ? "لا يمكن إضافة دفعات لأن الطلب المرتبط بالمشروع مغلق"
+                                    : ""
+                                }
+                              >
+                                <Plus className="w-4 h-4 ml-1.5" />
+                                إضافة دفعة لأمر التغيير
+                              </Button>
+                            )}
+                            {(!isBaseContractFullyAllocated || pendingPaymentChangeOrders.length === 0) && (
+                              <Button 
+                                variant="outline"
+                                className="rounded-xl shadow-xs text-xs font-bold h-9" 
+                                onClick={() => {
+                                  if (!isRequestClosed) {
+                                    navigate(`/disbursements/new/${project.id}`);
+                                  }
+                                }}
+                                disabled={isRequestClosed || isBaseContractFullyAllocated}
+                                title={
+                                  isRequestClosed
+                                    ? "لا يمكن إضافة دفعات لأن الطلب المرتبط بالمشروع مغلق"
+                                    : isBaseContractFullyAllocated
+                                    ? "تم الوصول للحد الأقصى لقيمة العقد"
+                                    : ""
+                                }
+                              >
+                                <Plus className="w-4 h-4 ml-1.5" />
+                                إضافة دفعة
+                              </Button>
+                            )}
+                          </>
                         )}
                       </div>
                     )}
@@ -2603,7 +2661,7 @@ export default function ProjectDetailsPage() {
                                     <div className="flex flex-col text-right">
                                       <div className="flex items-center gap-2">
                                         <span className="font-bold text-foreground text-xs sm:text-sm">{payment.description || "-"}</span>
-                                        {(payment.description?.includes("أمر التغيير") || payment.description?.includes("أمر تغيير")) && (
+                                        {((payment as any).isChangeOrder || payment.description?.includes("أمر التغيير") || payment.description?.includes("أمر تغيير")) && (
                                           <Badge variant="outline" className="border-indigo-300 bg-indigo-50 text-indigo-900 font-bold text-[10px] shrink-0">
                                             أمر تغيير
                                           </Badge>
@@ -2904,14 +2962,30 @@ export default function ProjectDetailsPage() {
                               رفع مستخلص جديد للمشروع
                             </Button>}
                             {!isMilestonesContract && (
-                              <Button
-                                variant="outline"
-                                className="rounded-xl shadow-xs text-xs font-bold h-9"
-                                onClick={() => navigate(`/disbursements/new/${project.id}`)}
-                              >
-                                <Plus className="w-4 h-4 ml-1.5" />
-                                إضافة دفعة مالية
-                              </Button>
+                              <div className="flex flex-wrap items-center justify-center gap-2">
+                                {pendingPaymentChangeOrders.length > 0 && (
+                                  <Button
+                                    variant="default"
+                                    className="rounded-xl shadow-xs text-xs font-bold h-9 bg-indigo-600 hover:bg-indigo-700 text-white"
+                                    onClick={handleOpenChangeOrderPayment}
+                                    disabled={isRequestClosed}
+                                  >
+                                    <Plus className="w-4 h-4 ml-1.5" />
+                                    إضافة دفعة لأمر التغيير
+                                  </Button>
+                                )}
+                                {(!isBaseContractFullyAllocated || pendingPaymentChangeOrders.length === 0) && (
+                                  <Button
+                                    variant="outline"
+                                    className="rounded-xl shadow-xs text-xs font-bold h-9"
+                                    onClick={() => navigate(`/disbursements/new/${project.id}`)}
+                                    disabled={isRequestClosed || isBaseContractFullyAllocated}
+                                  >
+                                    <Plus className="w-4 h-4 ml-1.5" />
+                                    إضافة دفعة مالية
+                                  </Button>
+                                )}
+                              </div>
                             )}
                           </div>
                         )}
@@ -2985,6 +3059,61 @@ export default function ProjectDetailsPage() {
                       </div>
                       <Button variant="outline" size="sm" onClick={() => setSelectedPaymentForItemsModal(null)}>
                         إغلاق
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={changeOrderPickerOpen} onOpenChange={setChangeOrderPickerOpen}>
+                  <DialogContent className="sm:max-w-lg" dir="rtl">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-indigo-600" />
+                        اختر أمر التغيير لإنشاء الدفعة
+                      </DialogTitle>
+                      <DialogDescription>
+                        يوجد أكثر من أمر تغيير متاح على هذا المشروع. اختر أمر التغيير المطلوب إنشاء طلب دفعة له.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2.5 max-h-[60vh] overflow-y-auto py-2">
+                      {pendingPaymentChangeOrders.map((co: any) => (
+                        <button
+                          key={co.id}
+                          type="button"
+                          onClick={() => {
+                            setChangeOrderPickerOpen(false);
+                            navigate(`/disbursements/new/${project.id}?changeOrderId=${co.id}`);
+                          }}
+                          className="w-full text-right p-3.5 rounded-xl border border-indigo-200/80 bg-indigo-50/40 hover:bg-indigo-50 hover:border-indigo-400 transition-colors flex items-center justify-between gap-3 cursor-pointer"
+                        >
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge variant="outline" className="border-indigo-300 bg-white text-indigo-800 font-bold text-[11px]">
+                                {co.orderNumber || `أمر تغيير #${co.id}`}
+                              </Badge>
+                              <span className="font-bold text-sm text-foreground truncate">{co.title}</span>
+                            </div>
+                            {co.reason && (
+                              <p className="text-xs text-muted-foreground line-clamp-1">{co.reason}</p>
+                            )}
+                          </div>
+                          <div className="text-left shrink-0 space-y-0.5">
+                            <div className="font-bold text-sm text-indigo-700 font-sans flex items-center gap-1 justify-end">
+                              <span>{parseFloat(String(co.amount || "0")).toLocaleString()}</span>
+                              <SaudiRiyal className="w-3.5 h-3.5" />
+                            </div>
+                            {co.percentage !== undefined && co.percentage !== null && (
+                              <div className="text-[11px] text-muted-foreground font-sans">
+                                ({Number(co.percentage).toFixed(2)}%)
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setChangeOrderPickerOpen(false)}>
+                        إلغاء
                       </Button>
                     </DialogFooter>
                   </DialogContent>

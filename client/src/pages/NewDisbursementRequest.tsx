@@ -97,6 +97,25 @@ export default function NewDisbursementRequest() {
   
   const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
   const [showReportReviewDialog, setShowReportReviewDialog] = useState(false);
+
+  const changeOrderIdParam = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const raw = new URLSearchParams(window.location.search).get("changeOrderId");
+    const parsed = raw ? parseInt(raw, 10) : NaN;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }, []);
+
+  const isChangeOrderMode = changeOrderIdParam !== null;
+
+  const { data: changeOrdersData } = trpc.projectChangeOrders.list.useQuery(
+    { projectId: formData.projectId },
+    { enabled: formData.projectId > 0 && isChangeOrderMode }
+  );
+
+  const selectedChangeOrder = useMemo(() => {
+    if (!changeOrderIdParam || !changeOrdersData?.orders) return null;
+    return (changeOrdersData.orders as any[]).find((o: any) => o.id === changeOrderIdParam) || null;
+  }, [changeOrderIdParam, changeOrdersData?.orders]);
   const [showExceedingWarningDialog, setShowExceedingWarningDialog] = useState(false);
   const [exceedingReason, setExceedingReason] = useState("");
 
@@ -156,13 +175,13 @@ export default function NewDisbursementRequest() {
 
       setFormData(prev => ({
         ...prev,
-        title: `طلب دفعة لـ ${selectedReport.title}`,
-        description: `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
-        completionPercentage: repComp,
+        title: isChangeOrderMode ? prev.title : `طلب دفعة لـ ${selectedReport.title}`,
+        description: isChangeOrderMode ? prev.description : `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
+        completionPercentage: isChangeOrderMode ? "" : repComp,
         contractPaymentId: paymentId,
       }));
 
-      if (paymentInfo) {
+      if (!isChangeOrderMode && paymentInfo) {
         setSuppliers(prev => prev.map(s => ({
           ...s,
           amount: parseFloat(paymentInfo.amount || "0"),
@@ -303,6 +322,7 @@ export default function NewDisbursementRequest() {
       toast.success("تم إضافة طلب الدفعة بنجاح");
       utils.projects.invalidate();
       utils.contracts.invalidate();
+      utils.projectChangeOrders.invalidate();
       navigate(`/projects/${formData.projectId}`);
     },
     onError: (error) => {
@@ -322,17 +342,18 @@ export default function NewDisbursementRequest() {
 
   // حساب المتبقي غير المجدول للعقد
   const totalPaymentsSum = projectDetails?.payments
-    ?.filter((p: any) => p.status !== "rejected" && p.status !== "cancelled")
+    ?.filter((p: any) => p.status !== "rejected" && p.status !== "cancelled" && !p.isChangeOrder)
     ?.reduce((sum: number, p: any) => sum + getPaymentEffectiveAmount(p), 0) || 0;
   const totalContractsSum = projectDetails?.contracts?.reduce((sum: number, c: any) => sum + parseFloat(c.amount || "0"), 0) || 0;
   const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0") || totalContractsSum;
   const remainingAmount = Math.max(0, contractAmount - totalPaymentsSum);
 
   const hasInitializedSupplierRef = useRef(false);
+  const hasInitializedChangeOrderRef = useRef(false);
 
   // تحديث بيانات المورد من العقد
   useEffect(() => {
-    if (contractDetails && (!hasInitializedSupplierRef.current || (suppliers.length === 1 && (!suppliers[0].amount || suppliers[0].amount === 0) && remainingAmount > 0))) {
+    if (!isChangeOrderMode && contractDetails && (!hasInitializedSupplierRef.current || (suppliers.length === 1 && (!suppliers[0].amount || suppliers[0].amount === 0) && remainingAmount > 0))) {
       hasInitializedSupplierRef.current = true;
       const supplierFromContract: SupplierEntry = {
         id: suppliers[0]?.id || crypto.randomUUID(),
@@ -344,7 +365,47 @@ export default function NewDisbursementRequest() {
       };
       setSuppliers([supplierFromContract]);
     }
-  }, [contractDetails, remainingAmount]);
+  }, [isChangeOrderMode, contractDetails, remainingAmount]);
+
+  // تعبئة البيانات تلقائياً عند إنشاء دفعة لأمر تغيير
+  useEffect(() => {
+    if (!isChangeOrderMode || !selectedChangeOrder || hasInitializedChangeOrderRef.current) return;
+    hasInitializedChangeOrderRef.current = true;
+
+    const coAmount = parseFloat(String(selectedChangeOrder.amount || "0")) || 0;
+    const coNumber = selectedChangeOrder.orderNumber || `#${selectedChangeOrder.id}`;
+    const coTitle = selectedChangeOrder.title ? ` - ${selectedChangeOrder.title}` : "";
+    const defaultTitle = `دفعة أمر التغيير (${coNumber})${coTitle}`;
+
+    const coItems: any[] = Array.isArray(selectedChangeOrder.items) ? selectedChangeOrder.items : [];
+    const itemLines = coItems.map((item: any, idx: number) => {
+      const baseName = item.name || item.description || `بند ${idx + 1}`;
+      const descExtra = item.name && item.description && item.description !== item.name ? ` (${item.description})` : "";
+      const qtyVal = item.quantity !== undefined && item.quantity !== null && item.quantity !== "" ? item.quantity : null;
+      const unitPart = item.unit ? ` ${item.unit}` : "";
+      const qtyText = qtyVal !== null ? ` - الكمية: ${qtyVal}${unitPart}` : "";
+      return `${idx + 1}. ${baseName}${descExtra}${qtyText}`;
+    });
+    const defaultDescription = itemLines.length > 0
+      ? itemLines.join("\n")
+      : (selectedChangeOrder.reason || selectedChangeOrder.title || "");
+
+    setFormData(prev => ({
+      ...prev,
+      title: defaultTitle,
+      description: defaultDescription,
+      completionPercentage: "",
+    }));
+
+    setSuppliers([{
+      id: suppliers[0]?.id || crypto.randomUUID(),
+      name: contractDetails?.contract?.secondPartyName || changeOrdersData?.contract?.supplierName || suppliers[0]?.name || "",
+      work: contractDetails?.contract?.contractTitle || defaultTitle,
+      amount: coAmount,
+      iban: contractDetails?.contract?.secondPartyIban || changeOrdersData?.contract?.supplierIban || suppliers[0]?.iban || "",
+      bank: contractDetails?.contract?.secondPartyBankName || changeOrdersData?.contract?.supplierBank || suppliers[0]?.bank || "",
+    }]);
+  }, [isChangeOrderMode, selectedChangeOrder, contractDetails, changeOrdersData?.contract]);
 
   // اختيار العقد تلقائياً إذا كان هناك عقد واحد فقط للمشروع
   useEffect(() => {
@@ -532,6 +593,7 @@ export default function NewDisbursementRequest() {
 
   // معالج تعديل مبلغ الدفعة وتحديث نسب الإنجاز التراكمية تلقائياً بناءً على المبلغ
   const handleAmountChange = (val: number) => {
+    if (isChangeOrderMode) return;
     const numVal = Math.max(0, isNaN(val) ? 0 : val);
     
     setSuppliers(prev => {
@@ -552,6 +614,7 @@ export default function NewDisbursementRequest() {
 
   // معالج تعديل نسبة الدفعة وتحديث المبالغ ونسب الإنجاز التراكمية
   const handlePercentageChange = (pct: number) => {
+    if (isChangeOrderMode) return;
     const numPct = Math.max(0, Math.min(100, isNaN(pct) ? 0 : pct));
     const calculatedAmount = contractAmount > 0 ? Number(((contractAmount * numPct) / 100).toFixed(2)) : 0;
 
@@ -573,19 +636,23 @@ export default function NewDisbursementRequest() {
 
   // النسبة التراكمية المحسوبة تلقائياً لعرضها كإرشاد
   const autoCalculatedCompletion = useMemo(() => {
-    if (contractAmount <= 0) return undefined;
+    if (isChangeOrderMode || contractAmount <= 0) return undefined;
     const cumulativeAmt = effectivePriorPaymentsSum + totalAmount;
     const rawPct = (cumulativeAmt / contractAmount) * 100;
     const comp = Math.min(100, Math.max(0, Number(rawPct.toFixed(2))));
     return comp % 1 === 0 ? Math.round(comp) : comp;
-  }, [contractAmount, effectivePriorPaymentsSum, totalAmount]);
+  }, [isChangeOrderMode, contractAmount, effectivePriorPaymentsSum, totalAmount]);
 
   // قيمة الدفعة الحالية كنسبة مئوية من قيمة العقد
   const currentPaymentPercentage = useMemo(() => {
+    if (isChangeOrderMode && selectedChangeOrder?.percentage !== undefined && selectedChangeOrder?.percentage !== null) {
+      const coPct = Number(Number(selectedChangeOrder.percentage).toFixed(2));
+      return coPct % 1 === 0 ? Math.round(coPct) : coPct;
+    }
     if (contractAmount <= 0) return 0;
     const p = Number(((totalAmount / contractAmount) * 100).toFixed(2));
     return p % 1 === 0 ? Math.round(p) : p;
-  }, [contractAmount, totalAmount]);
+  }, [isChangeOrderMode, selectedChangeOrder?.percentage, contractAmount, totalAmount]);
 
   // تحديث بيانات المورد مع مزامنة المبالغ ونسب الإنجاز
   const updateSupplier = (id: string, field: keyof SupplierEntry, value: string | number) => {
@@ -613,7 +680,7 @@ export default function NewDisbursementRequest() {
 
   const executeCreateDisbursement = (reasonOverride?: string) => {
     let finalDescription = formData.description || formData.title;
-    if (reasonOverride && reasonOverride.trim()) {
+    if (!isChangeOrderMode && reasonOverride && reasonOverride.trim()) {
       finalDescription += `\n[ملاحظة المستخلص: تم تأكيد صرف دفعة تتجاوز نسبة الإنجاز المعتمدة (${benchmarkActualProgress}%): ${reasonOverride.trim()}]`;
     }
 
@@ -621,10 +688,12 @@ export default function NewDisbursementRequest() {
       projectId: formData.projectId,
       contractId: formData.contractId || undefined,
       contractPaymentId: formData.contractPaymentId || undefined,
+      changeOrderId: isChangeOrderMode && selectedChangeOrder ? selectedChangeOrder.id : undefined,
+      title: formData.title || undefined,
       amount: totalAmount,
       paymentType: "progress",
       description: finalDescription,
-      completionPercentage: Number(formData.completionPercentage),
+      completionPercentage: isChangeOrderMode ? null : Number(formData.completionPercentage),
       dateMiladi: formData.dateMiladi,
       items: isSedanaProgram ? sedanaItems : undefined,
     });
@@ -636,15 +705,25 @@ export default function NewDisbursementRequest() {
       toast.error("يرجى اختيار المشروع");
       return;
     }
+    if (isChangeOrderMode) {
+      if (!selectedChangeOrder) {
+        toast.error("جاري تحميل بيانات أمر التغيير");
+        return;
+      }
+      if (selectedChangeOrder.status === "rejected" || selectedChangeOrder.paymentId || selectedChangeOrder.disbursementRequestId) {
+        toast.error("أمر التغيير المحدد غير متاح لإنشاء دفعة جديدة");
+        return;
+      }
+    }
     if (!formData.dateMiladi) {
       toast.error("يرجى تحديد التاريخ الميلادي");
       return;
     }
-    if (isDateAlreadyUsed(formData.dateMiladi)) {
+    if (!isChangeOrderMode && isDateAlreadyUsed(formData.dateMiladi)) {
       toast.error(`التاريخ (${formData.dateMiladi}) مستخدم بالفعل لدفعة أخرى. يرجى اختيار تاريخ مختلف`);
       return;
     }
-    if (isAfter100PercentPayment) {
+    if (!isChangeOrderMode && isAfter100PercentPayment) {
       toast.error(`لا يمكن إضافة دفعة بعد تاريخ (${dateOf100 || prevPaymentRef?.date}) لأن نسبة الإنجاز بلغت 100% مسبقاً، ولا توجد نسبة إنجاز أعلى من 100%`);
       return;
     }
@@ -656,7 +735,7 @@ export default function NewDisbursementRequest() {
       toast.error("يرجى إدخال وصف الأعمال التي سوف تنفذ");
       return;
     }
-    if (formData.completionPercentage === "" || isNaN(Number(formData.completionPercentage)) || Number(formData.completionPercentage) < 0 || Number(formData.completionPercentage) > 100) {
+    if (!isChangeOrderMode && (formData.completionPercentage === "" || isNaN(Number(formData.completionPercentage)) || Number(formData.completionPercentage) < 0 || Number(formData.completionPercentage) > 100)) {
       toast.error("يرجى إدخال نسبة إنجاز صحيحة (من 0 إلى 100)");
       return;
     }
@@ -669,8 +748,8 @@ export default function NewDisbursementRequest() {
       return;
     }
 
-    // التحقق من تجاوز قيمة العقد أو المبلغ المتبقي
-    if (contractAmount > 0) {
+    // التحقق من تجاوز قيمة العقد أو المبلغ المتبقي (لا يطبق على دفعة أمر التغيير)
+    if (!isChangeOrderMode && contractAmount > 0) {
       if (totalAmount > contractAmount) {
         toast.error(`المبلغ لا يمكن أن يتجاوز قيمة العقد (${contractAmount.toLocaleString()} ريال)`);
         return;
@@ -687,7 +766,7 @@ export default function NewDisbursementRequest() {
     }
 
     // تنبيه ذكي: إذا كان المستخلص أعلى من تقرير الإنجاز الفعلي، نفتح نافذة التأكيد
-    if (isExceedingProgress) {
+    if (!isChangeOrderMode && isExceedingProgress) {
       setShowExceedingWarningDialog(true);
       return;
     }
@@ -705,8 +784,16 @@ export default function NewDisbursementRequest() {
               <ArrowRight className="h-5 w-5" />
             </Button>
             <div className="text-right">
-              <h1 className="text-xl sm:text-2xl font-bold text-right text-foreground">طلب دفعة جديد</h1>
-              <p className="text-xs sm:text-sm text-muted-foreground text-right">إنشاء طلب دفعة للمشروع</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-right text-foreground">
+                {isChangeOrderMode ? "طلب دفعة لأمر التغيير" : "طلب دفعة جديد"}
+              </h1>
+              <p className="text-xs sm:text-sm text-muted-foreground text-right">
+                {isChangeOrderMode
+                  ? selectedChangeOrder
+                    ? `${selectedChangeOrder.orderNumber || `#${selectedChangeOrder.id}`} - ${selectedChangeOrder.title}`
+                    : "إنشاء طلب دفعة لأمر التغيير"
+                  : "إنشاء طلب دفعة للمشروع"}
+              </p>
             </div>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
@@ -760,13 +847,33 @@ export default function NewDisbursementRequest() {
                     </div>
                   </>
                 )}
+
+                {isChangeOrderMode && selectedChangeOrder && (
+                  <>
+                    <Separator />
+                    <div className="space-y-2 text-right bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/70 rounded-lg p-2.5">
+                      <div className="flex justify-between text-sm flex-row-reverse">
+                        <span className="text-muted-foreground">أمر التغيير:</span>
+                        <span className="font-bold text-indigo-700 dark:text-indigo-300">
+                          {selectedChangeOrder.orderNumber || `#${selectedChangeOrder.id}`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm flex-row-reverse">
+                        <span className="text-muted-foreground">قيمة أمر التغيير:</span>
+                        <span className="font-bold text-indigo-700 dark:text-indigo-300 inline-flex items-center gap-1">
+                          {parseFloat(String(selectedChangeOrder.amount || "0")).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
                 
                 <Separator />
                 
                 <div className="space-y-2 text-right">
                   <div className="flex justify-between flex-row-reverse">
                     <span className="font-medium">إجمالي الدفعة:</span>
-                    <span className={`font-bold text-lg inline-flex items-center gap-1 ${contractDetails && (totalAmount > contractAmount || totalAmount > remainingAmount) ? 'text-destructive' : 'text-primary'}`}>
+                    <span className={`font-bold text-lg inline-flex items-center gap-1 ${!isChangeOrderMode && contractDetails && (totalAmount > contractAmount || totalAmount > remainingAmount) ? 'text-destructive' : 'text-primary'}`}>
                       {totalAmount.toLocaleString()} <SaudiRiyal className="w-4 h-4" />
                     </span>
                   </div>
@@ -851,9 +958,16 @@ export default function NewDisbursementRequest() {
                         min="0"
                         step="0.01"
                         value={totalAmount || ""}
+                        disabled={isChangeOrderMode}
+                        readOnly={isChangeOrderMode}
                         required
-                        className="w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-emerald-500/40 focus-visible:ring-emerald-500/15 shadow-2xs"
-                        onChange={(e) => handleAmountChange(parseFloat(e.target.value) || 0)}
+                        className={cn(
+                          "w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-emerald-500/40 focus-visible:ring-emerald-500/15 shadow-2xs",
+                          isChangeOrderMode && "bg-muted/60 cursor-not-allowed opacity-90"
+                        )}
+                        onChange={(e) => {
+                          if (!isChangeOrderMode) handleAmountChange(parseFloat(e.target.value) || 0);
+                        }}
                         placeholder="0.00"
                       />
                       <SaudiRiyal className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600/60 dark:text-emerald-400/60 pointer-events-none" />
@@ -870,12 +984,19 @@ export default function NewDisbursementRequest() {
                       <Input
                         type="number"
                         min="0"
-                        max="100"
+                        max={isChangeOrderMode ? undefined : 100}
                         step="0.01"
                         value={currentPaymentPercentage || ""}
+                        disabled={isChangeOrderMode}
+                        readOnly={isChangeOrderMode}
                         required
-                        className="w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-blue-500/40 focus-visible:ring-blue-500/15 shadow-2xs"
-                        onChange={(e) => handlePercentageChange(parseFloat(e.target.value) || 0)}
+                        className={cn(
+                          "w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-blue-500/40 focus-visible:ring-blue-500/15 shadow-2xs",
+                          isChangeOrderMode && "bg-muted/60 cursor-not-allowed opacity-90"
+                        )}
+                        onChange={(e) => {
+                          if (!isChangeOrderMode) handlePercentageChange(parseFloat(e.target.value) || 0);
+                        }}
                         placeholder="0"
                       />
                       <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-blue-600/60 dark:text-blue-400/60 font-bold text-xs pointer-events-none">
@@ -911,12 +1032,12 @@ export default function NewDisbursementRequest() {
                       required
                       className={cn(
                         "w-full rounded-xl font-sans text-sm transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-amber-500/40 focus-visible:ring-amber-500/15 shadow-2xs",
-                        (formData.dateMiladi && (isDateAlreadyUsed(formData.dateMiladi) || isAfter100PercentPayment)) && "border-2 border-destructive"
+                        (!isChangeOrderMode && formData.dateMiladi && (isDateAlreadyUsed(formData.dateMiladi) || isAfter100PercentPayment)) && "border-2 border-destructive"
                       )}
                       onChange={(e) => {
                         const newDate = e.target.value;
                         const norm = formatDateToYYYYMMDD(newDate);
-                        if (dateOf100 && norm && norm > dateOf100) {
+                        if (!isChangeOrderMode && dateOf100 && norm && norm > dateOf100) {
                           toast.error(`لا يمكن اختيار تاريخ بعد الدفعة المكتملة بنسبة 100% (${dateOf100})`);
                         }
                         setFormData({ ...formData, dateMiladi: newDate });
@@ -932,7 +1053,7 @@ export default function NewDisbursementRequest() {
                     </Label>
                     <Textarea
                       value={formData.description}
-                      rows={2}
+                      rows={isChangeOrderMode ? 4 : 2}
                       required
                       className="w-full rounded-xl transition-all resize-none text-right text-xs bg-background border-border/80 text-foreground focus-visible:border-teal-500/40 focus-visible:ring-teal-500/15 shadow-2xs"
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -947,7 +1068,7 @@ export default function NewDisbursementRequest() {
                         <TrendingUp className="w-3.5 h-3.5 text-purple-600/80 dark:text-purple-400/80 shrink-0" />
                         <span>نسبة الإنجاز التراكمية (%) *</span>
                       </span>
-                      {autoCalculatedCompletion !== undefined && (
+                      {!isChangeOrderMode && autoCalculatedCompletion !== undefined && (
                         <span className="text-[11px] text-purple-700 dark:text-purple-300 font-normal">
                           (محسوبة: {autoCalculatedCompletion}%)
                         </span>
@@ -959,14 +1080,17 @@ export default function NewDisbursementRequest() {
                         min={0}
                         max={100}
                         step="any"
-                        value={formData.completionPercentage}
-                        disabled={!formData.dateMiladi}
-                        required
+                        value={isChangeOrderMode ? "" : formData.completionPercentage}
+                        disabled={isChangeOrderMode || !formData.dateMiladi}
+                        readOnly={isChangeOrderMode}
+                        required={!isChangeOrderMode}
                         className={cn(
                           "w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-purple-500/40 focus-visible:ring-purple-500/15 shadow-2xs",
-                          isExceedingProgress && "border-amber-400 bg-amber-500/5 text-amber-900 ring-1 ring-amber-400/40"
+                          isChangeOrderMode && "bg-muted/60 cursor-not-allowed opacity-70",
+                          !isChangeOrderMode && isExceedingProgress && "border-amber-400 bg-amber-500/5 text-amber-900 ring-1 ring-amber-400/40"
                         )}
                         onChange={(e) => {
+                          if (isChangeOrderMode) return;
                           if (e.target.value === "") {
                             setFormData({ ...formData, completionPercentage: "" });
                           } else {
@@ -977,7 +1101,7 @@ export default function NewDisbursementRequest() {
                             });
                           }
                         }}
-                        placeholder="0"
+                        placeholder={isChangeOrderMode ? "" : "0"}
                       />
                       <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-purple-600/60 dark:text-purple-400/60 font-bold text-xs pointer-events-none">
                         %
@@ -987,6 +1111,7 @@ export default function NewDisbursementRequest() {
                 </div>
 
                 {/* التنبيهات والإرشادات المرتبطة بالتاريخ ونسب الإنجاز */}
+                {!isChangeOrderMode && (
                 <div className="space-y-2 text-right pt-1">
                   {formData.dateMiladi && isDateAlreadyUsed(formData.dateMiladi) && (
                     <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/30">
@@ -1064,6 +1189,7 @@ export default function NewDisbursementRequest() {
                     );
                   })()}
                 </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1309,15 +1435,21 @@ export default function NewDisbursementRequest() {
                         <Input
                           type="number"
                           min="0"
-                          max="100"
+                          max={isChangeOrderMode ? undefined : 100}
                           step="0.01"
                           value={currentPaymentPercentage || ""}
+                          disabled={isChangeOrderMode}
+                          readOnly={isChangeOrderMode}
                           onChange={(e) => {
+                            if (isChangeOrderMode) return;
                             const pct = parseFloat(e.target.value) || 0;
                             handlePercentageChange(pct);
                           }}
                           placeholder="0"
-                          className="w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-blue-500/40 focus-visible:ring-blue-500/15 shadow-2xs"
+                          className={cn(
+                            "w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-blue-500/40 focus-visible:ring-blue-500/15 shadow-2xs",
+                            isChangeOrderMode && "bg-muted/60 cursor-not-allowed opacity-90"
+                          )}
                         />
                         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-blue-600/60 dark:text-blue-400/60 font-bold text-xs pointer-events-none">
                           %
@@ -1338,12 +1470,18 @@ export default function NewDisbursementRequest() {
                           step="0.01"
                           required
                           value={supplier.amount || ""}
+                          disabled={isChangeOrderMode}
+                          readOnly={isChangeOrderMode}
                           onChange={(e) => {
+                            if (isChangeOrderMode) return;
                             const val = parseFloat(e.target.value) || 0;
                             handleAmountChange(val);
                           }}
                           placeholder="0.00"
-                          className="w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-emerald-500/40 focus-visible:ring-emerald-500/15 shadow-2xs"
+                          className={cn(
+                            "w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-emerald-500/40 focus-visible:ring-emerald-500/15 shadow-2xs",
+                            isChangeOrderMode && "bg-muted/60 cursor-not-allowed opacity-90"
+                          )}
                         />
                         <SaudiRiyal className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600/60 dark:text-emerald-400/60 pointer-events-none" />
                       </div>
