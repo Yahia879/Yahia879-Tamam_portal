@@ -105,22 +105,30 @@ const trpcClient = trpc.createClient({
           credentials: "include",
         });
 
-        // حماية من خطأ Unexpected token < في حال إرجاع الخادم أو البروكسي صفحة HTML (مثل خطأ 502 أو 500)
+        // حماية من خطأ Unexpected token < أو Unable to transform response في حال إرجاع الخادم أو البروكسي صفحة HTML (مثل خطأ 502 أو 500)
         const contentType = response.headers.get("content-type") || "";
         if (!contentType.includes("application/json")) {
           try {
-            const isBatch = typeof input === "string" ? input.includes("batch=1") : false;
+            const urlStr = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+            const isBatch = urlStr.includes("batch=1");
             const errorObj = {
-              error: {
-                message: "حدث خطأ حاول مرة أخرى",
+              error: superjson.serialize({
+                message: "حدث خطأ مؤقت في الاستجابة من الخادم، يرجى المحاولة مرة أخرى",
                 code: -32603,
                 data: {
                   code: "INTERNAL_SERVER_ERROR",
                   httpStatus: response.status || 500,
                 },
-              },
+              }),
             };
-            return new Response(JSON.stringify(isBatch ? [errorObj] : errorObj), {
+            let bodyPayload: unknown = errorObj;
+            if (isBatch) {
+              const pathPart = urlStr.split("?")[0] || "";
+              const procSegment = pathPart.split("/api/trpc/")[1] || "";
+              const batchCount = procSegment ? procSegment.split(",").length : 1;
+              bodyPayload = Array.from({ length: Math.max(1, batchCount) }, () => errorObj);
+            }
+            return new Response(JSON.stringify(bodyPayload), {
               status: response.status >= 400 ? response.status : 500,
               statusText: response.statusText,
               headers: { "content-type": "application/json" },

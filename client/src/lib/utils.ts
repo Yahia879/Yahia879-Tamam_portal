@@ -27,14 +27,15 @@ export function formatErrorMessage(error: unknown, fallbackMessage: string = "ح
 
   const lower = rawMessage.toLowerCase();
 
-  // 1. أخطاء عدم توافق JSON / استلام HTML بدلاً من JSON
+  // 1. أخطاء عدم توافق JSON / استلام HTML بدلاً من JSON / فشل تحويل استجابة السيرفر
   if (
     lower.includes("unexpected token") ||
     lower.includes("is not valid json") ||
     lower.includes("<!doctype") ||
     lower.includes("<html") ||
     lower.includes("failed to parse") ||
-    lower.includes("syntaxerror")
+    lower.includes("syntaxerror") ||
+    lower.includes("unable to transform response")
   ) {
     return fallbackMessage || "حدث خطأ أثناء الاتصال بالخادم، يرجى المحاولة مرة أخرى بعد قليل.";
   }
