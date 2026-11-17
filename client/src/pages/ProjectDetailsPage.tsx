@@ -929,9 +929,7 @@ export default function ProjectDetailsPage() {
     return sum + getPaymentEffectiveAmount(p);
   }, 0);
 
-  const baseContractAmount = totalContractsSum > 0
-    ? totalContractsSum
-    : Math.max(0, effectiveContractAmount - activeChangeOrdersTotal);
+  const baseContractAmount = Math.max(0, effectiveContractAmount - activeChangeOrdersTotal);
   const basePaymentsSum = Math.max(0, allPaymentsSum - changeOrderPaymentsSum);
   const baseUnscheduledContractSum = Math.max(0, baseContractAmount - basePaymentsSum);
   const isBaseContractFullyAllocated = baseContractAmount > 0 && baseUnscheduledContractSum <= paymentScheduleRoundingTolerance;
@@ -2372,28 +2370,26 @@ export default function ProjectDetailsPage() {
                                 إضافة دفعة لأمر التغيير
                               </Button>
                             )}
-                            {(!isBaseContractFullyAllocated || pendingPaymentChangeOrders.length === 0) && (
-                              <Button 
-                                variant="outline"
-                                className="rounded-xl shadow-xs text-xs font-bold h-9" 
-                                onClick={() => {
-                                  if (!isRequestClosed) {
-                                    navigate(`/disbursements/new/${project.id}`);
-                                  }
-                                }}
-                                disabled={isRequestClosed || isBaseContractFullyAllocated}
-                                title={
-                                  isRequestClosed
-                                    ? "لا يمكن إضافة دفعات لأن الطلب المرتبط بالمشروع مغلق"
-                                    : isBaseContractFullyAllocated
-                                    ? "تم الوصول للحد الأقصى لقيمة العقد"
-                                    : ""
+                            <Button 
+                              variant="outline"
+                              className="rounded-xl shadow-xs text-xs font-bold h-9" 
+                              onClick={() => {
+                                if (!isRequestClosed && !isBaseContractFullyAllocated) {
+                                  navigate(`/disbursements/new/${project.id}`);
                                 }
-                              >
-                                <Plus className="w-4 h-4 ml-1.5" />
-                                إضافة دفعة
-                              </Button>
-                            )}
+                              }}
+                              disabled={isRequestClosed || isBaseContractFullyAllocated}
+                              title={
+                                isRequestClosed
+                                  ? "لا يمكن إضافة دفعات لأن الطلب المرتبط بالمشروع مغلق"
+                                  : isBaseContractFullyAllocated
+                                  ? "تم الوصول للحد الأقصى لقيمة العقد"
+                                  : ""
+                              }
+                            >
+                              <Plus className="w-4 h-4 ml-1.5" />
+                              إضافة دفعة
+                            </Button>
                           </>
                         )}
                       </div>
@@ -2884,7 +2880,7 @@ export default function ProjectDetailsPage() {
                           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                             <div className="flex items-center gap-2">
                               <span className="text-muted-foreground font-semibold text-xs sm:text-sm">
-                                قيمة العقد:
+                                قيمة المشروع شاملة (قيمة العقد + أوامر التغيير) :
                               </span>
                               <span className="font-bold text-sm sm:text-base text-foreground font-sans">{formatCurrency((effectiveContractAmount > 0 ? effectiveContractAmount : totalContractsSum).toString())}</span>
                             </div>
@@ -2974,17 +2970,15 @@ export default function ProjectDetailsPage() {
                                     إضافة دفعة لأمر التغيير
                                   </Button>
                                 )}
-                                {(!isBaseContractFullyAllocated || pendingPaymentChangeOrders.length === 0) && (
-                                  <Button
-                                    variant="outline"
-                                    className="rounded-xl shadow-xs text-xs font-bold h-9"
-                                    onClick={() => navigate(`/disbursements/new/${project.id}`)}
-                                    disabled={isRequestClosed || isBaseContractFullyAllocated}
-                                  >
-                                    <Plus className="w-4 h-4 ml-1.5" />
-                                    إضافة دفعة مالية
-                                  </Button>
-                                )}
+                                <Button
+                                  variant="outline"
+                                  className="rounded-xl shadow-xs text-xs font-bold h-9"
+                                  onClick={() => navigate(`/disbursements/new/${project.id}`)}
+                                  disabled={isRequestClosed || isBaseContractFullyAllocated}
+                                >
+                                  <Plus className="w-4 h-4 ml-1.5" />
+                                  إضافة دفعة مالية
+                                </Button>
                               </div>
                             )}
                           </div>
