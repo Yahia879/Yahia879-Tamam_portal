@@ -133,6 +133,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
   const [editCustomRequesterType, setEditCustomRequesterType] = useState("");
   const [editCreatedAt, setEditCreatedAt] = useState("");
   const [requestFilter, setRequestFilter] = useState<"all" | "active" | "previous" | "rejected">("all");
+  const [activeTab, setActiveTab] = useState<"profile" | "mosques" | "requests" | "evaluations">("profile");
 
   const { data: user, isLoading, refetch } = trpc.users.getById.useQuery(
     { id: userId },
@@ -263,6 +264,14 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
     );
   }
 
+  const isApprovedUser = user?.status === "active";
+
+  useEffect(() => {
+    if (!isApprovedUser && activeTab !== "profile") {
+      setActiveTab("profile");
+    }
+  }, [isApprovedUser, activeTab]);
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -351,48 +360,62 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
           </div>
         </div>
 
-        <Tabs defaultValue="profile" className="space-y-5" dir="rtl">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto gap-1.5 bg-slate-100/80 dark:bg-slate-900/70 p-1.5 rounded-2xl border border-slate-200/70 dark:border-slate-800">
-            <TabsTrigger
-              value="profile"
-              className="rounded-xl px-4 py-2 text-xs sm:text-sm font-bold gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-xs cursor-pointer"
-            >
-              <User className="w-4 h-4 text-primary" />
-              <span>معلومات المستفيد</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="mosques"
-              className="rounded-xl px-4 py-2 text-xs sm:text-sm font-bold gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-xs cursor-pointer"
-            >
-              <Building2 className="w-4 h-4 text-teal-600" />
-              <span>المساجد المرتبطة</span>
-              <Badge variant="secondary" className="h-5 px-1.5 text-[11px] font-bold">
-                {activityData?.mosques?.length || 0}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger
-              value="requests"
-              className="rounded-xl px-4 py-2 text-xs sm:text-sm font-bold gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-xs cursor-pointer"
-            >
-              <FileText className="w-4 h-4 text-indigo-600" />
-              <span>سجل الطلبات</span>
-              <Badge variant="secondary" className="h-5 px-1.5 text-[11px] font-bold">
-                {activityData?.requests?.length || 0}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger
-              value="evaluations"
-              className="rounded-xl px-4 py-2 text-xs sm:text-sm font-bold gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-xs cursor-pointer"
-            >
-              <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-              <span>تقييمات الفريق الميداني</span>
-              <Badge variant="secondary" className="h-5 px-1.5 text-[11px] font-bold">
-                {(activityData as any)?.imamEvaluations?.length || 0}
-              </Badge>
-            </TabsTrigger>
-          </TabsList>
+        <Tabs
+          value={isApprovedUser ? activeTab : "profile"}
+          onValueChange={(v) => setActiveTab(v as "profile" | "mosques" | "requests" | "evaluations")}
+          className="space-y-0"
+          dir="rtl"
+        >
+          <div
+            aria-hidden={!isApprovedUser}
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+              isApprovedUser
+                ? "max-h-40 opacity-100 translate-y-0 mb-5"
+                : "max-h-0 opacity-0 -translate-y-2 pointer-events-none mb-0"
+            }`}
+          >
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto gap-1.5 bg-slate-100/80 dark:bg-slate-900/70 p-1.5 rounded-2xl border border-slate-200/70 dark:border-slate-800">
+              <TabsTrigger
+                value="profile"
+                className="rounded-xl px-4 py-2 text-xs sm:text-sm font-bold gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-xs cursor-pointer"
+              >
+                <User className="w-4 h-4 text-primary" />
+                <span>معلومات المستفيد</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="mosques"
+                className="rounded-xl px-4 py-2 text-xs sm:text-sm font-bold gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-xs cursor-pointer"
+              >
+                <Building2 className="w-4 h-4 text-teal-600" />
+                <span>المساجد المرتبطة</span>
+                <Badge variant="secondary" className="h-5 px-1.5 text-[11px] font-bold">
+                  {activityData?.mosques?.length || 0}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger
+                value="requests"
+                className="rounded-xl px-4 py-2 text-xs sm:text-sm font-bold gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-xs cursor-pointer"
+              >
+                <FileText className="w-4 h-4 text-indigo-600" />
+                <span>سجل الطلبات</span>
+                <Badge variant="secondary" className="h-5 px-1.5 text-[11px] font-bold">
+                  {activityData?.requests?.length || 0}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger
+                value="evaluations"
+                className="rounded-xl px-4 py-2 text-xs sm:text-sm font-bold gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-xs cursor-pointer"
+              >
+                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                <span>تقييمات الفريق الميداني</span>
+                <Badge variant="secondary" className="h-5 px-1.5 text-[11px] font-bold">
+                  {(activityData as any)?.imamEvaluations?.length || 0}
+                </Badge>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          <TabsContent value="profile" className="mt-0 space-y-6">
+          <TabsContent value="profile" className="mt-0 space-y-6 animate-in fade-in-0 duration-200">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* معلومات طالب الخدمة */}
           <Card className="lg:col-span-2 border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl">

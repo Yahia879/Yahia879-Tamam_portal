@@ -1,4 +1,5 @@
 import DashboardLayout from "@/components/DashboardLayout";
+import EnhancedPagination, { usePersistedPage } from "@/components/EnhancedPagination";
 import { trpc } from "@/lib/trpc";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -201,7 +202,17 @@ export default function RequesterApprovals() {
   );
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage, resetPage] = usePersistedPage("requester_approvals_page", 1);
+  const limit = 20;
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
   const [confirmAction, setConfirmAction] = useState<{
     userId: number;
     name: string;
@@ -312,7 +323,9 @@ export default function RequesterApprovals() {
       setNewRequester(emptyRequester);
       setActiveTab("requests");
       setSearch("");
+      setDebouncedSearch("");
       setStatusFilter("all");
+      resetPage();
       toast.success("تمت إضافة المستفيد بنجاح، وحسابه بانتظار الاعتماد");
       await utils.users.getAll.invalidate();
     },
@@ -323,10 +336,13 @@ export default function RequesterApprovals() {
   const { data: slaSettingsData } = trpc.escalation.getSettings.useQuery();
   const allowedDays = slaSettingsData?.beneficiarySLA?.durationDays ?? 3;
 
-  // جلب حسابات المستخدمين
+  // جلب حسابات المستخدمين مع الترقيم والبحث والفلترة من الخادم
   const { data: usersResponse, isLoading, refetch } = trpc.users.getAll.useQuery({
     role: "service_requester",
-    limit: 2000,
+    search: debouncedSearch.trim() || undefined,
+    status: statusFilter !== "all" ? (statusFilter as any) : undefined,
+    page,
+    limit,
   }, {
     enabled: canViewAccounts
   });
@@ -433,24 +449,24 @@ export default function RequesterApprovals() {
     }
   });
 
-  // فلترة طالبي الخدمة
+  // بيانات طالبي الخدمة المفلترة والمرقمة من الخادم
   const requesters = usersResponse?.items || [];
-  const filtered = requesters.filter(u => {
-    const matchSearch =
-      !search ||
-      u.name?.toLowerCase().includes(search.toLowerCase()) ||
-      u.email?.toLowerCase().includes(search.toLowerCase()) ||
-      u.phone?.includes(search);
-    const matchStatus = statusFilter === "all" || u.status === statusFilter;
-    return matchSearch && matchStatus;
-  });
+  const filtered = requesters;
+  const filteredTotal = usersResponse?.filteredTotal ?? usersResponse?.totalCount ?? filtered.length;
+  const totalPages = usersResponse?.totalPages ?? Math.max(1, Math.ceil(filteredTotal / limit));
+
+  useEffect(() => {
+    if (usersResponse && page > totalPages && totalPages >= 1) {
+      setPage(totalPages);
+    }
+  }, [usersResponse, page, totalPages, setPage]);
 
   // إحصائيات الحسابات
   const stats = {
-    total: usersResponse?.totalCount ?? requesters.length,
-    pending: usersResponse?.pendingCount ?? requesters.filter(u => u.status === "pending").length,
-    active: usersResponse?.activeCount ?? requesters.filter(u => u.status === "active").length,
-    suspended: usersResponse?.suspendedCount ?? requesters.filter(u => u.status === "suspended").length,
+    total: usersResponse?.totalCount ?? filteredTotal,
+    pending: usersResponse?.pendingCount ?? 0,
+    active: usersResponse?.activeCount ?? 0,
+    suspended: usersResponse?.suspendedCount ?? 0,
   };
 
   const handleAction = (userId: number, name: string, action: "active" | "suspended") => {
@@ -828,7 +844,7 @@ export default function RequesterApprovals() {
                 <div>
                   <CardTitle className="text-base sm:text-lg font-black text-foreground">قائمة الحسابات</CardTitle>
                   <CardDescription className="text-xs sm:text-sm mt-0.5">
-                    {filtered.length} حساب {statusFilter !== "all" ? `(${statusConfig[statusFilter]?.label ?? statusFilter})` : ""}
+                    {filteredTotal} حساب {statusFilter !== "all" ? `(${statusConfig[statusFilter]?.label ?? statusFilter})` : ""}
                   </CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
@@ -837,11 +853,20 @@ export default function RequesterApprovals() {
                     <Input
                       placeholder="بحث بالاسم أو البريد أو الهاتف..."
                       value={search}
-                      onChange={e => setSearch(e.target.value)}
+                      onChange={e => {
+                        setSearch(e.target.value);
+                        resetPage();
+                      }}
                       className="pr-9 text-xs sm:text-sm h-10 rounded-2xl border-border/70"
                     />
                   </div>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <Select
+                    value={statusFilter}
+                    onValueChange={(val) => {
+                      setStatusFilter(val);
+                      resetPage();
+                    }}
+                  >
                     <SelectTrigger className="w-full sm:w-40 text-xs sm:text-sm h-10 rounded-2xl border-border/70">
                       <div className="flex items-center gap-2">
                         <Filter className="w-4 h-4" />
@@ -1117,6 +1142,21 @@ export default function RequesterApprovals() {
                       );
                     })}
                   </div>
+
+                  {/* Pagination */}
+                  <EnhancedPagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={(newPage) => {
+                      setPage(newPage);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    totalItems={filteredTotal}
+                    itemsPerPage={limit}
+                    itemName="حساب"
+                    itemNamePlural="حسابات"
+                    className="bg-muted/20 border-t"
+                  />
                 </>
               )}
             </CardContent>

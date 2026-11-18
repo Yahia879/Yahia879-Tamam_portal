@@ -32,9 +32,10 @@ export const usersRouter = router({
   // Get paginated users (staff only by default)
   getAll: protectedProcedure
     .input(z.object({
-      page: z.number().default(1),
-      limit: z.number().default(20),
+      page: z.number().int().min(1).default(1),
+      limit: z.number().int().min(1).max(2000).default(20),
       search: z.string().optional(),
+      status: z.enum(["all", "pending", "active", "suspended", "blocked"]).optional(),
       role: z.string().optional(),
       roles: z.array(z.string()).optional(),
       includeAll: z.boolean().default(false),
@@ -53,11 +54,13 @@ export const usersRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
 
-      const { page, limit, search, role, roles: inputRoles, includeAll, permission } = input;
+      const { page, limit, search, status, role, roles: inputRoles, includeAll, permission } = input;
+      const trimmedSearch = search?.trim();
       const offset = (page - 1) * limit;
 
       let items: any[] = [];
       let totalCount = 0;
+      let filteredTotal = 0;
       let activeCount = 0;
       let suspendedCount = 0;
       let pendingCount = 0;
@@ -71,10 +74,11 @@ export const usersRouter = router({
           whereClause = and(whereClause, notInArray(users.role, excludedRoles));
         }
         
-        if (search) {
+        if (trimmedSearch) {
           const searchClause = or(
-            like(users.name, `%${search}%`),
-            like(users.email, `%${search}%`)
+            like(users.name, `%${trimmedSearch}%`),
+            like(users.email, `%${trimmedSearch}%`),
+            like(users.phone, `%${trimmedSearch}%`)
           );
           whereClause = and(whereClause, searchClause);
         }
@@ -92,6 +96,7 @@ export const usersRouter = router({
         }
 
         totalCount = matchedUsers.length;
+        filteredTotal = totalCount;
         activeCount = totalCount;
         
         // Sorting similarly (admins first, then current user, then others)
@@ -122,15 +127,16 @@ export const usersRouter = router({
           whereClause = notInArray(users.role, excludedRoles);
         }
         
-        if (search) {
+        if (trimmedSearch) {
           const searchClause = or(
-            like(users.name, `%${search}%`),
-            like(users.email, `%${search}%`)
+            like(users.name, `%${trimmedSearch}%`),
+            like(users.email, `%${trimmedSearch}%`),
+            like(users.phone, `%${trimmedSearch}%`)
           );
           whereClause = whereClause ? and(whereClause, searchClause) : searchClause;
         }
 
-        // جلب العدد الإجمالي
+        // جلب العدد الإجمالي والإحصائيات حسب البحث
         const [countResult] = await db
           .select({ value: count() })
           .from(users)
@@ -159,11 +165,25 @@ export const usersRouter = router({
           .where(pendingCondition);
         pendingCount = pendingResult.value;
 
+        const paginatedWhereClause = status && status !== "all"
+          ? (whereClause ? and(whereClause, eq(users.status, status as any)) : eq(users.status, status as any))
+          : whereClause;
+
+        if (status && status !== "all") {
+          const [filteredCountResult] = await db
+            .select({ value: count() })
+            .from(users)
+            .where(paginatedWhereClause);
+          filteredTotal = filteredCountResult.value;
+        } else {
+          filteredTotal = totalCount;
+        }
+
         // جلب البيانات مع الترتيب والتقسيم
         items = await db
           .select()
           .from(users)
-          .where(whereClause)
+          .where(paginatedWhereClause)
           .orderBy(
             sql`CASE 
               WHEN ${users.role} = 'super_admin' THEN 0
@@ -227,10 +247,11 @@ export const usersRouter = router({
       return {
         items: enrichedItems,
         totalCount,
+        filteredTotal,
         activeCount,
         suspendedCount,
         pendingCount,
-        totalPages: Math.ceil(totalCount / limit),
+        totalPages: Math.max(1, Math.ceil(filteredTotal / limit)),
       };
     }),
 
