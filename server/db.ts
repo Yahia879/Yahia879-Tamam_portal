@@ -494,6 +494,26 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
       console.warn("[Database] contracts_enhanced column check warning:", contractErr);
     }
 
+    // جدول ترحيل أرصدة التبرعات بين فرص/طلبات نفس المسجد
+    await promisePool.query(`
+      CREATE TABLE IF NOT EXISTS donation_opportunity_transfers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        fromOpportunityId INT NOT NULL,
+        fromRequestId INT NOT NULL,
+        toOpportunityId INT NOT NULL,
+        toRequestId INT NOT NULL,
+        mosqueId INT NULL,
+        amount DECIMAL(15,2) NOT NULL,
+        reason TEXT NOT NULL,
+        closeSourceOpportunity TINYINT(1) NOT NULL DEFAULT 0,
+        transferredBy INT NULL,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_dot_from_req (fromRequestId),
+        INDEX idx_dot_to_req (toRequestId),
+        INDEX idx_dot_mosque (mosqueId)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     // ملاحظة: طلبات سدانة تُدار بشكل مستقل ولا يتم إنشاء مشاريع لها في جدول projects
   } catch (err) {
     console.warn("[Database] ensureSchemaUpdated warning:", err);

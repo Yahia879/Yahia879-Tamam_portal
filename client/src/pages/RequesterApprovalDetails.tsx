@@ -5,6 +5,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
 import {
   User,
@@ -27,6 +28,9 @@ import {
   ExternalLink,
   Users,
   Trash2,
+  Star,
+  Layers,
+  AlertCircle,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -128,6 +132,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
   const [editRequesterType, setEditRequesterType] = useState("");
   const [editCustomRequesterType, setEditCustomRequesterType] = useState("");
   const [editCreatedAt, setEditCreatedAt] = useState("");
+  const [requestFilter, setRequestFilter] = useState<"all" | "active" | "previous" | "rejected">("all");
 
   const { data: user, isLoading, refetch } = trpc.users.getById.useQuery(
     { id: userId },
@@ -302,7 +307,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-5xl px-4 sm:px-0" dir="rtl">
+      <div className="space-y-6 max-w-5xl mx-auto px-4 sm:px-0" dir="rtl">
         {/* رأس الصفحة مع زر العودة */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3 sm:gap-4 text-right min-w-0">
@@ -346,6 +351,48 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
           </div>
         </div>
 
+        <Tabs defaultValue="profile" className="space-y-5" dir="rtl">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto gap-1.5 bg-slate-100/80 dark:bg-slate-900/70 p-1.5 rounded-2xl border border-slate-200/70 dark:border-slate-800">
+            <TabsTrigger
+              value="profile"
+              className="rounded-xl px-4 py-2 text-xs sm:text-sm font-bold gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-xs cursor-pointer"
+            >
+              <User className="w-4 h-4 text-primary" />
+              <span>معلومات المستفيد</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="mosques"
+              className="rounded-xl px-4 py-2 text-xs sm:text-sm font-bold gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-xs cursor-pointer"
+            >
+              <Building2 className="w-4 h-4 text-teal-600" />
+              <span>المساجد المرتبطة</span>
+              <Badge variant="secondary" className="h-5 px-1.5 text-[11px] font-bold">
+                {activityData?.mosques?.length || 0}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger
+              value="requests"
+              className="rounded-xl px-4 py-2 text-xs sm:text-sm font-bold gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-xs cursor-pointer"
+            >
+              <FileText className="w-4 h-4 text-indigo-600" />
+              <span>سجل الطلبات</span>
+              <Badge variant="secondary" className="h-5 px-1.5 text-[11px] font-bold">
+                {activityData?.requests?.length || 0}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger
+              value="evaluations"
+              className="rounded-xl px-4 py-2 text-xs sm:text-sm font-bold gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-xs cursor-pointer"
+            >
+              <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+              <span>تقييمات الفريق الميداني</span>
+              <Badge variant="secondary" className="h-5 px-1.5 text-[11px] font-bold">
+                {(activityData as any)?.imamEvaluations?.length || 0}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="profile" className="mt-0 space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* معلومات طالب الخدمة */}
           <Card className="lg:col-span-2 border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl">
@@ -1179,7 +1226,9 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
             </Card>
           )}
         </div>
+          </TabsContent>
 
+          <TabsContent value="mosques" className="mt-0 space-y-6">
         {/* سجل المساجد المرتبطة */}
         <Card className="border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl overflow-hidden">
           <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 px-6 py-4">
@@ -1275,11 +1324,33 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
             )}
           </CardContent>
         </Card>
+          </TabsContent>
 
-        {/* سجل الطلبات المرتبطة */}
+          <TabsContent value="requests" className="mt-0 space-y-4">
+        {/* تنبيه مختصر عند تعدد الطلبات المرتبطة بالإمام / المستفيد */}
+        {(activityData as any)?.summary?.hasMultipleRequests && (
+          <div className="px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-foreground">
+              <Layers className="w-4 h-4 text-slate-500 shrink-0" />
+              <span>
+                لدى المستفيد ({(activityData as any).summary.totalRequests}) طلبات مسجلة
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-emerald-600 text-white text-[11px] font-bold">
+                {(activityData as any).summary.activeRequestsCount} نشط
+              </Badge>
+              <Badge variant="outline" className="text-[11px] font-bold">
+                {(activityData as any).summary.previousRequestsCount} سابق / منتهي
+              </Badge>
+            </div>
+          </div>
+        )}
+
+        {/* سجل الطلبات المرتبطة (نشط / سابق) */}
         <Card className="border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl overflow-hidden">
-          <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 px-6 py-4">
-            <div className="flex items-center justify-between">
+          <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 px-6 py-4 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                   <FileText className="w-5 h-5" />
@@ -1287,14 +1358,37 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                 <div>
                   <CardTitle className="text-base sm:text-lg font-bold">سجل الطلبات المرتبطة</CardTitle>
                   <CardDescription className="text-xs">
-                    طلبات الخدمة المقدمة من قبل هذا المستفيد أو لمساجده
+                    عرض ديناميكي لجميع الطلبات النشطة والطلبات السابقة المقدمة من هذا المستفيد أو لمساجده
                   </CardDescription>
                 </div>
               </div>
-              <Badge variant="secondary" className="font-bold">
+              <Badge variant="secondary" className="font-bold self-start sm:self-center">
                 {activityData?.requests?.length || 0} طلبات
               </Badge>
             </div>
+            {(activityData?.requests?.length || 0) > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {[
+                  { id: "all" as const, label: `الكل (${(activityData as any)?.summary?.totalRequests ?? activityData?.requests?.length ?? 0})` },
+                  { id: "active" as const, label: `الطلبات النشطة (${(activityData as any)?.summary?.activeRequestsCount ?? 0})` },
+                  { id: "previous" as const, label: `الطلبات المنتهية (${(activityData as any)?.summary?.previousRequestsCount ?? 0})` },
+                  { id: "rejected" as const, label: `المرفوضة (${(activityData as any)?.summary?.rejectedRequestsCount ?? 0})` },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setRequestFilter(tab.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                      requestFilter === tab.id
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "bg-white dark:bg-slate-900 border border-border text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </CardHeader>
           <CardContent className="p-0">
             {isLoadingActivity ? (
@@ -1307,9 +1401,23 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                 <FileText className="w-10 h-10 text-muted-foreground/40 mx-auto" />
                 <p className="text-sm font-medium text-muted-foreground">لا توجد طلبات خدمة مسجلة مرتبطة بهذا الحساب</p>
               </div>
-            ) : (
+            ) : (() => {
+              const filteredReqs = activityData.requests.filter((r: any) => {
+                if (requestFilter === "active") return r.isActive;
+                if (requestFilter === "previous") return !r.isActive;
+                if (requestFilter === "rejected") return r.lifecycleCategory === "rejected";
+                return true;
+              });
+              if (filteredReqs.length === 0) {
+                return (
+                  <div className="p-8 text-center text-sm text-muted-foreground">
+                    لا توجد طلبات مطابقة لهذا التصنيف
+                  </div>
+                );
+              }
+              return (
               <div className="divide-y divide-border/60">
-                {activityData.requests.map((r: any) => {
+                {filteredReqs.map((r: any) => {
                   const programName = PROGRAM_LABELS[r.programType] || r.programType;
                   const stageName = STAGE_LABELS[r.currentStage] || r.currentStage;
                   const statusObj = requestStatusConfig[r.status] || {
@@ -1329,9 +1437,24 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                           <span className="font-bold text-foreground text-sm sm:text-base">
                             {programName}
                           </span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
+                            r.isActive
+                              ? "bg-emerald-600 text-white"
+                              : r.lifecycleCategory === "rejected"
+                              ? "bg-rose-600 text-white"
+                              : "bg-slate-600 text-white"
+                          }`}>
+                            {r.isActive ? "نشط" : r.lifecycleCategory === "rejected" ? "غير نشط (مرفوض)" : "غير نشط (مغلق/مكتمل)"}
+                          </span>
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusObj.className}`}>
                             {statusObj.label}
                           </span>
+                          {(r.mosqueRequestsCount || 0) > 1 && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                              <Layers className="w-3 h-3" />
+                              مسجد متعدد الطلبات ({r.mosqueRequestsCount})
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                           {r.mosqueName && (
@@ -1369,9 +1492,119 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                   );
                 })}
               </div>
+              );
+            })()}
+          </CardContent>
+        </Card>
+          </TabsContent>
+
+          <TabsContent value="evaluations" className="mt-0 space-y-6">
+        {/* بطاقة تقييم الفريق الميداني للإمام (من تقارير المعاينة الميدانية) */}
+        <Card className="border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl overflow-hidden">
+          <CardHeader className="bg-amber-50/60 dark:bg-amber-950/20 border-b border-amber-100 dark:border-amber-900/40 px-6 py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
+                </div>
+                <div>
+                  <CardTitle className="text-base sm:text-lg font-bold">تقييم الفريق الميداني للإمام / المستفيد</CardTitle>
+                  <CardDescription className="text-xs">
+                    تقييمات اللجنة والفريق الميداني لصحة المعلومات وتعاون الإمام أثناء الزيارات الميدانية
+                  </CardDescription>
+                </div>
+              </div>
+              {(activityData as any)?.imamRatingSummary?.averageRating !== null && (activityData as any)?.imamRatingSummary?.averageRating !== undefined ? (
+                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-amber-200 dark:border-amber-800 shadow-xs">
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`w-4 h-4 ${
+                          star <= Math.round((activityData as any).imamRatingSummary.averageRating)
+                            ? "fill-amber-400 text-amber-500"
+                            : "text-slate-300 dark:text-slate-700"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-sm font-black text-amber-700 dark:text-amber-300">
+                    {(activityData as any).imamRatingSummary.averageRating} / 5
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    ({(activityData as any).imamRatingSummary.totalRatings} تقييم)
+                  </span>
+                </div>
+              ) : (
+                <Badge variant="outline" className="text-xs">لا توجد تقييمات ميدانية بعد</Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {isLoadingActivity ? (
+              <div className="p-6 text-center text-muted-foreground text-sm">جاري تحميل تقييمات الفريق الميداني...</div>
+            ) : !(activityData as any)?.imamEvaluations || (activityData as any).imamEvaluations.length === 0 ? (
+              <div className="p-8 text-center space-y-2">
+                <Star className="w-10 h-10 text-muted-foreground/30 mx-auto" />
+                <p className="text-sm font-medium text-muted-foreground">لم يتم تسجيل تقييم للإمام من الفريق الميداني في التقارير السابقة</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border/60">
+                {(activityData as any).imamEvaluations.map((ev: any) => {
+                  const ratingLabels: Record<number, string> = {
+                    1: "ضعيف جداً",
+                    2: "ضعيف",
+                    3: "متوسط",
+                    4: "جيد جداً",
+                    5: "ممتاز",
+                  };
+                  return (
+                    <div key={ev.reportId} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div className="space-y-1.5 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs font-bold bg-muted px-2 py-0.5 rounded">{ev.requestNumber}</span>
+                          <span className="font-bold text-sm">{PROGRAM_LABELS[ev.programType] || ev.programType}</span>
+                          {ev.mosqueName && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Building2 className="w-3.5 h-3.5 text-teal-600" />
+                              {ev.mosqueName}
+                            </span>
+                          )}
+                          {typeof ev.rating === "number" && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                              {ev.rating}/5 ({ratingLabels[ev.rating] || `${ev.rating} من 5`})
+                            </span>
+                          )}
+                        </div>
+                        {ev.notes && (
+                          <p className="text-xs sm:text-sm text-foreground/85 bg-muted/40 p-2.5 rounded-xl border border-border/50">
+                            {ev.notes}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                          {ev.evaluatorName && <span>المقيّم الميداني: {ev.evaluatorName}</span>}
+                          {ev.visitDate && <span>تاريخ الزيارة: {formatDateEnglish(ev.visitDate)}</span>}
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-1.5 text-xs font-bold shrink-0"
+                        onClick={() => navigate(`/requests/${ev.requestId}`)}
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        عرض الطلب
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* مودال العرض ملء الشاشة للمستند المرفق */}

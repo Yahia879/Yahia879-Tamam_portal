@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, CheckCircle2, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer, Phone, Mail, Tag, Pencil, Info, StickyNote, Plus, UserPlus, UserCheck, ShieldCheck, ShieldAlert, AlertTriangle, ShoppingCart, FileSignature, Layers, Edit, Trash2 } from "lucide-react";
+import { ArrowRight, ArrowRightLeft, Lock, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, CheckCircle2, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer, Phone, Mail, Tag, Pencil, Info, StickyNote, Plus, UserPlus, UserCheck, ShieldCheck, ShieldAlert, AlertTriangle, ShoppingCart, FileSignature, Layers, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
@@ -282,6 +282,17 @@ export default function RequestDetailsNew() {
   const [addAttachmentOpen, setAddAttachmentOpen] = useState(false);
   const [addReviewNoteOpen, setAddReviewNoteOpen] = useState(false);
   const [newComment, setNewComment] = useState("");
+  const [newCommentIsInternal, setNewCommentIsInternal] = useState<boolean>(() => user?.role !== "service_requester");
+  const [commentsFilter, setCommentsFilter] = useState<"all" | "internal" | "public">("all");
+  const [showSiblingRequestsModal, setShowSiblingRequestsModal] = useState(false);
+  const [showEditCollectedModal, setShowEditCollectedModal] = useState(false);
+  const [collectedAmountInput, setCollectedAmountInput] = useState("");
+  const [collectedNotesInput, setCollectedNotesInput] = useState("");
+  const [showTransferDonationModal, setShowTransferDonationModal] = useState(false);
+  const [transferTargetRequestId, setTransferTargetRequestId] = useState("");
+  const [transferAmount, setTransferAmount] = useState("");
+  const [transferReason, setTransferReason] = useState("");
+  const [transferCloseSource, setTransferCloseSource] = useState(true);
   const [newReviewNote, setNewReviewNote] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -900,6 +911,37 @@ export default function RequestDetailsNew() {
   const [showRejectCloseModal, setShowRejectCloseModal] = useState(false);
   const [closureRejectionReason, setCloseRejectionReason] = useState("");
 
+  const canManageDonations = Boolean(
+    user && (isAdmin || ["financial", "financial_manager", "projects_office"].includes(user.role))
+  );
+
+  const updateCollectedAmountMutation = trpc.requests.updateDonationCollectedAmount.useMutation({
+    onSuccess: (data) => {
+      toast.success(`تم تحديث المبلغ المجمّع إلى ${Number(data.collectedAmount).toLocaleString()} ر.س`);
+      setShowEditCollectedModal(false);
+      utils.requests.getById.invalidate({ id: requestId });
+      utils.disbursements.getActiveDonations.invalidate();
+    },
+    onError: (err) => {
+      toast.error(formatErrorMessage(err, "فشل تحديث المبلغ المجمّع"));
+    },
+  });
+
+  const transferDonationMutation = trpc.requests.transferDonationBalance.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setShowTransferDonationModal(false);
+      setTransferTargetRequestId("");
+      setTransferAmount("");
+      setTransferReason("");
+      utils.requests.getById.invalidate({ id: requestId });
+      utils.disbursements.getActiveDonations.invalidate();
+    },
+    onError: (err) => {
+      toast.error(formatErrorMessage(err, "فشل ترحيل مبلغ التبرع"));
+    },
+  });
+
   const requestCloseMutation = trpc.requests.requestClose.useMutation({
     onSuccess: (data) => {
       toast.success(data.message);
@@ -949,6 +991,7 @@ export default function RequestDetailsNew() {
   const addCommentMutation = trpc.requests.addComment.useMutation({
     onSuccess: () => {
       utils.requests.getById.invalidate({ id: requestId });
+      utils.requests.getUnreadCommentsCount.invalidate({ requestId });
       toast.success("تم إضافة التعليق بنجاح");
     },
     onError: (error) => {
@@ -1835,6 +1878,28 @@ export default function RequestDetailsNew() {
 
             {/* Header Actions Toolbar */}
             <div className="flex items-center gap-2 flex-wrap sm:self-center">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1.5 border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-900/60 dark:text-purple-300 dark:hover:bg-purple-950/40 font-bold cursor-pointer relative"
+                onClick={() => {
+                  setCommentsOpen(true);
+                  markAsReadMutation.mutate({ requestId });
+                }}
+              >
+                <MessageSquare className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <span>{isEn ? "Comments & Messages" : "التعليقات والرسائل"}</span>
+                {((request as any)?.comments?.length || 0) > 0 && (
+                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200">
+                    {(request as any).comments.length}
+                  </Badge>
+                )}
+                {(unreadData?.count || 0) > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-extrabold rounded-full bg-rose-600 text-white">
+                    {unreadData?.count}
+                  </span>
+                )}
+              </Button>
               {canTransferToBeneficiary && request.canTransferToBeneficiary && (
                 <RequestBeneficiaryTransfer requestId={request.id} requestNumber={request.requestNumber} />
               )}
@@ -1978,6 +2043,183 @@ export default function RequestDetailsNew() {
             </div>
           </div>
         )}
+
+        {/* تنبيه مختصر ومرتب بوجود طلبات أخرى لنفس المسجد */}
+        {(() => {
+          const siblingRequests = ((request as any).siblingMosqueRequests || []) as any[];
+          if (siblingRequests.length === 0) return null;
+          const activeCount = siblingRequests.filter((s) => s.isActive).length;
+          const previousCount = siblingRequests.length - activeCount;
+          return (
+            <div className="mb-4 px-3.5 py-2.5 rounded-xl bg-slate-50/90 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex flex-wrap items-center gap-2 min-w-0">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <Layers className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>
+                    {isEn
+                      ? `${siblingRequests.length} other request(s) for this mosque`
+                      : siblingRequests.length === 1
+                      ? "يوجد طلب آخر لهذا المسجد:"
+                      : `يوجد (${siblingRequests.length}) طلبات أخرى لهذا المسجد:`}
+                  </span>
+                </span>
+                {siblingRequests.length > 1 && (
+                  <span className="text-[11px] text-muted-foreground">
+                    ({activeCount > 0 ? `${activeCount} نشط` : ""}{activeCount > 0 && previousCount > 0 ? "، " : ""}{previousCount > 0 ? `${previousCount} سابق` : ""})
+                  </span>
+                )}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {siblingRequests.slice(0, 3).map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setLocation(`/requests/${s.id}`)}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-background border border-border hover:border-slate-400 text-foreground transition-colors cursor-pointer"
+                    >
+                      <span className="font-mono font-semibold">{s.requestNumber}</span>
+                      <span className="text-muted-foreground">• {translateProgram(s.programType)}</span>
+                      <span className={`px-1.5 py-0.2 rounded text-[10px] font-semibold ${
+                        s.isActive
+                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
+                          : s.lifecycleCategory === "rejected"
+                          ? "bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
+                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                      }`}>
+                        {s.isActive ? "نشط" : s.lifecycleCategory === "rejected" ? "مرفوض" : "مغلق"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 gap-1 shrink-0 cursor-pointer"
+                onClick={() => setShowSiblingRequestsModal(true)}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>{siblingRequests.length > 1 ? `عرض الكل (${siblingRequests.length})` : "التفاصيل"}</span>
+              </Button>
+            </div>
+          );
+        })()}
+
+        {/* بطاقة فرصة التبرع والأرصدة والترحيل (للموظفين) */}
+        {user?.role !== "service_requester" && (request as any).donationOpportunity && (() => {
+          const opp = (request as any).donationOpportunity;
+          const transfers = (request as any).donationTransfers || { outgoing: [], incoming: [] };
+          const siblingRequests = ((request as any).siblingMosqueRequests || []) as any[];
+          const activeSiblings = siblingRequests.filter((s) => s.isActive);
+          const collectedNum = Number(opp.collectedAmount || 0);
+          const targetNum = Number(opp.targetAmount || 0);
+          const oppStatusLabel = opp.status === "completed" ? "مكتملة" : opp.status === "closed" ? "مغلقة" : "نشطة";
+          return (
+            <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-pink-50/70 dark:bg-pink-950/20 border-2 border-pink-200 dark:border-pink-900/60 shadow-xs space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-start gap-3.5 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-pink-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <HeartHandshake className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-bold text-sm sm:text-base text-foreground">{opp.title}</h4>
+                      <Badge className={`text-[10px] font-bold ${
+                        opp.status === "active"
+                          ? "bg-emerald-600 text-white"
+                          : opp.status === "completed"
+                          ? "bg-blue-600 text-white"
+                          : "bg-slate-600 text-white"
+                      }`}>
+                        {oppStatusLabel}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-4 text-xs">
+                      <span className="text-muted-foreground">
+                        المبلغ المستهدف:{" "}
+                        <strong className="text-foreground inline-flex items-center gap-1">
+                          {targetNum.toLocaleString()} <SaudiRiyal size={12} />
+                        </strong>
+                      </span>
+                      <span className="text-muted-foreground">
+                        المبلغ المجمّع المتاح:{" "}
+                        <strong className="text-pink-700 dark:text-pink-300 inline-flex items-center gap-1">
+                          {collectedNum.toLocaleString()} <SaudiRiyal size={12} />
+                        </strong>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                {canManageDonations && (
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 gap-1.5 border-pink-300 bg-white dark:bg-slate-900 text-pink-700 dark:text-pink-300 font-bold cursor-pointer"
+                      onClick={() => {
+                        setCollectedAmountInput(String(collectedNum));
+                        setCollectedNotesInput("");
+                        setShowEditCollectedModal(true);
+                      }}
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      <span>تحديث المبلغ المجمّع</span>
+                    </Button>
+                    {collectedNum > 0 && activeSiblings.length > 0 && (
+                      <Button
+                        size="sm"
+                        className="h-9 gap-1.5 bg-pink-600 hover:bg-pink-700 text-white font-bold cursor-pointer"
+                        onClick={() => {
+                          setTransferTargetRequestId(String(activeSiblings[0].id));
+                          setTransferAmount(String(collectedNum));
+                          setTransferReason("");
+                          setTransferCloseSource(true);
+                          setShowTransferDonationModal(true);
+                        }}
+                      >
+                        <ArrowRightLeft className="w-3.5 h-3.5" />
+                        <span>ترحيل المبلغ لطلب آخر للمسجد</span>
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {(transfers.outgoing?.length > 0 || transfers.incoming?.length > 0) && (
+                <div className="pt-3 border-t border-pink-200/70 dark:border-pink-900/50 space-y-2">
+                  <p className="text-xs font-bold text-foreground">سجل ترحيلات أرصدة التبرعات:</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {transfers.outgoing?.map((tr: any) => (
+                      <div key={`out-${tr.id}`} className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-rose-200/80 dark:border-rose-900/50 text-xs flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className="font-bold text-rose-700 dark:text-rose-300">
+                            ترحيل صادر: {Number(tr.amount).toLocaleString()} ر.س
+                          </span>
+                          <p className="text-muted-foreground truncate">إلى الطلب {tr.toRequestNumber} • {tr.reason}</p>
+                        </div>
+                        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs shrink-0" onClick={() => setLocation(`/requests/${tr.toRequestId}`)}>
+                          عرض
+                        </Button>
+                      </div>
+                    ))}
+                    {transfers.incoming?.map((tr: any) => (
+                      <div key={`in-${tr.id}`} className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-emerald-200/80 dark:border-emerald-900/50 text-xs flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className="font-bold text-emerald-700 dark:text-emerald-300">
+                            رصيد وارد مرحّل: {Number(tr.amount).toLocaleString()} ر.س
+                          </span>
+                          <p className="text-muted-foreground truncate">من الطلب {tr.fromRequestNumber} • {tr.reason}</p>
+                        </div>
+                        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs shrink-0" onClick={() => setLocation(`/requests/${tr.fromRequestId}`)}>
+                          عرض
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
         {showQuickRequestLayout ? (
           <div className="space-y-6 max-w-4xl mx-auto" dir={isEn ? "ltr" : "rtl"}>
             <ActiveActionCard
@@ -3905,27 +4147,93 @@ export default function RequestDetailsNew() {
       <ColoredDialog
         open={commentsOpen}
         onOpenChange={setCommentsOpen}
-        title="التعليقات"
+        title={isEn ? "Comments & Messages" : "التعليقات والرسائل"}
         color="purple"
         icon={<MessageSquare className="w-6 h-6" />}
       >
         <div className="space-y-4">
-          {request?.comments && request.comments.length > 0 ? (
-            request.comments.map((comment: any, index: number) => (
-              <div key={index} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border-r-4 border-purple-500">
-                <div className="flex items-start justify-between mb-2">
-                  <p className="font-semibold text-purple-700 dark:text-purple-300">{comment.userName}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(comment.createdAt).toLocaleString("ar-SA")}</p>
-                </div>
-                <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{comment.comment}</p>
-              </div>
-            ))
-          ) : (
-            <p className="text-muted-foreground text-center py-8">لا توجد تعليقات بعد</p>
+          {user?.role !== "service_requester" && (
+            <div className="flex items-center gap-2 flex-wrap border-b border-slate-200 dark:border-slate-800 pb-3">
+              {[
+                { id: "all" as const, label: "الكل" },
+                { id: "internal" as const, label: "داخلية (للفريق فقط)" },
+                { id: "public" as const, label: "ظاهرة للمستفيد" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setCommentsFilter(tab.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                    commentsFilter === tab.id
+                      ? "bg-purple-600 text-white"
+                      : "bg-muted text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           )}
-          <Button className="w-full bg-purple-600 hover:bg-purple-700">
+
+          {(() => {
+            const allComments = ((request as any)?.comments || []) as any[];
+            const filteredComments = user?.role === "service_requester"
+              ? allComments.filter((c) => !c.isInternal)
+              : commentsFilter === "internal"
+              ? allComments.filter((c) => !!c.isInternal)
+              : commentsFilter === "public"
+              ? allComments.filter((c) => !c.isInternal)
+              : allComments;
+
+            return filteredComments.length > 0 ? (
+              <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
+                {filteredComments.map((comment: any, index: number) => (
+                  <div
+                    key={comment.id ?? index}
+                    className={`bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border-r-4 ${
+                      comment.isInternal ? "border-amber-500" : "border-purple-500"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-purple-700 dark:text-purple-300">
+                          {comment.userName || "مستخدم"}
+                        </p>
+                        {user?.role !== "service_requester" && (
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              comment.isInternal
+                                ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                                : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                            }`}
+                          >
+                            {comment.isInternal ? <Lock className="w-2.5 h-2.5" /> : <Eye className="w-2.5 h-2.5" />}
+                            {comment.isInternal ? "داخلي للفريق" : "ظاهر للمستفيد"}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground shrink-0">
+                        {new Date(comment.createdAt).toLocaleString("ar-SA")}
+                      </p>
+                    </div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{comment.comment}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-8">لا توجد تعليقات أو رسائل في هذا القسم</p>
+            );
+          })()}
+          <Button
+            type="button"
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold cursor-pointer"
+            onClick={() => {
+              setNewCommentIsInternal(user?.role !== "service_requester");
+              setAddCommentOpen(true);
+            }}
+          >
             <MessageSquare className="w-4 h-4 ml-2" />
-            إضافة تعليق جديد
+            إضافة تعليق أو رسالة جديدة
           </Button>
         </div>
       </ColoredDialog>
@@ -4662,17 +4970,54 @@ export default function RequestDetailsNew() {
       <ColoredDialog
         open={addCommentOpen}
         onOpenChange={setAddCommentOpen}
-        title="إضافة تعليق جديد"
+        title="إضافة تعليق أو رسالة جديدة"
         color="purple"
         icon={<MessageSquare className="w-6 h-6" />}
       >
         <div className="space-y-4">
+          {user?.role !== "service_requester" && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">نطاق الرسالة</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNewCommentIsInternal(true)}
+                  className={`p-3 rounded-xl border-2 text-right transition-all cursor-pointer ${
+                    newCommentIsInternal
+                      ? "border-amber-500 bg-amber-50/80 dark:bg-amber-950/40"
+                      : "border-slate-200 dark:border-slate-800 hover:bg-muted/40"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 font-bold text-xs text-amber-800 dark:text-amber-300">
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>رسالة داخلية (للفريق فقط)</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">لا تظهر لطالب الخدمة / الإمام</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewCommentIsInternal(false)}
+                  className={`p-3 rounded-xl border-2 text-right transition-all cursor-pointer ${
+                    !newCommentIsInternal
+                      ? "border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40"
+                      : "border-slate-200 dark:border-slate-800 hover:bg-muted/40"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 font-bold text-xs text-emerald-800 dark:text-emerald-300">
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>رسالة للمستفيد (ظاهرة للجميع)</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">تظهر في بوابة طالب الخدمة والفريق</p>
+                </button>
+              </div>
+            </div>
+          )}
           <div>
-            <label className="block text-sm font-medium mb-2">التعليق</label>
+            <label className="block text-sm font-medium mb-2">نص الرسالة / التعليق</label>
             <Textarea
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              placeholder="اكتب تعليقك هنا..."
+              placeholder="اكتب تعليقك أو رسالتك هنا..."
               rows={5}
               className="w-full"
             />
@@ -4684,12 +5029,15 @@ export default function RequestDetailsNew() {
                 return;
               }
               addCommentMutation.mutate(
-                { requestId, comment: newComment, isInternal: false },
+                {
+                  requestId,
+                  comment: newComment,
+                  isInternal: user?.role === "service_requester" ? false : newCommentIsInternal,
+                },
                 {
                   onSuccess: () => {
                     setNewComment("");
                     setAddCommentOpen(false);
-                    toast.success("تم إضافة التعليق بنجاح");
                   },
                 }
               );
@@ -5261,6 +5609,45 @@ export default function RequestDetailsNew() {
             </p>
           </div>
 
+          {/* تنبيه إذا كانت فرصة التبرع تحتوي على رصيد مجمّع */}
+          {(request as any)?.donationOpportunity?.status === "active" && Number((request as any).donationOpportunity.collectedAmount || 0) > 0 && (() => {
+            const opp = (request as any).donationOpportunity;
+            const collected = Number(opp.collectedAmount || 0);
+            const activeSiblings = (((request as any).siblingMosqueRequests || []) as any[]).filter((s) => s.isActive);
+            return (
+              <div className="p-3 bg-pink-50 dark:bg-pink-950/30 border border-pink-200 dark:border-pink-800 rounded-xl text-xs space-y-2 text-right" dir="rtl">
+                <p className="font-bold text-pink-900 dark:text-pink-200 flex items-center gap-1.5">
+                  <HeartHandshake className="w-4 h-4 text-pink-600" />
+                  <span>هذا الطلب مرتبط بفرصة تبرع نشطة ({opp.title})</span>
+                </p>
+                <div className="space-y-1.5">
+                  <p className="text-pink-800 dark:text-pink-300">
+                    يوجد رصيد تبرعات مجمّع بقيمة <strong>{collected.toLocaleString()} ر.س</strong>. يُنصح بترحيله لطلب آخر لنفس المسجد قبل اعتماد الإغلاق النهائي.
+                  </p>
+                  {activeSiblings.length > 0 && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs border-pink-400 text-pink-800 bg-white dark:bg-slate-900 font-bold gap-1"
+                      onClick={() => {
+                        setShowCloseRequestModal(false);
+                        setTransferTargetRequestId(String(activeSiblings[0].id));
+                        setTransferAmount(String(collected));
+                        setTransferReason("");
+                        setTransferCloseSource(true);
+                        setShowTransferDonationModal(true);
+                      }}
+                    >
+                      <ArrowRightLeft className="w-3.5 h-3.5" />
+                      <span>ترحيل المبلغ أولاً لطلب آخر للمسجد</span>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* تفاصيل وخيارات إغلاق الطلب (اعتذار / رفض / أسباب أخرى) */}
           <div className="space-y-4 text-right" dir="rtl">
             {/* اختيار تصنيف الإغلاق */}
@@ -5733,6 +6120,272 @@ export default function RequestDetailsNew() {
               )}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة جميع الطلبات المرتبطة بنفس المسجد */}
+      <Dialog open={showSiblingRequestsModal} onOpenChange={setShowSiblingRequestsModal}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg font-bold">
+              <Building2 className="w-5 h-5 text-indigo-600" />
+              <span>جميع الطلبات المرتبطة بالمسجد: {(request as any)?.mosque?.name || "المسجد"}</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-3 rounded-xl bg-muted/50 border text-xs flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span className="text-muted-foreground">الطلب الحالي: </span>
+                <span className="font-mono font-bold">{request.requestNumber}</span>
+                <span className="mx-1.5">•</span>
+                <span className="font-semibold">{translateProgram(request.programType)}</span>
+              </div>
+              {user?.role !== "service_requester" && (request as any)?.mosque?.id && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => {
+                    setShowSiblingRequestsModal(false);
+                    setLocation(`/mosques/${(request as any).mosque.id}`);
+                  }}
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>فتح ملف المسجد</span>
+                </Button>
+              )}
+            </div>
+
+            {(() => {
+              const siblings = (((request as any).siblingMosqueRequests || []) as any[]);
+              const active = siblings.filter((s) => s.isActive);
+              const previous = siblings.filter((s) => !s.isActive);
+              const renderList = (items: any[], emptyText: string) =>
+                items.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-3 text-center bg-muted/20 rounded-xl">{emptyText}</p>
+                ) : (
+                  <div className="space-y-2.5">
+                    {items.map((s) => (
+                      <div key={s.id} className="p-3.5 rounded-xl border bg-card flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono text-xs font-bold bg-muted px-2 py-0.5 rounded">{s.requestNumber}</span>
+                            <span className="font-bold text-sm">{translateProgram(s.programType)}</span>
+                            <Badge className={`text-[10px] ${
+                              s.isActive
+                                ? "bg-emerald-600 text-white"
+                                : s.lifecycleCategory === "rejected"
+                                ? "bg-rose-600 text-white"
+                                : "bg-slate-600 text-white"
+                            }`}>
+                              {s.isActive ? "نشط" : s.lifecycleCategory === "rejected" ? "مرفوض / معتذر" : "مغلق / منتهي"}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-3">
+                            <span>المرحلة: {translateStage(s.currentStage, s.requestTrack, s.programType)}</span>
+                            <span>التاريخ: {new Date(s.createdAt).toLocaleDateString("ar-SA")}</span>
+                            {s.donationOpportunity && (
+                              <span className="text-pink-700 dark:text-pink-300 font-semibold">
+                                فرصة تبرع: {Number(s.donationOpportunity.collectedAmount || 0).toLocaleString()} / {Number(s.donationOpportunity.targetAmount || 0).toLocaleString()} ر.س
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs font-bold shrink-0 cursor-pointer"
+                          onClick={() => {
+                            setShowSiblingRequestsModal(false);
+                            setLocation(`/requests/${s.id}`);
+                          }}
+                        >
+                          فتح الطلب
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                );
+
+              return (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-bold text-emerald-700 dark:text-emerald-300">الطلبات النشطة الأخرى ({active.length})</h5>
+                    {renderList(active, "لا توجد طلبات نشطة أخرى لهذا المسجد")}
+                  </div>
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-bold text-slate-600 dark:text-slate-400">الطلبات السابقة / المغلقة ({previous.length})</h5>
+                    {renderList(previous, "لا توجد طلبات سابقة مغلقة لهذا المسجد")}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة تحديث المبلغ المجمّع لفرصة التبرع */}
+      <Dialog open={showEditCollectedModal} onOpenChange={setShowEditCollectedModal}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <HeartHandshake className="w-5 h-5 text-pink-600" />
+              <span>تحديث المبلغ المجمّع لفرصة التبرع</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>المبلغ المجمّع الفعلي (ر.س)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={collectedAmountInput}
+                onChange={(e) => setCollectedAmountInput(e.target.value)}
+                placeholder="مثال: 15000"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>ملاحظة / مرجع التحديث (اختياري)</Label>
+              <Textarea
+                value={collectedNotesInput}
+                onChange={(e) => setCollectedNotesInput(e.target.value)}
+                placeholder="مثال: إجمالي التبرعات الواردة على الفرصة حتى تاريخه..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowEditCollectedModal(false)} disabled={updateCollectedAmountMutation.isPending}>
+              إلغاء
+            </Button>
+            <Button
+              className="bg-pink-600 hover:bg-pink-700 text-white font-bold"
+              disabled={updateCollectedAmountMutation.isPending}
+              onClick={() => {
+                const amt = parseFloat(collectedAmountInput);
+                if (!Number.isFinite(amt) || amt < 0) {
+                  toast.error("يرجى إدخال مبلغ صحيح");
+                  return;
+                }
+                updateCollectedAmountMutation.mutate({
+                  requestId,
+                  collectedAmount: amt,
+                  notes: collectedNotesInput.trim() || undefined,
+                });
+              }}
+            >
+              {updateCollectedAmountMutation.isPending ? "جاري الحفظ..." : "حفظ المبلغ"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة ترحيل مبلغ التبرع لطلب آخر لنفس المسجد */}
+      <Dialog open={showTransferDonationModal} onOpenChange={setShowTransferDonationModal}>
+        <DialogContent className="max-w-lg" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <ArrowRightLeft className="w-5 h-5 text-pink-600" />
+              <span>ترحيل مبلغ التبرع لطلب آخر لنفس المسجد</span>
+            </DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const opp = (request as any)?.donationOpportunity;
+            const availableBalance = Number(opp?.collectedAmount || 0);
+            const activeSiblings = (((request as any)?.siblingMosqueRequests || []) as any[]).filter((s) => s.isActive);
+            return (
+              <div className="space-y-4">
+                <div className="p-3 rounded-xl bg-pink-50 dark:bg-pink-950/30 border border-pink-200 dark:border-pink-800 text-xs">
+                  <span>الرصيد المجمّع المتاح للترحيل من الطلب <strong>{request.requestNumber}</strong>: </span>
+                  <strong className="text-pink-700 dark:text-pink-300">{availableBalance.toLocaleString()} ر.س</strong>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>الطلب المستقبِل (ضمن نفس المسجد) *</Label>
+                  <Select value={transferTargetRequestId} onValueChange={setTransferTargetRequestId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر الطلب النشط المستفيد من التحويل" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeSiblings.map((s) => (
+                        <SelectItem key={s.id} value={String(s.id)}>
+                          {s.requestNumber} - {translateProgram(s.programType)} ({translateStage(s.currentStage, s.requestTrack, s.programType)})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>المبلغ المراد ترحيله (ر.س) *</Label>
+                  <Input
+                    type="number"
+                    min="0.01"
+                    max={availableBalance}
+                    step="0.01"
+                    value={transferAmount}
+                    onChange={(e) => setTransferAmount(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>سبب ومبررات الترحيل *</Label>
+                  <Textarea
+                    value={transferReason}
+                    onChange={(e) => setTransferReason(e.target.value)}
+                    placeholder="مثال: بناءً على رغبة أهل المسجد تم استبدال خدمة الفرش بخدمات السباكة وترحيل المبلغ المجمّع..."
+                    rows={3}
+                  />
+                </div>
+
+                <label className="flex items-center gap-2 text-xs font-medium cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={transferCloseSource}
+                    onChange={(e) => setTransferCloseSource(e.target.checked)}
+                    className="rounded border-slate-300"
+                  />
+                  <span>إغلاق فرصة التبرع المصدر بعد تنفيذ الترحيل</span>
+                </label>
+
+                <DialogFooter className="gap-2">
+                  <Button variant="outline" onClick={() => setShowTransferDonationModal(false)} disabled={transferDonationMutation.isPending}>
+                    إلغاء
+                  </Button>
+                  <Button
+                    className="bg-pink-600 hover:bg-pink-700 text-white font-bold gap-1.5"
+                    disabled={transferDonationMutation.isPending}
+                    onClick={() => {
+                      const targetId = Number(transferTargetRequestId);
+                      const amt = parseFloat(transferAmount);
+                      if (!targetId) {
+                        toast.error("يرجى اختيار الطلب المستقبِل");
+                        return;
+                      }
+                      if (!Number.isFinite(amt) || amt <= 0 || amt > availableBalance) {
+                        toast.error("المبلغ غير صالح أو يتجاوز الرصيد المتاح");
+                        return;
+                      }
+                      if (transferReason.trim().length < 3) {
+                        toast.error("يرجى كتابة سبب الترحيل");
+                        return;
+                      }
+                      transferDonationMutation.mutate({
+                        fromRequestId: requestId,
+                        toRequestId: targetId,
+                        amount: amt,
+                        reason: transferReason.trim(),
+                        closeSourceOpportunity: transferCloseSource,
+                      });
+                    }}
+                  >
+                    {transferDonationMutation.isPending ? "جاري الترحيل..." : "تنفيذ ترحيل المبلغ"}
+                  </Button>
+                </DialogFooter>
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>

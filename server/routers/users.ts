@@ -2,8 +2,9 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { permissionProcedure } from "../permissions";
 import { getDb } from "../db";
-import { users, employees, userRoleAssignments, passwordResetTokens, roles, auditLogs, mosques, mosqueRequests } from "../../drizzle/schema";
-import { eq, count, and, inArray, notInArray, desc, like, or, sql, isNull, ne } from "drizzle-orm";
+import { users, employees, userRoleAssignments, passwordResetTokens, roles, auditLogs, mosques, mosqueRequests, fieldVisitReports } from "../../drizzle/schema";
+import { eq, count, and, inArray, notInArray, desc, like, or, sql, isNull, isNotNull, ne } from "drizzle-orm";
+import { getRequestLifecycleCategory, isRequestActive } from "@shared/mosqueRequests";
 import { TRPCError } from "@trpc/server";
 import { randomBytes, pbkdf2Sync } from "crypto";
 
@@ -270,7 +271,22 @@ export const usersRouter = router({
       // جلب بيانات المستخدم لمعرفة رقم الجوال والبريد
       const [targetUser] = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
       if (!targetUser) {
-        return { mosques: [], requests: [] };
+        return {
+          mosques: [],
+          requests: [],
+          summary: {
+            totalRequests: 0,
+            activeRequestsCount: 0,
+            previousRequestsCount: 0,
+            closedRequestsCount: 0,
+            rejectedRequestsCount: 0,
+            hasMultipleRequests: false,
+            mosquesCount: 0,
+            multiRequestMosquesCount: 0,
+          },
+          imamEvaluations: [],
+          imamRatingSummary: { averageRating: null, totalRatings: 0 },
+        };
       }
 
       // جلب المساجد المسجلة بواسطة المستخدم أو المرتبطة ببياناته
@@ -307,7 +323,7 @@ export const usersRouter = router({
         requestConditions.push(inArray(mosqueRequests.mosqueId, mosqueIds));
       }
 
-      const requestsList = await db
+      const rawRequests = await db
         .select({
           id: mosqueRequests.id,
           requestNumber: mosqueRequests.requestNumber,
@@ -316,6 +332,10 @@ export const usersRouter = router({
           programType: mosqueRequests.programType,
           currentStage: mosqueRequests.currentStage,
           status: mosqueRequests.status,
+          closureStatus: mosqueRequests.closureStatus,
+          technicalEvalDecision: mosqueRequests.technicalEvalDecision,
+          requestTrack: mosqueRequests.requestTrack,
+          completedAt: mosqueRequests.completedAt,
           createdAt: mosqueRequests.createdAt,
         })
         .from(mosqueRequests)
@@ -323,9 +343,117 @@ export const usersRouter = router({
         .where(or(...requestConditions))
         .orderBy(desc(mosqueRequests.createdAt));
 
+      // حساب عدد الطلبات لكل مسجد مرتبط لمعرفة المساجد متعددة الطلبات
+      const mosqueCountsMap = new Map<number, { total: number; active: number }>();
+      for (const req of rawRequests) {
+        if (!req.mosqueId) continue;
+        const curr = mosqueCountsMap.get(req.mosqueId) || { total: 0, active: 0 };
+        curr.total += 1;
+        if (isRequestActive(req)) curr.active += 1;
+        mosqueCountsMap.set(req.mosqueId, curr);
+      }
+
+      const requestsList = rawRequests.map((req) => {
+        const lifecycleCategory = getRequestLifecycleCategory(req);
+        const active = lifecycleCategory === "active";
+        const mosqueCounts = req.mosqueId ? mosqueCountsMap.get(req.mosqueId) : undefined;
+        return {
+          ...req,
+          isActive: active,
+          lifecycleCategory,
+          mosqueRequestsCount: mosqueCounts?.total || 1,
+        };
+      });
+
+      const enrichedMosques = mosquesList.map((m) => {
+        const counts = mosqueCountsMap.get(m.id) || { total: 0, active: 0 };
+        return {
+          ...m,
+          requestsCount: counts.total,
+          activeRequestsCount: counts.active,
+        };
+      });
+
+      const activeRequestsCount = requestsList.filter((r) => r.lifecycleCategory === "active").length;
+      const closedRequestsCount = requestsList.filter((r) => r.lifecycleCategory === "closed").length;
+      const rejectedRequestsCount = requestsList.filter((r) => r.lifecycleCategory === "rejected").length;
+      const previousRequestsCount = closedRequestsCount + rejectedRequestsCount;
+      const multiRequestMosquesCount = Array.from(mosqueCountsMap.values()).filter((c) => c.total > 1).length;
+
+      // جلب تقييمات الفريق الميداني للإمام ومطابقة البيانات (للموظفين الداخليين فقط)
+      let imamEvaluations: Array<{
+        reportId: number;
+        requestId: number;
+        requestNumber: string;
+        mosqueName: string | null;
+        programType: string;
+        rating: number | null;
+        notes: string | null;
+        evaluatorName: string | null;
+        visitDate: Date | null;
+        createdAt: Date;
+      }> = [];
+      let averageRating: number | null = null;
+      let totalRatings = 0;
+
+      const isInternalViewer = ctx.user.role !== "service_requester";
+      const requestIds = requestsList.map((r) => r.id);
+      if (isInternalViewer && requestIds.length > 0) {
+        const evalRows = await db
+          .select({
+            reportId: fieldVisitReports.id,
+            requestId: fieldVisitReports.requestId,
+            requestNumber: mosqueRequests.requestNumber,
+            mosqueName: mosques.name,
+            programType: mosqueRequests.programType,
+            rating: fieldVisitReports.beneficiaryInfoAccuracyRating,
+            notes: fieldVisitReports.beneficiaryInfoAccuracyNotes,
+            evaluatorName: users.name,
+            visitDate: fieldVisitReports.visitDate,
+            createdAt: fieldVisitReports.createdAt,
+          })
+          .from(fieldVisitReports)
+          .innerJoin(mosqueRequests, eq(fieldVisitReports.requestId, mosqueRequests.id))
+          .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+          .leftJoin(users, eq(fieldVisitReports.visitedBy, users.id))
+          .where(
+            and(
+              inArray(fieldVisitReports.requestId, requestIds),
+              or(
+                isNotNull(fieldVisitReports.beneficiaryInfoAccuracyRating),
+                isNotNull(fieldVisitReports.beneficiaryInfoAccuracyNotes)
+              )
+            )
+          )
+          .orderBy(desc(fieldVisitReports.createdAt));
+
+        imamEvaluations = evalRows;
+        const ratedOnly = evalRows.filter((e) => typeof e.rating === "number" && e.rating > 0);
+        totalRatings = ratedOnly.length;
+        if (totalRatings > 0) {
+          const sum = ratedOnly.reduce((acc, e) => acc + Number(e.rating || 0), 0);
+          averageRating = Math.round((sum / totalRatings) * 10) / 10;
+        }
+      }
+
       return {
-        mosques: mosquesList,
+        mosques: enrichedMosques,
         requests: requestsList,
+        summary: {
+          totalRequests: requestsList.length,
+          activeRequestsCount,
+          previousRequestsCount,
+          closedRequestsCount,
+          rejectedRequestsCount,
+          hasMultipleRequests: requestsList.length > 1,
+          mosquesCount: enrichedMosques.length,
+          multiRequestMosquesCount,
+        },
+        imamEvaluations,
+        imamRatingSummary: {
+          averageRating,
+          totalRatings,
+        },
       };
     }),
 

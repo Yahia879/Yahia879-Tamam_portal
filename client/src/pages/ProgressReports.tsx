@@ -1066,15 +1066,25 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     }
   }, [projectDetails, allReportsData, newReport.budgetSpent, newReport.projectId, editingReportId]);
 
-  // فحص ما إذا كانت الدفعة دفعة مقدمة
-  const isAdvancePayment = (payment: any, index?: number) => {
-    if (!payment) return false;
+  const isChangeOrderPayment = (payment: any) =>
+    Boolean(
+      payment?.isChangeOrder ||
+        payment?.changeOrderId ||
+        payment?.description?.includes("أمر التغيير") ||
+        payment?.description?.includes("أمر تغيير")
+    );
+
+  // فحص ما إذا كانت الدفعة دفعة مقدمة (دفعات أوامر التغيير لا تُعد دفعة مقدمة حتى لو كانت أول دفعة تاريخياً)
+  const isAdvancePayment = (payment: any) => {
+    if (!payment || isChangeOrderPayment(payment)) return false;
     if (payment.paymentType === "advance") return true;
     if (payment.phaseOrder !== undefined && payment.phaseOrder === 0) return true;
     const desc = payment.description || "";
     if (desc.includes("مقدمة") || desc.includes("المقدمة")) return true;
-    if (index !== undefined && index === 0) return true;
-    if (projectDetails?.payments && projectDetails.payments.length > 0 && projectDetails.payments[0]?.id === payment.id) return true;
+    const firstNonCoPayment = (projectDetails?.payments || []).find(
+      (p: any) => !isChangeOrderPayment(p)
+    );
+    if (firstNonCoPayment && firstNonCoPayment.id === payment.id) return true;
     return false;
   };
 
@@ -1915,7 +1925,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                       ) : projectDetails?.payments && projectDetails.payments.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-1.5 bg-muted/30 rounded-xl border border-border/60">
                           {projectDetails.payments.map((payment: any, index: number) => {
-                            const isAdvance = isAdvancePayment(payment, index);
+                            const isAdvance = isAdvancePayment(payment);
                             const isSelected = selectedPaymentId === payment.id;
                             const isIncomplete = !isAdvance && payment.source !== "manual" && (
                               payment.completionPercentage === null || 

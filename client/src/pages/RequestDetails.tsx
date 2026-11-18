@@ -879,7 +879,7 @@ export default function RequestDetails() {
                                   {new Date(c.createdAt).toLocaleString("ar-SA")}
                                 </p>
                               </div>
-                              <p className="text-sm mt-1">{c.content}</p>
+                              <p className="text-sm mt-1 whitespace-pre-wrap">{c.comment || c.content}</p>
                             </div>
                           </div>
                         ))}

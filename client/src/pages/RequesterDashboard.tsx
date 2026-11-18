@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,9 +65,10 @@ const getStageLabelAr = (stage: string): string => {
 
 export default function RequesterDashboard() {
   const { user } = useAuth();
+  const [requestTab, setRequestTab] = useState<"all" | "active" | "previous">("all");
   
   // جلب طلبات المستخدم
-  const { data: myRequestsData, isLoading: isLoadingRequests } = trpc.requests.getMyRequests.useQuery();
+  const { data: myRequestsData, isLoading: isLoadingRequests } = trpc.requests.getMyRequests.useQuery({ limit: 50 });
   // جلب مساجد المستخدم
   const { data: myMosquesData, isLoading: isLoadingMosques } = trpc.mosques.getMyMosques.useQuery();
   const myMosques = Array.isArray(myMosquesData)
@@ -88,6 +90,24 @@ export default function RequesterDashboard() {
     inProgress: myRequests.filter((r: any) => r.status === "in_progress").length,
     completed: myRequests.filter((r: any) => r.status === "completed" || r.currentStage === "closed").length,
   };
+
+  const { activeRequestsList, previousRequestsList } = useMemo(() => {
+    const active: any[] = [];
+    const previous: any[] = [];
+    for (const r of myRequests) {
+      const isRejected = r.status === "rejected" || r.technicalEvalDecision === "apologize" || r.requestTrack === "rejected";
+      const isClosed = r.currentStage === "closed" || r.status === "completed" || r.closureStatus === "confirmed";
+      if (isRejected || isClosed) previous.push(r);
+      else active.push(r);
+    }
+    return { activeRequestsList: active, previousRequestsList: previous };
+  }, [myRequests]);
+
+  const displayedRequests = requestTab === "active"
+    ? activeRequestsList
+    : requestTab === "previous"
+    ? previousRequestsList
+    : myRequests;
 
   return (
     <BeneficiaryLayout activeTab="dashboard">
@@ -294,15 +314,20 @@ export default function RequesterDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
         {/* Active Requests Progress Timeline */}
         <Card className="lg:col-span-2 border border-border/60 dark:border-border/80 shadow-xs rounded-2xl sm:rounded-3xl overflow-hidden bg-card dark:bg-card/95">
-          <CardHeader className="p-4 sm:p-6 border-b border-border/40 dark:border-border/60">
+          <CardHeader className="p-4 sm:p-6 border-b border-border/40 dark:border-border/60 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div>
                 <CardTitle className="flex items-center gap-2 text-base sm:text-xl font-bold text-foreground">
                   <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-                  <span>أحدث الطلبات وتطور الإنجاز</span>
+                  <span>الطلبات المرتبطة وتطور الإنجاز</span>
+                  {myRequests.length > 1 && (
+                    <Badge variant="secondary" className="text-[10px] font-bold">
+                      {myRequests.length} طلبات
+                    </Badge>
+                  )}
                 </CardTitle>
                 <CardDescription className="text-[11px] sm:text-xs mt-0.5 text-muted-foreground">
-                  متابعة خط سير وحالة خدماتك المقدمة
+                  متابعة حالة طلباتك النشطة والسابقة أولاً بأول
                 </CardDescription>
               </div>
               <Link href="/my-requests">
@@ -312,6 +337,28 @@ export default function RequesterDashboard() {
                 </Button>
               </Link>
             </div>
+            {myRequests.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {[
+                  { id: "all" as const, label: `الكل (${myRequests.length})` },
+                  { id: "active" as const, label: `الطلبات النشطة (${activeRequestsList.length})` },
+                  { id: "previous" as const, label: `الطلبات السابقة (${previousRequestsList.length})` },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setRequestTab(tab.id)}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                      requestTab === tab.id
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "bg-muted/60 text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </CardHeader>
           <CardContent className="p-4 sm:p-6">
             {isLoadingRequests ? (
@@ -320,9 +367,9 @@ export default function RequesterDashboard() {
                   <div key={i} className="h-24 bg-muted/40 animate-pulse rounded-2xl" />
                 ))}
               </div>
-            ) : myRequests && myRequests.length > 0 ? (
+            ) : displayedRequests && displayedRequests.length > 0 ? (
               <div className="space-y-3 sm:space-y-4">
-                {myRequests.slice(0, 4).map((request) => {
+                {displayedRequests.slice(0, 6).map((request) => {
                   const isRejected = request.status === "rejected" || request.technicalEvalDecision === "apologize" || request.requestTrack === "rejected";
                   const isClosed = !isRejected && (request.currentStage === "closed" || request.status === "completed");
                   const progress = isRejected ? 0 : getProgressPercentage(request.currentStage);

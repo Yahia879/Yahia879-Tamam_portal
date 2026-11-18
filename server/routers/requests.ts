@@ -37,6 +37,7 @@ import {
   requestExceptions,
   donationOpportunities,
   donations,
+  donationOpportunityTransfers,
   publicSubmissions,
   receiptVouchers,
   notificationTemplates,
@@ -46,6 +47,7 @@ import {
 } from "../../drizzle/schema";
 import { eq, ne, and, desc, sql, inArray, notInArray, or, gte, lte, gt, isNotNull, isNull, like, asc } from "drizzle-orm";
 import { canTransferRequestToBeneficiary } from "@shared/requestBeneficiaryTransfer";
+import { canTransferDonationBetweenRequests, getRequestLifecycleCategory, isRequestActive } from "@shared/mosqueRequests";
 import { alias } from "drizzle-orm/mysql-core";
 import { randomBytes } from "crypto";
 import { 
@@ -891,8 +893,159 @@ export const requestsRouter = router({
         adminName = requester[0].name;
       }
 
-      const [transferDonationOpportunity] = await db.select({ id: donationOpportunities.id }).from(donationOpportunities)
-        .where(eq(donationOpportunities.requestId, request.id)).limit(1);
+      const [transferDonationOpportunity] = await db.select().from(donationOpportunities)
+        .where(eq(donationOpportunities.requestId, request.id))
+        .orderBy(desc(donationOpportunities.id))
+        .limit(1);
+
+      // جلب الطلبات الأخرى المرتبطة بنفس المسجد (للتنبيه والربط بين الطلبات)
+      let siblingMosqueRequests: Array<{
+        id: number;
+        requestNumber: string;
+        programType: string;
+        programName: string | null;
+        currentStage: string;
+        status: string;
+        closureStatus: string | null;
+        technicalEvalDecision: string | null;
+        requestTrack: string | null;
+        estimatedCost: string | null;
+        createdAt: Date;
+        isActive: boolean;
+        lifecycleCategory: "active" | "closed" | "rejected";
+        donationOpportunity: {
+          id: number;
+          title: string;
+          targetAmount: string;
+          collectedAmount: string | null;
+          status: string | null;
+        } | null;
+        project: {
+          id: number;
+          projectNumber: string;
+          name: string;
+        } | null;
+      }> = [];
+
+      if (request.mosqueId && !isMultiMosque) {
+        const siblingRows = await db.select({
+          id: mosqueRequests.id,
+          requestNumber: mosqueRequests.requestNumber,
+          programType: mosqueRequests.programType,
+          programName: programs.name,
+          currentStage: mosqueRequests.currentStage,
+          status: mosqueRequests.status,
+          closureStatus: mosqueRequests.closureStatus,
+          technicalEvalDecision: mosqueRequests.technicalEvalDecision,
+          requestTrack: mosqueRequests.requestTrack,
+          estimatedCost: mosqueRequests.estimatedCost,
+          createdAt: mosqueRequests.createdAt,
+        })
+          .from(mosqueRequests)
+          .leftJoin(programs, eq(mosqueRequests.programType, programs.id))
+          .where(and(
+            eq(mosqueRequests.mosqueId, request.mosqueId),
+            ne(mosqueRequests.id, request.id),
+          ))
+          .orderBy(desc(mosqueRequests.createdAt));
+
+        if (siblingRows.length > 0) {
+          const siblingIds = siblingRows.map((s) => s.id);
+          const [siblingOpps, siblingProjects] = await Promise.all([
+            isInternal
+              ? db.select({
+                  id: donationOpportunities.id,
+                  requestId: donationOpportunities.requestId,
+                  title: donationOpportunities.title,
+                  targetAmount: donationOpportunities.targetAmount,
+                  collectedAmount: donationOpportunities.collectedAmount,
+                  status: donationOpportunities.status,
+                }).from(donationOpportunities).where(inArray(donationOpportunities.requestId, siblingIds))
+              : Promise.resolve([]),
+            db.select({
+              id: projects.id,
+              requestId: projects.requestId,
+              projectNumber: projects.projectNumber,
+              name: projects.name,
+            }).from(projects).where(inArray(projects.requestId, siblingIds)),
+          ]);
+
+          const oppByReq = new Map<number, typeof siblingOpps[number]>();
+          for (const opp of siblingOpps) {
+            if (opp.requestId && !oppByReq.has(opp.requestId)) oppByReq.set(opp.requestId, opp);
+          }
+          const projByReq = new Map<number, typeof siblingProjects[number]>();
+          for (const proj of siblingProjects) {
+            if (proj.requestId && !projByReq.has(proj.requestId)) projByReq.set(proj.requestId, proj);
+          }
+
+          siblingMosqueRequests = siblingRows.map((s) => {
+            const lifecycleCategory = getRequestLifecycleCategory(s);
+            const opp = oppByReq.get(s.id);
+            const proj = projByReq.get(s.id);
+            return {
+              ...s,
+              isActive: lifecycleCategory === "active",
+              lifecycleCategory,
+              donationOpportunity: opp ? {
+                id: opp.id,
+                title: opp.title,
+                targetAmount: opp.targetAmount,
+                collectedAmount: opp.collectedAmount,
+                status: opp.status,
+              } : null,
+              project: proj ? {
+                id: proj.id,
+                projectNumber: proj.projectNumber,
+                name: proj.name,
+              } : null,
+            };
+          });
+        }
+      }
+
+      // جلب سجل ترحيلات أرصدة التبرعات للطلب (للموظفين الداخليين)
+      let donationTransfers: { outgoing: any[]; incoming: any[] } = { outgoing: [], incoming: [] };
+      if (isInternal) {
+        const targetReqAlias = alias(mosqueRequests, "targetReq");
+        const sourceReqAlias = alias(mosqueRequests, "sourceReq");
+        const [outgoingRows, incomingRows] = await Promise.all([
+          db.select({
+            id: donationOpportunityTransfers.id,
+            amount: donationOpportunityTransfers.amount,
+            reason: donationOpportunityTransfers.reason,
+            closeSourceOpportunity: donationOpportunityTransfers.closeSourceOpportunity,
+            createdAt: donationOpportunityTransfers.createdAt,
+            toRequestId: donationOpportunityTransfers.toRequestId,
+            toRequestNumber: targetReqAlias.requestNumber,
+            toProgramType: targetReqAlias.programType,
+            transferredByName: users.name,
+          })
+            .from(donationOpportunityTransfers)
+            .leftJoin(targetReqAlias, eq(donationOpportunityTransfers.toRequestId, targetReqAlias.id))
+            .leftJoin(users, eq(donationOpportunityTransfers.transferredBy, users.id))
+            .where(eq(donationOpportunityTransfers.fromRequestId, request.id))
+            .orderBy(desc(donationOpportunityTransfers.createdAt)),
+          db.select({
+            id: donationOpportunityTransfers.id,
+            amount: donationOpportunityTransfers.amount,
+            reason: donationOpportunityTransfers.reason,
+            closeSourceOpportunity: donationOpportunityTransfers.closeSourceOpportunity,
+            createdAt: donationOpportunityTransfers.createdAt,
+            fromRequestId: donationOpportunityTransfers.fromRequestId,
+            fromRequestNumber: sourceReqAlias.requestNumber,
+            fromProgramType: sourceReqAlias.programType,
+            transferredByName: users.name,
+          })
+            .from(donationOpportunityTransfers)
+            .leftJoin(sourceReqAlias, eq(donationOpportunityTransfers.fromRequestId, sourceReqAlias.id))
+            .leftJoin(users, eq(donationOpportunityTransfers.transferredBy, users.id))
+            .where(eq(donationOpportunityTransfers.toRequestId, request.id))
+            .orderBy(desc(donationOpportunityTransfers.createdAt)),
+        ]);
+        donationTransfers = { outgoing: outgoingRows, incoming: incomingRows };
+      }
+
       return {
         ...request,
         canTransferToBeneficiary: canTransferRequestToBeneficiary(request, requester[0]?.role, !!transferDonationOpportunity),
@@ -916,6 +1069,9 @@ export const requestsRouter = router({
         finalReportAssignedToUser,
         closureRequestedByUser,
         closureConfirmedByUser,
+        siblingMosqueRequests,
+        donationOpportunity: isInternal ? (transferDonationOpportunity || null) : null,
+        donationTransfers,
       };
     }),
 
@@ -2233,6 +2389,190 @@ export const requestsRouter = router({
       return { success: true, message: `تم تحويل الطلب إلى مرحلة ${newStageName} بنجاح` };
     }),
 
+  // تحديث المبلغ المجمّع لفرصة التبرع المرتبطة بالطلب
+  updateDonationCollectedAmount: protectedProcedure
+    .input(z.object({
+      requestId: z.number().int().positive(),
+      collectedAmount: z.number().finite().min(0),
+      notes: z.string().trim().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const allowedRoles = ["super_admin", "system_admin", "financial", "financial_manager", "projects_office"];
+      if (!allowedRoles.includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تحديث رصيد فرصة التبرع" });
+      }
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [opp] = await db.select().from(donationOpportunities)
+        .where(eq(donationOpportunities.requestId, input.requestId))
+        .orderBy(desc(donationOpportunities.id))
+        .limit(1);
+      if (!opp) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "لا توجد فرصة تبرع مرتبطة بهذا الطلب" });
+      }
+
+      const oldAmount = opp.collectedAmount || "0.00";
+      const nextAmount = input.collectedAmount.toFixed(2);
+      await db.update(donationOpportunities).set({
+        collectedAmount: nextAmount,
+        updatedAt: new Date(),
+      }).where(eq(donationOpportunities.id, opp.id));
+
+      await db.insert(requestHistory).values({
+        requestId: input.requestId,
+        userId: ctx.user.id,
+        action: "donation_amount_updated",
+        notes: `تم تحديث المبلغ المجمّع لفرصة التبرع من ${oldAmount} ر.س إلى ${nextAmount} ر.س${input.notes ? ` (${input.notes})` : ""}`,
+      });
+
+      await db.insert(auditLogs).values({
+        userId: ctx.user.id,
+        action: "donation_amount_updated",
+        entityType: "donation_opportunity",
+        entityId: opp.id,
+        oldValues: { collectedAmount: oldAmount },
+        newValues: { collectedAmount: nextAmount },
+      });
+
+      return { success: true, collectedAmount: nextAmount };
+    }),
+
+  // ترحيل مبلغ تبرع من فرصة/طلب إلى طلب آخر لنفس المسجد
+  transferDonationBalance: protectedProcedure
+    .input(z.object({
+      fromRequestId: z.number().int().positive(),
+      toRequestId: z.number().int().positive(),
+      amount: z.number().finite().positive(),
+      reason: z.string().trim().min(3, "يرجى توضيح سبب الترحيل"),
+      closeSourceOpportunity: z.boolean().default(false),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const allowedRoles = ["super_admin", "system_admin", "financial", "financial_manager", "projects_office"];
+      if (!allowedRoles.includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية ترحيل مبالغ التبرعات" });
+      }
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      return db.transaction(async (tx) => {
+        const [fromReq] = await tx.select().from(mosqueRequests)
+          .where(eq(mosqueRequests.id, input.fromRequestId)).limit(1).for("update");
+        const [toReq] = await tx.select().from(mosqueRequests)
+          .where(eq(mosqueRequests.id, input.toRequestId)).limit(1).for("update");
+
+        if (!fromReq || !toReq) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "أحد الطلبين غير موجود" });
+        }
+
+        const eligibility = canTransferDonationBetweenRequests(fromReq, toReq);
+        if (!eligibility.allowed) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: eligibility.reason || "لا يمكن الترحيل بين الطلبين المحددين" });
+        }
+
+        const [fromOpp] = await tx.select().from(donationOpportunities)
+          .where(eq(donationOpportunities.requestId, fromReq.id))
+          .orderBy(desc(donationOpportunities.id))
+          .limit(1)
+          .for("update");
+
+        if (!fromOpp) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "الطلب المصدر لا يحتوي على فرصة تبرع" });
+        }
+
+        const sourceBalance = Number(fromOpp.collectedAmount || 0);
+        if (Math.round(input.amount * 100) > Math.round(sourceBalance * 100)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `المبلغ المطلوب ترحيله (${input.amount.toFixed(2)}) يتجاوز الرصيد المجمّع المتاح (${sourceBalance.toFixed(2)} ر.س)`,
+          });
+        }
+
+        let [toOpp] = await tx.select().from(donationOpportunities)
+          .where(eq(donationOpportunities.requestId, toReq.id))
+          .orderBy(desc(donationOpportunities.id))
+          .limit(1)
+          .for("update");
+
+        if (!toOpp) {
+          const targetDefault = Number(toReq.estimatedCost || 0) > 0
+            ? Number(toReq.estimatedCost).toFixed(2)
+            : input.amount.toFixed(2);
+          const [insertedOpp] = await tx.insert(donationOpportunities).values({
+            requestId: toReq.id,
+            projectId: null,
+            title: `فرصة تبرع (رصيد مرحّل): ${toReq.requestNumber}`,
+            description: `تم إنشاء/ربط الفرصة لاستقبال رصيد تبرع مرحّل من الطلب ${fromReq.requestNumber}: ${input.reason}`,
+            targetAmount: targetDefault,
+            collectedAmount: "0.00",
+            status: "active",
+            isPublic: true,
+          });
+          const [createdOpp] = await tx.select().from(donationOpportunities)
+            .where(eq(donationOpportunities.id, insertedOpp.insertId)).limit(1);
+          toOpp = createdOpp;
+        }
+
+        const nextSourceAmount = Math.max(0, sourceBalance - input.amount).toFixed(2);
+        const nextTargetAmount = (Number(toOpp.collectedAmount || 0) + input.amount).toFixed(2);
+
+        await tx.update(donationOpportunities).set({
+          collectedAmount: nextSourceAmount,
+          status: input.closeSourceOpportunity ? "closed" : fromOpp.status,
+          updatedAt: new Date(),
+        }).where(eq(donationOpportunities.id, fromOpp.id));
+
+        await tx.update(donationOpportunities).set({
+          collectedAmount: nextTargetAmount,
+          status: toOpp.status === "closed" ? "active" : toOpp.status,
+          updatedAt: new Date(),
+        }).where(eq(donationOpportunities.id, toOpp.id));
+
+        await tx.insert(donationOpportunityTransfers).values({
+          fromOpportunityId: fromOpp.id,
+          fromRequestId: fromReq.id,
+          toOpportunityId: toOpp.id,
+          toRequestId: toReq.id,
+          mosqueId: fromReq.mosqueId,
+          amount: input.amount.toFixed(2),
+          reason: input.reason,
+          closeSourceOpportunity: input.closeSourceOpportunity,
+          transferredBy: ctx.user.id,
+        });
+
+        await tx.insert(requestHistory).values([
+          {
+            requestId: fromReq.id,
+            userId: ctx.user.id,
+            action: "donation_transferred_out",
+            notes: `تم ترحيل مبلغ ${input.amount.toFixed(2)} ر.س من فرصة التبرع إلى الطلب رقم ${toReq.requestNumber}. السبب: ${input.reason}${input.closeSourceOpportunity ? " (مع إغلاق فرصة التبرع المصدر)" : ""}`,
+          },
+          {
+            requestId: toReq.id,
+            userId: ctx.user.id,
+            action: "donation_transferred_in",
+            notes: `تم استلام مبلغ تبرع مرحّل بقيمة ${input.amount.toFixed(2)} ر.س من الطلب رقم ${fromReq.requestNumber}. السبب: ${input.reason}`,
+          },
+        ]);
+
+        await tx.insert(auditLogs).values({
+          userId: ctx.user.id,
+          action: "donation_balance_transferred",
+          entityType: "donation_opportunity",
+          entityId: fromOpp.id,
+          oldValues: { fromRequestId: fromReq.id, fromCollected: sourceBalance.toFixed(2), toRequestId: toReq.id },
+          newValues: { toOpportunityId: toOpp.id, amount: input.amount.toFixed(2), nextSourceAmount, nextTargetAmount, reason: input.reason },
+        });
+
+        return {
+          success: true,
+          message: `تم ترحيل مبلغ ${input.amount.toFixed(2)} ر.س بنجاح إلى الطلب ${toReq.requestNumber}`,
+          nextSourceAmount,
+          nextTargetAmount,
+        };
+      });
+    }),
+
   // طلب إغلاق الطلب (محصور بمدير النظام/المدير العام)
   requestClose: protectedProcedure
     .input(z.object({
@@ -2285,7 +2625,7 @@ export const requestsRouter = router({
         fromStatus: request.status,
         toStatus: request.status,
         action: "closure_requested",
-        notes: `طلب مدير النظام إغلاق الطلب: ${input.reason} (بانتظار تأكيد المدير التنفيذي)`,
+        notes: `طلب مدير النظام إغلاق الطلب: ${effectiveReason} (بانتظار تأكيد المدير التنفيذي)`,
       });
 
       // إرسال إشعار للمدير التنفيذي
@@ -2353,6 +2693,23 @@ export const requestsRouter = router({
         currentResponsibleDepartment: "مكتب المشاريع",
       }).where(eq(mosqueRequests.id, input.requestId));
 
+      // إغلاق أي فرصة تبرع مفتوحة مرتبطة بالطلب تلقائياً عند اعتماد الإغلاق الإداري
+      const activeOpps = await db.select({ id: donationOpportunities.id })
+        .from(donationOpportunities)
+        .where(and(
+          eq(donationOpportunities.requestId, input.requestId),
+          eq(donationOpportunities.status, "active"),
+        ));
+      if (activeOpps.length > 0) {
+        await db.update(donationOpportunities).set({
+          status: "closed",
+          updatedAt: new Date(),
+        }).where(and(
+          eq(donationOpportunities.requestId, input.requestId),
+          eq(donationOpportunities.status, "active"),
+        ));
+      }
+
       await db.insert(requestHistory).values({
         requestId: input.requestId,
         userId: ctx.user.id,
@@ -2361,7 +2718,7 @@ export const requestsRouter = router({
         fromStatus: oldStatus,
         toStatus: "completed",
         action: "closure_confirmed",
-        notes: `تم تأكيد إغلاق الطلب نهائياً من قِبل المدير التنفيذي (${ctx.user.name || "المدير التنفيذي"})${input.notes ? `: ${input.notes}` : ""}`,
+        notes: `تم تأكيد إغلاق الطلب نهائياً من قِبل المدير التنفيذي (${ctx.user.name || "المدير التنفيذي"})${activeOpps.length > 0 ? " مع إغلاق فرصة التبرع المرتبطة إدارياً" : ""}${input.notes ? `: ${input.notes}` : ""}`,
       });
 
       // إرسال استبيان رضا المستفيدين
@@ -4927,14 +5284,17 @@ export const requestsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      const conditions: any[] = [
+        eq(requestComments.requestId, input.requestId),
+        eq(requestComments.isRead, false),
+      ];
+      if (ctx.user.role === "service_requester") {
+        conditions.push(eq(requestComments.isInternal, false));
+      }
+
       const result = await db.select({ count: sql<number>`count(*)` })
         .from(requestComments)
-        .where(
-          and(
-            eq(requestComments.requestId, input.requestId),
-            eq(requestComments.isRead, false)
-          )
-        );
+        .where(and(...conditions));
 
       return { count: result[0]?.count || 0 };
     }),
@@ -4945,9 +5305,13 @@ export const requestsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+      const conditions: any[] = [eq(requestComments.requestId, input.requestId)];
+      if (ctx.user.role === "service_requester") {
+        conditions.push(eq(requestComments.isInternal, false));
+      }
       await db.update(requestComments)
         .set({ isRead: true })
-        .where(eq(requestComments.requestId, input.requestId));
+        .where(and(...conditions));
       return { success: true };
     }),
 

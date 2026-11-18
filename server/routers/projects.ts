@@ -3486,8 +3486,8 @@ export const projectsRouter = router({
           .where(eq(projectChangeOrders.id, input.changeOrderId));
       }
 
-      // حفظ أصناف الدفعة في العقد المرتبط
-      if (input.items && (input.contractPaymentId || input.contractId)) {
+      // حفظ أصناف الدفعة في العقد المرتبط (للدفعات العادية غير المرتبطة بأوامر التغيير)
+      if (!input.changeOrderId && input.items && (input.contractPaymentId || input.contractId)) {
         try {
           let cId = input.contractId;
           if (!cId && input.contractPaymentId) {
@@ -4185,8 +4185,16 @@ export const projectsRouter = router({
       }
 
       // التحقق من أن الدفعة المرتبطة بأمر تغيير لا تتجاوز إجمالي أمر التغيير
-      if (targetProjectId > 0 && (manualRec || cpRec || disbRec)) {
-        const projectCos = await db
+      let isEditingChangeOrderPayment = false;
+      let projectCosForValidation: Array<{
+        id: number;
+        amount: string;
+        paymentId: number | null;
+        contractPaymentId: number | null;
+        disbursementRequestId: number | null;
+      }> = [];
+      if (targetProjectId > 0) {
+        projectCosForValidation = await db
           .select({
             id: projectChangeOrders.id,
             amount: projectChangeOrders.amount,
@@ -4203,7 +4211,7 @@ export const projectsRouter = router({
           );
 
         const matchedCo = manualRec
-          ? projectCos.find(
+          ? projectCosForValidation.find(
               co =>
                 (manualRec.changeOrderId !== null &&
                   manualRec.changeOrderId !== undefined &&
@@ -4211,9 +4219,9 @@ export const projectsRouter = router({
                 co.paymentId === manualRec.id
             )
           : cpRec
-          ? projectCos.find(co => co.contractPaymentId === cpRec.id)
+          ? projectCosForValidation.find(co => co.contractPaymentId === cpRec.id)
           : disbRec
-          ? projectCos.find(
+          ? projectCosForValidation.find(
               co =>
                 co.disbursementRequestId === disbRec.id ||
                 (disbRec.paymentId && co.paymentId === disbRec.paymentId)
@@ -4221,6 +4229,7 @@ export const projectsRouter = router({
           : undefined;
 
         if (matchedCo) {
+          isEditingChangeOrderPayment = true;
           const coPayments = await db
             .select({
               id: payments.id,
@@ -4256,8 +4265,8 @@ export const projectsRouter = router({
         }
       }
 
-      // التحقق من أن المبلغ المعدل لا يتجاوز إجمالي العقد مع بقية الدفعات الأخرى
-      if (targetProjectId > 0) {
+      // التحقق من أن المبلغ المعدل لا يتجاوز إجمالي العقد مع بقية الدفعات الأخرى (للدفعات غير المرتبطة بأمر تغيير)
+      if (targetProjectId > 0 && !isEditingChangeOrderPayment) {
         const projectContractsList = await db
           .select({
             id: contractsEnhanced.id,
@@ -4272,6 +4281,15 @@ export const projectsRouter = router({
         );
 
         if (totalContractAmt > 0) {
+          const coPaymentIds = new Set(
+            projectCosForValidation.map(co => co.paymentId).filter(Boolean)
+          );
+          const coContractPaymentIds = new Set(
+            projectCosForValidation.map(co => co.contractPaymentId).filter(Boolean)
+          );
+          const coDisbIds = new Set(
+            projectCosForValidation.map(co => co.disbursementRequestId).filter(Boolean)
+          );
           const contractIds = projectContractsList.map((c: any) => c.id);
           const existingCps =
             contractIds.length > 0
@@ -4325,6 +4343,7 @@ export const projectsRouter = router({
           }
 
           for (const cp of existingCps) {
+            if (coContractPaymentIds.has(cp.id)) continue;
             if (editingCpId !== null && cp.id === editingCpId) continue;
 
             const isAdvance = cp.phaseOrder === 0;
@@ -4368,6 +4387,7 @@ export const projectsRouter = router({
           }
 
           for (const m of existingManuals) {
+            if (m.changeOrderId || coPaymentIds.has(m.id)) continue;
             if (editingPaymentId !== null && m.id === editingPaymentId)
               continue;
 
@@ -4410,6 +4430,7 @@ export const projectsRouter = router({
             (d: any) =>
               !d.contractPaymentId &&
               !d.paymentId &&
+              !coDisbIds.has(d.id) &&
               d.status !== "rejected" &&
               d.status !== "cancelled"
           );
@@ -4512,7 +4533,8 @@ export const projectsRouter = router({
           });
         }
 
-        // مزامنة التعديل على paymentScheduleJson للعقد المرتبط إن وجد
+        // مزامنة التعديل على paymentScheduleJson للعقد المرتبط إن وجد (فقط للدفعات غير المرتبطة بأمر تغيير)
+        if (!isEditingChangeOrderPayment) {
         try {
           const [p] = await db
             .select()
@@ -4567,6 +4589,7 @@ export const projectsRouter = router({
             e
           );
         }
+        }
       } else if (input.id.startsWith("cp-")) {
         const actualId = cpRec.id;
         const updateValues: any = { amount: input.amount.toString() };
@@ -4597,14 +4620,21 @@ export const projectsRouter = router({
           .set(disbUpdate)
           .where(eq(disbursementRequests.contractPaymentId, actualId));
 
-        // مزامنة التعديل فوراً مع العقد في paymentScheduleJson وإعادة حساب التكلفة الفعلية
+        // مزامنة التعديل فوراً مع العقد في paymentScheduleJson وإعادة حساب التكلفة الفعلية (مع استبعاد دفعات أوامر التغيير)
         try {
-          if (cpRec.contractId) {
-            const allCps = await db
-              .select()
-              .from(contractPayments)
-              .where(eq(contractPayments.contractId, cpRec.contractId))
-              .orderBy(contractPayments.phaseOrder);
+          if (cpRec.contractId && !isEditingChangeOrderPayment) {
+            const coCpSet = new Set(
+              projectCosForValidation
+                .map(co => co.contractPaymentId)
+                .filter((cpid): cpid is number => typeof cpid === "number" && cpid > 0)
+            );
+            const allCps = (
+              await db
+                .select()
+                .from(contractPayments)
+                .where(eq(contractPayments.contractId, cpRec.contractId))
+                .orderBy(contractPayments.phaseOrder)
+            ).filter(p => !coCpSet.has(p.id));
 
             const cDisbs = await db
               .select()

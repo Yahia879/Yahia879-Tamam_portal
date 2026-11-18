@@ -640,20 +640,7 @@ export const projectChangeOrdersRouter = router({
             })
             .where(eq(projectChangeOrders.id, inserted.insertId));
         } else {
-          // 🔵 الحالة 2: لا يوجد فائض للمشروع -> لا تنشأ دفعة تلقائياً، وإنما تزداد التكلفة الفعلية والميزانية للمشروع (والعقد إن وجد)
-          if (contract) {
-            const currentContractAmt = Number(contract.contractAmount || 0);
-            const updatedContractAmt = (currentContractAmt + priced.total).toFixed(2);
-            await tx
-              .update(contractsEnhanced)
-              .set({
-                contractAmount: updatedContractAmt,
-                updatedAt: new Date(),
-              })
-              .where(eq(contractsEnhanced.id, contract.id));
-          }
-
-          // تحديث أمر التغيير
+          // 🔵 الحالة 2: لا يوجد فائض للمشروع -> لا تنشأ دفعة تلقائياً، وإنما تزداد التكلفة الفعلية والميزانية للمشروع دون تعديل قيمة العقد
           await tx
             .update(projectChangeOrders)
             .set({
@@ -942,58 +929,10 @@ export const projectChangeOrdersRouter = router({
           status: "pending",
         });
 
-        let contractPaymentId: number | null = null;
-        if (contract) {
-          const existingCPs = await tx
-            .select()
-            .from(contractPayments)
-            .where(eq(contractPayments.contractId, contract.id));
-
-          const [cp] = await tx.insert(contractPayments).values({
-            contractId: contract.id,
-            phaseName: `دفعة أمر التغيير: ${order.title} (${order.orderNumber})`,
-            amount: orderAmount.toFixed(2),
-            phaseOrder: existingCPs.length,
-            dueDate: new Date(),
-            status: "pending",
-            notes: `أمر تغيير ${order.orderNumber}: ${order.title} - ${order.reason}`,
-            completionPercentage: 100,
-          });
-          contractPaymentId = cp.insertId;
-
-          try {
-            let schedObj: any = contract.paymentScheduleJson;
-            while (typeof schedObj === "string") schedObj = JSON.parse(schedObj);
-            const isWrapper = schedObj && typeof schedObj === "object" && !Array.isArray(schedObj);
-            const list = Array.isArray(schedObj) ? schedObj : (schedObj?.schedule || []);
-            const newItem = {
-              id: `cp-${cp.insertId}`,
-              paymentId: payment.insertId,
-              name: `دفعة أمر التغيير: ${order.title} (${order.orderNumber})`,
-              amount: orderAmount,
-              completionPercentage: 100,
-              dueDate: new Date().toISOString().split("T")[0],
-              description: `أمر تغيير: ${order.title}`,
-              isChangeOrder: true,
-              changeOrderId: order.id,
-              items: JSON.parse(order.itemsJson || "[]"),
-            };
-            const updatedList = [...list, newItem];
-            const finalJson = isWrapper ? { ...schedObj, schedule: updatedList } : updatedList;
-            await tx
-              .update(contractsEnhanced)
-              .set({ paymentScheduleJson: JSON.stringify(finalJson), updatedAt: new Date() })
-              .where(eq(contractsEnhanced.id, contract.id));
-          } catch (e) {
-            console.warn("Could not sync contract paymentScheduleJson:", e);
-          }
-        }
-
         await tx
           .update(projectChangeOrders)
           .set({
             paymentId: payment.insertId,
-            contractPaymentId,
             status: "linked_to_payment",
             fundingSource: "project_payment",
           })

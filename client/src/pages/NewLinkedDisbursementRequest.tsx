@@ -1037,22 +1037,33 @@ export default function NewLinkedDisbursementRequest() {
     });
   };
 
-  // فحص ما إذا كانت الدفعة دفعة مقدمة
-  const isAdvancePayment = (payment: any, index?: number) => {
-    if (!payment) return false;
+  const isChangeOrderPayment = (payment: any) =>
+    Boolean(
+      payment?.isChangeOrder ||
+        payment?.changeOrderId ||
+        payment?.description?.includes("أمر التغيير") ||
+        payment?.description?.includes("أمر تغيير")
+    );
+
+  // فحص ما إذا كانت الدفعة دفعة مقدمة (دفعات أوامر التغيير لا تُعد دفعة مقدمة حتى لو كانت أول دفعة تاريخياً)
+  const isAdvancePayment = (payment: any) => {
+    if (!payment || isChangeOrderPayment(payment)) return false;
     if (payment.paymentType === "advance") return true;
     if (payment.phaseOrder !== undefined && payment.phaseOrder === 0) return true;
     const desc = payment.description || "";
     if (desc.includes("مقدمة") || desc.includes("المقدمة")) return true;
-    if (index !== undefined && index === 0) return true;
-    if (projectDetails?.payments && projectDetails.payments.length > 0 && projectDetails.payments[0]?.id === payment.id) return true;
+    const firstNonCoPayment = (projectDetails?.payments || []).find(
+      (p: any) => !isChangeOrderPayment(p)
+    );
+    if (firstNonCoPayment && firstNonCoPayment.id === payment.id) return true;
     return false;
   };
 
-  // العثور على الدفعة المقدمة للمشروع
+  // العثور على الدفعة المقدمة للمشروع (أول دفعة غير مرتبطة بأمر تغيير)
   const advancePayment = useMemo(() => {
     if (!projectDetails?.payments || projectDetails.payments.length === 0) return null;
-    return projectDetails.payments.find((p: any, idx: number) => isAdvancePayment(p, idx)) || projectDetails.payments[0];
+    const nonCoPayments = projectDetails.payments.filter((p: any) => !isChangeOrderPayment(p));
+    return nonCoPayments.find((p: any) => isAdvancePayment(p)) || nonCoPayments[0] || null;
   }, [projectDetails?.payments]);
 
   // قائمة تقارير الإنجاز المعتمدة مع إدراج الدفعة المقدمة كخيار أول

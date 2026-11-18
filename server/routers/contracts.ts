@@ -572,19 +572,47 @@ export const contractsRouter = router({
         signatory.signatureUrl = firstPartySignatureUrl;
       }
 
+      // جلب أوامر التغيير المرتبطة بالمشروع لاستبعاد دفعات أوامر التغيير من العقد وتعديله ومعاينته
+      let coPaymentIds = new Set<number>();
+      let coContractPaymentIds = new Set<number>();
+      if (!input.lightweight && contract.projectId) {
+        try {
+          const coRows = await db
+            .select({
+              id: projectChangeOrders.id,
+              paymentId: projectChangeOrders.paymentId,
+              contractPaymentId: projectChangeOrders.contractPaymentId,
+            })
+            .from(projectChangeOrders)
+            .where(eq(projectChangeOrders.projectId, contract.projectId));
+          coPaymentIds = new Set(
+            coRows
+              .map(r => r.paymentId)
+              .filter((pid): pid is number => typeof pid === "number" && pid > 0)
+          );
+          coContractPaymentIds = new Set(
+            coRows
+              .map(r => r.contractPaymentId)
+              .filter((cpid): cpid is number => typeof cpid === "number" && cpid > 0)
+          );
+        } catch {}
+      }
+
       // جلب الدفعات:
-      // 1. الدفعات المجدولة في العقد من contractPayments
+      // 1. الدفعات المجدولة في العقد من contractPayments (دون دفعات أوامر التغيير)
       let paymentsList: any[] = input.lightweight
         ? []
-        : await db
-            .select()
-            .from(contractPayments)
-            .where(eq(contractPayments.contractId, input.id))
-            .orderBy(contractPayments.phaseOrder);
+        : (
+            await db
+              .select()
+              .from(contractPayments)
+              .where(eq(contractPayments.contractId, input.id))
+              .orderBy(contractPayments.phaseOrder)
+          ).filter(cp => !coContractPaymentIds.has(cp.id));
 
-      // 2. الدفعات المضافة / اليدوية المرتبطة بنفس العقد أو المشروع
+      // 2. الدفعات المضافة / اليدوية المرتبطة بنفس العقد أو المشروع (دون دفعات أوامر التغيير)
       if (!input.lightweight) {
-        const manualPayments = await db
+        const rawManualPayments = await db
           .select()
           .from(payments)
           .where(
@@ -596,6 +624,12 @@ export const contractsRouter = router({
               : eq(payments.contractId, input.id)
           )
           .orderBy(payments.createdAt);
+
+        const manualPayments = rawManualPayments.filter(
+          (p: any) =>
+            (p.changeOrderId === null || p.changeOrderId === undefined) &&
+            !coPaymentIds.has(p.id)
+        );
 
         if (manualPayments.length > 0) {
           const manualFormatted = manualPayments.map((p: any, idx: number) => ({
@@ -661,8 +695,15 @@ export const contractsRouter = router({
             typeof contract.paymentScheduleJson === "string"
               ? JSON.parse(contract.paymentScheduleJson)
               : contract.paymentScheduleJson;
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            paymentsList = parsed.map((p: any, idx: number) => ({
+          const scheduleArr = (
+            Array.isArray(parsed)
+              ? parsed
+              : Array.isArray(parsed?.schedule)
+                ? parsed.schedule
+                : []
+          ).filter((p: any) => !p?.isChangeOrder && !p?.changeOrderId);
+          if (scheduleArr.length > 0) {
+            paymentsList = scheduleArr.map((p: any, idx: number) => ({
               id: p.id || `payment_${idx + 1}`,
               contractId: input.id,
               phaseOrder: idx + 1,
@@ -1821,12 +1862,27 @@ export const contractsRouter = router({
             : scheduleParsed?.schedule || [];
 
           if (!isMilestonesSystem && Array.isArray(schedule)) {
-            // جلب الدفعات الحالية للعقد
-            const existingPayments = await db
-              .select()
-              .from(contractPayments)
-              .where(eq(contractPayments.contractId, id))
-              .orderBy(contractPayments.phaseOrder);
+            let coContractPaymentIds = new Set<number>();
+            if (contract.projectId) {
+              const coRows = await db
+                .select({ contractPaymentId: projectChangeOrders.contractPaymentId })
+                .from(projectChangeOrders)
+                .where(eq(projectChangeOrders.projectId, contract.projectId));
+              coContractPaymentIds = new Set(
+                coRows
+                  .map(r => r.contractPaymentId)
+                  .filter((cpid): cpid is number => typeof cpid === "number" && cpid > 0)
+              );
+            }
+
+            // جلب الدفعات الحالية للعقد (مع استبعاد أي دفعات مرتبطة بأوامر التغيير)
+            const existingPayments = (
+              await db
+                .select()
+                .from(contractPayments)
+                .where(eq(contractPayments.contractId, id))
+                .orderBy(contractPayments.phaseOrder)
+            ).filter(ep => !coContractPaymentIds.has(ep.id));
 
             // جلب طلبات وأوامر الصرف لمعرفة الدفعات المسددة
             const contractDisbursements = await db
@@ -2010,11 +2066,13 @@ export const contractsRouter = router({
             }
 
             // مزامنة الدفعات المحدثة فوراً في paymentScheduleJson لضمان التطابق التام دائماً
-            const freshPayments = await db
-              .select()
-              .from(contractPayments)
-              .where(eq(contractPayments.contractId, id))
-              .orderBy(contractPayments.phaseOrder);
+            const freshPayments = (
+              await db
+                .select()
+                .from(contractPayments)
+                .where(eq(contractPayments.contractId, id))
+                .orderBy(contractPayments.phaseOrder)
+            ).filter(fp => !coContractPaymentIds.has(fp.id));
 
             const syncedSchedule = freshPayments.map(fp => {
               const {

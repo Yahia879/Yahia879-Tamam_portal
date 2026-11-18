@@ -18,7 +18,10 @@ import {
   AlertCircle,
   Sparkles,
   Send,
+  FileText,
+  ChevronLeft,
 } from "lucide-react";
+import { PROGRAM_LABELS } from "@shared/constants";
 import BeneficiaryLayout from "@/components/BeneficiaryLayout";
 import { MapView } from "@/components/Map";
 import { Marker } from "react-leaflet";
@@ -38,6 +41,14 @@ export default function RequesterMosqueDetails() {
     { id: mosqueId },
     { enabled: !!mosqueId }
   );
+
+  const { data: myRequestsData } = trpc.requests.getMyRequests.useQuery(
+    { limit: 100 },
+    { enabled: !!mosqueId }
+  );
+
+  const mosqueRequestsList = (Array.isArray(myRequestsData?.requests) ? myRequestsData.requests : [])
+    .filter((r: any) => Number(r.mosqueId) === mosqueId);
 
   if (isLoading) {
     return (
@@ -397,6 +408,62 @@ export default function RequesterMosqueDetails() {
                   disabled
                   className="rounded-2xl border-border/60 text-xs min-h-[90px] bg-muted/40 dark:bg-muted/20 font-medium text-foreground cursor-default"
                 />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* سجل طلبات المسجد */}
+        <Card className="rounded-3xl border-border/60 shadow-xs overflow-hidden bg-card">
+          <CardHeader className="p-5 sm:p-6 border-b border-border/40 flex flex-row items-center justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold">
+                <FileText className="w-5 h-5 text-primary" />
+                <span>طلبات الخدمة لهذا المسجد</span>
+              </CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                جميع الطلبات النشطة والسابقة المرتبطة بهذا المسجد
+              </CardDescription>
+            </div>
+            <Badge variant="secondary" className="font-bold">
+              {mosqueRequestsList.length} طلبات
+            </Badge>
+          </CardHeader>
+          <CardContent className="p-5 sm:p-6">
+            {mosqueRequestsList.length === 0 ? (
+              <p className="text-xs sm:text-sm text-muted-foreground text-center py-6">
+                لا توجد طلبات خدمة مسجلة لهذا المسجد حتى الآن
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {mosqueRequestsList.map((req: any) => {
+                  const isRejected = req.status === "rejected" || req.technicalEvalDecision === "apologize" || req.requestTrack === "rejected";
+                  const isClosed = !isRejected && (req.currentStage === "closed" || req.status === "completed" || req.closureStatus === "confirmed");
+                  const isActive = !isRejected && !isClosed;
+                  return (
+                    <Link key={req.id} href={`/requests/${req.id}`}>
+                      <div className="p-3.5 rounded-2xl border border-border/60 hover:border-primary/40 bg-muted/20 hover:bg-muted/40 transition-all flex items-center justify-between gap-3 cursor-pointer">
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono text-xs font-bold bg-background px-2 py-0.5 rounded border">{req.requestNumber}</span>
+                            <span className="font-bold text-sm">{req.programName || PROGRAM_LABELS[req.programType] || req.programType}</span>
+                            <Badge className={`text-[10px] font-bold ${
+                              isActive ? "bg-emerald-600 text-white" : isRejected ? "bg-rose-600 text-white" : "bg-slate-600 text-white"
+                            }`}>
+                              {isActive ? "نشط" : isRejected ? "مرفوض" : "مغلق / منتهي"}
+                            </Badge>
+                          </div>
+                          {req.createdAt && (
+                            <p className="text-[11px] text-muted-foreground">
+                              تاريخ التقديم: {new Date(req.createdAt).toLocaleDateString("ar-SA")}
+                            </p>
+                          )}
+                        </div>
+                        <ChevronLeft className="w-4 h-4 text-muted-foreground shrink-0" />
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </CardContent>

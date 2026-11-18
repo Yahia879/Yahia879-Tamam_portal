@@ -610,6 +610,21 @@ export const donations = mysqlTable("donations", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+// سجل ترحيل أرصدة التبرعات بين طلبات وفرص نفس المسجد
+export const donationOpportunityTransfers = mysqlTable("donation_opportunity_transfers", {
+  id: int("id").autoincrement().primaryKey(),
+  fromOpportunityId: int("fromOpportunityId").notNull().references(() => donationOpportunities.id),
+  fromRequestId: int("fromRequestId").notNull().references(() => mosqueRequests.id),
+  toOpportunityId: int("toOpportunityId").notNull().references(() => donationOpportunities.id),
+  toRequestId: int("toRequestId").notNull().references(() => mosqueRequests.id),
+  mosqueId: int("mosqueId").references(() => mosques.id),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  reason: text("reason").notNull(),
+  closeSourceOpportunity: boolean("closeSourceOpportunity").default(false).notNull(),
+  transferredBy: int("transferredBy").references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 // أنواع الكيانات
 export const entityTypes = [
   "company",          // شركة
@@ -1575,6 +1590,8 @@ export type Contract = typeof contracts.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
 export type DonationOpportunity = typeof donationOpportunities.$inferSelect;
 export type Donation = typeof donations.$inferSelect;
+export type DonationOpportunityTransfer = typeof donationOpportunityTransfers.$inferSelect;
+export type InsertDonationOpportunityTransfer = typeof donationOpportunityTransfers.$inferInsert;
 export type Supplier = typeof suppliers.$inferSelect;
 export type Quotation = typeof quotations.$inferSelect;
 export type QuantitySchedule = typeof quantitySchedules.$inferSelect;

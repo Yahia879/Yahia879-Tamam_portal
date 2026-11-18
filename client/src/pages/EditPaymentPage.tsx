@@ -334,9 +334,9 @@ const isRequestClosed = Boolean(
     return false;
   };
 
-  // حساب المتبقي المتاح لهذه الدفعة (نستثني الدفعة الحالية من مجموع باقي الدفعات)
+  // حساب المتبقي المتاح لهذه الدفعة (نستثني الدفعة الحالية ودفعات أوامر التغيير عند تعديل دفعة عادية)
   const otherPaymentsSum = projectDetails?.payments
-    ?.filter((p: any) => p.status !== "rejected" && p.status !== "cancelled" && !isCurrentPayment(p))
+    ?.filter((p: any) => p.status !== "rejected" && p.status !== "cancelled" && !p.isChangeOrder && !isCurrentPayment(p))
     ?.reduce((sum: number, p: any) => sum + getPaymentEffectiveAmount(p), 0) || 0;
 
   const totalContractsSum = projectDetails?.contracts?.reduce((sum: number, c: any) => sum + parseFloat(c.amount || "0"), 0) || 0;
@@ -470,10 +470,44 @@ const isRequestClosed = Boolean(
   const isDateAfter100 = Boolean(dateOf100 && normalizedSelectedDate && normalizedSelectedDate > dateOf100);
   const isAfter100PercentPayment = (prevPaymentCompletion !== null && prevPaymentCompletion >= 100) || isDateAfter100;
 
+  // تحديد ما إذا كان المشروع مرتبطاً بعقد مستخلصات أم بدفعات مجدولة
+  const isMilestonesContract = useMemo(() => {
+    const contracts =
+      (projectContracts?.contracts?.length
+        ? projectContracts.contracts
+        : projectDetails?.contracts) ||
+      (contractDetails?.contract ? [contractDetails.contract] : []);
+    const approvedContracts = contracts.filter((c: any) =>
+      ["approved", "active"].includes(c.status)
+    );
+    const relevant = approvedContracts.length ? approvedContracts : contracts;
+    const systems = relevant
+      .map((c: any) => {
+        if (["installments", "milestones"].includes(c.paymentSystem)) {
+          return c.paymentSystem;
+        }
+        let sched = c.paymentScheduleJson;
+        while (typeof sched === "string") {
+          try {
+            sched = JSON.parse(sched);
+          } catch {
+            break;
+          }
+        }
+        if (Array.isArray(sched)) return "installments";
+        return sched?.paymentSystem;
+      })
+      .filter((s: any) => ["installments", "milestones"].includes(s));
+    if (systems.length) return systems.includes("milestones");
+    return Boolean(
+      projectDetails?.payments?.some((p: any) => p.source === "milestone")
+    );
+  }, [projectContracts?.contracts, projectDetails?.contracts, projectDetails?.payments, contractDetails?.contract]);
+
   // نسبة الإنجاز المعتمدة من تقرير الإنجاز أو بيانات المشروع
   const benchmarkActualProgress = Number(projectDetails?.completionPercentage || 0);
   const currentComp = formData.completionPercentage !== "" ? Number(formData.completionPercentage) : 0;
-  const isExceedingProgress = benchmarkActualProgress > 0 && (currentComp > benchmarkActualProgress);
+  const isExceedingProgress = isMilestonesContract && benchmarkActualProgress > 0 && (currentComp > benchmarkActualProgress);
 
   // حساب مجموع مبالغ الدفعات السابقة لتحديد نسبة الإنجاز التراكمية تلقائياً
   const effectivePriorPaymentsSum = useMemo(() => {

@@ -907,19 +907,15 @@ export default function ProjectDetailsPage() {
     )
   );
 
+  const actualCostNum = parseFloat(String(project?.actualCost || "0").replace(/,/g, "")) || 0;
+  const budgetNum = parseFloat(String(project?.budget || "0").replace(/,/g, "")) || 0;
   const effectiveContractAmount = Math.max(
     totalContractsSum,
-    parseFloat(String(project?.actualCost || "0").replace(/,/g, "")) || 0,
-    parseFloat(String(project?.budget || "0").replace(/,/g, "")) || 0
+    actualCostNum,
+    budgetNum
   );
 
   const isContractFullyPaid = effectiveContractAmount > 0 && paidPaymentsSum >= (effectiveContractAmount - 0.05);
-
-  const unscheduledContractSum = Math.max(0, effectiveContractAmount - allPaymentsSum);
-  const remainingContractSum = Math.max(0, effectiveContractAmount - paidPaymentsSum);
-  // مبالغ الملخص معروضة بالريال الكامل؛ نوحّد سماحية التقريب مع اكتمال جدولة الدفعات.
-  const paymentScheduleRoundingTolerance = 0.5;
-  const isContractFullyAllocated = effectiveContractAmount > 0 && unscheduledContractSum <= paymentScheduleRoundingTolerance;
 
   const activeChangeOrders = (changeOrdersData?.orders || []).filter((co: any) => co.status !== "rejected");
   const pendingPaymentChangeOrders = activeChangeOrders.filter((co: any) => {
@@ -931,12 +927,31 @@ export default function ProjectDetailsPage() {
     return remainingAmt > 0.05;
   });
   const activeChangeOrdersTotal = activeChangeOrders.reduce((sum: number, co: any) => sum + (parseFloat(String(co.amount || "0")) || 0), 0);
+  // أوامر التغيير الممولة من الفائض تُصرف عبر الصندوق ولا تُجدول كدفعات في قسم الدفعات، لذا تُستبعد من حساب «متبقي غير مجدول»
+  const surplusChangeOrdersTotal = activeChangeOrders
+    .filter((co: any) => Boolean(co.disbursementRequestId) || co.fundingSource === "fund_surplus")
+    .reduce((sum: number, co: any) => sum + (parseFloat(String(co.amount || "0")) || 0), 0);
+  const nonSurplusChangeOrdersTotal = Math.max(0, activeChangeOrdersTotal - surplusChangeOrdersTotal);
+
+  const nonSurplusActualCost = Math.max(0, actualCostNum - surplusChangeOrdersTotal);
+  const schedulableContractAmount = totalContractsSum > 0
+    ? Math.max(totalContractsSum, nonSurplusActualCost)
+    : Math.max(0, (actualCostNum > 0 ? actualCostNum : budgetNum) - surplusChangeOrdersTotal);
+
+  const unscheduledContractSum = Math.max(0, schedulableContractAmount - allPaymentsSum);
+  const remainingContractSum = Math.max(0, effectiveContractAmount - paidPaymentsSum);
+  // مبالغ الملخص معروضة بالريال الكامل؛ نوحّد سماحية التقريب مع اكتمال جدولة الدفعات.
+  const paymentScheduleRoundingTolerance = 0.5;
+  const isContractFullyAllocated = schedulableContractAmount > 0 && unscheduledContractSum <= paymentScheduleRoundingTolerance;
+
   const changeOrderPaymentsSum = (project?.payments || []).reduce((sum: number, p: any) => {
     if (!p.isChangeOrder || p.status === "rejected" || p.status === "cancelled") return sum;
     return sum + getPaymentEffectiveAmount(p);
   }, 0);
 
-  const baseContractAmount = Math.max(0, effectiveContractAmount - activeChangeOrdersTotal);
+  const baseContractAmount = totalContractsSum > 0
+    ? Math.max(0, schedulableContractAmount - nonSurplusChangeOrdersTotal)
+    : Math.max(0, effectiveContractAmount - activeChangeOrdersTotal);
   const basePaymentsSum = Math.max(0, allPaymentsSum - changeOrderPaymentsSum);
   const baseUnscheduledContractSum = Math.max(0, baseContractAmount - basePaymentsSum);
   const isBaseContractFullyAllocated = baseContractAmount > 0 && baseUnscheduledContractSum <= paymentScheduleRoundingTolerance;
@@ -979,6 +994,18 @@ export default function ProjectDetailsPage() {
     if (cmp !== 0) return cmp;
     return (a.phaseOrder ?? 999) - (b.phaseOrder ?? 999);
   });
+
+  const isChangeOrderPaymentRow = (p: any) =>
+    Boolean(
+      p?.isChangeOrder ||
+        p?.changeOrderId ||
+        p?.description?.includes("أمر التغيير") ||
+        p?.description?.includes("أمر تغيير")
+    );
+
+  // أول دفعة غير مرتبطة بأمر تغيير هي التي تُصرف دون تقرير إنجاز حتى لو سبقها أمر تغيير بالتاريخ
+  const firstNonChangeOrderPaymentId =
+    sortedPayments.find(p => !isChangeOrderPaymentRow(p))?.id ?? null;
 
   // أيقونة الريال المخصصة لشريط التنقل لتأخذ ألوان الأيقونات الأخرى (أخضر في الحالة العادية وأبيض عند التحديد)
   const RiyalNavIcon = ({ className = "w-4 h-4", style, ...props }: { className?: string; style?: React.CSSProperties; [key: string]: any }) => (
@@ -2784,7 +2811,7 @@ export default function ProjectDetailsPage() {
                                   <TableCell className="text-center py-3.5 px-4">
                                     <div className="flex items-center gap-1.5 justify-center">
                                       {arePaymentsComplete && isUnpaid && (
-                                        index === 0 ? (
+                                        !isChangeOrderPaymentRow(payment) && payment.id === firstNonChangeOrderPaymentId ? (
                                           <Button
                                             size="sm"
                                             disabled={hasDisbursement || isRequestClosed}

@@ -558,6 +558,40 @@ export default function NewDisbursementRequest() {
     ? Number(currContractPayment.completionPercentage)
     : null;
 
+  // تحديد ما إذا كان المشروع مرتبطاً بعقد مستخلصات أم بدفعات مجدولة
+  const isMilestonesContract = useMemo(() => {
+    const contracts =
+      (projectContracts?.contracts?.length
+        ? projectContracts.contracts
+        : projectDetails?.contracts) ||
+      (contractDetails?.contract ? [contractDetails.contract] : []);
+    const approvedContracts = contracts.filter((c: any) =>
+      ["approved", "active"].includes(c.status)
+    );
+    const relevant = approvedContracts.length ? approvedContracts : contracts;
+    const systems = relevant
+      .map((c: any) => {
+        if (["installments", "milestones"].includes(c.paymentSystem)) {
+          return c.paymentSystem;
+        }
+        let sched = c.paymentScheduleJson;
+        while (typeof sched === "string") {
+          try {
+            sched = JSON.parse(sched);
+          } catch {
+            break;
+          }
+        }
+        if (Array.isArray(sched)) return "installments";
+        return sched?.paymentSystem;
+      })
+      .filter((s: any) => ["installments", "milestones"].includes(s));
+    if (systems.length) return systems.includes("milestones");
+    return Boolean(
+      projectDetails?.payments?.some((p: any) => p.source === "milestone")
+    );
+  }, [projectContracts?.contracts, projectDetails?.contracts, projectDetails?.payments, contractDetails?.contract]);
+
   // نسبة الإنجاز المعتمدة من تقرير الإنجاز المعتمد أو بيانات المشروع
   const benchmarkActualProgress = selectedReport
     ? (selectedReport.plannedProgress !== null && selectedReport.plannedProgress !== undefined ? Number(selectedReport.plannedProgress) : Number(projectDetails?.completionPercentage || 0))
@@ -567,8 +601,8 @@ export default function NewDisbursementRequest() {
   const newCumulativePaidSum = (totalPaymentsSum || 0) + totalAmount;
   const newCumulativePaidPct = contractAmount > 0 ? (newCumulativePaidSum / contractAmount) * 100 : currentComp;
 
-  // فحص هل المستخلص أو الدفعة تتجاوز نسبة الإنجاز الفعلي المعتمدة
-  const isExceedingProgress = benchmarkActualProgress > 0 && (
+  // فحص هل المستخلص يتجاوز نسبة الإنجاز الفعلي المعتمدة (يطبق فقط على مشاريع المستخلصات وليس مشاريع الدفعات)
+  const isExceedingProgress = isMilestonesContract && benchmarkActualProgress > 0 && (
     currentComp > benchmarkActualProgress || 
     (contractAmount > 0 && newCumulativePaidPct > benchmarkActualProgress + 0.5)
   );

@@ -25,6 +25,7 @@ import { PROGRAM_LABELS, STAGE_LABELS } from "@shared/constants";
 import { toast } from "sonner";
 import { PermissionGuard } from "@/components/PermissionGuard";
 import { mosqueHasImam } from "@shared/mosquePermissions";
+import { getRequestLifecycleCategory } from "@shared/mosqueRequests";
 
 const approvalLabels: Record<string, string> = {
   pending: "قيد المراجعة",
@@ -240,23 +241,47 @@ export default function MosqueDetails() {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {mosqueRequests.map((req: any) => (
-                          <div
-                            key={req.id}
-                            className="flex items-center justify-between p-4 border rounded-lg"
-                          >
-                            <div className="space-y-1">
-                              <p className="font-mono text-sm font-semibold text-muted-foreground">{req.requestNumber}</p>
-                              <p className="font-medium">{PROGRAM_LABELS[req.programType as keyof typeof PROGRAM_LABELS] || req.programType}</p>
-                              <p className="text-xs text-muted-foreground">{new Date(req.createdAt).toLocaleDateString('ar-SA')}</p>
-                            </div>
-                            <div className="text-left">
-                              <Badge variant="outline">
-                                {STAGE_LABELS[req.currentStage as keyof typeof STAGE_LABELS] || req.currentStage}
-                              </Badge>
-                            </div>
+                        {mosqueRequests.length > 1 && (
+                          <div className="p-3 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 text-xs font-medium text-indigo-900 dark:text-indigo-200">
+                            ملاحظة: يرتبط بهذا المسجد ({mosqueRequests.length}) طلبات منفصلة؛ كل طلب يُعالج بمساره الخاص.
                           </div>
-                        ))}
+                        )}
+                        {mosqueRequests.map((req: any) => {
+                          const cat = getRequestLifecycleCategory(req);
+                          return (
+                            <div
+                              key={req.id}
+                              onClick={() => setLocation(`/requests/${req.id}`)}
+                              className="flex items-center justify-between p-4 border rounded-xl hover:border-primary/40 hover:bg-muted/30 transition-colors cursor-pointer gap-3"
+                            >
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="font-mono text-sm font-bold text-foreground">{req.requestNumber}</p>
+                                  <Badge className={`text-[10px] ${
+                                    cat === "active"
+                                      ? "bg-emerald-600 text-white"
+                                      : cat === "rejected"
+                                      ? "bg-rose-600 text-white"
+                                      : "bg-slate-600 text-white"
+                                  }`}>
+                                    {cat === "active" ? "نشط" : cat === "rejected" ? "مرفوض / معتذر" : "مغلق / مكتمل"}
+                                  </Badge>
+                                </div>
+                                <p className="font-medium">{PROGRAM_LABELS[req.programType as keyof typeof PROGRAM_LABELS] || req.programType}</p>
+                                <p className="text-xs text-muted-foreground">{new Date(req.createdAt).toLocaleDateString('ar-SA')}</p>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <Badge variant="outline">
+                                  {STAGE_LABELS[req.currentStage as keyof typeof STAGE_LABELS] || req.currentStage}
+                                </Badge>
+                                <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                  عرض
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </CardContent>

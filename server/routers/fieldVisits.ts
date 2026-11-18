@@ -144,12 +144,13 @@ export const fieldVisitsRouter = router({
         newValues: { requestId, visitDate, visitTime, assignedUserId },
       });
 
-      // إضافة التعليق إلى request_comments إذا كان موجوداً
+      // إضافة التعليق إلى request_comments كتعليق داخلي للفريق إذا كان موجوداً
       if (notes && notes.trim()) {
         await db.insert(requestComments).values({
           requestId,
           userId: ctx.user.id,
           comment: `📅 تعليق من جدولة الزيارة الميدانية:\n${notes}`,
+          isInternal: true,
           isRead: false,
         });
       }
