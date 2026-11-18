@@ -18,6 +18,7 @@ import Dashboard from "./pages/Dashboard";
 import InformationDashboard from "./pages/InformationDashboard";
 import BoardDashboard from "./pages/BoardDashboard";
 import RequesterDashboard from "./pages/RequesterDashboard";
+import RequesterEvaluations from "./pages/RequesterEvaluations";
 import RequesterApprovals from "./pages/RequesterApprovals";
 import RequesterApprovalDetails from "./pages/RequesterApprovalDetails";
 
@@ -281,6 +282,7 @@ function Router() {
       <Route path="/board-analytics">{() => <AdminRoute component={BoardDashboard} />}</Route>
       <Route path="/requester">{() => <RequesterRoute component={RequesterDashboard} />}</Route>
       <Route path="/requester/dashboard">{() => <RequesterRoute component={RequesterDashboard} />}</Route>
+      <Route path="/requester/evaluations">{() => <RequesterRoute component={RequesterEvaluations} />}</Route>
       <Route path="/my-requests">
         {() => (
           <ProtectedRoute allowedRoles={["service_requester", "field_team", "quick_response", "projects_office", "super_admin", "system_admin"]}>

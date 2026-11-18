@@ -638,6 +638,7 @@ export const EXEMPT_ROUTES = new Set([
 export const REQUESTER_ROUTES = new Set([
   "/requester",
   "/requester/dashboard",
+  "/requester/evaluations",
   "/my-mosques",
   "/requester/mosques/new",
   "/my-requests",

@@ -33,12 +33,13 @@ import {
   X,
   ChevronLeft,
   Sparkles,
+  Star,
 } from "lucide-react";
 import RequesterPendingOutboundModal from "@/components/sedana/RequesterPendingOutboundModal";
 
 interface BeneficiaryLayoutProps {
   children: React.ReactNode;
-  activeTab?: "dashboard" | "requests" | "mosques" | "new-request" | "sedana" | "support";
+  activeTab?: "dashboard" | "requests" | "mosques" | "evaluations" | "new-request" | "sedana" | "support";
   title?: string;
   subtitle?: string;
   headerActions?: React.ReactNode;
@@ -112,6 +113,12 @@ export default function BeneficiaryLayout({
       label: "مساجدي",
       icon: Building2,
       path: "/my-mosques",
+    },
+    {
+      id: "evaluations",
+      label: "التقييمات الميدانية",
+      icon: Star,
+      path: "/requester/evaluations",
     },
     ...(isSedanaAllowed
       ? [
