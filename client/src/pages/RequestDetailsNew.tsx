@@ -285,9 +285,6 @@ export default function RequestDetailsNew() {
   const [newCommentIsInternal, setNewCommentIsInternal] = useState<boolean>(() => user?.role !== "service_requester");
   const [commentsFilter, setCommentsFilter] = useState<"all" | "internal" | "public">("all");
   const [showSiblingRequestsModal, setShowSiblingRequestsModal] = useState(false);
-  const [showEditCollectedModal, setShowEditCollectedModal] = useState(false);
-  const [collectedAmountInput, setCollectedAmountInput] = useState("");
-  const [collectedNotesInput, setCollectedNotesInput] = useState("");
   const [showTransferDonationModal, setShowTransferDonationModal] = useState(false);
   const [transferTargetRequestId, setTransferTargetRequestId] = useState("");
   const [transferAmount, setTransferAmount] = useState("");
@@ -910,22 +907,6 @@ export default function RequestDetailsNew() {
   const [showConfirmCloseModal, setShowConfirmCloseModal] = useState(false);
   const [showRejectCloseModal, setShowRejectCloseModal] = useState(false);
   const [closureRejectionReason, setCloseRejectionReason] = useState("");
-
-  const canManageDonations = Boolean(
-    user && (isAdmin || ["financial", "financial_manager", "projects_office"].includes(user.role))
-  );
-
-  const updateCollectedAmountMutation = trpc.requests.updateDonationCollectedAmount.useMutation({
-    onSuccess: (data) => {
-      toast.success(`تم تحديث المبلغ المجمّع إلى ${Number(data.collectedAmount).toLocaleString()} ر.س`);
-      setShowEditCollectedModal(false);
-      utils.requests.getById.invalidate({ id: requestId });
-      utils.disbursements.getActiveDonations.invalidate();
-    },
-    onError: (err) => {
-      toast.error(formatErrorMessage(err, "فشل تحديث المبلغ المجمّع"));
-    },
-  });
 
   const transferDonationMutation = trpc.requests.transferDonationBalance.useMutation({
     onSuccess: (data) => {
@@ -1878,30 +1859,6 @@ export default function RequestDetailsNew() {
 
             {/* Header Actions Toolbar */}
             <div className="flex items-center gap-2 flex-wrap sm:self-center">
-              {user?.role !== "service_requester" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 gap-1.5 border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-900/60 dark:text-purple-300 dark:hover:bg-purple-950/40 font-bold cursor-pointer relative"
-                  onClick={() => {
-                    setCommentsOpen(true);
-                    markAsReadMutation.mutate({ requestId });
-                  }}
-                >
-                  <MessageSquare className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                  <span>{isEn ? "Comments & Messages" : "التعليقات والرسائل"}</span>
-                  {((request as any)?.comments?.length || 0) > 0 && (
-                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200">
-                      {(request as any).comments.length}
-                    </Badge>
-                  )}
-                  {(unreadData?.count || 0) > 0 && (
-                    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-extrabold rounded-full bg-rose-600 text-white">
-                      {unreadData?.count}
-                    </span>
-                  )}
-                </Button>
-              )}
               {canTransferToBeneficiary && request.canTransferToBeneficiary && (
                 <RequestBeneficiaryTransfer requestId={request.id} requestNumber={request.requestNumber} />
               )}
@@ -2102,123 +2059,6 @@ export default function RequestDetailsNew() {
                 <Building2 className="w-3.5 h-3.5" />
                 <span>{siblingRequests.length > 1 ? `عرض الكل (${siblingRequests.length})` : "التفاصيل"}</span>
               </Button>
-            </div>
-          );
-        })()}
-
-        {/* بطاقة فرصة التبرع والأرصدة والترحيل (للموظفين) */}
-        {user?.role !== "service_requester" && (request as any).donationOpportunity && (() => {
-          const opp = (request as any).donationOpportunity;
-          const transfers = (request as any).donationTransfers || { outgoing: [], incoming: [] };
-          const siblingRequests = ((request as any).siblingMosqueRequests || []) as any[];
-          const activeSiblings = siblingRequests.filter((s) => s.isActive);
-          const collectedNum = Number(opp.collectedAmount || 0);
-          const targetNum = Number(opp.targetAmount || 0);
-          const oppStatusLabel = opp.status === "completed" ? "مكتملة" : opp.status === "closed" ? "مغلقة" : "نشطة";
-          return (
-            <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-pink-50/70 dark:bg-pink-950/20 border-2 border-pink-200 dark:border-pink-900/60 shadow-xs space-y-4">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-start gap-3.5 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-pink-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                    <HeartHandshake className="w-5 h-5" />
-                  </div>
-                  <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-bold text-sm sm:text-base text-foreground">{opp.title}</h4>
-                      <Badge className={`text-[10px] font-bold ${
-                        opp.status === "active"
-                          ? "bg-emerald-600 text-white"
-                          : opp.status === "completed"
-                          ? "bg-blue-600 text-white"
-                          : "bg-slate-600 text-white"
-                      }`}>
-                        {oppStatusLabel}
-                      </Badge>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-4 text-xs">
-                      <span className="text-muted-foreground">
-                        المبلغ المستهدف:{" "}
-                        <strong className="text-foreground inline-flex items-center gap-1">
-                          {targetNum.toLocaleString()} <SaudiRiyal size={12} />
-                        </strong>
-                      </span>
-                      <span className="text-muted-foreground">
-                        المبلغ المجمّع المتاح:{" "}
-                        <strong className="text-pink-700 dark:text-pink-300 inline-flex items-center gap-1">
-                          {collectedNum.toLocaleString()} <SaudiRiyal size={12} />
-                        </strong>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                {canManageDonations && (
-                  <div className="flex flex-wrap items-center gap-2 shrink-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-9 gap-1.5 border-pink-300 bg-white dark:bg-slate-900 text-pink-700 dark:text-pink-300 font-bold cursor-pointer"
-                      onClick={() => {
-                        setCollectedAmountInput(String(collectedNum));
-                        setCollectedNotesInput("");
-                        setShowEditCollectedModal(true);
-                      }}
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      <span>تحديث المبلغ المجمّع</span>
-                    </Button>
-                    {collectedNum > 0 && activeSiblings.length > 0 && (
-                      <Button
-                        size="sm"
-                        className="h-9 gap-1.5 bg-pink-600 hover:bg-pink-700 text-white font-bold cursor-pointer"
-                        onClick={() => {
-                          setTransferTargetRequestId(String(activeSiblings[0].id));
-                          setTransferAmount(String(collectedNum));
-                          setTransferReason("");
-                          setTransferCloseSource(true);
-                          setShowTransferDonationModal(true);
-                        }}
-                      >
-                        <ArrowRightLeft className="w-3.5 h-3.5" />
-                        <span>ترحيل المبلغ لطلب آخر للمسجد</span>
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {(transfers.outgoing?.length > 0 || transfers.incoming?.length > 0) && (
-                <div className="pt-3 border-t border-pink-200/70 dark:border-pink-900/50 space-y-2">
-                  <p className="text-xs font-bold text-foreground">سجل ترحيلات أرصدة التبرعات:</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {transfers.outgoing?.map((tr: any) => (
-                      <div key={`out-${tr.id}`} className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-rose-200/80 dark:border-rose-900/50 text-xs flex items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <span className="font-bold text-rose-700 dark:text-rose-300">
-                            ترحيل صادر: {Number(tr.amount).toLocaleString()} ر.س
-                          </span>
-                          <p className="text-muted-foreground truncate">إلى الطلب {tr.toRequestNumber} • {tr.reason}</p>
-                        </div>
-                        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs shrink-0" onClick={() => setLocation(`/requests/${tr.toRequestId}`)}>
-                          عرض
-                        </Button>
-                      </div>
-                    ))}
-                    {transfers.incoming?.map((tr: any) => (
-                      <div key={`in-${tr.id}`} className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-emerald-200/80 dark:border-emerald-900/50 text-xs flex items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <span className="font-bold text-emerald-700 dark:text-emerald-300">
-                            رصيد وارد مرحّل: {Number(tr.amount).toLocaleString()} ر.س
-                          </span>
-                          <p className="text-muted-foreground truncate">من الطلب {tr.fromRequestNumber} • {tr.reason}</p>
-                        </div>
-                        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs shrink-0" onClick={() => setLocation(`/requests/${tr.fromRequestId}`)}>
-                          عرض
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           );
         })()}
@@ -6302,63 +6142,6 @@ export default function RequestDetailsNew() {
               );
             })()}
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* نافذة تحديث المبلغ المجمّع لفرصة التبرع */}
-      <Dialog open={showEditCollectedModal} onOpenChange={setShowEditCollectedModal}>
-        <DialogContent className="max-w-md" dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-bold">
-              <HeartHandshake className="w-5 h-5 text-pink-600" />
-              <span>تحديث المبلغ المجمّع لفرصة التبرع</span>
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>المبلغ المجمّع الفعلي (ر.س)</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                value={collectedAmountInput}
-                onChange={(e) => setCollectedAmountInput(e.target.value)}
-                placeholder="مثال: 15000"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>ملاحظة / مرجع التحديث (اختياري)</Label>
-              <Textarea
-                value={collectedNotesInput}
-                onChange={(e) => setCollectedNotesInput(e.target.value)}
-                placeholder="مثال: إجمالي التبرعات الواردة على الفرصة حتى تاريخه..."
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowEditCollectedModal(false)} disabled={updateCollectedAmountMutation.isPending}>
-              إلغاء
-            </Button>
-            <Button
-              className="bg-pink-600 hover:bg-pink-700 text-white font-bold"
-              disabled={updateCollectedAmountMutation.isPending}
-              onClick={() => {
-                const amt = parseFloat(collectedAmountInput);
-                if (!Number.isFinite(amt) || amt < 0) {
-                  toast.error("يرجى إدخال مبلغ صحيح");
-                  return;
-                }
-                updateCollectedAmountMutation.mutate({
-                  requestId,
-                  collectedAmount: amt,
-                  notes: collectedNotesInput.trim() || undefined,
-                });
-              }}
-            >
-              {updateCollectedAmountMutation.isPending ? "جاري الحفظ..." : "حفظ المبلغ"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
