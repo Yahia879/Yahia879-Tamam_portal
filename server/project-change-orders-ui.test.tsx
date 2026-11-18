@@ -142,4 +142,15 @@ describe("project change order view", () => {
     expect(html).toContain("الدفعة المرتبطة: PAY-2026-0042");
     expect(html).toContain("مرتبط بدفعة جديدة للمشروع");
   });
+
+  it("shows multi-payment summary and remaining balance when split across payments", () => {
+    state.data.orders[0].paymentId = 42;
+    state.data.orders[0].paymentsCount = 2;
+    state.data.orders[0].allocatedPaymentAmount = 3000;
+    state.data.orders[0].remainingPaymentAmount = 2000;
+    state.data.orders[0].status = "linked_to_payment";
+    const html = render();
+    expect(html).toContain("الدفعات المرتبطة (2): 3,000.00 ر.س");
+    expect(html).toContain("متبقي للجدولة في قسم الدفعات: 2,000.00 ر.س");
+  });
 });

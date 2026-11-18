@@ -1531,7 +1531,11 @@ export const projectsRouter = router({
         }
 
         const matchedCoManual = projectCoRows.find(
-          co => co.paymentId === p.id
+          co =>
+            (p.changeOrderId !== null &&
+              p.changeOrderId !== undefined &&
+              co.id === p.changeOrderId) ||
+            co.paymentId === p.id
         );
 
         unifiedPayments.push({
@@ -3177,6 +3181,23 @@ export const projectsRouter = router({
           )
         );
 
+      const existingCoLinkedPayments = await db
+        .select({
+          id: payments.id,
+          amount: payments.amount,
+          changeOrderId: payments.changeOrderId,
+          status: payments.status,
+        })
+        .from(payments)
+        .where(
+          and(
+            eq(payments.projectId, input.projectId),
+            ne(payments.status, "rejected")
+          )
+        );
+
+      let targetCoForUpdate: (typeof activeChangeOrders)[number] | undefined;
+
       if (input.changeOrderId) {
         const targetCo = activeChangeOrders.find(
           co => co.id === input.changeOrderId
@@ -3187,23 +3208,57 @@ export const projectsRouter = router({
             message: "أمر التغيير غير موجود أو غير معتمد لهذا المشروع",
           });
         }
-        if (targetCo.paymentId || targetCo.disbursementRequestId) {
+        if (targetCo.disbursementRequestId) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "تم إنشاء دفعة أو طلب صرف لأمر التغيير هذا مسبقاً",
+            message: "تم إنشاء طلب صرف من الفائض لأمر التغيير هذا مسبقاً",
           });
         }
-        if (Math.abs(input.amount - Number(targetCo.amount || 0)) > 0.05) {
+
+        const linkedToTargetCo = existingCoLinkedPayments.filter(
+          p => p.changeOrderId === targetCo.id || p.id === targetCo.paymentId
+        );
+        let alreadyAllocated = linkedToTargetCo.reduce(
+          (sum, p) => sum + parseFloat(String(p.amount || "0")),
+          0
+        );
+        if (linkedToTargetCo.length === 0 && targetCo.contractPaymentId) {
+          const [matchedCp] = await db
+            .select({ amount: contractPayments.amount })
+            .from(contractPayments)
+            .where(eq(contractPayments.id, targetCo.contractPaymentId))
+            .limit(1);
+          if (matchedCp) {
+            alreadyAllocated = parseFloat(String(matchedCp.amount || "0"));
+          }
+        }
+
+        const remainingForCo = Math.max(
+          0,
+          Number(targetCo.amount || 0) - alreadyAllocated
+        );
+        if (remainingForCo <= 0.05) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "قيمة الدفعة يجب أن تطابق قيمة أمر التغيير",
+            message: "تمت جدولة كامل مبلغ أمر التغيير مسبقاً",
           });
         }
+        if (input.amount > remainingForCo + 0.05) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `مبلغ الدفعة (${input.amount.toLocaleString()} ريال) يتجاوز المتبقي من أمر التغيير (${remainingForCo.toLocaleString()} ريال)`,
+          });
+        }
+        targetCoForUpdate = targetCo;
       }
 
-      const coPaymentIds = new Set(
-        activeChangeOrders.map(co => co.paymentId).filter(Boolean)
-      );
+      const coPaymentIds = new Set<number>();
+      for (const co of activeChangeOrders) {
+        if (co.paymentId) coPaymentIds.add(co.paymentId);
+      }
+      for (const p of existingCoLinkedPayments) {
+        if (p.changeOrderId) coPaymentIds.add(p.id);
+      }
       const coContractPaymentIds = new Set(
         activeChangeOrders.map(co => co.contractPaymentId).filter(Boolean)
       );
@@ -3376,6 +3431,7 @@ export const projectsRouter = router({
         paymentNumber,
         projectId: input.projectId,
         contractId: input.contractId,
+        changeOrderId: input.changeOrderId ?? null,
         amount: input.amount.toString(),
         paymentType: input.paymentType,
         description: paymentLabel,
@@ -3423,7 +3479,7 @@ export const projectsRouter = router({
         await db
           .update(projectChangeOrders)
           .set({
-            paymentId: payment.insertId,
+            paymentId: targetCoForUpdate?.paymentId || payment.insertId,
             status: "linked_to_payment",
             fundingSource: "project_payment",
           })
@@ -3701,6 +3757,56 @@ export const projectsRouter = router({
           mDisbs.some(d => d.status === "paid");
         const mActualPaid = mIsPaid ? mAgreedAmt : mPaidOrdersSum;
 
+        let matchedCo: any = null;
+        let changeOrderOtherAllocatedAmount = 0;
+        if (payment.projectId) {
+          const projectCos = await db
+            .select({
+              id: projectChangeOrders.id,
+              orderNumber: projectChangeOrders.orderNumber,
+              amount: projectChangeOrders.amount,
+              paymentId: projectChangeOrders.paymentId,
+            })
+            .from(projectChangeOrders)
+            .where(
+              and(
+                eq(projectChangeOrders.projectId, payment.projectId),
+                ne(projectChangeOrders.status, "rejected")
+              )
+            );
+          matchedCo =
+            projectCos.find(
+              co =>
+                (payment.changeOrderId !== null &&
+                  payment.changeOrderId !== undefined &&
+                  co.id === payment.changeOrderId) ||
+                co.paymentId === payment.id
+            ) || null;
+          if (matchedCo) {
+            const coPayments = await db
+              .select({
+                id: payments.id,
+                amount: payments.amount,
+                changeOrderId: payments.changeOrderId,
+              })
+              .from(payments)
+              .where(
+                and(
+                  eq(payments.projectId, payment.projectId),
+                  ne(payments.status, "rejected")
+                )
+              );
+            changeOrderOtherAllocatedAmount = coPayments
+              .filter(
+                p =>
+                  p.id !== payment.id &&
+                  (p.changeOrderId === matchedCo.id ||
+                    p.id === matchedCo.paymentId)
+              )
+              .reduce((sum, p) => sum + parseFloat(String(p.amount || 0)), 0);
+          }
+        }
+
         return {
           id: input.id,
           projectId: payment.projectId || 0,
@@ -3722,6 +3828,11 @@ export const projectsRouter = router({
               ? payment.completionPercentage
               : null,
           items: manualItems,
+          isChangeOrder: Boolean(matchedCo),
+          changeOrderId: matchedCo?.id ?? null,
+          changeOrderNumber: matchedCo?.orderNumber ?? null,
+          changeOrderAmount: matchedCo ? parseFloat(String(matchedCo.amount || 0)) : null,
+          changeOrderOtherAllocatedAmount,
         };
       } else if (input.id.startsWith("cp-")) {
         const actualId = parseInt(input.id.replace("cp-", ""));
@@ -4071,6 +4182,78 @@ export const projectsRouter = router({
           code: "BAD_REQUEST",
           message: "معرف الدفعة غير صالح",
         });
+      }
+
+      // التحقق من أن الدفعة المرتبطة بأمر تغيير لا تتجاوز إجمالي أمر التغيير
+      if (targetProjectId > 0 && (manualRec || cpRec || disbRec)) {
+        const projectCos = await db
+          .select({
+            id: projectChangeOrders.id,
+            amount: projectChangeOrders.amount,
+            paymentId: projectChangeOrders.paymentId,
+            contractPaymentId: projectChangeOrders.contractPaymentId,
+            disbursementRequestId: projectChangeOrders.disbursementRequestId,
+          })
+          .from(projectChangeOrders)
+          .where(
+            and(
+              eq(projectChangeOrders.projectId, targetProjectId),
+              ne(projectChangeOrders.status, "rejected")
+            )
+          );
+
+        const matchedCo = manualRec
+          ? projectCos.find(
+              co =>
+                (manualRec.changeOrderId !== null &&
+                  manualRec.changeOrderId !== undefined &&
+                  co.id === manualRec.changeOrderId) ||
+                co.paymentId === manualRec.id
+            )
+          : cpRec
+          ? projectCos.find(co => co.contractPaymentId === cpRec.id)
+          : disbRec
+          ? projectCos.find(
+              co =>
+                co.disbursementRequestId === disbRec.id ||
+                (disbRec.paymentId && co.paymentId === disbRec.paymentId)
+            )
+          : undefined;
+
+        if (matchedCo) {
+          const coPayments = await db
+            .select({
+              id: payments.id,
+              amount: payments.amount,
+              changeOrderId: payments.changeOrderId,
+            })
+            .from(payments)
+            .where(
+              and(
+                eq(payments.projectId, targetProjectId),
+                ne(payments.status, "rejected")
+              )
+            );
+          const currentManualId = manualRec?.id ?? disbRec?.paymentId ?? null;
+          const otherCoAllocated = coPayments
+            .filter(
+              p =>
+                (currentManualId === null || p.id !== currentManualId) &&
+                (p.changeOrderId === matchedCo.id || p.id === matchedCo.paymentId)
+            )
+            .reduce((sum, p) => sum + parseFloat(String(p.amount || "0")), 0);
+
+          const remainingCoAllowed = Math.max(
+            0,
+            parseFloat(String(matchedCo.amount || "0")) - otherCoAllocated
+          );
+          if (input.amount > remainingCoAllowed + 0.05) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `المبلغ (${input.amount.toLocaleString()} ريال) يتجاوز المتبقي المتاح من أمر التغيير (${remainingCoAllowed.toLocaleString()} ريال)`,
+            });
+          }
+        }
       }
 
       // التحقق من أن المبلغ المعدل لا يتجاوز إجمالي العقد مع بقية الدفعات الأخرى

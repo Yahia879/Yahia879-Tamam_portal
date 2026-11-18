@@ -510,7 +510,7 @@ export default function ProjectDetailsPage() {
         id &&
         parseInt(id || "0") > 0 &&
         !isSedanaProgram &&
-        !isChangeOrdersLocked &&
+        (!isChangeOrdersLocked || !isPaymentsLocked) &&
         (canViewDetails || canViewFinancials || isAdmin)
       ),
     }
@@ -922,7 +922,14 @@ export default function ProjectDetailsPage() {
   const isContractFullyAllocated = effectiveContractAmount > 0 && unscheduledContractSum <= paymentScheduleRoundingTolerance;
 
   const activeChangeOrders = (changeOrdersData?.orders || []).filter((co: any) => co.status !== "rejected");
-  const pendingPaymentChangeOrders = activeChangeOrders.filter((co: any) => !co.disbursementRequestId && !co.paymentId);
+  const pendingPaymentChangeOrders = activeChangeOrders.filter((co: any) => {
+    if (co.disbursementRequestId) return false;
+    const totalAmt = parseFloat(String(co.amount || "0")) || 0;
+    const remainingAmt = co.remainingPaymentAmount !== undefined
+      ? Number(co.remainingPaymentAmount)
+      : (co.paymentId ? 0 : totalAmt);
+    return remainingAmt > 0.05;
+  });
   const activeChangeOrdersTotal = activeChangeOrders.reduce((sum: number, co: any) => sum + (parseFloat(String(co.amount || "0")) || 0), 0);
   const changeOrderPaymentsSum = (project?.payments || []).reduce((sum: number, p: any) => {
     if (!p.isChangeOrder || p.status === "rejected" || p.status === "cancelled") return sum;
@@ -3070,7 +3077,13 @@ export default function ProjectDetailsPage() {
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-2.5 max-h-[60vh] overflow-y-auto py-2">
-                      {pendingPaymentChangeOrders.map((co: any) => (
+                      {pendingPaymentChangeOrders.map((co: any) => {
+                        const coTotal = parseFloat(String(co.amount || "0")) || 0;
+                        const coAllocated = Number(co.allocatedPaymentAmount || 0);
+                        const coRemaining = co.remainingPaymentAmount !== undefined
+                          ? Number(co.remainingPaymentAmount)
+                          : coTotal;
+                        return (
                         <button
                           key={co.id}
                           type="button"
@@ -3090,12 +3103,22 @@ export default function ProjectDetailsPage() {
                             {co.reason && (
                               <p className="text-xs text-muted-foreground line-clamp-1">{co.reason}</p>
                             )}
+                            {coAllocated > 0 && (
+                              <p className="text-[11px] text-indigo-700 font-semibold font-sans">
+                                مجدول: {coAllocated.toLocaleString()} ر.س • متبقي: {coRemaining.toLocaleString()} ر.س
+                              </p>
+                            )}
                           </div>
                           <div className="text-left shrink-0 space-y-0.5">
                             <div className="font-bold text-sm text-indigo-700 font-sans flex items-center gap-1 justify-end">
-                              <span>{parseFloat(String(co.amount || "0")).toLocaleString()}</span>
+                              <span>{coRemaining.toLocaleString()}</span>
                               <SaudiRiyal className="w-3.5 h-3.5" />
                             </div>
+                            {coAllocated > 0 && (
+                              <div className="text-[10px] text-muted-foreground font-sans">
+                                من أصل {coTotal.toLocaleString()}
+                              </div>
+                            )}
                             {co.percentage !== undefined && co.percentage !== null && (
                               <div className="text-[11px] text-muted-foreground font-sans">
                                 ({Number(co.percentage).toFixed(2)}%)
@@ -3103,7 +3126,8 @@ export default function ProjectDetailsPage() {
                             )}
                           </div>
                         </button>
-                      ))}
+                        );
+                      })}
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setChangeOrderPickerOpen(false)}>

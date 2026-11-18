@@ -111,6 +111,10 @@ export default function EditPaymentPage() {
   );
 
   const isPaid = Boolean(payment?.isPaid || payment?.status === "paid" || Number(payment?.paidAmount || 0) > 0);
+  const isChangeOrderPayment = Boolean((payment as any)?.isChangeOrder);
+  const changeOrderAmount = Number((payment as any)?.changeOrderAmount || 0);
+  const changeOrderOtherAllocatedAmount = Number((payment as any)?.changeOrderOtherAllocatedAmount || 0);
+  const changeOrderRemainingAllowed = Math.max(0, changeOrderAmount - changeOrderOtherAllocatedAmount);
 
   // جلب المشاريع
   const { data: projects } = trpc.projects.getAll.useQuery({});
@@ -519,7 +523,7 @@ const isRequestClosed = Boolean(
       return prev.map((s, idx) => idx === 0 ? { ...s, amount: numVal } : s);
     });
 
-    if (contractAmount > 0) {
+    if (!isChangeOrderPayment && contractAmount > 0) {
       const cumulativeAmt = effectivePriorPaymentsSum + numVal;
       const rawPct = (cumulativeAmt / contractAmount) * 100;
       const comp = Math.min(100, Math.max(0, Number(rawPct.toFixed(2))));
@@ -532,7 +536,8 @@ const isRequestClosed = Boolean(
   const handlePercentageChange = (pct: number) => {
     if (isPaid) return;
     const numPct = Math.max(0, Math.min(100, isNaN(pct) ? 0 : pct));
-    const calculatedAmount = contractAmount > 0 ? Number(((contractAmount * numPct) / 100).toFixed(2)) : 0;
+    const baseAmt = isChangeOrderPayment ? changeOrderAmount : contractAmount;
+    const calculatedAmount = baseAmt > 0 ? Number(((baseAmt * numPct) / 100).toFixed(2)) : 0;
 
     setSuppliers(prev => {
       if (prev.length === 0) {
@@ -541,7 +546,7 @@ const isRequestClosed = Boolean(
       return prev.map((s, idx) => idx === 0 ? { ...s, amount: calculatedAmount } : s);
     });
 
-    if (contractAmount > 0) {
+    if (!isChangeOrderPayment && contractAmount > 0) {
       const cumulativeAmt = effectivePriorPaymentsSum + calculatedAmount;
       const rawPct = (cumulativeAmt / contractAmount) * 100;
       const comp = Math.min(100, Math.max(0, Number(rawPct.toFixed(2))));
@@ -552,19 +557,24 @@ const isRequestClosed = Boolean(
 
   // النسبة التراكمية المحسوبة تلقائياً لعرضها كإرشاد
   const autoCalculatedCompletion = useMemo(() => {
-    if (contractAmount <= 0) return undefined;
+    if (isChangeOrderPayment || contractAmount <= 0) return undefined;
     const cumulativeAmt = effectivePriorPaymentsSum + totalAmount;
     const rawPct = (cumulativeAmt / contractAmount) * 100;
     const comp = Math.min(100, Math.max(0, Number(rawPct.toFixed(2))));
     return comp % 1 === 0 ? Math.round(comp) : comp;
-  }, [contractAmount, effectivePriorPaymentsSum, totalAmount]);
+  }, [isChangeOrderPayment, contractAmount, effectivePriorPaymentsSum, totalAmount]);
 
   // قيمة الدفعة الحالية كنسبة مئوية من قيمة العقد
   const currentPaymentPercentage = useMemo(() => {
+    if (isChangeOrderPayment) {
+      if (changeOrderAmount <= 0) return 0;
+      const p = Number(((totalAmount / changeOrderAmount) * 100).toFixed(2));
+      return p % 1 === 0 ? Math.round(p) : p;
+    }
     if (contractAmount <= 0) return 0;
     const p = Number(((totalAmount / contractAmount) * 100).toFixed(2));
     return p % 1 === 0 ? Math.round(p) : p;
-  }, [contractAmount, totalAmount]);
+  }, [isChangeOrderPayment, changeOrderAmount, contractAmount, totalAmount]);
 
   // تحديث بيانات المورد مع مزامنة المبلغ ونسب الإنجاز تلقائياً
   const updateSupplier = (id: string, field: keyof SupplierEntry, value: string | number) => {
@@ -602,7 +612,7 @@ const isRequestClosed = Boolean(
       description: finalDescription,
       amount: totalAmount,
       dateMiladi: formData.dateMiladi,
-      completionPercentage: Number(formData.completionPercentage),
+      completionPercentage: isChangeOrderPayment ? null : Number(formData.completionPercentage),
       items: isSedanaProgram ? sedanaItems : undefined,
     });
   };
@@ -625,11 +635,11 @@ const isRequestClosed = Boolean(
       toast.error("يرجى تحديد التاريخ الميلادي");
       return;
     }
-    if (isDateAlreadyUsed(formData.dateMiladi)) {
+    if (!isChangeOrderPayment && isDateAlreadyUsed(formData.dateMiladi)) {
       toast.error(`التاريخ (${formData.dateMiladi}) مستخدم بالفعل لدفعة أخرى. يرجى اختيار تاريخ مختلف`);
       return;
     }
-    if (isAfter100PercentPayment) {
+    if (!isChangeOrderPayment && isAfter100PercentPayment) {
       toast.error(`لا يمكن تعديل الدفعة لتكون بعد تاريخ (${dateOf100 || prevPaymentRef?.date}) لأن نسبة الإنجاز بلغت 100% مسبقاً، ولا توجد نسبة إنجاز أعلى من 100%`);
       return;
     }
@@ -641,7 +651,7 @@ const isRequestClosed = Boolean(
       toast.error("يرجى إدخال وصف الأعمال التي سوف تنفذ");
       return;
     }
-    if (formData.completionPercentage === "" || isNaN(Number(formData.completionPercentage)) || Number(formData.completionPercentage) < 0 || Number(formData.completionPercentage) > 100) {
+    if (!isChangeOrderPayment && (formData.completionPercentage === "" || isNaN(Number(formData.completionPercentage)) || Number(formData.completionPercentage) < 0 || Number(formData.completionPercentage) > 100)) {
       toast.error("يرجى إدخال نسبة إنجاز صحيحة (من 0 إلى 100)");
       return;
     }
@@ -654,8 +664,15 @@ const isRequestClosed = Boolean(
       return;
     }
 
+    if (isChangeOrderPayment && changeOrderAmount > 0) {
+      if (totalAmount > changeOrderRemainingAllowed + 0.05) {
+        toast.error(`المبلغ (${totalAmount.toLocaleString()} ريال) يتجاوز المتبقي المتاح من أمر التغيير (${changeOrderRemainingAllowed.toLocaleString()} ريال)`);
+        return;
+      }
+    }
+
     // التحقق من تجاوز قيمة العقد أو المبلغ المتبقي
-    if (contractAmount > 0) {
+    if (!isChangeOrderPayment && contractAmount > 0) {
       if (totalAmount > contractAmount) {
         toast.error(`المبلغ لا يمكن أن يتجاوز قيمة العقد (${contractAmount.toLocaleString()} ريال)`);
         return;
@@ -668,7 +685,7 @@ const isRequestClosed = Boolean(
     }
 
     // تنبيه ذكي: إذا كان المستخلص أعلى من تقرير الإنجاز الفعلي
-    if (isExceedingProgress) {
+    if (!isChangeOrderPayment && isExceedingProgress) {
       setShowExceedingWarningDialog(true);
       return;
     }
@@ -752,7 +769,33 @@ const isRequestClosed = Boolean(
                 
                 {contractDetails && (
                   <>
+                    {isChangeOrderPayment && (
+                  <>
                     <Separator />
+                    <div className="space-y-2 text-right bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/70 rounded-lg p-2.5">
+                      <div className="flex justify-between text-sm flex-row-reverse">
+                        <span className="text-muted-foreground">أمر التغيير:</span>
+                        <span className="font-bold text-indigo-700 dark:text-indigo-300">
+                          {(payment as any)?.changeOrderNumber || `#${(payment as any)?.changeOrderId}`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm flex-row-reverse">
+                        <span className="text-muted-foreground">إجمالي أمر التغيير:</span>
+                        <span className="font-bold text-indigo-700 dark:text-indigo-300 inline-flex items-center gap-1">
+                          {changeOrderAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm flex-row-reverse">
+                        <span className="text-muted-foreground">الحد المتاح لهذه الدفعة:</span>
+                        <span className="font-bold text-emerald-700 dark:text-emerald-300 inline-flex items-center gap-1">
+                          {changeOrderRemainingAllowed.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <Separator />
                     <div className="space-y-2 text-right">
                       <div className="flex justify-between text-sm flex-row-reverse">
                         <span className="text-muted-foreground">العقد:</span>
@@ -772,6 +815,32 @@ const isRequestClosed = Boolean(
                   </>
                 )}
                 
+                {isChangeOrderPayment && (
+                  <>
+                    <Separator />
+                    <div className="space-y-2 text-right bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/70 rounded-lg p-2.5">
+                      <div className="flex justify-between text-sm flex-row-reverse">
+                        <span className="text-muted-foreground">أمر التغيير:</span>
+                        <span className="font-bold text-indigo-700 dark:text-indigo-300">
+                          {(payment as any)?.changeOrderNumber || `#${(payment as any)?.changeOrderId}`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm flex-row-reverse">
+                        <span className="text-muted-foreground">إجمالي أمر التغيير:</span>
+                        <span className="font-bold text-indigo-700 dark:text-indigo-300 inline-flex items-center gap-1">
+                          {changeOrderAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm flex-row-reverse">
+                        <span className="text-muted-foreground">الحد المتاح لهذه الدفعة:</span>
+                        <span className="font-bold text-emerald-700 dark:text-emerald-300 inline-flex items-center gap-1">
+                          {changeOrderRemainingAllowed.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
+
                 <Separator />
                 
                 <div className="space-y-2 text-right">
@@ -971,9 +1040,9 @@ const isRequestClosed = Boolean(
                       value={formData.dateMiladi}
                       disabled={isPaid}
                       required
-                      className={cn(
+                        className={cn(
                         "w-full rounded-xl font-sans text-sm transition-all text-right",
-                        (formData.dateMiladi && (isDateAlreadyUsed(formData.dateMiladi) || isAfter100PercentPayment)) && "border-2 border-destructive",
+                        (!isChangeOrderPayment && formData.dateMiladi && (isDateAlreadyUsed(formData.dateMiladi) || isAfter100PercentPayment)) && "border-2 border-destructive",
                         isPaid
                           ? "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
                           : "bg-background border-border/80 text-foreground focus-visible:border-amber-500/40 focus-visible:ring-amber-500/15 shadow-2xs"
@@ -982,7 +1051,7 @@ const isRequestClosed = Boolean(
                         if (isPaid) return;
                         const newDate = e.target.value;
                         const norm = formatDateToYYYYMMDD(newDate);
-                        if (dateOf100 && norm && norm > dateOf100) {
+                        if (!isChangeOrderPayment && dateOf100 && norm && norm > dateOf100) {
                           toast.error(`لا يمكن اختيار تاريخ بعد الدفعة المكتملة بنسبة 100% (${dateOf100})`);
                         }
                         setFormData({ ...formData, dateMiladi: newDate });
@@ -1050,19 +1119,19 @@ const isRequestClosed = Boolean(
                         min={0}
                         max={100}
                         step="any"
-                        value={formData.completionPercentage}
-                        disabled={!formData.dateMiladi || isPaid}
-                        required
+                        value={isChangeOrderPayment ? "" : formData.completionPercentage}
+                        disabled={!formData.dateMiladi || isPaid || isChangeOrderPayment}
+                        required={!isChangeOrderPayment}
                         className={cn(
                           "w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right",
-                          isExceedingProgress
+                          !isChangeOrderPayment && isExceedingProgress
                             ? "border-amber-400 bg-amber-500/5 text-amber-900 ring-1 ring-amber-400/40"
-                            : isPaid
+                            : (isPaid || isChangeOrderPayment)
                               ? "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
                               : "bg-background border-border/80 text-foreground focus-visible:border-purple-500/40 focus-visible:ring-purple-500/15 shadow-2xs"
                         )}
                         onChange={(e) => {
-                          if (isPaid) return;
+                          if (isPaid || isChangeOrderPayment) return;
                           if (e.target.value === "") {
                             setFormData({ ...formData, completionPercentage: "" });
                           } else {
@@ -1073,7 +1142,7 @@ const isRequestClosed = Boolean(
                             });
                           }
                         }}
-                        placeholder="0"
+                        placeholder={isChangeOrderPayment ? "" : "0"}
                       />
                       <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-purple-600/60 dark:text-purple-400/60 font-bold text-xs pointer-events-none">
                         %
@@ -1083,6 +1152,7 @@ const isRequestClosed = Boolean(
                 </div>
 
                 {/* التنبيهات والإرشادات المرتبطة بالتاريخ ونسب الإنجاز */}
+                {!isChangeOrderPayment && (
                 <div className="space-y-2 text-right pt-1">
                   {formData.dateMiladi && isDateAlreadyUsed(formData.dateMiladi) && (
                     <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/30">
@@ -1160,6 +1230,7 @@ const isRequestClosed = Boolean(
                     );
                   })()}
                 </div>
+                )}
               </CardContent>
             </Card>
 

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { and, asc, desc, eq, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ne, or, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
@@ -34,6 +34,7 @@ import {
   createChangeOrderSchema,
   createDisbursementForChangeOrderSchema,
   priceChangeOrderItems,
+  splitChangeOrderToPaymentsSchema,
   type PricedChangeOrderItem,
 } from "../../shared/projectChangeOrders";
 
@@ -67,11 +68,11 @@ function creationSurplus(
   return Math.max(0, money(projectSurplus - unfundedOrders));
 }
 
-function generatePaymentNumber(): string {
+function generatePaymentNumber(suffix?: string): string {
   const prefix = "PAY";
   const timestamp = Date.now().toString(36).toUpperCase();
   const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${prefix}-${timestamp}-${random}`;
+  return suffix ? `${prefix}-${timestamp}-${random}-${suffix}` : `${prefix}-${timestamp}-${random}`;
 }
 
 export const projectChangeOrdersRouter = router({
@@ -104,26 +105,91 @@ export const projectChangeOrdersRouter = router({
         .where(eq(projectChangeOrders.projectId, input.projectId))
         .orderBy(desc(projectChangeOrders.id));
 
+      const rawProjectPayments = await db
+        .select()
+        .from(payments)
+        .where(
+          and(
+            eq(payments.projectId, input.projectId),
+            ne(payments.status, "rejected")
+          )
+        );
+      const projectPayments = rawProjectPayments.filter(
+        (p: any) =>
+          (p.projectId === undefined || p.projectId === null || p.projectId === input.projectId) &&
+          p.status !== "rejected"
+      );
+
+      const hasContractPaymentOrder = rows.some(({ order }) => Boolean(order.contractPaymentId));
+      const projectContractPayments = hasContractPaymentOrder
+        ? await db.select().from(contractPayments)
+        : [];
+
       const orders = rows.map(
         ({ order, requestStatus, requestNumber, paymentNumber, paymentStatus, approverName }) => {
+          const linkedPayments = projectPayments.filter(
+            (p: any) =>
+              p.changeOrderId === order.id ||
+              (order.paymentId !== null &&
+                order.paymentId !== undefined &&
+                p.id === order.paymentId)
+          );
+
+          let allocatedPaymentAmount = money(
+            linkedPayments.reduce(
+              (sum: number, p: any) => sum + Number(p.amount || 0),
+              0
+            )
+          );
+
+          if (linkedPayments.length === 0 && order.contractPaymentId) {
+            const matchedCp = projectContractPayments.find(
+              (cp: any) => cp.id === order.contractPaymentId
+            );
+            if (matchedCp) {
+              allocatedPaymentAmount = money(Number(matchedCp.amount || 0));
+            }
+          }
+
+          const orderAmount = Number(order.amount || 0);
+          const remainingPaymentAmount = order.disbursementRequestId
+            ? 0
+            : money(Math.max(0, orderAmount - allocatedPaymentAmount));
+
           let computedStatus = order.status || "pending_boq";
           if (order.disbursementRequestId && requestStatus) {
             if (requestStatus === "paid") computedStatus = "paid";
             else if (requestStatus === "approved") computedStatus = "approved";
             else if (requestStatus === "rejected") computedStatus = "rejected";
             else computedStatus = "disbursement_created";
-          } else if (order.paymentId) {
+          } else if (
+            order.paymentId ||
+            linkedPayments.length > 0 ||
+            order.contractPaymentId
+          ) {
             computedStatus = "linked_to_payment";
           }
+
+          const primaryPayment = linkedPayments[0];
 
           return {
             ...order,
             status: computedStatus,
             requestStatus,
             requestNumber,
-            paymentNumber,
-            paymentStatus,
+            paymentNumber: paymentNumber || primaryPayment?.paymentNumber || null,
+            paymentStatus: paymentStatus || primaryPayment?.status || null,
             approverName,
+            allocatedPaymentAmount,
+            remainingPaymentAmount,
+            paymentsCount: linkedPayments.length,
+            linkedPayments: linkedPayments.map((p: any) => ({
+              id: p.id,
+              paymentNumber: p.paymentNumber,
+              amount: Number(p.amount || 0),
+              status: p.status,
+              description: p.description,
+            })),
             items: (order.itemsJson
               ? JSON.parse(order.itemsJson)
               : []) as PricedChangeOrderItem[],
@@ -868,10 +934,10 @@ export const projectChangeOrdersRouter = router({
           paymentNumber,
           projectId: order.projectId,
           contractId: contract?.id || null,
+          changeOrderId: order.id,
           amount: orderAmount.toFixed(2),
           paymentType: "progress",
           description: `دفعة أمر التغيير: ${order.title} (${order.orderNumber})`,
-          workDescription: `أمر تغيير ${order.orderNumber}: ${order.title}\n${order.reason}`,
           completionPercentage: 100,
           status: "pending",
         });
@@ -943,6 +1009,228 @@ export const projectChangeOrdersRouter = router({
         success: true,
         paymentId: result.paymentId,
         paymentNumber: result.paymentNumber,
+      };
+    }),
+
+  // 5️⃣ تقسيم مبلغ أمر التغيير على أكثر من دفعة (للمشاريع التي لا تحوي على فائض)
+  splitToPayments: protectedProcedure
+    .input(splitChangeOrderToPaymentsSchema)
+    .mutation(async ({ input, ctx }) => {
+      await authorizeView(ctx.user.id);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      const result = await db.transaction(async tx => {
+        const [order] = await tx
+          .select()
+          .from(projectChangeOrders)
+          .where(eq(projectChangeOrders.id, input.changeOrderId))
+          .limit(1);
+
+        if (!order) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "أمر التغيير غير موجود",
+          });
+        }
+
+        if (order.status === "rejected") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "أمر التغيير مرفوض ولا يمكن إنشاء دفعات له",
+          });
+        }
+
+        if (order.disbursementRequestId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "تم إنشاء طلب صرف من الفائض لأمر التغيير هذا مسبقاً",
+          });
+        }
+
+        const [project] = await tx
+          .select()
+          .from(projects)
+          .where(eq(projects.id, order.projectId))
+          .limit(1);
+
+        if (!project) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "المشروع غير موجود",
+          });
+        }
+
+        if (["completed", "cancelled"].includes(project.status || "")) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "لا يمكن إضافة دفعات لمشروع مكتمل أو ملغي",
+          });
+        }
+
+        if (project.requestId) {
+          const [request] = await tx
+            .select()
+            .from(mosqueRequests)
+            .where(eq(mosqueRequests.id, project.requestId))
+            .limit(1);
+
+          if (
+            request?.currentStage === "closed" ||
+            request?.status === "completed" ||
+            request?.closureStatus === "confirmed"
+          ) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "لا يمكن إضافة دفعات بعد إغلاق الطلب المرتبط بالمشروع",
+            });
+          }
+        }
+
+        const existingProjectPayments = await tx
+          .select()
+          .from(payments)
+          .where(
+            and(
+              eq(payments.projectId, order.projectId),
+              ne(payments.status, "rejected")
+            )
+          );
+
+        const linkedPayments = existingProjectPayments.filter(
+          (p: any) =>
+            (p.projectId === undefined ||
+              p.projectId === null ||
+              p.projectId === order.projectId) &&
+            p.status !== "rejected" &&
+            (p.changeOrderId === order.id ||
+              (order.paymentId !== null &&
+                order.paymentId !== undefined &&
+                p.id === order.paymentId))
+        );
+
+        let alreadyAllocated = money(
+          linkedPayments.reduce(
+            (sum: number, p: any) => sum + Number(p.amount || 0),
+            0
+          )
+        );
+
+        if (linkedPayments.length === 0 && order.contractPaymentId) {
+          const cps = await tx
+            .select()
+            .from(contractPayments)
+            .where(eq(contractPayments.id, order.contractPaymentId));
+          const matchedCp = cps.find(
+            (cp: any) => cp.id === order.contractPaymentId
+          );
+          if (matchedCp) {
+            alreadyAllocated = money(Number(matchedCp.amount || 0));
+          }
+        }
+
+        const orderAmount = Number(order.amount || 0);
+        const remainingForCo = money(Math.max(0, orderAmount - alreadyAllocated));
+
+        if (remainingForCo <= 0.05) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "تمت جدولة كامل مبلغ أمر التغيير مسبقاً",
+          });
+        }
+
+        const requestedTotal = money(
+          input.installments.reduce((sum, it) => sum + Number(it.amount || 0), 0)
+        );
+
+        if (requestedTotal > remainingForCo + 0.05) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `مجموع مبالغ الدفعات (${requestedTotal.toFixed(2)} ريال) يتجاوز المتبقي من أمر التغيير (${remainingForCo.toFixed(2)} ريال)`,
+          });
+        }
+
+        let effectiveContractId: number | null = input.contractId ?? null;
+        if (!effectiveContractId) {
+          const [contract] = await tx
+            .select({ id: contractsEnhanced.id })
+            .from(contractsEnhanced)
+            .where(eq(contractsEnhanced.projectId, order.projectId))
+            .orderBy(desc(contractsEnhanced.createdAt))
+            .limit(1);
+          effectiveContractId = contract?.id ?? null;
+        }
+
+        const createdPayments: Array<{
+          id: number;
+          paymentNumber: string;
+          amount: number;
+          title: string;
+        }> = [];
+
+        for (let idx = 0; idx < input.installments.length; idx++) {
+          const inst = input.installments[idx];
+          const paymentNumber = generatePaymentNumber(String(idx + 1));
+          const parsedDate = inst.dateMiladi.includes("T")
+            ? new Date(inst.dateMiladi)
+            : new Date(`${inst.dateMiladi}T12:00:00`);
+
+          const [insertedPayment] = await tx.insert(payments).values({
+            paymentNumber,
+            projectId: order.projectId,
+            contractId: effectiveContractId,
+            changeOrderId: order.id,
+            amount: inst.amount.toFixed(2),
+            paymentType: "progress",
+            description: inst.title,
+            completionPercentage: null,
+            status: "pending",
+          });
+
+          await tx.insert(disbursementRequests).values({
+            requestNumber: `DISB-${paymentNumber}`,
+            projectId: order.projectId,
+            contractId: effectiveContractId,
+            paymentId: insertedPayment.insertId,
+            title: inst.title,
+            description: inst.description || inst.title,
+            amount: inst.amount.toFixed(2),
+            paymentType: "progress",
+            dateMiladi: parsedDate,
+            completionPercentage: null,
+            status: "pending",
+          });
+
+          createdPayments.push({
+            id: insertedPayment.insertId,
+            paymentNumber,
+            amount: money(inst.amount),
+            title: inst.title,
+          });
+        }
+
+        await tx
+          .update(projectChangeOrders)
+          .set({
+            paymentId: order.paymentId || createdPayments[0].id,
+            status: "linked_to_payment",
+            fundingSource: "project_payment",
+          })
+          .where(eq(projectChangeOrders.id, order.id));
+
+        return {
+          createdPayments,
+          allocatedAfter: money(alreadyAllocated + requestedTotal),
+          remainingAfter: money(Math.max(0, remainingForCo - requestedTotal)),
+        };
+      });
+
+      return {
+        success: true,
+        count: result.createdPayments.length,
+        payments: result.createdPayments,
+        allocatedAfter: result.allocatedAfter,
+        remainingAfter: result.remainingAfter,
       };
     }),
 });

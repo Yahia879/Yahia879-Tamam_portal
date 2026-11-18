@@ -184,6 +184,15 @@ export async function ensureSchemaUpdated(p: mysql.Pool): Promise<void> {
     }
     await promisePool.query("ALTER TABLE project_change_orders MODIFY COLUMN disbursementRequestId INT NULL").catch(() => {});
 
+    const [paymentsCols] = (await promisePool.query("SHOW COLUMNS FROM payments")) as any[];
+    const paymentsColNames = Array.isArray(paymentsCols) ? paymentsCols.map((c: any) => c.Field) : [];
+    if (!paymentsColNames.includes("changeOrderId")) {
+      await promisePool.query("ALTER TABLE payments ADD COLUMN changeOrderId INT NULL");
+      await promisePool.query(
+        "UPDATE payments p INNER JOIN project_change_orders co ON co.paymentId = p.id SET p.changeOrderId = co.id WHERE p.changeOrderId IS NULL"
+      ).catch(() => {});
+    }
+
     const [qsCols] = (await promisePool.query("SHOW COLUMNS FROM quantity_schedules")) as any[];
     const qsColNames = Array.isArray(qsCols) ? qsCols.map((c: any) => c.Field) : [];
     if (!qsColNames.includes("changeOrderId")) {

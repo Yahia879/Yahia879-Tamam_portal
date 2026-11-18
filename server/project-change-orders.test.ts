@@ -591,4 +591,99 @@ describe("project change order rules & value increments", () => {
       code: "UNAUTHORIZED",
     });
   });
+
+  it("splits a non-surplus change order across multiple payments and tracks allocated/remaining amounts", async () => {
+    state.initialSurplus = 0;
+    const created = await caller().create(input(5000));
+    expect(created.hasSurplus).toBe(false);
+
+    // تقسيم جزئي أول: دفعة 1 بمبلغ 2000 ريال
+    const split1 = await caller().splitToPayments({
+      changeOrderId: created.id,
+      installments: [
+        {
+          title: "دفعة 1 من أمر التغيير",
+          amount: 2000,
+          dateMiladi: "2026-11-20",
+          description: "الدفعة الأولى",
+        },
+      ],
+    });
+    expect(split1.success).toBe(true);
+    expect(split1.count).toBe(1);
+    expect(split1.allocatedAfter).toBe(2000);
+    expect(split1.remainingAfter).toBe(3000);
+
+    let listed = await caller().list({ projectId: 1 });
+    expect(listed.orders[0]).toMatchObject({
+      allocatedPaymentAmount: 2000,
+      remainingPaymentAmount: 3000,
+      paymentsCount: 1,
+      status: "linked_to_payment",
+    });
+
+    // رفض تجاوز المتبقي (3000)
+    await expect(
+      caller().splitToPayments({
+        changeOrderId: created.id,
+        installments: [
+          {
+            title: "دفعة زائدة",
+            amount: 3500,
+            dateMiladi: "2026-11-25",
+          },
+        ],
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    // تقسيم المتبقي (3000) على دفعتين: 1500 + 1500
+    const split2 = await caller().splitToPayments({
+      changeOrderId: created.id,
+      installments: [
+        {
+          title: "دفعة 2 من أمر التغيير",
+          amount: 1500,
+          dateMiladi: "2026-11-25",
+        },
+        {
+          title: "دفعة 3 من أمر التغيير",
+          amount: 1500,
+          dateMiladi: "2026-11-30",
+        },
+      ],
+    });
+    expect(split2.success).toBe(true);
+    expect(split2.count).toBe(2);
+    expect(split2.allocatedAfter).toBe(5000);
+    expect(split2.remainingAfter).toBe(0);
+    expect(state.payments).toHaveLength(3);
+    expect(state.payments.every(p => p.changeOrderId === created.id)).toBe(true);
+    expect(state.requests).toHaveLength(3);
+
+    listed = await caller().list({ projectId: 1 });
+    expect(listed.orders[0]).toMatchObject({
+      allocatedPaymentAmount: 5000,
+      remainingPaymentAmount: 0,
+      paymentsCount: 3,
+    });
+  });
+
+  it("prevents splitting a change order already funded by project surplus", async () => {
+    state.initialSurplus = 10000;
+    const created = await caller().create(input(5000));
+    expect(created.hasSurplus).toBe(true);
+
+    await expect(
+      caller().splitToPayments({
+        changeOrderId: created.id,
+        installments: [
+          {
+            title: "دفعة غير صالحة",
+            amount: 2500,
+            dateMiladi: "2026-11-20",
+          },
+        ],
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
 });

@@ -74,6 +74,25 @@ export const createDisbursementForChangeOrderSchema = z.object({
   beneficiaryIban: z.string().trim().max(50).optional(),
 });
 
+export const splitChangeOrderInstallmentSchema = z.object({
+  title: z.string().trim().min(1, "عنوان الدفعة مطلوب").max(255),
+  amount: preciseNumber(
+    2,
+    "مبلغ الدفعة يجب أن يكون أكبر من صفر ويقبل منزلتين عشريتين فقط"
+  ).max(1_000_000_000),
+  dateMiladi: z.string().trim().min(1, "التاريخ الميلادي مطلوب"),
+  description: z.string().trim().max(4000).optional(),
+});
+
+export const splitChangeOrderToPaymentsSchema = z.object({
+  changeOrderId: z.number().int().positive(),
+  contractId: z.number().int().positive().optional(),
+  installments: z
+    .array(splitChangeOrderInstallmentSchema)
+    .min(1, "أضف دفعة واحدة على الأقل")
+    .max(50, "الحد الأقصى للتقسيم 50 دفعة"),
+});
+
 export type ChangeOrderItem = z.infer<typeof changeOrderItemSchema>;
 export type PricedChangeOrderItem = ChangeOrderItem & { total: number };
 

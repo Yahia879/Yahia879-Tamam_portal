@@ -869,7 +869,7 @@ export function ProjectChangeOrdersTab({
                         </Button>
                       )}
 
-                      {order.paymentId && (
+                      {(order.paymentId || (order.paymentsCount ?? 0) > 0) && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -882,13 +882,17 @@ export function ProjectChangeOrdersTab({
                         >
                           <CreditCard className="h-3.5 w-3.5" />
                           <span>
-                            الدفعة المرتبطة: {order.paymentNumber || `#${order.paymentId}`}
+                            {(order.paymentsCount ?? 0) > 1
+                              ? `الدفعات المرتبطة (${order.paymentsCount}): ${formatMoney(order.allocatedPaymentAmount || 0)} ر.س`
+                              : `الدفعة المرتبطة: ${order.paymentNumber || `#${order.paymentId}`}`}
                           </span>
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
                       )}
 
-                      {!order.disbursementRequestId && !order.paymentId && (
+                      {!order.disbursementRequestId &&
+                        !order.paymentId &&
+                        (order.paymentsCount ?? 0) === 0 && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -901,6 +905,28 @@ export function ProjectChangeOrdersTab({
                         >
                           <CreditCard className="h-3.5 w-3.5" />
                           <span>الانتقال لقسم الدفعات لإضافة دفعة</span>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+
+                      {!order.disbursementRequestId &&
+                        (order.paymentId || (order.paymentsCount ?? 0) > 0) &&
+                        order.remainingPaymentAmount !== undefined &&
+                        Number(order.remainingPaymentAmount) > 0.05 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5 text-indigo-700 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100 font-bold"
+                          onClick={() => {
+                            if (onNavigateToPayments) {
+                              onNavigateToPayments();
+                            }
+                          }}
+                        >
+                          <CreditCard className="h-3.5 w-3.5" />
+                          <span>
+                            متبقي للجدولة في قسم الدفعات: {formatMoney(order.remainingPaymentAmount)} ر.س
+                          </span>
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
                       )}
