@@ -418,8 +418,9 @@ export const usersRouter = router({
       let totalRatings = 0;
 
       const isInternalViewer = ctx.user.role !== "service_requester";
+      const canSeeImamEvaluations = isInternalViewer || isSelf;
       const requestIds = requestsList.map((r) => r.id);
-      if (isInternalViewer && requestIds.length > 0) {
+      if (canSeeImamEvaluations && requestIds.length > 0) {
         const evalRows = await db
           .select({
             reportId: fieldVisitReports.id,
@@ -448,7 +449,9 @@ export const usersRouter = router({
           )
           .orderBy(desc(fieldVisitReports.createdAt));
 
-        imamEvaluations = evalRows;
+        imamEvaluations = isInternalViewer
+          ? evalRows
+          : evalRows.map((e) => ({ ...e, evaluatorName: null }));
         const ratedOnly = evalRows.filter((e) => typeof e.rating === "number" && e.rating > 0);
         totalRatings = ratedOnly.length;
         if (totalRatings > 0) {

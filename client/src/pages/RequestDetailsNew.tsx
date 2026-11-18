@@ -1878,28 +1878,30 @@ export default function RequestDetailsNew() {
 
             {/* Header Actions Toolbar */}
             <div className="flex items-center gap-2 flex-wrap sm:self-center">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 gap-1.5 border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-900/60 dark:text-purple-300 dark:hover:bg-purple-950/40 font-bold cursor-pointer relative"
-                onClick={() => {
-                  setCommentsOpen(true);
-                  markAsReadMutation.mutate({ requestId });
-                }}
-              >
-                <MessageSquare className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <span>{isEn ? "Comments & Messages" : "التعليقات والرسائل"}</span>
-                {((request as any)?.comments?.length || 0) > 0 && (
-                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200">
-                    {(request as any).comments.length}
-                  </Badge>
-                )}
-                {(unreadData?.count || 0) > 0 && (
-                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-extrabold rounded-full bg-rose-600 text-white">
-                    {unreadData?.count}
-                  </span>
-                )}
-              </Button>
+              {user?.role !== "service_requester" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-900/60 dark:text-purple-300 dark:hover:bg-purple-950/40 font-bold cursor-pointer relative"
+                  onClick={() => {
+                    setCommentsOpen(true);
+                    markAsReadMutation.mutate({ requestId });
+                  }}
+                >
+                  <MessageSquare className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <span>{isEn ? "Comments & Messages" : "التعليقات والرسائل"}</span>
+                  {((request as any)?.comments?.length || 0) > 0 && (
+                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200">
+                      {(request as any).comments.length}
+                    </Badge>
+                  )}
+                  {(unreadData?.count || 0) > 0 && (
+                    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-extrabold rounded-full bg-rose-600 text-white">
+                      {unreadData?.count}
+                    </span>
+                  )}
+                </Button>
+              )}
               {canTransferToBeneficiary && request.canTransferToBeneficiary && (
                 <RequestBeneficiaryTransfer requestId={request.id} requestNumber={request.requestNumber} />
               )}
@@ -2044,8 +2046,8 @@ export default function RequestDetailsNew() {
           </div>
         )}
 
-        {/* تنبيه مختصر ومرتب بوجود طلبات أخرى لنفس المسجد */}
-        {(() => {
+        {/* تنبيه مختصر ومرتب بوجود طلبات أخرى لنفس المسجد (للموظفين) */}
+        {user?.role !== "service_requester" && (() => {
           const siblingRequests = ((request as any).siblingMosqueRequests || []) as any[];
           if (siblingRequests.length === 0) return null;
           const activeCount = siblingRequests.filter((s) => s.isActive).length;
@@ -3389,6 +3391,85 @@ export default function RequestDetailsNew() {
             </div>
           )}
         </div>
+
+        {/* بطاقة تقييم الفريق الميداني (تظهر لطالب الخدمة فقط في صفحة تفاصيل الطلب) */}
+        {user?.role === "service_requester" && (() => {
+          const ratedReports = ((request as any)?.fieldReports || []).filter(
+            (r: any) => (typeof r.beneficiaryInfoAccuracyRating === "number" && r.beneficiaryInfoAccuracyRating > 0) || r.beneficiaryInfoAccuracyNotes
+          );
+          if (ratedReports.length === 0) return null;
+          const shortRatingLabels: Record<number, string> = {
+            1: "ضعيف جداً",
+            2: "ضعيف",
+            3: "متوسط",
+            4: "جيد جداً",
+            5: "ممتاز",
+          };
+          return (
+            <div className="mt-6 rounded-2xl border border-amber-200/80 dark:border-amber-800/60 bg-gradient-to-l from-amber-50/70 via-card to-amber-50/30 dark:from-amber-950/20 dark:via-card dark:to-amber-950/10 shadow-xs overflow-hidden" dir="rtl">
+              <div className="px-5 py-4 border-b border-amber-200/60 dark:border-amber-800/40 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm sm:text-base text-foreground">تقييم الفريق الميداني</h4>
+                    <p className="text-[11px] sm:text-xs text-muted-foreground">
+                      نتيجة تقييم الفريق الميداني لصحة البيانات والتعاون أثناء الزيارة الميدانية لهذا الطلب
+                    </p>
+                  </div>
+                </div>
+                {typeof ratedReports[0]?.beneficiaryInfoAccuracyRating === "number" && ratedReports[0].beneficiaryInfoAccuracyRating > 0 && (
+                  <div className="inline-flex items-center gap-2 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-amber-200 dark:border-amber-800 shadow-2xs">
+                    <div className="flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-4 h-4 ${
+                            star <= ratedReports[0].beneficiaryInfoAccuracyRating
+                              ? "fill-amber-400 text-amber-500"
+                              : "text-slate-300 dark:text-slate-700"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xs sm:text-sm font-black text-amber-700 dark:text-amber-300">
+                      {ratedReports[0].beneficiaryInfoAccuracyRating} / 5
+                    </span>
+                    <span className="text-[11px] font-semibold text-muted-foreground">
+                      ({shortRatingLabels[ratedReports[0].beneficiaryInfoAccuracyRating] || `${ratedReports[0].beneficiaryInfoAccuracyRating} من 5`})
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="p-4 sm:p-5 space-y-3">
+                {ratedReports.map((report: any) => (
+                  <div key={report.id} className="rounded-xl bg-white/80 dark:bg-slate-900/50 border border-amber-100 dark:border-amber-900/40 p-3.5 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                      {typeof report.beneficiaryInfoAccuracyRating === "number" && report.beneficiaryInfoAccuracyRating > 0 && (
+                        <span className="inline-flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                          <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                          <span>التقييم: {report.beneficiaryInfoAccuracyRating} / 5 ({shortRatingLabels[report.beneficiaryInfoAccuracyRating] || ""})</span>
+                        </span>
+                      )}
+                      {report.visitDate && (
+                        <span className="text-muted-foreground flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>تاريخ الزيارة: {new Date(report.visitDate).toLocaleDateString("ar-SA")}</span>
+                        </span>
+                      )}
+                    </div>
+                    {report.beneficiaryInfoAccuracyNotes && (
+                      <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap bg-amber-50/50 dark:bg-amber-950/20 p-2.5 rounded-lg border border-amber-100/80 dark:border-amber-900/30">
+                        {report.beneficiaryInfoAccuracyNotes}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* زر ومحتوى ملاحظات مراجعة الطلب (Expandable Accordion) - مخفي تماماً لدور مقدم الخدمة */}
         {user?.role !== "service_requester" && (
