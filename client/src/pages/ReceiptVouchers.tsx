@@ -582,14 +582,14 @@ export default function ReceiptVouchers() {
 
   if (!canView) {
     return (
-      <DashboardLayout>
+      <DashboardLayout tabletNavigation>
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4 font-sans" dir="rtl">
           <div className="p-4 rounded-full bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/30 dark:border-rose-900">
             <AlertCircle className="h-10 w-10 text-rose-600" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">عذراً، ليس لديك صلاحية لعرض صفحة سندات القبض</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-200">عذراً، ليس لديك صلاحية لعرض صفحة سندات القبض</h2>
           <p className="text-xs text-muted-foreground max-w-md">يرجى التواصل مع مسؤول النظام لمنحك صلاحية "عرض سندات القبض" أو "تعديل سند القبض".</p>
-          <Button onClick={() => navigate("/dashboard")} className="mt-2 bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold text-xs">
+          <Button onClick={() => navigate("/dashboard")} className="mt-2 bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold text-xs min-h-10 max-lg:min-h-11">
             العودة للوحة التحكم
           </Button>
         </div>
@@ -598,20 +598,20 @@ export default function ReceiptVouchers() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 px-4 md:px-0 font-sans">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-full overflow-x-hidden space-y-5 sm:space-y-6 font-sans">
         
         {/* 1. هيدر الصفحة الرئيسي وزر الإضافة */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between" dir="rtl">
-          <div className="text-right">
-            <h1 className="text-2xl font-bold">سندات القبض</h1>
-            <p className="text-muted-foreground">إدارة وتوثيق سندات القبض والدفعات المقبوضة فعلياً من الجهات الداعمة للمشاريع</p>
+        <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between" dir="rtl">
+          <div className="text-right min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold">سندات القبض</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">إدارة وتوثيق سندات القبض والدفعات المقبوضة فعلياً من الجهات الداعمة للمشاريع</p>
           </div>
           {canAdd && (
-            <div className="w-full sm:w-auto flex justify-end">
+            <div className="w-full sm:w-auto flex justify-end shrink-0">
               <Button 
                 onClick={() => navigate("/receipt-vouchers/new")}
-                className="w-full sm:w-auto gradient-primary text-white font-bold"
+                className="w-full sm:w-auto gradient-primary text-white font-bold min-h-10 max-lg:min-h-11"
               >
                 <Plus className="ml-2 h-4 w-4" />
                 تسجيل سند قبض جديد
@@ -621,13 +621,13 @@ export default function ReceiptVouchers() {
         </div>
 
         {/* 2. بطاقات الإحصائيات */}
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3">
           
           {/* إجمالي المقبوضات */}
-          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow">
-            <CardContent className="p-3 sm:p-5">
+          <Card className="col-span-2 sm:col-span-1 border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow py-0 gap-0">
+            <CardContent className="p-3.5 sm:p-5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400">
                   <Coins className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -641,10 +641,10 @@ export default function ReceiptVouchers() {
           </Card>
 
           {/* سندات معتمدة */}
-          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow">
-            <CardContent className="p-3 sm:p-5">
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow py-0 gap-0">
+            <CardContent className="p-3.5 sm:p-5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
@@ -656,10 +656,10 @@ export default function ReceiptVouchers() {
           </Card>
 
           {/* سندات قيد الاعتماد */}
-          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow">
-            <CardContent className="p-3 sm:p-5">
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow py-0 gap-0">
+            <CardContent className="p-3.5 sm:p-5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 text-amber-600 dark:text-amber-400">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 text-amber-600 dark:text-amber-400">
                   <Clock className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
@@ -672,23 +672,23 @@ export default function ReceiptVouchers() {
         </div>
 
         {/* 3. الفلاتر وشريط البحث */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-          <div className="relative flex-1">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="relative flex-1 min-w-0">
             <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="بحث برقم السند أو اسم المسدد أو المشروع..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pr-10 text-right font-medium"
+              className="pr-10 text-right font-medium max-md:text-base h-10 max-lg:min-h-11"
               dir="rtl"
             />
           </div>
 
-          <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex gap-2 w-full lg:w-auto">
             {/* فلترة الحالة */}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full lg:w-[180px]">
-                <Filter className="ml-2 h-4 w-4" />
+              <SelectTrigger className="w-full lg:w-[180px] h-10 max-lg:min-h-11">
+                <Filter className="ml-2 h-4 w-4 shrink-0" />
                 <SelectValue placeholder="الحالة" />
               </SelectTrigger>
               <SelectContent dir="rtl">
@@ -705,7 +705,7 @@ export default function ReceiptVouchers() {
               onClick={handleExportExcel} 
               disabled={isExporting}
               variant="outline"
-              className="w-full lg:w-auto h-10 border-[#1a5f4a]/30 text-[#1a5f4a] bg-transparent hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] font-bold rounded-lg shrink-0 flex items-center justify-center gap-1.5 transition-colors"
+              className="w-full lg:w-auto min-h-10 max-lg:min-h-11 border-[#1a5f4a]/30 text-[#1a5f4a] bg-transparent hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] font-bold rounded-lg shrink-0 flex items-center justify-center gap-1.5 transition-colors"
             >
               {isExporting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -718,7 +718,7 @@ export default function ReceiptVouchers() {
         </div>
 
         {/* 4. جدول سندات القبض */}
-        <Card className="border-0 shadow-sm overflow-hidden">
+        <Card className="border-0 shadow-sm overflow-hidden py-0 gap-0">
           <CardContent className="p-0">
             {isLoadingVouchers ? (
               <div className="flex items-center justify-center py-12 gap-2 text-muted-foreground text-sm">
@@ -726,18 +726,20 @@ export default function ReceiptVouchers() {
                 جاري تحميل سندات القبض...
               </div>
             ) : allVouchers.length === 0 ? (
-              <div className="text-center py-12 space-y-3">
+              <div className="text-center py-12 px-4 space-y-3">
                 <Receipt className="h-10 w-10 mx-auto text-muted-foreground/30" />
                 <p className="text-sm font-semibold text-slate-700">لم يتم العثور على أي سندات قبض</p>
                 {canAdd && (
-                  <Button onClick={openAddVoucherModal} size="sm" className="gap-1.5 font-bold text-xs gradient-primary text-white">
+                  <Button onClick={openAddVoucherModal} size="sm" className="gap-1.5 font-bold text-xs gradient-primary text-white min-h-10">
                     <Plus className="h-4 w-4" />
                     تسجيل أول سند قبض
                   </Button>
                 )}
               </div>
             ) : (
-              <div className="hidden md:block w-full overflow-x-auto">
+              <>
+              {/* Desktop & iPad Landscape Table */}
+              <div className="hidden xl:block w-full overflow-x-auto">
                 <Table dir="rtl" className="w-full min-w-[950px]">
                   <TableHeader className="bg-slate-50/70 dark:bg-slate-900/70 border-b border-border">
                     <TableRow className="hover:bg-transparent">
@@ -967,23 +969,216 @@ export default function ReceiptVouchers() {
                   </TableBody>
                 </Table>
               </div>
+
+              {/* Mobile & iPad Portrait Card View */}
+              <div className="xl:hidden p-3 sm:p-4 bg-muted/15 grid grid-cols-1 md:grid-cols-2 gap-3" dir="rtl">
+                {allVouchers.map((voucher) => {
+                  const isPendingMyApproval = isFaaa8User && voucher.status === "pending_approval";
+                  return (
+                    <div
+                      key={voucher.id}
+                      className={`p-3.5 sm:p-4 rounded-xl border bg-card transition-all flex flex-col justify-between gap-3 ${
+                        isPendingMyApproval
+                          ? "bg-emerald-50/70 dark:bg-emerald-950/40 border-2 border-[#1a5f4a] shadow-sm"
+                          : "border-border/80 shadow-2xs hover:bg-muted/10"
+                      }`}
+                    >
+                      <div className="space-y-2.5">
+                        {/* Top row: Voucher number, status, actions */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {isPendingMyApproval && (
+                                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#1a5f4a] text-white shrink-0">
+                                  <Clock className="w-3 h-3 text-amber-200" />
+                                </span>
+                              )}
+                              <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">
+                                {voucher.voucherNumber}
+                              </span>
+                            </div>
+
+                            {voucher.projectId ? (
+                              <button
+                                onClick={() => handleSelectProject(voucher.projectId!.toString())}
+                                className="text-right hover:text-emerald-700 transition-colors block w-full"
+                              >
+                                <span className="font-bold text-sm text-slate-900 dark:text-slate-100 line-clamp-2 leading-snug">
+                                  {voucher.projectName || `مشروع #${voucher.projectId}`}
+                                </span>
+                                {voucher.projectNumber && (
+                                  <span className="text-[11px] text-muted-foreground font-mono block mt-0.5">
+                                    {voucher.projectNumber}
+                                  </span>
+                                )}
+                              </button>
+                            ) : voucher.category === "restricted" || voucher.notes?.startsWith("مصرف التبرع:") ? (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-900 border-blue-200 text-[11px] font-semibold whitespace-normal text-right h-auto py-0.5">
+                                سند مقيد: {voucher.donationPurposeName || voucher.notes?.split(" | ")[0].replace("مصرف التبرع:", "").trim()}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-200 text-[11px] font-semibold">
+                                سند قبض غير مقيد
+                              </Badge>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            {hasAnyRowAction && (
+                              <DropdownMenu dir="rtl">
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-9 w-9 max-lg:min-h-10 max-lg:min-w-10 rounded-full hover:bg-muted">
+                                    <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56 text-right font-medium">
+                                  {canPrint && (
+                                    <DropdownMenuItem
+                                      onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
+                                      className="flex items-center gap-2 cursor-pointer text-[#1a5f4a]"
+                                    >
+                                      <Eye className="h-4 w-4 text-[#1a5f4a]" />
+                                      <span>عرض وسند القبض والطباعة</span>
+                                    </DropdownMenuItem>
+                                  )}
+                                  {isFaaa8User && voucher.status === "pending_approval" && (
+                                    <DropdownMenuItem
+                                      onClick={() => approveVoucherMutation.mutate({ id: voucher.id })}
+                                      disabled={approveVoucherMutation.isPending}
+                                      className="flex items-center gap-2 cursor-pointer text-emerald-600"
+                                    >
+                                      <CheckCircle className="h-4 w-4 text-emerald-500" />
+                                      <span>اعتماد سند القبض</span>
+                                    </DropdownMenuItem>
+                                  )}
+                                  {hasExceptionApprove && voucher.status === "pending_approval" && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleOpenExceptionModal(voucher)}
+                                      disabled={exceptionApproveVoucherMutation.isPending}
+                                      className="flex items-center gap-2 cursor-pointer text-amber-700 font-bold"
+                                    >
+                                      <ShieldAlert className="h-4 w-4 text-amber-600" />
+                                      <span>استثناء اعتماد السند</span>
+                                    </DropdownMenuItem>
+                                  )}
+                                  {(isFaaa8User || hasExceptionApprove) && voucher.status === "pending_approval" && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleOpenRejectModal(voucher)}
+                                      disabled={rejectVoucherMutation.isPending}
+                                      className="flex items-center gap-2 cursor-pointer text-rose-600"
+                                    >
+                                      <XCircle className="h-4 w-4 text-rose-600" />
+                                      <span>رفض سند القبض</span>
+                                    </DropdownMenuItem>
+                                  )}
+                                  {canEdit && voucher.status !== "approved" && (
+                                    <DropdownMenuItem
+                                      onClick={() => openEditVoucherModal(voucher)}
+                                      className="flex items-center gap-2 cursor-pointer text-slate-700"
+                                    >
+                                      <Edit3 className="h-4 w-4 text-gray-500" />
+                                      <span>تعديل سند القبض</span>
+                                    </DropdownMenuItem>
+                                  )}
+                                  {(isFaaa8User || hasExceptionApprove) && voucher.status === "approved" && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleOpenRevokeModal(voucher)}
+                                      disabled={revokeVoucherApprovalMutation.isPending}
+                                      className="flex items-center gap-2 cursor-pointer text-amber-700"
+                                    >
+                                      <RotateCcw className="h-4 w-4 text-amber-600" />
+                                      <span>إلغاء الاعتماد</span>
+                                    </DropdownMenuItem>
+                                  )}
+                                  {((voucher as any).exceptionReason || (voucher as any).rejectionReason || (voucher.notes && (voucher.notes.includes("إلغاء الاعتماد") || voucher.notes.includes("مرفوض")))) && (
+                                    <DropdownMenuItem
+                                      onClick={() => setJustificationModalNote((voucher as any).exceptionReason ? `[مبرر استثناء الاعتماد]: ${(voucher as any).exceptionReason}` : ((voucher as any).rejectionReason || voucher.notes || "لا يوجد مبرر مسجل"))}
+                                      className="flex items-center gap-2 cursor-pointer text-amber-700"
+                                    >
+                                      <Info className="h-4 w-4 text-amber-600" />
+                                      <span>عرض مبررات الاستثناء / الرفض</span>
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Payer & Status badges */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Badge variant="outline" className="bg-blue-50/80 text-blue-900 border-blue-200 text-[11px] font-semibold whitespace-normal text-right h-auto py-0.5">
+                            {stripPayerTitle(voucher.payerName)}
+                          </Badge>
+
+                          {voucher.status === "approved" ? (
+                            <>
+                              <Badge variant="outline" className="bg-emerald-50/80 text-emerald-800 border-emerald-300 font-bold text-[11px] px-2 py-0.5 gap-1 inline-flex items-center">
+                                <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                <span>معتمد</span>
+                              </Badge>
+                              {(voucher.isException || voucher.exceptionApprovedBy) && (
+                                <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 font-bold text-[10px] px-1.5 py-0.5 gap-1 inline-flex items-center">
+                                  <ShieldAlert className="h-2.5 w-2.5 text-amber-600" />
+                                  <span>معتمد باستثناء</span>
+                                </Badge>
+                              )}
+                            </>
+                          ) : voucher.status === "approval_revoked" ? (
+                            <Badge variant="outline" className="bg-amber-50/80 text-amber-900 border-amber-300 font-bold text-[11px] px-2 py-0.5 gap-1 inline-flex items-center">
+                              <RotateCcw className="h-3 w-3 text-amber-600" />
+                              <span>ملغى الاعتماد</span>
+                            </Badge>
+                          ) : voucher.status === "rejected" ? (
+                            <Badge variant="outline" className="bg-rose-50/80 text-rose-800 border-rose-300 font-bold text-[11px] px-2 py-0.5 gap-1 inline-flex items-center">
+                              <XCircle className="h-3 w-3 text-rose-600" />
+                              <span>مرفوض</span>
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-amber-50/90 text-amber-800 border-amber-300/80 font-bold text-[11px] px-2 py-0.5 gap-1 inline-flex items-center">
+                              <Clock className="h-3 w-3 text-amber-600 animate-pulse" />
+                              <span>قيد الاعتماد</span>
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Bottom row: Amount & Date */}
+                      <div className="flex items-end justify-between pt-2.5 border-t border-border/50 gap-2">
+                        <div>
+                          <p className="text-[10px] text-muted-foreground mb-0.5">المبلغ المقبوض</p>
+                          <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1">
+                            {parseFloat(voucher.amount.toString()).toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                          </p>
+                        </div>
+                        <span className="text-[11px] text-muted-foreground font-mono">
+                          {voucher.receiptDate
+                            ? new Date(voucher.receiptDate).toLocaleDateString("en-CA")
+                            : "-"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              </>
             )}
           </CardContent>
         </Card>
 
         {/* مودال تسجيل/تعديل سند قبض ممتد مع إحصائيات الدفعات */}
         <Dialog open={isAddVoucherModalOpen} onOpenChange={setIsAddVoucherModalOpen}>
-          <DialogContent className="dir-rtl text-right max-w-3xl sm:max-w-4xl w-[92vw] font-sans bg-white rounded-xl shadow-2xl p-6 border-0 max-h-[90vh] overflow-y-auto">
-            <DialogHeader className="text-right border-b pb-4">
-              <DialogTitle className="text-lg font-bold flex items-center gap-2.5 text-slate-800">
-                <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">
+          <DialogContent className="dir-rtl text-right w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-3xl lg:max-w-4xl font-sans bg-white rounded-xl shadow-2xl p-4 sm:p-6 border-0 max-h-[calc(100dvh-2rem)] overflow-y-auto">
+            <DialogHeader className="text-right border-b pb-3.5">
+              <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2.5 text-slate-800">
+                <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 shrink-0">
                   <Receipt className="h-5 w-5" />
                 </div>
                 <span>{editingVoucherId ? "تعديل سند القبض" : "تسجيل سند قبض جديد"}</span>
               </DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-5 py-3">
+            <div className="space-y-4 sm:space-y-5 py-3">
               {/* 1. اختيار المشروع والجهة الداعمة */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* اختيار المشروع */}
@@ -1003,16 +1198,16 @@ export default function ReceiptVouchers() {
                     }}
                     disabled={!!editingVoucherId}
                     placeholder="ابحث واختر المشروع..."
-                    triggerClassName="h-10 text-xs bg-white border-slate-200"
+                    triggerClassName="h-10 max-lg:min-h-11 text-xs bg-white border-slate-200"
                   />
                 </div>
 
                 {/* اختيار اللقب والجهة الداعمة / المسدد */}
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="col-span-1 space-y-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="space-y-1.5">
                     <Label className="text-xs font-bold text-slate-800">اللقب / الصفة *</Label>
                     <Select value={modalHonorificTitle} onValueChange={setModalHonorificTitle}>
-                      <SelectTrigger className="h-10 text-xs bg-white border-slate-200">
+                      <SelectTrigger className="h-10 max-lg:min-h-11 text-xs bg-white border-slate-200 w-full">
                         <SelectValue placeholder="اللقب..." />
                       </SelectTrigger>
                       <SelectContent dir="rtl">
@@ -1023,7 +1218,7 @@ export default function ReceiptVouchers() {
                     </Select>
                   </div>
 
-                  <div className="col-span-2 space-y-1.5">
+                  <div className="sm:col-span-2 space-y-1.5">
                     <Label className="text-xs font-bold text-slate-800">الجهة الداعمة / المسدد *</Label>
                     <Select
                       value={modalPayerName}
@@ -1186,25 +1381,25 @@ export default function ReceiptVouchers() {
 
             </div>
 
-            <DialogFooter className="flex justify-between items-center gap-2 sm:justify-start pt-4 border-t mt-2">
+            <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-start items-stretch sm:items-center gap-2 pt-4 border-t mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddVoucherModalOpen(false)}
+                className="w-full sm:w-auto text-xs min-h-10 max-lg:min-h-11 px-5 rounded-lg border-slate-200"
+              >
+                إلغاء
+              </Button>
               <Button
                 type="button"
                 onClick={handleSaveVoucher}
                 disabled={createVoucherMutation.isPending || updateVoucherMutation.isPending || (activeModalProjectId > 0 && projectSupporters.length === 0 && !editingVoucherId) || (remainingUnpaidForSupporter <= 0 && supporterCommittedAmount > 0 && !editingVoucherId)}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 h-10 rounded-lg shadow-2xs"
+                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 min-h-10 max-lg:min-h-11 rounded-lg shadow-2xs"
               >
                 {(createVoucherMutation.isPending || updateVoucherMutation.isPending) && (
                   <Loader2 className="h-4 w-4 ml-2 animate-spin" />
                 )}
                 {editingVoucherId ? "حفظ التعديلات" : "تسجيل سند القبض"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsAddVoucherModalOpen(false)}
-                className="text-xs h-10 px-5 rounded-lg border-slate-200"
-              >
-                إلغاء
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1212,18 +1407,18 @@ export default function ReceiptVouchers() {
 
         {/* مودال عرض الملاحظات والمبررات الكاملة */}
         <Dialog open={!!justificationModalNote} onOpenChange={(open) => !open && setJustificationModalNote(null)}>
-          <DialogContent className="dir-rtl text-right max-w-sm">
+          <DialogContent className="dir-rtl text-right w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6">
             <DialogHeader className="text-right">
               <DialogTitle className="text-sm font-bold flex items-center gap-2 text-primary">
-                <Info className="h-4 w-4 text-amber-600" />
+                <Info className="h-4 w-4 text-amber-600 shrink-0" />
                 المبررات / السبب المسجل
               </DialogTitle>
             </DialogHeader>
             <div className="p-3.5 bg-amber-50/50 rounded-lg border border-amber-200 text-xs text-amber-950 leading-relaxed font-medium whitespace-pre-wrap">
               {justificationModalNote}
             </div>
-            <DialogFooter className="justify-start">
-              <Button type="button" variant="outline" size="sm" onClick={() => setJustificationModalNote(null)} className="text-xs font-bold">
+            <DialogFooter className="sm:justify-start">
+              <Button type="button" variant="outline" size="sm" onClick={() => setJustificationModalNote(null)} className="w-full sm:w-auto text-xs font-bold min-h-10 max-lg:min-h-11">
                 إغلاق
               </Button>
             </DialogFooter>
@@ -1232,22 +1427,22 @@ export default function ReceiptVouchers() {
 
         {/* مودال الاعتماد والرفض وإلغاء الاعتماد بمبررات */}
         <Dialog open={actionModal.isOpen} onOpenChange={(open) => setActionModal(prev => ({ ...prev, isOpen: open }))}>
-          <DialogContent className="dir-rtl text-right max-w-md bg-white rounded-xl shadow-xl border border-slate-200">
+          <DialogContent className="dir-rtl text-right w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 bg-white rounded-xl shadow-xl border border-slate-200">
             <DialogHeader className="text-right border-b pb-3">
               <DialogTitle className="text-base font-bold flex items-center gap-2 text-slate-800 text-right">
                 {actionModal.type === "exception_approve" ? (
                   <>
-                    <ShieldAlert className="h-5 w-5 text-amber-600" />
+                    <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0" />
                     <span>استثناء اعتماد سند القبض</span>
                   </>
                 ) : actionModal.type === "revoke" ? (
                   <>
-                    <RotateCcw className="h-5 w-5 text-amber-600" />
+                    <RotateCcw className="h-5 w-5 text-amber-600 shrink-0" />
                     <span>إلغاء اعتماد سند القبض</span>
                   </>
                 ) : (
                   <>
-                    <XCircle className="h-5 w-5 text-rose-600" />
+                    <XCircle className="h-5 w-5 text-rose-600 shrink-0" />
                     <span>رفض سند القبض</span>
                   </>
                 )}
@@ -1284,7 +1479,7 @@ export default function ReceiptVouchers() {
                       : "أدخل سبب رفض سند القبض..."
                   }
                   rows={3}
-                  className="text-xs"
+                  className="text-xs max-md:text-base"
                 />
                 {actionError && (
                   <p className="text-xs text-rose-600 font-semibold">{actionError}</p>
@@ -1292,16 +1487,24 @@ export default function ReceiptVouchers() {
               </div>
             </div>
 
-            <DialogFooter className="flex justify-between items-center gap-2 sm:justify-start pt-2 border-t">
+            <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-start items-stretch sm:items-center gap-2 pt-2 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActionModal(prev => ({ ...prev, isOpen: false }))}
+                className="w-full sm:w-auto text-xs min-h-10 max-lg:min-h-11"
+              >
+                إلغاء
+              </Button>
               <Button
                 type="button"
                 onClick={handleConfirmAction}
                 disabled={exceptionApproveVoucherMutation.isPending || revokeVoucherApprovalMutation.isPending || rejectVoucherMutation.isPending}
-                className={
+                className={`w-full sm:w-auto min-h-10 max-lg:min-h-11 ${
                   actionModal.type === "exception_approve" || actionModal.type === "revoke"
                     ? "bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
                     : "bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs"
-                }
+                }`}
               >
                 {(exceptionApproveVoucherMutation.isPending || revokeVoucherApprovalMutation.isPending || rejectVoucherMutation.isPending) && (
                   <Loader2 className="h-3.5 w-3.5 ml-2 animate-spin" />
@@ -1311,14 +1514,6 @@ export default function ReceiptVouchers() {
                   : actionModal.type === "revoke"
                   ? "تأكيد إلغاء الاعتماد"
                   : "تأكيد الرفض"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setActionModal(prev => ({ ...prev, isOpen: false }))}
-                className="text-xs"
-              >
-                إلغاء
               </Button>
             </DialogFooter>
           </DialogContent>

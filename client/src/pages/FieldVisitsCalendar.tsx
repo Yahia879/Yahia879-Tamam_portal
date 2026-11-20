@@ -329,19 +329,19 @@ function FieldVisitsCalendarContent() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="min-w-0 space-y-4 sm:space-y-6 pb-10 sm:pb-12 max-w-full overflow-x-hidden">
       {/* 1. Header & Quick Controls */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-card border border-border/70 rounded-3xl p-5 sm:p-6 shadow-xs">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-2xl bg-primary/10 text-primary border border-primary/20">
-              <CalendarDays className="h-6 w-6" />
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-4 bg-card border border-border/70 rounded-2xl sm:rounded-3xl p-4 sm:p-5 lg:p-6 shadow-xs">
+        <div className="min-w-0">
+          <div className="flex items-start sm:items-center gap-2.5 sm:gap-3">
+            <div className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-primary/10 text-primary border border-primary/20 shrink-0">
+              <CalendarDays className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-black tracking-tight text-foreground leading-snug">
                 التقويم الموحد للمواعيد والزيارات
               </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 leading-relaxed">
                 متابعة وإدارة الزيارات الميدانية، الاستجابة السريعة، التقارير الختامية، والأحداث الخاصة
               </p>
             </div>
@@ -349,55 +349,60 @@ function FieldVisitsCalendarContent() {
         </div>
 
         {/* View Switcher & Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={goToToday}
-            className="rounded-xl h-9 text-xs font-bold border-border/80 hover:border-primary hover:text-primary transition-all"
-          >
-            اليوم
-          </Button>
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-2.5 shrink-0">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToToday}
+              className="rounded-xl h-10 max-lg:min-h-11 pointer-coarse:min-h-11 px-3.5 text-xs font-bold border-border/80 hover:border-primary hover:text-primary transition-all shrink-0"
+            >
+              اليوم
+            </Button>
 
-          <div className="bg-muted/70 p-1 rounded-2xl flex items-center gap-1 border border-border/60">
-            <button
-              onClick={() => setViewMode("month")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                viewMode === "month" 
-                  ? "bg-card shadow-xs text-primary font-black" 
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              شهري
-            </button>
-            <button
-              onClick={() => setViewMode("timeline")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                viewMode === "timeline" 
-                  ? "bg-card shadow-xs text-primary font-black" 
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              جدول زمني
-            </button>
-            <button
-              onClick={() => setViewMode("agenda")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                viewMode === "agenda" 
-                  ? "bg-card shadow-xs text-primary font-black" 
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              قائمة
-            </button>
+            <div className="bg-muted/70 p-1 rounded-2xl grid grid-cols-3 sm:inline-flex items-center gap-1 border border-border/60 flex-1 sm:flex-initial">
+              <button
+                type="button"
+                onClick={() => setViewMode("month")}
+                className={`px-2.5 sm:px-3.5 py-2 sm:py-1.5 min-h-9 max-lg:min-h-10 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  viewMode === "month" 
+                    ? "bg-card shadow-xs text-primary font-black" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                شهري
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("timeline")}
+                className={`px-2.5 sm:px-3.5 py-2 sm:py-1.5 min-h-9 max-lg:min-h-10 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  viewMode === "timeline" 
+                    ? "bg-card shadow-xs text-primary font-black" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                جدول زمني
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("agenda")}
+                className={`px-2.5 sm:px-3.5 py-2 sm:py-1.5 min-h-9 max-lg:min-h-10 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  viewMode === "agenda" 
+                    ? "bg-card shadow-xs text-primary font-black" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                قائمة
+              </button>
+            </div>
           </div>
 
           {canCreateCustom && (
             <Button
               onClick={handleOpenNewEventModal}
-              className="gap-2 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-sm shadow-primary/20 h-9 px-4 text-xs"
+              className="w-full sm:w-auto justify-center gap-2 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-sm shadow-primary/20 h-10 max-lg:min-h-11 pointer-coarse:min-h-11 px-4 text-xs"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4 shrink-0" />
               إضافة حدث مخصص
             </Button>
           )}
@@ -405,23 +410,23 @@ function FieldVisitsCalendarContent() {
       </div>
 
       {/* 2. Top Stats KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3.5 lg:gap-4">
         {/* Field Visits */}
         {access.canView("field_visit") && <Card
           onClick={() => setSelectedTrack(selectedTrack === "field_visit" ? "all" : "field_visit")}
-          className={`cursor-pointer transition-all border rounded-3xl hover:shadow-sm ${
+          className={`cursor-pointer transition-all border rounded-2xl sm:rounded-3xl hover:shadow-sm py-0 ${
             selectedTrack === "field_visit" 
               ? "ring-2 ring-teal-500 bg-teal-50/40 dark:bg-teal-950/30 border-teal-300" 
               : "bg-card border-border/70 hover:border-teal-300"
           }`}
         >
-          <CardContent className="p-4 sm:p-5 flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-teal-50 text-teal-700 dark:bg-teal-950/80 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800">
-              <MapPin className="h-5 w-5" />
+          <CardContent className="p-3 sm:p-4 lg:p-5 flex items-center gap-2.5 sm:gap-3">
+            <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-teal-50 text-teal-700 dark:bg-teal-950/80 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800 shrink-0">
+              <MapPin className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-medium">الزيارات الميدانية</p>
-              <h3 className="text-xl font-black text-teal-700 dark:text-teal-300 mt-0.5">{stats?.fieldVisits ?? 0}</h3>
+            <div className="min-w-0">
+              <p className="text-[11px] sm:text-xs text-muted-foreground font-medium truncate">الزيارات الميدانية</p>
+              <h3 className="text-lg sm:text-xl font-black text-teal-700 dark:text-teal-300 mt-0.5">{stats?.fieldVisits ?? 0}</h3>
             </div>
           </CardContent>
         </Card>}
@@ -429,19 +434,19 @@ function FieldVisitsCalendarContent() {
         {/* Quick Response */}
         {access.canView("quick_response") && <Card
           onClick={() => setSelectedTrack(selectedTrack === "quick_response" ? "all" : "quick_response")}
-          className={`cursor-pointer transition-all border rounded-3xl hover:shadow-sm ${
+          className={`cursor-pointer transition-all border rounded-2xl sm:rounded-3xl hover:shadow-sm py-0 ${
             selectedTrack === "quick_response" 
               ? "ring-2 ring-amber-500 bg-amber-50/40 dark:bg-amber-950/30 border-amber-300" 
               : "bg-card border-border/70 hover:border-amber-300"
           }`}
         >
-          <CardContent className="p-4 sm:p-5 flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-amber-50 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800">
-              <Zap className="h-5 w-5" />
+          <CardContent className="p-3 sm:p-4 lg:p-5 flex items-center gap-2.5 sm:gap-3">
+            <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-amber-50 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800 shrink-0">
+              <Zap className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-medium">الاستجابة السريعة</p>
-              <h3 className="text-xl font-black text-amber-700 dark:text-amber-300 mt-0.5">{stats?.quickResponse ?? 0}</h3>
+            <div className="min-w-0">
+              <p className="text-[11px] sm:text-xs text-muted-foreground font-medium truncate">الاستجابة السريعة</p>
+              <h3 className="text-lg sm:text-xl font-black text-amber-700 dark:text-amber-300 mt-0.5">{stats?.quickResponse ?? 0}</h3>
             </div>
           </CardContent>
         </Card>}
@@ -449,19 +454,19 @@ function FieldVisitsCalendarContent() {
         {/* Final Reports */}
         {access.canView("final_report") && <Card
           onClick={() => setSelectedTrack(selectedTrack === "final_report" ? "all" : "final_report")}
-          className={`cursor-pointer transition-all border rounded-3xl hover:shadow-sm ${
+          className={`cursor-pointer transition-all border rounded-2xl sm:rounded-3xl hover:shadow-sm py-0 ${
             selectedTrack === "final_report" 
               ? "ring-2 ring-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/30 border-emerald-300" 
               : "bg-card border-border/70 hover:border-emerald-300"
           }`}
         >
-          <CardContent className="p-4 sm:p-5 flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800">
-              <FileText className="h-5 w-5" />
+          <CardContent className="p-3 sm:p-4 lg:p-5 flex items-center gap-2.5 sm:gap-3">
+            <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800 shrink-0">
+              <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-medium">التقرير الختامي</p>
-              <h3 className="text-xl font-black text-emerald-700 dark:text-emerald-300 mt-0.5">{stats?.finalReports ?? 0}</h3>
+            <div className="min-w-0">
+              <p className="text-[11px] sm:text-xs text-muted-foreground font-medium truncate">التقرير الختامي</p>
+              <h3 className="text-lg sm:text-xl font-black text-emerald-700 dark:text-emerald-300 mt-0.5">{stats?.finalReports ?? 0}</h3>
             </div>
           </CardContent>
         </Card>}
@@ -469,19 +474,19 @@ function FieldVisitsCalendarContent() {
         {/* Custom Events */}
         {access.canView("custom") && <Card
           onClick={() => setSelectedTrack(selectedTrack === "custom" ? "all" : "custom")}
-          className={`cursor-pointer transition-all border rounded-3xl hover:shadow-sm ${
+          className={`cursor-pointer transition-all border rounded-2xl sm:rounded-3xl hover:shadow-sm py-0 ${
             selectedTrack === "custom" 
               ? "ring-2 ring-sky-500 bg-sky-50/40 dark:bg-sky-950/30 border-sky-300" 
               : "bg-card border-border/70 hover:border-sky-300"
           }`}
         >
-          <CardContent className="p-4 sm:p-5 flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-sky-50 text-sky-700 dark:bg-sky-950/80 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800">
-              <Sparkles className="h-5 w-5" />
+          <CardContent className="p-3 sm:p-4 lg:p-5 flex items-center gap-2.5 sm:gap-3">
+            <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-sky-50 text-sky-700 dark:bg-sky-950/80 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800 shrink-0">
+              <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-medium">الأحداث المخصصة</p>
-              <h3 className="text-xl font-black text-sky-700 dark:text-sky-300 mt-0.5">{stats?.customEvents ?? 0}</h3>
+            <div className="min-w-0">
+              <p className="text-[11px] sm:text-xs text-muted-foreground font-medium truncate">الأحداث المخصصة</p>
+              <h3 className="text-lg sm:text-xl font-black text-sky-700 dark:text-sky-300 mt-0.5">{stats?.customEvents ?? 0}</h3>
             </div>
           </CardContent>
         </Card>}
@@ -489,40 +494,41 @@ function FieldVisitsCalendarContent() {
         {/* Today's Events */}
         {access.canRead && <Card
           onClick={goToToday}
-          className="cursor-pointer transition-all border rounded-3xl hover:shadow-sm bg-primary/5 hover:bg-primary/10 border-primary/20 col-span-2 sm:col-span-1"
+          className="cursor-pointer transition-all border rounded-2xl sm:rounded-3xl hover:shadow-sm bg-primary/5 hover:bg-primary/10 border-primary/20 col-span-2 sm:col-span-1 py-0"
         >
-          <CardContent className="p-4 sm:p-5 flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-primary text-primary-foreground shadow-xs">
-              <Clock className="h-5 w-5" />
+          <CardContent className="p-3 sm:p-4 lg:p-5 flex items-center gap-2.5 sm:gap-3">
+            <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-primary text-primary-foreground shadow-xs shrink-0">
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-medium">مواعيد اليوم</p>
-              <h3 className="text-xl font-black text-primary mt-0.5">{stats?.todayCount ?? 0}</h3>
+            <div className="min-w-0">
+              <p className="text-[11px] sm:text-xs text-muted-foreground font-medium truncate">مواعيد اليوم</p>
+              <h3 className="text-lg sm:text-xl font-black text-primary mt-0.5">{stats?.todayCount ?? 0}</h3>
             </div>
           </CardContent>
         </Card>}
       </div>
 
       {/* 3. Filters Toolbar */}
-      <Card className="rounded-3xl border border-border/70 shadow-xs">
-        <CardContent className="p-4">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <Card className="rounded-2xl sm:rounded-3xl border border-border/70 shadow-xs py-0">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
             {/* Category Pills */}
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap hide-scrollbar">
               {(["all", ...access.readableTypes] as const).map((key) => {
                 const conf = TRACK_CONFIG[key];
                 const isSelected = selectedTrack === key;
                 return (
                   <button
                     key={key}
+                    type="button"
                     onClick={() => setSelectedTrack(key)}
-                    className={`px-3.5 py-1.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 border ${
+                    className={`px-3 sm:px-3.5 py-1.5 min-h-9 max-lg:min-h-10 pointer-coarse:min-h-10 rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 border shrink-0 whitespace-nowrap ${
                       isSelected
                         ? "bg-primary text-primary-foreground border-primary shadow-xs"
                         : "bg-card hover:bg-muted/60 text-foreground border-border/70"
                     }`}
                   >
-                    {key !== "all" && <span className={`w-2 h-2 rounded-full ${conf.dot}`} />}
+                    {key !== "all" && <span className={`w-2 h-2 rounded-full shrink-0 ${conf.dot}`} />}
                     {conf.label}
                   </button>
                 );
@@ -530,17 +536,17 @@ function FieldVisitsCalendarContent() {
             </div>
 
             {/* Staff & Search Controls */}
-            <div className="flex flex-col sm:flex-row items-center gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex items-center gap-2.5 w-full lg:w-auto">
               {/* Staff Select / Indicator */}
               {isOwnOnly ? (
-                <div className="h-9 px-3.5 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-300 flex items-center gap-1.5 text-xs font-bold whitespace-nowrap shadow-2xs">
-                  <User className="w-3.5 h-3.5 text-teal-600" />
+                <div className="h-10 max-lg:min-h-11 px-3.5 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-300 flex items-center justify-center sm:justify-start gap-1.5 text-xs font-bold whitespace-nowrap shadow-2xs">
+                  <User className="w-3.5 h-3.5 text-teal-600 shrink-0" />
                   <span>زياراتي ومهامي فقط</span>
                 </div>
               ) : (
-                <div className="w-full sm:w-60">
+                <div className="w-full lg:w-56 min-w-0">
                   <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
-                    <SelectTrigger className="rounded-2xl h-9 text-xs border-border/70">
+                    <SelectTrigger className="w-full min-w-0 rounded-2xl h-10 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs border-border/70">
                       <SelectValue placeholder="تصفية حسب المسؤول" />
                     </SelectTrigger>
                     <SelectContent>
@@ -556,18 +562,20 @@ function FieldVisitsCalendarContent() {
               )}
 
               {/* Search Bar */}
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <div className="relative w-full lg:w-60 min-w-0">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="بحث برقم الطلب، المسجد..."
-                  className="pr-9 h-9 text-xs rounded-2xl border-border/70"
+                  className="pr-9 pl-8 h-10 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs sm:text-sm max-md:text-base rounded-2xl border-border/70 w-full"
                 />
                 {searchQuery && (
                   <button
+                    type="button"
                     onClick={() => setSearchQuery("")}
-                    className="absolute left-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                    aria-label="مسح البحث"
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -580,22 +588,23 @@ function FieldVisitsCalendarContent() {
 
       {/* 4. Main Calendar & Details Grid */}
       {viewMode === "month" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
           {/* Calendar Grid (8 cols) */}
-          <Card className="lg:col-span-8 rounded-3xl border border-border/70 shadow-xs">
-            <CardHeader className="flex flex-row items-center justify-between p-5 border-b border-border/60">
-              <div className="flex items-center gap-2">
-                <CalendarIcon className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg font-black font-mono text-foreground">
+          <Card className="lg:col-span-8 rounded-2xl sm:rounded-3xl border border-border/70 shadow-xs py-0 gap-0 overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between p-4 sm:p-5 border-b border-border/60">
+              <div className="flex items-center gap-2 min-w-0">
+                <CalendarIcon className="h-5 w-5 text-primary shrink-0" />
+                <CardTitle className="text-base sm:text-lg font-black font-mono text-foreground truncate">
                   {format(currentMonthDate, "MMMM yyyy", { locale: ar })}
                 </CardTitle>
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={prevMonth}
-                  className="h-8 w-8 rounded-xl border-border/70"
+                  aria-label="الشهر السابق"
+                  className="size-10 sm:size-9 pointer-coarse:size-11 rounded-xl border-border/70"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -603,19 +612,20 @@ function FieldVisitsCalendarContent() {
                   variant="outline"
                   size="icon"
                   onClick={nextMonth}
-                  className="h-8 w-8 rounded-xl border-border/70"
+                  aria-label="الشهر التالي"
+                  className="size-10 sm:size-9 pointer-coarse:size-11 rounded-xl border-border/70"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="p-3 sm:p-5">
+            <CardContent className="p-2.5 sm:p-4 md:p-5">
               {/* Days Header */}
-              <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 text-center text-xs font-bold text-muted-foreground">
+              <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 text-center text-[11px] sm:text-xs font-bold text-muted-foreground">
                 {["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"].map((d) => (
-                  <div key={d} className="p-1">
+                  <div key={d} className="p-1 truncate">
                     <span className="hidden sm:inline">{d}</span>
-                    <span className="sm:hidden">{d.charAt(0)}</span>
+                    <span className="sm:hidden">{d.replace("ال", "").slice(0, 3)}</span>
                   </div>
                 ))}
               </div>
@@ -632,9 +642,10 @@ function FieldVisitsCalendarContent() {
                   return (
                     <button
                       key={day.toISOString()}
+                      type="button"
                       onClick={() => setSelectedDate(day)}
                       className={`
-                        relative p-1.5 sm:p-2 rounded-2xl border text-right transition-all flex flex-col justify-between min-h-[75px] sm:min-h-[95px] max-h-[110px] overflow-hidden
+                        relative p-1 sm:p-2 rounded-xl sm:rounded-2xl border text-right transition-all flex flex-col justify-between min-h-[56px] sm:min-h-[90px] lg:min-h-[98px] sm:max-h-[112px] overflow-hidden
                         ${
                           isSelected
                             ? "border-primary ring-2 ring-primary/20 bg-primary/5 shadow-xs"
@@ -646,10 +657,10 @@ function FieldVisitsCalendarContent() {
                         }
                       `}
                     >
-                      {/* Day Number + Today Badge */}
-                      <div className="flex items-center justify-between w-full">
+                      {/* Day Number + Count Badge */}
+                      <div className="flex items-center justify-center sm:justify-between w-full gap-0.5">
                         <span
-                          className={`text-xs font-mono font-bold w-6 h-6 rounded-full flex items-center justify-center ${
+                          className={`text-xs font-mono font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
                             isToday
                               ? "bg-primary text-primary-foreground font-black"
                               : isSelected
@@ -660,14 +671,34 @@ function FieldVisitsCalendarContent() {
                           {format(day, "d")}
                         </span>
                         {hasEvents && (
-                          <span className="text-[10px] font-bold font-mono text-primary px-1.5 py-0.5 rounded-full bg-primary/10">
+                          <span className="hidden sm:inline-block text-[10px] font-bold font-mono text-primary px-1.5 py-0.5 rounded-full bg-primary/10">
                             {dayEvents.length}
                           </span>
                         )}
                       </div>
 
-                      {/* Event preview pills */}
-                      <div className="flex flex-col gap-1 w-full mt-1 overflow-hidden">
+                      {/* Mobile Event Dots (< sm) */}
+                      {hasEvents && (
+                        <div className="flex sm:hidden items-center justify-center gap-0.5 flex-wrap mt-1 w-full">
+                          {dayEvents.slice(0, 3).map((ev: any) => {
+                            const conf = TRACK_CONFIG[ev.type as keyof typeof TRACK_CONFIG] || TRACK_CONFIG.custom;
+                            return (
+                              <span
+                                key={ev.id}
+                                className={`w-1.5 h-1.5 rounded-full shrink-0 ${conf.dot}`}
+                              />
+                            );
+                          })}
+                          {dayEvents.length > 3 && (
+                            <span className="text-[9px] font-mono font-bold text-primary leading-none">
+                              +{dayEvents.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Tablet & Desktop Event preview pills (>= sm) */}
+                      <div className="hidden sm:flex flex-col gap-1 w-full mt-1 overflow-hidden">
                         {dayEvents.slice(0, 2).map((ev: any) => {
                           const conf = TRACK_CONFIG[ev.type as keyof typeof TRACK_CONFIG] || TRACK_CONFIG.custom;
                           return (
@@ -695,10 +726,10 @@ function FieldVisitsCalendarContent() {
           </Card>
 
           {/* Selected Day Drawer / Sidebar (4 cols) */}
-          <Card className="lg:col-span-4 rounded-3xl border border-border/70 shadow-xs flex flex-col">
-            <CardHeader className="p-5 border-b border-border/60 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-base font-black text-foreground">
+          <Card className="lg:col-span-4 rounded-2xl sm:rounded-3xl border border-border/70 shadow-xs flex flex-col py-0 gap-0 overflow-hidden">
+            <CardHeader className="p-4 sm:p-5 border-b border-border/60 flex flex-row items-center justify-between gap-2">
+              <div className="min-w-0">
+                <CardTitle className="text-sm sm:text-base font-black text-foreground truncate">
                   مواعيد: {format(selectedDate, "EEEE d MMMM", { locale: ar })}
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">
@@ -710,7 +741,7 @@ function FieldVisitsCalendarContent() {
                   size="sm"
                   variant="outline"
                   onClick={handleOpenNewEventModal}
-                  className="h-8 rounded-xl text-xs gap-1 border-border/70 hover:border-primary hover:text-primary"
+                  className="h-9 max-lg:min-h-10 pointer-coarse:min-h-10 rounded-xl text-xs gap-1 border-border/70 hover:border-primary hover:text-primary shrink-0"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   إضافة حدث
@@ -718,9 +749,9 @@ function FieldVisitsCalendarContent() {
               )}
             </CardHeader>
 
-            <CardContent className="p-4 flex-1 overflow-y-auto max-h-[600px] space-y-3">
+            <CardContent className="p-3.5 sm:p-4 flex-1 overflow-y-auto max-h-[520px] lg:max-h-[600px] space-y-3">
               {selectedDayEvents.length === 0 ? (
-                <div className="py-12 text-center text-muted-foreground">
+                <div className="py-10 sm:py-12 text-center text-muted-foreground">
                   <CalendarDays className="h-10 w-10 mx-auto opacity-30 mb-2" />
                   <p className="text-xs font-medium">لا توجد مواعيد مجدولة لهذا اليوم</p>
                   {canCreateCustom && (
@@ -728,7 +759,7 @@ function FieldVisitsCalendarContent() {
                       variant="ghost"
                       size="sm"
                       onClick={handleOpenNewEventModal}
-                      className="mt-2 text-xs text-primary hover:text-primary/80 font-bold"
+                      className="mt-2 min-h-10 text-xs text-primary hover:text-primary/80 font-bold"
                     >
                       + جدولة حدث أو زيارة الآن
                     </Button>
@@ -746,7 +777,7 @@ function FieldVisitsCalendarContent() {
                       className={`p-3.5 rounded-2xl border transition-all ${conf.cardBg} ${conf.border}`}
                     >
                       {/* Header Badge & Time */}
-                      <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
                         <Badge variant="outline" className={`text-[10px] font-bold px-2 py-0.5 gap-1 ${conf.badgeBg} ${conf.border}`}>
                           <Icon className="h-3 w-3" />
                           {ev.typeLabel || conf.label}
@@ -759,11 +790,11 @@ function FieldVisitsCalendarContent() {
                       </div>
 
                       {/* Title & Description */}
-                      <h4 className="text-sm font-bold text-foreground leading-snug">
+                      <h4 className="text-sm font-bold text-foreground leading-snug break-words">
                         {ev.title}
                       </h4>
                       {ev.description && (
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed break-words">
                           {ev.description}
                         </p>
                       )}
@@ -771,18 +802,18 @@ function FieldVisitsCalendarContent() {
                       {/* Location & Contact */}
                       <div className="mt-3 pt-2.5 border-t border-border/50 space-y-1.5 text-xs text-muted-foreground">
                         {ev.location && (
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
                             <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                             <span className="truncate">{ev.location}</span>
                           </div>
                         )}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-1.5 min-w-0">
                             <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                            <span>{ev.assignedToName || "غير محدد"}</span>
+                            <span className="truncate">{ev.assignedToName || "غير محدد"}</span>
                           </div>
                           {ev.priority && (
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${priorityObj.color}`}>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${priorityObj.color}`}>
                               {priorityObj.label}
                             </span>
                           )}
@@ -793,8 +824,8 @@ function FieldVisitsCalendarContent() {
                       <div className="mt-3 flex items-center justify-between gap-2 pt-2 border-t border-border/50">
                         {ev.linkUrl ? (
                           <Link href={ev.linkUrl}>
-                            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-primary hover:text-primary/90 p-0 font-bold">
-                              فتح الطلب <ExternalLink className="h-3 w-3" />
+                            <Button size="sm" variant="ghost" className="h-9 max-lg:min-h-10 text-xs gap-1 text-primary hover:text-primary/90 px-2 font-bold">
+                              فتح الطلب <ExternalLink className="h-3.5 w-3.5" />
                             </Button>
                           </Link>
                         ) : (
@@ -807,9 +838,10 @@ function FieldVisitsCalendarContent() {
                               size="icon"
                               variant="ghost"
                               onClick={() => handleOpenEditEventModal(ev)}
-                              className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-lg"
+                              aria-label="تعديل الحدث"
+                              className="size-9 max-lg:size-10 text-muted-foreground hover:text-foreground rounded-lg"
                             >
-                              <Edit className="h-3.5 w-3.5" />
+                              <Edit className="h-4 w-4" />
                             </Button>
                             <Button
                               size="icon"
@@ -819,9 +851,10 @@ function FieldVisitsCalendarContent() {
                                   deleteEventMutation.mutate({ id: ev.rawId });
                                 }
                               }}
-                              className="h-7 w-7 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg"
+                              aria-label="حذف الحدث"
+                              className="size-9 max-lg:size-10 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg"
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         )}
@@ -837,17 +870,17 @@ function FieldVisitsCalendarContent() {
 
       {/* 5. Timeline View Mode */}
       {viewMode === "timeline" && (
-        <Card className="rounded-3xl border border-border/70 shadow-xs">
-          <CardHeader className="p-5 border-b border-border/60 flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-base font-black text-foreground">
+        <Card className="rounded-2xl sm:rounded-3xl border border-border/70 shadow-xs py-0 gap-0 overflow-hidden">
+          <CardHeader className="p-4 sm:p-5 border-b border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="min-w-0">
+              <CardTitle className="text-sm sm:text-base font-black text-foreground leading-snug">
                 الجدول الزمني لليوم: {format(selectedDate, "EEEE d MMMM yyyy", { locale: ar })}
               </CardTitle>
               <CardDescription className="text-xs mt-0.5">
                 توزيع المواعيد على مدار ساعات اليوم (من 08:00 صباحاً حتى 09:00 مساءً)
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
               <Input
                 type="date"
                 value={format(selectedDate, "yyyy-MM-dd")}
@@ -858,12 +891,12 @@ function FieldVisitsCalendarContent() {
                     setCurrentMonthDate(d);
                   }
                 }}
-                className="w-40 h-8 text-xs rounded-xl border-border/70"
+                className="w-full sm:w-44 h-10 max-lg:min-h-11 text-xs sm:text-sm max-md:text-base rounded-xl border-border/70"
               />
             </div>
           </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-4">
+          <CardContent className="p-3.5 sm:p-6">
+            <div className="space-y-3 sm:space-y-4">
               {Array.from({ length: 14 }).map((_, idx) => {
                 const hourNum = 8 + idx; // 08:00 to 21:00
                 const hourStr = `${hourNum.toString().padStart(2, "0")}:00`;
@@ -873,15 +906,15 @@ function FieldVisitsCalendarContent() {
                 });
 
                 return (
-                  <div key={hourStr} className="grid grid-cols-12 gap-4 items-start border-b border-border/40 pb-4">
-                    <div className="col-span-2 sm:col-span-1 text-xs font-mono font-bold text-muted-foreground pt-1">
+                  <div key={hourStr} className="grid grid-cols-12 gap-2.5 sm:gap-4 items-start border-b border-border/40 pb-3 sm:pb-4">
+                    <div className="col-span-3 sm:col-span-2 lg:col-span-1 text-xs font-mono font-bold text-muted-foreground pt-2">
                       {hourStr}
                     </div>
-                    <div className="col-span-10 sm:col-span-11 space-y-2">
+                    <div className="col-span-9 sm:col-span-10 lg:col-span-11 space-y-2 min-w-0">
                       {hourEvents.length === 0 ? (
                         canCreateCustom ? (
                           <div 
-                            className="h-8 rounded-xl border border-dashed border-border/40 flex items-center px-3 text-xs text-muted-foreground/50 hover:bg-muted/20 transition-all cursor-pointer"
+                            className="min-h-10 rounded-xl border border-dashed border-border/40 flex items-center px-3 text-xs text-muted-foreground/60 hover:bg-muted/20 transition-all cursor-pointer"
                             onClick={() => {
                               setEventFormData((prev) => ({
                                 ...prev,
@@ -894,7 +927,7 @@ function FieldVisitsCalendarContent() {
                             + متاح للجدولة
                           </div>
                         ) : (
-                          <div className="h-8 rounded-xl border border-dashed border-border/20 flex items-center px-3 text-xs text-muted-foreground/30">
+                          <div className="min-h-10 rounded-xl border border-dashed border-border/20 flex items-center px-3 text-xs text-muted-foreground/30">
                             لا توجد زيارات مجدولة
                           </div>
                         )
@@ -905,27 +938,27 @@ function FieldVisitsCalendarContent() {
                           return (
                             <div
                               key={ev.id}
-                              className={`p-3.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${conf.cardBg} ${conf.border}`}
+                              className={`p-3 sm:p-3.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 ${conf.cardBg} ${conf.border}`}
                             >
-                              <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-xl border ${conf.badgeBg} ${conf.border}`}>
+                              <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0">
+                                <div className={`p-2 rounded-xl border shrink-0 ${conf.badgeBg} ${conf.border}`}>
                                   <Icon className="h-4 w-4" />
                                 </div>
-                                <div>
-                                  <h4 className="text-sm font-bold text-foreground">{ev.title}</h4>
-                                  <p className="text-xs text-muted-foreground">
+                                <div className="min-w-0">
+                                  <h4 className="text-sm font-bold text-foreground break-words">{ev.title}</h4>
+                                  <p className="text-xs text-muted-foreground break-words mt-0.5">
                                     {ev.location || "بدون موقع"} • المسند إليه: {ev.assignedToName || "غير محدد"}
                                   </p>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40">
                                 <Badge variant="outline" className={`text-xs font-mono font-bold ${conf.badgeBg} ${conf.border}`}>
                                   {ev.startTime} {ev.endTime ? `- ${ev.endTime}` : ""}
                                 </Badge>
                                 {ev.linkUrl && (
                                   <Link href={ev.linkUrl}>
-                                    <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-primary">
-                                      فتح <ExternalLink className="h-3 w-3" />
+                                    <Button size="sm" variant="ghost" className="h-9 max-lg:min-h-10 text-xs gap-1 text-primary">
+                                      فتح <ExternalLink className="h-3.5 w-3.5" />
                                     </Button>
                                   </Link>
                                 )}
@@ -945,9 +978,9 @@ function FieldVisitsCalendarContent() {
 
       {/* 6. Agenda View Mode */}
       {viewMode === "agenda" && (
-        <Card className="rounded-3xl border border-border/70 shadow-xs">
-          <CardHeader className="p-5 border-b border-border/60">
-            <CardTitle className="text-base font-black text-foreground">
+        <Card className="rounded-2xl sm:rounded-3xl border border-border/70 shadow-xs py-0 gap-0 overflow-hidden">
+          <CardHeader className="p-4 sm:p-5 border-b border-border/60">
+            <CardTitle className="text-sm sm:text-base font-black text-foreground leading-snug">
               جدول أعمال ومواعيد الشهر الكامل ({format(currentMonthDate, "MMMM yyyy", { locale: ar })})
             </CardTitle>
             <CardDescription className="text-xs mt-0.5">
@@ -956,7 +989,7 @@ function FieldVisitsCalendarContent() {
           </CardHeader>
           <CardContent className="p-0">
             {events.length === 0 ? (
-              <div className="py-16 text-center text-muted-foreground">
+              <div className="py-14 sm:py-16 px-4 text-center text-muted-foreground">
                 <CalendarDays className="h-12 w-12 mx-auto opacity-30 mb-3" />
                 <p className="text-sm font-medium">لا توجد أي مواعيد مجدولة في هذا الشهر</p>
               </div>
@@ -968,14 +1001,14 @@ function FieldVisitsCalendarContent() {
                   const priorityObj = PRIORITY_OPTIONS.find(p => p.value === ev.priority) || PRIORITY_OPTIONS[1];
 
                   return (
-                    <div key={ev.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted/20 transition-all">
-                      <div className="flex items-start sm:items-center gap-3.5">
-                        <div className={`p-2.5 rounded-2xl shrink-0 border ${conf.badgeBg} ${conf.border}`}>
+                    <div key={ev.id} className="p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 hover:bg-muted/20 transition-all">
+                      <div className="flex items-start sm:items-center gap-3 min-w-0">
+                        <div className={`p-2.5 rounded-xl sm:rounded-2xl shrink-0 border ${conf.badgeBg} ${conf.border}`}>
                           <Icon className="h-5 w-5" />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="text-sm font-bold text-foreground">{ev.title}</h4>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                            <h4 className="text-sm font-bold text-foreground break-words">{ev.title}</h4>
                             <Badge variant="outline" className={`text-[10px] font-bold ${conf.badgeBg} ${conf.border}`}>
                               {ev.typeLabel || conf.label}
                             </Badge>
@@ -983,21 +1016,21 @@ function FieldVisitsCalendarContent() {
                               {priorityObj.label}
                             </span>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-muted-foreground mt-1 break-words">
                             {ev.location || "بدون موقع"} • المسؤول: <strong className="text-foreground">{ev.assignedToName || "غير محدد"}</strong>
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
-                        <div className="text-left font-mono">
+                      <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40">
+                        <div className="text-right sm:text-left font-mono">
                           <p className="text-xs font-bold text-foreground">{ev.date}</p>
                           <p className="text-[11px] text-muted-foreground">{ev.startTime || "09:00"}</p>
                         </div>
                         {ev.linkUrl && (
                           <Link href={ev.linkUrl}>
-                            <Button size="sm" variant="outline" className="h-8 rounded-xl text-xs gap-1 text-primary border-border/70 hover:border-primary">
-                              عرض <ExternalLink className="h-3 w-3" />
+                            <Button size="sm" variant="outline" className="h-9 max-lg:min-h-10 rounded-xl text-xs gap-1 text-primary border-border/70 hover:border-primary">
+                              عرض <ExternalLink className="h-3.5 w-3.5" />
                             </Button>
                           </Link>
                         )}
@@ -1013,14 +1046,14 @@ function FieldVisitsCalendarContent() {
 
       {/* 7. Add / Edit Custom Event Modal Dialog (Enhanced & Expanded UI) */}
       <Dialog open={isEventModalOpen && canCreateCustom && (!editingEventId || access.canView("custom"))} onOpenChange={setIsEventModalOpen}>
-        <DialogContent className="max-w-xl sm:max-w-xl w-full rounded-3xl p-6 sm:p-7 border border-border/80 shadow-2xl bg-card dark:bg-slate-900">
+        <DialogContent className="max-w-xl sm:max-w-xl w-[calc(100vw-1rem)] sm:w-full max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-7 border border-border/80 shadow-2xl bg-card dark:bg-slate-900">
           {/* Header */}
-          <div className="flex items-center gap-3.5 text-right w-full pb-4 border-b border-border/60">
-            <div className="p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20 shrink-0">
-              <CalendarPlus className="h-6 w-6" />
+          <div className="flex items-center gap-3 text-right w-full pb-3.5 sm:pb-4 border-b border-border/60">
+            <div className="p-2.5 sm:p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20 shrink-0">
+              <CalendarPlus className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <div className="text-right flex-1 min-w-0">
-              <DialogTitle className="text-lg sm:text-xl font-black text-foreground text-right m-0">
+              <DialogTitle className="text-base sm:text-xl font-black text-foreground text-right m-0 leading-snug">
                 {editingEventId ? "تعديل الحدث المخصص" : "إضافة حدث / مهمة مخصصة"}
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground mt-1 text-right leading-relaxed">
@@ -1040,7 +1073,7 @@ function FieldVisitsCalendarContent() {
                 value={eventFormData.title}
                 onChange={(e) => setEventFormData({ ...eventFormData, title: e.target.value })}
                 placeholder="مثال: اجتماع فريق المعاينة الفنية، جولة ميدانية لمسجد الهدى..."
-                className="rounded-2xl h-11 text-sm bg-muted/20 dark:bg-muted/10 border-border/70 focus:border-primary focus:bg-background transition-all text-right"
+                className="rounded-2xl h-11 text-sm max-md:text-base bg-muted/20 dark:bg-muted/10 border-border/70 focus:border-primary focus:bg-background transition-all text-right"
                 required
               />
             </div>
@@ -1059,7 +1092,7 @@ function FieldVisitsCalendarContent() {
                       key={p.value}
                       type="button"
                       onClick={() => setEventFormData({ ...eventFormData, priority: p.value as any })}
-                      className={`py-2.5 px-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 border ${
+                      className={`min-h-11 py-2 px-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 border ${
                         isSelected
                           ? `${p.color} ring-2 ring-primary/40 font-black shadow-xs`
                           : "bg-muted/20 dark:bg-muted/10 text-muted-foreground border-border/60 hover:bg-muted/50 hover:text-foreground"
@@ -1088,7 +1121,7 @@ function FieldVisitsCalendarContent() {
                   type="date"
                   value={eventFormData.eventDate}
                   onChange={(e) => setEventFormData({ ...eventFormData, eventDate: e.target.value })}
-                  className="rounded-2xl h-11 text-xs bg-muted/20 dark:bg-muted/10 border-border/70 text-right"
+                  className="rounded-2xl h-11 text-xs sm:text-sm max-md:text-base bg-muted/20 dark:bg-muted/10 border-border/70 text-right"
                   required
                 />
               </div>
@@ -1102,7 +1135,7 @@ function FieldVisitsCalendarContent() {
                   type="time"
                   value={eventFormData.startTime}
                   onChange={(e) => setEventFormData({ ...eventFormData, startTime: e.target.value })}
-                  className="rounded-2xl h-11 text-xs bg-muted/20 dark:bg-muted/10 border-border/70 text-right"
+                  className="rounded-2xl h-11 text-xs sm:text-sm max-md:text-base bg-muted/20 dark:bg-muted/10 border-border/70 text-right"
                 />
               </div>
 
@@ -1115,7 +1148,7 @@ function FieldVisitsCalendarContent() {
                   type="time"
                   value={eventFormData.endTime}
                   onChange={(e) => setEventFormData({ ...eventFormData, endTime: e.target.value })}
-                  className="rounded-2xl h-11 text-xs bg-muted/20 dark:bg-muted/10 border-border/70 text-right"
+                  className="rounded-2xl h-11 text-xs sm:text-sm max-md:text-base bg-muted/20 dark:bg-muted/10 border-border/70 text-right"
                 />
               </div>
             </div>
@@ -1130,7 +1163,7 @@ function FieldVisitsCalendarContent() {
                 value={eventFormData.location}
                 onChange={(e) => setEventFormData({ ...eventFormData, location: e.target.value })}
                 placeholder="مثال: قاعة الاجتماعات الرئيسية، مقر الجمعية، أبها..."
-                className="rounded-2xl h-11 text-xs bg-muted/20 dark:bg-muted/10 border-border/70 focus:border-primary focus:bg-background transition-all text-right"
+                className="rounded-2xl h-11 text-xs sm:text-sm max-md:text-base bg-muted/20 dark:bg-muted/10 border-border/70 focus:border-primary focus:bg-background transition-all text-right"
               />
             </div>
 
@@ -1145,24 +1178,24 @@ function FieldVisitsCalendarContent() {
                 value={eventFormData.description}
                 onChange={(e) => setEventFormData({ ...eventFormData, description: e.target.value })}
                 placeholder="أضف أي تفاصيل أو أهداف أو متطلبات خاصة بهذا الموعد..."
-                className="w-full min-h-[110px] rounded-2xl text-xs bg-muted/20 dark:bg-muted/10 border border-border/70 focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all outline-none leading-relaxed text-right p-3.5 resize-y"
+                className="w-full min-h-[110px] rounded-2xl text-xs sm:text-sm max-md:text-base bg-muted/20 dark:bg-muted/10 border border-border/70 focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all outline-none leading-relaxed text-right p-3.5 resize-y"
               />
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-border/60">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 mt-5 sm:mt-6 pt-4 border-t border-border/60">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsEventModalOpen(false)}
-                className="rounded-2xl h-11 px-6 text-xs font-bold border-border/70 hover:bg-muted/60"
+                className="w-full sm:w-auto rounded-2xl min-h-11 px-6 text-xs font-bold border-border/70 hover:bg-muted/60"
               >
                 إلغاء
               </Button>
               <Button
                 type="submit"
                 disabled={createEventMutation.isPending || updateEventMutation.isPending}
-                className="rounded-2xl h-11 px-7 bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs shadow-sm shadow-primary/25 transition-all"
+                className="w-full sm:w-auto rounded-2xl min-h-11 px-7 bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs shadow-sm shadow-primary/25 transition-all"
               >
                 {createEventMutation.isPending || updateEventMutation.isPending 
                   ? "جاري الحفظ..." 
@@ -1178,7 +1211,7 @@ function FieldVisitsCalendarContent() {
 
 export default function FieldVisitsCalendar() {
   return (
-    <DashboardLayout>
+    <DashboardLayout tabletNavigation>
       <FieldVisitsCalendarContent />
     </DashboardLayout>
   );

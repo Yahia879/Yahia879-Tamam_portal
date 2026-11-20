@@ -279,24 +279,24 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
   }, [reports, filterType]);
 
   const content = (
-    <div className="w-full space-y-6 animate-in fade-in duration-300" dir="rtl">
+    <div className="w-full min-w-0 max-w-full overflow-x-hidden space-y-4 sm:space-y-6 animate-in fade-in duration-300" dir="rtl">
         {/* Header Block with New Report Button */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-teal-600/10 border border-teal-600/20 text-teal-600 flex items-center justify-center shrink-0">
               <FileText className="w-5 h-5" />
             </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground">مركز تقارير المشاريع</h1>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold text-foreground">مركز تقارير المشاريع</h1>
               <p className="text-xs sm:text-sm text-muted-foreground">استعراض ومتابعة وتعبئة التقارير النصف شهرية والشهرية والربعية والزيارات الميدانية</p>
             </div>
           </div>
 
           {canCreateReports && (
-            <div className="flex items-center gap-2">
-              <Link href="/project-reports/new">
-                <Button className="bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs sm:text-sm h-10 px-5 rounded-xl shadow-sm flex items-center gap-2">
-                  <Plus className="w-4 h-4" />
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+              <Link href="/project-reports/new" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs sm:text-sm min-h-10 max-lg:min-h-11 px-5 rounded-xl shadow-sm flex items-center justify-center gap-2">
+                  <Plus className="w-4 h-4 shrink-0" />
                   <span>تقرير جديد</span>
                 </Button>
               </Link>
@@ -305,83 +305,83 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
         </div>
 
         {/* 4 Pure Statistics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
           {/* Card 1: Semi-monthly */}
-          <div className="p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-muted-foreground">التقارير النصف شهرية</span>
-              <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-950 dark:text-teal-400 flex items-center justify-center">
+          <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] sm:text-xs font-bold text-muted-foreground leading-snug">التقارير النصف شهرية</span>
+              <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-950 dark:text-teal-400 flex items-center justify-center shrink-0">
                 <Clock className="w-4 h-4" />
               </div>
             </div>
-            <div className="flex items-baseline justify-between pt-1">
-              <span className="text-2xl font-black text-foreground">{stats.semiMonthly}</span>
-              <span className="text-[11px] font-semibold text-teal-600 bg-teal-50 dark:bg-teal-950 px-2 py-0.5 rounded-full">كل أسبوعين</span>
+            <div className="flex flex-wrap items-baseline justify-between gap-1.5 pt-1">
+              <span className="text-xl sm:text-2xl font-black text-foreground">{stats.semiMonthly}</span>
+              <span className="text-[10px] sm:text-[11px] font-semibold text-teal-600 bg-teal-50 dark:bg-teal-950 px-2 py-0.5 rounded-full">كل أسبوعين</span>
             </div>
           </div>
 
           {/* Card 2: Monthly */}
-          <div className="p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-muted-foreground">التقارير الشهرية</span>
-              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400 flex items-center justify-center">
+          <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] sm:text-xs font-bold text-muted-foreground leading-snug">التقارير الشهرية</span>
+              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400 flex items-center justify-center shrink-0">
                 <Calendar className="w-4 h-4" />
               </div>
             </div>
-            <div className="flex items-baseline justify-between pt-1">
-              <span className="text-2xl font-black text-foreground">{stats.monthly}</span>
-              <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-full">شهرياً</span>
+            <div className="flex flex-wrap items-baseline justify-between gap-1.5 pt-1">
+              <span className="text-xl sm:text-2xl font-black text-foreground">{stats.monthly}</span>
+              <span className="text-[10px] sm:text-[11px] font-semibold text-blue-600 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-full">شهرياً</span>
             </div>
           </div>
 
           {/* Card 3: Quarterly */}
-          <div className="p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-muted-foreground">التقارير الربعية</span>
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 flex items-center justify-center">
+          <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] sm:text-xs font-bold text-muted-foreground leading-snug">التقارير الربعية</span>
+              <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 flex items-center justify-center shrink-0">
                 <BarChart3 className="w-4 h-4" />
               </div>
             </div>
-            <div className="flex items-baseline justify-between pt-1">
-              <span className="text-2xl font-black text-foreground">{stats.quarterly}</span>
-              <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded-full">كل 3 أشهر</span>
+            <div className="flex flex-wrap items-baseline justify-between gap-1.5 pt-1">
+              <span className="text-xl sm:text-2xl font-black text-foreground">{stats.quarterly}</span>
+              <span className="text-[10px] sm:text-[11px] font-semibold text-indigo-600 bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded-full">كل 3 أشهر</span>
             </div>
           </div>
 
           {/* Card 4: Visits */}
-          <div className="p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-muted-foreground">تقارير الزيارات الميدانية</span>
-              <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400 flex items-center justify-center">
+          <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] sm:text-xs font-bold text-muted-foreground leading-snug">تقارير الزيارات الميدانية</span>
+              <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400 flex items-center justify-center shrink-0">
                 <MapPin className="w-4 h-4" />
               </div>
             </div>
-            <div className="flex items-baseline justify-between pt-1">
-              <span className="text-2xl font-black text-foreground">{stats.visit}</span>
-              <span className="text-[11px] font-semibold text-amber-600 bg-amber-50 dark:bg-amber-950 px-2 py-0.5 rounded-full">توثيق ميداني</span>
+            <div className="flex flex-wrap items-baseline justify-between gap-1.5 pt-1">
+              <span className="text-xl sm:text-2xl font-black text-foreground">{stats.visit}</span>
+              <span className="text-[10px] sm:text-[11px] font-semibold text-amber-600 bg-amber-50 dark:bg-amber-950 px-2 py-0.5 rounded-full">توثيق ميداني</span>
             </div>
           </div>
         </div>
 
         {/* Main Table Card */}
-        <Card className="border-border/80 shadow-xs rounded-xl overflow-hidden">
-          <CardHeader className="bg-muted/30 border-b border-border/60 py-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <CardTitle className="text-base font-bold flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-teal-600" />
+        <Card className="border-border/80 shadow-xs rounded-xl overflow-hidden py-0 gap-0">
+          <CardHeader className="bg-muted/30 border-b border-border/60 p-4 sm:py-4 sm:px-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              <div className="min-w-0">
+                <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-teal-600 shrink-0" />
                   قائمة تقارير المشاريع
                 </CardTitle>
-                <CardDescription className="text-xs">سجل كافة تقارير المتابعة والزيارات الميدانية مع الحالة ومؤشر RAG</CardDescription>
+                <CardDescription className="text-xs mt-0.5">سجل كافة تقارير المتابعة والزيارات الميدانية مع الحالة ومؤشر RAG</CardDescription>
               </div>
 
               {/* Filter Tabs */}
-              <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/60 self-start sm:self-auto overflow-x-auto">
+              <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/60 w-full lg:w-auto max-w-full overflow-x-auto scrollbar-none">
                 <Button
                   variant={filterType === "all" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setFilterType("all")}
-                  className="h-8 text-xs rounded-lg font-bold"
+                  className="shrink-0 h-8 sm:h-9 max-lg:min-h-10 text-xs rounded-lg font-bold px-3"
                 >
                   الكل ({stats.total})
                 </Button>
@@ -389,7 +389,7 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
                   variant={filterType === "semi-monthly" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setFilterType("semi-monthly")}
-                  className="h-8 text-xs rounded-lg font-semibold"
+                  className="shrink-0 h-8 sm:h-9 max-lg:min-h-10 text-xs rounded-lg font-semibold px-3"
                 >
                   نصف شهري
                 </Button>
@@ -397,7 +397,7 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
                   variant={filterType === "monthly" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setFilterType("monthly")}
-                  className="h-8 text-xs rounded-lg font-semibold"
+                  className="shrink-0 h-8 sm:h-9 max-lg:min-h-10 text-xs rounded-lg font-semibold px-3"
                 >
                   شهري
                 </Button>
@@ -405,7 +405,7 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
                   variant={filterType === "quarterly" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setFilterType("quarterly")}
-                  className="h-8 text-xs rounded-lg font-semibold"
+                  className="shrink-0 h-8 sm:h-9 max-lg:min-h-10 text-xs rounded-lg font-semibold px-3"
                 >
                   ربعي
                 </Button>
@@ -413,7 +413,7 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
                   variant={filterType === "visit" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setFilterType("visit")}
-                  className="h-8 text-xs rounded-lg font-semibold"
+                  className="shrink-0 h-8 sm:h-9 max-lg:min-h-10 text-xs rounded-lg font-semibold px-3"
                 >
                   زيارة
                 </Button>
@@ -421,94 +421,211 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader className="bg-muted/40">
-                <TableRow>
-                  <TableHead className="text-xs font-bold">معرف التقرير</TableHead>
-                  <TableHead className="text-xs font-bold">نوع التقرير</TableHead>
-                  <TableHead className="text-xs font-bold">المشروع</TableHead>
-                  <TableHead className="text-xs font-bold">فترة التقرير</TableHead>
-                  <TableHead className="text-xs font-bold">تاريخ التقرير</TableHead>
-                  <TableHead className="text-xs font-bold text-center">مؤشر RAG</TableHead>
-                  <TableHead className="text-xs font-bold text-center">الحالة</TableHead>
-                  <TableHead className="text-xs font-bold text-center">إجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredReports.map((report) => (
-                  <TableRow key={report.id} className="hover:bg-muted/30">
-                    <TableCell className="font-mono text-xs font-bold text-primary">{report.id}</TableCell>
-                    <TableCell className="text-xs font-semibold">{report.type}</TableCell>
-                    <TableCell className="text-xs font-medium max-w-xs truncate">{report.project}</TableCell>
-                    <TableCell className="text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg inline-block my-1 border border-emerald-500/20 whitespace-nowrap">
-                      {report.period}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{report.date}</TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        className={
-                          report.rag === "أخضر"
-                            ? "bg-emerald-500 text-white text-[10px]"
-                            : report.rag === "أصفر"
-                            ? "bg-amber-500 text-white text-[10px]"
-                            : "bg-rose-500 text-white text-[10px]"
-                        }
-                      >
-                        {report.rag}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {canEditOrApprove ? (
-                        <Select
-                          value={report.status}
-                          onValueChange={(newStatus) => handleUpdateReportStatus(report.id, newStatus)}
-                        >
-                          <SelectTrigger className="h-8 border-border/80 w-28 text-xs font-semibold bg-background mx-auto">
-                            <SelectValue placeholder="حالة التقرير" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="مسودة" className="text-xs font-semibold">مسودة</SelectItem>
-                            <SelectItem value="تم الاطلاع" className="text-xs font-semibold text-teal-600">تم الاطلاع</SelectItem>
-                            <SelectItem value="معتمد" className="text-xs font-semibold text-emerald-600">معتمد</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Badge variant="outline" className="text-xs font-semibold">
-                          {report.status}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-700 hover:text-teal-700 hover:bg-teal-50 dark:hover:bg-teal-950/50 mx-auto">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="text-right text-xs">
-                          {report.status === "معتمد" && (
-                            <DropdownMenuItem asChild>
-                              <Link href={`/project-reports/${report.id}/pdf?type=${report.typeKey}`} className="gap-2 cursor-pointer flex items-center w-full font-bold text-teal-700">
-                                <Printer className="w-4 h-4 text-teal-600" />
-                                <span>معاينة وطباعة التقرير (PDF)</span>
-                              </Link>
-                            </DropdownMenuItem>
+            {/* Mobile & iPad Cards View */}
+            <div className="xl:hidden p-3 sm:p-4 bg-muted/15">
+              {filteredReports.length === 0 ? (
+                <div className="py-10 text-center text-sm text-muted-foreground">
+                  لا توجد تقارير مطابقة للتصنيف المحدد
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {filteredReports.map((report) => (
+                    <div
+                      key={report.id}
+                      className="rounded-xl border border-border/80 bg-card p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between gap-3"
+                    >
+                      <div className="space-y-2.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                            <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                              {report.id}
+                            </span>
+                            <span className="text-xs font-semibold text-foreground bg-muted px-2 py-0.5 rounded-md">
+                              {report.type}
+                            </span>
+                          </div>
+                          <Badge
+                            className={`shrink-0 ${
+                              report.rag === "أخضر"
+                                ? "bg-emerald-500 text-white text-[10px]"
+                                : report.rag === "أصفر"
+                                ? "bg-amber-500 text-white text-[10px]"
+                                : "bg-rose-500 text-white text-[10px]"
+                            }`}
+                          >
+                            {report.rag}
+                          </Badge>
+                        </div>
+
+                        <div className="text-sm font-bold text-foreground leading-snug break-words">
+                          {report.project}
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                          <span className="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                            {report.period}
+                          </span>
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5 shrink-0" />
+                            {report.date}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2.5 border-t border-border/60 flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-muted-foreground shrink-0">الحالة:</span>
+                          {canEditOrApprove ? (
+                            <Select
+                              value={report.status}
+                              onValueChange={(newStatus) => handleUpdateReportStatus(report.id, newStatus)}
+                            >
+                              <SelectTrigger className="h-9 max-lg:min-h-10 border-border/80 w-36 text-xs font-semibold bg-background">
+                                <SelectValue placeholder="حالة التقرير" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="مسودة" className="text-xs font-semibold">مسودة</SelectItem>
+                                <SelectItem value="تم الاطلاع" className="text-xs font-semibold text-teal-600">تم الاطلاع</SelectItem>
+                                <SelectItem value="معتمد" className="text-xs font-semibold text-emerald-600">معتمد</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Badge variant="outline" className="text-xs font-semibold">
+                              {report.status}
+                            </Badge>
                           )}
-                          {report.status === "مسودة" && (canCreateReports || canEditOrApprove) && (
-                            <DropdownMenuItem asChild>
-                              <Link href={`/project-reports/${report.typeKey}?editId=${report.id}`} className="gap-2 cursor-pointer flex items-center w-full font-semibold text-amber-700 dark:text-amber-400">
-                                <CheckCircle2 className="w-4 h-4 text-amber-600" />
-                                <span>إكمال التقرير</span>
-                              </Link>
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+                        </div>
+
+                        {report.status === "معتمد" && (
+                          <Link href={`/project-reports/${report.id}/pdf?type=${report.typeKey}`} className="w-full">
+                            <Button
+                              variant="outline"
+                              className="w-full min-h-10 max-lg:min-h-11 gap-2 text-xs font-bold text-teal-700 border-teal-500/40 hover:bg-teal-50 dark:hover:bg-teal-950/40"
+                            >
+                              <Printer className="w-4 h-4 text-teal-600 shrink-0" />
+                              <span>معاينة وطباعة التقرير (PDF)</span>
+                            </Button>
+                          </Link>
+                        )}
+                        {report.status === "مسودة" && (canCreateReports || canEditOrApprove) && (
+                          <Link href={`/project-reports/${report.typeKey}?editId=${report.id}`} className="w-full">
+                            <Button
+                              variant="outline"
+                              className="w-full min-h-10 max-lg:min-h-11 gap-2 text-xs font-semibold text-amber-700 dark:text-amber-400 border-amber-500/40 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                            >
+                              <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
+                              <span>إكمال التقرير</span>
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden xl:block overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/40">
+                  <TableRow>
+                    <TableHead className="text-xs font-bold">معرف التقرير</TableHead>
+                    <TableHead className="text-xs font-bold">نوع التقرير</TableHead>
+                    <TableHead className="text-xs font-bold">المشروع</TableHead>
+                    <TableHead className="text-xs font-bold">فترة التقرير</TableHead>
+                    <TableHead className="text-xs font-bold">تاريخ التقرير</TableHead>
+                    <TableHead className="text-xs font-bold text-center">مؤشر RAG</TableHead>
+                    <TableHead className="text-xs font-bold text-center">الحالة</TableHead>
+                    <TableHead className="text-xs font-bold text-center">إجراءات</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredReports.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                        لا توجد تقارير مطابقة للتصنيف المحدد
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredReports.map((report) => (
+                      <TableRow key={report.id} className="hover:bg-muted/30">
+                        <TableCell className="font-mono text-xs font-bold text-primary">{report.id}</TableCell>
+                        <TableCell className="text-xs font-semibold">{report.type}</TableCell>
+                        <TableCell className="text-xs font-medium max-w-xs truncate">{report.project}</TableCell>
+                        <TableCell>
+                          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg inline-block border border-emerald-500/20 whitespace-nowrap">
+                            {report.period}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{report.date}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            className={
+                              report.rag === "أخضر"
+                                ? "bg-emerald-500 text-white text-[10px]"
+                                : report.rag === "أصفر"
+                                ? "bg-amber-500 text-white text-[10px]"
+                                : "bg-rose-500 text-white text-[10px]"
+                            }
+                          >
+                            {report.rag}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {canEditOrApprove ? (
+                            <Select
+                              value={report.status}
+                              onValueChange={(newStatus) => handleUpdateReportStatus(report.id, newStatus)}
+                            >
+                              <SelectTrigger className="h-8 pointer-coarse:min-h-10 border-border/80 w-28 text-xs font-semibold bg-background mx-auto">
+                                <SelectValue placeholder="حالة التقرير" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="مسودة" className="text-xs font-semibold">مسودة</SelectItem>
+                                <SelectItem value="تم الاطلاع" className="text-xs font-semibold text-teal-600">تم الاطلاع</SelectItem>
+                                <SelectItem value="معتمد" className="text-xs font-semibold text-emerald-600">معتمد</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Badge variant="outline" className="text-xs font-semibold">
+                              {report.status}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 pointer-coarse:min-h-10 pointer-coarse:min-w-10 text-slate-700 hover:text-teal-700 hover:bg-teal-50 dark:hover:bg-teal-950/50 mx-auto">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="text-right text-xs">
+                              {report.status === "معتمد" && (
+                                <DropdownMenuItem asChild>
+                                  <Link href={`/project-reports/${report.id}/pdf?type=${report.typeKey}`} className="gap-2 cursor-pointer flex items-center w-full font-bold text-teal-700">
+                                    <Printer className="w-4 h-4 text-teal-600" />
+                                    <span>معاينة وطباعة التقرير (PDF)</span>
+                                  </Link>
+                                </DropdownMenuItem>
+                              )}
+                              {report.status === "مسودة" && (canCreateReports || canEditOrApprove) && (
+                                <DropdownMenuItem asChild>
+                                  <Link href={`/project-reports/${report.typeKey}?editId=${report.id}`} className="gap-2 cursor-pointer flex items-center w-full font-semibold text-amber-700 dark:text-amber-400">
+                                    <CheckCircle2 className="w-4 h-4 text-amber-600" />
+                                    <span>إكمال التقرير</span>
+                                  </Link>
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
 
@@ -530,7 +647,7 @@ export default function ProjectReportsHubPage({ embedded = false }: { embedded?:
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout tabletNavigation>
       {content}
     </DashboardLayout>
   );

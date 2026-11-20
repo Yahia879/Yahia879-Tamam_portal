@@ -928,25 +928,25 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
 
 
           {/* Footer Action Bar */}
-          <div className="flex items-center justify-end gap-3 p-4 bg-card border border-border/80 rounded-xl shadow-xs">
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 sm:gap-3 p-3.5 sm:p-4 bg-card border border-border/80 rounded-xl shadow-xs">
             <Button
               type="button"
               variant="outline"
               disabled={!selectedProjectId || isSubmitting}
               onClick={() => handleSaveDraft("مسودة")}
-              className="gap-2 text-xs font-bold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 disabled:opacity-50"
+              className="w-full sm:w-auto min-h-10 max-lg:min-h-11 gap-2 text-xs font-bold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 disabled:opacity-50"
             >
-              <Save className="w-4 h-4" />
+              <Save className="w-4 h-4 shrink-0" />
               حفظ كمسودة
             </Button>
             <Button
               type="button"
               disabled={!isFormValid || isSubmitting}
               onClick={() => handleSaveDraft("معتمد")}
-              className="gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white disabled:opacity-40"
+              className="w-full sm:w-auto min-h-10 max-lg:min-h-11 gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white disabled:opacity-40"
               title={!isFormValid ? "يرجى تعبئة جميع الحقول المطلوبة لتشغيل هذا الزر" : "إنشاء التقرير"}
             >
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
               إنشاء التقرير
             </Button>
           </div>
@@ -978,5 +978,5 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
       </div>
     );
 
-  return showLayout ? <DashboardLayout>{content}</DashboardLayout> : content;
+  return showLayout ? <DashboardLayout tabletNavigation>{content}</DashboardLayout> : content;
 }

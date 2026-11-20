@@ -654,46 +654,46 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                 </div>
 
                 {/* 2. طريقة إعداد وتعبئة التقرير الربعي ثانياً (أسفل اختيار المشروع) */}
-                <div className="space-y-1.5 md:col-span-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-teal-500/5 border border-teal-500/20 mb-1">
-                    <div className="space-y-0.5">
+                <div className="space-y-1.5 md:col-span-3 min-w-0">
+                  <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 p-3 rounded-xl bg-teal-500/5 border border-teal-500/20 mb-1 min-w-0 overflow-hidden">
+                    <div className="space-y-0.5 min-w-0">
                       <div className="flex items-center gap-2">
-                        <Wand2 className="w-4 h-4 text-teal-600" />
+                        <Wand2 className="w-4 h-4 text-teal-600 shrink-0" />
                         <span className="text-xs font-bold text-foreground">طريقة إعداد وتعبئة التقرير الربعي الاستراتيجي</span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground">اختر الإدخال المباشر أو التجميع التلقائي من 3 تقارير شهرية أو 6 تقارير نصف شهرية لنفس المشروع</p>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">اختر الإدخال المباشر أو التجميع التلقائي من 3 تقارير شهرية أو 6 تقارير نصف شهرية لنفس المشروع</p>
                     </div>
 
-                    <div className="flex items-center gap-1 bg-background p-1 rounded-lg border border-border/80 shrink-0">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 xl:flex xl:items-center gap-1.5 sm:gap-1 bg-background p-1.5 sm:p-1 rounded-lg border border-border/80 w-full xl:w-auto shrink-0">
                       <Button
                         type="button"
                         variant={entryMode === "manual" ? "default" : "ghost"}
                         size="sm"
                         onClick={() => setEntryMode("manual")}
-                        className={`h-7 text-xs gap-1 rounded-md px-2.5 ${entryMode === "manual" ? "bg-teal-600 text-white font-bold" : "text-muted-foreground"}`}
+                        className={`w-full xl:w-auto min-h-9 sm:h-8 text-xs gap-1.5 rounded-md px-2.5 justify-center whitespace-normal text-center ${entryMode === "manual" ? "bg-teal-600 text-white font-bold" : "text-muted-foreground"}`}
                       >
-                        <User className="w-3 h-3" />
-                        إدخال يدوي
+                        <User className="w-3.5 h-3.5 shrink-0" />
+                        <span>إدخال يدوي</span>
                       </Button>
                       <Button
                         type="button"
                         variant={entryMode === "from_monthly" ? "default" : "ghost"}
                         size="sm"
                         onClick={() => setEntryMode("from_monthly")}
-                        className={`h-7 text-xs gap-1 rounded-md px-2.5 ${entryMode === "from_monthly" ? "bg-teal-600 text-white font-bold" : "text-muted-foreground"}`}
+                        className={`w-full xl:w-auto min-h-9 sm:h-8 text-xs gap-1.5 rounded-md px-2.5 justify-center whitespace-normal text-center ${entryMode === "from_monthly" ? "bg-teal-600 text-white font-bold" : "text-muted-foreground"}`}
                       >
-                        <Calendar className="w-3 h-3" />
-                        تجميع من 3 شهرية
+                        <Calendar className="w-3.5 h-3.5 shrink-0" />
+                        <span>تجميع من 3 شهرية</span>
                       </Button>
                       <Button
                         type="button"
                         variant={entryMode === "from_semi" ? "default" : "ghost"}
                         size="sm"
                         onClick={() => setEntryMode("from_semi")}
-                        className={`h-7 text-xs gap-1 rounded-md px-2.5 ${entryMode === "from_semi" ? "bg-teal-600 text-white font-bold" : "text-muted-foreground"}`}
+                        className={`w-full xl:w-auto min-h-9 sm:h-8 text-xs gap-1.5 rounded-md px-2.5 justify-center whitespace-normal text-center ${entryMode === "from_semi" ? "bg-teal-600 text-white font-bold" : "text-muted-foreground"}`}
                       >
-                        <Layers className="w-3 h-3" />
-                        تجميع من 6 نصف شهرية
+                        <Layers className="w-3.5 h-3.5 shrink-0" />
+                        <span>تجميع من 6 نصف شهرية</span>
                       </Button>
                     </div>
                   </div>
@@ -1202,24 +1202,24 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
           </Card>
 
           {/* Footer Action Bar */}
-          <div className="flex items-center justify-end gap-3 p-4 bg-card border border-border/80 rounded-xl shadow-xs">
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 sm:gap-3 p-3.5 sm:p-4 bg-card border border-border/80 rounded-xl shadow-xs">
             <Button
               type="button"
               variant="outline"
               disabled={!selectedProjectId || isSubmitting}
               onClick={() => handleSaveDraft("مسودة")}
-              className="gap-2 text-xs font-bold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 disabled:opacity-50"
+              className="w-full sm:w-auto min-h-10 max-lg:min-h-11 gap-2 text-xs font-bold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 disabled:opacity-50"
             >
-              <Save className="w-4 h-4" />
+              <Save className="w-4 h-4 shrink-0" />
               حفظ كمسودة
             </Button>
             <Button
               type="button"
               disabled={!selectedProjectId || isSubmitting}
               onClick={() => handleSaveDraft("معتمد")}
-              className="gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white disabled:opacity-50"
+              className="w-full sm:w-auto min-h-10 max-lg:min-h-11 gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white disabled:opacity-50"
             >
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
               إنشاء التقرير
             </Button>
           </div>
@@ -1249,5 +1249,5 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
       </div>
     );
 
-  return showLayout ? <DashboardLayout>{content}</DashboardLayout> : content;
+  return showLayout ? <DashboardLayout tabletNavigation>{content}</DashboardLayout> : content;
 }

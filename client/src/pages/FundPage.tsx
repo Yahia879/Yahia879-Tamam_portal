@@ -180,255 +180,138 @@ export default function FundPage() {
   const visibleMovements = showAllMovements ? movements : movements.slice(0, 5);
 
   const renderMovement = (movement: (typeof movements)[number]) => (
-
-    <div key={movement.id} className="flex flex-col justify-between gap-2 py-3 text-sm sm:flex-row sm:items-center">
-
-      <div>
-
+    <div key={movement.id} className="flex flex-col justify-between gap-2.5 py-3.5 text-sm sm:flex-row sm:items-center">
+      <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-
           <span className="font-bold text-slate-900">
-
             {movementName[movement.movementType] || movement.movementType}
-
           </span>
-
           <Badge
-
             variant="outline"
-
             className={`text-[10px] font-bold ${
-
               movement.restrictionType === "general"
-
                 ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-
                 : movement.restrictionType === "purpose"
-
                 ? "border-indigo-200 bg-indigo-50 text-indigo-800"
-
                 : "border-purple-200 bg-purple-50 text-purple-800"
-
             }`}
-
           >
-
             {movement.restrictionType === "general"
-
               ? "الحساب العام"
-
               : movement.restrictionType === "purpose"
-
               ? movement.donationPurposeName || "مصرف تبرع"
-
               : `مشروع #${movement.restrictedProjectId}`}
-
           </Badge>
-
         </div>
 
         {movement.notes?.trim() && !automaticTransferNotes.has(movement.notes.trim()) && (
-
-          <div className="mt-1.5 flex min-w-0 items-center gap-1.5 text-xs">
-
+          <div className="mt-1.5 flex flex-wrap sm:flex-nowrap min-w-0 items-center gap-1.5 text-xs">
             <span className="shrink-0 font-bold text-slate-700">
-
               {["surplus", "administrative", "operational"].includes(movement.movementType)
-
                 ? "سبب التحويل:"
-
                 : "البيان:"}
-
             </span>
-
-            <span title={movement.notes} className="max-w-[18rem] truncate rounded-md border border-slate-200 bg-slate-100/90 px-2 py-0.5 font-medium text-slate-800 sm:max-w-[30rem]">
-
+            <span title={movement.notes} className="max-w-full sm:max-w-[30rem] break-words sm:truncate rounded-md border border-slate-200 bg-slate-100/90 px-2 py-0.5 font-medium text-slate-800">
               {movement.notes}
-
             </span>
-
           </div>
-
         )}
 
         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-
           <span>{new Date(movement.createdAt).toLocaleString("ar-SA")}</span>
-
           {movement.voucherId ? (
-
             <>
-
               <span>•</span>
-
               <Button variant="link" className="h-auto cursor-pointer p-0 text-xs font-bold" onClick={() => navigate(`/receipt-vouchers/${movement.voucherId}`)}>
-
                 سند القبض #{movement.voucherId}
-
               </Button>
-
             </>
-
           ) : movement.disbursementOrderId ? (
-
             <>
-
               <span>•</span>
-
               <Button variant="link" className="h-auto cursor-pointer p-0 text-xs font-bold" onClick={() => navigate(`/disbursement-orders/${movement.disbursementOrderId}`)}>
-
                 أمر الصرف #{movement.disbursementOrderId}
-
               </Button>
-
             </>
-
           ) : movement.projectId ? (
-
             <>
-
               <span>•</span>
-
               <Button variant="link" className="h-auto cursor-pointer p-0 text-xs font-bold" onClick={() => navigate(`/projects/${movement.projectId}`)}>
-
                 المشروع #{movement.projectId}
-
               </Button>
-
             </>
-
           ) : null}
-
         </div>
-
       </div>
 
-      <div className="shrink-0 text-left sm:text-right">
-
-        <span className={`font-sans text-base font-black ${Number(movement.amount) < 0 ? "text-rose-700" : "text-emerald-700"}`}>
-
+      <div className="shrink-0 text-right sm:text-left">
+        <span className={`font-sans text-base font-black inline-flex items-center gap-1 ${Number(movement.amount) < 0 ? "text-rose-700" : "text-emerald-700"}`}>
           {Number(movement.amount) > 0 ? "+" : ""}{format(Number(movement.amount))}{" "}
-
-          <SaudiRiyal className="h-3 w-3" />
-
+          <SaudiRiyal className="h-3.5 w-3.5" />
         </span>
-
       </div>
-
     </div>
-
   );
-
-
 
   const movementHistoryCard = (
-
-    <Card className="border-slate-200 bg-slate-50 shadow-xs">
-
-      <CardHeader className="border-b border-slate-200 bg-transparent pb-3">
-
+    <Card className="border-slate-200 bg-slate-50 shadow-xs py-0 gap-0">
+      <CardHeader className="border-b border-slate-200 bg-transparent p-4 sm:p-6 pb-3 sm:pb-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
           <div>
-
             <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
-
-              <Coins className="h-5 w-5 text-amber-700" />
-
+              <Coins className="h-5 w-5 text-amber-700 shrink-0" />
               سجل حركات الصندوق التراكمي
-
             </CardTitle>
-
-            <CardDescription className="text-xs">
-
+            <CardDescription className="text-xs mt-0.5">
               {showAllMovements ? "جميع الحركات مرتبة من الأحدث إلى الأقدم" : "آخر خمس حركات مسجلة في الصندوق"}
-
             </CardDescription>
-
           </div>
-
           {showAllMovements ? (
-
-            <Button variant="outline" size="sm" onClick={() => navigate("/fund")}>العودة إلى الصندوق</Button>
-
+            <Button variant="outline" size="sm" className="w-full sm:w-auto min-h-9 max-lg:min-h-11" onClick={() => navigate("/fund")}>العودة إلى الصندوق</Button>
           ) : movements.length >= 6 ? (
-
-            <Button variant="outline" size="sm" onClick={() => navigate("/fund/movements")}>عرض الكل</Button>
-
+            <Button variant="outline" size="sm" className="w-full sm:w-auto min-h-9 max-lg:min-h-11" onClick={() => navigate("/fund/movements")}>عرض الكل</Button>
           ) : null}
-
         </div>
-
       </CardHeader>
-
-      <CardContent className="bg-transparent pt-3">
-
+      <CardContent className="bg-transparent p-4 sm:p-6 pt-3 sm:pt-4">
         {isLoadingMovements ? (
-
           <div className="py-8 text-center text-sm text-muted-foreground">جاري تحميل الحركات...</div>
-
         ) : visibleMovements.length === 0 ? (
-
           <div className="py-8 text-center text-xs text-muted-foreground">لا توجد حركات مسجلة في الصندوق حتى الآن.</div>
-
         ) : (
-
           <div className="divide-y divide-slate-200">{visibleMovements.map(renderMovement)}</div>
-
         )}
-
       </CardContent>
-
     </Card>
-
   );
 
-
-
   if (!canViewFund) {
-
     return (
-
-      <DashboardLayout>
-
+      <DashboardLayout tabletNavigation>
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4 font-sans" dir="rtl">
-
           <div className="p-4 rounded-full bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/30 dark:border-rose-900">
-
             <AlertCircle className="h-10 w-10 text-rose-600" />
-
           </div>
-
-          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">عذراً، ليس لديك صلاحية لعرض صفحة الصندوق</h2>
-
+          <h2 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-200">عذراً، ليس لديك صلاحية لعرض صفحة الصندوق</h2>
           <p className="text-xs text-muted-foreground max-w-md">يرجى التواصل مع مسؤول النظام لمنحك صلاحية "عرض الصندوق".</p>
-
-          <Button onClick={() => navigate("/dashboard")} className="mt-2 bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold text-xs">
-
+          <Button onClick={() => navigate("/dashboard")} className="mt-2 bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold text-xs min-h-10 max-lg:min-h-11">
             العودة للوحة التحكم
-
           </Button>
-
         </div>
-
       </DashboardLayout>
-
     );
-
   }
-
-
 
   if (showAllMovements) {
     if (!canViewMovements) {
       return (
-        <DashboardLayout>
+        <DashboardLayout tabletNavigation>
           <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4 font-sans" dir="rtl">
             <div className="p-4 rounded-full bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/30 dark:border-rose-900">
               <AlertCircle className="h-10 w-10 text-rose-600" />
             </div>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">ليس لديك صلاحية لعرض سجلات حركات الصندوق</h2>
-            <Button onClick={() => navigate("/fund")} className="mt-2 bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold">
+            <h2 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-200">ليس لديك صلاحية لعرض سجلات حركات الصندوق</h2>
+            <Button onClick={() => navigate("/fund")} className="mt-2 bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold min-h-10 max-lg:min-h-11">
               العودة إلى الصندوق
             </Button>
           </div>
@@ -437,11 +320,11 @@ export default function FundPage() {
     }
 
     return (
-      <DashboardLayout>
-        <div dir="rtl" className="mx-auto max-w-7xl space-y-6 p-4 font-sans sm:p-6">
+      <DashboardLayout tabletNavigation>
+        <div dir="rtl" className="w-full min-w-0 max-w-7xl mx-auto overflow-x-hidden space-y-5 sm:space-y-6 font-sans">
           <div>
-            <h1 className="text-2xl font-black text-slate-900">سجل حركات الصندوق</h1>
-            <p className="mt-1 text-sm text-muted-foreground">جميع عمليات الإيداع والصرف والتحويل المسجلة</p>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900">سجل حركات الصندوق</h1>
+            <p className="mt-1 text-xs sm:text-sm text-muted-foreground">جميع عمليات الإيداع والصرف والتحويل المسجلة</p>
           </div>
           {movementHistoryCard}
         </div>
@@ -449,261 +332,143 @@ export default function FundPage() {
     );
   }
 
-
-
   return (
-
-    <DashboardLayout>
-
-      <div dir="rtl" className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
-
+    <DashboardLayout tabletNavigation>
+      <div dir="rtl" className="w-full min-w-0 max-w-7xl mx-auto overflow-x-hidden space-y-5 sm:space-y-6">
         {/* رأس الصفحة والمؤشرات الإجمالية */}
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-
-          <div className="flex items-center gap-3">
-
-            <div className="w-12 h-12 rounded-2xl bg-emerald-700 text-white flex items-center justify-center shadow-md shadow-emerald-700/20 shrink-0">
-
-              <Wallet className="w-6 h-6 text-emerald-100" />
-
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-emerald-700 text-white flex items-center justify-center shadow-md shadow-emerald-700/20 shrink-0">
+              <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-100" />
             </div>
-
-            <div>
-
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900">الصندوق المركزي</h1>
-
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-3xl font-black text-slate-900">الصندوق المركزي</h1>
               <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-
                 إدارة أرصدة التبرعات العامة والقيود المحاسبية حسب مصارف التبرع وفوائض المشاريع
-
               </p>
-
             </div>
-
           </div>
-
-
-
-
         </div>
-
-
 
         {/* إجمالي أرصدة الصندوق من الحساب العام والتصنيفات وفوائض المشاريع */}
-
-        <div className="rounded-2xl border border-slate-200 bg-slate-100/80 p-5 shadow-sm sm:p-6">
-
-          <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
-
-            <div className="flex items-start sm:items-center">
-
+        <div className="rounded-2xl border border-slate-200 bg-slate-100/80 p-4 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-3 border-b border-slate-200 pb-3.5 sm:pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start sm:items-center min-w-0">
               <div>
-
                 <div className="flex items-center gap-2 flex-wrap">
-
-                  <h2 className="text-xl font-black text-slate-900 sm:text-2xl">
-
+                  <h2 className="text-lg font-black text-slate-900 sm:text-2xl">
                     إجمالي أرصدة حساب الجمعية
-
                   </h2>
-
                 </div>
-
                 <p className="mt-1 text-xs text-slate-600 sm:text-sm">
-
                   يشمل رصيد الحساب العام وجميع التصنيفات وفوائض المشاريع.
-
                 </p>
-
               </div>
-
             </div>
-
-
-
           </div>
-
-
 
           {/* إجماليات جميع أرصدة الصندوق */}
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-4">
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-xs">
-
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-3.5 pt-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 sm:p-4 shadow-xs min-w-0">
               <span className="block text-xs font-bold text-slate-700">إجمالي الرصيد المتاح</span>
-
-              <span className="mt-1 block font-sans text-2xl font-black text-slate-900 sm:text-3xl">
-
+              <span className="mt-1 inline-flex items-center gap-1 font-sans text-xl font-black text-slate-900 sm:text-2xl lg:text-3xl tabular-nums break-all">
                 {isLoading ? "..." : format(fundTotals.available)}{" "}
-
-                <SaudiRiyal className="h-4 w-4" />
-
+                <SaudiRiyal className="h-4 w-4 shrink-0" />
               </span>
-
               <span className="mt-1 block text-[11px] text-slate-500">من جميع الأرصدة والتصنيفات</span>
-
             </div>
 
-
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-xs">
-
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 sm:p-4 shadow-xs min-w-0">
               <span className="block text-xs font-semibold text-slate-600">إجمالي الرصيد المسجل</span>
-
-              <span className="mt-1 block font-sans text-lg font-bold text-slate-800 sm:text-xl">
-
+              <span className="mt-1 inline-flex items-center gap-1 font-sans text-lg font-bold text-slate-800 sm:text-xl tabular-nums break-all">
                 {isLoading ? "..." : format(fundTotals.posted)}{" "}
-
-                <SaudiRiyal className="h-3 w-3" />
-
+                <SaudiRiyal className="h-3.5 w-3.5 shrink-0" />
               </span>
-
               <span className="mt-1 block text-[11px] text-slate-500">مجموع الرصيد المسجل في كل الأرصدة</span>
-
             </div>
 
-
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-xs">
-
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 sm:p-4 shadow-xs min-w-0">
               <span className="block text-xs font-semibold text-slate-600">إجمالي المحجوز لطلبات الصرف</span>
-
-              <span className="mt-1 block font-sans text-lg font-bold text-slate-800 sm:text-xl">
-
+              <span className="mt-1 inline-flex items-center gap-1 font-sans text-lg font-bold text-slate-800 sm:text-xl tabular-nums break-all">
                 {isLoading ? "..." : format(fundTotals.reserved)}{" "}
-
-                <SaudiRiyal className="h-3 w-3" />
-
+                <SaudiRiyal className="h-3.5 w-3.5 shrink-0" />
               </span>
-
               <span className="mt-1 block text-[11px] text-slate-500">مجموع المحجوز في كل الأرصدة</span>
-
             </div>
-
           </div>
-
         </div>
 
-
-
-        <Card className="shadow-xs border-slate-200 bg-slate-50">
-
-          <CardHeader className="border-b border-slate-200 bg-transparent pb-3">
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-
-              <div className="flex items-center gap-2.5">
-
+        <Card className="shadow-xs border-slate-200 bg-slate-50 py-0 gap-0">
+          <CardHeader className="border-b border-slate-200 bg-transparent p-4 sm:p-6 pb-3 sm:pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
-
                   <Layers className="w-5 h-5" />
-
                 </div>
-
-                <div>
-
+                <div className="min-w-0">
                   <CardTitle className="text-base sm:text-lg font-bold text-slate-900">التصنيفات ومصارف التبرع (الأرصدة المقيدة)</CardTitle>
-
                   <CardDescription className="text-xs mt-0.5">تفاصيل الأرصدة الداخلة ضمن إجمالي حساب الجمعية أعلاه</CardDescription>
-
                 </div>
-
               </div>
-
-              <Badge variant="outline" className="text-indigo-800 border-indigo-200 bg-indigo-50 font-bold self-start sm:self-auto text-xs py-1 px-2.5">
-
+              <Badge variant="outline" className="text-indigo-800 border-indigo-200 bg-indigo-50 font-bold self-start sm:self-auto text-xs py-1 px-2.5 shrink-0">
                 {purposeBuckets.length + projectBuckets.length} تصنيف / قيد مقيد
-
               </Badge>
-
             </div>
-
           </CardHeader>
-
-          <CardContent className="pt-5 space-y-6">
-
+          <CardContent className="p-4 sm:p-6 space-y-5 sm:space-y-6">
             <div>
-
-              <div className="flex items-center gap-2 mb-3"><Tag className="w-4 h-4 text-indigo-600" /><h3 className="text-sm font-bold text-slate-800">أرصدة مصارف التبرع المسجلة</h3></div>
-
+              <div className="flex items-center gap-2 mb-3"><Tag className="w-4 h-4 text-indigo-600 shrink-0" /><h3 className="text-sm font-bold text-slate-800">أرصدة مصارف التبرع المسجلة</h3></div>
               {purposeBuckets.length === 0 ? (
-
                 <div className="p-4 rounded-xl bg-slate-50 border border-dashed text-center text-xs text-muted-foreground">لا توجد أرصدة مقيدة بمصارف تبرع حالياً.</div>
-
               ) : (
-
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-3.5">
                   {purposeBuckets.map((bucket, index) => (
-
-                    <div key={index} className="rounded-xl border border-indigo-100 bg-indigo-50/20 p-4 hover:border-indigo-300 transition-all shadow-2xs flex flex-col justify-between">
-
+                    <div key={index} className="rounded-xl border border-indigo-100 bg-indigo-50/20 p-3.5 sm:p-4 hover:border-indigo-300 transition-all shadow-2xs flex flex-col justify-between">
                       <div>
-
                         <div className="flex items-center justify-between gap-2 pb-2 border-b border-indigo-100/60">
-
-                          <span className="font-bold text-sm text-indigo-950 flex items-center gap-1.5 truncate"><span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0" /><span className="truncate">{bucket.donationPurposeName || "مصرف تبرع"}</span></span>
-
+                          <span className="font-bold text-sm text-indigo-950 flex items-center gap-1.5 min-w-0"><span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0" /><span className="truncate">{bucket.donationPurposeName || "مصرف تبرع"}</span></span>
                           <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-100 border-indigo-200 text-[10px] font-bold shrink-0">مقيد بمصرف</Badge>
-
                         </div>
-
                         <div className="mt-3 space-y-1.5">
-
-                          <div className="flex items-baseline justify-between"><span className="text-xs text-muted-foreground">الرصيد المتاح:</span><span className="inline-flex items-center gap-1 text-lg font-black text-indigo-950 font-sans">{format(bucket.available)} <SaudiRiyal className="h-3.5 w-3.5" /></span></div>
-
-                          <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-indigo-50"><span className="inline-flex items-center gap-1">الإجمالي: {format(bucket.posted)} <SaudiRiyal className="h-3 w-3" /></span><span className="inline-flex items-center gap-1">المحجوز: {format(bucket.reserved)} <SaudiRiyal className="h-3 w-3" /></span></div>
-
+                          <div className="flex items-baseline justify-between gap-2"><span className="text-xs text-muted-foreground">الرصيد المتاح:</span><span className="inline-flex items-center gap-1 text-base sm:text-lg font-black text-indigo-950 font-sans">{format(bucket.available)} <SaudiRiyal className="h-3.5 w-3.5" /></span></div>
+                          <div className="flex flex-wrap items-center justify-between gap-1.5 text-[11px] text-muted-foreground pt-1 border-t border-indigo-50"><span className="inline-flex items-center gap-1">الإجمالي: {format(bucket.posted)} <SaudiRiyal className="h-3 w-3" /></span><span className="inline-flex items-center gap-1">المحجوز: {format(bucket.reserved)} <SaudiRiyal className="h-3 w-3" /></span></div>
                         </div>
-
                       </div>
-
                     </div>
-
                   ))}
-
                 </div>
-
               )}
-
             </div>
-
             {projectBuckets.length > 0 && (
-
               <div className="pt-4 border-t">
-
-                <div className="flex items-center gap-2 mb-3"><Building2 className="w-4 h-4 text-purple-600" /><h3 className="text-sm font-bold text-slate-800">فوائض المشاريع المقيدة بالصندوق</h3></div>
-
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-
+                <div className="flex items-center gap-2 mb-3"><Building2 className="w-4 h-4 text-purple-600 shrink-0" /><h3 className="text-sm font-bold text-slate-800">فوائض المشاريع المقيدة بالصندوق</h3></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-3.5">
                   {projectBuckets.map((bucket, index) => {
-
                     const proj = projects.find((project) => project.id === bucket.restrictedProjectId);
-
-                    return <div key={index} className="rounded-xl border border-purple-100 bg-purple-50/20 p-4 hover:border-purple-300 transition-all shadow-2xs flex flex-col justify-between"><div><div className="flex items-center justify-between gap-2 pb-2 border-b border-purple-100/60"><span className="font-bold text-sm text-purple-950 truncate">{proj ? `${proj.projectNumber} - ${proj.name}` : `مشروع #${bucket.restrictedProjectId}`}</span><Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100 border-purple-200 text-[10px] font-bold shrink-0">مقيد بالمشروع</Badge></div><div className="mt-3 space-y-1.5"><div className="flex items-baseline justify-between"><span className="text-xs text-muted-foreground">الرصيد المتاح:</span><span className="inline-flex items-center gap-1 text-lg font-black text-purple-950 font-sans">{format(bucket.available)} <SaudiRiyal className="h-3.5 w-3.5" /></span></div><div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-purple-50"><span className="inline-flex items-center gap-1">الإجمالي: {format(bucket.posted)} <SaudiRiyal className="h-3 w-3" /></span><span className="inline-flex items-center gap-1">المحجوز: {format(bucket.reserved)} <SaudiRiyal className="h-3 w-3" /></span></div></div></div></div>;
-
+                    return (
+                      <div key={index} className="rounded-xl border border-purple-100 bg-purple-50/20 p-3.5 sm:p-4 hover:border-purple-300 transition-all shadow-2xs flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between gap-2 pb-2 border-b border-purple-100/60">
+                            <span className="font-bold text-sm text-purple-950 truncate">{proj ? `${proj.projectNumber} - ${proj.name}` : `مشروع #${bucket.restrictedProjectId}`}</span>
+                            <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100 border-purple-200 text-[10px] font-bold shrink-0">مقيد بالمشروع</Badge>
+                          </div>
+                          <div className="mt-3 space-y-1.5">
+                            <div className="flex items-baseline justify-between gap-2"><span className="text-xs text-muted-foreground">الرصيد المتاح:</span><span className="inline-flex items-center gap-1 text-base sm:text-lg font-black text-purple-950 font-sans">{format(bucket.available)} <SaudiRiyal className="h-3.5 w-3.5" /></span></div>
+                            <div className="flex flex-wrap items-center justify-between gap-1.5 text-[11px] text-muted-foreground pt-1 border-t border-purple-50"><span className="inline-flex items-center gap-1">الإجمالي: {format(bucket.posted)} <SaudiRiyal className="h-3 w-3" /></span><span className="inline-flex items-center gap-1">المحجوز: {format(bucket.reserved)} <SaudiRiyal className="h-3 w-3" /></span></div>
+                          </div>
+                        </div>
+                      </div>
+                    );
                   })}
-
                 </div>
-
               </div>
-
             )}
-
           </CardContent>
-
         </Card>
 
-
-
         {canViewMovements && movementHistoryCard}
-
       </div>
-
     </DashboardLayout>
-
   );
 
 }

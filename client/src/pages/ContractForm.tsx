@@ -2421,28 +2421,28 @@ export default function ContractForm() {
     ? !!existingContract?.contract && (isApprovedContract(existingContract.contract) ? canEditApprovedContract : canEditContract)
     : canCreateContract;
   if (isEditMode && isLoadingContract) {
-    return <DashboardLayout><div className="p-8 text-center">جاري تحميل العقد...</div></DashboardLayout>;
+    return <DashboardLayout tabletNavigation><div className="p-8 text-center">جاري تحميل العقد...</div></DashboardLayout>;
   }
   if (!canUseForm) {
-    return <DashboardLayout><p dir="rtl" className="p-6">ليس لديك صلاحية {isEditMode ? "تعديل هذا العقد" : "إنشاء عقد جديد"}.</p></DashboardLayout>;
+    return <DashboardLayout tabletNavigation><p dir="rtl" className="p-6">ليس لديك صلاحية {isEditMode ? "تعديل هذا العقد" : "إنشاء عقد جديد"}.</p></DashboardLayout>;
   }
 
   return (
-    <DashboardLayout>
-      <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6 lg:px-8">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-7xl mx-auto space-y-5 sm:space-y-6 px-3 sm:px-6 lg:px-8 overflow-x-hidden">
         {/* العنوان */}
         <div className="flex items-center gap-3 sm:gap-4 text-right">
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={() => navigate('/contracts')} 
-            className="rounded-full hover:bg-slate-100 transition-colors shrink-0 h-9 w-9 sm:h-10 sm:w-10"
+            className="rounded-full hover:bg-slate-100 transition-colors shrink-0 h-9 w-9 sm:h-10 sm:w-10 max-lg:min-h-11 max-lg:min-w-11"
             title="الرجوع إلى العقود"
           >
             <ArrowRight className="h-5.5 w-5.5 sm:h-6 sm:w-6" />
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold">{isEditMode ? "تعديل العقد" : "إنشاء عقد جديد"}</h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold truncate">{isEditMode ? "تعديل العقد" : "إنشاء عقد جديد"}</h1>
             <p className="text-muted-foreground text-xs sm:text-sm">
               {isEditMode 
                 ? "تعديل بيانات العقد الحالي" 
@@ -2473,7 +2473,7 @@ export default function ContractForm() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 <div>
                   <span className="text-sm text-muted-foreground">رقم الطلب:</span>
                   <p className="font-semibold text-blue-900">{requestDetails.requestNumber}</p>
@@ -2482,7 +2482,7 @@ export default function ContractForm() {
                   <span className="text-sm text-muted-foreground">المسجد:</span>
                   <p className="font-semibold text-blue-900">{requestDetails.mosque?.name || "-"}</p>
                 </div>
-                <div>
+                <div className="sm:col-span-2 lg:col-span-1">
                   <span className="text-sm text-muted-foreground">المبلغ المعتمد:</span>
                   <p className="font-semibold text-blue-900 inline-flex items-center gap-1">
                     {contractData.totalValue > 0 
@@ -2652,7 +2652,7 @@ export default function ContractForm() {
         )}
 
         {/* شريط الخطوات */}
-        <div className="flex items-center justify-between overflow-x-auto pb-2 scrollbar-hide flex-nowrap w-full gap-2 px-1">
+        <div className="flex items-center justify-between overflow-x-auto pb-2 scrollbar-hide flex-nowrap w-full gap-2 px-1 touch-pan-x">
           {steps.map((step, index) => {
             const StepIcon = step.icon;
             const isActive = currentStep === step.id;
@@ -2660,25 +2660,25 @@ export default function ContractForm() {
             
             return (
               <div key={step.id} className="flex items-center shrink-0">
-                <div className="flex flex-col items-center min-w-[60px] shrink-0">
+                <div className="flex flex-col items-center min-w-[56px] sm:min-w-[60px] shrink-0">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors ${
                       isActive
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-primary text-primary-foreground shadow-xs"
                         : isCompleted
                         ? "bg-green-500 text-white"
                         : "bg-gray-200 text-gray-500"
                     }`}
                   >
                     {isCompleted ? (
-                      <Check className="h-5 w-5" />
+                      <Check className="h-4 w-4 sm:h-5 sm:w-5" />
                     ) : (
-                      <StepIcon className="h-5 w-5" />
+                      <StepIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                     )}
                   </div>
                   <span
-                    className={`text-xs mt-1 ${
-                      isActive ? "text-primary font-medium" : "text-muted-foreground"
+                    className={`text-[11px] sm:text-xs mt-1 ${
+                      isActive ? "text-primary font-bold" : "text-muted-foreground"
                     }`}
                   >
                     {step.title}
@@ -2686,7 +2686,7 @@ export default function ContractForm() {
                 </div>
                 {index < steps.length - 1 && (
                   <div
-                    className={`w-8 md:w-16 h-1 mx-1 shrink-0 ${
+                    className={`w-6 sm:w-10 md:w-16 h-1 mx-1 shrink-0 ${
                       isCompleted ? "bg-green-500" : "bg-gray-200"
                     }`}
                   />
@@ -2697,8 +2697,8 @@ export default function ContractForm() {
         </div>
 
         {/* محتوى الخطوات */}
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="border border-border/80 shadow-xs">
+          <CardContent className="p-3.5 sm:p-6">
             {isEditMode && (isLoadingContract || !editDataLoaded) ? (
               <div className="flex flex-col items-center justify-center py-20 space-y-4">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -2727,7 +2727,7 @@ export default function ContractForm() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                       {templates.map((template: any) => (
                         <div
                           key={template.id}
@@ -3059,7 +3059,7 @@ export default function ContractForm() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                   <div className="space-y-2">
                     <Label>مدة العقد *</Label>
                     <Input
@@ -3116,7 +3116,7 @@ export default function ContractForm() {
                 </div>
 
                 {/* التفاصيل المالية */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                   <div className="space-y-2">
                     <Label className="flex items-center gap-1">
                       القيمة المتفقة مع المورد (<SaudiRiyal className="w-3.5 h-3.5" />) *
@@ -3596,7 +3596,7 @@ export default function ContractForm() {
                             
                             <div className="flex-1 space-y-4 w-full">
                               {/* الصف الأول: معلومات الدفعة والقيم المالية */}
-                              <div className="grid gap-3.5 w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+                              <div className="grid gap-3.5 w-full grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
                                 {/* الحقل الأول: قيمة الدفعة (مبلغ مالي) */}
                                 <div className={cn(
                                   "p-3 rounded-xl border transition-all flex flex-col justify-between space-y-2",
@@ -3827,7 +3827,7 @@ export default function ContractForm() {
                               </div>
 
                               {/* الصف الثاني: تفاصيل الأعمال المطلوبة ونسبة الإنجاز التراكمية لتفعيل الدفعة */}
-                              <div className="grid grid-cols-1 md:grid-cols-4 gap-3.5 w-full">
+                              <div className="grid grid-cols-1 lg:grid-cols-4 gap-3.5 w-full">
                                 {/* الحقل الخامس: وصف الأعمال التي سوف تُنفّذ */}
                                 <div className={cn(
                                   "p-3 rounded-xl border transition-all md:col-span-2 lg:col-span-2 flex flex-col justify-between space-y-2 text-right",
@@ -4722,22 +4722,23 @@ export default function ContractForm() {
             )}
 
             {/* أزرار التنقل وحفظ المسودة */}
-            <div className="flex flex-wrap items-center justify-between gap-3 mt-8 pt-6 border-t">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t">
               <Button
                 variant="outline"
                 onClick={prevStep}
                 disabled={currentStep === 1 || isSubmitting || isSavingDraft}
+                className="w-full sm:w-auto min-h-10 max-lg:min-h-11"
               >
                 <ArrowRight className="h-4 w-4 ml-2" />
                 السابق
               </Button>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
                   onClick={handleSaveDraft}
                   disabled={isSubmitting || isSavingDraft || isDraftSaved}
-                  className="border-amber-500/60 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/20 font-bold text-xs sm:text-sm disabled:opacity-60"
+                  className="w-full sm:w-auto border-amber-500/60 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/20 font-bold text-xs sm:text-sm disabled:opacity-60 min-h-10 max-lg:min-h-11"
                 >
                   {isSavingDraft ? (
                     <>
@@ -4758,7 +4759,7 @@ export default function ContractForm() {
                 </Button>
 
                 {currentStep < 7 ? (
-                  <Button onClick={nextStep} disabled={isSubmitting || isSavingDraft}>
+                  <Button onClick={nextStep} disabled={isSubmitting || isSavingDraft} className="w-full sm:w-auto min-h-10 max-lg:min-h-11">
                     التالي
                     <ArrowLeft className="h-4 w-4 mr-2" />
                   </Button>
@@ -4766,7 +4767,7 @@ export default function ContractForm() {
                   <Button
                     onClick={handleSubmit}
                     disabled={isSubmitting || isSavingDraft}
-                    className="bg-green-600 hover:bg-green-700 font-bold"
+                    className="w-full sm:w-auto bg-green-600 hover:bg-green-700 font-bold min-h-10 max-lg:min-h-11"
                   >
                     {isSubmitting ? (
                       <>

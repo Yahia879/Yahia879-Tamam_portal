@@ -234,16 +234,16 @@ export default function NewCustodyRequest() {
 
   if (user && !canCreate) {
     return (
-      <DashboardLayout>
-        <div className="container py-24 flex flex-col items-center justify-center text-center max-w-lg mx-auto" dir="rtl">
+      <DashboardLayout tabletNavigation>
+        <div className="container py-16 sm:py-24 px-4 flex flex-col items-center justify-center text-center max-w-lg mx-auto" dir="rtl">
           <div className="w-16 h-16 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center mb-4">
             <ShieldAlert className="w-8 h-8" />
           </div>
-          <h2 className="text-2xl font-bold mb-2">ليس لديك صلاحية لطلب عهدة مالية جديدة</h2>
+          <h2 className="text-xl sm:text-2xl font-bold mb-2">ليس لديك صلاحية لطلب عهدة مالية جديدة</h2>
           <p className="text-muted-foreground mb-6 text-sm">
             تم تقييد الوصول لهذه الصفحة. يرجى التواصل مع مسؤول النظام لمنحك صلاحية "طلب عهدة مالية جديدة".
           </p>
-          <Button onClick={() => setLocation("/custody-requests")} className="gap-2">
+          <Button onClick={() => setLocation("/custody-requests")} className="gap-2 min-h-10 max-lg:min-h-11">
             <ArrowRight className="w-4 h-4" />
             <span>العودة لقسم العهد المالية</span>
           </Button>
@@ -253,22 +253,22 @@ export default function NewCustodyRequest() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 pb-16 max-w-4xl mx-auto" dir="rtl">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-4xl mx-auto overflow-x-hidden space-y-5 sm:space-y-6 pb-12" dir="rtl">
         {/* Top Header */}
-        <div className="flex items-center justify-between gap-4 border-b border-border/40 pb-4">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3 sm:gap-4 border-b border-border/40 pb-4">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <Link href="/custody-requests">
-              <Button variant="ghost" size="icon" className="rounded-xl hover:bg-muted/80 cursor-pointer">
+              <Button variant="ghost" size="icon" className="size-10 max-lg:size-11 rounded-xl hover:bg-muted/80 cursor-pointer shrink-0">
                 <ArrowRight className="w-5 h-5 text-foreground" />
               </Button>
             </Link>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold">
+                <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
                   <Wallet className="w-4 h-4" />
                 </span>
-                <h1 className="text-xl sm:text-2xl font-black text-foreground">
+                <h1 className="text-lg sm:text-2xl font-black text-foreground truncate">
                   طلب صرف عهدة مالية
                 </h1>
               </div>
@@ -346,7 +346,7 @@ export default function NewCustodyRequest() {
 
         {/* نافذة طلب الاستثناء */}
         <Dialog open={isExceptionDialogOpen && canRequestException} onOpenChange={setIsExceptionDialogOpen}>
-          <DialogContent className="sm:max-w-xl md:max-w-2xl rounded-2xl p-6 text-right" dir="rtl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-xl md:max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl p-4 sm:p-6 text-right" dir="rtl">
             <DialogHeader className="text-right sm:text-right items-start space-y-1.5 pb-3 border-b border-border/40">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center font-bold shrink-0">
@@ -363,26 +363,26 @@ export default function NewCustodyRequest() {
 
             <div className="space-y-4 py-2 text-right">
               {activeCustody && (
-                <div className="p-4 rounded-xl bg-muted/50 border border-border/70 text-xs sm:text-sm space-y-2.5 text-right">
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span className="font-semibold text-foreground">رقم العهدة السابقة:</span>
+                <div className="p-3.5 sm:p-4 rounded-xl bg-muted/50 border border-border/70 text-xs sm:text-sm space-y-2.5 text-right">
+                  <div className="flex items-center justify-between gap-2 text-muted-foreground">
+                    <span className="font-semibold text-foreground shrink-0">رقم العهدة السابقة:</span>
                     <span className="font-mono font-bold text-foreground">{activeCustody.requestNumber}</span>
                   </div>
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span className="font-semibold text-foreground">مبلغ العهدة السابقة:</span>
+                  <div className="flex items-center justify-between gap-2 text-muted-foreground">
+                    <span className="font-semibold text-foreground shrink-0">مبلغ العهدة السابقة:</span>
                     <span className="font-bold text-foreground">{Number(activeCustody.amount).toLocaleString()} ر.س</span>
                   </div>
                   {activeCustody.title && (
-                    <div className="flex items-center justify-between text-muted-foreground">
-                      <span className="font-semibold text-foreground">عنوان العهدة:</span>
-                      <span className="font-medium text-foreground truncate max-w-[280px]">{activeCustody.title}</span>
+                    <div className="flex items-center justify-between gap-2 text-muted-foreground">
+                      <span className="font-semibold text-foreground shrink-0">عنوان العهدة:</span>
+                      <span className="font-medium text-foreground truncate">{activeCustody.title}</span>
                     </div>
                   )}
                 </div>
               )}
 
               <div className="space-y-2 text-right">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-1">
                   <Label className="text-xs sm:text-sm font-bold text-foreground block text-right">
                     مبررات وأسباب طلب الاستثناء <span className="text-rose-500">*</span>
                   </Label>
@@ -401,7 +401,7 @@ export default function NewCustodyRequest() {
                   onChange={(e) => setExceptionReason(e.target.value)}
                   placeholder="اكتب هنا مبررات الحاجة لصرف العهدة الجديدة وأسباب طلب الاستثناء (5 أحرف على الأقل)..."
                   rows={4}
-                  className="rounded-xl text-xs sm:text-sm bg-background resize-none border-border/70 p-3 leading-relaxed text-right"
+                  className="rounded-xl text-xs sm:text-sm max-md:text-base bg-background resize-none border-border/70 p-3 leading-relaxed text-right"
                   dir="rtl"
                 />
                 {exceptionReason.trim().length > 0 && exceptionReason.trim().length < 5 && (
@@ -412,7 +412,15 @@ export default function NewCustodyRequest() {
               </div>
             </div>
 
-            <DialogFooter className="flex flex-row sm:flex-row justify-start items-center gap-2 pt-3 border-t border-border/40">
+            <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-start items-stretch sm:items-center gap-2 pt-3 border-t border-border/40">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsExceptionDialogOpen(false)}
+                className="w-full sm:w-auto rounded-xl text-xs sm:text-sm min-h-10 max-lg:min-h-11 px-4 border-border/70"
+              >
+                إلغاء
+              </Button>
               <Button
                 type="button"
                 disabled={!canRequestException || exceptionReason.trim().length < 5 || requestExceptionMutation.isPending || !activeCustody?.id}
@@ -428,7 +436,7 @@ export default function NewCustodyRequest() {
                     reason: trimmedReason,
                   });
                 }}
-                className="rounded-xl text-xs sm:text-sm font-bold gradient-primary text-white gap-2 cursor-pointer h-10 px-5 shadow-xs"
+                className="w-full sm:w-auto rounded-xl text-xs sm:text-sm font-bold gradient-primary text-white gap-2 cursor-pointer min-h-10 max-lg:min-h-11 px-5 shadow-xs"
               >
                 {requestExceptionMutation.isPending ? (
                   <>
@@ -442,24 +450,16 @@ export default function NewCustodyRequest() {
                   </>
                 )}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsExceptionDialogOpen(false)}
-                className="rounded-xl text-xs sm:text-sm h-10 px-4 border-border/70"
-              >
-                إلغاء
-              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
           {/* تفاصيل العهدة المالية والمبلغ */}
-          <Card className="rounded-2xl border-border/70 shadow-xs bg-card">
+          <Card className="rounded-2xl border-border/70 shadow-xs bg-card py-0 gap-0">
             <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/40">
               <div className="flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-primary" />
+                <CreditCard className="w-4 h-4 text-primary shrink-0" />
                 <CardTitle className="text-sm font-bold text-foreground">تفاصيل ومبلغ العهدة</CardTitle>
               </div>
               <CardDescription className="text-xs text-muted-foreground">
@@ -477,16 +477,16 @@ export default function NewCustodyRequest() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="مثال: عهدة مالية لمصاريف صيانة وإصلاحات المسجد..."
-                  className="h-11 rounded-xl border-border/70 text-xs sm:text-sm bg-background"
+                  className="h-11 rounded-xl border-border/70 text-xs sm:text-sm max-md:text-base bg-background"
                   required
                 />
               </div>
 
               {/* البيان التفصيلي وأسباب الاحتياج للعهدة */}
               <div className="space-y-2.5 pt-1">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="space-y-0.5">
-                    <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="space-y-0.5 min-w-0">
+                    <Label className="text-xs font-bold text-foreground flex flex-wrap items-center gap-1.5">
                       <span>البيان التفصيلي وأسباب الاحتياج للعهدة</span>
                       <span className="text-rose-500">*</span>
                       <Badge variant="outline" className="text-[10px] font-normal py-0 h-5 border-border/70 text-muted-foreground mr-1">
@@ -502,15 +502,84 @@ export default function NewCustodyRequest() {
                     variant="outline"
                     size="sm"
                     onClick={handleAddItem}
-                    className="h-8 rounded-xl text-xs font-bold gap-1 text-primary border-primary/30 hover:bg-primary/5 hover:border-primary/50 cursor-pointer shadow-2xs"
+                    className="h-9 max-lg:min-h-10 rounded-xl text-xs font-bold gap-1 text-primary border-primary/30 hover:bg-primary/5 hover:border-primary/50 cursor-pointer shadow-2xs shrink-0"
                   >
                     <Plus className="w-3.5 h-3.5 ml-0.5" />
                     <span>إضافة بند</span>
                   </Button>
                 </div>
 
-                {/* جدول بنود العهدة */}
-                <div className="rounded-xl border border-border/70 overflow-hidden bg-background">
+                {/* بطاقات بنود العهدة للموبايل */}
+                <div className="md:hidden space-y-3">
+                  {items.map((item, index) => (
+                    <div key={item.id} className="rounded-xl border border-border/70 bg-background p-3.5 space-y-3">
+                      <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                        <span className="text-xs font-bold text-muted-foreground">البند #{index + 1}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveItem(item.id)}
+                          disabled={items.length <= 1}
+                          className="h-8 w-8 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-30"
+                          title={items.length <= 1 ? "لا يمكن حذف البند الوحيد" : "حذف هذا البند"}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">اسم الصنف والمواصفات <span className="text-rose-500">*</span></Label>
+                        <Input
+                          value={item.description}
+                          onChange={(e) => handleItemChange(item.id, "description", e.target.value)}
+                          placeholder="عنوان البند..."
+                          className="h-10 rounded-lg border-border/70 text-base bg-background font-medium"
+                          required
+                        />
+                        <Textarea
+                          value={item.details || ""}
+                          onChange={(e) => handleItemChange(item.id, "details", e.target.value)}
+                          placeholder="وصف البند..."
+                          rows={2}
+                          className="text-base min-h-[44px] resize-y bg-muted/20 focus:bg-background border-input/80 py-2 px-2.5 leading-relaxed rounded-lg transition-colors"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">المبلغ المطلوب (ر.س) <span className="text-rose-500">*</span></Label>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={item.amount}
+                            onChange={(e) => handleItemChange(item.id, "amount", e.target.value)}
+                            placeholder="0.00"
+                            dir="ltr"
+                            className="h-10 rounded-lg border-border/70 text-base font-bold font-mono pl-10 pr-2.5 text-right bg-background focus:ring-primary/20"
+                            required
+                          />
+                          <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground pointer-events-none select-none">
+                            ر.س
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAddItem}
+                    className="w-full h-10 rounded-xl text-xs font-bold gap-1.5 text-primary border-dashed border-primary/40 hover:bg-primary/5"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>إضافة بند آخر</span>
+                  </Button>
+                </div>
+
+                {/* جدول بنود العهدة للآيباد والديسكتوب */}
+                <div className="hidden md:block rounded-xl border border-border/70 overflow-hidden bg-background">
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs text-right border-collapse">
                       <thead>
@@ -636,11 +705,11 @@ export default function NewCustodyRequest() {
           </Card>
 
           {/* الحساب البنكي المعتمد للصرف */}
-          <Card className="rounded-2xl border-border/70 shadow-xs bg-card">
+          <Card className="rounded-2xl border-border/70 shadow-xs bg-card py-0 gap-0">
             <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/40">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Landmark className="w-4 h-4 text-primary" />
+                  <Landmark className="w-4 h-4 text-primary shrink-0" />
                   <CardTitle className="text-sm font-bold text-foreground">بيانات الحساب البنكي لصرف العهدة</CardTitle>
                 </div>
                 {!isCustomBank && hasDefaultBankInfo && (
@@ -706,7 +775,7 @@ export default function NewCustodyRequest() {
                     value={bankName}
                     onChange={(e) => setBankName(e.target.value)}
                     placeholder="مثال: مصرف الراجحي"
-                    className="h-10 rounded-xl border-border/70 text-xs sm:text-sm bg-background"
+                    className="h-10 max-lg:min-h-11 rounded-xl border-border/70 text-xs sm:text-sm max-md:text-base bg-background"
                     required
                   />
                 </div>
@@ -721,7 +790,7 @@ export default function NewCustodyRequest() {
                     value={bankAccountName}
                     onChange={(e) => setBankAccountName(e.target.value)}
                     placeholder="الاسم الرباعي كما في البنك"
-                    className="h-10 rounded-xl border-border/70 text-xs sm:text-sm bg-background"
+                    className="h-10 max-lg:min-h-11 rounded-xl border-border/70 text-xs sm:text-sm max-md:text-base bg-background"
                     required
                   />
                 </div>
@@ -738,7 +807,7 @@ export default function NewCustodyRequest() {
                     placeholder="SA0000000000000000000000"
                     dir="ltr"
                     maxLength={34}
-                    className="h-10 rounded-xl border-border/70 text-xs sm:text-sm font-mono tracking-wider text-left bg-background"
+                    className="h-10 max-lg:min-h-11 rounded-xl border-border/70 text-xs sm:text-sm max-md:text-base font-mono tracking-wider text-left bg-background"
                     required
                   />
                 </div>
@@ -749,8 +818,8 @@ export default function NewCustodyRequest() {
           {/* قسم الإجراءات */}
           <div className="space-y-3 pt-3 border-t border-border/60">
 
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-              <Link href="/custody-requests">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <Link href="/custody-requests" className="w-full sm:w-auto">
                 <Button type="button" variant="outline" className="w-full sm:w-auto h-11 px-5 rounded-xl text-xs font-bold border-border/70">
                   إلغاء والعودة
                 </Button>

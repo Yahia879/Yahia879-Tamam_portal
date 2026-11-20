@@ -464,8 +464,8 @@ export default function FinancialApproval() {
   // أثناء تحميل الجلسة أو الصلاحيات، عرض مؤشر تحميل أنيق لمنع وميض "عذراً، الوصول غير مصرح به"
   if (isAuthOrPermsLoading || (!user && authLoading)) {
     return (
-      <DashboardLayout>
-        <div className="flex flex-col items-center justify-center py-28 gap-3" dir="rtl">
+      <DashboardLayout tabletNavigation>
+        <div className="flex flex-col items-center justify-center py-28 gap-3 px-4 text-center" dir="rtl">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground font-medium">جاري التحقق من الصلاحيات وتحديث البيانات...</p>
         </div>
@@ -476,14 +476,14 @@ export default function FinancialApproval() {
   // حظر المستخدمين غير المصرح لهم بعد اكتمال التحقق
   if (!hasApprovalPerm) {
     return (
-      <DashboardLayout>
-        <div className="flex flex-col items-center justify-center py-20 text-center space-y-4" dir="rtl">
+      <DashboardLayout tabletNavigation>
+        <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 px-4" dir="rtl">
           <AlertCircle className="h-14 w-14 text-rose-500" />
-          <h2 className="text-xl font-bold">عذراً، الوصول غير مصرح به</h2>
-          <p className="text-muted-foreground max-w-md">
+          <h2 className="text-lg sm:text-xl font-bold">عذراً، الوصول غير مصرح به</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground max-w-md">
             شاشة الاعتمادات متاحة حصراً لمن يملكون صلاحيات الاعتماد المالي أو إدارة النظام.
           </p>
-          <Button onClick={() => navigate("/dashboard")} variant="outline" className="mt-2">
+          <Button onClick={() => navigate("/dashboard")} variant="outline" className="mt-2 min-h-10 max-lg:min-h-11">
             العودة للرئيسية
           </Button>
         </div>
@@ -492,27 +492,27 @@ export default function FinancialApproval() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6" dir="rtl">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-full overflow-x-hidden space-y-4 sm:space-y-6" dir="rtl">
         {/* ==================== رأس الصفحة ==================== */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-foreground">الاعتمادات</h1>
+        <div className="flex items-center justify-between flex-wrap gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <h1 className="text-lg sm:text-2xl font-bold text-foreground">الاعتمادات</h1>
               {approvalsData?.counts?.total !== undefined && (
-                <Badge className="bg-primary/10 text-primary border-primary/20 text-sm px-2.5 py-0.5 font-bold font-mono">
+                <Badge className="bg-primary/10 text-primary border-primary/20 text-xs sm:text-sm px-2.5 py-0.5 font-bold font-mono">
                   {Number(approvalsData.counts.total).toLocaleString("en-US")} معلق
                 </Badge>
               )}
             </div>
-            <p className="text-muted-foreground text-sm mt-1">
+            <p className="text-muted-foreground text-xs sm:text-sm mt-1">
               مركز موحد لمتابعة واعتماد كافة المعاملات والطلبات المعلقة عبر مختلف أقسام البوابة
             </p>
           </div>
         </div>
 
         {/* ==================== بطاقات المؤشرات الإحصائية بحسب نوع المعاملة ==================== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-3">
           {visibleCards.map((card) => {
             const Icon = card.icon;
             const count =
@@ -542,17 +542,17 @@ export default function FinancialApproval() {
                   setPage(1);
                 }}
                 className={cn(
-                  "shadow-xs transition-all cursor-pointer border",
+                  "shadow-xs transition-all cursor-pointer border py-0 gap-0 min-w-0",
                   card.border,
                   isActive && card.activeRing
                 )}
               >
-                <CardContent className="p-3.5 flex items-center justify-between">
-                  <div className="min-w-0 pr-1">
-                    <p className={cn("text-xs font-semibold truncate", card.textColor)}>
+                <CardContent className="p-3 sm:p-3.5 flex items-center justify-between gap-2">
+                  <div className="min-w-0 pr-0.5">
+                    <p className={cn("text-[11px] sm:text-xs font-semibold truncate", card.textColor)}>
                       {card.label}
                     </p>
-                    <p className="text-2xl font-black mt-1 text-foreground leading-none font-mono">
+                    <p className="text-xl sm:text-2xl font-black mt-1 text-foreground leading-none font-mono">
                       {approvalsLoading ? (
                         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                       ) : (
@@ -563,8 +563,8 @@ export default function FinancialApproval() {
                       {card.subtitle}
                     </p>
                   </div>
-                  <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", card.iconBg)}>
-                    <Icon className="h-5 w-5" />
+                  <div className={cn("h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center shrink-0", card.iconBg)}>
+                    <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                 </CardContent>
               </Card>
@@ -573,30 +573,30 @@ export default function FinancialApproval() {
         </div>
 
         {/* ==================== أدوات البحث والفلترة ==================== */}
-        <Card className="border-border/60 shadow-xs">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-              <div className="md:col-span-6 relative">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Card className="border-border/60 shadow-xs py-0 gap-0">
+          <CardContent className="p-3.5 sm:p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 sm:gap-3 items-center">
+              <div className="sm:col-span-2 lg:col-span-6 relative">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   placeholder="ابحث برقم المعاملة، العنوان، أو مقدم الطلب..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pr-9 pl-8 text-xs h-9 text-right"
+                  className="pr-9 pl-8 text-xs sm:text-sm max-md:text-base h-10 max-lg:min-h-11 text-right"
                 />
                 {searchTerm && (
                   <button
                     onClick={() => setSearchTerm("")}
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-1"
                   >
                     ×
                   </button>
                 )}
               </div>
 
-              <div className="md:col-span-4">
+              <div className="lg:col-span-4">
                 <Select value={categoryFilter} onValueChange={(val) => { setCategoryFilter(val); setPage(1); }}>
-                  <SelectTrigger className="text-xs h-9 text-right">
+                  <SelectTrigger className="w-full text-xs sm:text-sm h-10 max-lg:min-h-11 pointer-coarse:min-h-11 text-right">
                     <SelectValue placeholder="كافة التصنيفات" />
                   </SelectTrigger>
                   <SelectContent dir="rtl">
@@ -612,7 +612,7 @@ export default function FinancialApproval() {
                 </Select>
               </div>
 
-              <div className="md:col-span-2 flex items-center gap-2">
+              <div className="lg:col-span-2 flex items-center gap-2">
                 {(isExecDirector || isFinancialRole) && (
                   <Button
                     variant={onlyMine ? "default" : "outline"}
@@ -621,9 +621,9 @@ export default function FinancialApproval() {
                       setOnlyMine(!onlyMine);
                       setPage(1);
                     }}
-                    className="w-full text-xs h-9 font-bold gap-1 cursor-pointer"
+                    className="flex-1 text-xs h-10 max-lg:min-h-11 font-bold gap-1.5 cursor-pointer"
                   >
-                    <ShieldCheck className="h-3.5 w-3.5" />
+                    <ShieldCheck className="h-4 w-4 shrink-0" />
                     <span>اعتماداتي فقط</span>
                   </Button>
                 )}
@@ -638,10 +638,10 @@ export default function FinancialApproval() {
                       setOnlyMine(false);
                       setPage(1);
                     }}
-                    className="text-xs h-9 text-muted-foreground hover:text-foreground cursor-pointer"
+                    className="text-xs h-10 max-lg:min-h-11 px-3 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
                     title="إعادة ضبط الفلاتر"
                   >
-                    <RotateCcw className="h-3.5 w-3.5" />
+                    <RotateCcw className="h-4 w-4" />
                   </Button>
                 )}
               </div>
@@ -650,9 +650,9 @@ export default function FinancialApproval() {
         </Card>
 
         {/* ==================== دلالات ألوان المعاملات (Color Legend) ==================== */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 text-xs font-medium px-1 py-0.5 text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 text-xs font-medium px-1 py-0.5 text-muted-foreground">
           <span className="text-[11px] font-bold text-foreground flex items-center gap-1.5 ml-1">
-            <Filter className="h-3.5 w-3.5 text-primary" />
+            <Filter className="h-3.5 w-3.5 text-primary shrink-0" />
             دلالات ألوان المعاملات:
           </span>
           {legendCategories.map((item) => {
@@ -666,15 +666,15 @@ export default function FinancialApproval() {
                   setPage(1);
                 }}
                 className={cn(
-                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold cursor-pointer transition-all",
+                  "inline-flex items-center gap-1.5 px-2.5 py-1.5 min-h-8 max-lg:min-h-9 rounded-full border text-[11px] font-semibold cursor-pointer transition-all",
                   item.pillClass,
                   isSelected
-                    ? "ring-2 ring-primary ring-offset-1 font-bold shadow-xs scale-105"
+                    ? "ring-2 ring-primary ring-offset-1 font-bold shadow-xs"
                     : "opacity-85 hover:opacity-100"
                 )}
                 title={`تصفية حسب: ${item.label}`}
               >
-                <span className={cn("w-2 h-2 rounded-full", item.dotClass)} />
+                <span className={cn("w-2 h-2 rounded-full shrink-0", item.dotClass)} />
                 <span>{item.label}</span>
               </button>
             );
@@ -686,7 +686,7 @@ export default function FinancialApproval() {
                 setCategoryFilter("all");
                 setPage(1);
               }}
-              className="text-[11px] text-muted-foreground hover:text-foreground underline mr-2 cursor-pointer font-medium"
+              className="text-xs text-muted-foreground hover:text-foreground underline mr-1 cursor-pointer font-medium py-1"
             >
               عرض الكل
             </button>
@@ -694,12 +694,12 @@ export default function FinancialApproval() {
         </div>
 
         {/* ==================== جدول المعاملات المعلقة ==================== */}
-        <Card className="border-border/60 shadow-xs overflow-hidden">
-          <CardHeader className="pb-3 border-b border-border/40 bg-card">
+        <Card className="border-border/60 shadow-xs overflow-hidden py-0 gap-0">
+          <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/40 bg-card">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <CheckSquare className="h-5 w-5 text-primary" />
-                <CardTitle className="text-base font-bold text-foreground">
+              <div className="flex flex-wrap items-center gap-2">
+                <CheckSquare className="h-5 w-5 text-primary shrink-0" />
+                <CardTitle className="text-sm sm:text-base font-bold text-foreground">
                   قائمة الطلبات بانتظار الاعتماد
                 </CardTitle>
                 <Badge variant="outline" className="text-xs font-semibold px-2 font-mono">
@@ -711,12 +711,12 @@ export default function FinancialApproval() {
 
           <CardContent className="p-0">
             {approvalsLoading ? (
-              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
+              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3 px-4 text-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <p className="text-xs">جاري تحميل قائمة الاعتمادات من كافة أقسام النظام...</p>
               </div>
             ) : items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground gap-2">
+              <div className="flex flex-col items-center justify-center py-14 sm:py-16 text-center text-muted-foreground gap-2 px-4">
                 <div className="h-12 w-12 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center mb-1">
                   <CheckCircle className="h-6 w-6" />
                 </div>
@@ -728,138 +728,240 @@ export default function FinancialApproval() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-muted/40">
-                    <TableRow className="hover:bg-transparent border-b border-border/60">
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[340px] pr-4">الطلب / المعاملة</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[160px]">التصنيف</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[200px]">مقدم الطلب</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[200px]">المسؤول عن الاعتماد</TableHead>
-                      <TableHead className="text-right text-xs font-bold text-foreground w-[180px]">القيمة / المبلغ</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((item) => {
-                      const catConf = CATEGORY_CONFIG[item.categoryKey] || {
-                        label: item.category,
-                        pluralLabel: item.category,
-                        icon: FileText,
-                        badgeClass: "bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-900/40 dark:text-slate-300 dark:border-slate-800",
-                        borderRClass: "border-r-4 border-r-slate-400",
-                        rowBgClass: "hover:bg-muted/30",
-                        iconContainerClass: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700 shadow-xs",
-                        dotClass: "bg-slate-500",
-                        pillClass: "bg-slate-100 text-slate-800 border-slate-300",
-                      };
-                      const CatIcon = catConf.icon;
+              <>
+                {/* عرض البطاقات للموبايل والآيباد العمودي */}
+                <div className="lg:hidden p-3 sm:p-4 bg-muted/15 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {items.map((item) => {
+                    const catConf = CATEGORY_CONFIG[item.categoryKey] || {
+                      label: item.category,
+                      pluralLabel: item.category,
+                      icon: FileText,
+                      badgeClass: "bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-900/40 dark:text-slate-300 dark:border-slate-800",
+                      borderRClass: "border-r-4 border-r-slate-400",
+                      rowBgClass: "hover:bg-muted/30",
+                      iconContainerClass: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700 shadow-xs",
+                      dotClass: "bg-slate-500",
+                      pillClass: "bg-slate-100 text-slate-800 border-slate-300",
+                    };
+                    const CatIcon = catConf.icon;
 
-                      const appConf = APPROVER_CONFIG[item.requiredApproverKey] || {
-                        label: item.requiredApprover,
-                        badgeClass: "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 font-bold",
-                      };
+                    const appConf = APPROVER_CONFIG[item.requiredApproverKey] || {
+                      label: item.requiredApprover,
+                      badgeClass: "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 font-bold",
+                    };
 
-                      return (
-                        <TableRow
-                          key={item.id}
-                          onClick={() => {
-                            if (item.link) navigate(item.link);
-                          }}
-                          className={cn(
-                            "cursor-pointer transition-colors duration-150 border-b border-border/40",
-                            catConf.borderRClass,
-                            catConf.rowBgClass
-                          )}
-                        >
-                          <TableCell className="align-middle py-3.5 pr-4 text-right">
-                            <div className="flex items-center gap-3">
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          if (item.link) navigate(item.link);
+                        }}
+                        className={cn(
+                          "rounded-xl border border-border/80 bg-card p-3.5 sm:p-4 shadow-2xs cursor-pointer transition-all hover:shadow-sm flex flex-col justify-between gap-3",
+                          catConf.borderRClass
+                        )}
+                      >
+                        <div className="space-y-2.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2.5 min-w-0">
                               <div
                                 className={cn(
                                   "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border shadow-xs",
                                   catConf.iconContainerClass
                                 )}
-                                title={catConf.label}
                               >
-                                <CatIcon className="w-4.5 h-4.5" />
+                                <CatIcon className="w-4 h-4" />
                               </div>
-                              <div className="space-y-1 min-w-0">
-                                <span className="text-xs font-bold text-foreground block text-right font-mono select-text">
+                              <div className="min-w-0">
+                                <span className="text-xs font-bold text-foreground block font-mono truncate">
                                   {item.itemNumber}
                                 </span>
-                                <p
-                                  className="text-xs font-semibold text-foreground text-right line-clamp-2 select-text"
-                                  title={item.title}
-                                >
-                                  {item.title}
-                                </p>
-                                <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-mono">
-                                  <Clock className="h-3 w-3 text-muted-foreground/70" />
-                                  <span>
-                                    {item.createdAt
-                                      ? new Date(item.createdAt).toLocaleDateString("en-CA").replace(/-/g, "/")
-                                      : "—"}
-                                  </span>
-                                </p>
+                                <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-mono">
+                                  <Clock className="h-3 w-3 shrink-0" />
+                                  {item.createdAt
+                                    ? new Date(item.createdAt).toLocaleDateString("en-CA").replace(/-/g, "/")
+                                    : "—"}
+                                </span>
                               </div>
                             </div>
-                          </TableCell>
-
-                          <TableCell className="align-middle py-3.5 text-right">
                             <Badge
                               variant="outline"
-                              className={cn("gap-1 text-[11px] font-semibold py-1 px-2.5 shadow-xs", catConf.badgeClass)}
+                              className={cn("gap-1 text-[10px] sm:text-[11px] font-semibold py-0.5 px-2 shrink-0", catConf.badgeClass)}
                             >
-                              <CatIcon className="h-3.5 w-3.5 shrink-0" />
+                              <CatIcon className="h-3 w-3 shrink-0" />
                               <span>{catConf.label}</span>
                             </Badge>
-                          </TableCell>
+                          </div>
 
-                          <TableCell className="align-middle py-3.5 text-right">
-                            <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                              <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                              <span>{item.requesterName}</span>
-                            </p>
-                          </TableCell>
+                          <p className="text-xs sm:text-sm font-bold text-foreground leading-snug line-clamp-2 break-words">
+                            {item.title}
+                          </p>
+                        </div>
 
-                          <TableCell className="align-middle py-3.5 text-right">
-                            <Badge
-                              variant="outline"
-                              className={cn("text-[11px] py-1 px-2.5 font-bold shadow-xs", appConf.badgeClass)}
-                            >
-                              {item.requiredApprover}
-                            </Badge>
-                          </TableCell>
-
-                          <TableCell className="align-middle py-3.5 text-right">
+                        <div className="space-y-2 pt-2.5 border-t border-border/50 text-xs">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-muted-foreground flex items-center gap-1.5 min-w-0">
+                              <User className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate font-medium text-foreground">{item.requesterName}</span>
+                            </span>
                             {item.amount !== null && item.amount !== undefined ? (
-                              <div className="font-bold text-xs text-foreground font-mono inline-flex items-center gap-1.5">
+                              <div className="font-bold text-xs sm:text-sm text-primary font-mono inline-flex items-center gap-1 shrink-0">
                                 <span>{Number(item.amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 <SaudiRiyal className="h-3.5 w-3.5 opacity-80" />
                               </div>
                             ) : (
-                              <span className="text-xs text-muted-foreground font-mono">—</span>
+                              <span className="text-xs text-muted-foreground font-mono shrink-0">—</span>
                             )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[11px] text-muted-foreground shrink-0">المسؤول عن الاعتماد:</span>
+                            <Badge
+                              variant="outline"
+                              className={cn("text-[11px] py-0.5 px-2 font-bold", appConf.badgeClass)}
+                            >
+                              {item.requiredApprover}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* عرض الجدول لسطح المكتب والآيباد الأفقي */}
+                <div className="hidden lg:block overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-muted/40">
+                      <TableRow className="hover:bg-transparent border-b border-border/60">
+                        <TableHead className="text-right text-xs font-bold text-foreground w-[340px] pr-4">الطلب / المعاملة</TableHead>
+                        <TableHead className="text-right text-xs font-bold text-foreground w-[160px]">التصنيف</TableHead>
+                        <TableHead className="text-right text-xs font-bold text-foreground w-[200px]">مقدم الطلب</TableHead>
+                        <TableHead className="text-right text-xs font-bold text-foreground w-[200px]">المسؤول عن الاعتماد</TableHead>
+                        <TableHead className="text-right text-xs font-bold text-foreground w-[180px]">القيمة / المبلغ</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {items.map((item) => {
+                        const catConf = CATEGORY_CONFIG[item.categoryKey] || {
+                          label: item.category,
+                          pluralLabel: item.category,
+                          icon: FileText,
+                          badgeClass: "bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-900/40 dark:text-slate-300 dark:border-slate-800",
+                          borderRClass: "border-r-4 border-r-slate-400",
+                          rowBgClass: "hover:bg-muted/30",
+                          iconContainerClass: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700 shadow-xs",
+                          dotClass: "bg-slate-500",
+                          pillClass: "bg-slate-100 text-slate-800 border-slate-300",
+                        };
+                        const CatIcon = catConf.icon;
+
+                        const appConf = APPROVER_CONFIG[item.requiredApproverKey] || {
+                          label: item.requiredApprover,
+                          badgeClass: "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 font-bold",
+                        };
+
+                        return (
+                          <TableRow
+                            key={item.id}
+                            onClick={() => {
+                              if (item.link) navigate(item.link);
+                            }}
+                            className={cn(
+                              "cursor-pointer transition-colors duration-150 border-b border-border/40",
+                              catConf.borderRClass,
+                              catConf.rowBgClass
+                            )}
+                          >
+                            <TableCell className="align-middle py-3.5 pr-4 text-right">
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={cn(
+                                    "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border shadow-xs",
+                                    catConf.iconContainerClass
+                                  )}
+                                  title={catConf.label}
+                                >
+                                  <CatIcon className="w-4.5 h-4.5" />
+                                </div>
+                                <div className="space-y-1 min-w-0">
+                                  <span className="text-xs font-bold text-foreground block text-right font-mono select-text">
+                                    {item.itemNumber}
+                                  </span>
+                                  <p
+                                    className="text-xs font-semibold text-foreground text-right line-clamp-2 select-text"
+                                    title={item.title}
+                                  >
+                                    {item.title}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-mono">
+                                    <Clock className="h-3 w-3 text-muted-foreground/70" />
+                                    <span>
+                                      {item.createdAt
+                                        ? new Date(item.createdAt).toLocaleDateString("en-CA").replace(/-/g, "/")
+                                        : "—"}
+                                    </span>
+                                  </p>
+                                </div>
+                              </div>
+                            </TableCell>
+
+                            <TableCell className="align-middle py-3.5 text-right">
+                              <Badge
+                                variant="outline"
+                                className={cn("gap-1 text-[11px] font-semibold py-1 px-2.5 shadow-xs", catConf.badgeClass)}
+                              >
+                                <CatIcon className="h-3.5 w-3.5 shrink-0" />
+                                <span>{catConf.label}</span>
+                              </Badge>
+                            </TableCell>
+
+                            <TableCell className="align-middle py-3.5 text-right">
+                              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <span>{item.requesterName}</span>
+                              </p>
+                            </TableCell>
+
+                            <TableCell className="align-middle py-3.5 text-right">
+                              <Badge
+                                variant="outline"
+                                className={cn("text-[11px] py-1 px-2.5 font-bold shadow-xs", appConf.badgeClass)}
+                              >
+                                {item.requiredApprover}
+                              </Badge>
+                            </TableCell>
+
+                            <TableCell className="align-middle py-3.5 text-right">
+                              {item.amount !== null && item.amount !== undefined ? (
+                                <div className="font-bold text-xs text-foreground font-mono inline-flex items-center gap-1.5">
+                                  <span>{Number(item.amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                  <SaudiRiyal className="h-3.5 w-3.5 opacity-80" />
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground font-mono">—</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
 
             {totalFiltered > pageSize && (
-              <div className="flex items-center justify-between p-4 border-t border-border/40 text-xs text-muted-foreground">
-                <div className="font-mono">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 sm:p-4 border-t border-border/40 text-xs text-muted-foreground">
+                <div className="font-mono text-center sm:text-right">
                   عرض {(((page - 1) * pageSize) + 1).toLocaleString("en-US")} إلى {Math.min(page * pageSize, totalFiltered).toLocaleString("en-US")} من أصل {Number(totalFiltered).toLocaleString("en-US")} معاملة
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className="h-8 px-2.5 text-xs cursor-pointer"
+                    className="h-9 max-lg:min-h-10 px-3 text-xs cursor-pointer"
                   >
                     <ChevronRight className="h-3.5 w-3.5 ml-1" />
                     <span>السابق</span>
@@ -872,7 +974,7 @@ export default function FinancialApproval() {
                     size="sm"
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
-                    className="h-8 px-2.5 text-xs cursor-pointer"
+                    className="h-9 max-lg:min-h-10 px-3 text-xs cursor-pointer"
                   >
                     <span>التالي</span>
                     <ChevronLeft className="h-3.5 w-3.5 mr-1" />

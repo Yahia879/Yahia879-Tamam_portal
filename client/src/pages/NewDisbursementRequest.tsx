@@ -837,19 +837,19 @@ export default function NewDisbursementRequest() {
   };
   
   return (
-    <DashboardLayout>
-      <div className="space-y-6 pb-20" dir="rtl">
+    <DashboardLayout tabletNavigation>
+      <div className="min-w-0 max-w-full overflow-x-hidden space-y-4 sm:space-y-6 pb-16 sm:pb-20" dir="rtl">
         {/* Header - التحسين للشاشات الصغيرة لتجنب التصادم */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/40 pb-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => window.history.back()} className="h-9 w-9">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 border-b border-border/40 pb-4">
+          <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0">
+            <Button variant="ghost" size="icon" onClick={() => window.history.back()} className="size-10 max-lg:size-11 shrink-0 rounded-xl">
               <ArrowRight className="h-5 w-5" />
             </Button>
-            <div className="text-right">
-              <h1 className="text-xl sm:text-2xl font-bold text-right text-foreground">
+            <div className="text-right min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold text-right text-foreground leading-tight">
                 {isChangeOrderMode ? "طلب دفعة لأمر التغيير" : "طلب دفعة جديد"}
               </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground text-right">
+              <p className="text-xs sm:text-sm text-muted-foreground text-right mt-0.5 break-words">
                 {isChangeOrderMode
                   ? selectedChangeOrder
                     ? `${selectedChangeOrder.orderNumber || `#${selectedChangeOrder.id}`} - ${selectedChangeOrder.title}`
@@ -858,32 +858,32 @@ export default function NewDisbursementRequest() {
               </p>
             </div>
           </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <Button onClick={handleSubmit} disabled={createMutation.isPending} className="w-full sm:w-auto shadow-sm">
-              <Send className="h-4 w-4 ml-2" />
+          <div className="flex gap-2 w-full sm:w-auto shrink-0">
+            <Button onClick={handleSubmit} disabled={createMutation.isPending} className="w-full sm:w-auto h-10 max-lg:min-h-11 px-5 shadow-sm rounded-xl font-bold">
+              {createMutation.isPending ? <Loader2 className="h-4 w-4 ml-2 animate-spin" /> : <Send className="h-4 w-4 ml-2" />}
               إرسال للاعتماد
             </Button>
           </div>
         </div>
           {/* Form */}
-        <div className="flex flex-col-reverse lg:flex-row gap-6" dir="ltr">
+        <div className="flex flex-col-reverse lg:flex-row gap-4 sm:gap-6 items-start" dir="ltr">
           {/* Sidebar */}
-          <div className="w-full lg:w-1/3 space-y-6 text-right" dir="rtl">
+          <div className="w-full lg:w-1/3 min-w-0 space-y-4 sm:space-y-6 text-right lg:sticky lg:top-6" dir="rtl">
             {/* ملخص الطلب */}
-            <Card className="text-right">
-              <CardHeader className="text-right">
-                <CardTitle className="text-right">ملخص طلب الدفعة</CardTitle>
+            <Card className="py-0 gap-0 text-right overflow-hidden">
+              <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/50 text-right">
+                <CardTitle className="text-base sm:text-lg text-right">ملخص طلب الدفعة</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 text-right">
+              <CardContent className="p-4 sm:p-5 space-y-4 text-right">
                 {projectDetails && (
                   <div className="space-y-2 text-right">
-                    <div className="flex justify-between text-sm flex-row-reverse">
-                      <span className="text-muted-foreground">المشروع:</span>
-                      <span className="font-medium">{projectDetails.name}</span>
+                    <div className="flex justify-between gap-2 text-xs sm:text-sm flex-row-reverse">
+                      <span className="text-muted-foreground shrink-0">المشروع:</span>
+                      <span className="font-medium text-right break-words min-w-0">{projectDetails.name}</span>
                     </div>
-                    <div className="flex justify-between text-sm flex-row-reverse">
-                      <span className="text-muted-foreground">رقم المشروع:</span>
-                      <span className="font-medium">{projectDetails.projectNumber}</span>
+                    <div className="flex justify-between gap-2 text-xs sm:text-sm flex-row-reverse">
+                      <span className="text-muted-foreground shrink-0">رقم المشروع:</span>
+                      <span className="font-medium font-mono">{projectDetails.projectNumber}</span>
                     </div>
                   </div>
                 )}
@@ -892,17 +892,17 @@ export default function NewDisbursementRequest() {
                   <>
                     <Separator />
                     <div className="space-y-2 text-right">
-                      <div className="flex justify-between text-sm flex-row-reverse">
-                        <span className="text-muted-foreground">العقد:</span>
-                        <span className="font-medium">{contractDetails.contract.contractNumber}</span>
+                      <div className="flex justify-between gap-2 text-xs sm:text-sm flex-row-reverse">
+                        <span className="text-muted-foreground shrink-0">العقد:</span>
+                        <span className="font-medium font-mono">{contractDetails.contract.contractNumber}</span>
                       </div>
-                      <div className="flex justify-between text-sm flex-row-reverse">
-                        <span className="text-muted-foreground">قيمة العقد:</span>
-                        <span className="font-medium inline-flex items-center gap-1">{parseFloat(contractDetails.contract.contractAmount || "0").toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" /></span>
+                      <div className="flex justify-between gap-2 text-xs sm:text-sm flex-row-reverse">
+                        <span className="text-muted-foreground shrink-0">قيمة العقد:</span>
+                        <span className="font-medium font-mono inline-flex items-center gap-1">{parseFloat(contractDetails.contract.contractAmount || "0").toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" /></span>
                       </div>
-                      <div className="flex justify-between text-sm flex-row-reverse">
+                      <div className="flex justify-between gap-2 text-xs sm:text-sm flex-row-reverse">
                         <span className="text-muted-foreground font-medium">المتبقي غير المجدول للعقد:</span>
-                        <span className="font-bold text-emerald-600 inline-flex items-center gap-1">
+                        <span className="font-bold font-mono text-emerald-600 inline-flex items-center gap-1 shrink-0">
                           {remainingAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
                         </span>
                       </div>
@@ -913,30 +913,30 @@ export default function NewDisbursementRequest() {
                 {isChangeOrderMode && selectedChangeOrder && (
                   <>
                     <Separator />
-                    <div className="space-y-2 text-right bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/70 rounded-lg p-2.5">
-                      <div className="flex justify-between text-sm flex-row-reverse">
-                        <span className="text-muted-foreground">أمر التغيير:</span>
-                        <span className="font-bold text-indigo-700 dark:text-indigo-300">
+                    <div className="space-y-2 text-right bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/70 rounded-lg p-3">
+                      <div className="flex justify-between gap-2 text-xs sm:text-sm flex-row-reverse">
+                        <span className="text-muted-foreground shrink-0">أمر التغيير:</span>
+                        <span className="font-bold text-indigo-700 dark:text-indigo-300 font-mono">
                           {selectedChangeOrder.orderNumber || `#${selectedChangeOrder.id}`}
                         </span>
                       </div>
-                      <div className="flex justify-between text-sm flex-row-reverse">
-                        <span className="text-muted-foreground">إجمالي أمر التغيير:</span>
-                        <span className="font-bold text-indigo-700 dark:text-indigo-300 inline-flex items-center gap-1">
+                      <div className="flex justify-between gap-2 text-xs sm:text-sm flex-row-reverse">
+                        <span className="text-muted-foreground shrink-0">إجمالي أمر التغيير:</span>
+                        <span className="font-bold font-mono text-indigo-700 dark:text-indigo-300 inline-flex items-center gap-1">
                           {changeOrderTotalAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
                         </span>
                       </div>
                       {changeOrderAllocatedAmount > 0 && (
-                        <div className="flex justify-between text-xs flex-row-reverse">
-                          <span className="text-muted-foreground">المجدول سابقاً:</span>
-                          <span className="font-semibold text-foreground inline-flex items-center gap-1">
+                        <div className="flex justify-between gap-2 text-xs flex-row-reverse">
+                          <span className="text-muted-foreground shrink-0">المجدول سابقاً:</span>
+                          <span className="font-semibold font-mono text-foreground inline-flex items-center gap-1">
                             {changeOrderAllocatedAmount.toLocaleString()} <SaudiRiyal className="w-3 h-3" />
                           </span>
                         </div>
                       )}
-                      <div className="flex justify-between text-sm flex-row-reverse">
-                        <span className="text-muted-foreground">المتبقي المتاح:</span>
-                        <span className="font-bold text-emerald-700 dark:text-emerald-300 inline-flex items-center gap-1">
+                      <div className="flex justify-between gap-2 text-xs sm:text-sm flex-row-reverse">
+                        <span className="text-muted-foreground shrink-0">المتبقي المتاح:</span>
+                        <span className="font-bold font-mono text-emerald-700 dark:text-emerald-300 inline-flex items-center gap-1">
                           {changeOrderRemainingAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
                         </span>
                       </div>
@@ -947,9 +947,9 @@ export default function NewDisbursementRequest() {
                 <Separator />
                 
                 <div className="space-y-2 text-right">
-                  <div className="flex justify-between flex-row-reverse">
-                    <span className="font-medium">إجمالي الدفعة:</span>
-                    <span className={`font-bold text-lg inline-flex items-center gap-1 ${
+                  <div className="flex justify-between items-center gap-2 flex-row-reverse">
+                    <span className="font-medium text-sm">إجمالي الدفعة:</span>
+                    <span className={`font-bold font-mono text-base sm:text-lg inline-flex items-center gap-1 ${
                       (isChangeOrderMode ? totalAmount > changeOrderRemainingAmount + 0.05 : Boolean(contractDetails && (totalAmount > contractAmount || totalAmount > remainingAmount)))
                         ? 'text-destructive'
                         : 'text-primary'
@@ -959,28 +959,37 @@ export default function NewDisbursementRequest() {
                   </div>
                 </div>
                 
-                <div className="p-3 bg-muted rounded-lg text-sm text-right">
+                <div className="p-3 bg-muted rounded-xl text-xs sm:text-sm text-right leading-relaxed">
                   <p className="text-muted-foreground text-right">{numberToArabicText(totalAmount)}</p>
                 </div>
+
+                <Button
+                  onClick={handleSubmit}
+                  disabled={createMutation.isPending}
+                  className="lg:hidden w-full min-h-11 rounded-xl font-bold shadow-sm"
+                >
+                  {createMutation.isPending ? <Loader2 className="h-4 w-4 ml-2 animate-spin" /> : <Send className="h-4 w-4 ml-2" />}
+                  إرسال للاعتماد
+                </Button>
               </CardContent>
             </Card>
           </div>
 
           {/* Main Form */}
-          <div className="w-full lg:w-2/3 space-y-6 text-right" dir="rtl">
+          <div className="w-full lg:w-2/3 min-w-0 space-y-4 sm:space-y-6 text-right" dir="rtl">
             {/* بيانات الترويسة */}
-            <Card className="text-right">
-              <CardHeader className="text-right">
-                <CardTitle className="flex items-center gap-2 text-right">
-                  <FileText className="h-5 w-5" />
+            <Card className="py-0 gap-0 text-right overflow-hidden">
+              <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/50 text-right">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg text-right">
+                  <FileText className="h-5 w-5 shrink-0" />
                   بيانات طلب الدفعة
                 </CardTitle>
-                <CardDescription className="text-right">معلومات أساسية عن طلب الدفعة</CardDescription>
+                <CardDescription className="text-xs sm:text-sm text-right">معلومات أساسية عن طلب الدفعة</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-5 pt-6 text-right">
+              <CardContent className="p-4 sm:p-5 space-y-4 sm:space-y-5 text-right">
                 {/* اختيار المشروع والعقد */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-1">
-                  <div className="space-y-1.5 text-right">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4 pb-1">
+                  <div className="space-y-1.5 text-right min-w-0">
                     <Label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
                       <Building2 className="w-3.5 h-3.5" />
                       <span>المشروع</span>
@@ -998,7 +1007,7 @@ export default function NewDisbursementRequest() {
                   </div>
 
                   {formData.projectId > 0 && projectContracts && projectContracts.contracts && projectContracts.contracts.length > 0 && (
-                    <div className="space-y-1.5 text-right">
+                    <div className="space-y-1.5 text-right min-w-0">
                       <Label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
                         <FileText className="w-3.5 h-3.5" />
                         <span>العقد</span>
@@ -1008,7 +1017,7 @@ export default function NewDisbursementRequest() {
                         onValueChange={(value) => setFormData({ ...formData, contractId: parseInt(value) })}
                         disabled={true}
                       >
-                        <SelectTrigger className="text-right bg-muted/30 border-border/40 rounded-xl h-10 w-full" dir="rtl">
+                        <SelectTrigger className="text-right bg-muted/30 border-border/40 rounded-xl h-10 max-lg:min-h-11 w-full min-w-0" dir="rtl">
                           <SelectValue placeholder="اختر العقد" />
                         </SelectTrigger>
                         <SelectContent dir="rtl">
@@ -1025,7 +1034,7 @@ export default function NewDisbursementRequest() {
                 </div>
 
                 {/* شبكة حقول الدفعة الملونة بالألوان الهادئة المتناسقة */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-3.5">
                   {/* الحقل 1: قيمة الدفعة (مبلغ مالي) - أخضر هادئ */}
                   <div className="p-3 rounded-xl border transition-all flex flex-col justify-between space-y-2 bg-emerald-500/[0.03] border-emerald-500/20 dark:bg-emerald-950/15 dark:border-emerald-500/20">
                     <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground/85">
@@ -1041,7 +1050,7 @@ export default function NewDisbursementRequest() {
                         value={totalAmount || ""}
                         required
                         className={cn(
-                          "w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-emerald-500/40 focus-visible:ring-emerald-500/15 shadow-2xs",
+                          "w-full h-10 max-lg:min-h-11 rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-emerald-500/40 focus-visible:ring-emerald-500/15 shadow-2xs",
                           isChangeOrderMode && totalAmount > changeOrderRemainingAmount + 0.05 && "border-destructive text-destructive"
                         )}
                         onChange={(e) => {
@@ -1067,7 +1076,7 @@ export default function NewDisbursementRequest() {
                         step="0.01"
                         value={currentPaymentPercentage || ""}
                         required
-                        className="w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-blue-500/40 focus-visible:ring-blue-500/15 shadow-2xs"
+                        className="w-full h-10 max-lg:min-h-11 rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-blue-500/40 focus-visible:ring-blue-500/15 shadow-2xs"
                         onChange={(e) => {
                           handlePercentageChange(parseFloat(e.target.value) || 0);
                         }}
@@ -1088,7 +1097,7 @@ export default function NewDisbursementRequest() {
                     <Input
                       value={formData.title}
                       required
-                      className="w-full rounded-xl font-medium transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-indigo-500/40 focus-visible:ring-indigo-500/15 shadow-2xs"
+                      className="w-full h-10 max-lg:min-h-11 max-md:text-base rounded-xl font-medium transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-indigo-500/40 focus-visible:ring-indigo-500/15 shadow-2xs"
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                       placeholder="مثال: الدفعة الأولى لمشروع..."
                     />
@@ -1105,7 +1114,7 @@ export default function NewDisbursementRequest() {
                       value={formData.dateMiladi}
                       required
                       className={cn(
-                        "w-full rounded-xl font-sans text-sm transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-amber-500/40 focus-visible:ring-amber-500/15 shadow-2xs",
+                        "w-full h-10 max-lg:min-h-11 max-md:text-base rounded-xl font-sans text-sm transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-amber-500/40 focus-visible:ring-amber-500/15 shadow-2xs",
                         (!isChangeOrderMode && formData.dateMiladi && (isDateAlreadyUsed(formData.dateMiladi) || isAfter100PercentPayment)) && "border-2 border-destructive"
                       )}
                       onChange={(e) => {
@@ -1120,7 +1129,7 @@ export default function NewDisbursementRequest() {
                   </div>
 
                   {/* الحقل 5: وصف الأعمال التي سوف تُنفّذ - تركوازي هادئ */}
-                  <div className="p-3 rounded-xl border transition-all space-y-2 md:col-span-2 lg:col-span-1 bg-teal-500/[0.03] border-teal-500/20 dark:bg-teal-950/15 dark:border-teal-500/20">
+                  <div className="p-3 rounded-xl border transition-all space-y-2 sm:col-span-2 xl:col-span-1 bg-teal-500/[0.03] border-teal-500/20 dark:bg-teal-950/15 dark:border-teal-500/20">
                     <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground/85">
                       <FileSpreadsheet className="w-3.5 h-3.5 text-teal-600/80 dark:text-teal-400/80 shrink-0" />
                       <span>وصف الأعمال التي سوف تُنفّذ *</span>
@@ -1129,15 +1138,15 @@ export default function NewDisbursementRequest() {
                       value={formData.description}
                       rows={isChangeOrderMode ? 4 : 2}
                       required
-                      className="w-full rounded-xl transition-all resize-none text-right text-xs bg-background border-border/80 text-foreground focus-visible:border-teal-500/40 focus-visible:ring-teal-500/15 shadow-2xs"
+                      className="w-full rounded-xl transition-all resize-none text-right text-xs sm:text-sm max-md:text-base bg-background border-border/80 text-foreground focus-visible:border-teal-500/40 focus-visible:ring-teal-500/15 shadow-2xs"
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="وصف تفصيلي للأعمال التي سوف تنفذ..."
                     />
                   </div>
 
                   {/* الحقل 6: نسبة الإنجاز التراكمية (%) - بنفسجي هادئ */}
-                  <div className="p-3 rounded-xl border transition-all space-y-2 md:col-span-2 lg:col-span-1 bg-purple-500/[0.03] border-purple-500/20 dark:bg-purple-950/15 dark:border-purple-500/20">
-                    <Label className="text-xs font-semibold flex items-center justify-between gap-1.5 text-foreground/85">
+                  <div className="p-3 rounded-xl border transition-all flex flex-col justify-between space-y-2 sm:col-span-2 xl:col-span-1 bg-purple-500/[0.03] border-purple-500/20 dark:bg-purple-950/15 dark:border-purple-500/20">
+                    <Label className="text-xs font-semibold flex items-center justify-between flex-wrap gap-1.5 text-foreground/85">
                       <span className="flex items-center gap-1.5">
                         <TrendingUp className="w-3.5 h-3.5 text-purple-600/80 dark:text-purple-400/80 shrink-0" />
                         <span>نسبة الإنجاز التراكمية (%) *</span>
@@ -1159,7 +1168,7 @@ export default function NewDisbursementRequest() {
                         readOnly={isChangeOrderMode}
                         required={!isChangeOrderMode}
                         className={cn(
-                          "w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-purple-500/40 focus-visible:ring-purple-500/15 shadow-2xs",
+                          "w-full h-10 max-lg:min-h-11 rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-purple-500/40 focus-visible:ring-purple-500/15 shadow-2xs",
                           isChangeOrderMode && "bg-muted/60 cursor-not-allowed opacity-70",
                           !isChangeOrderMode && isExceedingProgress && "border-amber-400 bg-amber-500/5 text-amber-900 ring-1 ring-amber-400/40"
                         )}
@@ -1188,15 +1197,15 @@ export default function NewDisbursementRequest() {
                 {!isChangeOrderMode && (
                 <div className="space-y-2 text-right pt-1">
                   {formData.dateMiladi && isDateAlreadyUsed(formData.dateMiladi) && (
-                    <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/30">
-                      <AlertCircle className="h-4 w-4 shrink-0" />
+                    <div className="flex items-start sm:items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2.5 rounded-lg border border-destructive/30">
+                      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 sm:mt-0" />
                       <span>هذا التاريخ مستخدم بالفعل لدفعة أخرى. يرجى اختيار تاريخ مختلف</span>
                     </div>
                   )}
 
                   {isAfter100PercentPayment && (
-                    <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2.5 rounded-lg border border-destructive/30 animate-in fade-in">
-                      <AlertCircle className="h-4 w-4 shrink-0" />
+                    <div className="flex items-start sm:items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2.5 rounded-lg border border-destructive/30 animate-in fade-in">
+                      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 sm:mt-0" />
                       <span>لا يمكن إضافة دفعة بعد تاريخ ({dateOf100 || prevPaymentRef?.date}) لأن هذه الدفعة بلغت نسبة إنجازها 100%، ولا توجد نسبة إنجاز أعلى من 100%.</span>
                     </div>
                   )}
@@ -1212,7 +1221,7 @@ export default function NewDisbursementRequest() {
                       <>
                         {/* نطاق مسموح به */}
                         {formData.dateMiladi && !isAfter100PercentPayment && (prevPaymentCompletion !== null || nextPaymentCompletion !== null) && (
-                          <div className="bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-900/30 rounded-lg p-2.5 text-xs text-sky-800 dark:text-sky-300 space-y-1">
+                          <div className="bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-900/30 rounded-lg p-2.5 text-xs text-sky-800 dark:text-sky-300 space-y-1 leading-relaxed">
                             {prevPaymentCompletion !== null && (
                               <p>📅 الدفعة السابقة ({prevDate}): نسبة إنجازها <strong>{prevPaymentCompletion}%</strong> ← يجب أن تكون النسبة الجديدة أكبر من ذلك</p>
                             )}
@@ -1231,12 +1240,12 @@ export default function NewDisbursementRequest() {
                           <p className="text-xs text-amber-600">⚠ حدد التاريخ أولاً لمعرفة النطاق المسموح لنسبة الإنجاز</p>
                         )}
                         {benchmarkActualProgress > 0 && (
-                          <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 rounded-lg p-2.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                          <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 rounded-lg p-2.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between gap-2 flex-wrap">
                             <span className="font-semibold flex items-center gap-1.5">
-                              <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                              <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                               نسبة تقرير الإنجاز الفعلي المعتمدة للمشروع:
                             </span>
-                            <span className="font-bold font-sans text-sm">{benchmarkActualProgress}%</span>
+                            <span className="font-bold font-mono text-sm">{benchmarkActualProgress}%</span>
                           </div>
                         )}
 
@@ -1254,8 +1263,8 @@ export default function NewDisbursementRequest() {
                         )}
 
                         {prevPaymentCompletion !== null && currentCompVal !== null && currentCompVal <= prevPaymentCompletion && (
-                          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/40 p-2 rounded-lg border border-border/50">
-                            <AlertCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <div className="flex items-start sm:items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/50">
+                            <AlertCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5 sm:mt-0" />
                             <span>ملاحظة: نسبة الإنجاز ({currentCompVal}%) أقل أو مساوية للدفعة السابقة ({prevPaymentCompletion}%). النظام يسمح بذلك لمرونة المستخلصات.</span>
                           </div>
                         )}
@@ -1269,15 +1278,15 @@ export default function NewDisbursementRequest() {
 
             {/* بنود وأصناف التوريد - حصرياً لبرامج سدانة */}
             {isSedanaProgram && (
-              <Card className="text-right border-emerald-500/30 bg-emerald-500/5 shadow-sm">
-                <CardHeader className="bg-emerald-500/10 border-b border-emerald-500/20 py-4 text-right">
+              <Card className="py-0 gap-0 text-right border-emerald-500/30 bg-emerald-500/5 shadow-sm overflow-hidden">
+                <CardHeader className="bg-emerald-500/10 border-b border-emerald-500/20 p-4 sm:p-5 text-right">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="text-right">
-                      <CardTitle className="flex items-center gap-2 text-right text-base font-bold text-emerald-950 dark:text-emerald-200">
-                        <Package className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                        أصناف التوريد المرتبطة بهذه الدفعة (خاص بسدانة)
+                    <div className="text-right min-w-0">
+                      <CardTitle className="flex items-center gap-2 text-right text-sm sm:text-base font-bold text-emerald-950 dark:text-emerald-200">
+                        <Package className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>أصناف التوريد المرتبطة بهذه الدفعة (خاص بسدانة)</span>
                       </CardTitle>
-                      <CardDescription className="text-right text-xs text-emerald-800/80 dark:text-emerald-300/80">
+                      <CardDescription className="text-right text-xs text-emerald-800/80 dark:text-emerald-300/80 mt-0.5">
                         حدد البنود والكميات التي سيقوم المورد بتوريدها في هذه الدفعة لربطها بأوامر الإدخال
                       </CardDescription>
                     </div>
@@ -1287,17 +1296,17 @@ export default function NewDisbursementRequest() {
                         variant="outline"
                         size="sm"
                         onClick={handleMatchAmountWithSedanaItems}
-                        className="text-xs bg-white dark:bg-card border-emerald-300 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100"
+                        className="w-full sm:w-auto min-h-9 max-lg:min-h-10 text-xs bg-white dark:bg-card border-emerald-300 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 rounded-xl shrink-0"
                       >
                         مطابقة مبلغ الدفعة مع مجموع البنود
                       </Button>
                     )}
                   </div>
                 </CardHeader>
-                <CardContent className="text-right pt-5 space-y-4">
+                <CardContent className="text-right p-4 sm:p-5 space-y-4">
                   {/* أداة إضافة صنف من العقد */}
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 bg-card rounded-xl border border-emerald-500/20">
-                    <div className="flex-1 text-right">
+                    <div className="flex-1 min-w-0 text-right">
                       <Select
                         value={selectedContractItemName}
                         onValueChange={(val) => {
@@ -1305,7 +1314,7 @@ export default function NewDisbursementRequest() {
                           handleAddSedanaItemFromContract(val);
                         }}
                       >
-                        <SelectTrigger className="text-right bg-background border-border/60 rounded-xl h-9 text-xs" dir="rtl">
+                        <SelectTrigger className="w-full min-w-0 text-right bg-background border-border/60 rounded-xl h-10 max-lg:min-h-11 text-xs" dir="rtl">
                           <SelectValue placeholder="اختر صنفاً من بنود العقد / جدول الكميات لإضافته..." />
                         </SelectTrigger>
                         <SelectContent dir="rtl">
@@ -1326,87 +1335,156 @@ export default function NewDisbursementRequest() {
                       variant="secondary"
                       size="sm"
                       onClick={handleAddCustomSedanaItem}
-                      className="text-xs h-9"
+                      className="text-xs h-10 max-lg:min-h-11 w-full sm:w-auto rounded-xl shrink-0"
                     >
                       <Plus className="w-3.5 h-3.5 ml-1" />
                       إضافة بند مخصص
                     </Button>
                   </div>
 
-                  {/* جدول البنود المضافة */}
+                  {/* جدول / بطاقات البنود المضافة */}
                   {sedanaItems.length > 0 ? (
                     <div className="rounded-xl border border-emerald-500/20 overflow-hidden bg-card">
-                      <Table>
-                        <TableHeader className="bg-emerald-500/10">
-                          <TableRow>
-                            <TableHead className="text-right font-bold text-xs py-2.5">اسم الصنف</TableHead>
-                            <TableHead className="text-right font-bold text-xs py-2.5 w-24">الكمية</TableHead>
-                            <TableHead className="text-right font-bold text-xs py-2.5 w-24">الوحدة</TableHead>
-                            <TableHead className="text-right font-bold text-xs py-2.5 w-28">سعر الوحدة</TableHead>
-                            <TableHead className="text-right font-bold text-xs py-2.5 w-28">الإجمالي</TableHead>
-                            <TableHead className="text-center font-bold text-xs py-2.5 w-12">حذف</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {sedanaItems.map((item, idx) => (
-                            <TableRow key={item.id || idx}>
-                              <TableCell className="p-2">
-                                <Input
-                                  value={item.itemName}
-                                  onChange={(e) => handleUpdateSedanaItem(idx, "itemName", e.target.value)}
-                                  placeholder="اسم الصنف..."
-                                  className="h-8 text-xs text-right"
-                                />
-                              </TableCell>
-                              <TableCell className="p-2">
+                      {/* بطاقات الموبايل */}
+                      <div className="md:hidden divide-y divide-border/60 p-3 space-y-3">
+                        {sedanaItems.map((item, idx) => (
+                          <div key={item.id || idx} className="pt-3 first:pt-0 space-y-2.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <Label className="text-xs font-bold text-foreground">بند #{idx + 1}</Label>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveSedanaItem(idx)}
+                                className="size-9 text-destructive hover:bg-destructive/10 rounded-lg"
+                                aria-label="حذف البند"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                            <Input
+                              value={item.itemName}
+                              onChange={(e) => handleUpdateSedanaItem(idx, "itemName", e.target.value)}
+                              placeholder="اسم الصنف..."
+                              className="h-10 max-md:text-base text-right"
+                            />
+                            <div className="grid grid-cols-3 gap-2">
+                              <div className="space-y-1">
+                                <Label className="text-[11px] text-muted-foreground">الكمية</Label>
                                 <Input
                                   type="number"
                                   min="0"
                                   step="any"
                                   value={item.quantity}
                                   onChange={(e) => handleUpdateSedanaItem(idx, "quantity", e.target.value)}
-                                  className="h-8 text-xs font-sans text-right"
+                                  className="h-10 max-md:text-base font-sans text-right"
                                 />
-                              </TableCell>
-                              <TableCell className="p-2">
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-[11px] text-muted-foreground">الوحدة</Label>
                                 <Input
                                   value={item.unit}
                                   onChange={(e) => handleUpdateSedanaItem(idx, "unit", e.target.value)}
                                   placeholder="م² / حبة"
-                                  className="h-8 text-xs text-right"
+                                  className="h-10 max-md:text-base text-right"
                                 />
-                              </TableCell>
-                              <TableCell className="p-2">
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-[11px] text-muted-foreground">سعر الوحدة</Label>
                                 <Input
                                   type="number"
                                   min="0"
                                   step="any"
                                   value={item.unitPrice || 0}
                                   onChange={(e) => handleUpdateSedanaItem(idx, "unitPrice", e.target.value)}
-                                  className="h-8 text-xs font-sans text-right"
+                                  className="h-10 max-md:text-base font-sans text-right"
                                 />
-                              </TableCell>
-                              <TableCell className="p-2 font-bold text-xs font-sans text-foreground">
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between text-xs bg-muted/40 rounded-lg px-2.5 py-1.5">
+                              <span className="text-muted-foreground">الإجمالي:</span>
+                              <span className="font-bold font-mono text-foreground">
                                 {Number(item.totalPrice || (Number(item.quantity || 0) * Number(item.unitPrice || 0))).toLocaleString()} ر.س
-                              </TableCell>
-                              <TableCell className="p-2 text-center">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleRemoveSedanaItem(idx)}
-                                  className="h-7 w-7 text-destructive hover:bg-destructive/10"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
-                              </TableCell>
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* جدول الآيباد وسطح المكتب */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <Table>
+                          <TableHeader className="bg-emerald-500/10">
+                            <TableRow>
+                              <TableHead className="text-right font-bold text-xs py-2.5">اسم الصنف</TableHead>
+                              <TableHead className="text-right font-bold text-xs py-2.5 w-24">الكمية</TableHead>
+                              <TableHead className="text-right font-bold text-xs py-2.5 w-24">الوحدة</TableHead>
+                              <TableHead className="text-right font-bold text-xs py-2.5 w-28">سعر الوحدة</TableHead>
+                              <TableHead className="text-right font-bold text-xs py-2.5 w-28">الإجمالي</TableHead>
+                              <TableHead className="text-center font-bold text-xs py-2.5 w-12">حذف</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                      <div className="p-3 bg-muted/20 border-t border-emerald-500/20 flex justify-between items-center text-xs">
+                          </TableHeader>
+                          <TableBody>
+                            {sedanaItems.map((item, idx) => (
+                              <TableRow key={item.id || idx}>
+                                <TableCell className="p-2">
+                                  <Input
+                                    value={item.itemName}
+                                    onChange={(e) => handleUpdateSedanaItem(idx, "itemName", e.target.value)}
+                                    placeholder="اسم الصنف..."
+                                    className="h-8 text-xs text-right"
+                                  />
+                                </TableCell>
+                                <TableCell className="p-2">
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    value={item.quantity}
+                                    onChange={(e) => handleUpdateSedanaItem(idx, "quantity", e.target.value)}
+                                    className="h-8 text-xs font-sans text-right"
+                                  />
+                                </TableCell>
+                                <TableCell className="p-2">
+                                  <Input
+                                    value={item.unit}
+                                    onChange={(e) => handleUpdateSedanaItem(idx, "unit", e.target.value)}
+                                    placeholder="م² / حبة"
+                                    className="h-8 text-xs text-right"
+                                  />
+                                </TableCell>
+                                <TableCell className="p-2">
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    value={item.unitPrice || 0}
+                                    onChange={(e) => handleUpdateSedanaItem(idx, "unitPrice", e.target.value)}
+                                    className="h-8 text-xs font-sans text-right"
+                                  />
+                                </TableCell>
+                                <TableCell className="p-2 font-bold text-xs font-sans text-foreground whitespace-nowrap">
+                                  {Number(item.totalPrice || (Number(item.quantity || 0) * Number(item.unitPrice || 0))).toLocaleString()} ر.س
+                                </TableCell>
+                                <TableCell className="p-2 text-center">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleRemoveSedanaItem(idx)}
+                                    className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      <div className="p-3 bg-muted/20 border-t border-emerald-500/20 flex justify-between items-center gap-2 text-xs">
                         <span className="text-muted-foreground">إجمالي قيمة أصناف الدفعة:</span>
-                        <span className="font-bold text-sm text-emerald-700 dark:text-emerald-300 font-sans">
+                        <span className="font-bold text-sm text-emerald-700 dark:text-emerald-300 font-mono">
                           {sedanaItems.reduce((sum, it) => sum + (Number(it.totalPrice) || 0), 0).toLocaleString()} ر.س
                         </span>
                       </div>
@@ -1422,25 +1500,25 @@ export default function NewDisbursementRequest() {
             )}
             
             {/* الموردون */}
-            <Card className="text-right border-border/60 shadow-sm">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+            <Card className="py-0 gap-0 text-right border-border/60 shadow-sm overflow-hidden">
+              <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:p-5 text-right">
                 <div className="flex items-center justify-between">
-                  <div className="text-right">
+                  <div className="text-right min-w-0">
                     <CardTitle className="flex items-center gap-2 text-right text-base font-bold text-foreground">
-                      <Building2 className="h-5 w-5 text-primary" />
+                      <Building2 className="h-5 w-5 text-primary shrink-0" />
                       معلومات المورد المستفيد
                     </CardTitle>
-                    <CardDescription className="text-right">بيانات المستفيد من الدفعة</CardDescription>
+                    <CardDescription className="text-xs sm:text-sm text-right">بيانات المستفيد من الدفعة</CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="text-right pt-6 space-y-6">
+              <CardContent className="text-right p-4 sm:p-5 space-y-4 sm:space-y-6">
                 {suppliers.map((supplier) => (
-                  <div key={supplier.id} className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 p-4 rounded-xl bg-muted/5 border border-border/40" dir="rtl">
+                  <div key={supplier.id} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-4 sm:gap-x-6 gap-y-4 p-3.5 sm:p-4 rounded-xl bg-muted/5 border border-border/40" dir="rtl">
                     {/* Row 1 */}
                     {/* اسم المورد */}
-                    <div className="space-y-2 text-right">
-                      <Label className="font-semibold text-foreground flex items-center gap-1.5">
+                    <div className="space-y-1.5 text-right min-w-0">
+                      <Label className="text-xs sm:text-sm font-semibold text-foreground flex items-center gap-1.5">
                         اسم المورد <span className="text-red-500">*</span>
                       </Label>
                       <Select
@@ -1448,7 +1526,7 @@ export default function NewDisbursementRequest() {
                         onValueChange={(value) => handleSelectSupplier(supplier.id, value)}
                         disabled={formData.contractId > 0}
                       >
-                        <SelectTrigger className="text-right bg-background border-border/60 rounded-xl w-full" dir="rtl">
+                        <SelectTrigger className="text-right bg-background border-border/60 rounded-xl h-10 max-lg:min-h-11 w-full min-w-0" dir="rtl">
                           <SelectValue placeholder="اسم المورد" />
                         </SelectTrigger>
                         <SelectContent dir="rtl">
@@ -1462,40 +1540,40 @@ export default function NewDisbursementRequest() {
                     </div>
 
                     {/* الأعمال */}
-                    <div className="space-y-2 text-right">
-                      <Label className="font-semibold text-foreground">الأعمال</Label>
+                    <div className="space-y-1.5 text-right min-w-0">
+                      <Label className="text-xs sm:text-sm font-semibold text-foreground">الأعمال</Label>
                       <Input
                         value={supplier.work}
                         onChange={(e) => updateSupplier(supplier.id, "work", e.target.value)}
                         placeholder="وصف الأعمال"
                         readOnly
-                        className="bg-muted/50 border-border/40 text-right rounded-xl h-10"
+                        className="bg-muted/50 border-border/40 text-right rounded-xl h-10 max-lg:min-h-11"
                       />
                     </div>
 
                     {/* البنك */}
-                    <div className="space-y-2 text-right">
-                      <Label className="font-semibold text-foreground">البنك</Label>
+                    <div className="space-y-1.5 text-right min-w-0">
+                      <Label className="text-xs sm:text-sm font-semibold text-foreground">البنك</Label>
                       <Input
                         value={supplier.bank}
                         onChange={(e) => updateSupplier(supplier.id, "bank", e.target.value)}
                         placeholder="اسم البنك"
                         readOnly
-                        className="bg-muted/50 border-border/40 text-right rounded-xl h-10"
+                        className="bg-muted/50 border-border/40 text-right rounded-xl h-10 max-lg:min-h-11"
                       />
                     </div>
 
                     {/* Row 2 */}
                     {/* الآيبان */}
-                    <div className="space-y-2 text-right">
-                      <Label className="font-semibold text-foreground">الآيبان</Label>
+                    <div className="space-y-1.5 text-right min-w-0">
+                      <Label className="text-xs sm:text-sm font-semibold text-foreground">الآيبان</Label>
                       <Input
                         value={supplier.iban}
                         onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value)}
                         placeholder="SA..."
                         dir="ltr"
                         readOnly
-                        className="bg-muted/50 border-border/40 text-right font-mono text-xs rounded-xl h-10"
+                        className="bg-muted/50 border-border/40 text-right font-mono text-xs rounded-xl h-10 max-lg:min-h-11"
                       />
                     </div>
 
@@ -1517,7 +1595,7 @@ export default function NewDisbursementRequest() {
                             handlePercentageChange(pct);
                           }}
                           placeholder="0"
-                          className="w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-blue-500/40 focus-visible:ring-blue-500/15 shadow-2xs"
+                          className="w-full h-10 max-lg:min-h-11 rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-blue-500/40 focus-visible:ring-blue-500/15 shadow-2xs"
                         />
                         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-blue-600/60 dark:text-blue-400/60 font-bold text-xs pointer-events-none">
                           %
@@ -1545,7 +1623,7 @@ export default function NewDisbursementRequest() {
                           }}
                           placeholder="0.00"
                           className={cn(
-                            "w-full rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-emerald-500/40 focus-visible:ring-emerald-500/15 shadow-2xs",
+                            "w-full h-10 max-lg:min-h-11 rounded-xl font-bold font-sans text-base pl-3 pr-8 transition-all text-right bg-background border-border/80 text-foreground focus-visible:border-emerald-500/40 focus-visible:ring-emerald-500/15 shadow-2xs",
                             isChangeOrderMode && totalAmount > changeOrderRemainingAmount + 0.05 && "border-destructive text-destructive"
                           )}
                         />
@@ -1562,18 +1640,18 @@ export default function NewDisbursementRequest() {
 
       {/* نافذة مراجعة تقرير الإنجاز */}
       <Dialog open={showReportReviewDialog} onOpenChange={setShowReportReviewDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-2xl" dir="rtl">
           <DialogHeader className="text-right">
-            <DialogTitle className="text-right">مراجعة تقرير الإنجاز المعتمد</DialogTitle>
-            <DialogDescription className="text-right">
+            <DialogTitle className="text-base sm:text-lg text-right">مراجعة تقرير الإنجاز المعتمد</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm text-right">
               {selectedReport?.reportNumber} - {selectedReport?.title}
             </DialogDescription>
           </DialogHeader>
           
           {selectedReport && (
-            <div className="space-y-6 py-4 text-right">
+            <div className="space-y-5 sm:space-y-6 py-3 sm:py-4 text-right">
               {/* المعلومات الأساسية */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <p className="text-xs text-muted-foreground">تاريخ التقرير</p>
                   <p className="text-sm font-semibold">{new Date(selectedReport.reportDate).toLocaleDateString("ar-SA")}</p>
@@ -1589,18 +1667,18 @@ export default function NewDisbursementRequest() {
               {/* نسب الإنجاز */}
               <div className="space-y-3">
                 <h3 className="font-bold text-sm">نسب الإنجاز</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="p-3 bg-muted rounded-lg text-center">
-                    <p className="text-2xl font-bold">{selectedReport.overallProgress}%</p>
-                    <p className="text-xs text-muted-foreground">الإجمالي</p>
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                  <div className="p-2.5 sm:p-3 bg-muted rounded-lg text-center">
+                    <p className="text-lg sm:text-2xl font-bold font-mono">{selectedReport.overallProgress}%</p>
+                    <p className="text-[11px] sm:text-xs text-muted-foreground">الإجمالي</p>
                   </div>
-                  <div className="p-3 bg-blue-50 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-blue-700">{selectedReport.plannedProgress}%</p>
-                    <p className="text-xs text-blue-600">المخطط</p>
+                  <div className="p-2.5 sm:p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-center">
+                    <p className="text-lg sm:text-2xl font-bold font-mono text-blue-700 dark:text-blue-400">{selectedReport.plannedProgress}%</p>
+                    <p className="text-[11px] sm:text-xs text-blue-600 dark:text-blue-400">المخطط</p>
                   </div>
-                  <div className="p-3 bg-green-50 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-green-700">{selectedReport.actualProgress}%</p>
-                    <p className="text-xs text-green-600">الفعلي</p>
+                  <div className="p-2.5 sm:p-3 bg-green-50 dark:bg-green-950/30 rounded-lg text-center">
+                    <p className="text-lg sm:text-2xl font-bold font-mono text-green-700 dark:text-green-400">{selectedReport.actualProgress}%</p>
+                    <p className="text-[11px] sm:text-xs text-green-600 dark:text-green-400">الفعلي</p>
                   </div>
                 </div>
               </div>
@@ -1611,7 +1689,7 @@ export default function NewDisbursementRequest() {
               {!!selectedReport.workSummary && (
                 <div className="space-y-1.5">
                   <h3 className="font-bold text-sm">الأعمال المنجزة</h3>
-                  <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  <p className="text-xs text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">
                     {selectedReport.workSummary as string}
                   </p>
                 </div>
@@ -1620,7 +1698,7 @@ export default function NewDisbursementRequest() {
               {!!selectedReport.challenges && (
                 <div className="space-y-1.5">
                   <h3 className="font-bold text-sm">التحديات والمعوقات</h3>
-                  <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  <p className="text-xs text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">
                     {selectedReport.challenges as string}
                   </p>
                 </div>
@@ -1642,19 +1720,19 @@ export default function NewDisbursementRequest() {
                           <FileText className="w-4 h-4 text-primary" />
                           مرفقات التقرير
                         </h3>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
                           {photosArr.map((photo: string, index: number) => {
                             const isImage = photo.startsWith("data:image/") || photo.startsWith("http") && (photo.endsWith(".png") || photo.endsWith(".jpg") || photo.endsWith(".jpeg") || photo.endsWith(".webp"));
                             return (
                               <div key={index} className="border rounded-lg p-2 flex flex-col items-center justify-center bg-muted/20 relative group">
                                 {isImage ? (
-                                  <img src={photo} alt={`مرفق ${index + 1}`} className="w-full h-20 object-cover rounded-md mb-2" />
+                                  <img src={photo} alt={`مرفق ${index + 1}`} className="w-full h-24 object-cover rounded-md mb-2" />
                                 ) : (
-                                  <div className="w-full h-20 flex items-center justify-center rounded-md bg-background border border-dashed mb-2 text-primary font-bold text-xs">
+                                  <div className="w-full h-24 flex items-center justify-center rounded-md bg-background border border-dashed mb-2 text-primary font-bold text-xs">
                                     مستند PDF
                                   </div>
                                 )}
-                                <a href={photo} download={`مرفق_${index + 1}`} className="text-[10px] text-primary font-semibold hover:underline">
+                                <a href={photo} download={`مرفق_${index + 1}`} className="text-xs text-primary font-semibold hover:underline py-1">
                                   تحميل المرفق
                                 </a>
                               </div>
@@ -1673,7 +1751,7 @@ export default function NewDisbursementRequest() {
           )}
           
           <DialogFooter className="text-right">
-            <Button variant="outline" onClick={() => setShowReportReviewDialog(false)}>
+            <Button variant="outline" onClick={() => setShowReportReviewDialog(false)} className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl">
               إغلاق
             </Button>
           </DialogFooter>
@@ -1682,10 +1760,10 @@ export default function NewDisbursementRequest() {
 
       {/* نافذة التأكيد الذكية عند تجاوز المستخلص لتقرير الإنجاز الفعلي */}
       <Dialog open={showExceedingWarningDialog} onOpenChange={setShowExceedingWarningDialog}>
-        <DialogContent className="max-w-md text-right font-sans" dir="rtl">
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-2xl text-right font-sans" dir="rtl">
           <DialogHeader className="text-right">
             <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2 text-amber-800 dark:text-amber-300">
-              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
               <span>تأكيد صرف مستخلص أعلى من تقرير الإنجاز</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground mt-1 text-right">
@@ -1695,18 +1773,18 @@ export default function NewDisbursementRequest() {
 
           <div className="space-y-3.5 py-2 text-xs text-right">
             <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200/80 dark:border-amber-900/50 space-y-2">
-              <div className="flex justify-between items-center text-amber-900 dark:text-amber-200">
+              <div className="flex justify-between items-center gap-2 text-amber-900 dark:text-amber-200">
                 <span className="font-medium">نسبة تقرير الإنجاز المعتمد للمشروع:</span>
-                <span className="font-bold text-sm font-sans">{benchmarkActualProgress}%</span>
+                <span className="font-bold text-sm font-mono shrink-0">{benchmarkActualProgress}%</span>
               </div>
-              <div className="flex justify-between items-center text-amber-900 dark:text-amber-200">
+              <div className="flex justify-between items-center gap-2 text-amber-900 dark:text-amber-200">
                 <span className="font-medium">نسبة هذا المستخلص / الدفعة:</span>
-                <span className="font-bold text-sm text-primary font-sans">{currentComp}%</span>
+                <span className="font-bold text-sm text-primary font-mono shrink-0">{currentComp}%</span>
               </div>
               {contractAmount > 0 && (
-                <div className="flex justify-between items-center text-amber-900 dark:text-amber-200 border-t border-amber-200/60 pt-1.5">
+                <div className="flex justify-between items-center gap-2 text-amber-900 dark:text-amber-200 border-t border-amber-200/60 pt-1.5">
                   <span className="font-medium">المصروف التراكمي بعد هذه الدفعة:</span>
-                  <span className="font-bold text-sm text-amber-800 font-sans">{newCumulativePaidPct.toFixed(1)}% من العقد</span>
+                  <span className="font-bold text-sm text-amber-800 dark:text-amber-300 font-mono shrink-0">{newCumulativePaidPct.toFixed(1)}% من العقد</span>
                 </div>
               )}
             </div>
@@ -1723,15 +1801,23 @@ export default function NewDisbursementRequest() {
                 placeholder="مثال: دفعة لشراء وتأمين مواد التشطيب بالموقع قبل بدء المرحلة..."
                 value={exceedingReason}
                 onChange={(e) => setExceedingReason(e.target.value)}
-                className="text-xs min-h-[70px] bg-background text-right"
+                className="text-xs sm:text-sm max-md:text-base min-h-[80px] bg-background text-right"
               />
             </div>
           </div>
 
-          <DialogFooter className="flex-row-reverse sm:justify-start gap-2 pt-2">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row-reverse sm:justify-start gap-2 pt-2">
             <Button
               type="button"
-              className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
+              variant="outline"
+              className="w-full sm:w-auto min-h-10 max-lg:min-h-11 text-xs font-semibold rounded-xl"
+              onClick={() => setShowExceedingWarningDialog(false)}
+            >
+              مراجعة وتعديل القيمة
+            </Button>
+            <Button
+              type="button"
+              className="w-full sm:w-auto min-h-10 max-lg:min-h-11 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl"
               onClick={() => {
                 setShowExceedingWarningDialog(false);
                 executeCreateDisbursement(exceedingReason);
@@ -1740,14 +1826,6 @@ export default function NewDisbursementRequest() {
             >
               {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-1.5" /> : null}
               نعم، تأكيد ومتابعة الصرف
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="text-xs font-semibold"
-              onClick={() => setShowExceedingWarningDialog(false)}
-            >
-              مراجعة وتعديل القيمة
             </Button>
           </DialogFooter>
         </DialogContent>

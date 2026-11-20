@@ -302,17 +302,17 @@ export default function SupplierRegistration() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-4 sm:py-8" dir="rtl">
-      <div className="container max-w-4xl mx-auto px-2 sm:px-4">
+    <div className="min-h-screen bg-gray-50 py-3 sm:py-8 overflow-x-hidden" dir="rtl">
+      <div className="w-full max-w-4xl mx-auto px-3 sm:px-5">
         {/* الترويسة والشعار */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 sm:mb-8 pb-4 border-b border-gray-200">
-          <div className="flex items-center gap-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-5 sm:mb-8 pb-4 border-b border-gray-200">
+          <div className="flex items-center gap-3 min-w-0">
             <Link href={isStaffOrAdmin ? "/suppliers" : "/"}>
               <Button
                 variant="outline"
                 size="icon"
                 type="button"
-                className="shrink-0 h-10 w-10 rounded-xl hover:bg-gray-100 cursor-pointer"
+                className="shrink-0 size-10 max-lg:size-11 rounded-xl hover:bg-gray-100 cursor-pointer"
               >
                 <ArrowRight className="w-5 h-5 text-gray-700" />
               </Button>
@@ -320,20 +320,20 @@ export default function SupplierRegistration() {
             <img
               src={orgSettings?.logoUrl || "/logo.svg"}
               alt={`شعار ${orgSettings?.organizationName || "بوابة منارة"}`}
-              className="h-12 object-contain"
+              className="h-10 sm:h-12 w-auto object-contain shrink-0"
             />
-            <div className="text-right">
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <div className="text-right min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900 flex flex-wrap items-center gap-2">
                 <span>تسجيل مورد جديد</span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
+                <span className="text-[11px] sm:text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 shrink-0">
                   بوابة الموردين
                 </span>
               </h1>
               <p className="text-xs sm:text-sm text-gray-500 mt-0.5">انضمام إلى قائمة الموردين والمقاولين المعتمدين</p>
             </div>
           </div>
-          <Link href={isStaffOrAdmin ? "/suppliers" : "/"}>
-            <Button variant="ghost" size="sm" className="text-xs text-gray-600 hover:text-gray-900">
+          <Link href={isStaffOrAdmin ? "/suppliers" : "/"} className="hidden sm:inline-flex shrink-0">
+            <Button variant="ghost" size="sm" className="text-xs text-gray-600 hover:text-gray-900 min-h-10">
               {isStaffOrAdmin ? "العودة لقائمة الموردين ←" : "العودة للصفحة الرئيسية ←"}
             </Button>
           </Link>
@@ -341,35 +341,35 @@ export default function SupplierRegistration() {
 
         <div className="space-y-4 sm:space-y-6">
           {/* قسم معلومات الكيان */}
-          <Card className="border-0 sm:border shadow-md">
-            <CardHeader className="bg-gradient-to-l from-teal-500 to-teal-600 text-white rounded-t-lg p-4 sm:p-6">
-              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                <Building2 className="h-5 w-5" />
+          <Card className="border shadow-md py-0 gap-0 overflow-hidden">
+            <CardHeader className="bg-gradient-to-l from-teal-500 to-teal-600 text-white p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-xl">
+                <Building2 className="h-5 w-5 shrink-0" />
                 معلومات الكيان
               </CardTitle>
               <CardDescription className="text-teal-100 text-xs sm:text-sm">
                 البيانات الأساسية للتعريف بالمنشأة المتقدمة
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6 space-y-4">
+            <CardContent className="p-4 sm:p-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="entityName" className="text-sm sm:text-base">اسم الكيان *</Label>
+                  <Label htmlFor="entityName" className="text-xs sm:text-sm font-medium">اسم الكيان *</Label>
                   <Input
                     id="entityName"
                     value={entityName}
                     onChange={(e) => setEntityName(e.target.value)}
                     placeholder="اسم الشركة أو المؤسسة"
-                    className="h-10 sm:h-11"
+                    className="h-11 max-md:text-base"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="entityType" className="text-sm sm:text-base">نوع الكيان *</Label>
+                  <Label htmlFor="entityType" className="text-xs sm:text-sm font-medium">نوع الكيان *</Label>
                   <Select
                     value={entityType}
                     onValueChange={(value: "company" | "establishment") => setEntityType(value)}
                   >
-                    <SelectTrigger className="h-10 sm:h-11">
+                    <SelectTrigger className="w-full h-11 max-md:text-base">
                       <SelectValue placeholder="اختر نوع الكيان" />
                     </SelectTrigger>
                     <SelectContent>
@@ -382,86 +382,97 @@ export default function SupplierRegistration() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="commercialRegister" className="text-sm sm:text-base">رقم السجل التجاري *</Label>
+                  <Label htmlFor="commercialRegister" className="text-xs sm:text-sm font-medium">رقم السجل التجاري *</Label>
                   <Input
                     id="commercialRegister"
                     value={commercialRegister}
                     onChange={(e) => setCommercialRegister(e.target.value)}
                     placeholder="أدخل رقم السجل التجاري"
-                    className="h-10 sm:h-11"
+                    className="h-11 max-md:text-base"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="yearsOfExperience" className="text-sm sm:text-base">عدد سنوات الخبرة في النشاط *</Label>
+                  <Label htmlFor="yearsOfExperience" className="text-xs sm:text-sm font-medium">عدد سنوات الخبرة في النشاط *</Label>
                   <Input
                     id="yearsOfExperience"
                     type="number"
                     min="0"
                     value={yearsOfExperience}
                     onChange={(e) => setYearsOfExperience(parseInt(e.target.value) || 0)}
-                    className="h-10 sm:h-11"
+                    className="h-11 max-md:text-base"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="commercialActivity" className="text-sm sm:text-base">النشاط حسب السجل التجاري *</Label>
+                <Label htmlFor="commercialActivity" className="text-xs sm:text-sm font-medium">النشاط حسب السجل التجاري *</Label>
                 <Textarea
                   id="commercialActivity"
                   value={commercialActivity}
                   onChange={(e) => setCommercialActivity(e.target.value)}
                   placeholder="أدخل النشاط كما هو مسجل في السجل التجاري"
                   rows={2}
-                  className="min-h-[80px]"
+                  className="min-h-[84px] max-md:text-base"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm sm:text-base">مجالات العمل التي ينفذها الكيان *</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 sm:p-4 border rounded-lg bg-gray-50">
-                  {WORK_FIELDS.map((field) => (
-                    <div key={field.key} className="flex items-center space-x-2 space-x-reverse">
-                      <Checkbox
-                        id={field.key}
-                        checked={workFields.includes(field.key)}
-                        onCheckedChange={() => toggleWorkField(field.key)}
-                      />
-                      <Label htmlFor={field.key} className="text-xs sm:text-sm cursor-pointer leading-tight">
-                        {field.label}
-                      </Label>
-                    </div>
-                  ))}
+                <Label className="text-xs sm:text-sm font-medium">مجالات العمل التي ينفذها الكيان *</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 p-3 sm:p-4 border rounded-xl bg-gray-50">
+                  {WORK_FIELDS.map((field) => {
+                    const checked = workFields.includes(field.key);
+                    return (
+                      <label
+                        key={field.key}
+                        htmlFor={field.key}
+                        className={`flex items-center gap-2 min-h-10 px-2.5 py-2 rounded-lg border cursor-pointer transition-colors ${
+                          checked
+                            ? "bg-teal-50 border-teal-400 text-teal-900 font-semibold"
+                            : "bg-white border-gray-200 hover:border-teal-300"
+                        }`}
+                      >
+                        <Checkbox
+                          id={field.key}
+                          checked={checked}
+                          onCheckedChange={() => toggleWorkField(field.key)}
+                        />
+                        <span className="text-xs sm:text-sm leading-tight select-none">
+                          {field.label}
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* قسم معلومات التواصل */}
-          <Card className="border-0 sm:border shadow-md">
-            <CardHeader className="bg-gradient-to-l from-blue-500 to-blue-600 text-white rounded-t-lg p-4 sm:p-6">
-              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                <Phone className="h-5 w-5" />
+          <Card className="border shadow-md py-0 gap-0 overflow-hidden">
+            <CardHeader className="bg-gradient-to-l from-blue-500 to-blue-600 text-white p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-xl">
+                <Phone className="h-5 w-5 shrink-0" />
                 معلومات التواصل
               </CardTitle>
               <CardDescription className="text-blue-100 text-xs sm:text-sm">
                 بيانات الاتصال والموقع الجغرافي للكيان
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6 space-y-4">
+            <CardContent className="p-4 sm:p-6 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="address" className="text-sm sm:text-base">عنوان الكيان *</Label>
+                <Label htmlFor="address" className="text-xs sm:text-sm font-medium">عنوان الكيان *</Label>
                 <Textarea
                   id="address"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="أدخل العنوان التفصيلي"
                   rows={2}
-                  className="min-h-[80px]"
+                  className="min-h-[84px] max-md:text-base"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm sm:text-base font-bold">موقع الكيان على الخريطة *</Label>
+                <Label className="text-xs sm:text-sm font-bold">موقع الكيان على الخريطة *</Label>
                 <LocationPicker
                   value={(() => {
                     if (!googleMapsUrl) return undefined;
@@ -483,61 +494,61 @@ export default function SupplierRegistration() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm sm:text-base">البريد الإلكتروني *</Label>
+                  <Label htmlFor="email" className="text-xs sm:text-sm font-medium">البريد الإلكتروني *</Label>
                   <Input
                     id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="example@company.com"
-                    className="h-10 sm:h-11 text-left"
+                    className="h-11 max-md:text-base text-left"
                     dir="ltr"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-sm sm:text-base">رقم التواصل *</Label>
+                  <Label htmlFor="phone" className="text-xs sm:text-sm font-medium">رقم التواصل *</Label>
                   <Input
                     id="phone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="05XXXXXXXX"
-                    className="h-10 sm:h-11 text-left"
+                    className="h-11 max-md:text-base text-left"
                     dir="ltr"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phoneSecondary" className="text-sm sm:text-base">رقم تواصل آخر</Label>
+                <Label htmlFor="phoneSecondary" className="text-xs sm:text-sm font-medium">رقم تواصل آخر</Label>
                 <Input
                   id="phoneSecondary"
                   value={phoneSecondary}
                   onChange={(e) => setPhoneSecondary(e.target.value)}
                   placeholder="رقم هاتف إضافي (اختياري)"
-                  className="h-10 sm:h-11 text-left"
+                  className="h-11 max-md:text-base text-left"
                   dir="ltr"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="contactPerson" className="text-sm sm:text-base">اسم مسؤول التواصل *</Label>
+                  <Label htmlFor="contactPerson" className="text-xs sm:text-sm font-medium">اسم مسؤول التواصل *</Label>
                   <Input
                     id="contactPerson"
                     value={contactPerson}
                     onChange={(e) => setContactPerson(e.target.value)}
                     placeholder="اسم الشخص المسؤول"
-                    className="h-10 sm:h-11"
+                    className="h-11 max-md:text-base"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="contactPersonTitle" className="text-sm sm:text-base">وظيفته في الكيان *</Label>
+                  <Label htmlFor="contactPersonTitle" className="text-xs sm:text-sm font-medium">وظيفته في الكيان *</Label>
                   <Input
                     id="contactPersonTitle"
                     value={contactPersonTitle}
                     onChange={(e) => setContactPersonTitle(e.target.value)}
                     placeholder="المسمى الوظيفي"
-                    className="h-10 sm:h-11"
+                    className="h-11 max-md:text-base"
                   />
                 </div>
               </div>
@@ -545,32 +556,32 @@ export default function SupplierRegistration() {
           </Card>
 
           {/* قسم معلومات الحساب البنكي */}
-          <Card className="border-0 sm:border shadow-md">
-            <CardHeader className="bg-gradient-to-l from-purple-500 to-purple-600 text-white rounded-t-lg p-4 sm:p-6">
-              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                <CreditCard className="h-5 w-5" />
+          <Card className="border shadow-md py-0 gap-0 overflow-hidden">
+            <CardHeader className="bg-gradient-to-l from-purple-500 to-purple-600 text-white p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-xl">
+                <CreditCard className="h-5 w-5 shrink-0" />
                 معلومات الحساب البنكي
               </CardTitle>
               <CardDescription className="text-purple-100 text-xs sm:text-sm">
                 البيانات المالية الخاصة بالتحويلات
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6 space-y-4">
+            <CardContent className="p-4 sm:p-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="bankAccountName" className="text-sm sm:text-base">اسم الحساب *</Label>
+                  <Label htmlFor="bankAccountName" className="text-xs sm:text-sm font-medium">اسم الحساب *</Label>
                   <Input
                     id="bankAccountName"
                     value={bankAccountName}
                     onChange={(e) => setBankAccountName(e.target.value)}
                     placeholder="اسم صاحب الحساب"
-                    className="h-10 sm:h-11"
+                    className="h-11 max-md:text-base"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="bankName" className="text-sm sm:text-base">اسم البنك *</Label>
+                  <Label htmlFor="bankName" className="text-xs sm:text-sm font-medium">اسم البنك *</Label>
                   <Select value={bankName} onValueChange={setBankName}>
-                    <SelectTrigger className="h-10 sm:h-11">
+                    <SelectTrigger className="w-full h-11 max-md:text-base">
                       <SelectValue placeholder="اختر البنك" />
                     </SelectTrigger>
                     <SelectContent>
@@ -586,25 +597,25 @@ export default function SupplierRegistration() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="iban" className="text-sm sm:text-base">رقم الآيبان (IBAN) *</Label>
+                  <Label htmlFor="iban" className="text-xs sm:text-sm font-medium">رقم الآيبان (IBAN) *</Label>
                   <Input
                     id="iban"
                     value={iban}
                     onChange={(e) => setIban(e.target.value.toUpperCase())}
                     placeholder="SA0000000000000000000000"
-                    className="h-10 sm:h-11 text-left"
+                    className="h-11 max-md:text-base text-left font-mono"
                     dir="ltr"
                   />
-                  <p className="text-[10px] sm:text-xs text-gray-500">يجب أن يبدأ بـ SA متبوعاً بـ 22 رقم</p>
+                  <p className="text-[11px] sm:text-xs text-gray-500">يجب أن يبدأ بـ SA متبوعاً بـ 22 رقم</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="taxNumber" className="text-sm sm:text-base">الرقم الضريبي *</Label>
+                  <Label htmlFor="taxNumber" className="text-xs sm:text-sm font-medium">الرقم الضريبي *</Label>
                   <Input
                     id="taxNumber"
                     value={taxNumber}
                     onChange={(e) => setTaxNumber(e.target.value)}
                     placeholder="أدخل الرقم الضريبي"
-                    className="h-10 sm:h-11"
+                    className="h-11 max-md:text-base"
                   />
                 </div>
               </div>
@@ -612,23 +623,23 @@ export default function SupplierRegistration() {
           </Card>
 
           {/* قسم المرفقات */}
-          <Card className="border-0 sm:border shadow-md">
-            <CardHeader className="bg-gradient-to-l from-orange-500 to-orange-600 text-white rounded-t-lg p-4 sm:p-6">
-              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                <FileText className="h-5 w-5" />
+          <Card className="border shadow-md py-0 gap-0 overflow-hidden">
+            <CardHeader className="bg-gradient-to-l from-orange-500 to-orange-600 text-white p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-xl">
+                <FileText className="h-5 w-5 shrink-0" />
                 المرفقات الرسمية
               </CardTitle>
               <CardDescription className="text-orange-100 text-xs sm:text-sm">
                 المستندات الرسمية الداعمة لطلب التسجيل (سارية المفعول - الحد الأقصى لكل ملف 10 ميجابايت)
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6 space-y-4">
+            <CardContent className="p-4 sm:p-6 space-y-4">
               {/* تنبيه إرشادي بالحد الأقصى للملفات */}
               <div className="p-3 sm:p-3.5 bg-amber-50/90 border border-amber-200 rounded-xl text-right flex items-start gap-2.5">
                 <div className="w-5 h-5 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 mt-0.5 border border-amber-200">
                   <Info className="w-3.5 h-3.5" />
                 </div>
-                <div className="space-y-0.5">
+                <div className="space-y-0.5 min-w-0">
                   <span className="text-xs font-bold text-amber-900 block">تعليمات رفع المستندات:</span>
                   <p className="text-xs text-amber-900/90 leading-relaxed">
                     الحد الأقصى المسموح به لحجم كل ملف هو <strong>10 ميجابايت</strong> بصيغ (PDF أو صور JPG / PNG). يرجى التأكد من سريان مفعول المستندات ووضوح الأختام والبيانات.
@@ -636,8 +647,8 @@ export default function SupplierRegistration() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+                <div className="space-y-2 min-w-0">
                   <Label className="text-xs sm:text-sm font-medium">إرفاق السجل التجاري *</Label>
                   <FileUpload
                     onFilesSelected={(files) => {
@@ -650,9 +661,9 @@ export default function SupplierRegistration() {
                     label="السجل التجاري"
                     description="ارفع صورة السجل التجاري (حتى 10MB)"
                   />
-                  {commercialRegisterDoc && <p className="text-[10px] sm:text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
+                  {commercialRegisterDoc && <p className="text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 min-w-0">
                   <Label className="text-xs sm:text-sm font-medium">إرفاق شهادة الضريبة *</Label>
                   <FileUpload
                     onFilesSelected={(files) => {
@@ -665,9 +676,9 @@ export default function SupplierRegistration() {
                     label="شهادة الضريبة"
                     description="ارفع شهادة ضريبة القيمة المضافة (حتى 10MB)"
                   />
-                  {vatCertificateDoc && <p className="text-[10px] sm:text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
+                  {vatCertificateDoc && <p className="text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 min-w-0">
                   <Label className="text-xs sm:text-sm font-medium">العنوان الوطني *</Label>
                   <FileUpload
                     onFilesSelected={(files) => {
@@ -680,9 +691,9 @@ export default function SupplierRegistration() {
                     label="العنوان الوطني"
                     description="ارفع صورة العنوان الوطني (حتى 10MB)"
                   />
-                  {nationalAddressDoc && <p className="text-[10px] sm:text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
+                  {nationalAddressDoc && <p className="text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 min-w-0">
                   <Label className="text-xs sm:text-sm font-medium">الشهادة البنكية *</Label>
                   <FileUpload
                     onFilesSelected={(files) => {
@@ -695,7 +706,7 @@ export default function SupplierRegistration() {
                     label="الشهادة البنكية"
                     description="ارفع صورة الشهادة البنكية (حتى 10MB)"
                   />
-                  {bankCertificateDoc && <p className="text-[10px] sm:text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
+                  {bankCertificateDoc && <p className="text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
                 </div>
               </div>
 
@@ -703,24 +714,24 @@ export default function SupplierRegistration() {
               <div className="pt-4 sm:pt-6 border-t mt-4 sm:mt-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                   <div>
-                    <Label className="text-base sm:text-lg font-semibold">مرفقات أخرى (اختياري)</Label>
-                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">يمكنك إضافة أي مستندات إضافية تدعم طلبك</p>
+                    <Label className="text-sm sm:text-base font-semibold">مرفقات أخرى (اختياري)</Label>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">يمكنك إضافة أي مستندات إضافية تدعم طلبك</p>
                   </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => setOtherAttachments([...otherAttachments, { name: "", fileData: "" }])}
-                    className="self-start sm:self-center h-9"
+                    className="w-full sm:w-auto min-h-10 max-lg:min-h-11"
                   >
-                    <Plus className="h-4 w-4 ml-2" />
+                    <Plus className="h-4 w-4 ml-2 shrink-0" />
                     إضافة مرفق آخر
                   </Button>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {otherAttachments.map((attr, index) => (
-                    <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-4 p-3 sm:p-4 border rounded-xl bg-gray-50 items-start sm:items-center shadow-sm">
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-4 p-3.5 sm:p-4 border rounded-xl bg-gray-50 items-start md:items-center shadow-xs">
                       <div className="md:col-span-5 space-y-2">
                         <Label className="text-xs sm:text-sm font-medium">اسم المرفق</Label>
                         <Input
@@ -731,7 +742,7 @@ export default function SupplierRegistration() {
                             setOtherAttachments(newAttrs);
                           }}
                           placeholder="مثال: شهادة تصنيف، سيرة ذاتية..."
-                          className="h-9 sm:h-10"
+                          className="h-10 max-lg:min-h-11 max-md:text-base bg-white"
                         />
                       </div>
                       <div className="md:col-span-6 space-y-2">
@@ -747,17 +758,17 @@ export default function SupplierRegistration() {
                           maxFiles={1}
                           label="اختر ملفاً"
                         />
-                        {attr.fileData && <p className="text-[10px] sm:text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
+                        {attr.fileData && <p className="text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
                       </div>
-                      <div className="md:col-span-1 flex justify-end sm:justify-center">
+                      <div className="md:col-span-1 flex justify-end md:justify-center">
                         <Button
                           type="button"
                           variant="ghost"
-                          size="icon"
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 sm:h-10 sm:w-10"
+                          className="w-full md:w-10 text-red-500 hover:text-red-700 hover:bg-red-50 min-h-10 gap-1.5"
                           onClick={() => setOtherAttachments(otherAttachments.filter((_, i) => i !== index))}
                         >
-                          <Trash2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                          <Trash2 className="h-4 w-4 shrink-0" />
+                          <span className="md:hidden text-xs font-semibold">حذف المرفق</span>
                         </Button>
                       </div>
                     </div>
@@ -774,12 +785,12 @@ export default function SupplierRegistration() {
           </Card>
 
           {/* زر الإرسال */}
-          <div className="flex justify-center pt-4 sm:pt-6 pb-4 sm:pb-8">
+          <div className="flex justify-center pt-3 sm:pt-6 pb-6 sm:pb-8">
             <Button
               size="lg"
               onClick={handleSubmit}
               disabled={isSubmitting || registerMutation.isPending}
-              className="w-full sm:w-auto px-12 py-5 sm:py-6 text-base sm:text-lg gap-2 rounded-xl shadow-lg"
+              className="w-full sm:w-auto min-h-12 px-8 sm:px-12 py-4 text-base sm:text-lg gap-2 rounded-xl shadow-lg"
             >
               {isSubmitting || registerMutation.isPending ? (
                 <>

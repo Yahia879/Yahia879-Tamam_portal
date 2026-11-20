@@ -472,11 +472,11 @@ export default function NewDirectDisbursementOrder() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 max-w-4xl mx-auto px-4 sm:px-0">
+    <DashboardLayout tabletNavigation>
+      <div className="space-y-5 sm:space-y-6 w-full min-w-0 max-w-4xl mx-auto overflow-x-hidden">
         {/* رأس الصفحة */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 min-w-0">
             <Button
               variant="outline"
               size="icon"
@@ -494,46 +494,46 @@ export default function NewDirectDisbursementOrder() {
                   }
                 }
               }}
-              className="rounded-xl flex-shrink-0"
+              className="rounded-xl shrink-0 size-10 max-lg:size-11"
             >
               <ArrowRight className="h-4 w-4" />
             </Button>
-            <div className="text-right">
-              <h1 className="text-xl sm:text-2xl font-bold">إضافة أمر صرف مباشر</h1>
+            <div className="text-right min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold truncate">إضافة أمر صرف مباشر</h1>
               <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">إنشاء أمر صرف مباشر على الفور للبنود المدعومة</p>
             </div>
           </div>
         </div>
 
         {/* مؤشر الخطوات */}
-        <div className="w-full bg-white dark:bg-slate-900 border border-border/40 p-4 rounded-xl flex items-center justify-between text-right">
-          <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${step === 1 ? 'bg-primary text-white' : 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400'}`}>
+        <div className="w-full bg-white dark:bg-slate-900 border border-border/40 p-3 sm:p-4 rounded-xl flex items-center justify-between gap-2 text-right">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${step === 1 ? 'bg-primary text-white' : 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400'}`}>
               {step === 1 ? "1" : <Check className="w-4 h-4" />}
             </div>
-            <span className="text-xs sm:text-sm font-bold">تعبئة البيانات</span>
+            <span className="text-xs sm:text-sm font-bold leading-tight">تعبئة البيانات</span>
           </div>
-          <div className="flex-1 border-t border-dashed border-slate-200 dark:border-slate-800 mx-4"></div>
-          <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${step === 2 ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500 dark:bg-slate-800'}`}>
+          <div className="flex-1 border-t border-dashed border-slate-200 dark:border-slate-800 mx-1 sm:mx-4 min-w-[20px]"></div>
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${step === 2 ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500 dark:bg-slate-800'}`}>
               2
             </div>
-            <span className={`text-xs sm:text-sm font-bold ${step === 2 ? 'text-primary' : 'text-muted-foreground'}`}>المطابقة والبيانات المالية</span>
+            <span className={`text-xs sm:text-sm font-bold leading-tight ${step === 2 ? 'text-primary' : 'text-muted-foreground'}`}>المطابقة والبيانات المالية</span>
           </div>
         </div>
 
         {step === 1 ? (
           /* الخطوة الأولى: تعبئة البيانات */
-          <div className="space-y-6">
-            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+          <div className="space-y-5 sm:space-y-6">
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900 py-0 gap-0">
+              <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:px-6 sm:py-4 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                  <Coins className="h-4.5 w-4.5 text-primary" />
+                  <Coins className="h-4.5 w-4.5 text-primary shrink-0" />
                   تفاصيل الصرف
                 </CardTitle>
                 <CardDescription className="text-right text-xs text-muted-foreground">حدد نوع الصرف والمشروع والمبلغ</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6 pt-6 text-right" dir="rtl">
+              <CardContent className="space-y-5 sm:space-y-6 p-4 sm:p-6 text-right" dir="rtl">
                 {/* خيار نوع طلب الصرف كقائمة منسدلة */}
                 <div className="space-y-2 text-right">
                   <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نوع الصرف *</Label>
@@ -557,13 +557,13 @@ export default function NewDirectDisbursementOrder() {
 
                 {/* بطاقة تحديد أمر الشراء أو خطاب المسؤولية المجتمعية والبنود */}
                 {(requestType === "purchase_order" || requestType === "csr_letter") && (
-                  <div className="space-y-4 p-4 rounded-xl bg-gradient-to-br from-emerald-500/5 via-primary/5 to-slate-500/5 border-2 border-primary/20">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                  <div className="space-y-4 p-3.5 sm:p-4 rounded-xl bg-gradient-to-br from-emerald-500/5 via-primary/5 to-slate-500/5 border-2 border-primary/20">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         {requestType === "purchase_order" ? (
-                          <ShoppingCart className="w-5 h-5 text-emerald-600" />
+                          <ShoppingCart className="w-5 h-5 text-emerald-600 shrink-0" />
                         ) : (
-                          <FileText className="w-5 h-5 text-sky-600" />
+                          <FileText className="w-5 h-5 text-sky-600 shrink-0" />
                         )}
                         <span className="font-bold text-sm text-foreground">
                           {requestType === "purchase_order"
@@ -571,7 +571,7 @@ export default function NewDirectDisbursementOrder() {
                             : "اختيار خطاب المسؤولية المجتمعية المعتمد (سدانة)"}
                         </span>
                       </div>
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className="text-xs shrink-0">
                         {filteredProcurementOrders.length} مستندات معتمدة متاحة
                       </Badge>
                     </div>
@@ -624,9 +624,9 @@ export default function NewDirectDisbursementOrder() {
                     {/* جدول البنود المشتراة المحسوبة تلقائياً */}
                     {selectedOrderNumber && procurementItems.length > 0 && (
                       <div className="space-y-3 pt-3 border-t border-border/60">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
                           <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                            <Package className="w-4 h-4 text-primary" />
+                            <Package className="w-4 h-4 text-primary shrink-0" />
                             <span>بنود التوريد والمشتريات المعتمدة ({procurementItems.length} بنود):</span>
                           </span>
                           <span className="text-[11px] text-muted-foreground">
@@ -634,7 +634,37 @@ export default function NewDirectDisbursementOrder() {
                           </span>
                         </div>
 
-                        <div className="border border-border/80 rounded-xl overflow-hidden bg-background">
+                        {/* Mobile items cards */}
+                        <div className="md:hidden space-y-2.5">
+                          {procurementItems.map((item, idx) => (
+                            <div key={item.id || idx} className="p-3 rounded-xl border border-border/80 bg-background space-y-2 text-xs">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <span className="font-bold text-foreground block break-words">{idx + 1}. {item.itemName}</span>
+                                  {item.description && (
+                                    <span className="text-[11px] text-muted-foreground block mt-0.5 break-words">{item.description}</span>
+                                  )}
+                                </div>
+                                <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400 shrink-0 inline-flex items-center gap-1">
+                                  {(item.totalPrice || 0).toLocaleString()} <SaudiRiyal className="w-3 h-3" />
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50 text-[11px]">
+                                <div className="bg-muted/40 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+                                  <span className="text-muted-foreground">الكمية:</span>
+                                  <span className="font-mono font-bold">{item.quantity}</span>
+                                </div>
+                                <div className="bg-muted/40 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+                                  <span className="text-muted-foreground">سعر الوحدة:</span>
+                                  <span className="font-mono font-bold">{Number(item.unitPrice || 0).toLocaleString()}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Desktop & iPad table */}
+                        <div className="hidden md:block border border-border/80 rounded-xl overflow-x-auto bg-background">
                           <Table className="text-xs text-right">
                             <TableHeader className="bg-muted/40">
                               <TableRow>
@@ -704,12 +734,12 @@ export default function NewDirectDisbursementOrder() {
                                 placeholder="0.00"
                                 value={adminFees || ""}
                                 onChange={(e) => setAdminFees(parseFloat(e.target.value) || 0)}
-                                className="h-9 font-mono font-bold text-right text-xs bg-background border-primary/50 focus:border-primary focus:ring-1 focus:ring-primary"
+                                className="h-10 max-md:text-base font-mono font-bold text-right text-xs bg-background border-primary/50 focus:border-primary focus:ring-1 focus:ring-primary"
                               />
                             </div>
                           </div>
 
-                          <div className="pt-2.5 border-t border-border/60 flex items-center justify-between">
+                          <div className="pt-2.5 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <div>
                               <span className="text-xs font-black text-foreground block">
                                 المبلغ الإجمالي المحسوب لأمر الصرف:
@@ -718,7 +748,7 @@ export default function NewDirectDisbursementOrder() {
                                 (مجموع البنود {itemsTotal.toLocaleString()} + الأجور الإدارية {adminFees.toLocaleString()})
                               </span>
                             </div>
-                            <div className="text-xl font-black text-primary font-mono flex items-center gap-1">
+                            <div className="text-xl font-black text-primary font-mono flex items-center gap-1 shrink-0">
                               {formData.amount.toLocaleString()} <SaudiRiyal className="w-5 h-5 inline" />
                             </div>
                           </div>
@@ -883,15 +913,15 @@ export default function NewDirectDisbursementOrder() {
             </Card>
 
             {/* تفاصيل الجهة المستفيدة ودفعات سداد */}
-            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900 py-0 gap-0">
+              <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:px-6 sm:py-4 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                  <Building2 className="h-4.5 w-4.5 text-primary" />
+                  <Building2 className="h-4.5 w-4.5 text-primary shrink-0" />
                   بيانات المستفيد
                 </CardTitle>
                 <CardDescription className="text-right text-xs text-muted-foreground">تفاصيل تحويل المبالغ المالية</CardDescription>
               </CardHeader>
-              <CardContent className="pt-6 space-y-6 text-right" dir="rtl">
+              <CardContent className="p-4 sm:p-6 space-y-5 sm:space-y-6 text-right" dir="rtl">
                 {requestType === "sadad_invoice" ? (
                   /* واجهة فواتير نظام سداد */
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1030,16 +1060,16 @@ export default function NewDirectDisbursementOrder() {
           </div>
         ) : (
           /* الخطوة الثانية: المطابقة والبيانات المالية */
-          <div className="space-y-6">
-            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+          <div className="space-y-5 sm:space-y-6">
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900 py-0 gap-0">
+              <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:px-6 sm:py-4 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                  <CheckCircle className="h-4.5 w-4.5 text-primary" />
+                  <CheckCircle className="h-4.5 w-4.5 text-primary shrink-0" />
                   الخطوة 2: المطابقة والبيانات المالية
                 </CardTitle>
                 <CardDescription className="text-right text-xs">تأكد من صحة كافة تفاصيل البنود والتحويل المالي المعبأة قبل الإرسال</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-5 pt-6 text-right" dir="rtl">
+              <CardContent className="space-y-5 p-4 sm:p-6 text-right" dir="rtl">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2 text-right">
                     <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">تاريخ الصرف الميلادي *</Label>
@@ -1093,18 +1123,18 @@ export default function NewDirectDisbursementOrder() {
             </Card>
 
             {/* تفاصيل الجهة المستفيدة ودفعات سداد */}
-            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900 py-0 gap-0">
+              <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:px-6 sm:py-4 text-right">
                 <div className="text-right space-y-1">
                   <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold justify-start">
-                    <Building2 className="h-4.5 w-4.5 text-primary" />
+                    <Building2 className="h-4.5 w-4.5 text-primary shrink-0" />
                     الدفعة التي سوف تصرف (المستفيد والمبالغ الفعلية)
                   </CardTitle>
                   <CardDescription className="text-right text-xs">تفاصيل تحويل المبالغ المالية الفعلية المستحقة</CardDescription>
                 </div>
               </CardHeader>
-              <CardContent className="pt-6 text-right" dir="rtl">
-                <div className="p-5 rounded-xl border border-border bg-slate-50/20 dark:bg-slate-900/10 space-y-4 hover:border-primary/30 transition-colors">
+              <CardContent className="p-4 sm:p-6 text-right" dir="rtl">
+                <div className="p-3.5 sm:p-5 rounded-xl border border-border bg-slate-50/20 dark:bg-slate-900/10 space-y-4 hover:border-primary/30 transition-colors">
                   {requestType === "sadad_invoice" ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                       <div className="space-y-2 text-right">
@@ -1133,7 +1163,7 @@ export default function NewDirectDisbursementOrder() {
                       </div>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                       <div className="space-y-2 text-right">
                         <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المستفيد / المورد *</Label>
                         <Input
@@ -1175,19 +1205,19 @@ export default function NewDirectDisbursementOrder() {
 
 
             {/* ملخص الدفعة والتقرير المالي */}
-            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900 py-0 gap-0">
+              <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:px-6 sm:py-4 text-right">
                 <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground justify-start">
-                  <Coins className="w-4.5 h-4.5 text-primary" />
+                  <Coins className="w-4.5 h-4.5 text-primary shrink-0" />
                   ملخص الصرف والتقرير المالي
                 </CardTitle>
                 <CardDescription className="text-right text-xs">تفاصيل التدقيق والمجاميع المالية لأمر الصرف المالي</CardDescription>
               </CardHeader>
-              <CardContent className="pt-6 space-y-6 text-right" dir="rtl">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-right">
+              <CardContent className="p-4 sm:p-6 space-y-5 sm:space-y-6 text-right" dir="rtl">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 text-right">
                   <div className="space-y-1">
                     <span className="text-[10px] text-muted-foreground block font-bold">اسم المشروع</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug break-words">
                       {formData.customProjectName}
                     </span>
                   </div>
@@ -1201,16 +1231,16 @@ export default function NewDirectDisbursementOrder() {
 
                 <Separator />
 
-                <div className="p-3 sm:p-4 rounded-xl bg-primary/[0.03] border border-primary/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                <div className="p-3.5 sm:p-4 rounded-xl bg-primary/[0.03] border border-primary/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                   <div className="space-y-1">
                     <span className="text-[10px] text-primary block font-black">إجمالي الدفعة الفعلية التي سوف تصرف</span>
                     <span className="text-xl sm:text-2xl font-black text-primary inline-flex items-center gap-1">
                       {formData.amount.toLocaleString()} <SaudiRiyal className="w-5 h-5 inline" />
                     </span>
                   </div>
-                  <div className="text-xs text-left">
-                    <span className="text-muted-foreground block text-[9px] text-left">تفقيط المبلغ</span>
-                    <span className="font-bold text-foreground text-left block">{numberToArabicText(formData.amount)}</span>
+                  <div className="text-xs text-right sm:text-left">
+                    <span className="text-muted-foreground block text-[10px]">تفقيط المبلغ</span>
+                    <span className="font-bold text-foreground block">{numberToArabicText(formData.amount)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -1221,14 +1251,14 @@ export default function NewDirectDisbursementOrder() {
               <Button
                 onClick={handleSubmit}
                 disabled={createDirectOrderMutation.isPending}
-                className="gradient-primary text-white font-bold px-6 sm:px-8 h-10 sm:h-11 rounded-xl shadow-sm text-xs sm:text-sm w-full sm:w-auto cursor-pointer"
+                className="gradient-primary text-white font-bold px-6 sm:px-8 h-11 rounded-xl shadow-sm text-xs sm:text-sm w-full sm:w-auto cursor-pointer"
               >
                 {createDirectOrderMutation.isPending ? "جاري الحفظ..." : "تأكيد وإنشاء أمر الصرف"}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => setStep(1)}
-                className="text-slate-700 border-border hover:bg-muted font-bold px-4 sm:px-6 h-10 sm:h-11 text-xs rounded-xl w-full sm:w-auto cursor-pointer"
+                className="text-slate-700 border-border hover:bg-muted font-bold px-4 sm:px-6 h-11 text-xs rounded-xl w-full sm:w-auto cursor-pointer"
               >
                 السابق
               </Button>

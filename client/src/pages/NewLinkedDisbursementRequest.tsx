@@ -2016,14 +2016,14 @@ export default function NewLinkedDisbursementRequest() {
   
   if (userPermsData && !hasAnyCreationPerm) {
     return (
-      <DashboardLayout>
-        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4 font-sans" dir="rtl">
+      <DashboardLayout tabletNavigation>
+        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-4 sm:p-6 space-y-4 font-sans" dir="rtl">
           <div className="p-4 rounded-full bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/30 dark:border-rose-900">
             <AlertCircle className="h-10 w-10 text-rose-600" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">عذراً، ليس لديك صلاحية لإنشاء طلبات الصرف</h2>
-          <p className="text-xs text-muted-foreground max-w-md">يرجى التواصل مع مسؤول النظام لمنحك إحدى صلاحيات إنشاء طلبات الصرف.</p>
-          <Button onClick={() => navigate("/disbursements")} className="mt-2 bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold text-xs">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-200">عذراً، ليس لديك صلاحية لإنشاء طلبات الصرف</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground max-w-md">يرجى التواصل مع مسؤول النظام لمنحك إحدى صلاحيات إنشاء طلبات الصرف.</p>
+          <Button onClick={() => navigate("/disbursements")} className="mt-2 min-h-10 max-lg:min-h-11 bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold text-xs sm:text-sm">
             العودة لطلبات الصرف
           </Button>
         </div>
@@ -2032,12 +2032,12 @@ export default function NewLinkedDisbursementRequest() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 animate-fade-in pb-20 px-3 sm:px-4 md:px-0" dir="rtl">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-4xl mx-auto overflow-x-hidden space-y-4 sm:space-y-6 animate-fade-in pb-12 sm:pb-20" dir="rtl">
         {/* Header and Visual Step Timeline */}
-        <div className="flex flex-col gap-6 border-b border-border/40 pb-6">
-          <div className="flex items-center justify-between pb-2">
-            <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex flex-col gap-4 sm:gap-6 border-b border-border/40 pb-4 sm:pb-6">
+          <div className="flex items-center justify-between pb-1">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
               <Button 
                 variant="outline" 
                 size="icon" 
@@ -2048,15 +2048,15 @@ export default function NewLinkedDisbursementRequest() {
                     navigate("/disbursements");
                   }
                 }} 
-                className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-muted text-muted-foreground shrink-0"
+                className="size-10 max-lg:size-11 rounded-full hover:bg-muted text-muted-foreground shrink-0"
               >
                 <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
-              <div className="text-right">
+              <div className="text-right min-w-0">
                 <h1 className="text-lg sm:text-2xl font-bold text-foreground font-display">
                   إنشاء طلب صرف مالي جديد
                 </h1>
-                <p className="text-[10px] sm:text-xs text-muted-foreground text-right font-medium mt-0.5 hidden sm:block">
+                <p className="text-[11px] sm:text-xs text-muted-foreground text-right font-medium mt-0.5">
                   إنشاء طلب صرف مرتبط بتقرير إنجاز أو مستخلص معتمد أو طلب صرف مخصص لمورد أو فاتورة أو مصروفات منوعة 
                 </p>
               </div>
@@ -2064,20 +2064,20 @@ export default function NewLinkedDisbursementRequest() {
           </div>
 
           {/* 3-Step Timeline Header */}
-          <div className="max-w-xl mx-auto w-full px-2 sm:px-4 py-2" dir="rtl">
-            <div className="relative flex items-center justify-between">
+          <div className="max-w-xl mx-auto w-full px-1 sm:px-4 py-1 sm:py-2" dir="rtl">
+            <div className="relative flex items-start justify-between gap-2">
               {/* Connecting Line background */}
-              <div className="absolute right-0 left-0 top-1/2 -translate-y-1/2 h-0.5 bg-border rounded-full z-0" />
+              <div className="absolute right-6 left-6 top-4 h-0.5 bg-border rounded-full z-0" />
               {/* Connecting Active Line progress */}
               <div 
-                className="absolute right-0 top-1/2 -translate-y-1/2 h-0.5 bg-primary rounded-full z-0 transition-all duration-500"
-                style={{ width: step === 1 ? '0%' : step === 2 ? '50%' : '100%' }}
+                className="absolute right-6 top-4 h-0.5 bg-primary rounded-full z-0 transition-all duration-500"
+                style={{ width: step === 1 ? '0%' : step === 2 ? 'calc(50% - 1.5rem)' : 'calc(100% - 3rem)' }}
               />
 
               {/* Step 1 Node */}
-              <div className="flex flex-col items-center gap-1.5 z-10">
+              <div className="flex flex-col items-center gap-1.5 z-10 w-1/3 text-center">
                 <div 
-                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
+                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
                     step >= 1 
                       ? 'bg-primary border-primary text-primary-foreground shadow-sm' 
                       : 'bg-background border-border text-muted-foreground'
@@ -2085,15 +2085,15 @@ export default function NewLinkedDisbursementRequest() {
                 >
                   {step > 1 ? <Check className="w-4 h-4" /> : "١"}
                 </div>
-                <span className={`text-xs font-semibold ${step >= 1 ? 'text-primary' : 'text-muted-foreground'}`}>
+                <span className={`text-[10px] sm:text-xs font-semibold leading-tight ${step >= 1 ? 'text-primary' : 'text-muted-foreground'}`}>
                   نوع مسار الصرف
                 </span>
               </div>
 
               {/* Step 2 Node */}
-              <div className="flex flex-col items-center gap-1.5 z-10">
+              <div className="flex flex-col items-center gap-1.5 z-10 w-1/3 text-center">
                 <div 
-                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
+                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
                     step >= 2 
                       ? 'bg-primary border-primary text-primary-foreground shadow-sm' 
                       : 'bg-background border-border text-muted-foreground'
@@ -2101,15 +2101,15 @@ export default function NewLinkedDisbursementRequest() {
                 >
                   {step > 2 ? <Check className="w-4 h-4" /> : "٢"}
                 </div>
-                <span className={`text-xs font-semibold ${step >= 2 ? 'text-primary' : 'text-muted-foreground'}`}>
-                  المشروع والتقرير أو المستخلص
+                <span className={`text-[10px] sm:text-xs font-semibold leading-tight ${step >= 2 ? 'text-primary' : 'text-muted-foreground'}`}>
+                  المشروع والتقرير
                 </span>
               </div>
 
               {/* Step 3 Node */}
-              <div className="flex flex-col items-center gap-1.5 z-10">
+              <div className="flex flex-col items-center gap-1.5 z-10 w-1/3 text-center">
                 <div 
-                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
+                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
                     step === 3 
                       ? 'bg-primary border-primary text-primary-foreground shadow-sm' 
                       : 'bg-background border-border text-muted-foreground'
@@ -2117,8 +2117,8 @@ export default function NewLinkedDisbursementRequest() {
                 >
                   ٣
                 </div>
-                <span className={`text-xs font-semibold ${step === 3 ? 'text-primary' : 'text-muted-foreground'}`}>
-                  المطابقة والبيانات المالية
+                <span className={`text-[10px] sm:text-xs font-semibold leading-tight ${step === 3 ? 'text-primary' : 'text-muted-foreground'}`}>
+                  البيانات المالية
                 </span>
               </div>
             </div>
@@ -2127,16 +2127,16 @@ export default function NewLinkedDisbursementRequest() {
         
         {step === 1 ? (
           /* الخطوة الأولى: اختيار نوع ومسار طلب الصرف */
-          <div className="space-y-6">
-            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
-                <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                  <Layers className="h-4.5 w-4.5 text-primary" />
+          <div className="space-y-4 sm:space-y-6">
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900 py-0 gap-0">
+              <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:px-6 sm:py-4 text-right">
+                <CardTitle className="flex items-center gap-2 text-foreground text-sm sm:text-base font-bold">
+                  <Layers className="h-4.5 w-4.5 text-primary shrink-0" />
                   الخطوة 1: اختيار نوع ومسار طلب الصرف
                 </CardTitle>
                 <CardDescription className="text-right text-xs text-muted-foreground">حدد مسار طلب الصرف المناسب للمتابعة إلى اختيار المشروع والتقرير</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6 pt-6 text-right">
+              <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6 text-right">
                 <div className="space-y-3 pb-2 border-b border-border/40">
                   <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                     <Layers className="w-4 h-4 text-primary" />
@@ -2300,10 +2300,10 @@ export default function NewLinkedDisbursementRequest() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="border-t border-border/40 pt-4 flex justify-end gap-2">
+              <CardFooter className="border-t border-border/40 p-4 sm:px-6 sm:py-4 flex justify-end gap-2">
                 <Button
                   onClick={() => setStep(2)}
-                  className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2"
+                  className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center justify-center gap-2 w-full sm:w-auto"
                 >
                   <span>التالي</span>
                   <ArrowLeft className="h-4 w-4" />
@@ -2314,15 +2314,15 @@ export default function NewLinkedDisbursementRequest() {
         ) : step === 2 ? (
           /* الخطوة الثانية: اختيار المشروع وتقرير الإنجاز أو المستخلص */
           <div className="space-y-6">
-            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900 py-0 gap-0">
+              <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:px-6 sm:py-4 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                  <FileText className="h-4.5 w-4.5 text-primary" />
+                  <FileText className="h-4.5 w-4.5 text-primary shrink-0" />
                   الخطوة 2: اختيار المشروع والتقرير أو المستخلص المرتبط
                 </CardTitle>
                 <CardDescription className="text-right text-xs text-muted-foreground">تحديد المشروع الرئيسي والتمويل والمشروع المخصص أو تقارير الإنجاز والمستخلصات المعتمدة المرتبطة</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6 pt-6 text-right">
+              <CardContent className="space-y-5 sm:space-y-6 p-4 sm:p-6 text-right">
 
                 {/* 1. نوع طلب الصرف المخصص (إذا كان المسار هو طلب صرف مخصص) */}
                 {activeCategory === "custom" && !isFundProjectSurplus && (
@@ -3021,22 +3021,22 @@ export default function NewLinkedDisbursementRequest() {
 
                     {isFinalClosingSelected && (
                       <div className="space-y-4 animate-slide-up text-right">
-                        <div className="p-5 rounded-xl border border-amber-300/80 bg-amber-50/40 dark:bg-amber-950/20 text-right space-y-4 shadow-xs">
+                        <div className="p-3.5 sm:p-5 rounded-xl border border-amber-300/80 bg-amber-50/40 dark:bg-amber-950/20 text-right space-y-4 shadow-xs">
                           <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center justify-between border-b border-amber-200/50 pb-3">
-                            <div className="flex items-center gap-2 justify-start">
-                              <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600">
+                            <div className="flex items-center gap-2 justify-start min-w-0">
+                              <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0">
                                 <Coins className="w-4.5 h-4.5" />
                               </div>
-                              <div className="text-right">
+                              <div className="text-right min-w-0">
                                 <span className="text-[10px] text-muted-foreground block font-bold">
                                   الدفعة الختامية المعتمدة للمشروع (من دون تقرير إنجاز)
                                 </span>
-                                <h4 className="text-sm font-bold text-amber-950 dark:text-amber-200 mt-0.5">
+                                <h4 className="text-sm font-bold text-amber-950 dark:text-amber-200 mt-0.5 break-words">
                                   🏆 {finalClosingPayment?.description || "الدفعة الختامية"}
                                 </h4>
                               </div>
                             </div>
-                            <Badge variant="outline" className="bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30 text-xs font-bold">
+                            <Badge variant="outline" className="bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30 text-xs font-bold whitespace-normal text-right h-auto py-1 self-start sm:self-center">
                               تصرف عند استلام وإغلاق المشروع (100%)
                             </Badge>
                           </div>
@@ -3078,17 +3078,17 @@ export default function NewLinkedDisbursementRequest() {
                     {selectedReport && !isReportLinked(selectedReport) && !isAdvanceSelected && !isFinalClosingSelected && (
                       <div className="space-y-4 animate-slide-up text-right">
                         {/* Premium Linked Report Stats Card */}
-                        <div className="p-5 rounded-xl border border-emerald-100 bg-emerald-50/10 dark:bg-emerald-950/5 text-right space-y-4 shadow-inner">
+                        <div className="p-3.5 sm:p-5 rounded-xl border border-emerald-100 bg-emerald-50/10 dark:bg-emerald-950/5 text-right space-y-4 shadow-inner">
                           <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center justify-between border-b border-emerald-100/30 dark:border-emerald-900/20 pb-3">
-                            <div className="flex items-center gap-2 justify-start">
-                              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                            <div className="flex items-center gap-2 justify-start min-w-0">
+                              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0">
                                 <FileText className="w-4.5 h-4.5" />
                               </div>
-                              <div className="text-right">
+                              <div className="text-right min-w-0">
                                 <span className="text-[10px] text-muted-foreground block font-bold">
                                   {isInvoiceReport(selectedReport) ? "المستخلص المالي المرتبط بالطلب" : "تقرير الإنجاز المرتبط بالطلب"}
                                 </span>
-                                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mt-0.5">
+                                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mt-0.5 break-words">
                                   {selectedReport.reportNumber} — {selectedReport.title}
                                 </h4>
                               </div>
@@ -3097,7 +3097,7 @@ export default function NewLinkedDisbursementRequest() {
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="text-emerald-700 border-emerald-300 bg-background hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-900 dark:hover:bg-emerald-950/20 font-bold h-8 sm:h-9 text-[10px] sm:text-xs px-2.5 sm:px-3 rounded-lg shrink-0 shadow-sm animate-in zoom-in duration-150 w-full sm:w-auto"
+                              className="text-emerald-700 border-emerald-300 bg-background hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-900 dark:hover:bg-emerald-950/20 font-bold h-10 sm:h-9 text-xs px-3 rounded-lg shrink-0 shadow-sm animate-in zoom-in duration-150 w-full sm:w-auto"
                               onClick={handleNavigateToPrint}
                             >
                               <Eye className="ml-1.5 h-3.5 w-3.5" />
@@ -3220,9 +3220,9 @@ export default function NewLinkedDisbursementRequest() {
                   )}
                 </div>
               </CardContent>
-              <CardFooter className="border-t border-border/40 pt-4 flex flex-wrap justify-between items-center">
+              <CardFooter className="border-t border-border/40 p-4 sm:px-6 sm:py-4 flex flex-col-reverse sm:flex-row sm:flex-wrap sm:justify-between items-stretch sm:items-center gap-2.5">
                 {isFundSurplusExceeded && (
-                  <div className="mb-3 flex basis-full items-start gap-2 rounded-xl border border-red-300 bg-red-50 px-3 py-2.5 text-right text-xs font-semibold text-red-800">
+                  <div className="mb-1 flex basis-full items-start gap-2 rounded-xl border border-red-300 bg-red-50 px-3 py-2.5 text-right text-xs font-semibold text-red-800">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
                     <span>لا يمكن المتابعة: المبلغ مع الأجور الإدارية ({fundSurplusCharge.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال) أكبر من {fundBalanceLabel} ({selectedFundSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال).</span>
                   </div>
@@ -3230,7 +3230,7 @@ export default function NewLinkedDisbursementRequest() {
                 <Button
                   variant="outline"
                   onClick={() => setStep(1)}
-                  className="font-bold px-5 h-11 rounded-xl flex items-center gap-2"
+                  className="font-bold px-5 h-11 rounded-xl flex items-center justify-center gap-2 w-full sm:w-auto"
                 >
                   <ArrowRight className="h-4 w-4" />
                   <span>السابق</span>
@@ -3238,7 +3238,7 @@ export default function NewLinkedDisbursementRequest() {
                 <Button
                   onClick={handleStep2Next}
                   disabled={isStep2NextDisabled()}
-                  className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2"
+                  className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center justify-center gap-2 w-full sm:w-auto"
                 >
                   <span>التالي</span>
                   <ArrowLeft className="h-4 w-4" />
@@ -3250,15 +3250,15 @@ export default function NewLinkedDisbursementRequest() {
           /* الخطوة الثالثة: البيانات المالية وتحديد مبالغ الموردين */
           <div className="space-y-6">
             {/* البيانات المالية الأساسية */}
-            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900 py-0 gap-0">
+              <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:px-6 sm:py-4 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                  <Coins className="h-4.5 w-4.5 text-primary" />
+                  <Coins className="h-4.5 w-4.5 text-primary shrink-0" />
                   الخطوة 3: المطابقة والبيانات المالية
                 </CardTitle>
                 <CardDescription className="text-right text-xs">راجع تفاصيل المبالغ المحددة وحدد الدفعة الفعلية ومطابقة الموردين</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-5 pt-6 text-right">
+              <CardContent className="space-y-5 p-4 sm:p-6 text-right">
 
 
                 {selectedReport && (
@@ -3350,21 +3350,21 @@ export default function NewLinkedDisbursementRequest() {
             </Card>
 
             {/* الموردون المستحقون للصرف الفعلي */}
-            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900 py-0 gap-0">
+              <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:px-6 sm:py-4 text-right">
                 <div className="text-right space-y-1">
                   <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold justify-start">
-                    <Building2 className="h-4.5 w-4.5 text-primary" />
+                    <Building2 className="h-4.5 w-4.5 text-primary shrink-0" />
                     الدفعة التي سوف تصرف (المستفيدين والمبالغ الفعلية)
                   </CardTitle>
                   <CardDescription className="text-right text-xs">حدد المبالغ الفعلية التي سوف تصرف وبيانات المستفيدين</CardDescription>
                 </div>
               </CardHeader>
-              <CardContent className="pt-6">
-                <div className="space-y-6">
+              <CardContent className="p-4 sm:p-6">
+                <div className="space-y-5 sm:space-y-6">
                   {suppliers.map((supplier, index) => (
-                    <div key={supplier.id} className="p-5 rounded-xl border border-border bg-slate-50/20 dark:bg-slate-900/10 relative space-y-4 text-right animate-slide-up hover:border-primary/30 transition-colors">
-                      <div className="flex items-center justify-between border-b border-dashed border-border/80 pb-2">
+                    <div key={supplier.id} className="p-3.5 sm:p-5 rounded-xl border border-border bg-slate-50/20 dark:bg-slate-900/10 relative space-y-4 text-right animate-slide-up hover:border-primary/30 transition-colors">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-dashed border-border/80 pb-2">
                         <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 justify-start">
                           <Building2 className="w-4 h-4 text-primary" />
                           <span>المستفيد #{index + 1} (توزيع مستحقات الدفعة)</span>
@@ -3570,19 +3570,19 @@ export default function NewLinkedDisbursementRequest() {
             </Card>
 
             {/* ملخص الدفعة والتقرير - مدمج عمودياً كبطاقة عادية بآخر الصفحة لتماثل تقارير الإنجاز */}
-            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900 py-0 gap-0">
+              <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:px-6 sm:py-4 text-right">
                 <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-                  <Coins className="w-4.5 h-4.5 text-primary" />
+                  <Coins className="w-4.5 h-4.5 text-primary shrink-0" />
                   ملخص الدفعة والتقرير المالي
                 </CardTitle>
                 <CardDescription>تفاصيل التدقيق والمجاميع المالية لطلب الصرف الحالي</CardDescription>
               </CardHeader>
-              <CardContent className="pt-6 space-y-6 text-right">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-right">
+              <CardContent className="p-4 sm:p-6 space-y-5 sm:space-y-6 text-right">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 text-right">
                   <div className="space-y-1">
                     <span className="text-[10px] text-muted-foreground block font-bold">اسم المشروع</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug break-words">
                       {isCustom ? "طلب صرف مخصص / عام" : (projectDetails?.name || "المشروع المحدد")}
                     </span>
                   </div>
@@ -3591,7 +3591,7 @@ export default function NewLinkedDisbursementRequest() {
                       <span className="text-[10px] text-muted-foreground block font-bold">
                         {isAdvanceSelected ? "نوع الدفعة التعاقدية" : isFinalClosingSelected ? "نوع الدفعة التعاقدية" : (isInvoiceReport(selectedReport) ? "رقم المستخلص المالي" : "رقم تقرير الإنجاز")}
                       </span>
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 break-words">
                         {isAdvanceSelected 
                           ? "الدفعة الأولى: دفعة مقدمة (غير بحاجة لتقرير إنجاز)" 
                           : isFinalClosingSelected
@@ -3602,7 +3602,7 @@ export default function NewLinkedDisbursementRequest() {
                   )}
                 </div>
 
-                <div className="p-3 sm:p-4 rounded-xl bg-primary/[0.03] border border-primary/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                <div className="p-3.5 sm:p-4 rounded-xl bg-primary/[0.03] border border-primary/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                   <div className="space-y-1">
                     <span className="text-[10px] text-primary block font-black">إجمالي الدفعة الفعلية التي سوف تصرف</span>
                     <span className="text-xl sm:text-2xl font-black text-primary inline-flex items-center gap-1">
@@ -3611,15 +3611,15 @@ export default function NewLinkedDisbursementRequest() {
                   </div>
                   
                   {formData.adminFees > 0 && (
-                    <div className="text-xs text-left">
-                      <span className="text-muted-foreground block text-[9px]">الأجور الإدارية</span>
+                    <div className="text-xs text-right sm:text-left">
+                      <span className="text-muted-foreground block text-[10px]">الأجور الإدارية</span>
                       <span className="font-bold text-foreground inline-flex items-center gap-1">{(formData.adminFees || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" /></span>
                     </div>
                   )}
 
                   {!isCustom && contractDetails && (
-                    <div className="text-xs text-left">
-                      <span className="text-muted-foreground block text-[9px]">قيمة العقد الإجمالي</span>
+                    <div className="text-xs text-right sm:text-left">
+                      <span className="text-muted-foreground block text-[10px]">قيمة العقد الإجمالي</span>
                       <span className="font-bold text-foreground inline-flex items-center gap-1">{contractAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" /></span>
                     </div>
                   )}
@@ -3632,7 +3632,7 @@ export default function NewLinkedDisbursementRequest() {
               <Button
                 onClick={handleSubmit}
                 disabled={createMutation.isPending || createFundSurplusMutation.isPending || totalAmount <= 0 || (isFundProjectSurplus && totalAmount + formData.adminFees > selectedFundSurplus + 0.001) || (!isCustom && contractAmount > 0 && totalAmount > contractAmount)}
-                className="gradient-primary text-white font-bold px-6 sm:px-8 h-10 sm:h-11 rounded-xl shadow-sm text-xs sm:text-sm w-full sm:w-auto"
+                className="gradient-primary text-white font-bold px-6 sm:px-8 h-11 rounded-xl shadow-sm text-xs sm:text-sm w-full sm:w-auto"
               >
                 <Send className="ml-2 h-4 w-4" />
                 إرسال طلب الصرف للاعتماد
@@ -3640,7 +3640,7 @@ export default function NewLinkedDisbursementRequest() {
               <Button
                 variant="outline"
                 onClick={() => setStep(2)}
-                className="text-slate-700 border-border hover:bg-muted font-bold px-4 sm:px-6 h-10 sm:h-11 text-xs rounded-xl w-full sm:w-auto"
+                className="text-slate-700 border-border hover:bg-muted font-bold px-4 sm:px-6 h-11 text-xs rounded-xl w-full sm:w-auto"
               >
                 <ArrowRight className="ml-2 h-4 w-4" />
                 السابق
@@ -3652,7 +3652,7 @@ export default function NewLinkedDisbursementRequest() {
 
       {/* نافذة مراجعة تقرير الإنجاز */}
       <Dialog open={showReportReviewDialog} onOpenChange={setShowReportReviewDialog}>
-        <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6" dir="rtl">
           <DialogHeader className="text-right">
             <DialogTitle className="text-right text-emerald-800 font-bold">
               {isInvoiceReport(selectedReport) ? "مراجعة المستخلص المالي المعتمد" : "مراجعة تقرير الإنجاز المعتمد"}
@@ -3761,7 +3761,7 @@ export default function NewLinkedDisbursementRequest() {
           )}
           
           <DialogFooter className="text-right border-t pt-4">
-            <Button variant="outline" onClick={() => setShowReportReviewDialog(false)} className="text-xs h-9">
+            <Button variant="outline" onClick={() => setShowReportReviewDialog(false)} className="w-full sm:w-auto text-xs min-h-10 max-lg:min-h-11">
               إغلاق
             </Button>
           </DialogFooter>
@@ -3772,7 +3772,7 @@ export default function NewLinkedDisbursementRequest() {
 
       {/* Modal تنبيه وتأكيد عند كون طلب الصرف أقل من نسبة الإنجاز لتقرير المستخلص */}
       <Dialog open={showUnderProgressDialog} onOpenChange={setShowUnderProgressDialog}>
-        <DialogContent className="dir-rtl text-right max-w-lg rounded-2xl p-6 overflow-hidden border border-amber-300 dark:border-amber-900/70 shadow-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" dir="rtl">
+        <DialogContent className="dir-rtl text-right w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl p-4 sm:p-6 border border-amber-300 dark:border-amber-900/70 shadow-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" dir="rtl">
           {/* Header Title */}
           <div className="flex items-start gap-3.5 pb-4 border-b border-slate-100 dark:border-slate-800 pr-1 pl-8">
             <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 flex items-center justify-center shrink-0 mt-0.5">
@@ -3840,7 +3840,7 @@ export default function NewLinkedDisbursementRequest() {
               type="button"
               variant="outline"
               onClick={() => setShowUnderProgressDialog(false)}
-              className="w-full sm:w-auto text-xs font-semibold rounded-xl"
+              className="w-full sm:w-auto text-xs font-semibold rounded-xl min-h-10 max-lg:min-h-11"
             >
               مراجعة وتعديل البيانات
             </Button>
@@ -3855,7 +3855,7 @@ export default function NewLinkedDisbursementRequest() {
                 }
                 executeDisbursementSubmit(disburseFromGeneralAccount);
               }}
-              className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm"
+              className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm min-h-10 max-lg:min-h-11"
             >
               نعم، تأكيد ومتابعة الصرف
             </Button>
@@ -3865,7 +3865,7 @@ export default function NewLinkedDisbursementRequest() {
 
       {/* Modal التحقق والتنبيه عند كون طلب الصرف أعلى من نسبة الإنجاز المعتمدة لتقرير المستخلص */}
       <Dialog open={showOverProgressDialog} onOpenChange={setShowOverProgressDialog}>
-        <DialogContent className="dir-rtl text-right max-w-lg rounded-2xl p-6 overflow-hidden border border-amber-300 dark:border-amber-700 shadow-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" dir="rtl">
+        <DialogContent className="dir-rtl text-right w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl p-4 sm:p-6 border border-amber-300 dark:border-amber-700 shadow-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" dir="rtl">
           {/* Header Title */}
           <div className="flex items-start gap-3.5 pb-4 border-b border-slate-100 dark:border-slate-800 pr-1 pl-8">
             <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 flex items-center justify-center shrink-0 mt-0.5">
@@ -3942,7 +3942,7 @@ export default function NewLinkedDisbursementRequest() {
               type="button"
               variant="outline"
               onClick={() => setShowOverProgressDialog(false)}
-              className="w-full sm:w-auto text-xs font-semibold rounded-xl"
+              className="w-full sm:w-auto text-xs font-semibold rounded-xl min-h-10 max-lg:min-h-11"
             >
               تراجع وتعديل المبلغ
             </Button>
@@ -3973,7 +3973,7 @@ export default function NewLinkedDisbursementRequest() {
                   executeDisbursementSubmit(disburseFromGeneralAccount);
                 }
               }}
-              className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm"
+              className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm min-h-10 max-lg:min-h-11"
             >
               تأكيد ومتابعة الصرف
             </Button>
@@ -3983,7 +3983,7 @@ export default function NewLinkedDisbursementRequest() {
 
       {/* Modal التحقق والتنبيه الذكي عند عدم كفاية مدفوعات الداعم المقبوضة فعلياً */}
       <Dialog open={showSupporterDeficitDialog} onOpenChange={setShowSupporterDeficitDialog}>
-        <DialogContent className="dir-rtl text-right max-w-lg rounded-2xl p-6 overflow-hidden border border-amber-200/80 dark:border-amber-900/60 shadow-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" dir="rtl">
+        <DialogContent className="dir-rtl text-right w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl p-4 sm:p-6 border border-amber-200/80 dark:border-amber-900/60 shadow-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" dir="rtl">
           {/* Header Title */}
           <div className="flex items-start gap-3.5 pb-4 border-b border-slate-100 dark:border-slate-800 pr-1 pl-8">
             <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center shrink-0 mt-0.5">
@@ -4042,7 +4042,7 @@ export default function NewLinkedDisbursementRequest() {
             </div>
           </div>
 
-          <DialogFooter className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row-reverse items-center justify-between gap-2.5">
+          <DialogFooter className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row-reverse items-stretch sm:items-center justify-between gap-2.5">
             <Button
               type="button"
               onClick={() => {
@@ -4054,7 +4054,7 @@ export default function NewLinkedDisbursementRequest() {
                   executeDisbursementSubmit(true);
                 }
               }}
-              className="w-full sm:w-auto font-bold text-xs bg-amber-600 hover:bg-amber-700 text-white gap-2 h-10 px-4 rounded-xl shadow-xs"
+              className="w-full sm:w-auto font-bold text-xs bg-amber-600 hover:bg-amber-700 text-white gap-2 min-h-10 max-lg:min-h-11 px-4 rounded-xl shadow-xs"
             >
               <Coins className="h-4 w-4" />
               الاستمرار والصرف من الحساب العام للجمعية
@@ -4063,7 +4063,7 @@ export default function NewLinkedDisbursementRequest() {
               type="button"
               variant="outline"
               onClick={() => setShowSupporterDeficitDialog(false)}
-              className="w-full sm:w-auto text-xs font-semibold h-10 rounded-xl border-slate-200 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+              className="w-full sm:w-auto text-xs font-semibold min-h-10 max-lg:min-h-11 rounded-xl border-slate-200 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
             >
               التراجع عن الطلب
             </Button>

@@ -145,7 +145,7 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
         <Button onClick={() => setLocation("/dashboard")}>العودة للوحة التحكم</Button>
       </div>
     );
-    return embedded ? errorContent : <DashboardLayout>{errorContent}</DashboardLayout>;
+    return embedded ? errorContent : <DashboardLayout tabletNavigation>{errorContent}</DashboardLayout>;
   }
 
   const reportsList = (reportsData?.reports ?? []).filter(item => access.canView(item.reportType));
@@ -163,110 +163,117 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
   const totalPages = Math.ceil(total / limit);
 
   const mainContent = (
-    <div className="space-y-6" dir="rtl">
+    <div className="min-w-0 space-y-4 sm:space-y-6 max-w-full overflow-x-hidden" dir="rtl">
         {/* العنوان والإجراءات */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">تقارير الطلبات</h1>
-            <p className="text-muted-foreground">متابعة وإدارة المهام والزيارات الميدانية المتأخرة والتقارير المعلقة والتقارير المكتملة</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <h1 className="text-xl md:text-2xl font-bold text-foreground truncate">تقارير الطلبات</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 break-words">متابعة وإدارة المهام والزيارات الميدانية المتأخرة والتقارير المعلقة والتقارير المكتملة</p>
           </div>
         </div>
 
-        {/* بطاقات الإحصائيات الستة */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {/* بطاقات الإحصائيات */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
           {/* كارد جميع التقارير */}
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">جميع التقارير</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{stats.totalCount}</p>
+          <Card className="border-0 shadow-sm py-0">
+            <CardContent className="p-3 sm:p-4 lg:p-5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground leading-snug line-clamp-1">جميع التقارير</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">{stats.totalCount}</p>
                 </div>
-                <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                  <FolderKanban className="w-5 h-5 text-slate-600" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                  <FolderKanban className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-300" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* كارد التقارير المعلقة */}
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">التقارير المعلقة</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{stats.pendingCount}</p>
+          <Card className="border-0 shadow-sm py-0">
+            <CardContent className="p-3 sm:p-4 lg:p-5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground leading-snug line-clamp-1">التقارير المعلقة</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">{stats.pendingCount}</p>
                 </div>
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-primary" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* كارد الزيارات الميدانية */}
-          {access.canView("field_visit") && <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">الزيارات الميدانية المعلقة</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{stats.fieldVisitsCount}</p>
+          {access.canView("field_visit") && <Card className="border-0 shadow-sm py-0">
+            <CardContent className="p-3 sm:p-4 lg:p-5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground leading-snug line-clamp-1">الزيارات الميدانية المعلقة</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">{stats.fieldVisitsCount}</p>
                 </div>
-                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-blue-600" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-lg bg-blue-100 dark:bg-blue-950/40 flex items-center justify-center">
+                  <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
             </CardContent>
           </Card>}
 
           {/* كارد الاستجابة السريعة */}
-          {access.canView("quick_response") && <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">الاستجابة السريعة المعلقة</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{stats.quickResponsesCount}</p>
+          {access.canView("quick_response") && <Card className="border-0 shadow-sm py-0">
+            <CardContent className="p-3 sm:p-4 lg:p-5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground leading-snug line-clamp-1">الاستجابة السريعة المعلقة</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">{stats.quickResponsesCount}</p>
                 </div>
-                <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-purple-600" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-lg bg-purple-100 dark:bg-purple-950/40 flex items-center justify-center">
+                  <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
             </CardContent>
           </Card>}
 
-          {/* كارد التقارير الختامية */}
+          {/* كارد تقارير الطلبات السريعة */}
           {access.canView("quick_request") && (
-            <Card className="border-0 shadow-sm">
-              <CardContent className="p-6">
-                <p className="text-xs text-muted-foreground">تقارير الطلبات السريعة</p>
-                <p className="text-2xl font-bold text-foreground mt-1">{stats.quickRequestsCount}</p>
+            <Card className="border-0 shadow-sm py-0">
+              <CardContent className="p-3 sm:p-4 lg:p-5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[11px] sm:text-xs text-muted-foreground leading-snug line-clamp-1">تقارير الطلبات السريعة</p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">{stats.quickRequestsCount}</p>
+                  </div>
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-lg bg-amber-100 dark:bg-amber-950/40 flex items-center justify-center">
+                    <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
-          {access.canView("final_report") && <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">التقارير الختامية المعلقة</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{stats.finalReportsCount}</p>
+          {access.canView("final_report") && <Card className="border-0 shadow-sm py-0">
+            <CardContent className="p-3 sm:p-4 lg:p-5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground leading-snug line-clamp-1">التقارير الختامية المعلقة</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">{stats.finalReportsCount}</p>
                 </div>
-                <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-emerald-600" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-lg bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center">
+                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
                 </div>
               </div>
             </CardContent>
           </Card>}
 
           {/* كارد التقارير المتأخرة */}
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">التقارير المتأخرة</p>
-                  <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{stats.lateCount}</p>
+          <Card className="border-0 shadow-sm py-0">
+            <CardContent className="p-3 sm:p-4 lg:p-5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground leading-snug line-clamp-1">التقارير المتأخرة</p>
+                  <p className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{stats.lateCount}</p>
                 </div>
-                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-lg bg-red-100 dark:bg-red-950/40 flex items-center justify-center">
+                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-400" />
                 </div>
               </div>
             </CardContent>
@@ -274,46 +281,44 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
         </div>
 
         {/* فلاتر البحث */}
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Card className="border-0 shadow-sm max-lg:py-0">
+          <CardContent className="p-3 sm:p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+              <div className="sm:col-span-2 relative min-w-0">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 <Input
                   placeholder="البحث برقم الطلب، المسجد أو الموظف..."
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); resetPage(); }}
-                  className="pr-10"
+                  className="pr-10 h-10 max-lg:min-h-11 pointer-coarse:min-h-11 max-md:text-base w-full"
                 />
               </div>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Select value={effectiveTypeFilter} onValueChange={(val) => { setTypeFilter(val); resetPage(); }}>
-                  <SelectTrigger className="w-full sm:w-48">
-                    <SelectValue placeholder="نوع التقرير" />
-                  </SelectTrigger>
-                  <SelectContent dir="rtl">
-                    <SelectItem value="all">جميع الأنواع</SelectItem>
-                    {viewableTypes.map(type => <SelectItem key={type} value={type}>{typeLabels[type]}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); resetPage(); }}>
-                  <SelectTrigger className="w-full sm:w-48">
-                    <SelectValue placeholder="الحالة الزمنية" />
-                  </SelectTrigger>
-                  <SelectContent dir="rtl">
-                    <SelectItem value="all">جميع الحالات</SelectItem>
-                    <SelectItem value="late">متأخر فقط</SelectItem>
-                    <SelectItem value="pending">بانتظار الرفع</SelectItem>
-                    <SelectItem value="completed">مكتمل</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Select value={effectiveTypeFilter} onValueChange={(val) => { setTypeFilter(val); resetPage(); }}>
+                <SelectTrigger className="w-full min-w-0 h-10 max-lg:min-h-11 pointer-coarse:min-h-11">
+                  <SelectValue placeholder="نوع التقرير" />
+                </SelectTrigger>
+                <SelectContent dir="rtl">
+                  <SelectItem value="all">جميع الأنواع</SelectItem>
+                  {viewableTypes.map(type => <SelectItem key={type} value={type}>{typeLabels[type]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); resetPage(); }}>
+                <SelectTrigger className="w-full min-w-0 h-10 max-lg:min-h-11 pointer-coarse:min-h-11">
+                  <SelectValue placeholder="الحالة الزمنية" />
+                </SelectTrigger>
+                <SelectContent dir="rtl">
+                  <SelectItem value="all">جميع الحالات</SelectItem>
+                  <SelectItem value="late">متأخر فقط</SelectItem>
+                  <SelectItem value="pending">بانتظار الرفع</SelectItem>
+                  <SelectItem value="completed">مكتمل</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
 
-        {/* جدول المهام المعلقة - Desktop & Card View - Mobile */}
-        <Card className="border-0 shadow-sm overflow-hidden">
+        {/* جدول المهام المعلقة - Desktop & Card View - Mobile/iPad */}
+        <Card className="border-0 shadow-sm overflow-hidden py-0">
           <CardContent className="p-0">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
@@ -322,12 +327,12 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
             ) : error ? (
               <div className="p-6 text-center text-red-500">
                 <AlertTriangle className="w-8 h-8 mx-auto mb-2" />
-                <p>فشل تحميل البيانات المعلقة: {error.message}</p>
+                <p className="text-sm">فشل تحميل البيانات المعلقة: {error.message}</p>
               </div>
             ) : reportsList.length > 0 ? (
               <div>
-                {/* Desktop View Table */}
-                <div className="hidden md:block overflow-x-auto">
+                {/* Desktop View Table (>= lg) */}
+                <div className="hidden lg:block overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -468,121 +473,128 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                   </Table>
                 </div>
 
-                {/* Mobile View Cards */}
-                <div className="md:hidden divide-y divide-border">
+                {/* Mobile & iPad View Cards (< lg) */}
+                <div className="lg:hidden grid grid-cols-1 md:grid-cols-2 gap-3 p-3 sm:p-4 bg-muted/15">
                   {reportsList.map((item: any) => (
-                    <div key={`${item.reportType}-${item.id}`} className="p-4 space-y-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                            item.reportType === "quick_request"
-                              ? "bg-amber-100 dark:bg-amber-950/40"
-                              : item.reportType === "quick_response"
-                              ? "bg-purple-100 dark:bg-purple-950/40"
-                              : item.reportType === "field_visit"
-                              ? "bg-blue-100 dark:bg-blue-950/40"
-                              : "bg-emerald-100 dark:bg-emerald-950/40"
-                          }`}>
-                            {item.reportType === "quick_request" ? (
-                              <Zap className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                            ) : item.reportType === "quick_response" ? (
-                              <Zap className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                            ) : item.reportType === "field_visit" ? (
-                              <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                            ) : (
-                              <FileText className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <span className="font-bold text-slate-700 dark:text-slate-200 text-sm block">{item.requestNumber}</span>
-                            <p className="text-xs text-muted-foreground truncate">{item.mosqueName}</p>
-                          </div>
-                        </div>
-                        {access.canView(item.reportType) ? (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                              {!item.isCompleted && <DropdownMenuItem disabled>عرض التقرير (لم يرفع بعد)</DropdownMenuItem>}
-                              {item.isCompleted && (
-                                <>
-                                  {item.reportType === "final_report" ? (
-                                    <Link href={`/final-report/${item.reportId}?reportSource=pending_reports`}>
-                                      <DropdownMenuItem className="cursor-pointer">
-                                        <FileText className="w-4 h-4 ml-2" />
-                                        عرض التقرير
-                                      </DropdownMenuItem>
-                                    </Link>
-                                  ) : (
-                                    <DropdownMenuItem
-                                      className="cursor-pointer"
-                                      onClick={() => {
-                                        setSelectedRequestIdForView(item.id);
-                                        setSelectedReportTypeForView(item.reportType);
-                                        setReportDialogOpen(true);
-                                      }}
-                                    >
-                                      <Eye className="w-4 h-4 ml-2" />
-                                      عرض التقرير
-                                    </DropdownMenuItem>
-                                  )}
-                                </>
+                    <div key={`${item.reportType}-${item.id}`} className="p-3.5 sm:p-4 rounded-xl border border-border/80 bg-card space-y-3.5 shadow-2xs flex flex-col justify-between">
+                      <div className="space-y-3 min-w-0">
+                        <div className="flex items-start justify-between gap-2 min-w-0">
+                          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                              item.reportType === "quick_request"
+                                ? "bg-amber-100 dark:bg-amber-950/40"
+                                : item.reportType === "quick_response"
+                                ? "bg-purple-100 dark:bg-purple-950/40"
+                                : item.reportType === "field_visit"
+                                ? "bg-blue-100 dark:bg-blue-950/40"
+                                : "bg-emerald-100 dark:bg-emerald-950/40"
+                            }`}>
+                              {item.reportType === "quick_request" ? (
+                                <Zap className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                              ) : item.reportType === "quick_response" ? (
+                                <Zap className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                              ) : item.reportType === "field_visit" ? (
+                                <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                              ) : (
+                                <FileText className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                               )}
-                              {canIntervene(item) && (
-                                <Link href={interventionUrl(item)}>
-                                  <DropdownMenuItem className="cursor-pointer">
-                                    <FileText className="w-4 h-4 ml-2" />
-                                    {item.isCompleted ? "التدخل وتعديل التقرير" : "التدخل ورفع التقرير"}
-                                  </DropdownMenuItem>
-                                </Link>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        ) : null}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4 text-xs">
-                        <div>
-                          <p className="text-muted-foreground mb-1">نوع التقرير</p>
-                          <Badge className={`${typeColors[item.reportType]} border-0 whitespace-nowrap`}>
-                            {typeLabels[item.reportType]}
-                          </Badge>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground mb-1">الحالة</p>
-                          <Badge className={
-                            item.isCompleted 
-                              ? "bg-emerald-100 text-emerald-800 border-0" 
-                              : item.isLate 
-                                ? "bg-red-100 text-red-800 border-0" 
-                                : "bg-yellow-100 text-yellow-800 border-0"
-                          }>
-                            {item.isCompleted ? "مكتمل" : item.isLate ? "متأخر" : "بانتظار الرفع"}
-                          </Badge>
-                        </div>
-                        <div className="col-span-2">
-                          <p className="text-muted-foreground mb-1">تاريخ الاستحقاق / الموعد</p>
-                          <div className="flex items-center gap-1 text-slate-700 dark:text-slate-300 font-medium">
-                            <Calendar className="w-3.5 h-3.5" />
-                            <span>{item.dueDate}</span>
-                          </div>
-                        </div>
-                        {item.assignedTo && (
-                          <div className="col-span-2 p-2 bg-slate-50 dark:bg-slate-900/40 rounded-lg">
-                            <p className="text-muted-foreground mb-1 flex items-center gap-1">
-                              <User className="w-3 h-3" /> المسؤول عن الرفع:
-                            </p>
-                            <p className="font-bold text-slate-800 dark:text-slate-200">{item.assignedTo.name}</p>
-                            <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground mt-1 font-medium">
-                              {item.assignedTo.phone && <span>هاتف: {item.assignedTo.phone}</span>}
-                              {item.assignedTo.email && <span className="truncate max-w-[180px]">إيميل: {item.assignedTo.email}</span>}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <span className="font-bold text-slate-700 dark:text-slate-200 text-sm block truncate">{item.requestNumber}</span>
+                              <p className="text-xs text-muted-foreground truncate mt-0.5">{item.mosqueName}{item.mosqueCity ? ` (${item.mosqueCity})` : ""}</p>
                             </div>
                           </div>
-                        )}
+                          {access.canView(item.reportType) ? (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="size-10 shrink-0" aria-label="إجراءات التقرير">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-52">
+                                {!item.isCompleted && <DropdownMenuItem disabled className="min-h-10">عرض التقرير (لم يرفع بعد)</DropdownMenuItem>}
+                                {item.isCompleted && (
+                                  <>
+                                    {item.reportType === "final_report" ? (
+                                      <Link href={`/final-report/${item.reportId}?reportSource=pending_reports`}>
+                                        <DropdownMenuItem className="cursor-pointer min-h-11">
+                                          <FileText className="w-4 h-4 ml-2" />
+                                          عرض التقرير
+                                        </DropdownMenuItem>
+                                      </Link>
+                                    ) : (
+                                      <DropdownMenuItem
+                                        className="cursor-pointer min-h-11"
+                                        onClick={() => {
+                                          setSelectedRequestIdForView(item.id);
+                                          setSelectedReportTypeForView(item.reportType);
+                                          setReportDialogOpen(true);
+                                        }}
+                                      >
+                                        <Eye className="w-4 h-4 ml-2" />
+                                        عرض التقرير
+                                      </DropdownMenuItem>
+                                    )}
+                                  </>
+                                )}
+                                {canIntervene(item) && (
+                                  <Link href={interventionUrl(item)}>
+                                    <DropdownMenuItem className="cursor-pointer min-h-11">
+                                      <FileText className="w-4 h-4 ml-2" />
+                                      {item.isCompleted ? "التدخل وتعديل التقرير" : "التدخل ورفع التقرير"}
+                                    </DropdownMenuItem>
+                                  </Link>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          ) : null}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div className="min-w-0">
+                            <p className="text-muted-foreground mb-1">نوع التقرير</p>
+                            <Badge className={`${typeColors[item.reportType]} border-0 whitespace-nowrap`}>
+                              {typeLabels[item.reportType]}
+                            </Badge>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-muted-foreground mb-1">الحالة</p>
+                            <Badge className={
+                              item.isCompleted 
+                                ? "bg-emerald-100 text-emerald-800 border-0" 
+                                : item.isLate 
+                                  ? "bg-red-100 text-red-800 border-0" 
+                                  : "bg-yellow-100 text-yellow-800 border-0"
+                            }>
+                              {item.isCompleted ? "مكتمل" : item.isLate ? "متأخر" : "بانتظار الرفع"}
+                            </Badge>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-muted-foreground mb-1">تاريخ الاستحقاق / الموعد</p>
+                            <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
+                              <Calendar className="w-3.5 h-3.5 shrink-0" />
+                              <span>{item.dueDate}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
+
+                      {item.assignedTo ? (
+                        <div className="p-2.5 bg-slate-50 dark:bg-slate-900/40 rounded-lg border border-border/50 text-xs">
+                          <p className="text-muted-foreground mb-1 flex items-center gap-1">
+                            <User className="w-3.5 h-3.5 shrink-0" /> المسؤول عن الرفع:
+                          </p>
+                          <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{item.assignedTo.name}</p>
+                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground mt-1 font-medium">
+                            {item.assignedTo.phone && <span dir="ltr">{item.assignedTo.phone}</span>}
+                            {item.assignedTo.email && <span className="truncate max-w-full">{item.assignedTo.email}</span>}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-2 bg-red-50/60 dark:bg-red-950/20 rounded-lg border border-red-200/50 dark:border-red-900/40 text-xs text-red-600 dark:text-red-400 font-bold">
+                          غير مسند لموظف
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -599,6 +611,7 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                   itemsPerPage={limit}
                   itemName="تقرير"
                   itemNamePlural="تقارير"
+                  className="bg-muted/20 border-t max-sm:px-2 max-sm:[&_button]:px-2 pointer-coarse:[&_button]:min-h-11"
                 />
               </div>
             ) : (
@@ -617,7 +630,7 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
 
   return (
     <>
-      {embedded ? mainContent : <DashboardLayout>{mainContent}</DashboardLayout>}
+      {embedded ? mainContent : <DashboardLayout tabletNavigation>{mainContent}</DashboardLayout>}
 
     {/* Dialog لعرض التقرير الميداني أو الاستجابة السريعة */}
     <ColoredDialog
@@ -664,20 +677,20 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
       ) : (
         <div className="space-y-4" dir="rtl">
           {/* شريط الإجراءات والطباعة داخل المودال */}
-          <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700/60 print:hidden">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700/60 print:hidden">
+            <div className="flex items-center gap-2 flex-wrap min-w-0">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                 رقم الطلب: <span className="font-mono text-[#1a5f4a] dark:text-emerald-400 font-bold">{singleRequestData.requestNumber || `#${singleRequestData.id}`}</span>
               </span>
               {singleRequestData.mosque?.name && (
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium break-words">
                   • {singleRequestData.mosque.name}
                 </span>
               )}
             </div>
             <Button
               size="sm"
-              className="bg-[#1a5f4a] hover:bg-[#144939] text-white font-bold gap-2 shadow-xs text-xs"
+              className="w-full sm:w-auto max-lg:min-h-11 pointer-coarse:min-h-11 bg-[#1a5f4a] hover:bg-[#144939] text-white font-bold gap-2 shadow-xs text-xs shrink-0"
               onClick={() => {
                 if (selectedReportTypeForView === "field_visit") {
                   setLocation(`/requests/${singleRequestData.id}/field-visit-report/print?reportSource=pending_reports`);
@@ -742,7 +755,7 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
               const ratingNotes = report.beneficiaryInfoAccuracyNotes;
 
               return (
-                <div key={report.id} className="space-y-6 bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-indigo-100 dark:border-indigo-900/50 text-right" style={{ direction: "rtl" }}>
+                <div key={report.id} className="space-y-5 sm:space-y-6 bg-white dark:bg-slate-900/50 p-3.5 sm:p-6 rounded-xl border border-indigo-100 dark:border-indigo-900/50 text-right" style={{ direction: "rtl" }}>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 border-slate-100 dark:border-slate-800">
                     <div>
                       <h4 className="font-bold text-indigo-950 dark:text-indigo-100 text-base sm:text-lg">تفاصيل التقرير الميداني</h4>
@@ -895,7 +908,8 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                             {sitePhotos.map((photo: any, index: number) => (
                               <div 
                                 key={photo.id || index} 
-                                className="group relative aspect-video rounded-xl overflow-hidden border border-slate-200/60 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 shadow-xs hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-900/80 transition-all duration-300"
+                                onClick={() => setPreviewImage({ url: photo.fileUrl, name: photo.fileName })}
+                                className="group relative aspect-video rounded-xl overflow-hidden border border-slate-200/60 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 shadow-xs hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-900/80 transition-all duration-300 cursor-pointer"
                               >
                                 <ProgressiveImage 
                                   src={photo.fileUrl} 
@@ -983,13 +997,13 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
               };
 
               return (
-                <div key={report.id} className="space-y-6 bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-purple-100 dark:border-purple-900/50 text-right" style={{ direction: "rtl" }}>
+                <div key={report.id} className="space-y-5 sm:space-y-6 bg-white dark:bg-slate-900/50 p-3.5 sm:p-6 rounded-xl border border-purple-100 dark:border-purple-900/50 text-right" style={{ direction: "rtl" }}>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 border-slate-100 dark:border-slate-800">
                     <div>
                       <h4 className="font-bold text-purple-950 dark:text-purple-100 text-base sm:text-lg">تفاصيل التقرير الفني</h4>
                       <p className="text-xs text-slate-500">تم تقديم التقرير في: {report.responseDate ? new Date(report.responseDate).toLocaleDateString('ar-SA') : "غير محدد"}</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {report.finalEvaluation && (
                         <div className={`px-3 py-1 rounded-full border text-xs font-bold ${evaluationColors[report.finalEvaluation] || ''}`}>
                           التقييم: {evaluationLabels[report.finalEvaluation] || report.finalEvaluation}
@@ -1068,7 +1082,8 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                           {reportPhotos.map((photo: any, index: number) => (
                             <div 
                               key={photo.id || index} 
-                              className="group relative aspect-video rounded-xl overflow-hidden border border-slate-200/60 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 shadow-xs hover:shadow-md hover:border-purple-300 dark:hover:border-purple-900/80 transition-all duration-300"
+                              onClick={() => setPreviewImage({ url: photo.fileUrl, name: photo.fileName })}
+                              className="group relative aspect-video rounded-xl overflow-hidden border border-slate-200/60 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 shadow-xs hover:shadow-md hover:border-purple-300 dark:hover:border-purple-900/80 transition-all duration-300 cursor-pointer"
                             >
                               <img 
                                 src={photo.fileUrl} 
@@ -1118,18 +1133,19 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
     {/* Lightbox Modal */}
     {previewImage && access.canView(selectedReportTypeForView) && (
       <div 
-        className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200"
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200"
         onClick={() => setPreviewImage(null)}
       >
         <div 
-          className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center bg-slate-900/55 border border-slate-800 rounded-2xl p-2 sm:p-4 shadow-2xl overflow-hidden"
+          className="relative max-w-4xl w-full max-h-[90dvh] flex flex-col items-center bg-slate-900/80 border border-slate-800 rounded-2xl p-2 sm:p-4 shadow-2xl overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Close button */}
           <button 
             onClick={() => setPreviewImage(null)}
-            className="absolute top-4 right-4 bg-slate-800/80 hover:bg-slate-700/80 text-white rounded-full p-2 transition-all z-10 shadow-lg"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-slate-800/80 hover:bg-slate-700/80 text-white rounded-full min-h-11 min-w-11 flex items-center justify-center transition-all z-10 shadow-lg"
             title="إغلاق"
+            aria-label="إغلاق"
           >
             <X className="w-5 h-5" />
           </button>
@@ -1140,25 +1156,26 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
             download={previewImage.name}
             target="_blank"
             rel="noopener noreferrer"
-            className="absolute top-4 left-4 bg-slate-800/80 hover:bg-orange-600/80 text-white rounded-full p-2 transition-all flex items-center gap-1.5 px-3 z-10 shadow-lg"
+            className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-slate-800/80 hover:bg-orange-600/80 text-white rounded-full min-h-11 min-w-11 px-3 transition-all flex items-center justify-center gap-1.5 z-10 shadow-lg"
             title="تحميل"
+            aria-label="تحميل"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-4 h-4 shrink-0" />
             <span className="text-xs font-bold hidden sm:inline">تحميل</span>
           </a>
 
           {/* Image container */}
-          <div className="w-full flex-1 flex items-center justify-center p-2 overflow-auto mt-12 mb-2">
+          <div className="w-full flex-1 flex items-center justify-center p-1 sm:p-2 overflow-auto mt-14 mb-2 min-h-0">
             <img 
               src={previewImage.url} 
               alt={previewImage.name} 
-              className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-md"
+              className="max-w-full max-h-[70dvh] object-contain rounded-lg shadow-md"
             />
           </div>
 
           {/* Caption/Name */}
-          <div className="mt-2 text-center px-4 py-2 w-full border-t border-slate-800/60 bg-slate-900/30">
-            <p className="text-sm font-bold text-slate-100 truncate">{previewImage.name}</p>
+          <div className="mt-1 sm:mt-2 text-center px-3 sm:px-4 py-2 w-full border-t border-slate-800/60 bg-slate-900/30">
+            <p className="text-xs sm:text-sm font-bold text-slate-100 truncate">{previewImage.name}</p>
           </div>
         </div>
       </div>

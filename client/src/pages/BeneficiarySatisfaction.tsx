@@ -437,18 +437,18 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   const hasAnyLogsAccess = canViewEvaluationsLog || canViewDispatchLogs || canViewContacts;
 
   const content = (
-    <div className="space-y-6 pb-12" dir="rtl">
+    <div className="min-w-0 max-w-full overflow-x-hidden space-y-4 sm:space-y-6 pb-10 sm:pb-12" dir="rtl">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-5 sm:p-6 rounded-2xl border border-border/80 shadow-xs">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/15 dark:bg-amber-500/25 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30 shadow-xs">
-              <HeartHandshake className="w-6 h-6" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-card p-4 sm:p-5 lg:p-6 rounded-2xl border border-border/80 shadow-xs">
+          <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-500/15 dark:bg-amber-500/25 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30 shadow-xs">
+              <HeartHandshake className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-foreground">
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-black text-foreground leading-tight">
                 رضا المستفيدين
               </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 leading-relaxed">
                 متابعة استبيانات قياس رضا المستفيدين، تقييمات الخدمات، والآراء والمقترحات الواردة
               </p>
             </div>
@@ -456,37 +456,37 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
         </div>
 
         {/* KPI Cards - تظهر دائماً في أعلى الصفحة لتمكين من لديه صلاحية العرض من رؤية الإحصائيات بالكامل */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
           {/* إجمالي التقييمات */}
-          <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
-            <CardContent className="p-4 sm:p-5 flex items-center justify-between text-right">
-              <div className="space-y-1 text-right">
-                <span className="text-xs font-semibold text-muted-foreground block text-right">إجمالي التقييمات</span>
-                <span className="text-2xl sm:text-3xl font-black text-foreground block text-right">
+          <Card className="py-0 gap-0 rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
+            <CardContent className="p-3.5 sm:p-5 flex items-start sm:items-center justify-between gap-2 text-right">
+              <div className="space-y-1 text-right min-w-0">
+                <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground block text-right leading-snug">إجمالي التقييمات</span>
+                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-foreground block text-right font-mono">
                   {stats.totalEvaluations}
                 </span>
-                <span className="text-[11px] text-muted-foreground block text-right">
+                <span className="text-[10px] sm:text-[11px] text-muted-foreground block text-right leading-snug">
                   استبيان مكتمل من المستفيدين
                 </span>
               </div>
-              <div className="w-11 h-11 rounded-2xl bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/20">
-                <Layers className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/20">
+                <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </CardContent>
           </Card>
 
           {/* متوسط الرضا العام */}
-          <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
-            <CardContent className="p-4 sm:p-5 flex items-center justify-between text-right">
-              <div className="space-y-1 text-right">
-                <span className="text-xs font-semibold text-muted-foreground block text-right">متوسط الرضا العام</span>
-                <div className="flex items-baseline gap-1.5 justify-start">
-                  <span className="text-2xl sm:text-3xl font-black text-amber-500">
+          <Card className="py-0 gap-0 rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
+            <CardContent className="p-3.5 sm:p-5 flex items-start sm:items-center justify-between gap-2 text-right">
+              <div className="space-y-1 text-right min-w-0">
+                <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground block text-right leading-snug">متوسط الرضا العام</span>
+                <div className="flex items-baseline gap-1 sm:gap-1.5 justify-start">
+                  <span className="text-xl sm:text-2xl lg:text-3xl font-black text-amber-500 font-mono">
                     {stats.avgRating > 0 ? stats.avgRating : "0.0"}
                   </span>
-                  <span className="text-xs font-bold text-muted-foreground">/ 5.0</span>
+                  <span className="text-[11px] sm:text-xs font-bold text-muted-foreground font-mono">/ 5.0</span>
                 </div>
-                <div className="flex items-center gap-1 pt-0.5 justify-start" dir="rtl">
+                <div className="flex items-center gap-0.5 sm:gap-1 pt-0.5 justify-start" dir="rtl">
                   {[1, 2, 3, 4, 5].map((s) => (
                     <Star
                       key={s}
@@ -499,44 +499,44 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                   ))}
                 </div>
               </div>
-              <div className="w-11 h-11 rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
-                <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
+              <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
+                <Star className="w-4 h-4 sm:w-5 sm:h-5 fill-amber-500 text-amber-500" />
               </div>
             </CardContent>
           </Card>
 
           {/* نسبة الرضا الإيجابي */}
-          <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
-            <CardContent className="p-4 sm:p-5 flex items-center justify-between text-right">
-              <div className="space-y-1 text-right">
-                <span className="text-xs font-semibold text-muted-foreground block text-right">نسبة الرضا الإيجابي</span>
-                <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 block text-right font-mono">
+          <Card className="py-0 gap-0 rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
+            <CardContent className="p-3.5 sm:p-5 flex items-start sm:items-center justify-between gap-2 text-right">
+              <div className="space-y-1 text-right min-w-0">
+                <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground block text-right leading-snug">نسبة الرضا الإيجابي</span>
+                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-emerald-600 dark:text-emerald-400 block text-right font-mono">
                   {stats.totalEvaluations > 0 ? stats.positivePercent : 0}%
                 </span>
-                <span className="text-[11px] text-muted-foreground block text-right">
+                <span className="text-[10px] sm:text-[11px] text-muted-foreground block text-right leading-snug">
                   تقييمات 4 و 5 نجوم
                 </span>
               </div>
-              <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
-                <CheckCircle2 className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </CardContent>
           </Card>
 
           {/* الآراء والمقترحات */}
-          <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
-            <CardContent className="p-4 sm:p-5 flex items-center justify-between text-right">
-              <div className="space-y-1 text-right">
-                <span className="text-xs font-semibold text-muted-foreground block text-right">الملاحظات والمقترحات</span>
-                <span className="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-400 block text-right">
+          <Card className="py-0 gap-0 rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
+            <CardContent className="p-3.5 sm:p-5 flex items-start sm:items-center justify-between gap-2 text-right">
+              <div className="space-y-1 text-right min-w-0">
+                <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground block text-right leading-snug">الملاحظات والمقترحات</span>
+                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-purple-600 dark:text-purple-400 block text-right font-mono">
                   {stats.withCommentsCount}
                 </span>
-                <span className="text-[11px] text-muted-foreground block text-right">
+                <span className="text-[10px] sm:text-[11px] text-muted-foreground block text-right leading-snug">
                   مستفيد قدّم ملاحظات تفصيلية
                 </span>
               </div>
-              <div className="w-11 h-11 rounded-2xl bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-500/20">
-                <MessageSquare className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-500/20">
+                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </CardContent>
           </Card>
@@ -544,33 +544,33 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
         {/* في حال توفر صلاحية لعرض الجداول أو السجلات تظهر التبويبات */}
         {hasAnyLogsAccess && (
-          <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl" className="w-full min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center justify-start gap-3 mb-2">
-              <TabsList dir="rtl" className="w-full sm:w-auto p-1 h-12 bg-muted/80 rounded-2xl border border-border/70 shadow-xs flex items-center justify-start gap-1">
+              <TabsList dir="rtl" className="w-full sm:w-auto p-1 h-auto min-h-11 bg-muted/80 rounded-2xl border border-border/70 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-start gap-1">
                 {canViewEvaluationsLog && (
-                  <TabsTrigger value="evaluations" className="gap-2 px-4 py-2 text-xs sm:text-sm font-bold rounded-xl data-[state=active]:shadow-sm">
-                    <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                    التقييمات والنتائج
-                    <Badge variant="secondary" className="mr-1 text-[11px] px-1.5 py-0 h-5 font-bold">
+                  <TabsTrigger value="evaluations" className="gap-2 px-3.5 sm:px-4 py-2 min-h-10 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs sm:text-sm font-bold rounded-xl data-[state=active]:shadow-sm justify-center">
+                    <Star className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />
+                    <span>التقييمات والنتائج</span>
+                    <Badge variant="secondary" className="mr-1 text-[11px] px-1.5 py-0 h-5 font-bold font-mono">
                       {stats.totalEvaluations}
                     </Badge>
                   </TabsTrigger>
                 )}
                 {(canViewDispatchLogs || canViewContacts) && (
-                  <TabsTrigger value="logs" className="gap-2 px-4 py-2 text-xs sm:text-sm font-bold rounded-xl data-[state=active]:shadow-sm">
+                  <TabsTrigger value="logs" className="gap-2 px-3.5 sm:px-4 py-2 min-h-10 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs sm:text-sm font-bold rounded-xl data-[state=active]:shadow-sm justify-center">
                     {canViewDispatchLogs ? (
                       <>
-                        <Send className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                        <span>{canViewContacts ? "السجلات ودليل المستفيدين" : "السجلات (الاستبيانات المرسلة)"}</span>
-                        <Badge variant="secondary" className="mr-1 text-[11px] px-1.5 py-0 h-5 font-bold bg-teal-500/15 text-teal-700 dark:text-teal-300">
+                        <Send className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
+                        <span className="truncate">{canViewContacts ? "السجلات ودليل المستفيدين" : "السجلات (الاستبيانات المرسلة)"}</span>
+                        <Badge variant="secondary" className="mr-1 text-[11px] px-1.5 py-0 h-5 font-bold font-mono bg-teal-500/15 text-teal-700 dark:text-teal-300">
                           {logsData?.stats?.totalDispatched || 0}
                         </Badge>
                       </>
                     ) : (
                       <>
-                        <Users className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                        <span>المستفيدين المعتمدين والاستفسارات</span>
-                        <Badge variant="secondary" className="mr-1 text-[11px] px-1.5 py-0 h-5 font-bold bg-teal-500/15 text-teal-700 dark:text-teal-300">
+                        <Users className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
+                        <span className="truncate">المستفيدين المعتمدين والاستفسارات</span>
+                        <Badge variant="secondary" className="mr-1 text-[11px] px-1.5 py-0 h-5 font-bold font-mono bg-teal-500/15 text-teal-700 dark:text-teal-300">
                           {contactsData?.total || 0}
                         </Badge>
                       </>
@@ -582,26 +582,27 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
             {/* تبويب 1: نتائج وتقييمات المستفيدين */}
             {canViewEvaluationsLog && (
-              <TabsContent value="evaluations" className="space-y-6 mt-2" dir="rtl">
+              <TabsContent value="evaluations" className="space-y-4 sm:space-y-6 mt-2 min-w-0" dir="rtl">
                 {/* Filter and Search Bar */}
-                <Card className="rounded-2xl border border-border/80 shadow-xs bg-card" dir="rtl">
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex flex-col md:flex-row items-center gap-3">
+                <Card className="py-0 gap-0 rounded-2xl border border-border/80 shadow-xs bg-card" dir="rtl">
+                  <CardContent className="p-3.5 sm:p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
                       {/* بحث نصي */}
-                      <div className="relative w-full md:flex-1" dir="rtl">
+                      <div className="relative sm:col-span-2" dir="rtl">
                         <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                         <Input
                           placeholder="ابحث برقم الطلب، اسم المستفيد، الجوال، المسجد، أو الملاحظات..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="pr-9 pl-9 h-10 rounded-xl text-xs text-right"
+                          className="pr-9 pl-9 h-10 max-lg:min-h-11 pointer-coarse:min-h-11 rounded-xl text-xs sm:text-sm max-md:text-base text-right"
                           dir="rtl"
                         />
                         {searchQuery && (
                           <button
                             type="button"
                             onClick={() => setSearchQuery("")}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                            className="absolute left-2 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer rounded-lg"
+                            aria-label="مسح البحث"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
@@ -609,9 +610,9 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                       </div>
 
                       {/* فلتر النجوم */}
-                      <div className="w-full sm:w-48">
+                      <div className="min-w-0">
                         <Select value={selectedRating} onValueChange={setSelectedRating} dir="rtl">
-                          <SelectTrigger className="h-10 rounded-xl text-xs font-bold text-right" dir="rtl">
+                          <SelectTrigger className="w-full min-w-0 h-10 max-lg:min-h-11 pointer-coarse:min-h-11 rounded-xl text-xs sm:text-sm font-bold text-right" dir="rtl">
                             <SelectValue placeholder="تصفية حسب النجوم" />
                           </SelectTrigger>
                           <SelectContent dir="rtl">
@@ -626,9 +627,9 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                       </div>
 
                       {/* فلتر البرنامج - ديناميكي 100% من قاعدة البيانات */}
-                      <div className="w-full sm:w-48">
+                      <div className="min-w-0">
                         <Select value={selectedProgram} onValueChange={setSelectedProgram} dir="rtl">
-                          <SelectTrigger className="h-10 rounded-xl text-xs font-bold text-right" dir="rtl">
+                          <SelectTrigger className="w-full min-w-0 h-10 max-lg:min-h-11 pointer-coarse:min-h-11 rounded-xl text-xs sm:text-sm font-bold text-right" dir="rtl">
                             <SelectValue placeholder="تصفية حسب البرنامج" />
                           </SelectTrigger>
                           <SelectContent dir="rtl">
@@ -646,10 +647,10 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                 </Card>
 
                 {/* Evaluations List Table */}
-                <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
+                <Card className="py-0 gap-0 rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
                   <CardHeader className="p-4 sm:p-5 border-b border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                    <div className="min-w-0">
+                      <CardTitle className="text-base font-bold text-foreground flex items-center flex-wrap gap-2">
                         {showOnlyHidden ? (
                           <>
                             <EyeOff className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
@@ -674,7 +675,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                         variant={showOnlyHidden ? "default" : "outline"}
                         size="sm"
                         onClick={() => setShowOnlyHidden((prev) => !prev)}
-                        className={`h-9 px-4 text-xs font-bold gap-2 rounded-xl transition-all shadow-xs self-start sm:self-auto cursor-pointer ${
+                        className={`h-9 max-lg:min-h-11 pointer-coarse:min-h-11 w-full sm:w-auto justify-center px-4 text-xs font-bold gap-2 rounded-xl transition-all shadow-xs cursor-pointer ${
                           showOnlyHidden
                             ? "bg-amber-600 hover:bg-amber-700 text-white border-amber-600 shadow-amber-500/20"
                             : "text-amber-800 dark:text-amber-300 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20"
@@ -682,7 +683,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                       >
                         {showOnlyHidden ? (
                           <>
-                            <Eye className="w-4 h-4" />
+                            <Eye className="w-4 h-4 shrink-0" />
                             <span>عرض التقييمات النشطة</span>
                             <span className="bg-white/20 text-white text-[11px] px-1.5 py-0.5 rounded-full font-mono font-bold">
                               {activeItems.length}
@@ -690,7 +691,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                           </>
                         ) : (
                           <>
-                            <EyeOff className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                            <EyeOff className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                             <span>عرض التقييمات المخفية</span>
                             {hiddenItems.length > 0 && (
                               <Badge variant="secondary" className="px-1.5 py-0 h-5 text-[11px] font-bold bg-amber-600 text-white dark:bg-amber-500 dark:text-gray-950 mr-1 font-mono">
@@ -705,10 +706,10 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
                   {/* تنبيه واضح عند تفعيل فلتر التقييمات المخفية */}
                   {showOnlyHidden && (
-                    <div className="mx-4 sm:mx-5 mt-4 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200">
-                      <div className="flex items-center gap-2">
-                        <EyeOff className="w-4 h-4 text-amber-600 shrink-0" />
-                        <span className="font-semibold">
+                    <div className="mx-3.5 sm:mx-5 mt-3.5 sm:mt-4 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 text-xs text-amber-900 dark:text-amber-200">
+                      <div className="flex items-start sm:items-center gap-2">
+                        <EyeOff className="w-4 h-4 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
+                        <span className="font-semibold leading-relaxed">
                           أنت تشاهد حالياً التقييمات المخفية فقط ({hiddenItems.length} تقييم). يمكنك النقر على زر "إظهار" بجانب أي تقييم لإعادته للقائمة العامة.
                         </span>
                       </div>
@@ -716,7 +717,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowOnlyHidden(false)}
-                        className="h-7 px-2.5 text-xs font-bold rounded-lg text-amber-800 dark:text-amber-200 hover:bg-amber-500/20 shrink-0"
+                        className="h-8 max-lg:min-h-10 px-3 text-xs font-bold rounded-lg text-amber-800 dark:text-amber-200 hover:bg-amber-500/20 shrink-0 self-end sm:self-auto"
                       >
                         إلغاء الفلتر
                       </Button>
@@ -725,12 +726,12 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
                   <CardContent className="p-0">
                     {isLoading ? (
-                      <div className="p-12 text-center text-muted-foreground text-xs">
+                      <div className="p-10 sm:p-12 text-center text-muted-foreground text-xs">
                         جاري تحميل تقييمات رضا المستفيدين...
                       </div>
                     ) : displayedItems.length === 0 ? (
                       showOnlyHidden ? (
-                        <div className="p-12 text-center space-y-3">
+                        <div className="p-10 sm:p-12 text-center space-y-3">
                           <Eye className="w-12 h-12 mx-auto text-muted-foreground/40" />
                           <p className="text-sm font-bold text-foreground">لا توجد أي تقييمات مخفية حالياً</p>
                           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
@@ -740,13 +741,13 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                             variant="outline"
                             size="sm"
                             onClick={() => setShowOnlyHidden(false)}
-                            className="h-8 px-3 text-xs font-bold rounded-xl"
+                            className="h-9 max-lg:min-h-11 px-4 text-xs font-bold rounded-xl"
                           >
                             الرجوع إلى التقييمات النشطة
                           </Button>
                         </div>
                       ) : (
-                        <div className="p-12 text-center space-y-2">
+                        <div className="p-10 sm:p-12 text-center space-y-2">
                           <HeartHandshake className="w-12 h-12 mx-auto text-muted-foreground/40" />
                           <p className="text-sm font-bold text-foreground">لا توجد تقييمات نشطة مطابقة</p>
                           <p className="text-xs text-muted-foreground">
@@ -759,175 +760,328 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                         </div>
                       )
                     ) : (
-                      <div className="overflow-x-auto" dir="rtl">
-                        <table className="w-full text-right text-xs" dir="rtl">
-                          <thead>
-                            <tr className="border-b border-border bg-muted/40 text-muted-foreground font-semibold">
-                              <th className="p-3.5 px-4 text-right">رقم الطلب</th>
-                              <th className="p-3.5 px-4 text-right">المستفيد</th>
-                              <th className="p-3.5 px-4 text-right">الخدمة / البرنامج</th>
-                              <th className="p-3.5 px-4 text-center">التقييم</th>
-                              <th className="p-3.5 px-4 text-right">الآراء والملاحظات</th>
-                              <th className="p-3.5 px-4 text-right">تاريخ التقييم</th>
-                              <th className="p-3.5 px-4 text-center">الإجراءات</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-border/60">
-                            {displayedItems.map((item) => {
-                              const ratingVal = typeof item.rating === "number" && item.rating > 0 ? item.rating : 5;
-                              return (
-                                <tr key={item.id} className="hover:bg-muted/30 transition-colors">
-                                  {/* رقم الطلب */}
-                                  <td className="p-3.5 px-4 font-mono font-bold text-foreground text-right">
-                                    <span>{item.requestNumber}</span>
-                                    <span className="text-[10px] text-muted-foreground font-normal block font-sans">
-                                      {getArabicLabel(item.programType)}
-                                    </span>
-                                  </td>
-
-                                  {/* المستفيد */}
-                                  <td className="p-3.5 px-4 text-right">
-                                    <div className="space-y-0.5 text-right">
-                                      <span className="font-bold text-foreground block truncate max-w-[150px] text-right">
-                                        {item.requesterName}
+                      <>
+                        {/* عرض البطاقات للموبايل والآيباد */}
+                        <div className="xl:hidden grid grid-cols-1 md:grid-cols-2 gap-3 p-3 sm:p-4 bg-muted/15" dir="rtl">
+                          {displayedItems.map((item) => {
+                            const ratingVal = typeof item.rating === "number" && item.rating > 0 ? item.rating : 5;
+                            return (
+                              <div
+                                key={item.id}
+                                className="rounded-xl border border-border/80 bg-card p-3.5 sm:p-4 shadow-xs flex flex-col justify-between gap-3"
+                              >
+                                <div className="space-y-2.5">
+                                  {/* الصف العلوي: رقم الطلب والبرنامج + التقييم */}
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <span className="font-mono font-bold text-sm text-foreground block truncate">
+                                        {item.requestNumber}
                                       </span>
-                                      {item.requesterPhone && (
-                                        <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5 justify-start text-right">
-                                          <Phone className="w-3 h-3 text-blue-500 shrink-0" />
-                                          <span dir="ltr" className="inline-block">{item.requesterPhone}</span>
-                                        </div>
-                                      )}
+                                      <span className="text-[11px] text-muted-foreground block truncate">
+                                        {getArabicLabel(item.programType)}
+                                      </span>
                                     </div>
-                                  </td>
-
-                                  {/* الخدمة / البرنامج */}
-                                  <td className="p-3.5 px-4">
-                                    <span className="font-medium text-foreground block truncate max-w-[180px]">
-                                      {getArabicLabel(item.serviceName)}
-                                    </span>
-                                  </td>
-
-                                  {/* التقييم */}
-                                  <td className="p-3.5 px-4 text-center">
-                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 font-bold">
+                                    <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 font-bold text-xs shrink-0 font-mono">
                                       <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
                                       <span>{ratingVal} / 5</span>
                                     </div>
-                                  </td>
+                                  </div>
 
-                                  {/* الآراء والملاحظات */}
-                                  <td className="p-3.5 px-4 max-w-[280px] text-right" title={item.comments || ""}>
-                                    {item.comments ? (
-                                      <div
-                                        onClick={() => canViewDetails && handleOpenDetails(item)}
-                                        className={canViewDetails ? "cursor-pointer group" : ""}
-                                        title={item.comments}
-                                      >
-                                        <p className={`text-muted-foreground ${canViewDetails ? "group-hover:text-foreground" : ""} transition-colors italic text-xs leading-relaxed text-right line-clamp-2 break-words`}>
-                                          "{item.comments}"
-                                        </p>
-                                      </div>
-                                    ) : (
-                                      <span className="text-muted-foreground/50 text-[11px] block text-right">لا توجد ملاحظات</span>
-                                    )}
-                                  </td>
-
-                                  {/* التاريخ */}
-                                  <td className="p-3.5 px-4 text-muted-foreground text-[11px] whitespace-nowrap text-right font-mono">
-                                    <div>{formatDateEn(item.evaluatedAt)}</div>
+                                  {/* معلومات المستفيد والخدمة */}
+                                  <div className="space-y-1.5 text-xs pt-2 border-t border-border/50">
+                                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                                      <span className="font-bold text-foreground truncate max-w-full">
+                                        {item.requesterName}
+                                      </span>
+                                      {item.requesterPhone && (
+                                        <span className="text-[11px] text-muted-foreground font-mono inline-flex items-center gap-1">
+                                          <Phone className="w-3 h-3 text-blue-500 shrink-0" />
+                                          <span dir="ltr">{item.requesterPhone}</span>
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center justify-between gap-2 flex-wrap text-[11px] text-muted-foreground">
+                                      <span className="inline-flex items-center gap-1 min-w-0">
+                                        <Building2 className="w-3 h-3 shrink-0 text-primary/70" />
+                                        <span className="truncate font-medium text-foreground/85">{getArabicLabel(item.serviceName)}</span>
+                                      </span>
+                                      <span className="font-mono inline-flex items-center gap-1 shrink-0">
+                                        <Calendar className="w-3 h-3 shrink-0" />
+                                        {formatDateEn(item.evaluatedAt)}
+                                      </span>
+                                    </div>
                                     {item.isHidden && item.hiddenBy && (
-                                      <div className="text-[10px] text-rose-600 dark:text-rose-400 mt-0.5 font-sans">
+                                      <div className="text-[11px] text-rose-600 dark:text-rose-400">
                                         مخفي بواسطة: {item.hiddenBy.userName || "الإدارة"}
                                       </div>
                                     )}
-                                  </td>
+                                  </div>
 
-                                  {/* الإجراءات */}
-                                  <td className="p-3.5 px-4 text-center whitespace-nowrap">
-                                    <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                                      {canViewDetails && (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => handleOpenDetails(item)}
-                                          className="h-8 px-2.5 text-xs font-bold gap-1 rounded-lg hover:bg-amber-500/10 hover:text-amber-700 hover:border-amber-500/30"
-                                        >
-                                          <Eye className="w-3.5 h-3.5" />
-                                          <span>عرض</span>
-                                        </Button>
-                                      )}
-
-                                      {/* زر الرد: إذا وجد رد يظهر زر عرض الرد، وإذا لم يوجد رد يظهر إضافة رد فقط (دون تعديل) */}
-                                      {item.reply ? (
-                                        canViewReply && (
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handleOpenViewReplyModal(item)}
-                                            className="h-8 px-2.5 text-xs font-bold gap-1 rounded-lg text-teal-700 dark:text-teal-300 border-teal-500/30 bg-teal-500/5 hover:bg-teal-500/15"
-                                          >
-                                            <ShieldCheck className="w-3.5 h-3.5" />
-                                            <span>عرض الرد</span>
-                                          </Button>
-                                        )
-                                      ) : (
-                                        canReply && (
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handleOpenReplyDialog(item)}
-                                            className="h-8 px-2.5 text-xs font-bold gap-1 rounded-lg text-blue-700 dark:text-blue-300 border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/15"
-                                          >
-                                            <MessageSquarePlus className="w-3.5 h-3.5" />
-                                            <span>إضافة رد</span>
-                                          </Button>
-                                        )
-                                      )}
-
-                                      {/* زر الإخفاء أو الإظهار بحسب حالة العرض */}
-                                      {canHide && (
-                                        showOnlyHidden ? (
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={togglingEvalId === item.id}
-                                            onClick={() => handleToggleHide(item.id, true)}
-                                            className="h-8 px-2.5 text-xs font-bold gap-1 rounded-lg text-emerald-700 dark:text-emerald-300 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20"
-                                            title="إظهار التقييم وإعادته للقائمة النشطة"
-                                          >
-                                            {togglingEvalId === item.id ? (
-                                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                            ) : (
-                                              <Eye className="w-3.5 h-3.5 text-emerald-600" />
-                                            )}
-                                            <span>إظهار</span>
-                                          </Button>
-                                        ) : (
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={togglingEvalId === item.id}
-                                            onClick={() => handleToggleHide(item.id, false)}
-                                            className="h-8 px-2.5 text-xs font-bold gap-1 rounded-lg text-rose-700 dark:text-rose-300 border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/15"
-                                            title="إخفاء التقييم عن باقي المستخدمين"
-                                          >
-                                            {togglingEvalId === item.id ? (
-                                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                            ) : (
-                                              <EyeOff className="w-3.5 h-3.5" />
-                                            )}
-                                            <span>إخفاء</span>
-                                          </Button>
-                                        )
-                                      )}
+                                  {/* الملاحظات */}
+                                  {item.comments ? (
+                                    <div
+                                      onClick={() => canViewDetails && handleOpenDetails(item)}
+                                      className={`rounded-xl bg-muted/40 border border-border/60 p-2.5 text-xs text-muted-foreground italic leading-relaxed line-clamp-3 break-words ${
+                                        canViewDetails ? "cursor-pointer active:bg-muted/70" : ""
+                                      }`}
+                                    >
+                                      "{item.comments}"
                                     </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
+                                  ) : (
+                                    <p className="text-[11px] text-muted-foreground/60">لا توجد ملاحظات</p>
+                                  )}
+                                </div>
+
+                                {/* أزرار الإجراءات */}
+                                <div className="flex items-center flex-wrap gap-2 pt-2.5 border-t border-border/60">
+                                  {canViewDetails && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleOpenDetails(item)}
+                                      className="flex-1 min-w-[90px] min-h-10 max-lg:min-h-11 px-3 text-xs font-bold gap-1.5 rounded-xl hover:bg-amber-500/10 hover:text-amber-700 hover:border-amber-500/30"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" />
+                                      <span>عرض</span>
+                                    </Button>
+                                  )}
+
+                                  {item.reply ? (
+                                    canViewReply && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleOpenViewReplyModal(item)}
+                                        className="flex-1 min-w-[100px] min-h-10 max-lg:min-h-11 px-3 text-xs font-bold gap-1.5 rounded-xl text-teal-700 dark:text-teal-300 border-teal-500/30 bg-teal-500/5 hover:bg-teal-500/15"
+                                      >
+                                        <ShieldCheck className="w-3.5 h-3.5" />
+                                        <span>عرض الرد</span>
+                                      </Button>
+                                    )
+                                  ) : (
+                                    canReply && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleOpenReplyDialog(item)}
+                                        className="flex-1 min-w-[100px] min-h-10 max-lg:min-h-11 px-3 text-xs font-bold gap-1.5 rounded-xl text-blue-700 dark:text-blue-300 border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/15"
+                                      >
+                                        <MessageSquarePlus className="w-3.5 h-3.5" />
+                                        <span>إضافة رد</span>
+                                      </Button>
+                                    )
+                                  )}
+
+                                  {canHide && (
+                                    showOnlyHidden ? (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={togglingEvalId === item.id}
+                                        onClick={() => handleToggleHide(item.id, true)}
+                                        className="flex-1 min-w-[85px] min-h-10 max-lg:min-h-11 px-3 text-xs font-bold gap-1.5 rounded-xl text-emerald-700 dark:text-emerald-300 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20"
+                                      >
+                                        {togglingEvalId === item.id ? (
+                                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        ) : (
+                                          <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                                        )}
+                                        <span>إظهار</span>
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={togglingEvalId === item.id}
+                                        onClick={() => handleToggleHide(item.id, false)}
+                                        className="flex-1 min-w-[85px] min-h-10 max-lg:min-h-11 px-3 text-xs font-bold gap-1.5 rounded-xl text-rose-700 dark:text-rose-300 border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/15"
+                                      >
+                                        {togglingEvalId === item.id ? (
+                                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        ) : (
+                                          <EyeOff className="w-3.5 h-3.5" />
+                                        )}
+                                        <span>إخفاء</span>
+                                      </Button>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* عرض الجدول للشاشات الكبيرة */}
+                        <div className="hidden xl:block overflow-x-auto" dir="rtl">
+                          <table className="w-full text-right text-xs" dir="rtl">
+                            <thead>
+                              <tr className="border-b border-border bg-muted/40 text-muted-foreground font-semibold">
+                                <th className="p-3.5 px-4 text-right">رقم الطلب</th>
+                                <th className="p-3.5 px-4 text-right">المستفيد</th>
+                                <th className="p-3.5 px-4 text-right">الخدمة / البرنامج</th>
+                                <th className="p-3.5 px-4 text-center">التقييم</th>
+                                <th className="p-3.5 px-4 text-right">الآراء والملاحظات</th>
+                                <th className="p-3.5 px-4 text-right">تاريخ التقييم</th>
+                                <th className="p-3.5 px-4 text-center">الإجراءات</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border/60">
+                              {displayedItems.map((item) => {
+                                const ratingVal = typeof item.rating === "number" && item.rating > 0 ? item.rating : 5;
+                                return (
+                                  <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                                    {/* رقم الطلب */}
+                                    <td className="p-3.5 px-4 font-mono font-bold text-foreground text-right">
+                                      <span>{item.requestNumber}</span>
+                                      <span className="text-[10px] text-muted-foreground font-normal block font-sans">
+                                        {getArabicLabel(item.programType)}
+                                      </span>
+                                    </td>
+
+                                    {/* المستفيد */}
+                                    <td className="p-3.5 px-4 text-right">
+                                      <div className="space-y-0.5 text-right">
+                                        <span className="font-bold text-foreground block truncate max-w-[150px] text-right">
+                                          {item.requesterName}
+                                        </span>
+                                        {item.requesterPhone && (
+                                          <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5 justify-start text-right">
+                                            <Phone className="w-3 h-3 text-blue-500 shrink-0" />
+                                            <span dir="ltr" className="inline-block">{item.requesterPhone}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
+
+                                    {/* الخدمة / البرنامج */}
+                                    <td className="p-3.5 px-4">
+                                      <span className="font-medium text-foreground block truncate max-w-[180px]">
+                                        {getArabicLabel(item.serviceName)}
+                                      </span>
+                                    </td>
+
+                                    {/* التقييم */}
+                                    <td className="p-3.5 px-4 text-center">
+                                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 font-bold">
+                                        <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                                        <span>{ratingVal} / 5</span>
+                                      </div>
+                                    </td>
+
+                                    {/* الآراء والملاحظات */}
+                                    <td className="p-3.5 px-4 max-w-[280px] text-right" title={item.comments || ""}>
+                                      {item.comments ? (
+                                        <div
+                                          onClick={() => canViewDetails && handleOpenDetails(item)}
+                                          className={canViewDetails ? "cursor-pointer group" : ""}
+                                          title={item.comments}
+                                        >
+                                          <p className={`text-muted-foreground ${canViewDetails ? "group-hover:text-foreground" : ""} transition-colors italic text-xs leading-relaxed text-right line-clamp-2 break-words`}>
+                                            "{item.comments}"
+                                          </p>
+                                        </div>
+                                      ) : (
+                                        <span className="text-muted-foreground/50 text-[11px] block text-right">لا توجد ملاحظات</span>
+                                      )}
+                                    </td>
+
+                                    {/* التاريخ */}
+                                    <td className="p-3.5 px-4 text-muted-foreground text-[11px] whitespace-nowrap text-right font-mono">
+                                      <div>{formatDateEn(item.evaluatedAt)}</div>
+                                      {item.isHidden && item.hiddenBy && (
+                                        <div className="text-[10px] text-rose-600 dark:text-rose-400 mt-0.5 font-sans">
+                                          مخفي بواسطة: {item.hiddenBy.userName || "الإدارة"}
+                                        </div>
+                                      )}
+                                    </td>
+
+                                    {/* الإجراءات */}
+                                    <td className="p-3.5 px-4 text-center whitespace-nowrap">
+                                      <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                                        {canViewDetails && (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleOpenDetails(item)}
+                                            className="h-8 pointer-coarse:min-h-10 px-2.5 text-xs font-bold gap-1 rounded-lg hover:bg-amber-500/10 hover:text-amber-700 hover:border-amber-500/30"
+                                          >
+                                            <Eye className="w-3.5 h-3.5" />
+                                            <span>عرض</span>
+                                          </Button>
+                                        )}
+
+                                        {/* زر الرد: إذا وجد رد يظهر زر عرض الرد، وإذا لم يوجد رد يظهر إضافة رد فقط (دون تعديل) */}
+                                        {item.reply ? (
+                                          canViewReply && (
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => handleOpenViewReplyModal(item)}
+                                              className="h-8 pointer-coarse:min-h-10 px-2.5 text-xs font-bold gap-1 rounded-lg text-teal-700 dark:text-teal-300 border-teal-500/30 bg-teal-500/5 hover:bg-teal-500/15"
+                                            >
+                                              <ShieldCheck className="w-3.5 h-3.5" />
+                                              <span>عرض الرد</span>
+                                            </Button>
+                                          )
+                                        ) : (
+                                          canReply && (
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => handleOpenReplyDialog(item)}
+                                              className="h-8 pointer-coarse:min-h-10 px-2.5 text-xs font-bold gap-1 rounded-lg text-blue-700 dark:text-blue-300 border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/15"
+                                            >
+                                              <MessageSquarePlus className="w-3.5 h-3.5" />
+                                              <span>إضافة رد</span>
+                                            </Button>
+                                          )
+                                        )}
+
+                                        {/* زر الإخفاء أو الإظهار بحسب حالة العرض */}
+                                        {canHide && (
+                                          showOnlyHidden ? (
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              disabled={togglingEvalId === item.id}
+                                              onClick={() => handleToggleHide(item.id, true)}
+                                              className="h-8 pointer-coarse:min-h-10 px-2.5 text-xs font-bold gap-1 rounded-lg text-emerald-700 dark:text-emerald-300 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20"
+                                              title="إظهار التقييم وإعادته للقائمة النشطة"
+                                            >
+                                              {togglingEvalId === item.id ? (
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                              ) : (
+                                                <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                                              )}
+                                              <span>إظهار</span>
+                                            </Button>
+                                          ) : (
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              disabled={togglingEvalId === item.id}
+                                              onClick={() => handleToggleHide(item.id, false)}
+                                              className="h-8 pointer-coarse:min-h-10 px-2.5 text-xs font-bold gap-1 rounded-lg text-rose-700 dark:text-rose-300 border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/15"
+                                              title="إخفاء التقييم عن باقي المستخدمين"
+                                            >
+                                              {togglingEvalId === item.id ? (
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                              ) : (
+                                                <EyeOff className="w-3.5 h-3.5" />
+                                              )}
+                                              <span>إخفاء</span>
+                                            </Button>
+                                          )
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
                     )}
                   </CardContent>
                 </Card>
@@ -936,78 +1090,78 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
             {/* تبويب 2: سجلات إرسال الاستبيانات للعملاء */}
             {(canViewDispatchLogs || canViewContacts) && (
-              <TabsContent value="logs" className="space-y-6 mt-2">
+              <TabsContent value="logs" className="space-y-4 sm:space-y-6 mt-2 min-w-0">
                 {/* KPI Cards لسجل إرسال الاستبيانات */}
                 {canViewDispatchLogs && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
                     {/* إجمالي الاستبيانات المرسلة */}
-                    <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
-                      <CardContent className="p-4 sm:p-5 flex items-center justify-between">
-                        <div className="space-y-1">
-                          <span className="text-xs font-semibold text-muted-foreground block">إجمالي الاستبيانات المرسلة</span>
-                          <span className="text-2xl sm:text-3xl font-black text-foreground block">
+                    <Card className="py-0 gap-0 rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
+                      <CardContent className="p-3.5 sm:p-5 flex items-start sm:items-center justify-between gap-2 text-right">
+                        <div className="space-y-1 min-w-0">
+                          <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground block leading-snug">إجمالي الاستبيانات المرسلة</span>
+                          <span className="text-xl sm:text-2xl lg:text-3xl font-black text-foreground block font-mono">
                             {logsData?.stats.totalDispatched || 0}
                           </span>
-                          <span className="text-[11px] text-muted-foreground block">
+                          <span className="text-[10px] sm:text-[11px] text-muted-foreground block leading-snug">
                             استبيانات وتذكيرات مرسلة للعملاء والمستفيدين
                           </span>
                         </div>
-                        <div className="w-11 h-11 rounded-2xl bg-teal-500/10 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 border border-teal-500/20">
-                          <Send className="w-5 h-5" />
+                        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-teal-500/10 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 border border-teal-500/20">
+                          <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
                       </CardContent>
                     </Card>
 
                     {/* استبيانات تم التقييم بنجاح */}
-                    <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
-                      <CardContent className="p-4 sm:p-5 flex items-center justify-between">
-                        <div className="space-y-1">
-                          <span className="text-xs font-semibold text-muted-foreground block">تم التقييم بنجاح</span>
-                          <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 block">
+                    <Card className="py-0 gap-0 rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
+                      <CardContent className="p-3.5 sm:p-5 flex items-start sm:items-center justify-between gap-2 text-right">
+                        <div className="space-y-1 min-w-0">
+                          <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground block leading-snug">تم التقييم بنجاح</span>
+                          <span className="text-xl sm:text-2xl lg:text-3xl font-black text-emerald-600 dark:text-emerald-400 block font-mono">
                             {logsData?.stats.totalEvaluated || 0}
                           </span>
-                          <span className="text-[11px] text-muted-foreground block">
+                          <span className="text-[10px] sm:text-[11px] text-muted-foreground block leading-snug">
                             عميل أكمل الاستبيان وسجل تقييمه
                           </span>
                         </div>
-                        <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
-                          <CheckCircle2 className="w-5 h-5" />
+                        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                          <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
                       </CardContent>
                     </Card>
 
                     {/* بانتظار رد العميل */}
-                    <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
-                      <CardContent className="p-4 sm:p-5 flex items-center justify-between">
-                        <div className="space-y-1">
-                          <span className="text-xs font-semibold text-muted-foreground block">بانتظار رد العميل</span>
-                          <span className="text-2xl sm:text-3xl font-black text-amber-500 block">
+                    <Card className="py-0 gap-0 rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
+                      <CardContent className="p-3.5 sm:p-5 flex items-start sm:items-center justify-between gap-2 text-right">
+                        <div className="space-y-1 min-w-0">
+                          <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground block leading-snug">بانتظار رد العميل</span>
+                          <span className="text-xl sm:text-2xl lg:text-3xl font-black text-amber-500 block font-mono">
                             {logsData?.stats.totalPending || 0}
                           </span>
-                          <span className="text-[11px] text-muted-foreground block">
+                          <span className="text-[10px] sm:text-[11px] text-muted-foreground block leading-snug">
                             لم يتم التقييم بعد (يمكن إرسال تذكير)
                           </span>
                         </div>
-                        <div className="w-11 h-11 rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
-                          <Clock className="w-5 h-5" />
+                        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
+                          <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
                       </CardContent>
                     </Card>
 
                     {/* معدل التجاوب العام */}
-                    <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
-                      <CardContent className="p-4 sm:p-5 flex items-center justify-between text-right">
-                        <div className="space-y-1 text-right">
-                          <span className="text-xs font-semibold text-muted-foreground block text-right">معدل التجاوب</span>
-                          <span className="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400 block text-right font-mono">
+                    <Card className="py-0 gap-0 rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
+                      <CardContent className="p-3.5 sm:p-5 flex items-start sm:items-center justify-between gap-2 text-right">
+                        <div className="space-y-1 text-right min-w-0">
+                          <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground block text-right leading-snug">معدل التجاوب</span>
+                          <span className="text-xl sm:text-2xl lg:text-3xl font-black text-indigo-600 dark:text-indigo-400 block text-right font-mono">
                             {logsData?.stats.responseRate || 0}%
                           </span>
-                          <span className="text-[11px] text-muted-foreground block text-right">
+                          <span className="text-[10px] sm:text-[11px] text-muted-foreground block text-right leading-snug">
                             نسبة إكمال الاستبيانات المرسلة
                           </span>
                         </div>
-                        <div className="w-11 h-11 rounded-2xl bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/20">
-                          <TrendingUp className="w-5 h-5" />
+                        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/20">
+                          <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
                       </CardContent>
                     </Card>
@@ -1016,18 +1170,18 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
                 {/* أزرار التبديل بين استبيانات الطلبات المغلقة وقسم المستفيدين المعتمدين والمتبرعين والاستفسارات عند توفر الصلاحيتين */}
                 {canViewDispatchLogs && canViewContacts && (
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card p-3.5 rounded-2xl border border-border/80 shadow-xs">
-                    <div className="flex items-center gap-1.5 p-1 bg-muted/80 rounded-xl border border-border/60">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card p-2.5 sm:p-3.5 rounded-2xl border border-border/80 shadow-xs">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 p-1 bg-muted/80 rounded-xl border border-border/60">
                       <button
                         type="button"
                         onClick={() => setLogsSubView("requests")}
-                        className={`px-3.5 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                        className={`px-3.5 py-2 min-h-10 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                           logsSubView === "requests"
                             ? "bg-card text-foreground shadow-xs border border-border/60"
                             : "text-muted-foreground hover:text-foreground"
                         }`}
                       >
-                        <FileText className="w-3.5 h-3.5 text-primary" />
+                        <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
                         <span>سجل الارسال</span>
                         <Badge variant="secondary" className="mr-1 text-[10px] h-5 px-1.5 font-mono">
                           {logsData?.total || 0}
@@ -1037,14 +1191,14 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                       <button
                         type="button"
                         onClick={() => setLogsSubView("contacts")}
-                        className={`px-3.5 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                        className={`px-3.5 py-2 min-h-10 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                           logsSubView === "contacts"
                             ? "bg-card text-foreground shadow-xs border border-border/60"
                             : "text-muted-foreground hover:text-foreground"
                         }`}
                       >
-                        <Users className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-                        <span>المستفيدين المعتمدين والاستفسارات</span>
+                        <Users className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                        <span className="truncate">المستفيدين المعتمدين والاستفسارات</span>
                         <Badge variant="secondary" className="mr-1 text-[10px] h-5 px-1.5 font-mono bg-teal-500/15 text-teal-700 dark:text-teal-300">
                           {contactsData?.total || 0}
                         </Badge>
@@ -1057,11 +1211,11 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
             {canViewDispatchLogs && (logsSubView === "requests" || !canViewContacts) && (
               <div className="space-y-4">
                 {/* Filter and Search Bar للسجلات */}
-                <Card className="rounded-2xl border border-border/80 shadow-xs bg-card" dir="rtl">
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex flex-col md:flex-row items-center gap-3">
+                <Card className="py-0 gap-0 rounded-2xl border border-border/80 shadow-xs bg-card" dir="rtl">
+                  <CardContent className="p-3.5 sm:p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
                       {/* بحث نصي */}
-                      <div className="relative w-full md:flex-1" dir="rtl">
+                      <div className="relative sm:col-span-2" dir="rtl">
                         <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                         <Input
                           placeholder="ابحث برقم الطلب، اسم العميل، الجوال، البريد، أو المسجد..."
@@ -1070,7 +1224,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                             setLogSearchQuery(e.target.value);
                             resetLogPage();
                           }}
-                          className="pr-9 pl-9 h-10 rounded-xl text-xs text-right"
+                          className="pr-9 pl-9 h-10 max-lg:min-h-11 pointer-coarse:min-h-11 rounded-xl text-xs sm:text-sm max-md:text-base text-right"
                           dir="rtl"
                         />
                         {logSearchQuery && (
@@ -1080,7 +1234,8 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                               setLogSearchQuery("");
                               resetLogPage();
                             }}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                            className="absolute left-2 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer rounded-lg"
+                            aria-label="مسح البحث"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
@@ -1088,7 +1243,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                       </div>
 
                       {/* فلتر حالة الاستبيان والتجاوب */}
-                      <div className="w-full sm:w-52">
+                      <div className="min-w-0">
                         <Select 
                           value={logStatusFilter} 
                           onValueChange={(val: any) => {
@@ -1097,7 +1252,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                           }}
                           dir="rtl"
                         >
-                          <SelectTrigger className="h-10 rounded-xl text-xs font-bold text-right" dir="rtl">
+                          <SelectTrigger className="w-full min-w-0 h-10 max-lg:min-h-11 pointer-coarse:min-h-11 rounded-xl text-xs sm:text-sm font-bold text-right" dir="rtl">
                             <SelectValue placeholder="حالة الاستبيان" />
                           </SelectTrigger>
                           <SelectContent dir="rtl">
@@ -1109,7 +1264,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                       </div>
 
                       {/* فلتر البرنامج */}
-                      <div className="w-full sm:w-48">
+                      <div className="min-w-0">
                         <Select 
                           value={logProgramFilter} 
                           onValueChange={(val) => {
@@ -1118,7 +1273,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                           }}
                           dir="rtl"
                         >
-                          <SelectTrigger className="h-10 rounded-xl text-xs font-bold text-right" dir="rtl">
+                          <SelectTrigger className="w-full min-w-0 h-10 max-lg:min-h-11 pointer-coarse:min-h-11 rounded-xl text-xs sm:text-sm font-bold text-right" dir="rtl">
                             <SelectValue placeholder="تصفية حسب البرنامج" />
                           </SelectTrigger>
                           <SelectContent dir="rtl">
@@ -1136,11 +1291,11 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                 </Card>
 
                 {/* جدول سجلات إرسال الاستبيانات */}
-                <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden" dir="rtl">
+                <Card className="py-0 gap-0 rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden" dir="rtl">
                   <CardHeader className="p-4 sm:p-5 border-b border-border/80 flex flex-row items-center justify-between flex-wrap gap-2 text-right">
-                    <div className="text-right">
+                    <div className="text-right min-w-0">
                       <CardTitle className="text-base font-bold text-foreground flex items-center gap-2 text-right">
-                        <Send className="w-4.5 h-4.5 text-teal-600 dark:text-teal-400" />
+                        <Send className="w-4.5 h-4.5 text-teal-600 dark:text-teal-400 shrink-0" />
                         <span>سجل استبيانات رضا المستفيدين المرسلة</span>
                       </CardTitle>
                       <CardDescription className="text-xs text-right mt-1">
@@ -1151,12 +1306,12 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
                   <CardContent className="p-0">
                     {isLoadingLogs ? (
-                      <div className="p-12 text-center text-muted-foreground text-xs flex flex-col items-center justify-center gap-2">
+                      <div className="p-10 sm:p-12 text-center text-muted-foreground text-xs flex flex-col items-center justify-center gap-2">
                         <Loader2 className="w-6 h-6 animate-spin text-teal-600" />
                         <span>جاري تحميل سجلات الاستبيانات...</span>
                       </div>
                     ) : !logsData?.items || logsData.items.length === 0 ? (
-                      <div className="p-12 text-center space-y-2">
+                      <div className="p-10 sm:p-12 text-center space-y-2">
                         <Send className="w-12 h-12 mx-auto text-muted-foreground/40" />
                         <p className="text-sm font-bold text-foreground">لا توجد سجلات مطابقة</p>
                         <p className="text-xs text-muted-foreground">
@@ -1166,47 +1321,41 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                         </p>
                       </div>
                     ) : (
-                      <div className="overflow-x-auto" dir="rtl">
-                        <table className="w-full text-right text-xs" dir="rtl">
-                          <thead>
-                            <tr className="border-b border-border bg-muted/40 text-muted-foreground font-semibold">
-                              <th className="p-3.5 px-4 text-right">الطلب والمسجد / نوع الإرسال</th>
-                              <th className="p-3.5 px-4 text-right">معلومات العميل (المستفيد)</th>
-                              <th className="p-3.5 px-4 text-right">حالة وطريقة الإرسال</th>
-                              <th className="p-3.5 px-4 text-right">حالة التقييم</th>
-                              <th className="p-3.5 px-4 text-center">إجراءات وتذكير</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-border/60">
-                            {logsData.items.map((item: any) => {
-                              const isEvaluated = item.survey.isEvaluated;
-                              const hasEmail = Boolean(item.beneficiary.email);
-                              const isSendingThis = item.requestId ? sendingReminderId === item.requestId : sendingSurveyKey === item.id;
-                              const isReminder = item.survey.dispatchType === "reminder";
-                              const isGeneralInvite = item.survey.dispatchType === "general_invite";
-                              const isClosedRequest = item.survey.dispatchType === "request_closed";
+                      <>
+                        {/* عرض البطاقات للموبايل والآيباد */}
+                        <div className="xl:hidden grid grid-cols-1 md:grid-cols-2 gap-3 p-3 sm:p-4 bg-muted/15" dir="rtl">
+                          {logsData.items.map((item: any) => {
+                            const isEvaluated = item.survey.isEvaluated;
+                            const hasEmail = Boolean(item.beneficiary.email);
+                            const isSendingThis = item.requestId ? sendingReminderId === item.requestId : sendingSurveyKey === item.id;
+                            const isReminder = item.survey.dispatchType === "reminder";
+                            const isGeneralInvite = item.survey.dispatchType === "general_invite";
+                            const isClosedRequest = item.survey.dispatchType === "request_closed";
 
-                              return (
-                                <tr key={item.id || item.requestId} className="hover:bg-muted/30 transition-colors">
-                                  {/* رقم الطلب والمسجد / نوع الإرسال */}
-                                  <td className="p-3.5 px-4 text-right">
-                                    <div className="space-y-1 text-right">
+                            return (
+                              <div
+                                key={item.id || item.requestId}
+                                className="rounded-xl border border-border/80 bg-card p-3.5 sm:p-4 shadow-xs flex flex-col justify-between gap-3"
+                              >
+                                <div className="space-y-2.5">
+                                  {/* الصف العلوي: الطلب / النوع + حالة التقييم */}
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0 space-y-1">
                                       {item.requestId ? (
                                         <Link 
                                           href={`/requests/${item.requestId}`}
-                                          className="font-mono font-bold text-primary hover:underline inline-flex items-center gap-1 text-xs"
+                                          className="font-mono font-bold text-primary hover:underline inline-flex items-center gap-1 text-sm"
                                         >
-                                          <FileText className="w-3.5 h-3.5" />
+                                          <FileText className="w-3.5 h-3.5 shrink-0" />
                                           <span>{item.requestNumber}</span>
                                         </Link>
                                       ) : (
-                                        <div className="font-bold text-foreground flex items-center gap-1.5 text-xs">
+                                        <div className="font-bold text-foreground flex items-center gap-1.5 text-xs sm:text-sm">
                                           <HeartHandshake className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
-                                          <span>استبيان رضا مباشر (بدون طلب)</span>
+                                          <span>استبيان رضا مباشر</span>
                                         </div>
                                       )}
-
-                                      <div className="flex items-center gap-1.5 flex-wrap justify-start">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
                                         {isReminder && (
                                           <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 text-[10px] py-0 px-1.5 font-bold gap-1">
                                             <BellRing className="w-2.5 h-2.5" />
@@ -1225,187 +1374,375 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                             <span>{item.beneficiary.categoryLabel || "استبيان مباشر"}</span>
                                           </Badge>
                                         )}
-
                                         {item.programType && item.programType !== "general_satisfaction" && (
                                           <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-bold">
                                             {getArabicLabel(item.programType)}
                                           </Badge>
                                         )}
-
-                                        {item.mosqueName && (
-                                          <span className="text-[11px] text-muted-foreground truncate max-w-[160px] inline-flex items-center gap-1">
-                                            <Building2 className="w-3 h-3 text-muted-foreground/70 shrink-0" />
-                                            {item.mosqueName} {item.mosqueCity ? `(${item.mosqueCity})` : ''}
-                                          </span>
-                                        )}
                                       </div>
                                     </div>
-                                  </td>
 
-                                  {/* معلومات العميل */}
-                                  <td className="p-3.5 px-4 text-right">
-                                    <div className="space-y-1 text-right">
-                                      <div className="font-bold text-foreground flex items-center gap-1.5 justify-start text-right">
-                                        <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                                        <span className="truncate max-w-[170px]">{item.beneficiary.name}</span>
-                                        {item.beneficiary.categoryLabel && (
-                                          <Badge variant="secondary" className="text-[9px] py-0 px-1 font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/40">
-                                            {item.beneficiary.categoryLabel}
-                                          </Badge>
-                                        )}
-                                      </div>
-                                      {hasEmail ? (
-                                        <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5 justify-start text-right">
-                                          <Mail className="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0" />
-                                          <span dir="ltr" className="truncate max-w-[170px] inline-block">{item.beneficiary.email}</span>
-                                        </div>
-                                      ) : (
-                                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium block text-right">
-                                          ⚠️ لا يوجد بريد إلكتروني مسجل
-                                        </span>
-                                      )}
-                                      {item.beneficiary.phone && (
-                                        <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5 justify-start text-right">
-                                          <Phone className="w-3 h-3 text-blue-500 shrink-0" />
-                                          <span dir="ltr" className="inline-block">{item.beneficiary.phone}</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </td>
-
-                                  {/* حالة وطريقة الإرسال */}
-                                  <td className="p-3.5 px-4 text-right">
-                                    <div className="space-y-1.5 text-right">
-                                      <div className="flex items-center justify-start">
-                                        <Badge 
-                                          variant="outline" 
-                                          className={`text-[11px] gap-1 py-0.5 px-2 inline-flex items-center ${
-                                            isReminder 
-                                              ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/50" 
-                                              : isGeneralInvite
-                                              ? "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/30 dark:text-teal-300 dark:border-teal-900/50"
-                                              : "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-900/50"
-                                          }`}
-                                        >
-                                          <CheckCircle2 className="w-3 h-3" />
-                                          <span>{item.survey.dispatchTypeLabel || "تم إرسال الاستبيان"}</span>
-                                        </Badge>
-                                      </div>
-                                      <div className="text-[10px] text-muted-foreground flex items-center gap-1 justify-start text-right font-mono">
-                                        <Calendar className="w-3 h-3 shrink-0 text-muted-foreground/70" />
-                                        <span className="font-sans">
-                                          {item.survey.dispatchedAt 
-                                            ? `تاريخ الإرسال: ${formatDateEn(item.survey.dispatchedAt)}` 
-                                            : "عند إغلاق الطلب"}
-                                        </span>
-                                      </div>
-                                      <div className="text-[10px] text-muted-foreground/80 flex items-center gap-1 justify-start text-right">
-                                        <Mail className="w-2.5 h-2.5 shrink-0" />
-                                        <span>عبر البريد الإلكتروني والإشعارات</span>
-                                      </div>
-                                    </div>
-                                  </td>
-
-                                  {/* حالة التقييم */}
-                                  <td className="p-3.5 px-4 text-right">
                                     {isEvaluated ? (
-                                      <div className="space-y-1 text-right">
-                                        <div className="flex items-center justify-start">
-                                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/50 text-[11px] gap-1 py-0.5 px-2 inline-flex items-center">
-                                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                            <span>تم التقييم بنجاح</span>
-                                          </Badge>
-                                        </div>
-                                        {item.survey.rating && (
-                                          <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 justify-start font-mono" dir="rtl">
-                                            <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                                            <span>{item.survey.rating} / 5</span>
-                                          </div>
-                                        )}
-                                        {item.survey.evaluatedAt && (
-                                          <span className="text-[10px] text-muted-foreground block text-right font-mono">
-                                            {formatDateEn(item.survey.evaluatedAt)}
-                                          </span>
-                                        )}
-                                      </div>
+                                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/50 text-[11px] gap-1 py-0.5 px-2 shrink-0">
+                                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                        <span>تم التقييم</span>
+                                      </Badge>
                                     ) : (
-                                      <div className="space-y-1 text-right">
-                                        <div className="flex items-center justify-start">
-                                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/50 text-[11px] gap-1 py-0.5 px-2 inline-flex items-center">
-                                            <Clock className="w-3 h-3 text-amber-600" />
-                                            <span>بانتظار رد العميل</span>
-                                          </Badge>
-                                        </div>
-                                        <span className="text-[10px] text-muted-foreground block text-right">
-                                          لم يقم بتعبئة التقييم بعد
-                                        </span>
+                                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/50 text-[11px] gap-1 py-0.5 px-2 shrink-0">
+                                        <Clock className="w-3 h-3 text-amber-600" />
+                                        <span>بانتظار الرد</span>
+                                      </Badge>
+                                    )}
+                                  </div>
+
+                                  {/* معلومات المستفيد والمسجد */}
+                                  <div className="space-y-1.5 text-xs pt-2 border-t border-border/50">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                      <span className="font-bold text-foreground">{item.beneficiary.name}</span>
+                                      {item.beneficiary.categoryLabel && (
+                                        <Badge variant="secondary" className="text-[10px] py-0 px-1.5 font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/40">
+                                          {item.beneficiary.categoryLabel}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {item.mosqueName && (
+                                      <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                                        <Building2 className="w-3 h-3 text-muted-foreground/70 shrink-0" />
+                                        <span className="truncate">{item.mosqueName} {item.mosqueCity ? `(${item.mosqueCity})` : ""}</span>
                                       </div>
                                     )}
-                                  </td>
+                                    {hasEmail ? (
+                                      <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5">
+                                        <Mail className="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0" />
+                                        <span dir="ltr" className="break-all">{item.beneficiary.email}</span>
+                                      </div>
+                                    ) : (
+                                      <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium block">
+                                        ⚠️ لا يوجد بريد إلكتروني مسجل
+                                      </span>
+                                    )}
+                                    {item.beneficiary.phone && (
+                                      <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5">
+                                        <Phone className="w-3 h-3 text-blue-500 shrink-0" />
+                                        <span dir="ltr">{item.beneficiary.phone}</span>
+                                      </div>
+                                    )}
+                                  </div>
 
-                                  {/* إجراءات وتذكير */}
-                                  <td className="p-3.5 px-4 text-center whitespace-nowrap">
-                                    <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                                      {item.requestId ? (
-                                        canResendReminder ? (
-                                          <Button
-                                            size="sm"
-                                            variant={isEvaluated ? "outline" : "default"}
-                                            disabled={!hasEmail || isSendingThis}
-                                            onClick={() => handleSendReminder(item.requestId)}
-                                            title={hasEmail ? "إرسال إيميل تذكيري للعميل" : "لا يوجد بريد إلكتروني مسجل"}
-                                            className={`h-8 px-3 text-xs font-bold gap-1.5 rounded-lg ${
-                                              !isEvaluated 
-                                                ? "bg-teal-600 hover:bg-teal-700 text-white shadow-xs" 
-                                                : "text-muted-foreground hover:text-foreground"
+                                  {/* تفاصيل الإرسال والتقييم */}
+                                  <div className="rounded-xl bg-muted/40 border border-border/50 p-2.5 flex items-center justify-between flex-wrap gap-2 text-[11px]">
+                                    <div className="text-muted-foreground flex items-center gap-1">
+                                      <Calendar className="w-3 h-3 shrink-0" />
+                                      <span>
+                                        {item.survey.dispatchedAt 
+                                          ? `أُرسل: ${formatDateEn(item.survey.dispatchedAt)}` 
+                                          : "عند إغلاق الطلب"}
+                                      </span>
+                                    </div>
+                                    {isEvaluated && item.survey.rating && (
+                                      <div className="flex items-center gap-1 font-bold text-amber-600 dark:text-amber-400 font-mono">
+                                        <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                                        <span>{item.survey.rating} / 5</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* زر الإجراء */}
+                                {canResendReminder && (
+                                  <div className="pt-2 border-t border-border/60">
+                                    {item.requestId ? (
+                                      <Button
+                                        size="sm"
+                                        variant={isEvaluated ? "outline" : "default"}
+                                        disabled={!hasEmail || isSendingThis}
+                                        onClick={() => handleSendReminder(item.requestId)}
+                                        className={`w-full min-h-10 max-lg:min-h-11 px-3 text-xs font-bold gap-1.5 rounded-xl ${
+                                          !isEvaluated 
+                                            ? "bg-teal-600 hover:bg-teal-700 text-white shadow-xs" 
+                                            : "text-muted-foreground hover:text-foreground"
+                                        }`}
+                                      >
+                                        {isSendingThis ? (
+                                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        ) : (
+                                          <Send className="w-3.5 h-3.5" />
+                                        )}
+                                        <span>{isEvaluated ? "إعادة تذكير" : "إرسال تذكير"}</span>
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        disabled={!hasEmail || isSendingThis}
+                                        onClick={() => handleInitiateSendSurvey({
+                                          id: item.id,
+                                          name: item.beneficiary.name,
+                                          email: item.beneficiary.email,
+                                          phone: item.beneficiary.phone,
+                                          category: item.beneficiary.category || "approved_beneficiary",
+                                          userId: item.beneficiary.id,
+                                        })}
+                                        className="w-full min-h-10 max-lg:min-h-11 px-3 text-xs font-bold gap-1.5 rounded-xl text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800/60 hover:bg-teal-50 dark:hover:bg-teal-950/30"
+                                      >
+                                        {isSendingThis ? (
+                                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        ) : (
+                                          <Send className="w-3.5 h-3.5 text-teal-600" />
+                                        )}
+                                        <span>إعادة إرسال</span>
+                                      </Button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* عرض الجدول للشاشات الكبيرة */}
+                        <div className="hidden xl:block overflow-x-auto" dir="rtl">
+                          <table className="w-full text-right text-xs" dir="rtl">
+                            <thead>
+                              <tr className="border-b border-border bg-muted/40 text-muted-foreground font-semibold">
+                                <th className="p-3.5 px-4 text-right">الطلب والمسجد / نوع الإرسال</th>
+                                <th className="p-3.5 px-4 text-right">معلومات العميل (المستفيد)</th>
+                                <th className="p-3.5 px-4 text-right">حالة وطريقة الإرسال</th>
+                                <th className="p-3.5 px-4 text-right">حالة التقييم</th>
+                                <th className="p-3.5 px-4 text-center">إجراءات وتذكير</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border/60">
+                              {logsData.items.map((item: any) => {
+                                const isEvaluated = item.survey.isEvaluated;
+                                const hasEmail = Boolean(item.beneficiary.email);
+                                const isSendingThis = item.requestId ? sendingReminderId === item.requestId : sendingSurveyKey === item.id;
+                                const isReminder = item.survey.dispatchType === "reminder";
+                                const isGeneralInvite = item.survey.dispatchType === "general_invite";
+                                const isClosedRequest = item.survey.dispatchType === "request_closed";
+
+                                return (
+                                  <tr key={item.id || item.requestId} className="hover:bg-muted/30 transition-colors">
+                                    {/* رقم الطلب والمسجد / نوع الإرسال */}
+                                    <td className="p-3.5 px-4 text-right">
+                                      <div className="space-y-1 text-right">
+                                        {item.requestId ? (
+                                          <Link 
+                                            href={`/requests/${item.requestId}`}
+                                            className="font-mono font-bold text-primary hover:underline inline-flex items-center gap-1 text-xs"
+                                          >
+                                            <FileText className="w-3.5 h-3.5" />
+                                            <span>{item.requestNumber}</span>
+                                          </Link>
+                                        ) : (
+                                          <div className="font-bold text-foreground flex items-center gap-1.5 text-xs">
+                                            <HeartHandshake className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                                            <span>استبيان رضا مباشر (بدون طلب)</span>
+                                          </div>
+                                        )}
+
+                                        <div className="flex items-center gap-1.5 flex-wrap justify-start">
+                                          {isReminder && (
+                                            <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 text-[10px] py-0 px-1.5 font-bold gap-1">
+                                              <BellRing className="w-2.5 h-2.5" />
+                                              <span>رسالة تذكيرية</span>
+                                            </Badge>
+                                          )}
+                                          {isClosedRequest && (
+                                            <Badge variant="outline" className="bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30 text-[10px] py-0 px-1.5 font-bold gap-1">
+                                              <CheckCircle2 className="w-2.5 h-2.5" />
+                                              <span>اكتمال الطلب</span>
+                                            </Badge>
+                                          )}
+                                          {isGeneralInvite && (
+                                            <Badge variant="outline" className="bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/30 text-[10px] py-0 px-1.5 font-bold gap-1">
+                                              <Send className="w-2.5 h-2.5" />
+                                              <span>{item.beneficiary.categoryLabel || "استبيان مباشر"}</span>
+                                            </Badge>
+                                          )}
+
+                                          {item.programType && item.programType !== "general_satisfaction" && (
+                                            <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-bold">
+                                              {getArabicLabel(item.programType)}
+                                            </Badge>
+                                          )}
+
+                                          {item.mosqueName && (
+                                            <span className="text-[11px] text-muted-foreground truncate max-w-[160px] inline-flex items-center gap-1">
+                                              <Building2 className="w-3 h-3 text-muted-foreground/70 shrink-0" />
+                                              {item.mosqueName} {item.mosqueCity ? `(${item.mosqueCity})` : ''}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </td>
+
+                                    {/* معلومات العميل */}
+                                    <td className="p-3.5 px-4 text-right">
+                                      <div className="space-y-1 text-right">
+                                        <div className="font-bold text-foreground flex items-center gap-1.5 justify-start text-right">
+                                          <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                          <span className="truncate max-w-[170px]">{item.beneficiary.name}</span>
+                                          {item.beneficiary.categoryLabel && (
+                                            <Badge variant="secondary" className="text-[9px] py-0 px-1 font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/40">
+                                              {item.beneficiary.categoryLabel}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        {hasEmail ? (
+                                          <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5 justify-start text-right">
+                                            <Mail className="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0" />
+                                            <span dir="ltr" className="truncate max-w-[170px] inline-block">{item.beneficiary.email}</span>
+                                          </div>
+                                        ) : (
+                                          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium block text-right">
+                                            ⚠️ لا يوجد بريد إلكتروني مسجل
+                                          </span>
+                                        )}
+                                        {item.beneficiary.phone && (
+                                          <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5 justify-start text-right">
+                                            <Phone className="w-3 h-3 text-blue-500 shrink-0" />
+                                            <span dir="ltr" className="inline-block">{item.beneficiary.phone}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
+
+                                    {/* حالة وطريقة الإرسال */}
+                                    <td className="p-3.5 px-4 text-right">
+                                      <div className="space-y-1.5 text-right">
+                                        <div className="flex items-center justify-start">
+                                          <Badge 
+                                            variant="outline" 
+                                            className={`text-[11px] gap-1 py-0.5 px-2 inline-flex items-center ${
+                                              isReminder 
+                                                ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/50" 
+                                                : isGeneralInvite
+                                                ? "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/30 dark:text-teal-300 dark:border-teal-900/50"
+                                                : "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-900/50"
                                             }`}
                                           >
-                                            {isSendingThis ? (
-                                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                            ) : (
-                                              <Send className="w-3.5 h-3.5" />
-                                            )}
-                                            <span>{isEvaluated ? "إعادة تذكير" : "إرسال تذكير"}</span>
-                                          </Button>
-                                        ) : (
-                                          <span className="text-muted-foreground/50 text-xs">—</span>
-                                        )
+                                            <CheckCircle2 className="w-3 h-3" />
+                                            <span>{item.survey.dispatchTypeLabel || "تم إرسال الاستبيان"}</span>
+                                          </Badge>
+                                        </div>
+                                        <div className="text-[10px] text-muted-foreground flex items-center gap-1 justify-start text-right font-mono">
+                                          <Calendar className="w-3 h-3 shrink-0 text-muted-foreground/70" />
+                                          <span className="font-sans">
+                                            {item.survey.dispatchedAt 
+                                              ? `تاريخ الإرسال: ${formatDateEn(item.survey.dispatchedAt)}` 
+                                              : "عند إغلاق الطلب"}
+                                          </span>
+                                        </div>
+                                        <div className="text-[10px] text-muted-foreground/80 flex items-center gap-1 justify-start text-right">
+                                          <Mail className="w-2.5 h-2.5 shrink-0" />
+                                          <span>عبر البريد الإلكتروني والإشعارات</span>
+                                        </div>
+                                      </div>
+                                    </td>
+
+                                    {/* حالة التقييم */}
+                                    <td className="p-3.5 px-4 text-right">
+                                      {isEvaluated ? (
+                                        <div className="space-y-1 text-right">
+                                          <div className="flex items-center justify-start">
+                                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/50 text-[11px] gap-1 py-0.5 px-2 inline-flex items-center">
+                                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                              <span>تم التقييم بنجاح</span>
+                                            </Badge>
+                                          </div>
+                                          {item.survey.rating && (
+                                            <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 justify-start font-mono" dir="rtl">
+                                              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                                              <span>{item.survey.rating} / 5</span>
+                                            </div>
+                                          )}
+                                          {item.survey.evaluatedAt && (
+                                            <span className="text-[10px] text-muted-foreground block text-right font-mono">
+                                              {formatDateEn(item.survey.evaluatedAt)}
+                                            </span>
+                                          )}
+                                        </div>
                                       ) : (
-                                        canResendReminder ? (
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            disabled={!hasEmail || isSendingThis}
-                                            onClick={() => handleInitiateSendSurvey({
-                                              id: item.id,
-                                              name: item.beneficiary.name,
-                                              email: item.beneficiary.email,
-                                              phone: item.beneficiary.phone,
-                                              category: item.beneficiary.category || "approved_beneficiary",
-                                              userId: item.beneficiary.id,
-                                            })}
-                                            title={hasEmail ? "إعادة إرسال استبيان الرضا" : "لا يوجد بريد إلكتروني مسجل"}
-                                            className="h-8 px-3 text-xs font-bold gap-1.5 rounded-lg text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800/60 hover:bg-teal-50 dark:hover:bg-teal-950/30"
-                                          >
-                                            {isSendingThis ? (
-                                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                            ) : (
-                                              <Send className="w-3.5 h-3.5 text-teal-600" />
-                                            )}
-                                            <span>إعادة إرسال</span>
-                                          </Button>
-                                        ) : (
-                                          <span className="text-muted-foreground/50 text-xs">—</span>
-                                        )
+                                        <div className="space-y-1 text-right">
+                                          <div className="flex items-center justify-start">
+                                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/50 text-[11px] gap-1 py-0.5 px-2 inline-flex items-center">
+                                              <Clock className="w-3 h-3 text-amber-600" />
+                                              <span>بانتظار رد العميل</span>
+                                            </Badge>
+                                          </div>
+                                          <span className="text-[10px] text-muted-foreground block text-right">
+                                            لم يقم بتعبئة التقييم بعد
+                                          </span>
+                                        </div>
                                       )}
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
+                                    </td>
+
+                                    {/* إجراءات وتذكير */}
+                                    <td className="p-3.5 px-4 text-center whitespace-nowrap">
+                                      <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                                        {item.requestId ? (
+                                          canResendReminder ? (
+                                            <Button
+                                              size="sm"
+                                              variant={isEvaluated ? "outline" : "default"}
+                                              disabled={!hasEmail || isSendingThis}
+                                              onClick={() => handleSendReminder(item.requestId)}
+                                              title={hasEmail ? "إرسال إيميل تذكيري للعميل" : "لا يوجد بريد إلكتروني مسجل"}
+                                              className={`h-8 pointer-coarse:min-h-10 px-3 text-xs font-bold gap-1.5 rounded-lg ${
+                                                !isEvaluated 
+                                                  ? "bg-teal-600 hover:bg-teal-700 text-white shadow-xs" 
+                                                  : "text-muted-foreground hover:text-foreground"
+                                              }`}
+                                            >
+                                              {isSendingThis ? (
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                              ) : (
+                                                <Send className="w-3.5 h-3.5" />
+                                              )}
+                                              <span>{isEvaluated ? "إعادة تذكير" : "إرسال تذكير"}</span>
+                                            </Button>
+                                          ) : (
+                                            <span className="text-muted-foreground/50 text-xs">—</span>
+                                          )
+                                        ) : (
+                                          canResendReminder ? (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              disabled={!hasEmail || isSendingThis}
+                                              onClick={() => handleInitiateSendSurvey({
+                                                id: item.id,
+                                                name: item.beneficiary.name,
+                                                email: item.beneficiary.email,
+                                                phone: item.beneficiary.phone,
+                                                category: item.beneficiary.category || "approved_beneficiary",
+                                                userId: item.beneficiary.id,
+                                              })}
+                                              title={hasEmail ? "إعادة إرسال استبيان الرضا" : "لا يوجد بريد إلكتروني مسجل"}
+                                              className="h-8 pointer-coarse:min-h-10 px-3 text-xs font-bold gap-1.5 rounded-lg text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800/60 hover:bg-teal-50 dark:hover:bg-teal-950/30"
+                                            >
+                                              {isSendingThis ? (
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                              ) : (
+                                                <Send className="w-3.5 h-3.5 text-teal-600" />
+                                              )}
+                                              <span>إعادة إرسال</span>
+                                            </Button>
+                                          ) : (
+                                            <span className="text-muted-foreground/50 text-xs">—</span>
+                                          )
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
                     )}
 
                     {/* Pagination */}
@@ -1418,7 +1755,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                         itemsPerPage={15}
                         itemName="استبيان"
                         itemNamePlural="استبيانات"
-                        className="rounded-b-2xl border-t border-border/80"
+                        className="rounded-b-2xl border-t border-border/80 max-sm:px-2 max-sm:[&_button]:px-2 pointer-coarse:[&_button]:min-h-11"
                       />
                     )}
                   </CardContent>
@@ -1430,11 +1767,11 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
             {canViewContacts && (logsSubView === "contacts" || !canViewDispatchLogs) && (
               <div className="space-y-4">
                 {/* Filter and Search Bar لجهات الاتصال */}
-                <Card className="rounded-2xl border border-border/80 shadow-xs bg-card" dir="rtl">
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex flex-col md:flex-row items-center gap-3">
+                <Card className="py-0 gap-0 rounded-2xl border border-border/80 shadow-xs bg-card" dir="rtl">
+                  <CardContent className="p-3.5 sm:p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
                       {/* بحث نصي */}
-                      <div className="relative w-full md:flex-1" dir="rtl">
+                      <div className="relative lg:col-span-2" dir="rtl">
                         <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                         <Input
                           placeholder="ابحث بالاسم، رقم الجوال، البريد، أو التفاصيل..."
@@ -1443,7 +1780,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                             setContactSearchQuery(e.target.value);
                             resetContactPage();
                           }}
-                          className="pr-9 pl-9 h-10 rounded-xl text-xs text-right"
+                          className="pr-9 pl-9 h-10 max-lg:min-h-11 pointer-coarse:min-h-11 rounded-xl text-xs sm:text-sm max-md:text-base text-right"
                           dir="rtl"
                         />
                         {contactSearchQuery && (
@@ -1453,7 +1790,8 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                               setContactSearchQuery("");
                               resetContactPage();
                             }}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                            className="absolute left-2 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer rounded-lg"
+                            aria-label="مسح البحث"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
@@ -1461,7 +1799,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                       </div>
 
                       {/* تصنيف الفئة */}
-                      <div className="w-full sm:w-60">
+                      <div className="min-w-0">
                         <Select 
                           value={contactCategoryFilter} 
                           onValueChange={(val: any) => {
@@ -1470,7 +1808,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                           }}
                           dir="rtl"
                         >
-                          <SelectTrigger className="h-10 rounded-xl text-xs font-bold text-right" dir="rtl">
+                          <SelectTrigger className="w-full min-w-0 h-10 max-lg:min-h-11 pointer-coarse:min-h-11 rounded-xl text-xs sm:text-sm font-bold text-right" dir="rtl">
                             <SelectValue placeholder="تصفية الفئة" />
                           </SelectTrigger>
                           <SelectContent dir="rtl">
@@ -1494,11 +1832,11 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                 </Card>
 
                 {/* جدول المستفيدين المعتمدين والمتبرعين والاستفسارات من صفحة اعتمادات طالبي الخدمة */}
-                <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden" dir="rtl">
+                <Card className="py-0 gap-0 rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden" dir="rtl">
                   <CardHeader className="p-4 sm:p-5 border-b border-border/80 flex flex-row items-center justify-between flex-wrap gap-2 text-right">
-                    <div className="text-right">
+                    <div className="text-right min-w-0">
                       <CardTitle className="text-base sm:text-lg font-black text-foreground flex items-center gap-2 text-right">
-                        <Users className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                        <Users className="w-5 h-5 text-teal-600 dark:text-teal-400 shrink-0" />
                         <span>دليل المستفيدين المعتمدين، المتبرعين، وأصحاب الاستفسارات</span>
                       </CardTitle>
                       <CardDescription className="text-xs sm:text-sm text-right mt-1">
@@ -1509,12 +1847,12 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
                   <CardContent className="p-0">
                     {isLoadingContacts ? (
-                      <div className="p-12 text-center text-muted-foreground text-xs sm:text-sm flex flex-col items-center justify-center gap-2">
+                      <div className="p-10 sm:p-12 text-center text-muted-foreground text-xs sm:text-sm flex flex-col items-center justify-center gap-2">
                         <Loader2 className="w-6 h-6 animate-spin text-teal-600" />
                         <span>جاري تحميل قائمة المستفيدين والمتبرعين...</span>
                       </div>
                     ) : !contactsData?.items || contactsData.items.length === 0 ? (
-                      <div className="p-12 text-center space-y-2">
+                      <div className="p-10 sm:p-12 text-center space-y-2">
                         <Users className="w-12 h-12 mx-auto text-muted-foreground/40" />
                         <p className="text-sm sm:text-base font-bold text-foreground">لا توجد جهات مطابقة</p>
                         <p className="text-xs sm:text-sm text-muted-foreground">
@@ -1522,141 +1860,257 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                         </p>
                       </div>
                     ) : (
-                      <div className="overflow-x-auto" dir="rtl">
-                        <table className="w-full text-right" dir="rtl">
-                          <thead>
-                            <tr className="border-b border-border bg-muted/50 text-muted-foreground font-bold text-xs sm:text-sm">
-                              <th className="p-4 px-5 text-right">الاسم وصفة طالب الخدمة</th>
-                              <th className="p-4 px-5 text-right">رقم الجوال</th>
-                              <th className="p-4 px-5 text-right">البريد الإلكتروني</th>
-                              <th className="p-4 px-5 text-right">تاريخ التسجيل</th>
-                              <th className="p-4 px-5 text-right">حالة التقييم</th>
-                              <th className="p-4 px-5 text-center">الإجراء</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-border/60">
-                            {contactsData.items.map((contact) => {
-                              const isSendingThis = sendingSurveyKey === contact.id;
-                              const hasEmail = Boolean(contact.email);
+                      <>
+                        {/* عرض البطاقات للموبايل والآيباد */}
+                        <div className="xl:hidden grid grid-cols-1 md:grid-cols-2 gap-3 p-3 sm:p-4 bg-muted/15" dir="rtl">
+                          {contactsData.items.map((contact) => {
+                            const isSendingThis = sendingSurveyKey === contact.id;
+                            const hasEmail = Boolean(contact.email);
 
-                              return (
-                                <tr key={contact.id} className="hover:bg-muted/40 transition-colors">
-                                  {/* الاسم والصفة */}
-                                  <td className="p-4 px-5 text-right">
-                                    <div className="space-y-1.5 text-right">
-                                      <div className="font-black text-sm sm:text-base text-foreground flex items-center gap-2 justify-start text-right">
-                                        <span className="truncate max-w-[220px]">{contact.name}</span>
+                            return (
+                              <div
+                                key={contact.id}
+                                className="rounded-xl border border-border/80 bg-card p-3.5 sm:p-4 shadow-xs flex flex-col justify-between gap-3"
+                              >
+                                <div className="space-y-2.5">
+                                  {/* الصف العلوي: الاسم والصفة + حالة التقييم */}
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0 space-y-1.5">
+                                      <div className="font-black text-sm text-foreground truncate">
+                                        {contact.name}
                                       </div>
-                                      <div className="flex items-center gap-2 flex-wrap justify-start">
-                                        {/* صفة المستفيد: إمام / مؤذن / متبرع / صاحب استفسار / أخرى */}
+                                      <div>
                                         {contact.requesterType === "imam" ? (
-                                          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 text-xs py-0.5 px-2.5 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 text-[11px] py-0.5 px-2 font-bold inline-flex items-center gap-1">
                                             <span>🕌 إمام مسجد</span>
                                           </Badge>
                                         ) : contact.requesterType === "muezzin" ? (
-                                          <Badge className="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 text-xs py-0.5 px-2.5 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                          <Badge className="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 text-[11px] py-0.5 px-2 font-bold inline-flex items-center gap-1">
                                             <span>📢 مؤذن</span>
                                           </Badge>
                                         ) : contact.category === "donor" || contact.requesterType === "donor" ? (
-                                          <Badge className="bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800 text-xs py-0.5 px-2.5 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                          <Badge className="bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800 text-[11px] py-0.5 px-2 font-bold inline-flex items-center gap-1">
                                             <HeartHandshake className="w-3 h-3 text-purple-600" />
                                             <span>{contact.requesterTypeLabel || "متبرع / داعم"}</span>
                                           </Badge>
                                         ) : contact.category === "inquiry" ? (
-                                          <Badge className="bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800 text-xs py-0.5 px-2.5 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                          <Badge className="bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800 text-[11px] py-0.5 px-2 font-bold inline-flex items-center gap-1">
                                             <MessageSquare className="w-3 h-3 text-sky-600" />
                                             <span>صاحب استفسار عام</span>
                                           </Badge>
                                         ) : (
-                                          <Badge className="bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800 text-xs py-0.5 px-2.5 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                          <Badge className="bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800 text-[11px] py-0.5 px-2 font-bold inline-flex items-center gap-1">
                                             <UserCheck className="w-3 h-3 text-amber-600" />
                                             <span>{contact.requesterTypeLabel || "مستفيد معتمد"}</span>
                                           </Badge>
                                         )}
                                       </div>
                                     </div>
-                                  </td>
 
-                                  {/* رقم الجوال */}
-                                  <td className="p-4 px-5 text-right">
-                                    {contact.phone ? (
-                                      <div className="text-sm font-semibold text-foreground font-mono flex items-center gap-1.5 justify-start text-right">
-                                        <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                                        <span dir="ltr" className="inline-block">{contact.phone}</span>
-                                      </div>
-                                    ) : (
-                                      <span className="text-xs text-muted-foreground/60">—</span>
-                                    )}
-                                  </td>
-
-                                  {/* البريد الإلكتروني */}
-                                  <td className="p-4 px-5 text-right">
-                                    {hasEmail ? (
-                                      <div className="text-sm font-medium text-foreground font-mono flex items-center gap-1.5 justify-start text-right">
-                                        <Mail className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
-                                        <span dir="ltr" className="truncate max-w-[200px] inline-block">{contact.email}</span>
-                                      </div>
-                                    ) : (
-                                      <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-lg border border-amber-200 dark:border-amber-800 block text-right">
-                                        ⚠️ لا يوجد بريد مسجل
-                                      </span>
-                                    )}
-                                  </td>
-
-                                  {/* تاريخ التسجيل */}
-                                  <td className="p-4 px-5 text-right">
-                                    <div className="text-sm text-muted-foreground font-mono flex items-center gap-1.5 justify-start text-right">
-                                      <Calendar className="w-3.5 h-3.5 shrink-0 text-muted-foreground/70" />
-                                      <span>{formatDateEn(contact.date)}</span>
-                                    </div>
-                                  </td>
-
-                                  {/* حالة التقييم */}
-                                  <td className="p-4 px-5 text-right">
                                     {contact.isEvaluated ? (
-                                      <div className="space-y-1 text-right">
-                                        <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-xs gap-1 py-1 px-2.5 inline-flex items-center font-bold">
-                                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                          <span>تم التقييم بنجاح</span>
+                                      <div className="flex flex-col items-end gap-1 shrink-0">
+                                        <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-[11px] gap-1 py-0.5 px-2 font-bold">
+                                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                          <span>تم التقييم</span>
                                         </Badge>
                                         {contact.rating && (
-                                          <div className="flex items-center gap-1 text-sm font-black text-amber-600 dark:text-amber-400 font-mono justify-start">
-                                            <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                                            <span>{contact.rating} / 5</span>
-                                          </div>
+                                          <span className="inline-flex items-center gap-1 text-xs font-black text-amber-600 dark:text-amber-400 font-mono">
+                                            <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                                            {contact.rating} / 5
+                                          </span>
                                         )}
                                       </div>
                                     ) : (
-                                      <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-xs gap-1 py-1 px-2.5 inline-flex items-center font-medium">
-                                        <Clock className="w-3.5 h-3.5" />
-                                        <span>لم يقم بالتقييم بعد</span>
+                                      <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[11px] gap-1 py-0.5 px-2 shrink-0">
+                                        <Clock className="w-3 h-3" />
+                                        <span>لم يقيّم بعد</span>
                                       </Badge>
                                     )}
-                                  </td>
+                                  </div>
 
-                                  {/* الإجراء */}
-                                  <td className="p-4 px-5 text-center whitespace-nowrap">
-                                    <Button
-                                      size="sm"
-                                      disabled={isSendingThis}
-                                      onClick={() => handleInitiateSendSurvey(contact)}
-                                      title={hasEmail ? "إرسال رابط الاستبيان عبر البريد" : "إدخال البريد الإلكتروني وإرسال الاستبيان"}
-                                      className="h-9 px-4 text-xs sm:text-sm font-bold gap-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white shadow-xs"
-                                    >
-                                      {isSendingThis ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                  {/* بيانات التواصل والتاريخ */}
+                                  <div className="space-y-1.5 text-xs pt-2 border-t border-border/50">
+                                    {contact.phone && (
+                                      <div className="font-semibold text-foreground font-mono flex items-center gap-1.5">
+                                        <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                        <span dir="ltr">{contact.phone}</span>
+                                      </div>
+                                    )}
+                                    {hasEmail ? (
+                                      <div className="font-medium text-foreground font-mono flex items-center gap-1.5">
+                                        <Mail className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                                        <span dir="ltr" className="break-all">{contact.email}</span>
+                                      </div>
+                                    ) : (
+                                      <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-lg border border-amber-200 dark:border-amber-800 inline-block">
+                                        ⚠️ لا يوجد بريد مسجل
+                                      </span>
+                                    )}
+                                    <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5">
+                                      <Calendar className="w-3.5 h-3.5 shrink-0 text-muted-foreground/70" />
+                                      <span>{formatDateEn(contact.date)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="pt-2 border-t border-border/60">
+                                  <Button
+                                    size="sm"
+                                    disabled={isSendingThis}
+                                    onClick={() => handleInitiateSendSurvey(contact)}
+                                    title={hasEmail ? "إرسال رابط الاستبيان عبر البريد" : "إدخال البريد الإلكتروني وإرسال الاستبيان"}
+                                    className="w-full min-h-10 max-lg:min-h-11 px-4 text-xs sm:text-sm font-bold gap-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white shadow-xs"
+                                  >
+                                    {isSendingThis ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <Send className="w-4 h-4" />
+                                    )}
+                                    <span>إرسال استبيان</span>
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* عرض الجدول للشاشات الكبيرة */}
+                        <div className="hidden xl:block overflow-x-auto" dir="rtl">
+                          <table className="w-full text-right" dir="rtl">
+                            <thead>
+                              <tr className="border-b border-border bg-muted/50 text-muted-foreground font-bold text-xs sm:text-sm">
+                                <th className="p-4 px-5 text-right">الاسم وصفة طالب الخدمة</th>
+                                <th className="p-4 px-5 text-right">رقم الجوال</th>
+                                <th className="p-4 px-5 text-right">البريد الإلكتروني</th>
+                                <th className="p-4 px-5 text-right">تاريخ التسجيل</th>
+                                <th className="p-4 px-5 text-right">حالة التقييم</th>
+                                <th className="p-4 px-5 text-center">الإجراء</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border/60">
+                              {contactsData.items.map((contact) => {
+                                const isSendingThis = sendingSurveyKey === contact.id;
+                                const hasEmail = Boolean(contact.email);
+
+                                return (
+                                  <tr key={contact.id} className="hover:bg-muted/40 transition-colors">
+                                    {/* الاسم والصفة */}
+                                    <td className="p-4 px-5 text-right">
+                                      <div className="space-y-1.5 text-right">
+                                        <div className="font-black text-sm sm:text-base text-foreground flex items-center gap-2 justify-start text-right">
+                                          <span className="truncate max-w-[220px]">{contact.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 flex-wrap justify-start">
+                                          {/* صفة المستفيد: إمام / مؤذن / متبرع / صاحب استفسار / أخرى */}
+                                          {contact.requesterType === "imam" ? (
+                                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 text-xs py-0.5 px-2.5 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                              <span>🕌 إمام مسجد</span>
+                                            </Badge>
+                                          ) : contact.requesterType === "muezzin" ? (
+                                            <Badge className="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 text-xs py-0.5 px-2.5 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                              <span>📢 مؤذن</span>
+                                            </Badge>
+                                          ) : contact.category === "donor" || contact.requesterType === "donor" ? (
+                                            <Badge className="bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800 text-xs py-0.5 px-2.5 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                              <HeartHandshake className="w-3 h-3 text-purple-600" />
+                                              <span>{contact.requesterTypeLabel || "متبرع / داعم"}</span>
+                                            </Badge>
+                                          ) : contact.category === "inquiry" ? (
+                                            <Badge className="bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800 text-xs py-0.5 px-2.5 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                              <MessageSquare className="w-3 h-3 text-sky-600" />
+                                              <span>صاحب استفسار عام</span>
+                                            </Badge>
+                                          ) : (
+                                            <Badge className="bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800 text-xs py-0.5 px-2.5 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                              <UserCheck className="w-3 h-3 text-amber-600" />
+                                              <span>{contact.requesterTypeLabel || "مستفيد معتمد"}</span>
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </td>
+
+                                    {/* رقم الجوال */}
+                                    <td className="p-4 px-5 text-right">
+                                      {contact.phone ? (
+                                        <div className="text-sm font-semibold text-foreground font-mono flex items-center gap-1.5 justify-start text-right">
+                                          <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                          <span dir="ltr" className="inline-block">{contact.phone}</span>
+                                        </div>
                                       ) : (
-                                        <Send className="w-4 h-4" />
+                                        <span className="text-xs text-muted-foreground/60">—</span>
                                       )}
-                                      <span>إرسال استبيان</span>
-                                    </Button>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
+                                    </td>
+
+                                    {/* البريد الإلكتروني */}
+                                    <td className="p-4 px-5 text-right">
+                                      {hasEmail ? (
+                                        <div className="text-sm font-medium text-foreground font-mono flex items-center gap-1.5 justify-start text-right">
+                                          <Mail className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                                          <span dir="ltr" className="truncate max-w-[200px] inline-block">{contact.email}</span>
+                                        </div>
+                                      ) : (
+                                        <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-lg border border-amber-200 dark:border-amber-800 block text-right">
+                                          ⚠️ لا يوجد بريد مسجل
+                                        </span>
+                                      )}
+                                    </td>
+
+                                    {/* تاريخ التسجيل */}
+                                    <td className="p-4 px-5 text-right">
+                                      <div className="text-sm text-muted-foreground font-mono flex items-center gap-1.5 justify-start text-right">
+                                        <Calendar className="w-3.5 h-3.5 shrink-0 text-muted-foreground/70" />
+                                        <span>{formatDateEn(contact.date)}</span>
+                                      </div>
+                                    </td>
+
+                                    {/* حالة التقييم */}
+                                    <td className="p-4 px-5 text-right">
+                                      {contact.isEvaluated ? (
+                                        <div className="space-y-1 text-right">
+                                          <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-xs gap-1 py-1 px-2.5 inline-flex items-center font-bold">
+                                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                            <span>تم التقييم بنجاح</span>
+                                          </Badge>
+                                          {contact.rating && (
+                                            <div className="flex items-center gap-1 text-sm font-black text-amber-600 dark:text-amber-400 font-mono justify-start">
+                                              <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                                              <span>{contact.rating} / 5</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-xs gap-1 py-1 px-2.5 inline-flex items-center font-medium">
+                                          <Clock className="w-3.5 h-3.5" />
+                                          <span>لم يقم بالتقييم بعد</span>
+                                        </Badge>
+                                      )}
+                                    </td>
+
+                                    {/* الإجراء */}
+                                    <td className="p-4 px-5 text-center whitespace-nowrap">
+                                      <Button
+                                        size="sm"
+                                        disabled={isSendingThis}
+                                        onClick={() => handleInitiateSendSurvey(contact)}
+                                        title={hasEmail ? "إرسال رابط الاستبيان عبر البريد" : "إدخال البريد الإلكتروني وإرسال الاستبيان"}
+                                        className="h-9 pointer-coarse:min-h-10 px-4 text-xs sm:text-sm font-bold gap-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white shadow-xs"
+                                      >
+                                        {isSendingThis ? (
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                          <Send className="w-4 h-4" />
+                                        )}
+                                        <span>إرسال استبيان</span>
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
                     )}
 
                     {/* Pagination لجهات الاتصال */}
@@ -1669,7 +2123,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                         itemsPerPage={15}
                         itemName="جهة"
                         itemNamePlural="جهات"
-                        className="rounded-b-2xl border-t border-border/80"
+                        className="rounded-b-2xl border-t border-border/80 max-sm:px-2 max-sm:[&_button]:px-2 pointer-coarse:[&_button]:min-h-11"
                       />
                     )}
                   </CardContent>
@@ -1683,34 +2137,34 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
         {/* Modal: Full Survey Details Styled Exactly Like RequestEvaluation */}
         <Dialog open={isDetailModalOpen && canViewEvaluationsLog && canViewDetails} onOpenChange={setIsDetailModalOpen}>
-          <DialogContent className="max-w-3xl sm:max-w-4xl w-[95vw] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl" dir="rtl">
+          <DialogContent className="max-w-3xl sm:max-w-4xl w-[calc(100vw-1rem)] sm:w-[95vw] max-h-[92dvh] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl flex flex-col gap-0" dir="rtl">
             {selectedEval && (
-              <div className="font-sans">
+              <div className="font-sans flex flex-col min-h-0 flex-1 overflow-hidden">
                 {/* 1. Header Banner مع الشعار مثل صفحة التقييم */}
                 <div
-                  className="text-white p-6 sm:p-8 flex flex-col items-center justify-center relative shadow-inner"
+                  className="text-white p-4 sm:p-6 lg:p-8 flex flex-col items-center justify-center relative shadow-inner shrink-0"
                   style={{ backgroundColor: evalFormConfig?.headerBgColor || "#14707a" }}
                 >
                   <img 
                     src={mainLogoSrc} 
                     alt="شعار الجمعية" 
-                    className="h-16 sm:h-20 w-auto object-contain brightness-0 invert"
+                    className="h-12 sm:h-16 lg:h-20 w-auto object-contain brightness-0 invert"
                   />
-                  <div className="absolute left-4 sm:left-6 top-4 sm:top-6">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold bg-white/20 backdrop-blur-md text-white border border-white/30">
-                      <Star className="w-4 h-4 fill-amber-300 text-amber-300" />
+                  <div className="mt-3 sm:mt-0 sm:absolute sm:left-6 sm:top-6">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-bold bg-white/20 backdrop-blur-md text-white border border-white/30">
+                      <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-amber-300 text-amber-300" />
                       <span>{selectedEval.rating} من 5 نجوم</span>
                     </span>
                   </div>
                 </div>
 
                 {/* 2. العنوان والتفاصيل */}
-                <div className="p-6 sm:p-8 space-y-6 max-h-[75vh] overflow-y-auto">
+                <div className="p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6 flex-1 min-h-0 overflow-y-auto">
                   {/* تنبيه إذا كان التقييم مخفياً */}
                   {selectedEval.isHidden && (
                     <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-800 dark:text-rose-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                      <div className="flex items-center gap-2.5">
-                        <EyeOff className="w-4.5 h-4.5 text-rose-600 shrink-0" />
+                      <div className="flex items-start sm:items-center gap-2.5">
+                        <EyeOff className="w-4.5 h-4.5 text-rose-600 shrink-0 mt-0.5 sm:mt-0" />
                         <div>
                           <strong className="font-bold text-xs sm:text-sm block">هذا التقييم مخفي عن باقي المستخدمين</strong>
                           {selectedEval.hiddenBy && (
@@ -1725,7 +2179,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                           size="sm"
                           disabled={togglingEvalId === selectedEval.id}
                           onClick={() => handleToggleHide(selectedEval.id, true)}
-                          className="text-xs h-8 px-3 font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white gap-1 shrink-0 self-start sm:self-auto"
+                          className="text-xs h-9 max-lg:min-h-10 px-3 font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white gap-1 shrink-0 w-full sm:w-auto"
                         >
                           <Eye className="w-3.5 h-3.5" />
                           <span>إلغاء الإخفاء وإظهار التقييم</span>
@@ -1735,25 +2189,25 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                   )}
 
                   <div className="text-center space-y-2">
-                    <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+                    <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">
                       {evalFormConfig?.title || "قياس رضا المستفيدين من خدمات الجمعية"}
                     </h2>
                     <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-2xl mx-auto">
                       {evalFormConfig?.description || "نرحب بكم في استبيان قياس رضا المستفيدين لجمعية عمارة المساجد (منارة). نسعى من خلال هذا الاستبيان إلى فهم آرائكم واقتراحاتكم، حيث إن مشاركتكم تساعدنا في تحسين وتطوير خدماتنا لتلبية تطلعاتكم بشكل أفضل. نؤكد لكم أن إكمال الاستبيان لن يستغرق أكثر من دقيقتين من وقتكم. شكرًا لكم على وقتكم وتعاونكم"}
                     </p>
-                    <div className="pt-2 flex items-center justify-center gap-2.5 flex-wrap text-xs text-muted-foreground">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-muted border border-border font-mono font-bold text-foreground text-xs">
-                        <FileText className="w-3.5 h-3.5 text-primary" />
+                    <div className="pt-2 flex items-center justify-center gap-2 sm:gap-2.5 flex-wrap text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg bg-muted border border-border font-mono font-bold text-foreground text-xs">
+                        <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
                         {selectedEval.requestNumber}
                       </span>
-                      <span>•</span>
+                      <span className="hidden sm:inline">•</span>
                       <span className="inline-flex items-center gap-1.5 font-medium">
-                        <Building2 className="w-3.5 h-3.5 text-primary" />
+                        <Building2 className="w-3.5 h-3.5 text-primary shrink-0" />
                         {getArabicLabel(selectedEval.serviceName)}
                       </span>
-                      <span>•</span>
+                      <span className="hidden sm:inline">•</span>
                       <span className="inline-flex items-center gap-1.5 font-mono">
-                        <Calendar className="w-3.5 h-3.5 text-primary" />
+                        <Calendar className="w-3.5 h-3.5 text-primary shrink-0" />
                         {formatDateEn(selectedEval.evaluatedAt)}
                       </span>
                     </div>
@@ -1762,7 +2216,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                   <hr className="border-t border-dotted border-border" />
 
                   {/* 3. عرض جميع الحقول المخصصة والنشطة كما في صفحة الاستبيان */}
-                  <div className="space-y-4">
+                  <div className="space-y-3.5 sm:space-y-4">
                     {activeFields.map((field) => {
                       // استخراج الإجابة
                       let value = selectedEval.answers?.[field.id];
@@ -1781,21 +2235,21 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                       if (value === undefined || value === null || value === "") return null;
 
                       return (
-                        <div key={field.id} className="p-4 sm:p-5 rounded-2xl bg-muted/30 border border-border/70 space-y-2 text-right">
+                        <div key={field.id} className="p-3.5 sm:p-5 rounded-2xl bg-muted/30 border border-border/70 space-y-2 text-right">
                           <span className="text-xs sm:text-sm font-bold text-foreground block">
                             {field.label}
                           </span>
 
                           {/* تقييم بالنجوم */}
                           {field.type === "rating" && (
-                            <div className="flex items-center gap-1.5 py-1 justify-start" dir="rtl">
+                            <div className="flex items-center flex-wrap gap-1.5 py-1 justify-start" dir="rtl">
                               {Array.from({ length: field.maxRating || 5 }).map((_, sIdx) => {
                                 const starVal = sIdx + 1;
                                 const active = Number(value) >= starVal;
                                 return (
                                   <Star
                                     key={starVal}
-                                    className={`w-7 h-7 ${
+                                    className={`w-6 h-6 sm:w-7 sm:h-7 ${
                                       active
                                         ? "text-amber-400 fill-amber-400 drop-shadow-[0_1px_2px_rgba(251,191,36,0.5)]"
                                         : "text-muted-foreground/20 fill-none"
@@ -1803,7 +2257,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                   />
                                 );
                               })}
-                              <span className="text-xs sm:text-sm font-bold text-amber-700 dark:text-amber-300 ml-2">
+                              <span className="text-xs sm:text-sm font-bold text-amber-700 dark:text-amber-300 mr-2">
                                 {value} من {field.maxRating || 5}
                               </span>
                             </div>
@@ -1811,16 +2265,16 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
                           {/* خيارات أو قوائم */}
                           {["select", "radio"].includes(field.type) && (
-                            <div className="font-bold text-xs sm:text-sm text-foreground bg-card p-3 rounded-xl border border-border/60 text-right" dir="rtl">
+                            <div className="font-bold text-xs sm:text-sm text-foreground bg-card p-3 rounded-xl border border-border/60 text-right break-words" dir="rtl">
                               {field.options?.find((o: any) => o.value === value)?.label || getArabicLabel(String(value))}
                             </div>
                           )}
 
                           {/* نصوص / هاتف / بريد / رقم */}
                           {["text", "phone", "email", "number"].includes(field.type) && (
-                            <div className="font-bold text-xs sm:text-sm text-foreground bg-card p-3 rounded-xl border border-border/60 text-right" dir="rtl">
+                            <div className="font-bold text-xs sm:text-sm text-foreground bg-card p-3 rounded-xl border border-border/60 text-right break-words" dir="rtl">
                               {field.type === "phone" || field.type === "email" ? (
-                                <span dir="ltr" className="inline-block font-mono">{String(value)}</span>
+                                <span dir="ltr" className="inline-block font-mono break-all">{String(value)}</span>
                               ) : (
                                 field.id === "serviceName" || field.id === "programType" ? getArabicLabel(String(value)) : String(value)
                               )}
@@ -1829,7 +2283,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
                           {/* نص طويل / ملاحظات */}
                           {field.type === "textarea" && (
-                            <div className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/20 text-xs sm:text-sm italic text-foreground leading-relaxed">
+                            <div className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/20 text-xs sm:text-sm italic text-foreground leading-relaxed break-words">
                               "{String(value)}"
                             </div>
                           )}
@@ -1846,12 +2300,12 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
                     {/* في حال وجود تعليقات إضافية غير مدرجة بالحقول */}
                     {selectedEval.comments && !activeFields.some((f) => f.id === "comments") && (
-                      <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-1.5 text-right">
-                        <span className="text-xs sm:text-sm font-bold text-amber-800 dark:text-amber-300 block flex items-center gap-1.5">
-                          <MessageSquare className="w-4 h-4" />
+                      <div className="p-3.5 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-1.5 text-right">
+                        <span className="text-xs sm:text-sm font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                          <MessageSquare className="w-4 h-4 shrink-0" />
                           <span>آراء ومقترحات المستفيد:</span>
                         </span>
-                        <p className="text-xs sm:text-sm text-foreground italic leading-relaxed">
+                        <p className="text-xs sm:text-sm text-foreground italic leading-relaxed break-words">
                           "{selectedEval.comments}"
                         </p>
                       </div>
@@ -1859,10 +2313,10 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
                     {/* الرد الرسمي للجمعية إن وجد */}
                     {selectedEval.reply ? canViewReply && (
-                      <div className="p-4 sm:p-5 rounded-2xl bg-teal-500/10 border border-teal-500/25 space-y-2 text-right">
+                      <div className="p-3.5 sm:p-5 rounded-2xl bg-teal-500/10 border border-teal-500/25 space-y-2 text-right">
                         <div className="flex items-center justify-between flex-wrap gap-2">
                           <span className="text-xs sm:text-sm font-bold text-teal-800 dark:text-teal-300 flex items-center gap-1.5">
-                            <ShieldCheck className="w-4 h-4 text-teal-600" />
+                            <ShieldCheck className="w-4 h-4 text-teal-600 shrink-0" />
                             <span>الرد الرسمي المسجل:</span>
                           </span>
                           <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono">
@@ -1871,20 +2325,20 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                             <span>{formatDateEn(selectedEval.reply.repliedAt)}</span>
                           </div>
                         </div>
-                        <p className="text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap bg-card/70 p-3.5 rounded-xl border border-teal-500/15">
+                        <p className="text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words bg-card/70 p-3.5 rounded-xl border border-teal-500/15">
                           {selectedEval.reply.text}
                         </p>
                       </div>
                     ) : (
                       canReply && (
-                        <div className="p-4 rounded-2xl bg-muted/40 border border-dashed border-border flex items-center justify-between gap-3">
+                        <div className="p-3.5 sm:p-4 rounded-2xl bg-muted/40 border border-dashed border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                           <div className="text-xs text-muted-foreground">
                             لم يتم تسجيل رد رسمي على هذا التقييم بعد.
                           </div>
                           <Button
                             size="sm"
                             onClick={() => handleOpenReplyDialog(selectedEval)}
-                            className="text-xs font-bold gap-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl h-8 px-3 shrink-0"
+                            className="text-xs font-bold gap-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl h-9 max-lg:min-h-10 px-3 shrink-0 w-full sm:w-auto"
                           >
                             <MessageSquarePlus className="w-3.5 h-3.5" />
                             <span>إضافة رد رسمي</span>
@@ -1895,8 +2349,8 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                   </div>
                 </div>
 
-                <DialogFooter className="p-4 bg-muted/20 border-t border-border flex justify-between items-center flex-row">
-                  <div className="flex items-center gap-2">
+                <DialogFooter className="p-3.5 sm:p-4 bg-muted/20 border-t border-border flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     {canHide && (
                       selectedEval.isHidden ? (
                         <Button
@@ -1904,7 +2358,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                           size="sm"
                           disabled={togglingEvalId === selectedEval.id}
                           onClick={() => handleToggleHide(selectedEval.id, true)}
-                          className="text-xs font-bold rounded-xl px-4 gap-1.5 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/10"
+                          className="w-full sm:w-auto min-h-10 max-lg:min-h-11 text-xs font-bold rounded-xl px-4 gap-1.5 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/10"
                         >
                           <Eye className="w-3.5 h-3.5 text-emerald-600" />
                           <span>إظهار التقييم</span>
@@ -1915,7 +2369,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                           size="sm"
                           disabled={togglingEvalId === selectedEval.id}
                           onClick={() => handleToggleHide(selectedEval.id, false)}
-                          className="text-xs font-bold rounded-xl px-4 gap-1.5 text-rose-700 dark:text-rose-300 border-rose-500/30 hover:bg-rose-500/10"
+                          className="w-full sm:w-auto min-h-10 max-lg:min-h-11 text-xs font-bold rounded-xl px-4 gap-1.5 text-rose-700 dark:text-rose-300 border-rose-500/30 hover:bg-rose-500/10"
                         >
                           <EyeOff className="w-3.5 h-3.5" />
                           <span>إخفاء التقييم</span>
@@ -1927,7 +2381,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                     variant="secondary"
                     size="sm"
                     onClick={() => setIsDetailModalOpen(false)}
-                    className="text-xs font-bold rounded-xl px-6 mr-auto"
+                    className="w-full sm:w-auto min-h-10 max-lg:min-h-11 text-xs font-bold rounded-xl px-6 sm:mr-auto"
                   >
                     إغلاق
                   </Button>
@@ -1939,15 +2393,15 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
         {/* نافذة عرض الرد الرسمي للاطلاع */}
         <Dialog open={isViewReplyModalOpen && canViewReply} onOpenChange={setIsViewReplyModalOpen}>
-          <DialogContent className="max-w-lg w-[95vw] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl" dir="rtl">
+          <DialogContent className="max-w-lg w-[calc(100vw-1rem)] sm:w-[95vw] max-h-[92dvh] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl flex flex-col gap-0" dir="rtl">
             {viewReplyEval && (
-              <div>
-                <div className="p-5 sm:p-6 bg-gradient-to-br from-teal-500/10 via-card to-background border-b border-border/80">
+              <div className="flex flex-col min-h-0 flex-1 overflow-hidden">
+                <div className="p-4 sm:p-6 bg-gradient-to-br from-teal-500/10 via-card to-background border-b border-border/80 shrink-0">
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 border border-teal-500/30 shadow-xs">
-                      <ShieldCheck className="w-6 h-6" />
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 border border-teal-500/30 shadow-xs">
+                      <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <DialogTitle className="text-base sm:text-lg font-black text-foreground text-right">
                         الرد الرسمي على التقييم
                       </DialogTitle>
@@ -1958,11 +2412,11 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                   </div>
                 </div>
 
-                <div className="p-5 sm:p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div className="p-4 sm:p-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
                   {/* بطاقة معلومات التقييم والمستفيد */}
-                  <div className="bg-muted/40 p-4 rounded-2xl border border-border/70 space-y-2.5 text-xs text-right">
+                  <div className="bg-muted/40 p-3.5 sm:p-4 rounded-2xl border border-border/70 space-y-2.5 text-xs text-right">
                     <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-border/60">
-                      <div className="space-y-0.5">
+                      <div className="space-y-0.5 min-w-0">
                         <span className="text-[11px] text-muted-foreground block">المستفيد:</span>
                         <span className="font-bold text-sm text-foreground block">{viewReplyEval.requesterName}</span>
                       </div>
@@ -1983,7 +2437,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                     {viewReplyEval.comments && (
                       <div className="pt-2">
                         <span className="text-[11px] text-muted-foreground block mb-1">ملاحظات المستفيد:</span>
-                        <p className="text-xs italic bg-card/80 p-2.5 rounded-xl border border-border/60 text-foreground leading-relaxed">
+                        <p className="text-xs italic bg-card/80 p-2.5 rounded-xl border border-border/60 text-foreground leading-relaxed break-words">
                           "{viewReplyEval.comments}"
                         </p>
                       </div>
@@ -1991,10 +2445,10 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                   </div>
 
                   {/* نص الرد الرسمي */}
-                  <div className="bg-teal-500/10 dark:bg-teal-950/30 border border-teal-500/25 rounded-2xl p-4 sm:p-5 space-y-3 text-right">
+                  <div className="bg-teal-500/10 dark:bg-teal-950/30 border border-teal-500/25 rounded-2xl p-3.5 sm:p-5 space-y-3 text-right">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div className="flex items-center gap-1.5 font-bold text-xs text-teal-800 dark:text-teal-300">
-                        <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                        <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
                         <span>رد إدارة الجمعية:</span>
                       </div>
                       <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono">
@@ -2005,25 +2459,25 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                       </div>
                     </div>
 
-                    <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed bg-card/90 dark:bg-card/70 p-4 rounded-xl border border-teal-500/20 shadow-2xs font-normal">
+                    <p className="text-xs sm:text-sm text-foreground whitespace-pre-wrap break-words leading-relaxed bg-card/90 dark:bg-card/70 p-3.5 sm:p-4 rounded-xl border border-teal-500/20 shadow-2xs font-normal">
                       {viewReplyEval.reply?.text || "لا يوجد نص رد متاح."}
                     </p>
 
                     {viewReplyEval.reply?.smsSent && (
-                      <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-xl">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div className="flex items-start sm:items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-xl">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5 sm:mt-0" />
                         <span>تم إرسال إشعار الرد عبر SMS إلى جوال المستفيد {viewReplyEval.reply?.smsPhone ? `(${viewReplyEval.reply.smsPhone})` : ""}</span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <DialogFooter className="p-4 bg-muted/20 border-t border-border flex justify-end">
+                <DialogFooter className="p-3.5 sm:p-4 bg-muted/20 border-t border-border flex justify-end shrink-0">
                   <Button
                     variant="secondary"
                     size="sm"
                     onClick={() => setIsViewReplyModalOpen(false)}
-                    className="text-xs font-bold rounded-xl px-6"
+                    className="w-full sm:w-auto min-h-10 max-lg:min-h-11 text-xs font-bold rounded-xl px-6"
                   >
                     إغلاق
                   </Button>
@@ -2035,10 +2489,10 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
         {/* حوار إضافة الرد الرسمي على التقييم */}
         <Dialog open={replyDialogOpen && canReply} onOpenChange={setReplyDialogOpen}>
-          <DialogContent className="max-w-lg w-[95vw] p-6 rounded-2xl border border-border shadow-2xl" dir="rtl">
+          <DialogContent className="max-w-lg w-[calc(100vw-1rem)] sm:w-[95vw] max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-2xl border border-border shadow-2xl" dir="rtl">
             <DialogHeader className="text-right space-y-1">
               <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2 text-right">
-                <MessageSquarePlus className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                <MessageSquarePlus className="w-5 h-5 text-teal-600 dark:text-teal-400 shrink-0" />
                 <span>إضافة رد رسمي على التقييم</span>
               </DialogTitle>
               <DialogDescription className="text-xs text-right">
@@ -2050,7 +2504,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
               <div className="space-y-4 pt-2">
                 {/* ملخص التقييم */}
                 <div className="bg-muted/50 p-3.5 rounded-xl border border-border/70 space-y-2 text-xs text-right">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <span className="text-muted-foreground">المستفيد: <strong className="text-foreground">{replyTargetEval.requesterName}</strong></span>
                     <span className="font-mono text-muted-foreground">{replyTargetEval.requestNumber}</span>
                   </div>
@@ -2059,16 +2513,16 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                     <span>{replyTargetEval.rating} من 5 نجوم</span>
                   </div>
                   {replyTargetEval.comments && (
-                    <p className="text-muted-foreground italic bg-card/60 p-2.5 rounded-lg border border-border/50 text-[11px] leading-relaxed">
+                    <p className="text-muted-foreground italic bg-card/60 p-2.5 rounded-lg border border-border/50 text-[11px] leading-relaxed break-words">
                       "{replyTargetEval.comments}"
                     </p>
                   )}
                 </div>
 
                 {/* تنبيه إرسال رسالة SMS للمستفيد */}
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-teal-500/10 border border-teal-500/20 text-xs text-teal-900 dark:text-teal-200">
-                  <Phone className="w-4 h-4 text-teal-600 shrink-0" />
-                  <span>
+                <div className="flex items-start sm:items-center gap-2 p-3 rounded-xl bg-teal-500/10 border border-teal-500/20 text-xs text-teal-900 dark:text-teal-200">
+                  <Phone className="w-4 h-4 text-teal-600 shrink-0 mt-0.5 sm:mt-0" />
+                  <span className="leading-relaxed">
                     سيتم إرسال الرد تلقائياً في رسالة نصية (SMS) إلى جوال المستفيد:{" "}
                     <strong dir="ltr" className="font-mono text-teal-700 dark:text-teal-300">
                       {replyTargetEval.requesterPhone || "غير مسجل"}
@@ -2084,17 +2538,17 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder="اكتب الرد الرسمي للإدارة على هذا التقييم والملاحظات الواردة..."
                     rows={4}
-                    className="text-xs text-right resize-none"
+                    className="text-xs sm:text-sm max-md:text-base text-right resize-none"
                     dir="rtl"
                   />
                 </div>
 
-                <DialogFooter className="gap-2 sm:gap-0 pt-2 flex items-center justify-between" dir="rtl">
+                <DialogFooter className="gap-2 pt-2 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between" dir="rtl">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setReplyDialogOpen(false)}
-                    className="text-xs h-9"
+                    className="w-full sm:w-auto text-xs h-10 max-lg:min-h-11 rounded-xl"
                   >
                     إلغاء
                   </Button>
@@ -2108,7 +2562,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                         replyText: replyText.trim(),
                       });
                     }}
-                    className="text-xs h-9 font-bold bg-teal-600 hover:bg-teal-700 text-white gap-1.5"
+                    className="w-full sm:w-auto text-xs h-10 max-lg:min-h-11 font-bold bg-teal-600 hover:bg-teal-700 text-white gap-1.5 rounded-xl"
                   >
                     {saveReplyMutation.isPending ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -2125,10 +2579,10 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
         {/* حوار إرسال استبيان مخصص أو إدخال البريد الإلكتروني */}
         <Dialog open={isCustomSurveyOpen && canViewContacts} onOpenChange={setIsCustomSurveyOpen}>
-          <DialogContent className="max-w-md w-[95vw] p-6 rounded-2xl border border-border shadow-2xl" dir="rtl">
+          <DialogContent className="max-w-md w-[calc(100vw-1rem)] sm:w-[95vw] max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-2xl border border-border shadow-2xl" dir="rtl">
             <DialogHeader className="text-right space-y-1">
               <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2 text-right">
-                <Send className="w-4.5 h-4.5 text-teal-600 dark:text-teal-400" />
+                <Send className="w-4.5 h-4.5 text-teal-600 dark:text-teal-400 shrink-0" />
                 <span>إرسال استبيان قياس رضا المستفيدين</span>
               </DialogTitle>
               <DialogDescription className="text-xs text-right">
@@ -2165,7 +2619,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                   onChange={(e) => setCustomSurveyData(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="أدخل اسم الشخص أو الجهة..."
                   required
-                  className="h-10 text-xs text-right"
+                  className="h-10 max-lg:min-h-11 text-xs sm:text-sm max-md:text-base text-right"
                   dir="rtl"
                 />
               </div>
@@ -2178,7 +2632,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                   onChange={(e) => setCustomSurveyData(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="example@mail.com"
                   required
-                  className="h-10 text-xs text-right font-mono"
+                  className="h-10 max-lg:min-h-11 text-xs sm:text-sm max-md:text-base text-right font-mono"
                   dir="ltr"
                 />
               </div>
@@ -2189,7 +2643,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                   value={customSurveyData.phone}
                   onChange={(e) => setCustomSurveyData(prev => ({ ...prev, phone: e.target.value }))}
                   placeholder="05xxxxxxxx"
-                  className="h-10 text-xs text-right font-mono"
+                  className="h-10 max-lg:min-h-11 text-xs sm:text-sm max-md:text-base text-right font-mono"
                   dir="ltr"
                 />
               </div>
@@ -2201,7 +2655,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                   onValueChange={(val: any) => setCustomSurveyData(prev => ({ ...prev, category: val }))}
                   dir="rtl"
                 >
-                  <SelectTrigger className="h-10 text-xs font-bold text-right" dir="rtl">
+                  <SelectTrigger className="w-full h-10 max-lg:min-h-11 text-xs sm:text-sm font-bold text-right" dir="rtl">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent dir="rtl">
@@ -2220,24 +2674,24 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                   onChange={(e) => setCustomSurveyData(prev => ({ ...prev, customMessage: e.target.value }))}
                   placeholder="رسالة إضافية تظهر في البريد الإلكتروني المرسل للمستفيد..."
                   rows={3}
-                  className="text-xs text-right resize-none"
+                  className="text-xs sm:text-sm max-md:text-base text-right resize-none"
                   dir="rtl"
                 />
               </div>
 
-              <DialogFooter className="gap-2 sm:gap-0 pt-2 flex items-center justify-between">
+              <DialogFooter className="gap-2 pt-2 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setIsCustomSurveyOpen(false)}
-                  className="text-xs h-9"
+                  className="w-full sm:w-auto text-xs h-10 max-lg:min-h-11 rounded-xl"
                 >
                   إلغاء
                 </Button>
                 <Button
                   type="submit"
                   disabled={sendGeneralSurveyMutation.isPending}
-                  className="text-xs h-9 font-bold bg-teal-600 hover:bg-teal-700 text-white gap-1.5"
+                  className="w-full sm:w-auto text-xs h-10 max-lg:min-h-11 font-bold bg-teal-600 hover:bg-teal-700 text-white gap-1.5 rounded-xl"
                 >
                   {sendGeneralSurveyMutation.isPending ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -2256,10 +2710,10 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
           open={Boolean(confirmSurveyContact) && canViewContacts}
           onOpenChange={(open) => !open && setConfirmSurveyContact(null)}
         >
-          <AlertDialogContent className="max-w-md w-[95vw] p-6 rounded-2xl border border-border shadow-2xl" dir="rtl">
+          <AlertDialogContent className="max-w-md w-[calc(100vw-1rem)] sm:w-[95vw] max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-2xl border border-border shadow-2xl" dir="rtl">
             <AlertDialogHeader className="text-right space-y-2">
-              <div className="w-12 h-12 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center mb-1">
-                <Send className="w-6 h-6" />
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center mb-1">
+                <Send className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <AlertDialogTitle className="text-base sm:text-lg font-bold text-foreground text-right">
                 تأكيد إرسال استبيان قياس الرضا
@@ -2270,26 +2724,26 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
             </AlertDialogHeader>
 
             {confirmSurveyContact && (
-              <div className="bg-muted/50 p-4 rounded-xl border border-border/70 space-y-2.5 text-right my-2">
-                <div className="flex items-center justify-between text-xs sm:text-sm">
-                  <span className="text-muted-foreground">الاسم:</span>
-                  <span className="font-bold text-foreground">{confirmSurveyContact.name}</span>
+              <div className="bg-muted/50 p-3.5 sm:p-4 rounded-xl border border-border/70 space-y-2.5 text-right my-2">
+                <div className="flex items-center justify-between gap-2 text-xs sm:text-sm">
+                  <span className="text-muted-foreground shrink-0">الاسم:</span>
+                  <span className="font-bold text-foreground text-left break-words">{confirmSurveyContact.name}</span>
                 </div>
-                <div className="flex items-center justify-between text-xs sm:text-sm">
-                  <span className="text-muted-foreground">صفة طالب الخدمة:</span>
-                  <span className="font-bold text-foreground">
+                <div className="flex items-center justify-between gap-2 text-xs sm:text-sm">
+                  <span className="text-muted-foreground shrink-0">صفة طالب الخدمة:</span>
+                  <span className="font-bold text-foreground text-left">
                     {confirmSurveyContact.requesterTypeLabel || "طالب خدمة"}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-xs sm:text-sm">
-                  <span className="text-muted-foreground">البريد الإلكتروني:</span>
-                  <span dir="ltr" className="font-mono font-medium text-teal-700 dark:text-teal-400">
+                <div className="flex items-center justify-between gap-2 text-xs sm:text-sm">
+                  <span className="text-muted-foreground shrink-0">البريد الإلكتروني:</span>
+                  <span dir="ltr" className="font-mono font-medium text-teal-700 dark:text-teal-400 break-all text-left">
                     {confirmSurveyContact.email}
                   </span>
                 </div>
                 {confirmSurveyContact.phone && (
-                  <div className="flex items-center justify-between text-xs sm:text-sm">
-                    <span className="text-muted-foreground">رقم الجوال:</span>
+                  <div className="flex items-center justify-between gap-2 text-xs sm:text-sm">
+                    <span className="text-muted-foreground shrink-0">رقم الجوال:</span>
                     <span dir="ltr" className="font-mono text-muted-foreground">
                       {confirmSurveyContact.phone}
                     </span>
@@ -2298,10 +2752,10 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
               </div>
             )}
 
-            <AlertDialogFooter className="gap-2 sm:gap-0 pt-2 flex items-center justify-between" dir="rtl">
+            <AlertDialogFooter className="gap-2 pt-2 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between" dir="rtl">
               <AlertDialogCancel
                 disabled={sendGeneralSurveyMutation.isPending}
-                className="text-xs sm:text-sm h-9 px-4 rounded-xl"
+                className="w-full sm:w-auto text-xs sm:text-sm h-10 max-lg:min-h-11 px-4 rounded-xl mt-0"
               >
                 إلغاء
               </AlertDialogCancel>
@@ -2311,7 +2765,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                   e.preventDefault();
                   handleConfirmSendSurvey();
                 }}
-                className="text-xs sm:text-sm h-9 px-5 font-bold rounded-xl bg-teal-600 hover:bg-teal-700 text-white gap-1.5"
+                className="w-full sm:w-auto text-xs sm:text-sm h-10 max-lg:min-h-11 px-5 font-bold rounded-xl bg-teal-600 hover:bg-teal-700 text-white gap-1.5"
               >
                 {sendGeneralSurveyMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -2328,12 +2782,12 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
   if (!canViewPage) {
     const deniedContent = (
-      <div className="container py-24 flex flex-col items-center justify-center text-center" dir="rtl">
-        <div className="w-16 h-16 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mb-4">
-          <HeartHandshake className="w-8 h-8" />
+      <div className="container px-4 py-16 sm:py-24 flex flex-col items-center justify-center text-center" dir="rtl">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mb-4">
+          <HeartHandshake className="w-7 h-7 sm:w-8 sm:h-8" />
         </div>
-        <h2 className="text-2xl font-bold text-foreground">ليس لديك صلاحية للوصول إلى هذه الصفحة</h2>
-        <p className="text-muted-foreground mt-2">يرجى مراجعة إدارة النظام لمنحك صلاحيات رضا المستفيدين</p>
+        <h2 className="text-xl sm:text-2xl font-bold text-foreground">ليس لديك صلاحية للوصول إلى هذه الصفحة</h2>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-2 max-w-md">يرجى مراجعة إدارة النظام لمنحك صلاحيات رضا المستفيدين</p>
       </div>
     );
 
@@ -2342,7 +2796,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
     }
 
     return (
-      <DashboardLayout>
+      <DashboardLayout tabletNavigation>
         {deniedContent}
       </DashboardLayout>
     );
@@ -2353,7 +2807,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout tabletNavigation>
       {content}
     </DashboardLayout>
   );

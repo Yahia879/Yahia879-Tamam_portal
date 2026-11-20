@@ -537,122 +537,133 @@ export default function ProgressReportPrint() {
       `}</style>
 
       {/* أزرار التحكم والخيارات */}
-      <div className="print:hidden w-full bg-white/90 backdrop-blur border-b p-3 sticky top-0 z-50 flex flex-wrap justify-between items-center gap-2 sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:justify-end">
-        <Button variant="outline" onClick={handleBack} className="bg-white border shadow-sm sm:bg-white/90 font-semibold">
-          <ArrowRight className="ml-2 h-4 w-4" />
-          رجوع
-        </Button>
-        <Button onClick={handlePrint} className="shadow-md gradient-primary text-white font-semibold">
-          <Printer className="ml-2 h-4 w-4" />
-          طباعة التقرير / PDF
-        </Button>
+      <div className="print:hidden w-full bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-xs" dir="rtl">
+        <div className="w-full max-w-[210mm] mx-auto px-3 sm:px-6 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              onClick={handleBack}
+              className="bg-white border shadow-xs font-semibold text-xs sm:text-sm min-h-10 max-lg:min-h-11 px-3 sm:px-4"
+            >
+              <ArrowRight className="ml-1.5 h-4 w-4 shrink-0" />
+              رجوع
+            </Button>
+            <Button
+              onClick={handlePrint}
+              className="flex-1 sm:flex-none shadow-sm gradient-primary text-white font-semibold text-xs sm:text-sm min-h-10 max-lg:min-h-11 px-3 sm:px-4"
+            >
+              <Printer className="ml-1.5 h-4 w-4 shrink-0" />
+              طباعة التقرير / PDF
+            </Button>
+          </div>
 
-        {/* زر اعتماد تقرير الإنجاز العادي */}
-        {canApproveReport && (
-          <Button
-            onClick={() => approveReportMutation.mutate({ id: report.id })}
-            disabled={approveReportMutation.isPending}
-            className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold animate-pulse"
-          >
-            {approveReportMutation.isPending ? (
-              <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-            ) : (
-              <Check className="h-4 w-4 ml-2" />
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
+            {/* زر اعتماد تقرير الإنجاز العادي */}
+            {canApproveReport && (
+              <Button
+                onClick={() => approveReportMutation.mutate({ id: report.id })}
+                disabled={approveReportMutation.isPending}
+                className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold animate-pulse text-xs sm:text-sm min-h-10 max-lg:min-h-11 h-auto py-2 px-3 sm:px-4 whitespace-normal"
+              >
+                {approveReportMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 ml-1.5 animate-spin shrink-0" />
+                ) : (
+                  <Check className="h-4 w-4 ml-1.5 shrink-0" />
+                )}
+                <span>اعتماد تقرير الإنجاز</span>
+              </Button>
             )}
-            اعتماد تقرير الإنجاز
-          </Button>
-        )}
 
-        {/* زر استثناء اعتماد مدير المشروع */}
-        {canExceptionApproveReport && (
-          <Button
-            onClick={() => {
-              setExceptionNotes("");
-              setShowExceptionDialog(true);
-            }}
-            disabled={exceptionApproveReportMutation.isPending}
-            className="flex-1 sm:flex-none bg-amber-600 hover:bg-amber-700 text-white font-bold animate-pulse"
-          >
-            {exceptionApproveReportMutation.isPending ? (
-              <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-            ) : (
-              <ShieldAlert className="h-4 w-4 ml-2" />
+            {/* زر استثناء اعتماد مدير المشروع */}
+            {canExceptionApproveReport && (
+              <Button
+                onClick={() => {
+                  setExceptionNotes("");
+                  setShowExceptionDialog(true);
+                }}
+                disabled={exceptionApproveReportMutation.isPending}
+                className="flex-1 sm:flex-none bg-amber-600 hover:bg-amber-700 text-white font-bold animate-pulse text-xs sm:text-sm min-h-10 max-lg:min-h-11 h-auto py-2 px-3 sm:px-4 whitespace-normal"
+              >
+                {exceptionApproveReportMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 ml-1.5 animate-spin shrink-0" />
+                ) : (
+                  <ShieldAlert className="h-4 w-4 ml-1.5 shrink-0" />
+                )}
+                <span>استثناء اعتماد مدير المشروع</span>
+              </Button>
             )}
-            استثناء اعتماد مدير المشروع
-          </Button>
-        )}
 
+            {/* أدوات إظهار / إخفاء التواقيع */}
+            {(() => {
+              const isProjectManager = currentUser?.id === project?.managerId;
+              const isReportStage1Approved = report?.status === "pending_executive" || report?.status === "approved" || !!report?.managerApprovedAt;
+              const isReportStage2Approved = report?.status === "approved" || !!report?.approvedAt;
 
+              const isExceptionApprover = report?.exceptionApprovedBy
+                ? currentUser?.id === report?.exceptionApprovedBy
+                : hasExceptionApprove;
 
-        {/* أدوات إظهار / إخفاء التواقيع */}
-        {(() => {
-          const isProjectManager = currentUser?.id === project?.managerId;
-          const isReportStage1Approved = report?.status === "pending_executive" || report?.status === "approved" || !!report?.managerApprovedAt;
-          const isReportStage2Approved = report?.status === "approved" || !!report?.approvedAt;
+              const canControlCreatorSig = (isProjectManager || (report?.isException && isExceptionApprover)) && !!resolvedSignatureUrl && isReportStage1Approved;
+              const canControlExecSig = isExecutiveDirectorRole && !!executiveDirectorSignatureUrl && isReportStage2Approved;
 
-          const isExceptionApprover = report?.exceptionApprovedBy
-            ? currentUser?.id === report?.exceptionApprovedBy
-            : hasExceptionApprove;
+              return (
+                <>
+                  {canControlCreatorSig && (
+                    <label
+                      htmlFor="show-creator-sig"
+                      className="flex items-center gap-2 px-3 py-2 min-h-10 max-lg:min-h-11 rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-xs hover:bg-slate-50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700"
+                    >
+                      <PenTool className={`w-3.5 h-3.5 shrink-0 ${showCreatorSignature ? "text-emerald-600" : "text-slate-400"}`} />
+                      <span>توقيع مدير المشروع</span>
+                      <Checkbox
+                        id="show-creator-sig"
+                        checked={showCreatorSignature}
+                        onCheckedChange={(checked) => {
+                          const val = !!checked;
+                          setShowCreatorSignature(val);
+                          if (report?.id) {
+                            updateSignatureVisibilityMutation.mutate({ id: report.id, showCreatorSignature: val });
+                          }
+                        }}
+                        className="scale-95"
+                      />
+                    </label>
+                  )}
 
-          const canControlCreatorSig = (isProjectManager || (report?.isException && isExceptionApprover)) && !!resolvedSignatureUrl && isReportStage1Approved;
-          const canControlExecSig = isExecutiveDirectorRole && !!executiveDirectorSignatureUrl && isReportStage2Approved;
-
-          return (
-            <>
-              {canControlCreatorSig && (
-                <label
-                  htmlFor="show-creator-sig"
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-sm hover:bg-slate-50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700"
-                >
-                  <PenTool className={`w-3.5 h-3.5 ${showCreatorSignature ? "text-emerald-600" : "text-slate-400"}`} />
-                  <span>توقيع مدير المشروع</span>
-                  <Checkbox
-                    id="show-creator-sig"
-                    checked={showCreatorSignature}
-                    onCheckedChange={(checked) => {
-                      const val = !!checked;
-                      setShowCreatorSignature(val);
-                      if (report?.id) {
-                        updateSignatureVisibilityMutation.mutate({ id: report.id, showCreatorSignature: val });
-                      }
-                    }}
-                    className="scale-90"
-                  />
-                </label>
-              )}
-
-              {canControlExecSig && (
-                <label
-                  htmlFor="show-exec-sig"
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-sm hover:bg-slate-50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700"
-                >
-                  <PenTool className={`w-3.5 h-3.5 ${showExecutiveDirectorSignature ? "text-emerald-600" : "text-slate-400"}`} />
-                  <span>توقيع المدير التنفيذي</span>
-                  <Checkbox
-                    id="show-exec-sig"
-                    checked={showExecutiveDirectorSignature}
-                    onCheckedChange={(checked) => {
-                      const val = !!checked;
-                      setShowExecutiveDirectorSignature(val);
-                      if (report?.id) {
-                        updateSignatureVisibilityMutation.mutate({ id: report.id, showExecutiveDirectorSignature: val });
-                      }
-                    }}
-                    className="scale-90"
-                  />
-                </label>
-              )}
-            </>
-          );
-        })()}
+                  {canControlExecSig && (
+                    <label
+                      htmlFor="show-exec-sig"
+                      className="flex items-center gap-2 px-3 py-2 min-h-10 max-lg:min-h-11 rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-xs hover:bg-slate-50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700"
+                    >
+                      <PenTool className={`w-3.5 h-3.5 shrink-0 ${showExecutiveDirectorSignature ? "text-emerald-600" : "text-slate-400"}`} />
+                      <span>توقيع المدير التنفيذي</span>
+                      <Checkbox
+                        id="show-exec-sig"
+                        checked={showExecutiveDirectorSignature}
+                        onCheckedChange={(checked) => {
+                          const val = !!checked;
+                          setShowExecutiveDirectorSignature(val);
+                          if (report?.id) {
+                            updateSignatureVisibilityMutation.mutate({ id: report.id, showExecutiveDirectorSignature: val });
+                          }
+                        }}
+                        className="scale-95"
+                      />
+                    </label>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        </div>
       </div>
 
       {/* تصميم الصفحة المطبوعة A4 */}
-      <div className="min-h-screen bg-white print:p-0 font-sans" dir="rtl">
-        <div className="w-full max-w-[210mm] mx-auto p-4 sm:p-8 print:p-0 print:max-w-none">
+      <div className="min-h-screen bg-slate-50/70 print:bg-white print:p-0 font-sans overflow-x-hidden print:overflow-visible" dir="rtl">
+        <div className="w-full max-w-[210mm] mx-auto p-2.5 sm:p-6 md:p-8 print:p-0 print:max-w-none">
           
           {/* إطار مزدوج فاخر للمستند يشبه قالب العقود */}
-          <div className="w-full border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative overflow-hidden bg-white shadow-lg print:shadow-none print:border-[2px] print:p-4 print:overflow-visible">
+          <div className="w-full border-[3px] border-[#1a5f4a] p-3 sm:p-6 rounded-lg relative overflow-hidden bg-white shadow-lg print:shadow-none print:border-[2px] print:p-4 print:overflow-visible">
             {/* خط ذهبي داخلي رفيع للإطار */}
             <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none print:hidden"></div>
             
@@ -660,63 +671,105 @@ export default function ProgressReportPrint() {
             <div className="relative z-10 print:overflow-visible">
               
               {/* الترويسة - الشعار والتاريخ مثل قالب العقد */}
-              <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-4 mb-6">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-3 sm:gap-4 mb-5 sm:mb-6">
+                <div className="flex items-center gap-3 min-w-0">
                   {orgSettings?.logoUrl ? (
-                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 w-auto print:h-14" />
+                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-14 sm:h-16 w-auto shrink-0 print:h-14" />
                   ) : (
-                    <div className="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center print:w-14 print:h-14">
-                      <span className="text-primary font-bold text-2xl">تمام</span>
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 bg-primary/10 rounded-lg flex items-center justify-center shrink-0 print:w-14 print:h-14">
+                      <span className="text-primary font-bold text-xl sm:text-2xl">تمام</span>
                     </div>
                   )}
-                  <div>
-                    <div className="text-base font-bold text-primary print:text-sm">
+                  <div className="min-w-0">
+                    <div className="text-sm sm:text-base font-bold text-primary break-words print:text-sm">
                       {orgSettings?.officialReportsName || ""}
                     </div>
                     <div className="text-xs text-gray-500">إدارة المشاريع والصيانة</div>
                   </div>
                 </div>
 
-                <div className="text-xs space-y-1 text-center sm:text-left sm:pl-5 print:pl-5">
+                <div className="text-xs space-y-1 text-center sm:text-left sm:pl-5 print:pl-5 shrink-0">
                   <div className="flex gap-2 justify-center sm:justify-end">
                     <span className="font-bold">التاريخ:</span>
-                    <span className="border-b border-dotted border-gray-400 px-3">{formatGregorianDate(reportDate)} م</span>
+                    <span className="border-b border-dotted border-gray-400 px-2 sm:px-3">{formatGregorianDate(reportDate)} م</span>
                   </div>
                   <div className="flex gap-2 justify-center sm:justify-end">
                     <span className="font-bold">رقم التقرير:</span>
-                    <span className="border-b border-dotted border-gray-400 px-3 font-mono">{report.reportNumber}</span>
+                    <span className="border-b border-dotted border-gray-400 px-2 sm:px-3 font-mono">{report.reportNumber}</span>
                   </div>
                 </div>
               </div>
 
               {/* البانر الرئيسي - مثل قالب العقد */}
               <div 
-                className="text-center py-4 px-6 mb-6 rounded-lg"
+                className="text-center py-3.5 sm:py-4 px-4 sm:px-6 mb-5 sm:mb-6 rounded-lg"
                 style={{ backgroundColor: '#1a5f4a', color: 'white' }}
               >
-                <h1 className="text-xl sm:text-2xl font-bold">
+                <h1 className="text-lg sm:text-2xl font-bold leading-snug">
                   {isInvoiceReport ? "مستخلص إنجاز مالي" : "تقرير إنجاز دفعة مالية"}
                 </h1>
-                <p className="text-xs sm:text-sm opacity-90 mt-1">
+                <p className="text-xs sm:text-sm opacity-90 mt-1 break-words">
                   {report.title}
                 </p>
               </div>
 
               {/* القسم الأول: بيانات المشروع والتقرير */}
-              <div className="mb-6">
+              <div className="mb-5 sm:mb-6">
                 <h3 
-                  className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                  className="font-bold py-2 px-3 sm:px-4 rounded mb-3 flex items-center leading-snug text-xs sm:text-base"
                   style={{ backgroundColor: '#d4a574', color: '#5d4037' }}
                 >
                   1. بيانات المشروع العامة:
                 </h3>
-                <div className="overflow-x-auto w-full scrollbar-hide">
+
+                {/* عرض الجوال المكدس للبيانات العامة (يخفى عند الطباعة وعلى الشاشات الأكبر) */}
+                <div className="sm:hidden print:hidden grid grid-cols-1 gap-2 text-xs">
+                  <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-2.5 flex flex-col gap-0.5">
+                    <span className="font-bold text-gray-500 text-[11px]">اسم المشروع</span>
+                    <span className="font-semibold text-gray-900 break-words">{(report.projectName as string) || "-"}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-2.5 flex flex-col gap-0.5">
+                      <span className="font-bold text-gray-500 text-[11px]">قيمة العقد</span>
+                      <span className="font-semibold text-gray-900">
+                        {contractAmount > 0 ? (
+                          <span className="inline-flex items-center gap-1">
+                            {contractAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 shrink-0" />
+                          </span>
+                        ) : "—"}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-2.5 flex flex-col gap-0.5">
+                      <span className="font-bold text-gray-500 text-[11px]">الموقع/المدينة</span>
+                      <span className="text-gray-900 break-words">{orgLocation}</span>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-2.5 flex flex-col gap-0.5">
+                    <span className="font-bold text-gray-500 text-[11px]">الطرف الثاني (المقاول)</span>
+                    <span className="text-gray-900 break-words">{contract?.supplierName || "—"}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-2.5 flex flex-col gap-0.5">
+                      <span className="font-bold text-gray-500 text-[11px]">معد التقرير</span>
+                      <span className="text-gray-900 break-words">{(report.createdByName as string) || "—"}</span>
+                    </div>
+                    <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-2.5 flex flex-col gap-0.5">
+                      <span className="font-bold text-gray-500 text-[11px]">حالة التقرير</span>
+                      <span className="font-bold text-primary">
+                        {report.status === "approved" ? "معتمد ومصادق عليه" : "قيد المراجعة والاعتماد"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* جدول الشاشات المتوسطة والكبيرة والطباعة A4 */}
+                <div className="hidden sm:block print:block overflow-x-auto w-full scrollbar-hide">
                   <table className="w-full border-collapse text-xs sm:text-sm">
                   <tbody>
                     <tr className="border-b">
-                      <td className="py-2.5 bg-gray-50/50 font-bold w-36 text-gray-600">اسم المشروع:</td>
+                      <td className="py-2.5 px-2 bg-gray-50/50 font-bold w-32 md:w-36 text-gray-600">اسم المشروع:</td>
                       <td className="py-2.5 px-3 font-semibold text-gray-900">{(report.projectName as string) || "-"}</td>
-                      <td className="py-2.5 bg-gray-50/50 font-bold w-36 text-gray-600">قيمة العقد:</td>
+                      <td className="py-2.5 px-2 bg-gray-50/50 font-bold w-32 md:w-36 text-gray-600">قيمة العقد:</td>
                       <td className="py-2.5 px-3 font-semibold text-gray-900">
                         {contractAmount > 0 ? (
                           <span className="inline-flex items-center gap-1">
@@ -726,15 +779,15 @@ export default function ProgressReportPrint() {
                       </td>
                     </tr>
                     <tr className="border-b">
-                      <td className="py-2.5 bg-gray-50/50 font-bold text-gray-600">الموقع/المدينة:</td>
+                      <td className="py-2.5 px-2 bg-gray-50/50 font-bold text-gray-600">الموقع/المدينة:</td>
                       <td className="py-2.5 px-3 text-gray-900">{orgLocation}</td>
-                      <td className="py-2.5 bg-gray-50/50 font-bold text-gray-600">الطرف الثاني (المقاول):</td>
+                      <td className="py-2.5 px-2 bg-gray-50/50 font-bold text-gray-600">الطرف الثاني (المقاول):</td>
                       <td className="py-2.5 px-3 text-gray-900">{contract?.supplierName || "—"}</td>
                     </tr>
                     <tr className="border-b">
-                      <td className="py-2.5 bg-gray-50/50 font-bold text-gray-600">معد التقرير:</td>
+                      <td className="py-2.5 px-2 bg-gray-50/50 font-bold text-gray-600">معد التقرير:</td>
                       <td className="py-2.5 px-3 text-gray-900">{(report.createdByName as string) || "—"}</td>
-                      <td className="py-2.5 bg-gray-50/50 font-bold text-gray-600">حالة التقرير:</td>
+                      <td className="py-2.5 px-2 bg-gray-50/50 font-bold text-gray-600">حالة التقرير:</td>
                       <td className="py-2.5 px-3">
                         <span className="font-bold text-primary">
                           {report.status === "approved" ? "معتمد ومصادق عليه" : "قيد المراجعة والاعتماد"}
@@ -747,9 +800,9 @@ export default function ProgressReportPrint() {
               </div>
 
               {/* القسم الثاني: تفاصيل الدفعة المالية ونسب الإنجاز */}
-              <div className="mb-6">
+              <div className="mb-5 sm:mb-6">
                 <h3 
-                  className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                  className="font-bold py-2 px-3 sm:px-4 rounded mb-3 flex items-center leading-snug text-xs sm:text-base"
                   style={{ backgroundColor: '#d4a574', color: '#5d4037' }}
                 >
                   2. القيم المالية ونسب الإنجاز المحققة:
@@ -758,21 +811,21 @@ export default function ProgressReportPrint() {
                   <table className="w-full border text-xs sm:text-sm mb-4">
                   <thead>
                     <tr className="bg-gray-100/80 border-b">
-                      <th className="p-3 text-right font-bold w-1/3">البيان</th>
-                      <th className="p-3 text-center font-bold w-1/3">المخطط / المتفق عليه</th>
-                      <th className="p-3 text-center font-bold w-1/3">الفعلي / المصروف</th>
+                      <th className="p-2 sm:p-3 print:p-3 text-right font-bold w-1/3">البيان</th>
+                      <th className="p-2 sm:p-3 print:p-3 text-center font-bold w-1/3">المخطط / المتفق عليه</th>
+                      <th className="p-2 sm:p-3 print:p-3 text-center font-bold w-1/3">الفعلي / المصروف</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr className="border-b">
-                      <td className="p-3 font-semibold bg-gray-50/30">نسبة الإنجاز المحققة</td>
-                      <td className="p-3 text-center font-mono text-blue-700">{report.plannedProgress}%</td>
-                      <td className="p-3 text-center font-bold text-emerald-700 font-mono">{report.actualProgress}%</td>
+                      <td className="p-2 sm:p-3 print:p-3 font-semibold bg-gray-50/30">نسبة الإنجاز المحققة</td>
+                      <td className="p-2 sm:p-3 print:p-3 text-center font-mono text-blue-700">{report.plannedProgress}%</td>
+                      <td className="p-2 sm:p-3 print:p-3 text-center font-bold text-emerald-700 font-mono">{report.actualProgress}%</td>
                     </tr>
                     <tr>
-                      <td className="p-3 font-semibold bg-gray-50/30">الانحراف المعياري للنسبة</td>
-                      <td className="p-3 text-center text-gray-500 font-medium">—</td>
-                      <td className={`p-3 text-center font-bold font-mono ${variance >= 0 ? "text-green-700" : "text-red-700"}`}>
+                      <td className="p-2 sm:p-3 print:p-3 font-semibold bg-gray-50/30">الانحراف المعياري للنسبة</td>
+                      <td className="p-2 sm:p-3 print:p-3 text-center text-gray-500 font-medium">—</td>
+                      <td className={`p-2 sm:p-3 print:p-3 text-center font-bold font-mono ${variance >= 0 ? "text-green-700" : "text-red-700"}`}>
                         {variance > 0 ? `+${variance}%` : `${variance}%`}
                       </td>
                     </tr>
@@ -788,38 +841,38 @@ export default function ProgressReportPrint() {
               </div>
 
               {/* القسم الثالث: ملخص الأعمال المنفذة */}
-              <div className="mb-6 break-inside-avoid">
+              <div className="mb-5 sm:mb-6 break-inside-avoid">
                 <h3 
-                  className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                  className="font-bold py-2 px-3 sm:px-4 rounded mb-3 flex items-center leading-snug text-xs sm:text-base"
                   style={{ backgroundColor: '#1a5f4a', color: 'white' }}
                 >
                   ملخص الأعمال المنجزة والخطوات:
                 </h3>
-                <div className="border rounded-lg p-4 bg-gray-50 text-xs sm:text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words [word-break:break-word]">
+                <div className="border rounded-lg p-3 sm:p-4 bg-gray-50 text-xs sm:text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words [word-break:break-word]">
                   {cleanWorkSummary || "لا يوجد تفاصيل أعمال مسجلة."}
                 </div>
               </div>
 
               {/* القسم الرابع: التحديات والمعوقات والتوصيات */}
               {(report.challenges || report.nextSteps || report.recommendations || isInvoiceReport) && (
-                <div className="mb-6 break-inside-avoid">
+                <div className="mb-5 sm:mb-6 break-inside-avoid">
                   <h3 
-                    className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                    className="font-bold py-2 px-3 sm:px-4 rounded mb-3 flex items-center leading-snug text-xs sm:text-base"
                     style={{ backgroundColor: '#1a5f4a', color: 'white' }}
                   >
                     {isInvoiceReport ? "3. توصية إدارة المشاريع واعتماد الصرف:" : "3. التحديات، الخطوات القادمة والتوصيات:"}
                   </h3>
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {report.challenges && (
                       <div>
                         <h4 className="font-bold text-xs sm:text-sm text-gray-700 mb-1">■ التحديات والمعوقات:</h4>
-                        <p className="text-xs sm:text-sm text-gray-600 bg-gray-50/50 p-2 rounded-md border border-gray-100 whitespace-pre-wrap break-words [word-break:break-word]">{report.challenges}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 bg-gray-50/50 p-2.5 sm:p-3 rounded-md border border-gray-100 whitespace-pre-wrap break-words [word-break:break-word]">{report.challenges}</p>
                       </div>
                     )}
                     {report.nextSteps && (
                       <div>
                         <h4 className="font-bold text-xs sm:text-sm text-gray-700 mb-1">■ الخطوات القادمة:</h4>
-                        <p className="text-xs sm:text-sm text-gray-600 bg-gray-50/50 p-2 rounded-md border border-gray-100 whitespace-pre-wrap break-words [word-break:break-word]">{report.nextSteps}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 bg-gray-50/50 p-2.5 sm:p-3 rounded-md border border-gray-100 whitespace-pre-wrap break-words [word-break:break-word]">{report.nextSteps}</p>
                       </div>
                     )}
                     {report.recommendations ? (
@@ -855,14 +908,14 @@ export default function ProgressReportPrint() {
 
                   if (allFiles.length > 0) {
                     return (
-                      <div className="mb-6 break-inside-avoid">
+                      <div className="mb-5 sm:mb-6 break-inside-avoid">
                         <h3 
-                          className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                          className="font-bold py-2 px-3 sm:px-4 rounded mb-3 flex items-center leading-snug text-xs sm:text-base"
                           style={{ backgroundColor: '#1a5f4a', color: 'white' }}
                         >
                           4. مرفقات التقرير وصور الموقع المنجز:
                         </h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border rounded-lg p-4 bg-gray-50/50">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-3 sm:gap-4 border rounded-lg p-3 sm:p-4 bg-gray-50/50">
                           {allFiles.map((photoItem: any, index: number) => {
                             const fileSrc = getFileSrc(photoItem);
                             const fileName = typeof photoItem === "object" ? (photoItem.name || photoItem.fileName || `مرفق رقم ${index + 1}`) : (typeof photoItem === "string" ? photoItem : `مرفق رقم ${index + 1}`);
@@ -877,10 +930,14 @@ export default function ProgressReportPrint() {
                                   onClick={() => setPreviewFile(fileSrc)}
                                 >
                                   <img src={fileSrc} alt={fileName} className="w-full max-h-64 object-contain rounded-md" />
-                                  <span className="text-[10px] text-gray-500 mt-2 font-semibold">{fileName}</span>
+                                  <span className="text-[11px] sm:text-[10px] text-gray-500 mt-2 font-semibold text-center break-all">{fileName}</span>
+                                  <span className="sm:hidden print:hidden mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
+                                    <Eye className="w-3 h-3" />
+                                    اضغط لتكبير الصورة
+                                  </span>
                                   
                                   {/* Premium Hover Overlay Indicator */}
-                                  <div className="absolute inset-0 bg-black/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none print:hidden">
+                                  <div className="hidden sm:flex absolute inset-0 bg-black/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity items-center justify-center pointer-events-none print:hidden">
                                     <div className="bg-white/95 text-primary px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 text-xs font-bold transform translate-y-2 group-hover:translate-y-0 transition-all duration-200">
                                       <Eye className="w-3.5 h-3.5" />
                                       <span>تكبير وعرض الصورة</span>
@@ -900,11 +957,11 @@ export default function ProgressReportPrint() {
                                 className="flex flex-col items-center justify-center bg-white border p-2.5 rounded-lg shadow-xs w-full cursor-pointer hover:border-primary/40 hover:shadow-md transition-all duration-200 group relative overflow-hidden text-center decoration-transparent"
                               >
                                 <div className="w-full h-32 flex flex-col items-center justify-center rounded-md bg-muted/20 border border-dashed text-primary font-bold text-xs gap-1.5 p-3">
-                                  <FileText className="w-8 h-8 text-primary" />
-                                  <span className="text-gray-700 font-bold">{fileName || (isPdf ? "مستند PDF" : "مستند مرفق")}</span>
+                                  <FileText className="w-8 h-8 text-primary shrink-0" />
+                                  <span className="text-gray-700 font-bold break-all line-clamp-2">{fileName || (isPdf ? "مستند PDF" : "مستند مرفق")}</span>
                                   <span className="text-[10px] text-primary underline print:hidden">انقر لعرض الملف في علامة تبويب جديدة</span>
                                 </div>
-                                <span className="text-[10px] text-gray-500 mt-2 font-semibold">{fileName}</span>
+                                <span className="text-[10px] text-gray-500 mt-2 font-semibold break-all">{fileName}</span>
                               </a>
                             );
                           })}
@@ -919,10 +976,10 @@ export default function ProgressReportPrint() {
               })()}
 
               {/* القسم الخامس: التوقيعات والاعتماد (الشكل الأصلي المطور) */}
-              <div className="mt-12 break-inside-avoid">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 text-right">
+              <div className="mt-8 sm:mt-12 print:mt-10 break-inside-avoid">
+                <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-4 sm:gap-6 mb-6 text-right">
                   {/* مُعِد الطلب / مدير المشروع */}
-                  <div className="border border-[#1a5f4a]/20 rounded-lg p-4 bg-gray-50/50">
+                  <div className="border border-[#1a5f4a]/20 rounded-lg p-3.5 sm:p-4 bg-gray-50/50">
                     <div className="font-bold text-[#1a5f4a] border-b border-[#1a5f4a]/20 pb-2 mb-3 text-sm">
                       مُعِد التقرير :
                     </div>
@@ -935,7 +992,7 @@ export default function ProgressReportPrint() {
                         <span className="font-semibold text-gray-600">الصفة: </span>
                         <span className="text-gray-900">{resolvedSignatureDepartment}</span>
                       </div>
-                      <div className="pt-2 flex items-center gap-2">
+                      <div className="pt-2 flex flex-wrap items-center gap-2">
                         <span className="font-semibold text-gray-600">التوقيع : </span>
                         {(showCreatorSignature && resolvedSignatureUrl && (report.status === "pending_executive" || report.status === "approved")) ? (
                           <div className="h-12 sm:h-14 min-h-[44px] flex items-center justify-start overflow-hidden my-0.5">
@@ -946,14 +1003,14 @@ export default function ProgressReportPrint() {
                             />
                           </div>
                         ) : (
-                          <span className="text-gray-400 font-serif">..........................................</span>
+                          <span className="text-gray-400 font-serif">....................................</span>
                         )}
                       </div>
                     </div>
                   </div>
 
                   {/* يُعتمد / المدير التنفيذي */}
-                  <div className="border border-[#d4a574]/20 rounded-lg p-4 bg-gray-50/50">
+                  <div className="border border-[#d4a574]/20 rounded-lg p-3.5 sm:p-4 bg-gray-50/50">
                     <div className="font-bold text-[#5d4037] border-b border-[#d4a574]/20 pb-2 mb-3 text-sm">
                       يُعتمد :
                     </div>
@@ -966,7 +1023,7 @@ export default function ProgressReportPrint() {
                         <span className="font-semibold text-gray-600">الصفة: </span>
                         <span className="text-gray-900">{executiveDirectorDepartment}</span>
                       </div>
-                      <div className="pt-2 flex items-center gap-2">
+                      <div className="pt-2 flex flex-wrap items-center gap-2">
                         <span className="font-semibold text-gray-600">التوقيع : </span>
                         {(showExecutiveDirectorSignature && executiveDirectorSignatureUrl && (report.status === "approved")) ? (
                           <div className="h-12 sm:h-14 min-h-[44px] flex items-center justify-start overflow-hidden my-0.5">
@@ -977,7 +1034,7 @@ export default function ProgressReportPrint() {
                             />
                           </div>
                         ) : (
-                          <span className="text-gray-400 font-serif">..........................................</span>
+                          <span className="text-gray-400 font-serif">....................................</span>
                         )}
                       </div>
                     </div>
@@ -986,7 +1043,7 @@ export default function ProgressReportPrint() {
               </div>
 
               {/* تذييل المستند */}
-              <div className="mt-12 pt-4 border-t text-center text-gray-400 text-[10px]">
+              <div className="mt-8 sm:mt-12 print:mt-10 pt-4 border-t text-center text-gray-400 text-[10px]">
                 <p>تم توليد هذا التقرير آلياً من نظام {orgSettings?.organizationName || "بوابة منارة"} الإلكترونية للعناية بالمساجد.</p>
                 <p className="mt-1">تاريخ الطباعة: {new Date().toLocaleDateString("ar-SA")} - صفحة 1 من 1</p>
               </div>
@@ -999,11 +1056,11 @@ export default function ProgressReportPrint() {
 
       <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
         <DialogContent 
-          className="w-[95vw] !max-w-[95vw] h-[95vh] !max-h-[95vh] !flex !flex-col p-2 sm:p-5 rounded-xl border bg-background/98 backdrop-blur-md z-50 shadow-2xl" 
+          className="w-[calc(100vw-1rem)] sm:w-[95vw] !max-w-[95vw] h-[92dvh] !max-h-[92dvh] !flex !flex-col p-3 sm:p-5 rounded-xl border bg-background/98 backdrop-blur-md z-50 shadow-2xl" 
           dir="rtl"
         >
           <DialogHeader className="text-right flex items-center justify-between flex-row pe-10 pb-2 border-b">
-            <DialogTitle className="text-right text-base font-bold">معاينة المرفق - كامل الشاشة</DialogTitle>
+            <DialogTitle className="text-right text-sm sm:text-base font-bold">معاينة المرفق - كامل الشاشة</DialogTitle>
           </DialogHeader>
           {previewFile && (
             <div className="flex-1 flex items-center justify-center p-1 sm:p-3 min-h-0 overflow-hidden w-full">
@@ -1012,9 +1069,9 @@ export default function ProgressReportPrint() {
               ) : checkIsPdf(previewFile) ? (
                 <iframe src={previewFile} className="w-full h-full border rounded-lg shadow-sm" title="معاينة مستند PDF" />
               ) : (
-                <div className="flex flex-col items-center justify-center p-12 bg-muted/20 border border-dashed rounded-lg text-primary gap-4 w-full max-w-md">
-                  <FileText className="w-16 h-16 text-muted-foreground" />
-                  <span className="font-bold text-foreground">مستند غير مدعوم للمعاينة المباشرة</span>
+                <div className="flex flex-col items-center justify-center p-6 sm:p-12 bg-muted/20 border border-dashed rounded-lg text-primary gap-4 w-full max-w-md text-center">
+                  <FileText className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground" />
+                  <span className="font-bold text-sm sm:text-base text-foreground">مستند غير مدعوم للمعاينة المباشرة</span>
                   <a href={previewFile} download="مرفق_تمام" className="text-sm underline font-semibold text-primary hover:text-primary/80">
                     تحميل وتنزيل الملف
                   </a>
@@ -1027,14 +1084,14 @@ export default function ProgressReportPrint() {
 
       {/* نافذة استثناء اعتماد مدير المشروع */}
       <Dialog open={showExceptionDialog} onOpenChange={setShowExceptionDialog}>
-        <DialogContent dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-amber-700 font-bold">
-              <ShieldAlert className="w-5 h-5 text-amber-600" />
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6" dir="rtl">
+          <DialogHeader className="text-right">
+            <DialogTitle className="flex items-center gap-2 text-amber-700 font-bold text-base sm:text-lg">
+              <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
               استثناء اعتماد مدير المشروع
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-3">
+          <div className="space-y-4 py-2 sm:py-3">
             <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-lg p-3 text-xs text-amber-900 dark:text-amber-300 leading-relaxed">
               <p className="font-bold mb-1">تنبيه إداري:</p>
               أنت تقوم الآن باعتماد تقرير الإنجاز رقم <strong>{report?.reportNumber}</strong> نيابةً عن مدير المشروع كإجراء استثنائي بصفتك مخولاً بالصلاحية. سيتم تدوين اسمك وتوقيعك في مستند التقرير.
@@ -1047,15 +1104,16 @@ export default function ProgressReportPrint() {
                 value={exceptionNotes}
                 onChange={(e) => setExceptionNotes(e.target.value)}
                 placeholder="يرجى كتابة سبب تجاوز اعتماد مدير المشروع هنا..."
-                className="w-full min-h-[100px] p-3 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-background focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full min-h-[110px] p-3 text-sm max-md:text-base rounded-lg border border-slate-300 dark:border-slate-700 bg-background focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-2">
             <Button
               variant="outline"
               onClick={() => setShowExceptionDialog(false)}
               disabled={exceptionApproveReportMutation.isPending}
+              className="w-full sm:w-auto min-h-10 max-lg:min-h-11"
             >
               إلغاء
             </Button>
@@ -1069,7 +1127,7 @@ export default function ProgressReportPrint() {
                 }
               }}
               disabled={!exceptionNotes || !exceptionNotes.trim() || exceptionApproveReportMutation.isPending}
-              className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+              className="w-full sm:w-auto min-h-10 max-lg:min-h-11 bg-amber-600 hover:bg-amber-700 text-white font-bold"
             >
               {exceptionApproveReportMutation.isPending ? "جاري تنفيذ الاستثناء..." : "تأكيد استثناء الاعتماد"}
             </Button>

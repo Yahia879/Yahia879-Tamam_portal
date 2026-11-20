@@ -700,13 +700,13 @@ export default function ProjectDetailsPage() {
   }, [isSedanaProgram, project]);
 
   if (!access.canOpenProject) {
-    return <DashboardLayout><div className="py-16 text-center" dir="rtl">غير مصرح لك بعرض تفاصيل المشروع</div></DashboardLayout>;
+    return <DashboardLayout tabletNavigation><div className="py-16 px-4 text-center text-sm sm:text-base text-muted-foreground" dir="rtl">غير مصرح لك بعرض تفاصيل المشروع</div></DashboardLayout>;
   }
 
   if (isLoading) {
     return (
-      <DashboardLayout>
-        <div className="space-y-6">
+      <DashboardLayout tabletNavigation>
+        <div className="space-y-4 sm:space-y-6">
           <div className="h-8 w-48 bg-muted animate-pulse rounded" />
           <div className="h-64 bg-muted animate-pulse rounded-lg" />
         </div>
@@ -726,27 +726,27 @@ export default function ProjectDetailsPage() {
     const isUnconvertedRequest = errorMessage.includes("الطلب رقم") || errorMessage.includes("لم يتم تحويله إلى مشروع");
 
     return (
-      <DashboardLayout>
-        <div className="text-center py-16 max-w-lg mx-auto">
+      <DashboardLayout tabletNavigation>
+        <div className="text-center py-12 sm:py-16 px-4 max-w-lg mx-auto" dir="rtl">
           <AlertCircle className={`w-14 h-14 mx-auto mb-4 ${isForbidden ? "text-amber-500" : isUnconvertedRequest ? "text-blue-500" : "text-destructive"}`} />
-          <h2 className="text-xl font-bold mb-2">
+          <h2 className="text-lg sm:text-xl font-bold mb-2">
             {isForbidden 
               ? "ليس لديك صلاحية لعرض هذا المشروع" 
               : isUnconvertedRequest
                 ? "الطلب غير مرتبط بمشروع بعد"
                 : "المشروع غير موجود"}
           </h2>
-          <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
+          <p className="text-muted-foreground text-xs sm:text-sm mb-6 leading-relaxed">
             {isForbidden 
               ? "تواصل مع مدير النظام لمنحك الصلاحية المطلوبة"
               : errorMessage}
           </p>
-          <div className="flex justify-center gap-3">
-            <Button variant="outline" onClick={() => navigate("/project-management")}>
+          <div className="flex flex-col sm:flex-row justify-center gap-2.5 sm:gap-3">
+            <Button variant="outline" className="min-h-11 rounded-xl" onClick={() => navigate("/project-management")}>
               العودة للمشاريع
             </Button>
             {isUnconvertedRequest && (
-              <Button onClick={() => navigate(`/requests/${id}`)}>
+              <Button className="min-h-11 rounded-xl" onClick={() => navigate(`/requests/${id}`)}>
                 عرض تفاصيل الطلب
               </Button>
             )}
@@ -758,11 +758,11 @@ export default function ProjectDetailsPage() {
 
   if (!project) {
     return (
-      <DashboardLayout>
-        <div className="text-center py-12">
+      <DashboardLayout tabletNavigation>
+        <div className="text-center py-12 px-4" dir="rtl">
           <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-xl font-bold">المشروع غير موجود</h2>
-          <Button className="mt-4" onClick={() => navigate("/project-management")}>
+          <h2 className="text-lg sm:text-xl font-bold">المشروع غير موجود</h2>
+          <Button className="mt-4 min-h-11 rounded-xl" onClick={() => navigate("/project-management")}>
             العودة للمشاريع
           </Button>
         </div>
@@ -1091,15 +1091,15 @@ export default function ProjectDetailsPage() {
   ];
 
   return (
-    <DashboardLayout>
-      <div className="space-y-4 sm:space-y-6 container mx-auto px-2.5 sm:px-4 md:px-0 font-sans" dir="rtl">
+    <DashboardLayout tabletNavigation>
+      <div className="min-w-0 max-w-full overflow-x-hidden space-y-4 sm:space-y-6 font-sans pb-8" dir="rtl">
         {/* Header Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-card p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl border border-border/60 shadow-xs text-right">
-          <div className="flex items-center gap-2.5 sm:gap-3.5 flex-1 min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-card p-3.5 sm:p-5 lg:p-6 rounded-2xl sm:rounded-3xl border border-border/60 shadow-xs text-right">
+          <div className="flex items-start sm:items-center gap-2.5 sm:gap-3.5 flex-1 min-w-0">
             <Button 
               variant="outline" 
               size="icon" 
-              className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl shrink-0 hover:bg-muted/70 transition-colors"
+              className="size-10 max-lg:size-11 rounded-xl shrink-0 hover:bg-muted/70 transition-colors"
               onClick={() => {
                 if (window.history.length > 1) {
                   window.history.back();
@@ -1134,16 +1134,16 @@ export default function ProjectDetailsPage() {
                 )}
               </div>
               {isEditingName ? (
-                <div className="flex items-center gap-2 mt-2 max-w-md">
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 mt-2 max-w-md">
                   <Input
                     value={editedName}
                     onChange={(e) => setEditedName(e.target.value)}
-                    className="h-8 sm:h-9 py-1 px-3 text-xs sm:text-sm text-foreground bg-background border border-primary focus-visible:ring-1 focus-visible:ring-primary rounded-xl"
+                    className="h-10 py-1 px-3 text-xs sm:text-sm max-md:text-base text-foreground bg-background border border-primary focus-visible:ring-1 focus-visible:ring-primary rounded-xl flex-1 min-w-[180px]"
                     autoFocus
                   />
                   <Button
                     size="sm"
-                    className="h-8 sm:h-9 px-3 sm:px-3.5 text-xs gradient-primary text-white font-bold rounded-xl"
+                    className="h-10 px-3.5 text-xs gradient-primary text-white font-bold rounded-xl"
                     onClick={() => {
                       if (!editedName.trim()) {
                         toast.error("اسم المشروع لا يمكن أن يكون فارغاً");
@@ -1169,7 +1169,7 @@ export default function ProjectDetailsPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8 sm:h-9 px-2.5 sm:px-3 text-xs rounded-xl"
+                    className="h-10 px-3 text-xs rounded-xl"
                     onClick={() => {
                       setIsEditingName(false);
                       setEditedName(project.name || "");
@@ -1179,13 +1179,13 @@ export default function ProjectDetailsPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 mt-1">
-                  <p className="text-xs sm:text-base font-semibold text-muted-foreground truncate">{project.name}</p>
+                <div className="flex items-center gap-1.5 sm:gap-2 mt-1">
+                  <p className="text-xs sm:text-base font-semibold text-muted-foreground break-words line-clamp-2 sm:truncate">{project.name}</p>
                   {canEditProjectName && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 sm:h-7 sm:w-7 text-muted-foreground hover:text-primary hover:bg-muted/60 rounded-lg p-0 shrink-0"
+                      className="size-8 max-lg:size-9 text-muted-foreground hover:text-primary hover:bg-muted/60 rounded-lg p-0 shrink-0"
                       onClick={() => {
                         setEditedName(project.name || "");
                         setIsEditingName(true);
@@ -1206,14 +1206,14 @@ export default function ProjectDetailsPage() {
           <TooltipProvider delayDuration={300}>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 font-sans">
               {/* الميزانية */}
-              <Card className="bg-card text-card-foreground rounded-xl sm:rounded-2xl border border-border/60 shadow-xs hover:shadow-sm transition-all overflow-hidden">
+              <Card className="py-0 gap-0 bg-card text-card-foreground rounded-xl sm:rounded-2xl border border-border/60 shadow-xs hover:shadow-sm transition-all overflow-hidden">
                 <CardContent className="p-3 sm:p-4 text-right">
-                  <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center shrink-0">
                       <SaudiRiyal className="w-4 h-4 sm:w-5 sm:h-5 text-amber-700 dark:text-amber-300" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
+                      <div className="flex items-center justify-between mb-0.5 gap-1">
                         <p className="text-[11px] sm:text-sm text-muted-foreground font-bold truncate">الميزانية</p>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1245,14 +1245,14 @@ export default function ProjectDetailsPage() {
               </Card>
 
               {/* التكلفة الفعلية */}
-              <Card className="bg-card text-card-foreground rounded-xl sm:rounded-2xl border border-border/60 shadow-xs hover:shadow-sm transition-all overflow-hidden">
+              <Card className="py-0 gap-0 bg-card text-card-foreground rounded-xl sm:rounded-2xl border border-border/60 shadow-xs hover:shadow-sm transition-all overflow-hidden">
                 <CardContent className="p-3 sm:p-4 text-right">
-                  <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center shrink-0">
                       <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
+                      <div className="flex items-center justify-between mb-0.5 gap-1">
                         <p className="text-[11px] sm:text-sm text-muted-foreground font-bold truncate">التكلفة الفعلية</p>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1279,15 +1279,15 @@ export default function ProjectDetailsPage() {
               </Card>
 
               {/* نسبة تقدم عمليات المشروع */}
-              <Card className="bg-card text-card-foreground rounded-xl sm:rounded-2xl border border-border/60 shadow-xs hover:shadow-sm transition-all overflow-hidden">
+              <Card className="py-0 gap-0 bg-card text-card-foreground rounded-xl sm:rounded-2xl border border-border/60 shadow-xs hover:shadow-sm transition-all overflow-hidden">
                 <CardContent className="p-3 sm:p-4 text-right">
-                  <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-100 dark:bg-blue-950/50 flex items-center justify-center shrink-0">
                       <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <p className="text-[11px] sm:text-sm text-muted-foreground font-bold truncate">نسبة تقدم عمليات المشروع</p>
+                      <div className="flex items-center justify-between mb-0.5 gap-1">
+                        <p className="text-[11px] sm:text-sm text-muted-foreground font-bold truncate">نسبة الإنجاز</p>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help shrink-0" />
@@ -1297,7 +1297,7 @@ export default function ProjectDetailsPage() {
                           </TooltipContent>
                         </Tooltip>
                       </div>
-                      <p className="font-bold text-xs sm:text-base text-foreground font-sans">
+                      <p className="font-bold text-xs sm:text-base text-foreground font-mono">
                         {project.completionPercentage || 0}%
                       </p>
                     </div>
@@ -1306,14 +1306,14 @@ export default function ProjectDetailsPage() {
               </Card>
 
               {/* مدير المشروع */}
-              <Card className="bg-card text-card-foreground rounded-xl sm:rounded-2xl border border-border/60 shadow-xs hover:shadow-sm transition-all overflow-hidden">
+              <Card className="py-0 gap-0 bg-card text-card-foreground rounded-xl sm:rounded-2xl border border-border/60 shadow-xs hover:shadow-sm transition-all overflow-hidden">
                 <CardContent className="p-3 sm:p-4 text-right">
-                  <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center shrink-0">
                       <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
+                      <div className="flex items-center justify-between mb-0.5 gap-1">
                         <p className="text-[11px] sm:text-sm text-muted-foreground font-bold truncate">مدير المشروع</p>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1333,7 +1333,7 @@ export default function ProjectDetailsPage() {
                               setIsEditingManager(false);
                             }}
                           >
-                            <SelectTrigger className="h-7 w-full border-slate-200 text-xs font-semibold focus:ring-primary/20 bg-background rounded-lg">
+                            <SelectTrigger className="h-8 w-full border-slate-200 text-xs font-semibold focus:ring-primary/20 bg-background rounded-lg">
                               <SelectValue placeholder="اختر..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -1348,9 +1348,9 @@ export default function ProjectDetailsPage() {
                             variant="ghost" 
                             size="icon" 
                             onClick={() => setIsEditingManager(false)} 
-                            className="h-6 w-6 text-destructive hover:bg-destructive/10 rounded-lg shrink-0"
+                            className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-lg shrink-0"
                           >
-                            <X className="w-3 h-3" />
+                            <X className="w-3.5 h-3.5" />
                           </Button>
                         </div>
                       ) : (
@@ -1362,7 +1362,7 @@ export default function ProjectDetailsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-5 w-5 text-muted-foreground hover:text-primary hover:bg-muted/55 rounded-full p-0 shrink-0"
+                              className="size-6 max-lg:size-7 text-muted-foreground hover:text-primary hover:bg-muted/55 rounded-full p-0 shrink-0"
                               onClick={() => setIsEditingManager(true)}
                               title="تغيير مدير المشروع"
                             >
@@ -1381,11 +1381,11 @@ export default function ProjectDetailsPage() {
         {/* Main Grid: Collapsible Vertical Sidebar Tabs + Content Area */}
         {financialsOnly && !isSedanaProgram && (
           <div className="flex flex-wrap gap-2" role="group" aria-label="أقسام مالية المشروع">
-            {!isSedanaProgram && <Button variant={activeTab === "financials" ? "default" : "outline"} onClick={() => setActiveTab("financials")}>المالية</Button>}
+            {!isSedanaProgram && <Button className="max-lg:min-h-11 rounded-xl" variant={activeTab === "financials" ? "default" : "outline"} onClick={() => setActiveTab("financials")}>المالية</Button>}
             <Button 
               variant={activeTab === "change_orders" ? "default" : "outline"} 
               onClick={() => setActiveTab("change_orders")}
-              className={`gap-1.5 ${isChangeOrdersLocked ? "opacity-75" : ""}`}
+              className={`gap-1.5 max-lg:min-h-11 rounded-xl ${isChangeOrdersLocked ? "opacity-75" : ""}`}
             >
               <span>أوامر التغيير</span>
               {isChangeOrdersLocked && <Lock className="w-3.5 h-3.5 text-amber-500" />}
@@ -1393,9 +1393,9 @@ export default function ProjectDetailsPage() {
           </div>
         )}
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 items-start">
-          {/* Mobile Tabs Bar (Sticky Horizontal Pills on Mobile) */}
+          {/* Mobile & iPad Portrait Tabs Bar (Sticky Horizontal Pills) */}
           {!financialsOnly && (
-            <div className="lg:hidden sticky top-14 sm:top-16 z-20 w-full bg-background/95 backdrop-blur-md py-1.5 -mx-2.5 px-2.5 sm:mx-0 sm:px-0 border-b border-border/40 shadow-xs">
+            <div className="lg:hidden sticky top-0 z-20 w-full bg-background/95 backdrop-blur-md py-1.5 border-b border-border/40">
               <div className="w-full overflow-x-auto pb-0.5 scrollbar-none [scrollbar-width:none] [-webkit-overflow-scrolling:touch]">
                 <div className="flex items-center gap-1.5 p-1 bg-muted/40 rounded-xl border border-border/60 w-max min-w-full font-sans">
                   {navItems.map((item) => (
@@ -1405,7 +1405,7 @@ export default function ProjectDetailsPage() {
                         mobileTabRefs.current[item.id] = el;
                       }}
                       onClick={() => setActiveTab(item.id)}
-                      className={`group flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer font-sans shrink-0 ${
+                      className={`group flex items-center gap-1.5 sm:gap-2 px-3 py-2 min-h-10 max-lg:min-h-11 sm:px-3.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer font-sans shrink-0 ${
                         activeTab === item.id 
                           ? "bg-primary text-primary-foreground shadow-xs" 
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
@@ -1414,7 +1414,7 @@ export default function ProjectDetailsPage() {
                       <item.icon className={`w-3.5 h-3.5 shrink-0 ${activeTab === item.id ? "text-primary-foreground" : "text-primary"}`} />
                       <span>{item.label}</span>
                       {item.badge && (
-                        <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-bold font-sans transition-colors ${
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold font-sans transition-colors ${
                           activeTab === item.id 
                             ? "bg-primary-foreground/25 text-white" 
                             : "bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-white"
@@ -1535,7 +1535,7 @@ export default function ProjectDetailsPage() {
 
               {/* Quick Info Sidebar Widget (visible when expanded) */}
               {!isNavCollapsed && (
-                <Card className="rounded-2xl border border-border/60 bg-muted/20 p-4 text-right space-y-3 font-sans">
+                <Card className="py-0 gap-0 rounded-2xl border border-border/60 bg-muted/20 p-4 text-right space-y-3 font-sans">
                   <h3 className="text-xs font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/50">
                     <Briefcase className="w-4 h-4 text-primary" />
                     بيانات سريعة
@@ -1571,23 +1571,23 @@ export default function ProjectDetailsPage() {
           )}
 
           {/* Main Tab Content Area (full width when collapsed) */}
-          <main className="flex-1 min-w-0 w-full space-y-6">
+          <main className="flex-1 min-w-0 w-full space-y-4 sm:space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
               {/* نظرة عامة */}
-              <TabsContent value="overview" className="space-y-6 mt-0">
-                <div className="grid lg:grid-cols-2 gap-6">
-                  <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
-                    <CardHeader className="text-right border-b border-border/40 bg-muted/20 p-5">
-                      <CardTitle className="text-base font-bold flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-primary" />
+              <TabsContent value="overview" className="space-y-4 sm:space-y-6 mt-0">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                  <Card className="py-0 gap-0 rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
+                    <CardHeader className="text-right border-b border-border/40 bg-muted/20 p-4 sm:p-5">
+                      <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-primary shrink-0" />
                         معلومات المشروع الأساسية
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-5 space-y-4 text-right">
-                      <div className="grid grid-cols-2 gap-4 text-xs sm:text-sm">
+                    <CardContent className="p-4 sm:p-5 space-y-4 text-right">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4 text-xs sm:text-sm">
                         <div className="p-3 rounded-xl bg-muted/20 border border-border/40">
                           <p className="text-xs text-muted-foreground font-semibold">رقم المشروع</p>
-                          <p className="font-black text-foreground mt-0.5 font-sans">{project.projectNumber}</p>
+                          <p className="font-black text-foreground mt-0.5 font-mono">{project.projectNumber}</p>
                         </div>
                         <div className="p-3 rounded-xl bg-muted/20 border border-border/40">
                           <p className="text-xs text-muted-foreground font-semibold">الحالة</p>
@@ -1597,24 +1597,24 @@ export default function ProjectDetailsPage() {
                         </div>
                         <div className="p-3 rounded-xl bg-muted/20 border border-border/40">
                           <p className="text-xs text-muted-foreground font-semibold">تاريخ البدء</p>
-                          <p className="font-bold text-foreground mt-0.5">
+                          <p className="font-bold text-foreground mt-0.5 font-mono">
                             {formatDate(project.startDate)}
                           </p>
                         </div>
                         <div className="p-3 rounded-xl bg-muted/20 border border-border/40">
                           <p className="text-xs text-muted-foreground font-semibold">تاريخ الانتهاء المتوقع</p>
-                          <p className="font-bold text-foreground mt-0.5">
+                          <p className="font-bold text-foreground mt-0.5 font-mono">
                             {formatDate(project.expectedEndDate)}
                           </p>
                         </div>
                         {project.donorName && (
-                          <div className="col-span-2 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                          <div className="sm:col-span-2 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
                             <p className="text-xs text-muted-foreground font-semibold">اسم المانح / الجهة الداعمة</p>
                             <p className="font-bold text-primary text-sm mt-0.5">{project.donorName}</p>
                           </div>
                         )}
                         {project.isMultiMosque && (
-                          <div className="col-span-2 p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/20">
+                          <div className="sm:col-span-2 p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/20">
                             <p className="text-xs text-muted-foreground font-semibold">نوع المشروع</p>
                             <Badge className="bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-200 border-indigo-200 mt-1 font-bold">
                               مشروع مباشر لعدة مساجد
@@ -1625,10 +1625,10 @@ export default function ProjectDetailsPage() {
                       {!isSedanaProgram && project.description && (
                         <div className="pt-3 border-t border-border/50">
                           <p className="text-xs text-muted-foreground font-bold mb-1.5 flex items-center gap-1.5">
-                            <FileText className="w-3.5 h-3.5 text-primary" />
+                            <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
                             وصف الأعمال التي ستنجز خلال المشروع
                           </p>
-                          <p className="font-medium text-xs sm:text-sm text-foreground bg-muted/40 p-3.5 rounded-xl border border-border/40 whitespace-pre-wrap leading-relaxed">
+                          <p className="font-medium text-xs sm:text-sm text-foreground bg-muted/40 p-3.5 rounded-xl border border-border/40 whitespace-pre-wrap break-words leading-relaxed">
                             {project.description}
                           </p>
                         </div>
@@ -1637,26 +1637,26 @@ export default function ProjectDetailsPage() {
                   </Card>
 
                   {project.isMultiMosque ? (
-                    <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
-                      <CardHeader className="text-right border-b border-border/40 bg-muted/20 p-5">
-                        <CardTitle className="text-base font-bold flex items-center gap-2">
-                          <Briefcase className="w-4 h-4 text-primary" />
+                    <Card className="py-0 gap-0 rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
+                      <CardHeader className="text-right border-b border-border/40 bg-muted/20 p-4 sm:p-5">
+                        <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2">
+                          <Briefcase className="w-4 h-4 text-primary shrink-0" />
                           إدارة ومساجد المشروع
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="p-5 space-y-4 text-right">
-                        <div className="grid grid-cols-2 gap-4 text-xs sm:text-sm">
+                      <CardContent className="p-4 sm:p-5 space-y-4 text-right">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4 text-xs sm:text-sm">
                           <div className="p-3 rounded-xl bg-muted/20 border border-border/40">
                             <p className="text-xs text-muted-foreground font-semibold">مدير المشروع</p>
                             <p className="font-bold text-foreground flex items-center gap-1.5 mt-1">
-                              <Users className="w-4 h-4 text-primary" />
-                              {project.managerName || "غير محدد"}
+                              <Users className="w-4 h-4 text-primary shrink-0" />
+                              <span className="truncate">{project.managerName || "غير محدد"}</span>
                             </p>
                           </div>
                           <div className="p-3 rounded-xl bg-muted/20 border border-border/40">
                             <p className="text-xs text-muted-foreground font-semibold">عدد المساجد المشمولة</p>
                             <p className="font-bold text-primary flex items-center gap-1.5 mt-1">
-                              <Building className="w-4 h-4 text-primary" />
+                              <Building className="w-4 h-4 text-primary shrink-0" />
                               {(project as any).linkedMosques?.length || 0} مساجد
                             </p>
                           </div>
@@ -1679,18 +1679,18 @@ export default function ProjectDetailsPage() {
                       </CardContent>
                     </Card>
                   ) : project.request ? (
-                    <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
-                      <CardHeader className="text-right border-b border-border/40 bg-muted/20 p-5">
-                        <CardTitle className="text-base font-bold flex items-center gap-2">
-                          <Building className="w-4 h-4 text-primary" />
+                    <Card className="py-0 gap-0 rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
+                      <CardHeader className="text-right border-b border-border/40 bg-muted/20 p-4 sm:p-5">
+                        <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2">
+                          <Building className="w-4 h-4 text-primary shrink-0" />
                           الطلب المرتبط والمسجد
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="p-5 space-y-4 text-right">
-                        <div className="grid grid-cols-2 gap-4 text-xs sm:text-sm">
+                      <CardContent className="p-4 sm:p-5 space-y-4 text-right">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4 text-xs sm:text-sm">
                           <div className="p-3 rounded-xl bg-muted/20 border border-border/40">
                             <p className="text-xs text-muted-foreground font-semibold">رقم الطلب</p>
-                            <p className="font-bold text-foreground mt-1 font-sans">
+                            <p className="font-bold text-foreground mt-1 font-mono">
                               {project.request.requestNumber}
                             </p>
                           </div>
@@ -1701,9 +1701,9 @@ export default function ProjectDetailsPage() {
                             </p>
                           </div>
                           {project.request.mosqueName && (
-                            <div className="col-span-2 p-3 rounded-xl bg-muted/20 border border-border/40">
+                            <div className="sm:col-span-2 p-3 rounded-xl bg-muted/20 border border-border/40">
                               <p className="text-xs text-muted-foreground font-semibold">المسجد</p>
-                              <p className="font-bold text-foreground mt-1">{project.request.mosqueName} - {project.request.mosqueCity || ""}</p>
+                              <p className="font-bold text-foreground mt-1">{project.request.mosqueName}{project.request.mosqueCity ? ` - ${project.request.mosqueCity}` : ""}</p>
                             </div>
                           )}
                         </div>
@@ -1714,75 +1714,97 @@ export default function ProjectDetailsPage() {
 
                 {/* بطاقة المساجد المشمولة في حالة مشروع عدة مساجد المباشر */}
                 {(project as any).linkedMosques && (project as any).linkedMosques.length > 0 && (
-                  <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
-                    <CardHeader className="text-right border-b border-border/40 bg-muted/20 p-5 flex flex-row items-center justify-between">
-                      <div>
-                        <CardTitle className="text-base font-bold flex items-center gap-2" dir="rtl">
-                          <Building className="w-4 h-4 text-primary" />
+                  <Card className="py-0 gap-0 rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
+                    <CardHeader className="text-right border-b border-border/40 bg-muted/20 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2" dir="rtl">
+                          <Building className="w-4 h-4 text-primary shrink-0" />
                           المساجد المشمولة بالمشروع (عدة مساجد)
                         </CardTitle>
                         <CardDescription className="text-xs mt-0.5">
                           قائمة المساجد المعتمدة والمشمولة ضمن هذا المشروع المباشر
                         </CardDescription>
                       </div>
-                      <Badge className="bg-primary/10 text-primary border-primary/20 font-bold px-3 py-1 rounded-lg">
+                      <Badge className="bg-primary/10 text-primary border-primary/20 font-bold px-3 py-1 rounded-lg w-fit shrink-0">
                         {(project as any).linkedMosques.length} مساجد
                       </Badge>
                     </CardHeader>
                     <CardContent className="p-0">
-                      <Table dir="rtl">
-                        <TableHeader className="bg-muted/40">
-                          <TableRow>
-                            <TableHead className="text-center font-bold w-16 pr-6 pl-2 py-3.5">#</TableHead>
-                            <TableHead className="text-right font-bold px-4 py-3.5">اسم المسجد</TableHead>
-                            <TableHead className="text-right font-bold px-4 py-3.5">المدينة / المنطقة</TableHead>
-                            <TableHead className="text-right font-bold px-4 py-3.5">الحي</TableHead>
-                            <TableHead className="text-left font-bold pl-6 pr-4 py-3.5">الحالة</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {(project as any).linkedMosques.map((item: any, idx: number) => (
-                            <TableRow key={item.id} className="hover:bg-muted/20">
-                              <TableCell className="text-center font-bold text-muted-foreground text-xs pr-6 pl-2 py-3.5">
-                                {idx + 1}
-                              </TableCell>
-                              <TableCell className="font-bold text-foreground px-4 py-3.5">
+                      {/* بطاقات للموبايل */}
+                      <div className="md:hidden divide-y divide-border/50 p-3 space-y-2.5">
+                        {(project as any).linkedMosques.map((item: any, idx: number) => (
+                          <div key={item.id} className="pt-2.5 first:pt-0 flex items-start justify-between gap-2">
+                            <div className="min-w-0 space-y-0.5">
+                              <p className="font-bold text-sm text-foreground">
+                                <span className="text-muted-foreground font-mono ml-1.5">#{idx + 1}</span>
                                 {item.mosqueName || `مسجد #${item.mosqueId}`}
-                              </TableCell>
-                              <TableCell className="text-muted-foreground text-xs px-4 py-3.5">
-                                {item.mosqueCity || "—"}
-                              </TableCell>
-                              <TableCell className="text-muted-foreground text-xs px-4 py-3.5">
-                                {item.mosqueDistrict || "—"}
-                              </TableCell>
-                              <TableCell className="text-left pl-6 pr-4 py-3.5">
-                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-semibold">
-                                  مشمول بالمشروع
-                                </Badge>
-                              </TableCell>
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {[item.mosqueCity, item.mosqueDistrict].filter(Boolean).join(" • ") || "—"}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[11px] font-semibold shrink-0">
+                              مشمول بالمشروع
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                      {/* جدول للآيباد وسطح المكتب */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <Table dir="rtl">
+                          <TableHeader className="bg-muted/40">
+                            <TableRow>
+                              <TableHead className="text-center font-bold w-16 pr-6 pl-2 py-3.5">#</TableHead>
+                              <TableHead className="text-right font-bold px-4 py-3.5">اسم المسجد</TableHead>
+                              <TableHead className="text-right font-bold px-4 py-3.5">المدينة / المنطقة</TableHead>
+                              <TableHead className="text-right font-bold px-4 py-3.5">الحي</TableHead>
+                              <TableHead className="text-left font-bold pl-6 pr-4 py-3.5">الحالة</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                          <TableBody>
+                            {(project as any).linkedMosques.map((item: any, idx: number) => (
+                              <TableRow key={item.id} className="hover:bg-muted/20">
+                                <TableCell className="text-center font-bold text-muted-foreground text-xs pr-6 pl-2 py-3.5">
+                                  {idx + 1}
+                                </TableCell>
+                                <TableCell className="font-bold text-foreground px-4 py-3.5">
+                                  {item.mosqueName || `مسجد #${item.mosqueId}`}
+                                </TableCell>
+                                <TableCell className="text-muted-foreground text-xs px-4 py-3.5">
+                                  {item.mosqueCity || "—"}
+                                </TableCell>
+                                <TableCell className="text-muted-foreground text-xs px-4 py-3.5">
+                                  {item.mosqueDistrict || "—"}
+                                </TableCell>
+                                <TableCell className="text-left pl-6 pr-4 py-3.5">
+                                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-semibold">
+                                    مشمول بالمشروع
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </CardContent>
                   </Card>
                 )}
 
                 {(project as any).evaluations && (project as any).evaluations.length > 0 && (
-                  <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
-                    <CardHeader className="text-right border-b border-border/40 bg-muted/20 p-5">
-                      <CardTitle className="text-base font-bold flex items-center gap-2" dir="rtl">
-                        <FileText className="w-4 h-4 text-primary" />
+                  <Card className="py-0 gap-0 rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
+                    <CardHeader className="text-right border-b border-border/40 bg-muted/20 p-4 sm:p-5">
+                      <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2" dir="rtl">
+                        <FileText className="w-4 h-4 text-primary shrink-0" />
                         ملاحظات التقييم الفني
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-5">
+                    <CardContent className="p-4 sm:p-5">
                       <div className="space-y-3">
                         {(project as any).evaluations.map((evalNote: any) => (
-                          <div key={evalNote.id} className="p-4 bg-muted/20 rounded-xl space-y-2 border border-border/40 text-right" dir="rtl">
-                            <div className="flex justify-between items-center w-full">
+                          <div key={evalNote.id} className="p-3.5 sm:p-4 bg-muted/20 rounded-xl space-y-2 border border-border/40 text-right" dir="rtl">
+                            <div className="flex justify-between items-center flex-wrap gap-2 w-full">
                               <span className="font-bold text-primary text-xs sm:text-sm">{evalNote.userName || "موظف التقييم"}</span>
-                              <span className="text-xs text-muted-foreground flex items-center gap-1 font-sans">
+                              <span className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1 font-mono">
                                 {formatDateTime(evalNote.createdAt)}
                               </span>
                             </div>
@@ -1790,13 +1812,13 @@ export default function ProjectDetailsPage() {
                               {evalNote.justification && (
                                 <div>
                                   <span className="text-muted-foreground block text-[11px] font-bold mb-1">المبررات:</span>
-                                  <p className="whitespace-pre-wrap text-foreground font-medium leading-relaxed">{evalNote.justification}</p>
+                                  <p className="whitespace-pre-wrap break-words text-foreground font-medium leading-relaxed">{evalNote.justification}</p>
                                 </div>
                               )}
                               {evalNote.notes && (
                                 <div>
                                   <span className="text-muted-foreground block text-[11px] font-bold mb-1">ملاحظات إضافية:</span>
-                                  <p className="whitespace-pre-wrap text-foreground leading-relaxed">{evalNote.notes}</p>
+                                  <p className="whitespace-pre-wrap break-words text-foreground leading-relaxed">{evalNote.notes}</p>
                                 </div>
                               )}
                             </div>
@@ -1809,22 +1831,22 @@ export default function ProjectDetailsPage() {
 
                 {/* قسم أوامر الشراء لسدانة في النظرة العامة */}
                 {hasPurchaseOrderMethod && (
-                  <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
-                    <CardHeader className="text-right border-b border-border/40 bg-muted/20 p-5 flex flex-row items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <ShoppingBag className="w-4 h-4 text-primary" />
-                        <CardTitle className="text-base font-bold" dir="rtl">
+                  <Card className="py-0 gap-0 rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
+                    <CardHeader className="text-right border-b border-border/40 bg-muted/20 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <ShoppingBag className="w-4 h-4 text-primary shrink-0" />
+                        <CardTitle className="text-sm sm:text-base font-bold" dir="rtl">
                           أوامر الشراء (برنامج سدانة)
                         </CardTitle>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 self-end sm:self-auto">
                         <Badge className="bg-primary/10 text-primary border-primary/20 font-bold px-2.5 py-0.5 rounded-lg text-xs">
                           {sedanaPurchaseOrders.length > 0 ? `${sedanaPurchaseOrders.length} أوامر` : "مسار معتمد"}
                         </Badge>
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="text-xs font-bold gap-1 h-8"
+                          className="text-xs font-bold gap-1 h-8 max-lg:min-h-10"
                           onClick={() => setActiveTab("purchase_orders")}
                         >
                           عرض الكل
@@ -1832,14 +1854,14 @@ export default function ProjectDetailsPage() {
                         </Button>
                       </div>
                     </CardHeader>
-                    <CardContent className="p-5">
+                    <CardContent className="p-4 sm:p-5">
                       {sedanaPurchaseOrders.length === 0 ? (
-                        <div className="flex items-center justify-between p-4 bg-muted/20 rounded-xl border border-border/40 text-xs">
-                          <span className="text-muted-foreground font-medium">تم اختيار طريقة التوريد كـ "أمر شراء" لهذا الطلب، ولم يتم بعد إصدار أمر شراء رسمي.</span>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-muted/20 rounded-xl border border-border/40 text-xs">
+                          <span className="text-muted-foreground font-medium leading-relaxed">تم اختيار طريقة التوريد كـ "أمر شراء" لهذا الطلب، ولم يتم بعد إصدار أمر شراء رسمي.</span>
                           {project.requestId && (
                             <Button
                               size="sm"
-                              className="font-bold text-xs h-8 shrink-0 mr-3"
+                              className="font-bold text-xs h-9 max-lg:min-h-10 w-full sm:w-auto shrink-0 rounded-xl"
                               onClick={() => navigate(`/requests/${project.requestId}/purchase-order`)}
                             >
                               إصدار أمر شراء
@@ -1853,26 +1875,26 @@ export default function ProjectDetailsPage() {
                             const poSupplier = po.directedTo || po.supplierName || "مورد معتمد";
                             const poAmount = po.amount ? formatCurrency(po.amount) : "—";
                             return (
-                              <div key={idx} className="flex items-center justify-between p-3.5 bg-muted/20 rounded-xl border border-border/40 hover:bg-muted/30 transition-colors">
-                                <div className="space-y-1 text-right">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-bold text-sm text-primary font-sans">{poNum}</span>
+                              <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-muted/20 rounded-xl border border-border/40 hover:bg-muted/30 transition-colors">
+                                <div className="space-y-1 text-right min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-bold text-sm text-primary font-mono">{poNum}</span>
                                     <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-[11px]">
                                       {po.status === "approved" || po.status === "active" ? "معتمد" : (po.status || "نشط")}
                                     </Badge>
                                   </div>
                                   <p className="text-xs text-muted-foreground">المورد: <span className="text-foreground font-medium">{poSupplier}</span></p>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                  <div className="text-left font-sans">
-                                    <p className="text-xs text-muted-foreground">المبلغ</p>
-                                    <p className="font-bold text-sm text-foreground">{poAmount}</p>
+                                <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40">
+                                  <div className="text-right sm:text-left font-sans">
+                                    <p className="text-[11px] text-muted-foreground">المبلغ</p>
+                                    <p className="font-bold text-sm text-foreground font-mono">{poAmount}</p>
                                   </div>
                                   {project.requestId && (
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      className="h-8 gap-1 text-xs font-bold"
+                                      className="h-9 max-lg:min-h-10 gap-1 text-xs font-bold rounded-xl"
                                       onClick={() => navigate(`/requests/${project.requestId}/purchase-order?orderNumber=${encodeURIComponent(poNum)}`)}
                                     >
                                       <Printer className="w-3.5 h-3.5" />
@@ -1891,22 +1913,22 @@ export default function ProjectDetailsPage() {
 
                 {/* قسم الخطابات المجتمعية لسدانة في النظرة العامة */}
                 {hasCsrLetterMethod && (
-                  <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
-                    <CardHeader className="text-right border-b border-border/40 bg-muted/20 p-5 flex flex-row items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <HeartHandshake className="w-4 h-4 text-primary" />
-                        <CardTitle className="text-base font-bold" dir="rtl">
+                  <Card className="py-0 gap-0 rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
+                    <CardHeader className="text-right border-b border-border/40 bg-muted/20 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <HeartHandshake className="w-4 h-4 text-primary shrink-0" />
+                        <CardTitle className="text-sm sm:text-base font-bold" dir="rtl">
                           الخطابات المجتمعية (برنامج سدانة)
                         </CardTitle>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 self-end sm:self-auto">
                         <Badge className="bg-primary/10 text-primary border-primary/20 font-bold px-2.5 py-0.5 rounded-lg text-xs">
                           {sedanaCsrLetters.length > 0 ? `${sedanaCsrLetters.length} خطابات` : "مسار معتمد"}
                         </Badge>
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="text-xs font-bold gap-1 h-8"
+                          className="text-xs font-bold gap-1 h-8 max-lg:min-h-10"
                           onClick={() => setActiveTab("csr_letters")}
                         >
                           عرض الكل
@@ -1914,14 +1936,14 @@ export default function ProjectDetailsPage() {
                         </Button>
                       </div>
                     </CardHeader>
-                    <CardContent className="p-5">
+                    <CardContent className="p-4 sm:p-5">
                       {sedanaCsrLetters.length === 0 ? (
-                        <div className="flex items-center justify-between p-4 bg-muted/20 rounded-xl border border-border/40 text-xs">
-                          <span className="text-muted-foreground font-medium">تم اختيار طريقة التوريد كـ "مسؤولية مجتمعية" لهذا الطلب، ولم يتم بعد إصدار خطاب رسمي.</span>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-muted/20 rounded-xl border border-border/40 text-xs">
+                          <span className="text-muted-foreground font-medium leading-relaxed">تم اختيار طريقة التوريد كـ "مسؤولية مجتمعية" لهذا الطلب، ولم يتم بعد إصدار خطاب رسمي.</span>
                           {project.requestId && (
                             <Button
                               size="sm"
-                              className="font-bold text-xs h-8 shrink-0 mr-3"
+                              className="font-bold text-xs h-9 max-lg:min-h-10 w-full sm:w-auto shrink-0 rounded-xl"
                               onClick={() => navigate(`/requests/${project.requestId}/csr-letter`)}
                             >
                               إصدار خطاب مجتمعي
@@ -1934,22 +1956,22 @@ export default function ProjectDetailsPage() {
                             const letterNum = csr.letterNumber || `CSR-${idx + 1}`;
                             const recipient = csr.directedTo || csr.organizationName || "الجهة المانحة";
                             return (
-                              <div key={idx} className="flex items-center justify-between p-3.5 bg-muted/20 rounded-xl border border-border/40 hover:bg-muted/30 transition-colors">
-                                <div className="space-y-1 text-right">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-bold text-sm text-primary font-sans">{letterNum}</span>
+                              <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-muted/20 rounded-xl border border-border/40 hover:bg-muted/30 transition-colors">
+                                <div className="space-y-1 text-right min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-bold text-sm text-primary font-mono">{letterNum}</span>
                                     <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-[11px]">
                                       {csr.status === "approved" || csr.status === "active" ? "معتمد" : (csr.status || "نشط")}
                                     </Badge>
                                   </div>
                                   <p className="text-xs text-muted-foreground">الجهة الموجه إليها: <span className="text-foreground font-medium">{recipient}</span></p>
                                 </div>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center justify-end gap-3">
                                   {project.requestId && (
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      className="h-8 gap-1 text-xs font-bold"
+                                      className="w-full sm:w-auto h-9 max-lg:min-h-10 gap-1 text-xs font-bold rounded-xl"
                                       onClick={() => navigate(`/requests/${project.requestId}/csr-letter?letterNumber=${encodeURIComponent(letterNum)}`)}
                                     >
                                       <Printer className="w-3.5 h-3.5" />
@@ -1968,7 +1990,7 @@ export default function ProjectDetailsPage() {
               </TabsContent>
 
               {/* الإنجاز والمعالم */}
-              <TabsContent value="progress_milestones" className="space-y-6 mt-0">
+              <TabsContent value="progress_milestones" className="space-y-4 sm:space-y-6 mt-0">
                 <ProjectProgressMilestonesTab
                   projectId={project.id}
                   initialPlannedProgress={project.plannedProgress}
@@ -1980,44 +2002,44 @@ export default function ProjectDetailsPage() {
               </TabsContent>
 
               {/* المراحل */}
-              <TabsContent value="phases" className="space-y-6 mt-0">
-                <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
-                  <CardHeader className="text-right border-b border-border/40 bg-muted/20 p-5">
-                    <CardTitle className="text-base font-bold flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-primary" />
+              <TabsContent value="phases" className="space-y-4 sm:space-y-6 mt-0">
+                <Card className="py-0 gap-0 rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
+                  <CardHeader className="text-right border-b border-border/40 bg-muted/20 p-4 sm:p-5">
+                    <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
                       مراحل سير المشروع
                     </CardTitle>
                     <CardDescription className="text-xs">
                       متابعة وتحديث تقدم المراحل التنفيذية للمشروع
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="p-5 text-right">
+                  <CardContent className="p-3.5 sm:p-5 text-right">
                     {project.phases && project.phases.length > 0 ? (
-                      <div className="space-y-3.5">
+                      <div className="space-y-3">
                         {project.phases.map((phase, index) => (
-                          <div key={phase.id} className="flex items-center gap-4 p-4 bg-muted/20 hover:bg-muted/30 transition-all rounded-xl border border-border/40">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs font-sans font-bold ${
+                          <div key={phase.id} className="flex items-start sm:items-center gap-3 sm:gap-4 p-3.5 sm:p-4 bg-muted/20 hover:bg-muted/30 transition-all rounded-xl border border-border/40">
+                            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs font-mono font-bold text-sm ${
                               phase.status === "completed" ? "bg-emerald-500 text-white" :
                               phase.status === "in_progress" ? "bg-blue-600 text-white" :
                               "bg-muted text-muted-foreground border border-border/60"
                             }`}>
                               {phase.status === "completed" ? (
-                                <CheckCircle2 className="w-5 h-5" />
+                                <CheckCircle2 className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                               ) : (
                                 <span>{index + 1}</span>
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
-                                <h4 className="font-bold text-sm text-foreground">{phase.phaseName}</h4>
-                                <Badge variant="outline" className={`${phaseStatusColors[phase.status || "pending"]} text-xs font-bold`}>
+                                <h4 className="font-bold text-xs sm:text-sm text-foreground">{phase.phaseName}</h4>
+                                <Badge variant="outline" className={`${phaseStatusColors[phase.status || "pending"]} text-[11px] sm:text-xs font-bold`}>
                                   {phaseStatusLabels[phase.status || "pending"]}
                                 </Badge>
                               </div>
                               {phase.description && (
                                 <p className="text-xs text-muted-foreground mb-2 leading-relaxed">{phase.description}</p>
                               )}
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2.5 sm:gap-3">
                                 <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
                                   <div 
                                     className={`h-full rounded-full transition-all duration-500 ${
@@ -2026,7 +2048,7 @@ export default function ProjectDetailsPage() {
                                     style={{ width: `${Math.min(100, Math.max(0, phase.completionPercentage || 0))}%` }}
                                   />
                                 </div>
-                                <span className="text-xs text-muted-foreground font-sans font-bold shrink-0">
+                                <span className="text-xs text-muted-foreground font-mono font-bold shrink-0">
                                   {phase.completionPercentage || 0}%
                                   {phase.completionPercentage === 100 && " (مكتمل)"}
                                 </span>
@@ -2046,12 +2068,12 @@ export default function ProjectDetailsPage() {
               </TabsContent>
 
               {/* جدول الكميات */}
-              <TabsContent value="boq" className="space-y-6 mt-0">
-                <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
-                  <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4 border-b border-border/40 bg-muted/20 p-5">
-                    <div className="flex-1">
-                      <CardTitle className="text-base font-bold flex items-center gap-2">
-                        <ClipboardList className="w-4 h-4 text-primary" />
+              <TabsContent value="boq" className="space-y-4 sm:space-y-6 mt-0">
+                <Card className="py-0 gap-0 rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
+                  <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-3 sm:gap-4 border-b border-border/40 bg-muted/20 p-4 sm:p-5">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2">
+                        <ClipboardList className="w-4 h-4 text-primary shrink-0" />
                         جداول الكميات (BOQ)
                       </CardTitle>
                       <CardDescription className="text-xs mt-0.5">
@@ -2062,7 +2084,7 @@ export default function ProjectDetailsPage() {
                     </div>
                     {!isBOQLocked && (
                       <Button 
-                        className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9" 
+                        className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-10 max-lg:min-h-11 w-full sm:w-auto shrink-0" 
                         onClick={() => boqTabRef.current?.openAddDialog()}
                       >
                         <Plus className="w-4 h-4 ml-1.5" />
@@ -2070,7 +2092,7 @@ export default function ProjectDetailsPage() {
                       </Button>
                     )}
                   </CardHeader>
-                  <CardContent className="p-5">
+                  <CardContent className="p-3.5 sm:p-5">
                     <BoqTab 
                       requestId={project.requestId || undefined} 
                       projectId={project.id} 
@@ -2082,7 +2104,7 @@ export default function ProjectDetailsPage() {
                     {showApproveBOQButton && project.requestId && (
                       <div className="mt-6 flex justify-center">
                         <Button 
-                          className="gradient-primary text-white shadow-md hover:shadow-lg transition-all gap-2 rounded-xl h-10 px-6 font-bold text-xs sm:text-sm"
+                          className="gradient-primary text-white shadow-md hover:shadow-lg transition-all gap-2 rounded-xl h-10 max-lg:min-h-11 w-full sm:w-auto px-6 font-bold text-xs sm:text-sm"
                           onClick={() => {
                             if (confirm("هل أنت متأكد من اعتماد جدول الكميات؟\nعند الاعتماد سيتم تحويل المشروع لمرحلة التقييم المالي واعتماد العرض.")) {
                               updateRequestStageMutation.mutate({ 
@@ -2107,23 +2129,23 @@ export default function ProjectDetailsPage() {
               </TabsContent>
 
               {!isSedanaProgram && (canViewDetails || canViewFinancials || isAdmin) && (
-                <TabsContent value="change_orders" className="space-y-6 mt-0">
+                <TabsContent value="change_orders" className="space-y-4 sm:space-y-6 mt-0">
                   {isChangeOrdersLocked ? (
-                    <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
-                      <CardContent className="p-8 text-center">
-                        <div className="bg-amber-500/5 p-8 rounded-2xl border border-amber-500/20 max-w-lg mx-auto shadow-xs space-y-4">
-                          <div className="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto border border-amber-500/20">
-                            <Lock className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+                    <Card className="py-0 gap-0 rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
+                      <CardContent className="p-4 sm:p-8 text-center">
+                        <div className="bg-amber-500/5 p-5 sm:p-8 rounded-2xl border border-amber-500/20 max-w-lg mx-auto shadow-xs space-y-4">
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto border border-amber-500/20">
+                            <Lock className="w-6 h-6 sm:w-7 sm:h-7 text-amber-600 dark:text-amber-400" />
                           </div>
-                          <h3 className="text-lg font-bold text-amber-900 dark:text-amber-200">
+                          <h3 className="text-base sm:text-lg font-bold text-amber-900 dark:text-amber-200">
                             قسم أوامر التغيير مقفل حالياً
                           </h3>
                           <p className="text-amber-800/80 dark:text-amber-300/80 text-xs sm:text-sm leading-relaxed">
                             هذا القسم غير متاح حالياً. لا يمكن فتح أو اعتماد أوامر التغيير إلا عندما يكون المشروع في <strong>&quot;المرحلة الخامسة : صرف المدفوعات&quot;</strong> من مراحل المشروع.
                           </p>
-                          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-semibold">
-                            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                            يتطلب وصول المشروع للمرحلة الخامسة: صرف المدفوعات
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-semibold">
+                            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                            <span>يتطلب وصول المشروع للمرحلة الخامسة: صرف المدفوعات</span>
                           </div>
                         </div>
                       </CardContent>
@@ -2147,13 +2169,13 @@ export default function ProjectDetailsPage() {
 
               {/* المالية */}
               {!isSedanaProgram && canViewFinancials && (
-                <TabsContent value="financials" className="space-y-6 mt-0">
+                <TabsContent value="financials" className="space-y-4 sm:space-y-6 mt-0">
                   {isFinancialsLocked ? (
-                    <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
-                      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4 border-b border-border/40 bg-muted/20 p-5">
-                        <div className="flex-1">
-                          <CardTitle className="text-base font-bold flex items-center gap-2">
-                            <SaudiRiyal className="w-4 h-4" />
+                    <Card className="py-0 gap-0 rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
+                      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-3 sm:gap-4 border-b border-border/40 bg-muted/20 p-4 sm:p-5">
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2">
+                            <SaudiRiyal className="w-4 h-4 shrink-0" />
                             البيانات والتحليلات المالية
                           </CardTitle>
                           <CardDescription className="text-xs mt-0.5">
@@ -2161,19 +2183,19 @@ export default function ProjectDetailsPage() {
                           </CardDescription>
                         </div>
                       </CardHeader>
-                      <CardContent className="p-5">
-                        <div className="text-center py-12">
-                          <div className="bg-amber-500/5 p-8 rounded-2xl border border-amber-500/20 max-w-lg mx-auto shadow-xs">
-                            <div className="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-5 mx-auto border border-amber-500/20">
-                              <Lock className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+                      <CardContent className="p-4 sm:p-5">
+                        <div className="text-center py-6 sm:py-12">
+                          <div className="bg-amber-500/5 p-5 sm:p-8 rounded-2xl border border-amber-500/20 max-w-lg mx-auto shadow-xs">
+                            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-4 sm:mb-5 mx-auto border border-amber-500/20">
+                              <Lock className="w-6 h-6 sm:w-7 sm:h-7 text-amber-600 dark:text-amber-400" />
                             </div>
-                            <h3 className="text-lg font-bold text-amber-900 dark:text-amber-200 mb-2">قسم المالية مقفل حالياً</h3>
+                            <h3 className="text-base sm:text-lg font-bold text-amber-900 dark:text-amber-200 mb-2">قسم المالية مقفل حالياً</h3>
                             <p className="text-amber-800/80 dark:text-amber-300/80 text-xs sm:text-sm leading-relaxed mb-5">
                               هذا القسم غير متاح للعرض أو الإضافة حالياً. سيتم إلغاء قفل قسم المالية وتفعيله بالكامل تلقائياً بمجرد اكتمال <strong>المرحلة الثالثة: التقييم المالي والاعتماد</strong> للمشروع.
                             </p>
-                            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-semibold">
-                              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                              يتطلب اكتمال مرحلة التقييم المالي واعتماد عروض الأسعار أولاً
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-semibold">
+                              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                              <span>يتطلب اكتمال مرحلة التقييم المالي واعتماد عروض الأسعار أولاً</span>
                             </div>
                           </div>
                         </div>
@@ -2189,12 +2211,12 @@ export default function ProjectDetailsPage() {
               {showContractsAndPayments && (
                 <>
                   {/* العقود */}
-                  <TabsContent value="contracts" className="space-y-6 mt-0">
-                <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
-                  <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4 border-b border-border/40 bg-muted/20 p-5">
-                    <div className="flex-1">
-                      <CardTitle className="text-base font-bold flex items-center gap-2">
-                        <FileSignature className="w-4 h-4 text-primary" />
+                  <TabsContent value="contracts" className="space-y-4 sm:space-y-6 mt-0">
+                <Card className="py-0 gap-0 rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
+                  <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-3 sm:gap-4 border-b border-border/40 bg-muted/20 p-4 sm:p-5">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2">
+                        <FileSignature className="w-4 h-4 text-primary shrink-0" />
                         العقود
                       </CardTitle>
                       <CardDescription className="text-xs mt-0.5">
@@ -2206,7 +2228,7 @@ export default function ProjectDetailsPage() {
                     </div>
                     {!isContractsLocked && !isExecutionStarted && (!project.contracts || project.contracts.length === 0) && (
                       <Button 
-                        className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9" 
+                        className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-10 max-lg:min-h-11 w-full sm:w-auto shrink-0" 
                         onClick={() => navigate(`/contracts/new/request/${project.requestId}?projectId=${project.id}`)}
                       >
                         <Plus className="w-4 h-4 ml-1.5" />
@@ -2214,103 +2236,176 @@ export default function ProjectDetailsPage() {
                       </Button>
                     )}
                   </CardHeader>
-                  <CardContent className="p-5">
+                  <CardContent className="p-3.5 sm:p-5">
                     {isContractsLocked ? (
-                      <div className="text-center py-12">
-                        <div className="bg-amber-500/5 p-8 rounded-2xl border border-amber-500/20 max-w-lg mx-auto shadow-xs">
-                          <div className="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-5 mx-auto border border-amber-500/20">
-                            <Lock className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+                      <div className="text-center py-6 sm:py-12">
+                        <div className="bg-amber-500/5 p-5 sm:p-8 rounded-2xl border border-amber-500/20 max-w-lg mx-auto shadow-xs">
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-4 sm:mb-5 mx-auto border border-amber-500/20">
+                            <Lock className="w-6 h-6 sm:w-7 sm:h-7 text-amber-600 dark:text-amber-400" />
                           </div>
-                          <h3 className="text-lg font-bold text-amber-900 dark:text-amber-200 mb-2">قسم العقود مقفل حالياً</h3>
+                          <h3 className="text-base sm:text-lg font-bold text-amber-900 dark:text-amber-200 mb-2">قسم العقود مقفل حالياً</h3>
                           <p className="text-amber-800/80 dark:text-amber-300/80 text-xs sm:text-sm leading-relaxed mb-5">
                             هذا القسم غير متاح للعرض أو الإضافة حالياً. سيتم إلغاء قفل قسم العقود وتفعيله بالكامل تلقائياً بمجرد اكتمال <strong>المرحلة الثالثة: التقييم المالي والاعتماد</strong> للمشروع.
                           </p>
-                          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-semibold">
-                            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                            يتطلب اكتمال مرحلة التقييم المالي واعتماد عروض الأسعار أولاً
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-semibold">
+                            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                            <span>يتطلب اكتمال مرحلة التقييم المالي واعتماد عروض الأسعار أولاً</span>
                           </div>
                         </div>
                       </div>
                     ) : project.contracts && project.contracts.length > 0 ? (
-                      <div className="overflow-x-auto w-full scrollbar-hide rounded-xl border border-border/40">
-                        <Table>
-                          <TableHeader className="bg-muted/40">
-                            <TableRow>
-                              <TableHead className="text-right font-bold py-3.5 px-4">رقم العقد</TableHead>
-                              <TableHead className="text-right font-bold py-3.5 px-4">المورد</TableHead>
-                              <TableHead className="text-right font-bold py-3.5 px-4">نوع العقد</TableHead>
-                              <TableHead className="text-right font-bold py-3.5 px-4">القيمة</TableHead>
-                              <TableHead className="text-right font-bold py-3.5 px-4">الحالة</TableHead>
-                              <TableHead className="text-center font-bold py-3.5 px-4">الإجراءات</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {project.contracts.map((contract) => (
-                              <TableRow key={contract.id} className="hover:bg-muted/20">
-                                <TableCell className="font-bold text-right py-3.5 px-4 font-sans">{contract.contractNumber}</TableCell>
-                                <TableCell className="text-right font-medium py-3.5 px-4">{contract.supplierName || "غير محدد"}</TableCell>
-                                <TableCell className="text-right text-muted-foreground text-xs py-3.5 px-4">{contract.contractType || "-"}</TableCell>
-                                <TableCell className="text-right font-bold py-3.5 px-4 font-sans">{formatCurrency(contract.amount)}</TableCell>
-                                <TableCell className="text-right py-3.5 px-4">
-                                  <Badge 
+                      <>
+                        {/* بطاقات العقود للموبايل والآيباد */}
+                        <div className="lg:hidden grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {project.contracts.map((contract) => (
+                            <div key={contract.id} className="rounded-xl border border-border/70 bg-muted/15 p-3.5 sm:p-4 space-y-3">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="font-mono font-bold text-sm text-foreground">{contract.contractNumber}</p>
+                                  <p className="text-xs font-medium text-muted-foreground mt-0.5 truncate">{contract.supplierName || "غير محدد"}</p>
+                                </div>
+                                <Badge 
+                                  variant="outline"
+                                  className={`shrink-0 ${
+                                    contract.status === "approved" || contract.status === "active" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                                    contract.status === "draft" ? "bg-gray-100 text-gray-800 border-gray-200" :
+                                    contract.status === "pending_approval" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                    "bg-gray-100 text-gray-800 border-gray-200"
+                                  }`}
+                                >
+                                  {contract.status === "draft" ? "مسودة" :
+                                   contract.status === "pending_approval" ? "بانتظار الاعتماد" :
+                                   contract.status === "approved" ? "معتمد" :
+                                   contract.status === "active" ? "نشط" :
+                                   contract.status === "completed" ? "مكتمل" : 
+                                   contract.status === "terminated" ? "منتهي" : 
+                                   contract.status === "cancelled" ? "ملغي" : "غير محدد"}
+                                </Badge>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-border/50">
+                                <div>
+                                  <span className="text-muted-foreground block text-[11px]">نوع العقد</span>
+                                  <span className="font-medium text-foreground">{contract.contractType || "-"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground block text-[11px]">القيمة</span>
+                                  <span className="font-bold font-mono text-foreground">{formatCurrency(contract.amount)}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+                                {contract.status === "draft" && !isExecutionStarted && (
+                                  <Button
                                     variant="outline"
-                                    className={
-                                      contract.status === "approved" || contract.status === "active" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                                      contract.status === "draft" ? "bg-gray-100 text-gray-800 border-gray-200" :
-                                      contract.status === "pending_approval" ? "bg-blue-50 text-blue-700 border-blue-200" :
-                                      "bg-gray-100 text-gray-800 border-gray-200"
-                                    }
+                                    size="sm"
+                                    disabled={isRequestClosed}
+                                    className="flex-1 min-h-10 max-lg:min-h-11 rounded-xl text-xs font-bold gap-1.5 text-blue-600 border-blue-200 hover:bg-blue-50"
+                                    onClick={() => {
+                                      if (!isRequestClosed) {
+                                        navigate(`/contracts/${contract.id}/edit`);
+                                      }
+                                    }}
                                   >
-                                    {contract.status === "draft" ? "مسودة" :
-                                     contract.status === "pending_approval" ? "بانتظار الاعتماد" :
-                                     contract.status === "approved" ? "معتمد" :
-                                     contract.status === "active" ? "نشط" :
-                                     contract.status === "completed" ? "مكتمل" : 
-                                     contract.status === "terminated" ? "منتهي" : 
-                                     contract.status === "cancelled" ? "ملغي" : "غير محدد"}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-center py-3.5 px-4">
-                                  <div className="flex items-center gap-1.5 justify-center">
-                                    {contract.status === "draft" && !isExecutionStarted && (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        disabled={isRequestClosed}
-                                        className={cn(
-                                          "h-8 w-8 rounded-lg",
-                                          isRequestClosed
-                                            ? "text-muted-foreground/40 cursor-not-allowed hover:bg-transparent"
-                                            : "text-blue-600 hover:bg-blue-50 cursor-pointer"
-                                        )}
-                                        onClick={() => {
-                                          if (!isRequestClosed) {
-                                            navigate(`/contracts/${contract.id}/edit`);
-                                          }
-                                        }}
-                                        title={isRequestClosed ? "لا يمكن تعديل العقد لأن الطلب المرتبط مغلق" : "تعديل العقد"}
-                                      >
-                                        <Edit className="h-4 w-4" />
-                                      </Button>
-                                    )}
-                                    {contract.status !== "draft" && (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 hover:bg-muted rounded-lg"
-                                        onClick={() => navigate(`/contracts/${contract.id}/preview`)}
-                                        title="معاينة العقد"
-                                      >
-                                        <Eye className="h-4 w-4" />
-                                      </Button>
-                                    )}
-                                  </div>
-                                </TableCell>
+                                    <Edit className="h-3.5 w-3.5" />
+                                    <span>تعديل العقد</span>
+                                  </Button>
+                                )}
+                                {contract.status !== "draft" && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 min-h-10 max-lg:min-h-11 rounded-xl text-xs font-bold gap-1.5"
+                                    onClick={() => navigate(`/contracts/${contract.id}/preview`)}
+                                  >
+                                    <Eye className="h-3.5 w-3.5" />
+                                    <span>معاينة العقد</span>
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* جدول العقود للشاشات الكبيرة */}
+                        <div className="hidden lg:block overflow-x-auto w-full scrollbar-hide rounded-xl border border-border/40">
+                          <Table>
+                            <TableHeader className="bg-muted/40">
+                              <TableRow>
+                                <TableHead className="text-right font-bold py-3.5 px-4">رقم العقد</TableHead>
+                                <TableHead className="text-right font-bold py-3.5 px-4">المورد</TableHead>
+                                <TableHead className="text-right font-bold py-3.5 px-4">نوع العقد</TableHead>
+                                <TableHead className="text-right font-bold py-3.5 px-4">القيمة</TableHead>
+                                <TableHead className="text-right font-bold py-3.5 px-4">الحالة</TableHead>
+                                <TableHead className="text-center font-bold py-3.5 px-4">الإجراءات</TableHead>
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
+                            </TableHeader>
+                            <TableBody>
+                              {project.contracts.map((contract) => (
+                                <TableRow key={contract.id} className="hover:bg-muted/20">
+                                  <TableCell className="font-bold text-right py-3.5 px-4 font-sans">{contract.contractNumber}</TableCell>
+                                  <TableCell className="text-right font-medium py-3.5 px-4">{contract.supplierName || "غير محدد"}</TableCell>
+                                  <TableCell className="text-right text-muted-foreground text-xs py-3.5 px-4">{contract.contractType || "-"}</TableCell>
+                                  <TableCell className="text-right font-bold py-3.5 px-4 font-sans">{formatCurrency(contract.amount)}</TableCell>
+                                  <TableCell className="text-right py-3.5 px-4">
+                                    <Badge 
+                                      variant="outline"
+                                      className={
+                                        contract.status === "approved" || contract.status === "active" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                                        contract.status === "draft" ? "bg-gray-100 text-gray-800 border-gray-200" :
+                                        contract.status === "pending_approval" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                        "bg-gray-100 text-gray-800 border-gray-200"
+                                      }
+                                    >
+                                      {contract.status === "draft" ? "مسودة" :
+                                       contract.status === "pending_approval" ? "بانتظار الاعتماد" :
+                                       contract.status === "approved" ? "معتمد" :
+                                       contract.status === "active" ? "نشط" :
+                                       contract.status === "completed" ? "مكتمل" : 
+                                       contract.status === "terminated" ? "منتهي" : 
+                                       contract.status === "cancelled" ? "ملغي" : "غير محدد"}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-center py-3.5 px-4">
+                                    <div className="flex items-center gap-1.5 justify-center">
+                                      {contract.status === "draft" && !isExecutionStarted && (
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          disabled={isRequestClosed}
+                                          className={cn(
+                                            "h-8 w-8 pointer-coarse:size-10 rounded-lg",
+                                            isRequestClosed
+                                              ? "text-muted-foreground/40 cursor-not-allowed hover:bg-transparent"
+                                              : "text-blue-600 hover:bg-blue-50 cursor-pointer"
+                                          )}
+                                          onClick={() => {
+                                            if (!isRequestClosed) {
+                                              navigate(`/contracts/${contract.id}/edit`);
+                                            }
+                                          }}
+                                          title={isRequestClosed ? "لا يمكن تعديل العقد لأن الطلب المرتبط مغلق" : "تعديل العقد"}
+                                        >
+                                          <Edit className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                      {contract.status !== "draft" && (
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 pointer-coarse:size-10 hover:bg-muted rounded-lg"
+                                          onClick={() => navigate(`/contracts/${contract.id}/preview`)}
+                                          title="معاينة العقد"
+                                        >
+                                          <Eye className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </>
                     ) : (
                       <div className="text-center py-12">
                         <FileSignature className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
@@ -2321,7 +2416,7 @@ export default function ProjectDetailsPage() {
                     {showApproveContractButton && !isRequestClosed && (
                       <div className="mt-6 flex justify-center">
                         <Button 
-                          className="gradient-primary text-white shadow-md hover:shadow-lg transition-all gap-2 rounded-xl h-10 px-6 font-bold text-xs sm:text-sm"
+                          className="gradient-primary text-white shadow-md hover:shadow-lg transition-all gap-2 rounded-xl h-10 max-lg:min-h-11 w-full sm:w-auto px-6 font-bold text-xs sm:text-sm"
                           onClick={() => {
                             if (confirm("هل أنت متأكد من اعتماد هذا العقد؟\nعند الاعتماد سيتم تحويل المشروع لمرحلة التنفيذ وصرف المدفوعات.")) {
                               approveContractMutation.mutate({ id: project.contracts![0].id });
@@ -2343,15 +2438,15 @@ export default function ProjectDetailsPage() {
               </TabsContent>
 
               {/* الدفعات */}
-              <TabsContent value="payments" className="space-y-6 mt-0">
-                <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
-                  <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4 border-b border-border/40 bg-muted/20 p-5">
-                    <div className="flex-1">
-                      <CardTitle className="text-base font-bold flex items-center gap-2">
+              <TabsContent value="payments" className="space-y-4 sm:space-y-6 mt-0">
+                <Card className="py-0 gap-0 rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
+                  <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-3 sm:gap-4 border-b border-border/40 bg-muted/20 p-4 sm:p-5">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2">
                         {isMilestonesContract ? (
-                          <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                          <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
                         ) : (
-                          <CreditCard className="w-4 h-4 text-primary" />
+                          <CreditCard className="w-4 h-4 text-primary shrink-0" />
                         )}
                         <span>{isMilestonesContract ? "مستخلصات المشروع" : "الدفعات المالية"}</span>
                       </CardTitle>
@@ -2362,9 +2457,9 @@ export default function ProjectDetailsPage() {
                       </CardDescription>
                     </div>
                     {!isPaymentsLocked && (
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto">
                         {isMilestonesContract && <Button
-                          className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9" 
+                          className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-10 max-lg:min-h-11 w-full sm:w-auto" 
                           onClick={() => {
                             if (!isRequestClosed && !has100Payment && !isContractFullyPaid) {
                               navigate(`/projects/${project.id}/invoices/new`);
@@ -2391,7 +2486,7 @@ export default function ProjectDetailsPage() {
                             {pendingPaymentChangeOrders.length > 0 && (
                               <Button
                                 variant="default"
-                                className="rounded-xl shadow-xs text-xs font-bold h-9 bg-indigo-600 hover:bg-indigo-700 text-white"
+                                className="rounded-xl shadow-xs text-xs font-bold h-10 max-lg:min-h-11 w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white"
                                 onClick={handleOpenChangeOrderPayment}
                                 disabled={isRequestClosed}
                                 title={
@@ -2406,7 +2501,7 @@ export default function ProjectDetailsPage() {
                             )}
                             <Button 
                               variant="outline"
-                              className="rounded-xl shadow-xs text-xs font-bold h-9" 
+                              className="rounded-xl shadow-xs text-xs font-bold h-10 max-lg:min-h-11 w-full sm:w-auto" 
                               onClick={() => {
                                 if (!isRequestClosed && !isBaseContractFullyAllocated) {
                                   navigate(`/disbursements/new/${project.id}`);
@@ -2429,29 +2524,29 @@ export default function ProjectDetailsPage() {
                       </div>
                     )}
                   </CardHeader>
-                  <CardContent className="p-5">
+                  <CardContent className="p-3.5 sm:p-5">
                     {isPaymentsLocked ? (
-                      <div className="text-center py-12">
-                        <div className="bg-amber-500/5 p-8 rounded-2xl border border-amber-500/20 max-w-lg mx-auto shadow-xs">
-                          <div className="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-5 mx-auto border border-amber-500/20">
-                            <Lock className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+                      <div className="text-center py-6 sm:py-12">
+                        <div className="bg-amber-500/5 p-5 sm:p-8 rounded-2xl border border-amber-500/20 max-w-lg mx-auto shadow-xs">
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-4 sm:mb-5 mx-auto border border-amber-500/20">
+                            <Lock className="w-6 h-6 sm:w-7 sm:h-7 text-amber-600 dark:text-amber-400" />
                           </div>
-                          <h3 className="text-lg font-bold text-amber-900 dark:text-amber-200 mb-2">
+                          <h3 className="text-base sm:text-lg font-bold text-amber-900 dark:text-amber-200 mb-2">
                             {isMilestonesContract ? "قسم المستخلصات مقفل حالياً" : "قسم الدفعات مقفل حالياً"}
                           </h3>
                           <p className="text-amber-800/80 dark:text-amber-300/80 text-xs sm:text-sm leading-relaxed mb-5">
                             هذا القسم غير متاح للصرف أو العرض حالياً. سيتم إلغاء قفل {isMilestonesContract ? "قسم المستخلصات" : "قسم الدفعات"} وتفعيله بالكامل تلقائياً بمجرد اكتمال <strong>المرحلة الرابعة: التعاقد</strong> للمشروع.
                           </p>
-                          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-semibold">
-                            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                            يتطلب اكتمال مرحلة التعاقد وتوثيق العقد أولاً
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-semibold">
+                            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                            <span>يتطلب اكتمال مرحلة التعاقد وتوثيق العقد أولاً</span>
                           </div>
                         </div>
                       </div>
                     ) : ((project.payments && project.payments.length > 0) || (isMilestonesContract && contractMilestones.length > 0) || (projectInvoices && projectInvoices.length > 0)) ? (
                       <>
                         {isRequestClosed && (
-                          <Alert className="bg-amber-50/70 border-amber-200 text-amber-900 dark:bg-amber-950/20 dark:border-amber-900/50 mb-5 text-right rounded-2xl">
+                          <Alert className="bg-amber-50/70 border-amber-200 text-amber-900 dark:bg-amber-950/20 dark:border-amber-900/50 mb-4 sm:mb-5 text-right rounded-2xl">
                             <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                             <AlertTitle className="font-bold text-amber-800 dark:text-amber-400 text-sm">الطلب المرتبط بالمشروع مغلق</AlertTitle>
                             <AlertDescription className="text-amber-700 dark:text-amber-300 text-xs mt-1 leading-relaxed">
@@ -2462,11 +2557,11 @@ export default function ProjectDetailsPage() {
 
                         {/* جدول المستخلصات المالية المرفوعة للمشروع */}
                         {projectInvoices && projectInvoices.length > 0 && (
-                          <div className="space-y-3 mb-6 p-4 sm:p-5 rounded-2xl bg-card border border-border/70 shadow-xs">
+                          <div className="space-y-3 mb-5 sm:mb-6 p-3.5 sm:p-5 rounded-2xl bg-card border border-border/70 shadow-xs">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                               <div>
                                 <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
-                                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                                  <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
                                   <span>المستخلصات المالية المرفوعة للمشروع</span>
                                 </h4>
                                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -2478,7 +2573,35 @@ export default function ProjectDetailsPage() {
                               </Badge>
                             </div>
 
-                            <div className="overflow-x-auto w-full scrollbar-hide rounded-xl border border-border/40">
+                            {/* بطاقات الموبايل للمستخلصات */}
+                            <div className="md:hidden space-y-2.5">
+                              {projectInvoices.map((inv: any, idx: number) => (
+                                <div key={inv.id} className="rounded-xl border border-border/60 bg-muted/15 p-3 space-y-2">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <span className="font-mono font-bold text-xs text-primary block">
+                                        #{idx + 1} • {inv.reportNumber || `INV-${inv.id}`}
+                                      </span>
+                                      <p className="font-bold text-sm text-foreground mt-0.5 break-words">{inv.title || `مستخلص #${inv.id}`}</p>
+                                    </div>
+                                    <div className="shrink-0">{getInvoiceStatusBadge(inv.status)}</div>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-2 text-xs pt-2 border-t border-border/50">
+                                    <span className="font-bold text-[#1a5f4a] dark:text-emerald-400 font-mono">الإنجاز: {inv.overallProgress ?? 0}%</span>
+                                    <span className="text-muted-foreground font-mono">
+                                      {inv.reportDate
+                                        ? (typeof inv.reportDate === "string" && inv.reportDate.includes("T")
+                                            ? inv.reportDate.split("T")[0]
+                                            : new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(inv.reportDate)))
+                                        : "--"}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* جدول الآيباد وسطح المكتب */}
+                            <div className="hidden md:block overflow-x-auto w-full scrollbar-hide rounded-xl border border-border/40">
                               <Table>
                                 <TableHeader className="bg-muted/40">
                                   <TableRow>
@@ -2525,11 +2648,11 @@ export default function ProjectDetailsPage() {
 
                         {/* جدول مراحل ومستخلصات العقد المعتمدة */}
                         {isMilestonesContract && contractMilestones.length > 0 && (
-                          <div className="space-y-3 mb-6 p-4 sm:p-5 rounded-2xl bg-card border border-border/70 shadow-xs">
+                          <div className="space-y-3 mb-5 sm:mb-6 p-3.5 sm:p-5 rounded-2xl bg-card border border-border/70 shadow-xs">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                               <div>
                                 <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
-                                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                                  <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
                                   <span>جدول المستخلصات ومراحل العقد المعتمدة</span>
                                 </h4>
                                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -2541,7 +2664,52 @@ export default function ProjectDetailsPage() {
                               </Badge>
                             </div>
 
-                            <div className="overflow-x-auto w-full scrollbar-hide rounded-xl border border-border/40">
+                            {/* بطاقات الموبايل والآيباد الطولي لمستخلصات العقد */}
+                            <div className="lg:hidden grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {contractMilestones.map((m: any, idx: number) => {
+                                const comp = m.completionPercentage !== undefined && m.completionPercentage !== null && m.completionPercentage !== "" ? m.completionPercentage : "--";
+                                const rawDesc = m.description || m.notes || "";
+                                const cleanDesc = rawDesc ? rawDesc.replace(/\[(?:معرف المستخلص|معرف الدفعة):\s*[^\]]+\]/g, "").trim() : "----";
+                                return (
+                                  <div key={m.id || idx} className="rounded-xl border border-border/60 bg-muted/15 p-3.5 flex flex-col justify-between gap-3">
+                                    <div className="space-y-2">
+                                      <div className="flex items-start justify-between gap-2">
+                                        <p className="font-bold text-sm text-foreground leading-snug">
+                                          <span className="font-mono text-muted-foreground ml-1.5">#{idx + 1}</span>
+                                          {m.name || m.phaseName || `مستخلص ${idx + 1}`}
+                                        </p>
+                                        <Badge variant="outline" className="bg-emerald-50 text-[#1a5f4a] dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 font-mono font-bold text-xs shrink-0">
+                                          {comp}%
+                                        </Badge>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground leading-relaxed break-words">
+                                        {cleanDesc || "----"}
+                                      </p>
+                                      <p className="text-[11px] text-muted-foreground font-mono">
+                                        التاريخ المتوقع: {m.dueDate ? (String(m.dueDate).includes('T') ? String(m.dueDate).split('T')[0] : String(m.dueDate).split(' ')[0]) : "عند الإنجاز"}
+                                      </p>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="w-full min-h-10 max-lg:min-h-11 text-xs rounded-xl hover:border-blue-500 hover:text-blue-700 font-semibold gap-1.5"
+                                      onClick={() => {
+                                        if (!isRequestClosed) {
+                                          navigate(`/milestones/edit/${m.id || `milestone-${m.contractId}-${idx}`}`);
+                                        }
+                                      }}
+                                      disabled={isRequestClosed}
+                                    >
+                                      <Edit className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                      <span>تعديل المستخلص</span>
+                                    </Button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* جدول الشاشات الكبيرة */}
+                            <div className="hidden lg:block overflow-x-auto w-full scrollbar-hide rounded-xl border border-border/40">
                               <Table>
                                 <TableHeader className="bg-muted/40">
                                   <TableRow>
@@ -2577,7 +2745,7 @@ export default function ProjectDetailsPage() {
                                           <Button
                                             size="sm"
                                             variant="outline"
-                                            className="h-8 text-xs rounded-lg hover:border-blue-500 hover:text-blue-700 font-semibold gap-1.5 whitespace-nowrap shrink-0"
+                                            className="h-8 pointer-coarse:min-h-10 text-xs rounded-lg hover:border-blue-500 hover:text-blue-700 font-semibold gap-1.5 whitespace-nowrap shrink-0"
                                             onClick={() => {
                                               if (!isRequestClosed) {
                                                 navigate(`/milestones/edit/${m.id || `milestone-${m.contractId}-${idx}`}`);
@@ -2604,7 +2772,7 @@ export default function ProjectDetailsPage() {
                           !payment.workDescription || 
                           payment.workDescription.trim() === ""
                         )) && (
-                          <Alert className="bg-amber-50/70 border-amber-200 text-amber-900 dark:bg-amber-950/20 dark:border-amber-900/50 mb-5 text-right rounded-2xl">
+                          <Alert className="bg-amber-50/70 border-amber-200 text-amber-900 dark:bg-amber-950/20 dark:border-amber-900/50 mb-4 sm:mb-5 text-right rounded-2xl">
                             <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                             <AlertTitle className="font-bold text-amber-800 dark:text-amber-400 text-sm">تنبيه: توجد دفعات بمعلومات ناقصة</AlertTitle>
                             <AlertDescription className="text-amber-700 dark:text-amber-300 text-xs mt-1 leading-relaxed">
@@ -2614,21 +2782,21 @@ export default function ProjectDetailsPage() {
                         )}
                         {/* ملخص متابعة توريد أصناف سدانة عبر دفعات المشروع */}
                         {isSedanaProgram && sedanaItemsSummary.length > 0 && (
-                          <div className="p-4 sm:p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 mb-5 text-right space-y-3">
+                          <div className="p-3.5 sm:p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 mb-4 sm:mb-5 text-right space-y-3">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                               <div className="flex items-center gap-2 text-emerald-900 dark:text-emerald-300 font-bold text-sm">
-                                <Package className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                <Package className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                                 <span>متابعة توريد أصناف سدانة عبر دفعات المشروع</span>
                               </div>
                               <div className="text-xs text-muted-foreground">
                                 {sedanaItemsSummary.every(item => item.totalRequired > 0 && item.scheduledQty >= item.totalRequired) ? (
                                   <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                     تمت جدولة وتوزيع كافة أصناف المشروع على الدفعات بنجاح
                                   </span>
                                 ) : (
                                   <span className="text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1">
-                                    <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                                    <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                     توجد أصناف متبقية بانتظار جدولتها وتوزيعها على الدفعات
                                   </span>
                                 )}
@@ -2642,7 +2810,7 @@ export default function ProjectDetailsPage() {
                                   <div key={idx} className="p-3 bg-card rounded-xl border border-border/50 text-right space-y-1.5 shadow-2xs">
                                     <div className="flex items-center justify-between text-xs font-bold">
                                       <span className="truncate ml-2 text-foreground">{item.itemName}</span>
-                                      <Badge variant={isComplete ? "default" : "outline"} className={`text-[10px] px-1.5 py-0 ${isComplete ? "bg-emerald-600 text-white" : "border-amber-400 text-amber-700 dark:text-amber-300"}`}>
+                                      <Badge variant={isComplete ? "default" : "outline"} className={`text-[10px] px-1.5 py-0 shrink-0 ${isComplete ? "bg-emerald-600 text-white" : "border-amber-400 text-amber-700 dark:text-amber-300"}`}>
                                         {isComplete ? "مكتمل 100%" : `${progress}%`}
                                       </Badge>
                                     </div>
@@ -2658,11 +2826,213 @@ export default function ProjectDetailsPage() {
                           </div>
                         )}
 
-
-
                         {!isMilestonesContract && sortedPayments.length > 0 && (
                           <div className="space-y-3">
-                            <div className="overflow-x-auto w-full scrollbar-hide rounded-xl border border-border/40">
+                            {/* بطاقات الدفعات للموبايل والآيباد */}
+                            <div className="xl:hidden grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {sortedPayments.map((payment, index) => {
+                                const paidAmt = parseFloat(String(payment.paidAmount || 0).replace(/,/g, ""));
+                                const agreedAmt = parseFloat(String(payment.agreedAmount !== undefined && payment.agreedAmount !== null ? payment.agreedAmount : (payment.amount || 0)).replace(/,/g, ""));
+                                const isPartiallyPaid = Boolean(payment.status === "partially_paid" || (payment as any).isPartiallyPaid || (paidAmt > 0 && paidAmt < agreedAmt));
+                                const isFullyPaid = (payment.status === "paid" || payment.status === "executed" || !!payment.paidAt || (paidAmt >= agreedAmt && agreedAmt > 0)) && !isPartiallyPaid;
+                                const isUnpaid = !isFullyPaid && !isPartiallyPaid && paidAmt === 0;
+                                const hasDisbursement = Boolean((payment as any).hasDisbursementRequest);
+                                const hasReport = Boolean((payment as any).hasProgressReport);
+                                const formattedPaymentDate = (() => {
+                                  const raw = payment.paidAt || payment.date;
+                                  if (!raw) return "-";
+                                  if (typeof raw === 'string') {
+                                    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                                    if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+                                  }
+                                  const d = new Date(raw);
+                                  if (isNaN(d.getTime())) return "-";
+                                  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                                })();
+
+                                return (
+                                  <div key={payment.id} className="rounded-xl border border-border/70 bg-muted/15 p-3.5 sm:p-4 flex flex-col justify-between gap-3">
+                                    <div className="space-y-2.5">
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0 space-y-1">
+                                          <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="font-mono font-bold text-xs text-primary">دفعة {payment.paymentNumber}</span>
+                                            {((payment as any).isChangeOrder || payment.description?.includes("أمر التغيير") || payment.description?.includes("أمر تغيير")) && (
+                                              <Badge variant="outline" className="border-indigo-300 bg-indigo-50 text-indigo-900 font-bold text-[10px]">
+                                                أمر تغيير
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          <p className="font-bold text-sm text-foreground break-words leading-snug">
+                                            {payment.description || "-"}
+                                          </p>
+                                        </div>
+                                        <Badge variant="outline" className={`shrink-0 ${
+                                          isPartiallyPaid ? "bg-amber-50 text-amber-700 border-amber-200" :
+                                          isFullyPaid ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                                          payment.status === "approved" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                          payment.status === "rejected" ? "bg-red-50 text-red-700 border-red-200" :
+                                          payment.status === "due" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                                          "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                        }`}>
+                                          {isPartiallyPaid ? "مسدد جزئياً" :
+                                           isFullyPaid ? "مسدد" :
+                                           payment.status === "pending" ? "قيد الانتظار" :
+                                           payment.status === "approved" ? "معتمد" :
+                                           payment.status === "due" ? "مستحق" : "مرفوض"}
+                                        </Badge>
+                                      </div>
+
+                                      {payment.source !== "manual" && (
+                                        payment.completionPercentage === null || 
+                                        payment.completionPercentage === undefined || 
+                                        !payment.workDescription || 
+                                        payment.workDescription.trim() === ""
+                                      ) && (
+                                        <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+                                          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                                          <span>بيانات غير مكتملة:</span>
+                                          {(payment.completionPercentage === null || payment.completionPercentage === undefined) && (
+                                            <span className="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-semibold">
+                                              نسبة الإنجاز ناقصة
+                                            </span>
+                                          )}
+                                          {(!payment.workDescription || payment.workDescription.trim() === "") && (
+                                            <span className="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-semibold">
+                                              وصف الأعمال ناقص
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      {isSedanaProgram && payment.items && payment.items.length > 0 && (
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                          {payment.items.slice(0, 2).map((it: any, iIdx: number) => (
+                                            <Badge
+                                              key={iIdx}
+                                              variant="secondary"
+                                              className="text-[11px] font-medium bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-200/70 flex items-center gap-1 py-0.5 px-2"
+                                            >
+                                              <Package className="w-3 h-3 shrink-0" />
+                                              <span className="truncate max-w-[140px]">{it.itemName}</span>
+                                              <span className="font-mono font-bold">({Number(it.quantity).toLocaleString()})</span>
+                                            </Badge>
+                                          ))}
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-7 px-2 text-[11px] text-emerald-700 dark:text-emerald-300"
+                                            onClick={() => setSelectedPaymentForItemsModal(payment)}
+                                          >
+                                            <Eye className="w-3 h-3 ml-1" />
+                                            معاينة ({payment.items.length})
+                                          </Button>
+                                        </div>
+                                      )}
+
+                                      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/50 text-xs">
+                                        <div>
+                                          <span className="text-[11px] text-muted-foreground block">المتفق</span>
+                                          <span className="font-bold font-mono text-foreground">{formatCurrency(agreedAmt)}</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-[11px] text-muted-foreground block">المسدد</span>
+                                          <span className={`font-bold font-mono ${
+                                            isPartiallyPaid ? "text-amber-600 dark:text-amber-400" :
+                                            paidAmt > 0 ? "text-emerald-600 dark:text-emerald-400" : 
+                                            "text-muted-foreground"
+                                          }`}>
+                                            {formatCurrency(paidAmt)}
+                                          </span>
+                                        </div>
+                                        <div>
+                                          <span className="text-[11px] text-muted-foreground block">التاريخ</span>
+                                          <span className="font-medium font-mono text-foreground">{formattedPaymentDate}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center flex-wrap gap-2 pt-2 border-t border-border/50">
+                                      {arePaymentsComplete && isUnpaid && (
+                                        !isChangeOrderPaymentRow(payment) && payment.id === firstNonChangeOrderPaymentId ? (
+                                          <Button
+                                            size="sm"
+                                            disabled={hasDisbursement || isRequestClosed}
+                                            className={`flex-1 min-h-10 max-lg:min-h-11 px-3 text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 ${
+                                              hasDisbursement || isRequestClosed
+                                                ? "bg-slate-100 text-slate-400 dark:bg-slate-800/80 dark:text-slate-500 border border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-75 shadow-none"
+                                                : "bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                                            }`}
+                                            onClick={() => {
+                                              if (!hasDisbursement && !isRequestClosed) {
+                                                navigate(`/disbursements/new-linked?projectId=${project.id}&paymentId=${payment.id}&paymentNumber=${payment.paymentNumber || 1}&isAdvance=true`);
+                                              }
+                                            }}
+                                          >
+                                            {hasDisbursement ? (
+                                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                            ) : isRequestClosed ? (
+                                              <Lock className="w-3.5 h-3.5 text-slate-400" />
+                                            ) : (
+                                              <CreditCard className="w-3.5 h-3.5" />
+                                            )}
+                                            <span>{hasDisbursement ? "تم إنشاء طلب الصرف" : "إنشاء طلب صرف"}</span>
+                                          </Button>
+                                        ) : (
+                                          <Button
+                                            size="sm"
+                                            disabled={hasReport || isRequestClosed}
+                                            className={`flex-1 min-h-10 max-lg:min-h-11 px-3 text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 ${
+                                              hasReport || isRequestClosed
+                                                ? "bg-slate-100 text-slate-400 dark:bg-slate-800/80 dark:text-slate-500 border border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-75 shadow-none"
+                                                : "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"
+                                            }`}
+                                            onClick={() => {
+                                              if (!hasReport && !isRequestClosed) {
+                                                navigate(`/progress-reports?projectId=${project.id}&paymentId=${payment.id}&paymentNumber=${payment.paymentNumber || (index + 1)}`);
+                                              }
+                                            }}
+                                          >
+                                            {hasReport ? (
+                                              <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500" />
+                                            ) : isRequestClosed ? (
+                                              <Lock className="w-3.5 h-3.5 text-slate-400" />
+                                            ) : (
+                                              <FileText className="w-3.5 h-3.5" />
+                                            )}
+                                            <span>{hasReport ? "تم إنشاء تقرير الإنجاز" : "إنشاء تقرير إنجاز"}</span>
+                                          </Button>
+                                        )
+                                      )}
+                                      {payment.id && payment.status !== "paid" && payment.status !== "partially_paid" && !payment.paidAt && Number(payment.paidAmount || 0) === 0 && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          disabled={isRequestClosed}
+                                          className={cn(
+                                            "min-h-10 max-lg:min-h-11 px-3 rounded-xl text-xs font-bold gap-1.5",
+                                            isRequestClosed
+                                              ? "text-muted-foreground/40 cursor-not-allowed"
+                                              : "text-blue-600 border-blue-200 hover:bg-blue-50 cursor-pointer"
+                                          )}
+                                          onClick={() => {
+                                            if (!isRequestClosed) {
+                                              navigate(isMilestonesContract ? `/milestones/edit/${payment.id}` : `/payments/edit/${payment.id}`);
+                                            }
+                                          }}
+                                        >
+                                          <Edit className="h-3.5 w-3.5" />
+                                          <span>تعديل</span>
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* جدول الشاشات الكبيرة */}
+                            <div className="hidden xl:block overflow-x-auto w-full scrollbar-hide rounded-xl border border-border/40">
                               <Table>
                                 <TableHeader className="bg-muted/40">
                                   <TableRow>
@@ -2815,7 +3185,7 @@ export default function ProjectDetailsPage() {
                                           <Button
                                             size="sm"
                                             disabled={hasDisbursement || isRequestClosed}
-                                            className={`h-8 px-2.5 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                                            className={`h-8 pointer-coarse:min-h-10 px-2.5 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${
                                               hasDisbursement || isRequestClosed
                                                 ? "bg-slate-100 text-slate-400 dark:bg-slate-800/80 dark:text-slate-500 border border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-75 shadow-none"
                                                 : "bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
@@ -2846,7 +3216,7 @@ export default function ProjectDetailsPage() {
                                           <Button
                                             size="sm"
                                             disabled={hasReport || isRequestClosed}
-                                            className={`h-8 px-2.5 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                                            className={`h-8 pointer-coarse:min-h-10 px-2.5 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${
                                               hasReport || isRequestClosed
                                                 ? "bg-slate-100 text-slate-400 dark:bg-slate-800/80 dark:text-slate-500 border border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-75 shadow-none"
                                                 : "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"
@@ -2881,7 +3251,7 @@ export default function ProjectDetailsPage() {
                                           size="icon"
                                           disabled={isRequestClosed}
                                           className={cn(
-                                            "h-8 w-8 rounded-lg",
+                                            "h-8 w-8 pointer-coarse:size-10 rounded-lg",
                                             isRequestClosed
                                               ? "text-muted-foreground/40 cursor-not-allowed hover:bg-transparent"
                                               : "text-blue-600 hover:bg-blue-50 cursor-pointer"
@@ -2910,41 +3280,41 @@ export default function ProjectDetailsPage() {
                         </div>
                       </div>
                     )}
-                        <div className="mt-5 p-4 sm:p-5 bg-muted/30 rounded-2xl flex flex-col md:flex-row items-center justify-between border border-border/50 gap-4">
-                          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                            <div className="flex items-center gap-2">
+                        <div className="mt-5 p-3.5 sm:p-5 bg-muted/30 rounded-2xl flex flex-col md:flex-row items-stretch md:items-center justify-between border border-border/50 gap-3.5 sm:gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 md:flex md:flex-wrap items-center gap-x-6 gap-y-2.5">
+                            <div className="flex items-center justify-between sm:justify-start gap-2">
                               <span className="text-muted-foreground font-semibold text-xs sm:text-sm">
-                                قيمة المشروع شاملة (قيمة العقد + أوامر التغيير) :
+                                قيمة المشروع شاملة:
                               </span>
-                              <span className="font-bold text-sm sm:text-base text-foreground font-sans">{formatCurrency((effectiveContractAmount > 0 ? effectiveContractAmount : totalContractsSum).toString())}</span>
+                              <span className="font-bold text-sm sm:text-base text-foreground font-mono">{formatCurrency((effectiveContractAmount > 0 ? effectiveContractAmount : totalContractsSum).toString())}</span>
                             </div>
 
                             {!isMilestonesContract && (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center justify-between sm:justify-start gap-2">
                                 <span className="text-muted-foreground font-semibold text-xs sm:text-sm">
                                   إجمالي مبالغ الدفعات:
                                 </span>
-                                <span className="font-bold text-sm sm:text-base text-primary font-sans">{formatCurrency(allPaymentsSum.toString())}</span>
+                                <span className="font-bold text-sm sm:text-base text-primary font-mono">{formatCurrency(allPaymentsSum.toString())}</span>
                               </div>
                             )}
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-between sm:justify-start gap-2">
                               <span className="text-muted-foreground font-semibold text-xs sm:text-sm">إجمالي المسدد:</span>
-                              <span className="font-bold text-sm sm:text-base text-emerald-600 dark:text-emerald-400 font-sans">{formatCurrency(paidPaymentsSum.toString())}</span>
+                              <span className="font-bold text-sm sm:text-base text-emerald-600 dark:text-emerald-400 font-mono">{formatCurrency(paidPaymentsSum.toString())}</span>
                             </div>
                           </div>
 
                           {!isMilestonesContract && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 shrink-0">
                               {unscheduledContractSum > paymentScheduleRoundingTolerance ? (
-                                <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs font-bold bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20">
+                                <div className="w-full md:w-auto flex items-center justify-center gap-2 text-amber-600 dark:text-amber-400 text-xs font-bold bg-amber-500/10 px-3 py-2 rounded-xl border border-amber-500/20">
                                   <AlertTriangle className="h-4 w-4 shrink-0" />
                                   <span>
                                     متبقي غير مجدول: {formatCurrency(unscheduledContractSum.toString())}
                                   </span>
                                 </div>
                               ) : (
-                                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-bold bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
+                                <div className="w-full md:w-auto flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-bold bg-emerald-500/10 px-3 py-2 rounded-xl border border-emerald-500/20">
                                   <CheckCircle2 className="h-4 w-4 shrink-0" />
                                   <span>تمت تغطية كامل قيمة العقد</span>
                                 </div>
@@ -2954,7 +3324,7 @@ export default function ProjectDetailsPage() {
                         </div>
                       </>
                     ) : (
-                      <div className="text-center py-12 space-y-3">
+                      <div className="text-center py-10 sm:py-12 space-y-3">
                         {isMilestonesContract ? (
                           <FileSpreadsheet className="w-12 h-12 text-emerald-600/60 mx-auto mb-2" />
                         ) : (
@@ -2969,9 +3339,9 @@ export default function ProjectDetailsPage() {
                             : "يمكنك تسجيل دفعات مالية لهذا المشروع وفق جدول دفعات العقد."}
                         </p>
                         {!isPaymentsLocked && !isRequestClosed && (
-                          <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
+                          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-2 mt-3">
                             {isMilestonesContract && <Button
-                              className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-9"
+                              className="gradient-primary text-white rounded-xl shadow-xs text-xs font-bold h-10 max-lg:min-h-11 w-full sm:w-auto"
                               disabled={isRequestClosed || has100Payment || isContractFullyPaid}
                               title={
                                 isRequestClosed
@@ -2992,11 +3362,11 @@ export default function ProjectDetailsPage() {
                               رفع مستخلص جديد للمشروع
                             </Button>}
                             {!isMilestonesContract && (
-                              <div className="flex flex-wrap items-center justify-center gap-2">
+                              <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-2 w-full sm:w-auto">
                                 {pendingPaymentChangeOrders.length > 0 && (
                                   <Button
                                     variant="default"
-                                    className="rounded-xl shadow-xs text-xs font-bold h-9 bg-indigo-600 hover:bg-indigo-700 text-white"
+                                    className="rounded-xl shadow-xs text-xs font-bold h-10 max-lg:min-h-11 w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white"
                                     onClick={handleOpenChangeOrderPayment}
                                     disabled={isRequestClosed}
                                   >
@@ -3006,7 +3376,7 @@ export default function ProjectDetailsPage() {
                                 )}
                                 <Button
                                   variant="outline"
-                                  className="rounded-xl shadow-xs text-xs font-bold h-9"
+                                  className="rounded-xl shadow-xs text-xs font-bold h-10 max-lg:min-h-11 w-full sm:w-auto"
                                   onClick={() => navigate(`/disbursements/new/${project.id}`)}
                                   disabled={isRequestClosed || isBaseContractFullyAllocated}
                                 >
@@ -3024,10 +3394,10 @@ export default function ProjectDetailsPage() {
 
                 {/* مودال معاينة تفاصيل أصناف الدفعة لبرامج سدانة */}
                 <Dialog open={!!selectedPaymentForItemsModal} onOpenChange={(open) => !open && setSelectedPaymentForItemsModal(null)}>
-                  <DialogContent className="max-w-2xl text-right font-sans" dir="rtl">
+                  <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-2xl text-right font-sans" dir="rtl">
                     <DialogHeader className="text-right">
                       <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2 text-foreground">
-                        <Package className="w-5 h-5 text-emerald-600" />
+                        <Package className="w-5 h-5 text-emerald-600 shrink-0" />
                         <span>أصناف التوريد المرتبطة بالدفعة ({selectedPaymentForItemsModal?.paymentNumber || ""})</span>
                       </DialogTitle>
                       <DialogDescription className="text-xs text-muted-foreground">
@@ -3037,7 +3407,7 @@ export default function ProjectDetailsPage() {
 
                     <div className="space-y-4 py-3">
                       {selectedPaymentForItemsModal?.items && selectedPaymentForItemsModal.items.length > 0 ? (
-                        <div className="rounded-xl border border-border/50 overflow-hidden">
+                        <div className="rounded-xl border border-border/50 overflow-x-auto">
                           <Table>
                             <TableHeader className="bg-muted/40">
                               <TableRow>
@@ -3052,14 +3422,14 @@ export default function ProjectDetailsPage() {
                               {selectedPaymentForItemsModal.items.map((it: any, idx: number) => (
                                 <TableRow key={idx} className="hover:bg-muted/20">
                                   <TableCell className="font-semibold text-xs py-2.5 px-3">{it.itemName}</TableCell>
-                                  <TableCell className="font-bold text-xs py-2.5 px-3 font-sans text-emerald-700 dark:text-emerald-300">
+                                  <TableCell className="font-bold text-xs py-2.5 px-3 font-mono text-emerald-700 dark:text-emerald-300">
                                     {Number(it.quantity).toLocaleString()}
                                   </TableCell>
                                   <TableCell className="text-xs py-2.5 px-3 text-muted-foreground">{it.unit || "وحدة"}</TableCell>
-                                  <TableCell className="text-xs py-2.5 px-3 font-sans">
+                                  <TableCell className="text-xs py-2.5 px-3 font-mono whitespace-nowrap">
                                     {it.unitPrice ? `${Number(it.unitPrice).toLocaleString()} ر.س` : "-"}
                                   </TableCell>
-                                  <TableCell className="font-bold text-xs py-2.5 px-3 font-sans text-foreground">
+                                  <TableCell className="font-bold text-xs py-2.5 px-3 font-mono text-foreground whitespace-nowrap">
                                     {it.totalPrice ? `${Number(it.totalPrice).toLocaleString()} ر.س` : "-"}
                                   </TableCell>
                                 </TableRow>
@@ -3075,17 +3445,17 @@ export default function ProjectDetailsPage() {
                       )}
                     </div>
 
-                    <DialogFooter className="flex justify-between items-center sm:justify-between w-full border-t border-border/40 pt-3">
-                      <div className="text-xs text-muted-foreground">
+                    <DialogFooter className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 w-full border-t border-border/40 pt-3">
+                      <div className="text-xs text-muted-foreground text-center sm:text-right">
                         مجموع أصناف الدفعة:{" "}
-                        <strong className="text-foreground font-sans">
+                        <strong className="text-foreground font-mono">
                           {Number(
                             (selectedPaymentForItemsModal?.items || []).reduce((sum: number, it: any) => sum + (Number(it.totalPrice) || 0), 0)
                           ).toLocaleString()}{" "}
                           ر.س
                         </strong>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => setSelectedPaymentForItemsModal(null)}>
+                      <Button variant="outline" size="sm" className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl" onClick={() => setSelectedPaymentForItemsModal(null)}>
                         إغلاق
                       </Button>
                     </DialogFooter>
@@ -3093,17 +3463,17 @@ export default function ProjectDetailsPage() {
                 </Dialog>
 
                 <Dialog open={changeOrderPickerOpen} onOpenChange={setChangeOrderPickerOpen}>
-                  <DialogContent className="sm:max-w-lg" dir="rtl">
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-indigo-600" />
+                  <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-2xl" dir="rtl">
+                    <DialogHeader className="text-right">
+                      <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+                        <Sparkles className="w-5 h-5 text-indigo-600 shrink-0" />
                         اختر أمر التغيير لإنشاء الدفعة
                       </DialogTitle>
-                      <DialogDescription>
+                      <DialogDescription className="text-xs sm:text-sm text-right">
                         يوجد أكثر من أمر تغيير متاح على هذا المشروع. اختر أمر التغيير المطلوب إنشاء طلب دفعة له.
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-2.5 max-h-[60vh] overflow-y-auto py-2">
+                    <div className="space-y-2.5 max-h-[55dvh] overflow-y-auto py-2">
                       {pendingPaymentChangeOrders.map((co: any) => {
                         const coTotal = parseFloat(String(co.amount || "0")) || 0;
                         const coAllocated = Number(co.allocatedPaymentAmount || 0);
@@ -3118,17 +3488,17 @@ export default function ProjectDetailsPage() {
                             setChangeOrderPickerOpen(false);
                             navigate(`/disbursements/new/${project.id}?changeOrderId=${co.id}`);
                           }}
-                          className="w-full text-right p-3.5 rounded-xl border border-indigo-200/80 bg-indigo-50/40 hover:bg-indigo-50 hover:border-indigo-400 transition-colors flex items-center justify-between gap-3 cursor-pointer"
+                          className="w-full text-right p-3.5 rounded-xl border border-indigo-200/80 bg-indigo-50/40 hover:bg-indigo-50 hover:border-indigo-400 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 cursor-pointer"
                         >
                           <div className="space-y-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <Badge variant="outline" className="border-indigo-300 bg-white text-indigo-800 font-bold text-[11px]">
                                 {co.orderNumber || `أمر تغيير #${co.id}`}
                               </Badge>
-                              <span className="font-bold text-sm text-foreground truncate">{co.title}</span>
+                              <span className="font-bold text-sm text-foreground break-words">{co.title}</span>
                             </div>
                             {co.reason && (
-                              <p className="text-xs text-muted-foreground line-clamp-1">{co.reason}</p>
+                              <p className="text-xs text-muted-foreground line-clamp-2">{co.reason}</p>
                             )}
                             {coAllocated > 0 && (
                               <p className="text-[11px] text-indigo-700 font-semibold font-sans">
@@ -3136,18 +3506,18 @@ export default function ProjectDetailsPage() {
                               </p>
                             )}
                           </div>
-                          <div className="text-left shrink-0 space-y-0.5">
-                            <div className="font-bold text-sm text-indigo-700 font-sans flex items-center gap-1 justify-end">
+                          <div className="text-right sm:text-left shrink-0 space-y-0.5 flex sm:block items-center justify-between pt-2 sm:pt-0 border-t sm:border-t-0 border-indigo-200/50">
+                            <div className="font-bold text-sm text-indigo-700 font-mono flex items-center gap-1 sm:justify-end">
                               <span>{coRemaining.toLocaleString()}</span>
                               <SaudiRiyal className="w-3.5 h-3.5" />
                             </div>
                             {coAllocated > 0 && (
-                              <div className="text-[10px] text-muted-foreground font-sans">
+                              <div className="text-[10px] text-muted-foreground font-mono">
                                 من أصل {coTotal.toLocaleString()}
                               </div>
                             )}
                             {co.percentage !== undefined && co.percentage !== null && (
-                              <div className="text-[11px] text-muted-foreground font-sans">
+                              <div className="text-[11px] text-muted-foreground font-mono">
                                 ({Number(co.percentage).toFixed(2)}%)
                               </div>
                             )}
@@ -3157,7 +3527,7 @@ export default function ProjectDetailsPage() {
                       })}
                     </div>
                     <DialogFooter>
-                      <Button variant="outline" onClick={() => setChangeOrderPickerOpen(false)}>
+                      <Button variant="outline" className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl" onClick={() => setChangeOrderPickerOpen(false)}>
                         إلغاء
                       </Button>
                     </DialogFooter>

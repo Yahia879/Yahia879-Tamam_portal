@@ -315,14 +315,14 @@ export default function NewReceiptVoucherPage() {
 
   if (!canCreate) {
     return (
-      <DashboardLayout>
+      <DashboardLayout tabletNavigation>
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4 font-sans" dir="rtl">
           <div className="p-4 rounded-full bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/30 dark:border-rose-900">
             <AlertCircle className="h-10 w-10 text-rose-600" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">عذراً، ليس لديك صلاحية لتسجيل سند قبض جديد</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-200">عذراً، ليس لديك صلاحية لتسجيل سند قبض جديد</h2>
           <p className="text-xs text-muted-foreground max-w-md">يرجى التواصل مع مسؤول النظام لمنحك صلاحية تسجيل وتعديل سندات القبض.</p>
-          <Button onClick={() => navigate("/receipt-vouchers")} className="mt-2 gradient-primary text-white font-bold text-xs">
+          <Button onClick={() => navigate("/receipt-vouchers")} className="mt-2 gradient-primary text-white font-bold text-xs min-h-10 max-lg:min-h-11">
             العودة لسندات القبض
           </Button>
         </div>
@@ -331,12 +331,12 @@ export default function NewReceiptVoucherPage() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 animate-fade-in pb-20 px-3 sm:px-4 md:px-0 font-sans" dir="rtl">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-4xl mx-auto overflow-x-hidden space-y-4 sm:space-y-6 animate-fade-in pb-12 font-sans" dir="rtl">
         {/* Header and Visual Step Timeline */}
-        <div className="flex flex-col gap-6 border-b border-border/40 pb-6">
-          <div className="flex items-center justify-between pb-2">
-            <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex flex-col gap-5 border-b border-border/40 pb-5">
+          <div className="flex items-center justify-between pb-1">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
               <Button 
                 variant="outline" 
                 size="icon" 
@@ -349,15 +349,15 @@ export default function NewReceiptVoucherPage() {
                     navigate("/receipt-vouchers");
                   }
                 }} 
-                className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-muted text-muted-foreground shrink-0"
+                className="size-10 max-lg:size-11 rounded-full hover:bg-muted text-muted-foreground shrink-0"
               >
                 <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
-              <div className="text-right">
-                <h1 className="text-lg sm:text-2xl font-bold text-foreground font-display">
+              <div className="text-right min-w-0">
+                <h1 className="text-lg sm:text-2xl font-bold text-foreground font-display truncate">
                   تسجيل سند قبض جديد
                 </h1>
-                <p className="text-[10px] sm:text-xs text-muted-foreground text-right font-medium mt-0.5 hidden sm:block">
+                <p className="text-[11px] sm:text-xs text-muted-foreground text-right font-medium mt-0.5">
                   توثيق وتسجيل سند قبض مالي للدفعات المقبوضة فعلياً من الجهات الداعمة للمشاريع
                 </p>
               </div>
@@ -365,18 +365,18 @@ export default function NewReceiptVoucherPage() {
           </div>
 
           {/* 3-Step Timeline Header */}
-          <div className="max-w-xl mx-auto w-full px-2 sm:px-4 py-2" dir="rtl">
-            <div className="relative flex items-center justify-between">
+          <div className="max-w-xl mx-auto w-full px-1 sm:px-4 py-1" dir="rtl">
+            <div className="relative flex items-start justify-between">
               {/* Connecting Line background */}
-              <div className="absolute right-0 left-0 top-1/2 -translate-y-1/2 h-0.5 bg-border rounded-full z-0" />
+              <div className="absolute right-[16.66%] left-[16.66%] top-4 h-0.5 bg-border rounded-full z-0" />
               {/* Connecting Active Line progress */}
               <div 
-                className="absolute right-0 top-1/2 -translate-y-1/2 h-0.5 bg-primary rounded-full z-0 transition-all duration-500"
-                style={{ width: step === 1 ? "0%" : step === 2 ? "50%" : "100%" }}
+                className="absolute right-[16.66%] top-4 h-0.5 bg-primary rounded-full z-0 transition-all duration-500"
+                style={{ width: step === 1 ? "0%" : step === 2 ? "33.33%" : "66.66%" }}
               />
 
               {/* Step 1 Node */}
-              <div className="flex flex-col items-center gap-1.5 z-10">
+              <div className="flex flex-col items-center gap-1.5 z-10 w-1/3 text-center">
                 <div 
                   className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
                     step >= 1 
@@ -386,13 +386,13 @@ export default function NewReceiptVoucherPage() {
                 >
                   {step > 1 ? <Check className="w-4 h-4" /> : "١"}
                 </div>
-                <span className={`text-xs font-semibold ${step >= 1 ? "text-primary" : "text-muted-foreground"}`}>
+                <span className={`text-[11px] sm:text-xs font-semibold leading-tight px-1 ${step >= 1 ? "text-primary" : "text-muted-foreground"}`}>
                   نوع سند القبض
                 </span>
               </div>
 
               {/* Step 2 Node */}
-              <div className="flex flex-col items-center gap-1.5 z-10">
+              <div className="flex flex-col items-center gap-1.5 z-10 w-1/3 text-center">
                 <div 
                   className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
                     step >= 2 
@@ -402,13 +402,13 @@ export default function NewReceiptVoucherPage() {
                 >
                   {step > 2 ? <Check className="w-4 h-4" /> : "٢"}
                 </div>
-                <span className={`text-xs font-semibold ${step >= 2 ? "text-primary" : "text-muted-foreground"}`}>
+                <span className={`text-[11px] sm:text-xs font-semibold leading-tight px-1 ${step >= 2 ? "text-primary" : "text-muted-foreground"}`}>
                   بيانات السند والمشروع
                 </span>
               </div>
 
               {/* Step 3 Node */}
-              <div className="flex flex-col items-center gap-1.5 z-10">
+              <div className="flex flex-col items-center gap-1.5 z-10 w-1/3 text-center">
                 <div 
                   className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
                     step === 3 
@@ -418,7 +418,7 @@ export default function NewReceiptVoucherPage() {
                 >
                   ٣
                 </div>
-                <span className={`text-xs font-semibold ${step === 3 ? "text-primary" : "text-muted-foreground"}`}>
+                <span className={`text-[11px] sm:text-xs font-semibold leading-tight px-1 ${step === 3 ? "text-primary" : "text-muted-foreground"}`}>
                   المطابقة والبيانات المالية
                 </span>
               </div>
@@ -429,17 +429,17 @@ export default function NewReceiptVoucherPage() {
         {/* ── الخطوة 1: اختيار نوع وتصنيف سند القبض ── */}
         {step === 1 && (
           <div className="space-y-6">
-            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900 py-0 gap-0">
+              <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:px-6 sm:py-4 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                  <Layers className="h-4.5 w-4.5 text-primary" />
+                  <Layers className="h-4.5 w-4.5 text-primary shrink-0" />
                   الخطوة 1: اختيار نوع وتصنيف سند القبض
                 </CardTitle>
                 <CardDescription className="text-right text-xs text-muted-foreground">
                   حدد تصنيف سند القبض المناسب للمتابعة إلى إدخال البيانات المالية وتحديد الداعم
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6 pt-6 text-right">
+              <CardContent className="space-y-5 sm:space-y-6 p-4 sm:p-6 text-right">
                 <div className="space-y-3 pb-2 border-b border-border/40">
                   <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                     <Layers className="w-4 h-4 text-primary" />
@@ -536,10 +536,10 @@ export default function NewReceiptVoucherPage() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="border-t border-border/40 pt-4 flex justify-end gap-2">
+              <CardFooter className="border-t border-border/40 p-4 sm:px-6 sm:py-4 flex justify-end gap-2">
                 <Button
                   onClick={handleStep1Next}
-                  className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2"
+                  className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center justify-center gap-2 w-full sm:w-auto"
                 >
                   <span>التالي</span>
                   <ArrowLeft className="h-4 w-4" />
@@ -554,17 +554,17 @@ export default function NewReceiptVoucherPage() {
           <div className="space-y-6">
             {/* 1. في حال اختيار سند قبض مرتبط بمشروع */}
             {category === "project_linked" && (
-              <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-                <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+              <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900 py-0 gap-0">
+                <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:px-6 sm:py-4 text-right">
                   <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                    <FileText className="h-4.5 w-4.5 text-primary" />
+                    <FileText className="h-4.5 w-4.5 text-primary shrink-0" />
                     الخطوة 2: بيانات سند القبض والمشروع المرتبط
                   </CardTitle>
                   <CardDescription className="text-right text-xs text-muted-foreground">
                     تحديد المشروع المسجل والداعم والمبالغ والبيانات المالية للسند
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6 pt-6 text-right">
+                <CardContent className="space-y-5 sm:space-y-6 p-4 sm:p-6 text-right">
                   
                   {/* اختيار المشروع */}
                   <div className="space-y-2 text-right">
@@ -586,10 +586,10 @@ export default function NewReceiptVoucherPage() {
 
                   {/* اختيار اللقب والجهة الداعمة / المسدد */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-border/40 pt-4">
-                    <div className="col-span-1 space-y-2 text-right">
+                    <div className="space-y-2 text-right">
                       <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اللقب / الصفة *</Label>
                       <Select value={honorificTitle} onValueChange={setHonorificTitle}>
-                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background" dir="rtl">
+                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
                           <SelectValue placeholder="اللقب..." />
                         </SelectTrigger>
                         <SelectContent dir="rtl">
@@ -600,7 +600,7 @@ export default function NewReceiptVoucherPage() {
                       </Select>
                     </div>
 
-                    <div className="col-span-2 space-y-2 text-right">
+                    <div className="sm:col-span-2 space-y-2 text-right">
                       <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الجهة الداعمة / المسدد *</Label>
                       <Select
                         value={payerName}
@@ -638,14 +638,14 @@ export default function NewReceiptVoucherPage() {
 
                   {/* 2. بطاقة الموقف المالي للداعم والمشروع */}
                   {activeProjectId > 0 && projectSupporters.length > 0 && (
-                    <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
-                      <div className="flex items-center justify-between">
+                    <div className="p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                          <Coins className="h-4 w-4 text-emerald-600" />
+                          <Coins className="h-4 w-4 text-emerald-600 shrink-0" />
                           <span>الموقف المالي للداعم والمشروع</span>
                         </span>
                         {selectedSupporterCleanName && (
-                          <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-[11px]">
+                          <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-[11px] whitespace-normal text-right h-auto py-0.5">
                             الداعم: {selectedSupporterCleanName}
                           </Badge>
                         )}
@@ -755,12 +755,12 @@ export default function NewReceiptVoucherPage() {
                   </div>
 
                 </CardContent>
-                <CardFooter className="border-t border-border/40 pt-4 flex justify-between gap-2">
+                <CardFooter className="border-t border-border/40 p-4 sm:px-6 sm:py-4 flex flex-col-reverse sm:flex-row sm:justify-between gap-2.5">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setStep(1)}
-                    className="border-border text-foreground font-bold px-6 h-11 rounded-xl shadow-xs flex items-center gap-2"
+                    className="border-border text-foreground font-bold px-6 h-11 rounded-xl shadow-xs flex items-center justify-center gap-2 w-full sm:w-auto"
                   >
                     <ArrowRight className="h-4 w-4" />
                     <span>السابق</span>
@@ -768,7 +768,7 @@ export default function NewReceiptVoucherPage() {
                   <Button
                     onClick={handleStep2Next}
                     disabled={!selectedProjectId || projectSupporters.length === 0 || !amount || parseFloat(amount) <= 0}
-                    className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2"
+                    className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center justify-center gap-2 w-full sm:w-auto"
                   >
                     <span>التالي</span>
                     <ArrowLeft className="h-4 w-4" />
@@ -779,17 +779,17 @@ export default function NewReceiptVoucherPage() {
 
             {/* 2. في حال اختيار سند قبض مقيد */}
             {category === "restricted" && (
-              <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-                <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+              <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900 py-0 gap-0">
+                <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:px-6 sm:py-4 text-right">
                   <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                    <FileCheck className="h-4.5 w-4.5 text-blue-600" />
+                    <FileCheck className="h-4.5 w-4.5 text-blue-600 shrink-0" />
                     الخطوة 2: بيانات سند القبض المقيد
                   </CardTitle>
                   <CardDescription className="text-right text-xs text-muted-foreground">
                     تحديد مصرف التبرع والجهة الداعمة والمبالغ والبيانات المالية لسند القبض المقيد
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6 pt-6 text-right">
+                <CardContent className="space-y-5 sm:space-y-6 p-4 sm:p-6 text-right">
                   
                   {/* 1. مصرف التبرع في البداية */}
                   <div className="space-y-2 text-right">
@@ -817,10 +817,10 @@ export default function NewReceiptVoucherPage() {
 
                   {/* 2. اختيار اللقب والجهة الداعمة / المسدد مع إمكانية كتابة جهة أخرى */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-border/40 pt-4">
-                    <div className="col-span-1 space-y-2 text-right">
+                    <div className="space-y-2 text-right">
                       <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اللقب / الصفة *</Label>
                       <Select value={honorificTitle} onValueChange={setHonorificTitle}>
-                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background" dir="rtl">
+                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
                           <SelectValue placeholder="اللقب..." />
                         </SelectTrigger>
                         <SelectContent dir="rtl">
@@ -831,7 +831,7 @@ export default function NewReceiptVoucherPage() {
                       </Select>
                     </div>
 
-                    <div className="col-span-2 space-y-2 text-right">
+                    <div className="sm:col-span-2 space-y-2 text-right">
                       <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الجهة الداعمة / المسدد *</Label>
                       <Select
                         value={unrestrictedPayerSelect}
@@ -934,12 +934,12 @@ export default function NewReceiptVoucherPage() {
                   </div>
 
                 </CardContent>
-                <CardFooter className="border-t border-border/40 pt-4 flex justify-between gap-2">
+                <CardFooter className="border-t border-border/40 p-4 sm:px-6 sm:py-4 flex flex-col-reverse sm:flex-row sm:justify-between gap-2.5">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setStep(1)}
-                    className="border-border text-foreground font-bold px-6 h-11 rounded-xl shadow-xs flex items-center gap-2"
+                    className="border-border text-foreground font-bold px-6 h-11 rounded-xl shadow-xs flex items-center justify-center gap-2 w-full sm:w-auto"
                   >
                     <ArrowRight className="h-4 w-4" />
                     <span>السابق</span>
@@ -952,7 +952,7 @@ export default function NewReceiptVoucherPage() {
                       !amount ||
                       parseFloat(amount) <= 0
                     }
-                    className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2"
+                    className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center justify-center gap-2 w-full sm:w-auto"
                   >
                     <span>التالي</span>
                     <ArrowLeft className="h-4 w-4" />
@@ -963,24 +963,24 @@ export default function NewReceiptVoucherPage() {
 
             {/* 3. في حال اختيار سند قبض غير مقيد */}
             {category === "unrestricted" && (
-              <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-                <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+              <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900 py-0 gap-0">
+                <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:px-6 sm:py-4 text-right">
                   <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                    <Coins className="h-4.5 w-4.5 text-amber-600" />
+                    <Coins className="h-4.5 w-4.5 text-amber-600 shrink-0" />
                     الخطوة 2: بيانات سند القبض غير المقيد
                   </CardTitle>
                   <CardDescription className="text-right text-xs text-muted-foreground">
                     تحديد الجهة الداعمة والمبالغ والبيانات المالية لسند القبض العام (غير المرتبط بمشروع محدد)
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6 pt-6 text-right">
+                <CardContent className="space-y-5 sm:space-y-6 p-4 sm:p-6 text-right">
                   
                   {/* اختيار اللقب والجهة الداعمة / المسدد مع إمكانية كتابة جهة أخرى */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="col-span-1 space-y-2 text-right">
+                    <div className="space-y-2 text-right">
                       <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اللقب / الصفة *</Label>
                       <Select value={honorificTitle} onValueChange={setHonorificTitle}>
-                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background" dir="rtl">
+                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
                           <SelectValue placeholder="اللقب..." />
                         </SelectTrigger>
                         <SelectContent dir="rtl">
@@ -991,7 +991,7 @@ export default function NewReceiptVoucherPage() {
                       </Select>
                     </div>
 
-                    <div className="col-span-2 space-y-2 text-right">
+                    <div className="sm:col-span-2 space-y-2 text-right">
                       <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الجهة الداعمة / المسدد *</Label>
                       <Select
                         value={unrestrictedPayerSelect}
@@ -1094,12 +1094,12 @@ export default function NewReceiptVoucherPage() {
                   </div>
 
                 </CardContent>
-                <CardFooter className="border-t border-border/40 pt-4 flex justify-between gap-2">
+                <CardFooter className="border-t border-border/40 p-4 sm:px-6 sm:py-4 flex flex-col-reverse sm:flex-row sm:justify-between gap-2.5">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setStep(1)}
-                    className="border-border text-foreground font-bold px-6 h-11 rounded-xl shadow-xs flex items-center gap-2"
+                    className="border-border text-foreground font-bold px-6 h-11 rounded-xl shadow-xs flex items-center justify-center gap-2 w-full sm:w-auto"
                   >
                     <ArrowRight className="h-4 w-4" />
                     <span>السابق</span>
@@ -1111,7 +1111,7 @@ export default function NewReceiptVoucherPage() {
                       !amount ||
                       parseFloat(amount) <= 0
                     }
-                    className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2"
+                    className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center justify-center gap-2 w-full sm:w-auto"
                   >
                     <span>التالي</span>
                     <ArrowLeft className="h-4 w-4" />
@@ -1125,32 +1125,32 @@ export default function NewReceiptVoucherPage() {
         {/* ── الخطوة 3: المطابقة والبيانات المالية والمراجعة ── */}
         {step === 3 && (
           <div className="space-y-6">
-            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900 py-0 gap-0">
+              <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:px-6 sm:py-4 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                  <FileCheck className="h-4.5 w-4.5 text-primary" />
+                  <FileCheck className="h-4.5 w-4.5 text-primary shrink-0" />
                   الخطوة 3: المطابقة والبيانات المالية ومراجعة السند
                 </CardTitle>
                 <CardDescription className="text-right text-xs text-muted-foreground">
                   مراجعة تفاصيل سند القبض والموقف المالي قبل التأكيد والتسجيل النهائي
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6 pt-6 text-right">
+              <CardContent className="space-y-5 sm:space-y-6 p-4 sm:p-6 text-right">
                 
                 {/* بطاقة ملخص السند */}
-                <div className="p-5 bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-5">
-                  <div className="flex items-center justify-between border-b border-slate-200/70 dark:border-slate-800 pb-3">
+                <div className="p-3.5 sm:p-5 bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-4 sm:space-y-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/70 dark:border-slate-800 pb-3">
                     <span className="text-xs font-bold text-primary flex items-center gap-1.5">
-                      <Receipt className="w-4 h-4" />
+                      <Receipt className="w-4 h-4 shrink-0" />
                       ملخص سند القبض المالي
                     </span>
-                    <Badge className={
+                    <Badge className={`whitespace-normal text-right h-auto py-1 ${
                       category === "project_linked" 
                         ? "bg-teal-50 text-teal-800 border-teal-200 font-bold text-xs" 
                         : category === "restricted"
                         ? "bg-blue-50 text-blue-800 border-blue-200 font-bold text-xs"
                         : "bg-amber-50 text-amber-800 border-amber-200 font-bold text-xs"
-                    }>
+                    }`}>
                       {category === "project_linked" ? "سند قبض مرتبط بمشروع" : category === "restricted" ? `سند قبض مقيد (${donationPurpose})` : "سند قبض غير مقيد"}
                     </Badge>
                   </div>
@@ -1160,7 +1160,7 @@ export default function NewReceiptVoucherPage() {
                       <span className="text-muted-foreground font-medium block">
                         {category === "project_linked" ? "المشروع المرتبط:" : category === "restricted" ? "مصرف التبرع (مقيد):" : "نوع وتصنيف السند:"}
                       </span>
-                      <p className="font-bold text-foreground text-sm">
+                      <p className="font-bold text-foreground text-sm break-words">
                         {category === "project_linked"
                           ? (selectedProject ? `${selectedProject.projectNumber || ""} - ${selectedProject.name}` : `#${selectedProjectId}`)
                           : category === "restricted"
@@ -1172,7 +1172,7 @@ export default function NewReceiptVoucherPage() {
 
                     <div className="space-y-1">
                       <span className="text-muted-foreground font-medium block">الجهة الداعمة / المسدد:</span>
-                      <p className="font-bold text-foreground text-sm">
+                      <p className="font-bold text-foreground text-sm break-words">
                         {honorificTitle} / {(category === "unrestricted" || category === "restricted") && unrestrictedPayerSelect === "__custom__" ? unrestrictedCustomPayer : payerName}
                       </p>
                     </div>
@@ -1186,17 +1186,17 @@ export default function NewReceiptVoucherPage() {
 
                     <div className="space-y-1">
                       <span className="text-muted-foreground font-medium block">طريقة القبض / الحساب:</span>
-                      <p className="font-bold text-foreground">
+                      <p className="font-bold text-foreground break-words">
                         {bankName || "حوالة بنكية"}
                       </p>
                     </div>
                   </div>
 
                   {/* تفاصيل المبلغ والتفقيط */}
-                  <div className="p-4 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl border border-emerald-200/80 dark:border-emerald-800 space-y-1.5">
+                  <div className="p-3.5 sm:p-4 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl border border-emerald-200/80 dark:border-emerald-800 space-y-1.5">
                     <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-bold block">مبلغ سند القبض:</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl font-black text-emerald-700 dark:text-emerald-400">
+                      <span className="text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-400">
                         {parseFloat(amount || "0").toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
                       </span>
                       <SaudiRiyal className="w-5 h-5 inline" />
@@ -1209,7 +1209,7 @@ export default function NewReceiptVoucherPage() {
                   {/* البيان */}
                   <div className="space-y-1 pt-1">
                     <span className="text-muted-foreground font-medium block text-xs">وذلك مقابل (البيان):</span>
-                    <p className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs text-foreground leading-relaxed whitespace-pre-wrap">
+                    <p className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs text-foreground leading-relaxed whitespace-pre-wrap break-words">
                       {category === "restricted" && !notes.startsWith("مصرف التبرع:")
                         ? `مصرف التبرع: ${donationPurpose} | ${notes}`
                         : notes
@@ -1219,12 +1219,12 @@ export default function NewReceiptVoucherPage() {
                 </div>
 
               </CardContent>
-              <CardFooter className="border-t border-border/40 pt-4 flex justify-between gap-2">
+              <CardFooter className="border-t border-border/40 p-4 sm:px-6 sm:py-4 flex flex-col-reverse sm:flex-row sm:justify-between gap-2.5">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setStep(2)}
-                  className="border-border text-foreground font-bold px-6 h-11 rounded-xl shadow-xs flex items-center gap-2"
+                  className="border-border text-foreground font-bold px-6 h-11 rounded-xl shadow-xs flex items-center justify-center gap-2 w-full sm:w-auto"
                 >
                   <ArrowRight className="h-4 w-4" />
                   <span>السابق</span>
@@ -1232,7 +1232,7 @@ export default function NewReceiptVoucherPage() {
                 <Button
                   onClick={handleFinalSubmit}
                   disabled={createVoucherMutation.isPending}
-                  className="gradient-primary text-white font-bold px-8 h-11 rounded-xl shadow-sm flex items-center gap-2"
+                  className="gradient-primary text-white font-bold px-6 sm:px-8 h-11 rounded-xl shadow-sm flex items-center justify-center gap-2 w-full sm:w-auto"
                 >
                   {createVoucherMutation.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

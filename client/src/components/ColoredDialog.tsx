@@ -73,21 +73,22 @@ export function ColoredDialog({ open, onOpenChange, title, children, color, icon
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className={`${fullScreen ? 'sm:!max-w-[98vw] !w-[98vw] !h-[96vh] !max-h-[96vh]' : wide ? 'sm:!max-w-6xl !w-[95vw] !max-h-[90vh]' : 'sm:!max-w-3xl !max-h-[90vh]'} overflow-hidden flex flex-col p-0 !gap-0 ${colors.border} border-2`}>
+      <DialogContent showCloseButton={false} className={`${fullScreen ? 'sm:!max-w-[98vw] !w-[calc(100vw-0.75rem)] sm:!w-[98vw] !h-[94dvh] !max-h-[94dvh]' : wide ? 'sm:!max-w-6xl !w-[calc(100vw-1rem)] sm:!w-[95vw] !max-h-[90dvh]' : 'sm:!max-w-3xl !w-[calc(100vw-1rem)] sm:!w-[95vw] !max-h-[90dvh]'} overflow-hidden flex flex-col p-0 !gap-0 ${colors.border} border-2`}>
         {/* Header with color */}
-        <DialogHeader className={`${colors.header} ${colors.text} p-6 pb-4 border-b ${colors.border} no-print`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {icon && <div className={colors.accent}>{icon}</div>}
-              <DialogTitle className={`text-2xl font-bold ${colors.text}`}>{title}</DialogTitle>
+        <DialogHeader className={`${colors.header} ${colors.text} p-4 sm:p-6 pb-3 sm:pb-4 border-b ${colors.border} no-print`}>
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+              {icon && <div className={`${colors.accent} shrink-0`}>{icon}</div>}
+              <DialogTitle className={`text-base sm:text-xl md:text-2xl font-bold leading-snug break-words min-w-0 ${colors.text}`}>{title}</DialogTitle>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {extraHeaderActions}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => onOpenChange(false)}
-                className={`${colors.accent} hover:bg-white/50 dark:hover:bg-black/20`}
+                aria-label="إغلاق"
+                className={`${colors.accent} size-10 sm:size-9 pointer-coarse:size-10 hover:bg-white/50 dark:hover:bg-black/20 shrink-0`}
               >
                 <X className="w-5 h-5" />
               </Button>
@@ -96,21 +97,21 @@ export function ColoredDialog({ open, onOpenChange, title, children, color, icon
         </DialogHeader>
 
         {/* Content with colored background */}
-        <div className={`flex-1 overflow-y-auto p-6 ${colors.bg}`}>
+        <div className={`flex-1 overflow-y-auto p-3.5 sm:p-6 ${colors.bg}`}>
           {children}
         </div>
 
         {/* Footer with back button and extra actions */}
-        <div className={`${colors.header} p-4 border-t ${colors.border} flex items-center ${extraFooterActions ? 'justify-between' : 'justify-start'} no-print`}>
+        <div className={`${colors.header} p-3 sm:p-4 border-t ${colors.border} flex flex-wrap items-center gap-2 ${extraFooterActions ? 'justify-between' : 'justify-start'} no-print`}>
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className={`${colors.accent} border-${color}-300 hover:bg-white/50 dark:hover:bg-black/20`}
+            className={`${colors.accent} max-lg:min-h-11 pointer-coarse:min-h-11 border-${color}-300 hover:bg-white/50 dark:hover:bg-black/20`}
           >
             رجوع
           </Button>
           {extraFooterActions && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {extraFooterActions}
             </div>
           )}

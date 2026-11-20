@@ -239,7 +239,7 @@ export default function ReceiptVoucherPrint() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
+    <div className="min-h-screen bg-gray-100 pb-8 print:py-0 print:pb-0 print:bg-white overflow-x-hidden" dir="rtl">
       {/* Dynamic CSS for Print Mode */}
       <style>{`
         @media print {
@@ -273,37 +273,40 @@ export default function ReceiptVoucherPrint() {
         }
       `}</style>
 
-      {/* Floating Action Bar (hidden on print) matching DisbursementRequestPrint layout */}
-      <div className="print:hidden w-full bg-white/90 backdrop-blur border-b p-3 sticky top-0 z-50 flex flex-wrap justify-between items-center gap-2 sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:justify-end">
-        <Button variant="outline" onClick={handleBack} className="bg-white border shadow-sm sm:bg-white/90">
-          <ArrowRight className="ml-2 h-4 w-4" />
-          رجوع
-        </Button>
+      {/* Sticky Action Bar (hidden on print) */}
+      <div className="print:hidden sticky top-0 z-50 w-full bg-white/95 backdrop-blur border-b border-slate-200 shadow-xs">
+        <div className="max-w-[210mm] sm:max-w-[235mm] mx-auto px-3 sm:px-4 py-2.5 flex flex-wrap justify-between items-center gap-2">
+          <Button variant="outline" onClick={handleBack} className="bg-white border shadow-xs min-h-10 max-lg:min-h-11">
+            <ArrowRight className="ml-2 h-4 w-4" />
+            رجوع
+          </Button>
 
-        <Button
-          onClick={handlePrint}
-          disabled={isPreparingPrint}
-          className="shadow-md gradient-primary text-white font-semibold"
-        >
-          {isPreparingPrint ? (
-            <>
-              <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-              جاري تجهيز الطباعة...
-            </>
-          ) : (
-            <>
-              <Printer className="ml-2 h-4 w-4" />
-              تنزيل PDF / طباعة
-            </>
-          )}
-        </Button>
+          <Button
+            onClick={handlePrint}
+            disabled={isPreparingPrint}
+            className="shadow-md gradient-primary text-white font-semibold min-h-10 max-lg:min-h-11"
+          >
+            {isPreparingPrint ? (
+              <>
+                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                جاري تجهيز الطباعة...
+              </>
+            ) : (
+              <>
+                <Printer className="ml-2 h-4 w-4" />
+                تنزيل PDF / طباعة
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Main Container wrapping original receipt report */}
+      <div className="px-2 sm:px-4 pt-3 sm:pt-6 print:p-0">
       <div className="print-container w-full max-w-[210mm] sm:max-w-[235mm] mx-auto">
 
         {/* Main A4 Document Canvas - Original Receipt Voucher Design */}
-        <div className="bg-white text-slate-900 border border-slate-300 shadow-2xl rounded-2xl p-6 sm:p-8 relative overflow-hidden print-card">
+        <div className="bg-white text-slate-900 border border-slate-300 shadow-2xl rounded-xl sm:rounded-2xl p-4 sm:p-8 relative overflow-hidden print-card">
 
           {/* Subtle Islamic Geometric Watermark Overlay Background */}
           <div className="absolute inset-0 pointer-events-none opacity-[0.035] overflow-hidden flex items-center justify-center">
@@ -321,55 +324,55 @@ export default function ReceiptVoucherPrint() {
           <div className="relative border-b-2 border-[#978457] pb-1 mb-3.5 flex justify-between items-center">
             <div></div>
             <div className="text-left">
-              <span className="text-sm font-bold text-[#978457]">رقم الترخيص {licenseNo}</span>
+              <span className="text-xs sm:text-sm font-bold text-[#978457]">رقم الترخيص {licenseNo}</span>
             </div>
           </div>
 
           {/* Top Header Row: Rectangular Box "سند قبض" & Main Logo */}
-          <div className="flex justify-between items-center mb-4.5 relative z-10">
+          <div className="flex justify-between items-center gap-3 mb-4 sm:mb-4.5 relative z-10">
             <div className="flex items-center justify-start pt-1">
-              <div className="border-2 border-[#978457] bg-[#faf8f3] text-[#978457] min-w-[155px] h-[52px] rounded-xl shadow-xs flex items-center justify-center px-4.5">
-                <h1 className="text-xl font-black tracking-tight leading-none text-center">
+              <div className="border-2 border-[#978457] bg-[#faf8f3] text-[#978457] min-w-[115px] sm:min-w-[155px] h-[44px] sm:h-[52px] rounded-xl shadow-xs flex items-center justify-center px-3 sm:px-4.5">
+                <h1 className="text-base sm:text-xl font-black tracking-tight leading-none text-center">
                   سند قبض
                 </h1>
               </div>
             </div>
 
-            <div className="flex justify-end items-center pt-1">
+            <div className="flex justify-end items-center pt-1 min-w-0">
               {mainLogoUrl ? (
                 <img
                   src={mainLogoUrl}
                   alt={orgSettings?.organizationName || "الشعار الرئيسي"}
-                  className="max-h-18 max-w-[180px] object-contain"
+                  className="max-h-14 sm:max-h-18 max-w-[130px] sm:max-w-[180px] object-contain"
                 />
               ) : (
-                <div className="h-16 w-36"></div>
+                <div className="h-14 sm:h-16 w-28 sm:w-36"></div>
               )}
             </div>
           </div>
 
           {/* Title & Dates Block */}
-          <div className="relative flex items-center justify-between mb-4.5 pb-3 border-b border-slate-200 z-10">
-            <div className="flex items-center gap-2.5 text-sm sm:text-base font-bold">
+          <div className="relative flex flex-wrap items-center justify-between gap-2.5 mb-4 sm:mb-4.5 pb-3 border-b border-slate-200 z-10">
+            <div className="flex items-center gap-2 text-xs sm:text-base font-bold">
               <span className="text-[#1f7a63] font-black">التاريخ:</span>
               <span className="font-extrabold text-slate-900 font-sans">{formatGregorianDate(receiptDateObj)}</span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {voucher.status === "approved" ? (
                 <>
-                  <span className="text-sm sm:text-base font-black text-[#1f7a63]">رقم السند:</span>
-                  <span className="text-2xl sm:text-3xl font-extrabold text-[#c5221f] font-sans tracking-wide">
+                  <span className="text-xs sm:text-base font-black text-[#1f7a63]">رقم السند:</span>
+                  <span className="text-xl sm:text-3xl font-extrabold text-[#c5221f] font-sans tracking-wide">
                     {voucherNumDisplay}
                   </span>
                 </>
               ) : voucher.status === "approval_revoked" ? (
-                <div className="px-3.5 py-1.5 bg-amber-50 border-2 border-amber-500 rounded-xl text-amber-900 text-xs sm:text-sm font-black flex items-center gap-2 shadow-xs">
+                <div className="px-3 py-1.5 bg-amber-50 border-2 border-amber-500 rounded-xl text-amber-900 text-xs sm:text-sm font-black flex items-center gap-2 shadow-xs">
                   <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-600"></span>
                   <span>سند ملغي الاعتماد</span>
                 </div>
               ) : voucher.status === "rejected" ? (
-                <div className="px-3.5 py-1.5 bg-rose-50 border-2 border-rose-500 rounded-xl text-rose-900 text-xs sm:text-sm font-black flex items-center gap-2 shadow-xs">
+                <div className="px-3 py-1.5 bg-rose-50 border-2 border-rose-500 rounded-xl text-rose-900 text-xs sm:text-sm font-black flex items-center gap-2 shadow-xs">
                   <span className="inline-block w-2.5 h-2.5 rounded-full bg-rose-600"></span>
                   <span>سند مرفوض</span>
                 </div>
@@ -382,52 +385,52 @@ export default function ReceiptVoucherPrint() {
           </div>
 
           {/* Main Document Content Body */}
-          <div className="space-y-4 text-sm sm:text-base text-slate-900 font-bold leading-relaxed mb-5 relative z-10">
-            <div className="flex items-baseline gap-3 text-right">
-              <span className="text-[#1f7a63] font-black shrink-0 min-w-[95px] text-sm sm:text-base">
+          <div className="space-y-3.5 sm:space-y-4 text-xs sm:text-base text-slate-900 font-bold leading-relaxed mb-5 relative z-10">
+            <div className="flex flex-col sm:flex-row print:flex-row sm:items-baseline print:items-baseline gap-1 sm:gap-3 text-right">
+              <span className="text-[#1f7a63] font-black shrink-0 sm:min-w-[95px] print:min-w-[95px] text-xs sm:text-base">
                 استلمنا من
               </span>
-              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-base sm:text-lg">
+              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-sm sm:text-lg break-words">
                 {voucher.payerName || "المتبرع الكريم"}
               </div>
             </div>
 
-            <div className="flex items-baseline gap-3 text-right">
-              <span className="text-[#1f7a63] font-black shrink-0 min-w-[95px] text-sm sm:text-base">
+            <div className="flex flex-col sm:flex-row print:flex-row sm:items-baseline print:items-baseline gap-1 sm:gap-3 text-right">
+              <span className="text-[#1f7a63] font-black shrink-0 sm:min-w-[95px] print:min-w-[95px] text-xs sm:text-base">
                 مبلغ وقدره
               </span>
-              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-bold text-sm sm:text-base">
-                <span className="text-emerald-800 font-black text-base sm:text-lg ml-2 font-sans inline-flex items-center gap-1">
+              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-bold text-xs sm:text-base break-words">
+                <span className="text-emerald-800 font-black text-sm sm:text-lg ml-2 font-sans inline-flex items-center gap-1">
                   {amountVal.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-4 h-4 inline align-middle mx-0.5" />
                 </span>
-                <span className="text-slate-400 font-semibold px-2">|</span>
+                <span className="text-slate-400 font-semibold px-1.5 sm:px-2">|</span>
                 <span className="text-slate-900 font-extrabold">{tafqeetStr}</span>
               </div>
             </div>
 
-            <div className="flex items-baseline gap-3 text-right">
-              <div className="w-[95px] shrink-0"></div>
-              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-800 font-bold text-sm sm:text-base font-sans">
+            <div className="flex flex-col sm:flex-row print:flex-row sm:items-baseline print:items-baseline gap-1 sm:gap-3 text-right">
+              <div className="hidden sm:block print:block w-[95px] shrink-0"></div>
+              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-800 font-bold text-xs sm:text-base font-sans break-words">
                 {getPaymentMethodDetails()}
               </div>
             </div>
 
-            <div className="flex items-baseline gap-3 text-right">
-              <span className="text-[#1f7a63] font-black shrink-0 min-w-[95px] text-sm sm:text-base">
+            <div className="flex flex-col sm:flex-row print:flex-row sm:items-baseline print:items-baseline gap-1 sm:gap-3 text-right">
+              <span className="text-[#1f7a63] font-black shrink-0 sm:min-w-[95px] print:min-w-[95px] text-xs sm:text-base">
                 وذلك مقابل
               </span>
-              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-800 font-bold text-sm sm:text-base leading-relaxed">
+              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-800 font-bold text-xs sm:text-base leading-relaxed break-words">
                 {getCleanVoucherNotes(voucher.notes) || voucher.project?.name || "تأمين احتياجات المشاريع المعتمدة"}
               </div>
             </div>
 
             {/* عرض المبررات في حال كان السند ملغي الاعتماد أو مرفوض */}
             {(voucher.status === "approval_revoked" || voucher.status === "rejected") && voucher.rejectionReason && (
-              <div className="flex items-baseline gap-3 text-right pt-1">
-                <span className="text-[#978457] font-black shrink-0 min-w-[95px] text-xs sm:text-sm">
+              <div className="flex flex-col sm:flex-row print:flex-row sm:items-baseline print:items-baseline gap-1 sm:gap-3 text-right pt-1">
+                <span className="text-[#978457] font-black shrink-0 sm:min-w-[95px] print:min-w-[95px] text-xs sm:text-sm">
                   {voucher.status === "approval_revoked" ? "مبررات الإلغاء:" : "سبب الرفض:"}
                 </span>
-                <div className="grow bg-amber-50/60 border border-amber-200/80 rounded-lg p-2 text-slate-800 font-bold text-xs sm:text-sm leading-relaxed">
+                <div className="grow bg-amber-50/60 border border-amber-200/80 rounded-lg p-2 text-slate-800 font-bold text-xs sm:text-sm leading-relaxed break-words">
                   {voucher.rejectionReason}
                 </div>
               </div>
@@ -435,36 +438,36 @@ export default function ReceiptVoucherPrint() {
           </div>
 
           {/* Bottom Section: Signatures & Stamp */}
-          <div className="grid grid-cols-12 items-end pt-2 mb-2 relative z-20">
-            <div className="col-span-6 flex justify-start items-center min-h-[75px] relative z-30">
+          <div className="grid grid-cols-2 sm:grid-cols-12 print:grid-cols-12 items-end gap-3 pt-2 mb-3 sm:mb-2 relative z-20">
+            <div className="sm:col-span-6 print:col-span-6 flex justify-center sm:justify-start print:justify-start items-center min-h-[70px] sm:min-h-[75px] relative z-30">
               {officialStampUrl && (
-                <div className="relative select-none pr-4 sm:pr-8 opacity-95 pointer-events-none">
+                <div className="relative select-none sm:pr-8 print:pr-8 opacity-95 pointer-events-none">
                   <img
                     src={officialStampUrl}
                     alt="الختم الرسمي"
-                    className="w-36 sm:w-40 h-auto max-h-30 object-contain"
+                    className="w-28 sm:w-40 print:w-40 h-auto max-h-24 sm:max-h-30 object-contain"
                   />
                 </div>
               )}
             </div>
 
-            <div className="col-span-6 flex flex-col items-center justify-end space-y-0.5">
-              <span className="text-sm sm:text-base font-bold text-[#978457]">
+            <div className="sm:col-span-6 print:col-span-6 flex flex-col items-center justify-end space-y-0.5">
+              <span className="text-xs sm:text-base font-bold text-[#978457] text-center">
                 {(voucher as any)?.signatureDepartment || signerUser?.signatureDepartment || ((voucher as any)?.isException ? "معتمد الاستثناء" : "الإدارة المالية")}
               </span>
-              <div className="w-40 sm:w-48 h-14 sm:h-16 flex items-center justify-center relative my-1">
+              <div className="w-32 sm:w-48 h-12 sm:h-16 flex items-center justify-center relative my-1">
                 {signatureUrl ? (
                   <img
                     src={signatureUrl}
                     alt={(voucher as any)?.isException ? "توقيع معتمد الاستثناء" : "توقيع الإدارة المالية"}
-                    className="max-h-14 sm:max-h-16 max-w-full object-contain"
+                    className="max-h-12 sm:max-h-16 max-w-full object-contain"
                   />
                 ) : (
-                  <div className="w-36 h-14"></div>
+                  <div className="w-28 sm:w-36 h-12 sm:h-14"></div>
                 )}
               </div>
               {signerUser?.name && (
-                <span className="text-[11px] font-bold text-slate-700 font-sans">
+                <span className="text-[11px] font-bold text-slate-700 font-sans text-center">
                   {signerUser.signatureName || signerUser.name}
                 </span>
               )}
@@ -472,9 +475,9 @@ export default function ReceiptVoucherPrint() {
           </div>
 
           {/* Page Footer Section */}
-          <div className="border-t-2 border-[#978457] pt-2 mt-auto relative z-10">
-            <div className="flex flex-row items-end justify-between text-xs text-slate-700 gap-4">
-              <div className="text-right space-y-0.5">
+          <div className="border-t-2 border-[#978457] pt-2.5 sm:pt-2 mt-auto relative z-10">
+            <div className="flex flex-col sm:flex-row print:flex-row items-center sm:items-end print:items-end justify-between text-xs text-slate-700 gap-2 sm:gap-4 text-center sm:text-right print:text-right">
+              <div className="space-y-0.5">
                 <span className="block font-black text-[#978457] text-xs">المركز الرئيسي</span>
                 <span className="block font-bold text-slate-600 text-[11px] leading-tight">
                   {orgSettings?.address || "المملكة العربية السعودية - أبها - طريق الملك فهد العزيزية"}
@@ -487,7 +490,7 @@ export default function ReceiptVoucherPrint() {
                 </span>
               </div>
 
-              <div className="text-left pb-0.5">
+              <div className="sm:text-left print:text-left pb-0.5">
                 <span className="font-sans font-bold text-slate-700 text-xs sm:text-sm tracking-wide dir-ltr inline-block">
                   E: {orgSettings?.email || "info@manarah.org.sa"}
                 </span>
@@ -496,6 +499,7 @@ export default function ReceiptVoucherPrint() {
           </div>
 
         </div>
+      </div>
       </div>
     </div>
   );

@@ -319,14 +319,14 @@ export default function CustodyRequests() {
 
   if (!canEnter) {
     return (
-      <DashboardLayout>
+      <DashboardLayout tabletNavigation>
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4 font-sans" dir="rtl">
           <div className="p-4 rounded-full bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/30 dark:border-rose-900">
             <AlertCircle className="h-10 w-10 text-rose-600" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">عذراً، ليس لديك صلاحية لعرض صفحة العهد المالية</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-200">عذراً، ليس لديك صلاحية لعرض صفحة العهد المالية</h2>
           <p className="text-xs text-muted-foreground max-w-md">يرجى التواصل مع مسؤول النظام لمنحك صلاحية "عرض العهد المالية".</p>
-          <Button onClick={() => setLocation("/dashboard")} className="mt-2 bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold text-xs">
+          <Button onClick={() => setLocation("/dashboard")} className="mt-2 bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold text-xs min-h-10 max-lg:min-h-11">
             العودة للوحة التحكم
           </Button>
         </div>
@@ -335,16 +335,16 @@ export default function CustodyRequests() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 pb-12 max-w-7xl mx-auto" dir="rtl">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-7xl mx-auto overflow-x-hidden space-y-5 sm:space-y-6 pb-12" dir="rtl">
         {/* Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/40 pb-5">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 border-b border-border/40 pb-4 sm:pb-5">
+          <div className="min-w-0">
             <div className="flex items-center gap-2.5 mb-1.5">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
                 <Wallet className="w-5 h-5" />
               </div>
-              <h1 className="text-2xl font-black text-foreground">
+              <h1 className="text-xl sm:text-2xl font-black text-foreground">
                 {canSeeAll ? "العهد المالية" : "طلباتي للعهد المالية"}
               </h1>
             </div>
@@ -356,16 +356,16 @@ export default function CustodyRequests() {
           </div>
 
           {(canCreate || canRequestException) && (
-            <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 shrink-0">
               {canCreate && (<Button
                 onClick={() => setLocation("/custody-requests/new")}
-                className="gradient-primary text-white font-bold rounded-xl shadow-md gap-2 h-11 px-5 cursor-pointer"
+                className="w-full sm:w-auto gradient-primary text-white font-bold rounded-xl shadow-md gap-2 h-11 px-5 cursor-pointer"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>طلب صرف عهدة مالية جديدة</span>
               </Button>)}
               {canRequestException && (
-                <Button variant="outline" onClick={() => setRequestExceptionOpen(true)}>
+                <Button variant="outline" className="w-full sm:w-auto h-11 rounded-xl" onClick={() => setRequestExceptionOpen(true)}>
                   <ShieldAlert className="w-4 h-4 ml-2" />
                   طلب استثناء
                 </Button>
@@ -375,19 +375,18 @@ export default function CustodyRequests() {
         </div>
 
         {/* Tabs: طلبات الموظفين وطلباتي وطلبات الاستثناء */}
-        {/* Tabs: طلبات الموظفين وطلباتي وطلبات الاستثناء */}
-        <div className="flex items-center gap-2 p-1.5 bg-muted/60 dark:bg-muted/30 rounded-2xl border border-border/70 w-fit flex-wrap">
+        <div className="flex items-center gap-1.5 sm:gap-2 p-1.5 bg-muted/60 dark:bg-muted/30 rounded-2xl border border-border/70 w-full sm:w-fit flex-wrap">
           {canSeeStaffTab && (
             <button
               type="button"
               onClick={() => handleTabChange("staff")}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 activeTab === "staff"
                   ? "bg-card text-foreground shadow-xs border border-border/70"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Users className="w-4 h-4 text-primary" />
+              <Users className="w-4 h-4 text-primary shrink-0" />
               <span>طلبات الموظفين</span>
               <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
                 {stats?.staffCount ?? 0}
@@ -398,13 +397,13 @@ export default function CustodyRequests() {
           {canCreate && (<button
             type="button"
             onClick={() => handleTabChange("my")}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === "my"
                 ? "bg-card text-foreground shadow-xs border border-border/70"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <User className="w-4 h-4 text-primary" />
+            <User className="w-4 h-4 text-primary shrink-0" />
             <span>طلباتي</span>
             <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
               {stats?.myCount ?? 0}
@@ -414,13 +413,13 @@ export default function CustodyRequests() {
           {canSeeExceptions && (<button
             type="button"
             onClick={() => handleTabChange("exceptions")}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === "exceptions"
                 ? "bg-amber-500/15 text-amber-900 dark:text-amber-200 shadow-xs border border-amber-300 dark:border-amber-700/60"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <ShieldAlert className="w-4 h-4 text-amber-600" />
+            <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
             <span>طلبات الاستثناء</span>
             <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
               {canSeeStaffTab
@@ -436,20 +435,20 @@ export default function CustodyRequests() {
           <div className="space-y-4">
             {/* للـ super_admin فقط: تبويبان فرعيان (طلبات الموظفين و طلباتي) */}
             {canSeeStaffTab && canRequestException && (
-              <div className="flex items-center gap-2 p-1.5 bg-muted/60 dark:bg-muted/30 rounded-2xl border border-border/70 w-fit">
+              <div className="flex items-center gap-1.5 sm:gap-2 p-1.5 bg-muted/60 dark:bg-muted/30 rounded-2xl border border-border/70 w-full sm:w-fit">
                 <button
                   type="button"
                   onClick={() => {
                     setExceptionScope("staff");
                     setExceptionPage(1);
                   }}
-                  className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                     exceptionScope === "staff"
                       ? "bg-card text-foreground shadow-xs border border-border/70"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <Users className="w-4 h-4 text-primary" />
+                  <Users className="w-4 h-4 text-primary shrink-0" />
                   <span>طلبات الموظفين</span>
                   <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
                     {exceptionsData?.counts?.staffTotal ?? 0}
@@ -462,13 +461,13 @@ export default function CustodyRequests() {
                     setExceptionScope("my");
                     setExceptionPage(1);
                   }}
-                  className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                     exceptionScope === "my"
                       ? "bg-card text-foreground shadow-xs border border-border/70"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <User className="w-4 h-4 text-primary" />
+                  <User className="w-4 h-4 text-primary shrink-0" />
                   <span>طلباتي</span>
                   <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
                     {exceptionsData?.counts?.myTotal ?? 0}
@@ -478,9 +477,9 @@ export default function CustodyRequests() {
             )}
 
             {/* بطاقة الفلترة لطلبات الاستثناء */}
-            <Card className="rounded-2xl border-border/70 shadow-xs bg-card">
-              <CardContent className="p-4">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <Card className="rounded-2xl border-border/70 shadow-xs bg-card py-0 gap-0">
+              <CardContent className="p-3.5 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <p className="text-xs sm:text-sm text-foreground/80 font-medium text-right flex-1">
                     {isSuperAdmin
                       ? exceptionScope === "staff"
@@ -496,7 +495,7 @@ export default function CustodyRequests() {
                       size="sm"
                       variant={exceptionFilter === "all" ? "default" : "outline"}
                       onClick={() => { setExceptionFilter("all"); setExceptionPage(1); }}
-                      className={`rounded-xl text-xs font-bold h-9 px-3 cursor-pointer ${
+                      className={`rounded-xl text-xs font-bold min-h-9 max-lg:min-h-10 px-3 cursor-pointer ${
                         exceptionFilter === "all" ? "gradient-primary text-white" : ""
                       }`}
                     >
@@ -506,7 +505,7 @@ export default function CustodyRequests() {
                       size="sm"
                       variant={exceptionFilter === "pending" ? "default" : "outline"}
                       onClick={() => { setExceptionFilter("pending"); setExceptionPage(1); }}
-                      className={`rounded-xl text-xs font-bold h-9 px-3 cursor-pointer ${
+                      className={`rounded-xl text-xs font-bold min-h-9 max-lg:min-h-10 px-3 cursor-pointer ${
                         exceptionFilter === "pending" ? "bg-amber-600 text-white" : ""
                       }`}
                     >
@@ -516,7 +515,7 @@ export default function CustodyRequests() {
                       size="sm"
                       variant={exceptionFilter === "approved" ? "default" : "outline"}
                       onClick={() => { setExceptionFilter("approved"); setExceptionPage(1); }}
-                      className={`rounded-xl text-xs font-bold h-9 px-3 cursor-pointer ${
+                      className={`rounded-xl text-xs font-bold min-h-9 max-lg:min-h-10 px-3 cursor-pointer ${
                         exceptionFilter === "approved" ? "bg-emerald-600 text-white" : ""
                       }`}
                     >
@@ -526,7 +525,7 @@ export default function CustodyRequests() {
                       size="sm"
                       variant={exceptionFilter === "rejected" ? "default" : "outline"}
                       onClick={() => { setExceptionFilter("rejected"); setExceptionPage(1); }}
-                      className={`rounded-xl text-xs font-bold h-9 px-3 cursor-pointer ${
+                      className={`rounded-xl text-xs font-bold min-h-9 max-lg:min-h-10 px-3 cursor-pointer ${
                         exceptionFilter === "rejected" ? "bg-rose-600 text-white" : ""
                       }`}
                     >
@@ -538,9 +537,9 @@ export default function CustodyRequests() {
             </Card>
 
             {/* جدول طلبات الاستثناء مع عمود الإجراءات */}
-            <Card className="rounded-2xl border-border/70 shadow-xs bg-card overflow-hidden">
-              <CardHeader className="p-5 pb-3 border-b border-border/50 flex flex-row items-center justify-between">
-                <div>
+            <Card className="rounded-2xl border-border/70 shadow-xs bg-card overflow-hidden py-0 gap-0">
+              <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/50 flex flex-row items-center justify-between gap-2">
+                <div className="min-w-0">
                   <CardTitle className="text-base font-bold text-foreground">
                     سجل طلبات استثناء العهد المالية
                   </CardTitle>
@@ -554,7 +553,7 @@ export default function CustodyRequests() {
                       : "متابعة حالة طلبات الاستثناء الخاصة بك لتقديم عهد مالية جديدة"}
                   </CardDescription>
                 </div>
-                <Badge variant="secondary" className="font-mono text-xs font-bold">
+                <Badge variant="secondary" className="font-mono text-xs font-bold shrink-0">
                   {exceptionsData?.counts?.all ?? exceptionsData?.total ?? 0} طلب
                 </Badge>
               </CardHeader>
@@ -566,7 +565,7 @@ export default function CustodyRequests() {
                     <p className="text-xs text-muted-foreground">جاري تحميل طلبات الاستثناء...</p>
                   </div>
                 ) : !exceptionsData?.items || exceptionsData.items.length === 0 ? (
-                  <div className="py-16 text-center space-y-3">
+                  <div className="py-16 text-center space-y-3 px-4">
                     <ShieldCheck className="w-12 h-12 text-muted-foreground/40 mx-auto" />
                     <h3 className="text-sm font-bold text-foreground">لا توجد طلبات استثناء</h3>
                     <p className="text-xs text-muted-foreground">
@@ -576,7 +575,9 @@ export default function CustodyRequests() {
                     </p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <>
+                  {/* Desktop Exceptions Table */}
+                  <div className="hidden lg:block overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/40 hover:bg-muted/40">
@@ -728,11 +729,125 @@ export default function CustodyRequests() {
                       </TableBody>
                     </Table>
                   </div>
+
+                  {/* Mobile & iPad Portrait Exceptions Cards */}
+                  <div className="lg:hidden p-3 sm:p-4 bg-muted/15 grid grid-cols-1 md:grid-cols-2 gap-3" dir="rtl">
+                    {exceptionsData.items.map((ex: any) => {
+                      const isPending = ex.status === "pending";
+                      const isReasonLong = (ex.reason || "").length > 45;
+                      return (
+                        <Card key={ex.id} className="rounded-xl border border-border/80 bg-card shadow-2xs py-0 gap-0 flex flex-col justify-between">
+                          <div className="p-3.5 sm:p-4 space-y-3 flex-1 flex flex-col justify-between">
+                            <div className="space-y-2.5">
+                              <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2.5">
+                                <span className="text-sm font-bold text-foreground truncate">{ex.applicantName || "موظف"}</span>
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[10px] font-bold py-0.5 shrink-0 ${
+                                    ex.status === "approved"
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300"
+                                      : ex.status === "rejected"
+                                      ? "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300"
+                                      : "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300"
+                                  }`}
+                                >
+                                  {ex.status === "approved" ? "معتمد" : ex.status === "rejected" ? "مرفوض" : "قيد المراجعة"}
+                                </Badge>
+                              </div>
+
+                              <div className="flex items-center justify-between text-xs bg-muted/30 p-2 rounded-lg">
+                                <span className="text-muted-foreground font-medium">العهدة السابقة:</span>
+                                {ex.activeCustodyId ? (
+                                  <Link
+                                    href={`/custody-requests/${ex.activeCustodyId}/print`}
+                                    target="_blank"
+                                    className="inline-flex items-center gap-1 font-mono text-xs font-bold text-primary hover:underline"
+                                  >
+                                    <span>{ex.activeCustodyNumber || `#${ex.activeCustodyId}`}</span>
+                                    <ArrowUpRight className="w-3 h-3 text-muted-foreground" />
+                                  </Link>
+                                ) : (
+                                  <span className="font-mono text-xs font-bold text-muted-foreground">{ex.activeCustodyNumber || "—"}</span>
+                                )}
+                              </div>
+
+                              <div className="bg-muted/20 p-2.5 rounded-lg border border-border/50 space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-[10px] text-muted-foreground font-semibold">مبررات الاستثناء:</span>
+                                  {isReasonLong && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setViewReasonException(ex)}
+                                      className="h-6 px-2 text-[11px] text-primary hover:bg-muted gap-1"
+                                    >
+                                      <Eye className="w-3 h-3" />
+                                      <span>المزيد</span>
+                                    </Button>
+                                  )}
+                                </div>
+                                <p className="text-xs text-foreground/90 leading-relaxed line-clamp-2 break-words">{ex.reason}</p>
+                                {ex.reviewNotes && (
+                                  <p className="text-[11px] text-muted-foreground pt-1 border-t border-border/50">
+                                    <span className="font-semibold text-foreground">القرار: </span>
+                                    {ex.reviewNotes}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border/50">
+                              <span dir="ltr" className="font-mono text-[11px] text-muted-foreground">
+                                {formatEnglishDate(ex.createdAt)}
+                              </span>
+                              {isPending && isExecutiveDirector ? (
+                                <div className="flex items-center gap-1.5">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedException(ex);
+                                      setExceptionActionType("approve");
+                                      setExceptionActionNotes("");
+                                      setConfirmExceptionDialogOpen(true);
+                                    }}
+                                    className="h-9 px-3 rounded-lg text-xs gap-1 font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                                  >
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                    <span>اعتماد</span>
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedException(ex);
+                                      setExceptionActionType("reject");
+                                      setExceptionActionNotes("");
+                                      setConfirmExceptionDialogOpen(true);
+                                    }}
+                                    className="h-9 px-3 rounded-lg text-xs gap-1 font-bold text-rose-600 border-rose-200"
+                                  >
+                                    <XCircle className="w-3.5 h-3.5" />
+                                    <span>رفض</span>
+                                  </Button>
+                                </div>
+                              ) : (
+                                <span className="text-[11px] text-muted-foreground font-medium">
+                                  {ex.status === "approved" ? "معتمد" : ex.status === "rejected" ? "مرفوض" : "بانتظار اعتماد المدير التنفيذي"}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                  </>
                 )}
 
                 {/* ترقيم الصفحات لطلبات الاستثناء */}
                 {!isLoadingExceptions && exceptionsData?.items && exceptionsData.items.length > 0 && (
-                  <div className="p-4 border-t border-border/50">
+                  <div className="p-3 sm:p-4 border-t border-border/50">
                     <EnhancedPagination
                       page={exceptionPage}
                       totalPages={exceptionsData.totalPages || 1}
@@ -744,6 +859,7 @@ export default function CustodyRequests() {
                       itemsPerPage={10}
                       itemName="طلب استثناء"
                       itemNamePlural="طلبات استثناء"
+                      className="max-sm:px-2 max-sm:[&_button]:px-2 pointer-coarse:[&_button]:min-h-11"
                     />
                   </div>
                 )}
@@ -753,19 +869,19 @@ export default function CustodyRequests() {
         ) : (
           <>
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="rounded-2xl border-border/70 shadow-xs bg-card hover:border-primary/40 transition-all">
-            <CardHeader className="p-4 pb-2">
-              <CardDescription className="text-xs font-bold text-muted-foreground flex items-center justify-between">
-                <span>{canSeeStaffTab && activeTab === "staff" ? "إجمالي الطلبات" : "إجمالي طلباتي"}</span>
-                <Wallet className="w-4 h-4 text-primary" />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <Card className="rounded-2xl border-border/70 shadow-xs bg-card hover:border-primary/40 transition-all py-0 gap-0">
+            <CardHeader className="p-3.5 sm:p-4 pb-2">
+              <CardDescription className="text-xs font-bold text-muted-foreground flex items-center justify-between gap-1">
+                <span className="truncate">{canSeeStaffTab && activeTab === "staff" ? "إجمالي الطلبات" : "إجمالي طلباتي"}</span>
+                <Wallet className="w-4 h-4 text-primary shrink-0" />
               </CardDescription>
-              <CardTitle className="text-2xl font-black text-foreground mt-1">
+              <CardTitle className="text-xl sm:text-2xl font-black text-foreground mt-1">
                 {stats?.totalCount || 0}
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-1">
-              <div className="text-xs text-muted-foreground flex items-center gap-1 font-semibold">
+            <CardContent className="p-3.5 sm:p-4 pt-1">
+              <div className="text-[11px] sm:text-xs text-muted-foreground flex flex-wrap items-center gap-1 font-semibold">
                 <span>إجمالي المبالغ:</span>
                 <span className="font-bold text-foreground font-mono">{Number(stats?.totalAmount || 0).toLocaleString()}</span>
                 <SaudiRiyal className="w-3.5 h-3.5 inline shrink-0" />
@@ -773,17 +889,17 @@ export default function CustodyRequests() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl border-amber-200 dark:border-amber-900/40 shadow-xs bg-amber-50/30 dark:bg-amber-950/10">
-            <CardHeader className="p-4 pb-2">
-              <CardDescription className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center justify-between">
-                <span>{canSeeStaffTab && activeTab === "staff" ? "قيد اعتماد المدير التنفيذي" : "طلباتي قيد الاعتماد"}</span>
-                <Clock className="w-4 h-4 text-amber-600" />
+          <Card className="rounded-2xl border-amber-200 dark:border-amber-900/40 shadow-xs bg-amber-50/30 dark:bg-amber-950/10 py-0 gap-0">
+            <CardHeader className="p-3.5 sm:p-4 pb-2">
+              <CardDescription className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center justify-between gap-1">
+                <span className="truncate">{canSeeStaffTab && activeTab === "staff" ? "قيد اعتماد المدير التنفيذي" : "طلباتي قيد الاعتماد"}</span>
+                <Clock className="w-4 h-4 text-amber-600 shrink-0" />
               </CardDescription>
-              <CardTitle className="text-2xl font-black text-amber-800 dark:text-amber-300 mt-1">
+              <CardTitle className="text-xl sm:text-2xl font-black text-amber-800 dark:text-amber-300 mt-1">
                 {stats?.pendingCount || 0}
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-1">
+            <CardContent className="p-3.5 sm:p-4 pt-1">
               <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 font-medium">
                 {canSeeStaffTab && activeTab === "staff"
                   ? "بانتظار توقيع واعتماد الإدارة التنفيذية"
@@ -792,18 +908,18 @@ export default function CustodyRequests() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl border-emerald-200 dark:border-emerald-900/40 shadow-xs bg-emerald-50/30 dark:bg-emerald-950/10">
-            <CardHeader className="p-4 pb-2">
-              <CardDescription className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center justify-between">
-                <span>{canSeeStaffTab && activeTab === "staff" ? "تم التحويل لأمر صرف" : "طلباتي المعتمدة"}</span>
-                <CheckCircle className="w-4 h-4 text-emerald-600" />
+          <Card className="rounded-2xl border-emerald-200 dark:border-emerald-900/40 shadow-xs bg-emerald-50/30 dark:bg-emerald-950/10 py-0 gap-0">
+            <CardHeader className="p-3.5 sm:p-4 pb-2">
+              <CardDescription className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center justify-between gap-1">
+                <span className="truncate">{canSeeStaffTab && activeTab === "staff" ? "تم التحويل لأمر صرف" : "طلباتي المعتمدة"}</span>
+                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
               </CardDescription>
-              <CardTitle className="text-2xl font-black text-emerald-800 dark:text-emerald-300 mt-1">
+              <CardTitle className="text-xl sm:text-2xl font-black text-emerald-800 dark:text-emerald-300 mt-1">
                 {stats?.convertedCount || 0}
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-1">
-              <div className="text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-1 font-semibold">
+            <CardContent className="p-3.5 sm:p-4 pt-1">
+              <div className="text-[11px] sm:text-xs text-emerald-700 dark:text-emerald-300 flex flex-wrap items-center gap-1 font-semibold">
                 <span>مبالغ أوامر الصرف:</span>
                 <span className="font-bold font-mono">{Number(stats?.convertedAmount || 0).toLocaleString()}</span>
                 <SaudiRiyal className="w-3.5 h-3.5 inline shrink-0" />
@@ -811,17 +927,17 @@ export default function CustodyRequests() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl border-border/70 shadow-xs bg-card">
-            <CardHeader className="p-4 pb-2">
-              <CardDescription className="text-xs font-bold text-muted-foreground flex items-center justify-between">
-                <span>{canSeeStaffTab && activeTab === "staff" ? "الطلبات المرفوضة" : "طلباتي المرفوضة"}</span>
-                <XCircle className="w-4 h-4 text-rose-500" />
+          <Card className="rounded-2xl border-border/70 shadow-xs bg-card py-0 gap-0">
+            <CardHeader className="p-3.5 sm:p-4 pb-2">
+              <CardDescription className="text-xs font-bold text-muted-foreground flex items-center justify-between gap-1">
+                <span className="truncate">{canSeeStaffTab && activeTab === "staff" ? "الطلبات المرفوضة" : "طلباتي المرفوضة"}</span>
+                <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
               </CardDescription>
-              <CardTitle className="text-2xl font-black text-foreground mt-1">
+              <CardTitle className="text-xl sm:text-2xl font-black text-foreground mt-1">
                 {stats?.rejectedCount || 0}
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-1">
+            <CardContent className="p-3.5 sm:p-4 pt-1">
               <p className="text-[11px] text-muted-foreground font-medium">
                 {canSeeStaffTab && activeTab === "staff" ? "طلبات معادة للموظف مع ذكر الأسباب" : "طلبات لم يتم اعتمادها مع ذكر الأسباب"}
               </p>
@@ -830,16 +946,16 @@ export default function CustodyRequests() {
         </div>
 
         {/* Filter and Search Bar */}
-        <Card className="rounded-2xl border-border/70 shadow-xs bg-card">
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row items-center gap-3 justify-between">
+        <Card className="rounded-2xl border-border/70 shadow-xs bg-card py-0 gap-0">
+          <CardContent className="p-3.5 sm:p-4">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 justify-between">
               {/* Tabs / Status Buttons */}
               <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
                 <Button
                   size="sm"
                   variant={statusFilter === "all" ? "default" : "outline"}
                   onClick={() => handleStatusFilterChange("all")}
-                  className={`rounded-xl text-xs font-bold h-9 px-3 ${statusFilter === "all" ? "gradient-primary text-white" : ""}`}
+                  className={`rounded-xl text-xs font-bold min-h-9 max-lg:min-h-10 px-3 ${statusFilter === "all" ? "gradient-primary text-white" : ""}`}
                 >
                   الكل ({stats?.totalCount || 0})
                 </Button>
@@ -847,7 +963,7 @@ export default function CustodyRequests() {
                   size="sm"
                   variant={statusFilter === "pending_executive" ? "default" : "outline"}
                   onClick={() => handleStatusFilterChange("pending_executive")}
-                  className={`rounded-xl text-xs font-bold h-9 px-3 ${statusFilter === "pending_executive" ? "bg-amber-600 text-white" : ""}`}
+                  className={`rounded-xl text-xs font-bold min-h-9 max-lg:min-h-10 px-3 ${statusFilter === "pending_executive" ? "bg-amber-600 text-white" : ""}`}
                 >
                   قيد الاعتماد ({stats?.pendingCount || 0})
                 </Button>
@@ -855,7 +971,7 @@ export default function CustodyRequests() {
                   size="sm"
                   variant={statusFilter === "converted_to_order" ? "default" : "outline"}
                   onClick={() => handleStatusFilterChange("converted_to_order")}
-                  className={`rounded-xl text-xs font-bold h-9 px-3 ${statusFilter === "converted_to_order" ? "bg-emerald-600 text-white" : ""}`}
+                  className={`rounded-xl text-xs font-bold min-h-9 max-lg:min-h-10 px-3 ${statusFilter === "converted_to_order" ? "bg-emerald-600 text-white" : ""}`}
                 >
                   محولة لأوامر صرف ({stats?.convertedCount || 0})
                 </Button>
@@ -863,7 +979,7 @@ export default function CustodyRequests() {
                   size="sm"
                   variant={statusFilter === "rejected" ? "default" : "outline"}
                   onClick={() => handleStatusFilterChange("rejected")}
-                  className={`rounded-xl text-xs font-bold h-9 px-3 ${statusFilter === "rejected" ? "bg-rose-600 text-white" : ""}`}
+                  className={`rounded-xl text-xs font-bold min-h-9 max-lg:min-h-10 px-3 ${statusFilter === "rejected" ? "bg-rose-600 text-white" : ""}`}
                 >
                   مرفوضة ({stats?.rejectedCount || 0})
                 </Button>
@@ -876,7 +992,7 @@ export default function CustodyRequests() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={canSeeAll ? "بحث برقم الطلب، الموضوع، أو الآيبان..." : "بحث في طلباتي برقم الطلب، العنوان، أو الآيبان..."}
-                  className="pr-9 pl-8 h-9 rounded-xl text-xs border-border/70 bg-background"
+                  className="pr-9 pl-8 h-10 max-lg:min-h-11 rounded-xl text-xs max-md:text-base border-border/70 bg-background"
                 />
                 {isFetching && (
                   <Loader2 className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 animate-spin text-primary" />
@@ -887,9 +1003,9 @@ export default function CustodyRequests() {
         </Card>
 
         {/* Requests Table */}
-        <Card className="rounded-2xl border-border/70 shadow-xs bg-card overflow-hidden">
-          <CardHeader className="p-5 pb-3 border-b border-border/50 flex flex-row items-center justify-between">
-            <div>
+        <Card className="rounded-2xl border-border/70 shadow-xs bg-card overflow-hidden py-0 gap-0">
+          <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/50 flex flex-row items-center justify-between gap-2">
+            <div className="min-w-0">
               <CardTitle className="text-base font-bold text-foreground">
                 {canSeeAll
                   ? activeTab === "staff"
@@ -905,11 +1021,11 @@ export default function CustodyRequests() {
                   : "قائمة بكافة طلبات صرف العهد المالية الخاصة بك ومتابعة مراحل اعتمادها"}
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               {isFetching && !isLoading && (
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
                   <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                  <span>تحديث...</span>
+                  <span className="hidden sm:inline">تحديث...</span>
                 </div>
               )}
               <Badge variant="secondary" className="font-mono text-xs font-bold">
@@ -958,14 +1074,14 @@ export default function CustodyRequests() {
                       setStatusFilter("all");
                       setPage(1);
                     }}
-                    className="rounded-xl text-xs font-bold"
+                    className="rounded-xl text-xs font-bold min-h-10"
                   >
                     إعادة ضبط الفلاتر
                   </Button>
                 ) : canCreate ? (
                   <Button
                     onClick={() => setLocation("/custody-requests/new")}
-                    className="gradient-primary text-white text-xs font-bold rounded-xl h-9 px-4 gap-1.5"
+                    className="gradient-primary text-white text-xs font-bold rounded-xl min-h-10 px-4 gap-1.5"
                   >
                     <PlusCircle className="w-3.5 h-3.5" />
                     <span>تقديم أول طلب عهدة</span>
@@ -973,7 +1089,9 @@ export default function CustodyRequests() {
                 ) : null}
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              {/* Desktop Requests Table */}
+              <div className="hidden lg:block overflow-x-auto">
                 <Table>
                   <TableHeader className="bg-muted/40">
                     <TableRow>
@@ -1117,11 +1235,127 @@ export default function CustodyRequests() {
                   </TableBody>
                 </Table>
               </div>
+
+              {/* Mobile & iPad Portrait Requests Cards */}
+              <div className="lg:hidden p-3 sm:p-4 bg-muted/15 grid grid-cols-1 md:grid-cols-2 gap-3" dir="rtl">
+                {requests.map((req) => {
+                  const isPendingExecutiveApproval = req.status === "pending_executive";
+                  const shouldHighlightGreen = isPendingExecutiveApproval && (isExecutiveDirector || isSuperAdmin);
+                  const dateLabel = req.createdAt ? (() => {
+                    const d = new Date(req.createdAt);
+                    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+                  })() : "—";
+
+                  return (
+                    <Card
+                      key={req.id}
+                      className={`border shadow-sm overflow-hidden bg-background hover:shadow-md transition-all rounded-xl py-0 gap-0 flex flex-col justify-between ${
+                        shouldHighlightGreen
+                          ? "bg-emerald-100/75 dark:bg-emerald-950/60 border-2 border-emerald-700 dark:border-emerald-400 shadow-md"
+                          : "border-border/80"
+                      }`}
+                    >
+                      <div className="p-3.5 sm:p-4 space-y-3 flex-1 flex flex-col justify-between">
+                        <div className="space-y-2.5">
+                          {/* Card Header */}
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-2.5">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              {shouldHighlightGreen && (
+                                <span className="relative flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-tr from-[#1a5f4a] via-emerald-600 to-teal-500 text-white shadow-xs border border-emerald-400/40 shrink-0">
+                                  <Clock className="w-3.5 h-3.5 text-amber-200" />
+                                </span>
+                              )}
+                              <Link href={`/custody-requests/${req.id}`} className="font-mono text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md hover:underline truncate">
+                                {req.requestNumber}
+                              </Link>
+                            </div>
+                            <div className="shrink-0">
+                              {getStatusBadge(req.status, req.isSettled)}
+                            </div>
+                          </div>
+
+                          {/* Title */}
+                          <div className="flex items-start gap-2 bg-muted/30 p-2 rounded-lg">
+                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 shrink-0" />
+                            <div className="min-w-0 flex-1 text-right">
+                              <p className="text-[9px] text-muted-foreground font-medium">عنوان العهدة</p>
+                              <p className="text-xs font-bold text-foreground leading-snug break-words">{req.title}</p>
+                            </div>
+                          </div>
+
+                          {/* Amount & Applicant */}
+                          <div className="grid grid-cols-2 gap-2.5 text-right">
+                            <div className="bg-emerald-50/30 dark:bg-emerald-950/10 border border-emerald-100/60 dark:border-emerald-900/30 p-2 rounded-lg min-w-0">
+                              <p className="text-[9px] text-emerald-800 dark:text-emerald-400 font-semibold mb-0.5">المبلغ المطلوب</p>
+                              <div className="text-xs sm:text-sm font-black text-emerald-700 dark:text-emerald-400 flex flex-wrap items-center gap-1 font-mono">
+                                <span>{Number(req.amount).toLocaleString()}</span>
+                                <SaudiRiyal className="w-3.5 h-3.5 shrink-0" />
+                              </div>
+                            </div>
+                            <div className="bg-muted/40 p-2 rounded-lg min-w-0">
+                              <p className="text-[9px] text-muted-foreground font-medium mb-0.5">مقدم الطلب</p>
+                              <p className="text-xs font-bold text-foreground truncate">{req.applicantName || "موظف"}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Footer: Date & Actions */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border/50">
+                          <span className="text-[11px] text-muted-foreground font-mono">{dateLabel}</span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setLocation(`/custody-requests/${req.id}`)}
+                              className="h-9 px-3 rounded-lg text-xs gap-1 font-semibold hover:bg-muted/80"
+                            >
+                              <Printer className="w-3.5 h-3.5 text-primary" />
+                              <span>التقرير</span>
+                            </Button>
+
+                            {canApprove && req.status === "pending_executive" && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  disabled={approveMutation.isPending && approveMutation.variables?.id === req.id}
+                                  onClick={() => approveMutation.mutate({ id: req.id })}
+                                  className="h-9 px-3 rounded-lg text-xs gap-1 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                                >
+                                  {approveMutation.isPending && approveMutation.variables?.id === req.id ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                  )}
+                                  <span>اعتماد</span>
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedRequest(req);
+                                    setRejectionReason("");
+                                    setRejectDialogOpen(true);
+                                  }}
+                                  className="h-9 px-3 rounded-lg text-xs gap-1 font-bold text-rose-600 border-rose-200"
+                                >
+                                  <XCircle className="w-3.5 h-3.5" />
+                                  <span>رفض</span>
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+              </>
             )}
 
             {/* ترقيم الصفحات Pagination */}
             {!isLoading && requests.length > 0 && (
-              <div className="p-4 border-t border-border/50">
+              <div className="p-3 sm:p-4 border-t border-border/50">
                 <EnhancedPagination
                   page={page}
                   totalPages={totalPages}
@@ -1133,6 +1367,7 @@ export default function CustodyRequests() {
                   itemsPerPage={pageSize}
                   itemName="طلب عهدة"
                   itemNamePlural="طلبات عهدة"
+                  className="max-sm:px-2 max-sm:[&_button]:px-2 pointer-coarse:[&_button]:min-h-11"
                 />
               </div>
             )}
@@ -1147,7 +1382,7 @@ export default function CustodyRequests() {
 
         {/* حوار رفض الطلب */}
         <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-          <DialogContent className="max-w-md rounded-2xl" dir="rtl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-2xl" dir="rtl">
             <DialogHeader>
               <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/40 mx-auto flex items-center justify-center mb-2">
                 <XCircle className="w-6 h-6" />
@@ -1166,22 +1401,22 @@ export default function CustodyRequests() {
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 placeholder="اكتب أسباب عدم الموافقة على طلب العهدة..."
-                className="text-xs min-h-[90px] rounded-xl"
+                className="text-xs max-md:text-base min-h-[90px] rounded-xl"
               />
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0">
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
               <Button
                 variant="outline"
                 onClick={() => setRejectDialogOpen(false)}
-                className="rounded-xl text-xs h-9 font-semibold"
+                className="w-full sm:w-auto rounded-xl text-xs min-h-10 max-lg:min-h-11 font-semibold"
               >
                 إلغاء
               </Button>
               <Button
                 onClick={handleReject}
                 disabled={rejectMutation.isPending || !rejectionReason.trim()}
-                className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs h-9 font-bold gap-1.5"
+                className="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs min-h-10 max-lg:min-h-11 font-bold gap-1.5"
               >
                 {rejectMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
                 <span>تأكيد الرفض</span>
@@ -1192,7 +1427,7 @@ export default function CustodyRequests() {
 
         {/* حوار تأكيد اعتماد/رفض الاستثناء */}
         <Dialog open={confirmExceptionDialogOpen} onOpenChange={setConfirmExceptionDialogOpen}>
-          <DialogContent className="max-w-md rounded-2xl text-right" dir="rtl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-2xl text-right" dir="rtl">
             <DialogHeader className="text-right sm:text-right">
               <div className="flex items-start gap-3 text-right">
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
@@ -1248,7 +1483,7 @@ export default function CustodyRequests() {
                 size="sm"
                 variant={exceptionActionType === "approve" ? "default" : "outline"}
                 onClick={() => setExceptionActionType("approve")}
-                className={`flex-1 rounded-xl text-xs font-bold h-8.5 gap-1.5 ${
+                className={`flex-1 rounded-xl text-xs font-bold min-h-9 max-lg:min-h-10 gap-1.5 ${
                   exceptionActionType === "approve" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""
                 }`}
               >
@@ -1260,7 +1495,7 @@ export default function CustodyRequests() {
                 size="sm"
                 variant={exceptionActionType === "reject" ? "default" : "outline"}
                 onClick={() => setExceptionActionType("reject")}
-                className={`flex-1 rounded-xl text-xs font-bold h-8.5 gap-1.5 ${
+                className={`flex-1 rounded-xl text-xs font-bold min-h-9 max-lg:min-h-10 gap-1.5 ${
                   exceptionActionType === "reject" ? "bg-rose-600 hover:bg-rose-700 text-white border-rose-300" : "text-rose-600"
                 }`}
               >
@@ -1280,17 +1515,17 @@ export default function CustodyRequests() {
                   onChange={(e) => setExceptionActionNotes(e.target.value)}
                   placeholder="اكتب سبب رفض منح الاستثناء..."
                   rows={3}
-                  className="text-xs rounded-xl bg-background resize-none border-border/70 text-right"
+                  className="text-xs max-md:text-base rounded-xl bg-background resize-none border-border/70 text-right"
                   dir="rtl"
                 />
               </div>
             )}
 
-            <DialogFooter className="gap-2 sm:gap-2 pt-2">
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 pt-2">
               <Button
                 variant="outline"
                 onClick={() => setConfirmExceptionDialogOpen(false)}
-                className="rounded-xl text-xs h-9 font-semibold"
+                className="w-full sm:w-auto rounded-xl text-xs min-h-10 max-lg:min-h-11 font-semibold"
               >
                 إلغاء
               </Button>
@@ -1307,7 +1542,7 @@ export default function CustodyRequests() {
                     notes: exceptionActionType === "reject" ? exceptionActionNotes.trim() : undefined,
                   });
                 }}
-                className={`rounded-xl text-xs h-9 font-bold gap-1.5 text-white ${
+                className={`w-full sm:w-auto rounded-xl text-xs min-h-10 max-lg:min-h-11 font-bold gap-1.5 text-white ${
                   exceptionActionType === "approve"
                     ? "bg-emerald-600 hover:bg-emerald-700"
                     : "bg-rose-600 hover:bg-rose-700"
@@ -1328,10 +1563,10 @@ export default function CustodyRequests() {
 
         {/* حوار عرض كامل مبررات الاستثناء */}
         <Dialog open={!!viewReasonException} onOpenChange={(open) => !open && setViewReasonException(null)}>
-          <DialogContent className="max-w-lg rounded-2xl" dir="rtl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-2xl" dir="rtl">
             <DialogHeader className="text-right sm:text-right">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
                   <FileText className="w-4 h-4" />
                 </div>
                 <DialogTitle className="text-base font-bold text-foreground">
@@ -1382,11 +1617,11 @@ export default function CustodyRequests() {
               </div>
             )}
 
-            <DialogFooter className="flex justify-start">
+            <DialogFooter className="sm:justify-start">
               <Button
                 variant="outline"
                 onClick={() => setViewReasonException(null)}
-                className="rounded-xl text-xs h-9 px-4"
+                className="w-full sm:w-auto rounded-xl text-xs min-h-10 max-lg:min-h-11 px-4"
               >
                 إغلاق
               </Button>

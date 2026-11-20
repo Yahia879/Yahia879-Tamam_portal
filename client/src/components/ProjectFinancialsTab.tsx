@@ -1155,79 +1155,82 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
   }
 
   return (
-    <div className="space-y-6 dir-rtl text-right">
+    <div className="w-full min-w-0 max-w-full overflow-x-hidden space-y-4 sm:space-y-6 text-right" dir="rtl">
 
       {/* 1. معادلة التغطية المالية التجميعية (Combined Formula Status Banner) */}
-      <Card className={`border-2 shadow-sm ${isVouchersFullyCovered ? "border-green-300 bg-green-50/40" : "border-amber-300 bg-amber-50/40"}`}>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
+      <Card className={`border-2 shadow-sm overflow-hidden py-0 gap-0 ${isVouchersFullyCovered ? "border-green-300 bg-green-50/40" : "border-amber-300 bg-amber-50/40"}`}>
+        <CardContent className="p-3.5 sm:p-5">
+          <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4 min-w-0">
+            <div className="space-y-2 min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2 min-w-0">
                 {isVouchersFullyCovered ? (
-                  <Badge className="bg-green-600 hover:bg-green-700 text-white gap-1 px-3 py-1 text-sm font-semibold">
-                    <CheckCircle2 className="h-4 w-4" />
-                    الدعم كافٍ ومغطى بالكامل (100%)
+                  <Badge className="bg-green-600 hover:bg-green-700 text-white gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-semibold whitespace-normal text-right leading-snug h-auto max-w-full">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    <span>الدعم كافٍ ومغطى بالكامل (100%)</span>
                   </Badge>
                 ) : (
-                  <Badge className="bg-amber-600 hover:bg-amber-700 text-white gap-1 px-3 py-1 text-sm font-semibold">
-                    <AlertTriangle className="h-4 w-4" />
-                    المبالغ المقبوضة لم تغطِ التكلفة الكلية للمشروع بعد ({collectionPercentage}%)
+                  <Badge className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-semibold whitespace-normal text-right leading-snug h-auto max-w-full">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    <span>المبالغ المقبوضة لم تغطِ التكلفة الكلية للمشروع بعد ({collectionPercentage}%)</span>
                   </Badge>
                 )}
-                <span className="text-xs text-muted-foreground font-medium">المعادلة المجمعة</span>
+                <span className="text-xs text-muted-foreground font-medium shrink-0">المعادلة المجمعة</span>
               </div>
-              <p className="text-sm text-gray-700 mt-2">
+              <p className="text-xs sm:text-sm text-gray-700 leading-relaxed break-words">
                 {isVouchersFullyCovered 
                   ? (changeOrdersTotal > 0
                       ? "إجمالي مبالغ سندات القبض المعتمدة كافٍ لتغطية التكلفة الكلية للمشروع (شاملة حصة المورد والأجور الإدارية وأوامر التغيير)."
                       : "إجمالي مبالغ سندات القبض المعتمدة كافٍ لتغطية التكلفة الكلية للمشروع (شاملة حصة المورد والأجور الإدارية للجمعية)."
                     )
                   : (
-                    <span className="inline-flex items-center flex-wrap gap-1">
-                      <span>تنبيه: يوجد عجز في تحصيل دفعات المشروع بمقدار ({Math.abs(vouchersCoverageDifference).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-                      <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                    <>
+                      <span>تنبيه: يوجد عجز في تحصيل دفعات المشروع بمقدار (</span>
+                      <span className="inline-flex items-center gap-1 font-semibold">
+                        {Math.abs(vouchersCoverageDifference).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        <SaudiRiyal className="w-3.5 h-3.5 inline shrink-0" />
+                      </span>
                       <span>). إجمالي سندات القبض المقبوضة لا يكفي لتغطية التكلفة الكلية للمشروع حتى الآن.</span>
-                    </span>
+                    </>
                   )
                 }
               </p>
             </div>
 
             {/* Visual Formula summary */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 bg-white/80 p-3 rounded-lg border text-xs shadow-xs w-full md:w-auto">
-              <div className="text-center p-2 border-r last:border-r-0 bg-blue-50/40 rounded-sm">
-                <span className="text-muted-foreground block">مبلغ أوامر التغيير</span>
-                <span className="font-bold text-indigo-700 text-sm mt-0.5 inline-block font-sans">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5 bg-white/80 p-2.5 sm:p-3 rounded-lg border text-xs shadow-xs w-full xl:w-auto min-w-0">
+              <div className="text-center p-2 bg-blue-50/40 rounded-md border border-blue-100/70 min-w-0">
+                <span className="text-[11px] sm:text-xs text-muted-foreground block leading-snug">مبلغ أوامر التغيير</span>
+                <span className="font-bold text-indigo-700 text-xs sm:text-sm mt-1 inline-block font-sans">
                   {changeOrdersTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
-              <div className="text-center p-2 border-r last:border-r-0">
-                <span className="text-muted-foreground block">مبلغ المورد (الصافي)</span>
-                <span className="font-bold text-gray-900 text-sm mt-0.5 inline-block font-sans">
+              <div className="text-center p-2 rounded-md border border-border/50 min-w-0">
+                <span className="text-[11px] sm:text-xs text-muted-foreground block leading-snug">مبلغ المورد (الصافي)</span>
+                <span className="font-bold text-gray-900 text-xs sm:text-sm mt-1 inline-block font-sans">
                   {supplierNetShare.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
-              <div className="text-center p-2 border-r last:border-r-0">
-                <span className="text-muted-foreground block">الأجور الإدارية (الجمعية)</span>
-                <span className="font-bold text-orange-700 text-sm mt-0.5 inline-block font-sans">
+              <div className="text-center p-2 rounded-md border border-border/50 min-w-0">
+                <span className="text-[11px] sm:text-xs text-muted-foreground block leading-snug">الأجور الإدارية (الجمعية)</span>
+                <span className="font-bold text-orange-700 text-xs sm:text-sm mt-1 inline-block font-sans">
                   {calculatedAdminFeeAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
-              <div className="text-center p-2 border-r last:border-r-0 bg-slate-50 rounded-sm">
-                <span className="text-muted-foreground block">= إجمالي التكلفة الكلية</span>
-                <span className="font-bold text-primary text-sm mt-0.5 inline-block font-sans">
+              <div className="text-center p-2 bg-slate-50 rounded-md border border-slate-200/70 min-w-0">
+                <span className="text-[11px] sm:text-xs text-muted-foreground block leading-snug">= إجمالي التكلفة الكلية</span>
+                <span className="font-bold text-primary text-xs sm:text-sm mt-1 inline-block font-sans">
                   {totalRequiredCost.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
-              <div className="text-center p-2 border-r last:border-r-0">
-                <span className="text-muted-foreground block">مبلغ الدعم المقدم</span>
-                <span className={`font-bold text-sm mt-0.5 inline-block font-sans ${isFullyCovered ? "text-green-700" : "text-red-600"}`}>
+              <div className="text-center p-2 rounded-md border border-border/50 min-w-0">
+                <span className="text-[11px] sm:text-xs text-muted-foreground block leading-snug">مبلغ الدعم المقدم</span>
+                <span className={`font-bold text-xs sm:text-sm mt-1 inline-block font-sans ${isFullyCovered ? "text-green-700" : "text-red-600"}`}>
                   {currentSupportAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
-              <div className="text-center p-2 bg-emerald-50/60 rounded-sm border border-emerald-200/60">
-                <span className="text-muted-foreground block font-semibold text-emerald-950">إجمالي الدعم المقبوض</span>
-                <span className={`font-bold text-sm mt-0.5 inline-block font-sans ${isVouchersFullyCovered ? "text-green-700" : "text-amber-700"}`}>
+              <div className="text-center p-2 bg-emerald-50/60 rounded-md border border-emerald-200/60 min-w-0">
+                <span className="text-[11px] sm:text-xs text-muted-foreground block font-semibold text-emerald-950 leading-snug">إجمالي الدعم المقبوض</span>
+                <span className={`font-bold text-xs sm:text-sm mt-1 inline-block font-sans ${isVouchersFullyCovered ? "text-green-700" : "text-amber-700"}`}>
                   {vouchersTotalReceived.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>

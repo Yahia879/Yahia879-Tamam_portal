@@ -483,13 +483,13 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
   const totalPages = Math.ceil(total / limit);
 
   const content = (
-    <div className="space-y-6">
+    <div className="w-full min-w-0 max-w-full overflow-x-hidden space-y-5 sm:space-y-6">
       {/* العنوان والإحصائيات */}
       {isEmbedded ? (
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between text-right" dir="rtl">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 shrink-0">
                 <Banknote className="w-5 h-5" />
               </div>
               <h2 className="text-lg sm:text-xl font-bold text-foreground">
@@ -511,7 +511,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                   const returnUrl = encodeURIComponent(`/orders-and-letters?tab=disbursement_orders${requestId ? `&requestId=${requestId}` : ""}`);
                   navigate(`/disbursement-orders/new-direct${requestId ? `?requestId=${requestId}&returnUrl=${returnUrl}` : `?returnUrl=${returnUrl}`}`);
                 }} 
-                className="w-full sm:w-auto text-xs font-bold gap-1.5 gradient-primary text-white shadow-xs cursor-pointer"
+                className="w-full sm:w-auto min-h-10 max-lg:min-h-11 text-xs font-bold gap-1.5 gradient-primary text-white shadow-xs cursor-pointer"
               >
                 <Plus className="h-4 w-4" />
                 <span>إنشاء أمر صرف مخصص</span>
@@ -520,16 +520,16 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
           )}
         </div>
       ) : (
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">أوامر الصرف</h1>
-            <p className="text-muted-foreground">إدارة واعتماد وتنفيذ أوامر الصرف المالية</p>
+        <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold">أوامر الصرف</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">إدارة واعتماد وتنفيذ أوامر الصرف المالية</p>
           </div>
           {canCreateDirectOrder && (
-            <div className="w-full sm:w-auto flex justify-end">
+            <div className="w-full sm:w-auto flex justify-end shrink-0">
               <Button 
                 onClick={() => navigate("/disbursement-orders/new-direct")} 
-                className="w-full sm:w-auto gradient-primary text-white font-bold"
+                className="w-full sm:w-auto min-h-10 max-lg:min-h-11 gradient-primary text-white font-bold"
               >
                 <Plus className="ml-2 h-4 w-4" />
                 إنشاء أمر صرف مخصص
@@ -540,10 +540,10 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
       )}
 
         {/* بطاقات الإحصائيات المحدثة والأنيقة */}
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5" dir="rtl">
-          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative">
-            <CardContent className="p-4 sm:p-5 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 text-amber-600 dark:text-amber-400">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5" dir="rtl">
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative py-0 gap-0">
+            <CardContent className="p-3.5 sm:p-5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 text-amber-600 dark:text-amber-400">
                 <Clock className="w-5 h-5" />
               </div>
               <div className="min-w-0 text-right">
@@ -553,9 +553,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative">
-            <CardContent className="p-4 sm:p-5 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/50 text-green-600 dark:text-green-400">
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative py-0 gap-0">
+            <CardContent className="p-3.5 sm:p-5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/50 text-green-600 dark:text-green-400">
                 <CheckCircle className="w-5 h-5" />
               </div>
               <div className="min-w-0 text-right">
@@ -565,9 +565,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative">
-            <CardContent className="p-4 sm:p-5 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400">
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative py-0 gap-0">
+            <CardContent className="p-3.5 sm:p-5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400">
                 <BadgeCheck className="w-5 h-5" />
               </div>
               <div className="min-w-0 text-right">
@@ -577,9 +577,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative">
-            <CardContent className="p-4 sm:p-5 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50 text-red-600 dark:text-red-400">
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative py-0 gap-0">
+            <CardContent className="p-3.5 sm:p-5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50 text-red-600 dark:text-red-400">
                 <XCircle className="w-5 h-5" />
               </div>
               <div className="min-w-0 text-right">
@@ -589,9 +589,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
             </CardContent>
           </Card>
 
-          <Card className="col-span-2 sm:col-span-1 md:col-span-1 lg:col-span-1 border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative">
+          <Card className="col-span-2 md:col-span-2 lg:col-span-1 border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative py-0 gap-0">
             <CardContent className="p-3.5 sm:p-5 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400">
                 <Banknote className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1 text-right">
@@ -611,53 +611,55 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
         </div>
 
         {/* أدوات البحث والتصفية */}
-        <Card className="border-0 shadow-sm">
+        <Card className="border-0 shadow-sm py-0 gap-0">
           <CardHeader className="p-4 sm:p-6 pb-2">
             <CardTitle className="text-lg sm:text-xl">قائمة أوامر الصرف</CardTitle>
             <CardDescription className="text-xs sm:text-sm">عرض وإدارة جميع أوامر الصرف</CardDescription>
           </CardHeader>
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center mb-6">
-              <div className="relative flex-1">
+          <CardContent className="p-3.5 sm:p-6 pt-3 sm:pt-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center mb-5 sm:mb-6">
+              <div className="relative flex-1 min-w-0">
                 <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="بحث برقم الأمر أو اسم المستفيد..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pr-10"
+                  className="pr-10 max-md:text-base h-10 max-lg:min-h-11"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); resetPage(); }}>
-                <SelectTrigger className="w-full lg:w-[240px]">
-                  <Filter className="ml-2 h-4 w-4" />
-                  <SelectValue placeholder="جميع الحالات" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">جميع الحالات</SelectItem>
-                  <SelectItem value="pending">بانتظار اعتماد الإدارة المالية</SelectItem>
-                  <SelectItem value="pending_executive">بانتظار اعتماد المدير التنفيذي</SelectItem>
-                  <SelectItem value="approved">معتمد</SelectItem>
-                  <SelectItem value="rejected">ملغي</SelectItem>
-                  <SelectItem value="executed">منفذ</SelectItem>
-                  <SelectItem value="edited">تم التعديل</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex gap-2.5 w-full lg:w-auto">
+                <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); resetPage(); }}>
+                  <SelectTrigger className="w-full lg:w-[240px] h-10 max-lg:min-h-11">
+                    <Filter className="ml-2 h-4 w-4 shrink-0" />
+                    <SelectValue placeholder="جميع الحالات" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">جميع الحالات</SelectItem>
+                    <SelectItem value="pending">بانتظار اعتماد الإدارة المالية</SelectItem>
+                    <SelectItem value="pending_executive">بانتظار اعتماد المدير التنفيذي</SelectItem>
+                    <SelectItem value="approved">معتمد</SelectItem>
+                    <SelectItem value="rejected">ملغي</SelectItem>
+                    <SelectItem value="executed">منفذ</SelectItem>
+                    <SelectItem value="edited">تم التعديل</SelectItem>
+                  </SelectContent>
+                </Select>
 
-              {canExport && (
-                <Button 
-                  onClick={handleExportExcel} 
-                  disabled={isExporting}
-                  variant="outline"
-                  className="w-full lg:w-auto h-10 border-[#1a5f4a]/30 text-[#1a5f4a] bg-transparent hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] font-bold rounded-lg shrink-0 flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  {isExporting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                  <span dir="rtl">تصدير إلى Excel</span>
-                </Button>
-              )}
+                {canExport && (
+                  <Button 
+                    onClick={handleExportExcel} 
+                    disabled={isExporting}
+                    variant="outline"
+                    className="w-full lg:w-auto min-h-10 max-lg:min-h-11 border-[#1a5f4a]/30 text-[#1a5f4a] bg-transparent hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] font-bold rounded-lg shrink-0 flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    {isExporting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                    <span dir="rtl">تصدير إلى Excel</span>
+                  </Button>
+                )}
+              </div>
             </div>
 
             {isLoading ? (
@@ -667,9 +669,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                 لا توجد أوامر صرف
               </div>
             ) : (
-              <Card className="border-0 shadow-sm overflow-hidden p-0">
-                {/* Desktop View Table */}
-                <div className="hidden md:block overflow-x-auto">
+              <Card className="border-0 shadow-sm overflow-hidden p-0 py-0 gap-0">
+                {/* Desktop & iPad Landscape View Table */}
+                <div className="hidden xl:block overflow-x-auto">
                   <Table dir="rtl" className="w-full min-w-full">
                     <TableHeader className="bg-slate-50/70 dark:bg-slate-900/70 border-b border-border">
                       <TableRow className="hover:bg-transparent">
@@ -1070,8 +1072,8 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                   </Table>
                 </div>
 
-                {/* Modernized Mobile View Cards Grid */}
-                <div className="md:hidden grid gap-4 p-4 bg-muted/5" dir="rtl">
+                {/* Modernized Mobile & iPad View Cards Grid */}
+                <div className="xl:hidden grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-muted/15" dir="rtl">
                   {filteredOrders?.map((order) => {
                     const isCancellationPending = order.status === "executed" && !!order.cancellationRequested;
                     const isCancellationPendingMyAction = isCancellationPending && isExecutiveDirectorStrict;
@@ -1082,7 +1084,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                     return (
                       <Card 
                         key={order.id} 
-                        className={`border shadow-sm overflow-hidden bg-background hover:shadow-md transition-all rounded-xl ${
+                        className={`border shadow-sm overflow-hidden bg-background hover:shadow-md transition-all rounded-xl py-0 gap-0 ${
                           isCancellationPending
                             ? "bg-rose-100/75 dark:bg-rose-950/60 border-2 border-rose-600 dark:border-rose-400 shadow-md"
                             : isPendingMyAction
@@ -1090,7 +1092,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                               : "border-border/80"
                         }`}
                       >
-                        <div className="p-4 space-y-4">
+                        <div className="p-3.5 sm:p-4 space-y-3.5">
                           {/* Card Header */}
                           <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-3">
                             <div className="flex items-center gap-1.5">
@@ -1438,7 +1440,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                   itemsPerPage={limit}
                   itemName="أمر صرف"
                   itemNamePlural="أوامر صرف"
-                  className="bg-muted/10 border-t"
+                  className="bg-muted/10 border-t max-sm:px-2 max-sm:[&_button]:px-2 pointer-coarse:[&_button]:min-h-11"
                 />
               </Card>
             )}
@@ -1447,32 +1449,32 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
 
         {/* نافذة اعتماد أمر الصرف */}
         <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
-          <DialogContent>
-            <DialogHeader>
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6">
+            <DialogHeader className="text-right">
               <DialogTitle>اعتماد أمر الصرف</DialogTitle>
               <DialogDescription>
                 هل أنت متأكد من اعتماد أمر الصرف رقم {selectedOrder?.orderNumber}؟
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 text-right" dir="rtl">
-              <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 p-4 rounded-xl space-y-3 shadow-inner">
-                <div className="flex justify-between items-center border-b border-emerald-100/30 pb-2">
-                  <span className="text-xs text-muted-foreground font-semibold">المستفيد:</span>
-                  <span className="text-sm font-bold text-foreground">{selectedOrder?.beneficiaryName}</span>
+              <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 p-3.5 sm:p-4 rounded-xl space-y-3 shadow-inner">
+                <div className="flex justify-between items-center gap-2 border-b border-emerald-100/30 pb-2">
+                  <span className="text-xs text-muted-foreground font-semibold shrink-0">المستفيد:</span>
+                  <span className="text-sm font-bold text-foreground break-words text-left">{selectedOrder?.beneficiaryName}</span>
                 </div>
-                <div className="flex justify-between items-center border-b border-emerald-100/30 pb-2">
-                  <span className="text-xs text-muted-foreground font-semibold">المبلغ الذي سوف يصرف:</span>
+                <div className="flex justify-between items-center gap-2 border-b border-emerald-100/30 pb-2">
+                  <span className="text-xs text-muted-foreground font-semibold shrink-0">المبلغ الذي سوف يصرف:</span>
                   <span className="text-base font-black text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1">
                     {Number(selectedOrder?.amount || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                   </span>
                 </div>
-                <div className="flex justify-between items-center border-b border-emerald-100/30 pb-2">
-                  <span className="text-xs text-muted-foreground font-semibold">اسم البنك:</span>
+                <div className="flex justify-between items-center gap-2 border-b border-emerald-100/30 pb-2">
+                  <span className="text-xs text-muted-foreground font-semibold shrink-0">اسم البنك:</span>
                   <span className="text-sm font-bold text-foreground">{selectedOrder?.beneficiaryBank || "—"}</span>
                 </div>
                 <div className="flex flex-col gap-1 items-start justify-start pt-1">
                   <span className="text-xs text-muted-foreground font-semibold">رقم الآيبان (IBAN):</span>
-                  <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 bg-background px-2.5 py-1.5 rounded border border-border/80 w-full mt-1 text-left select-all" dir="ltr">
+                  <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 bg-background px-2.5 py-1.5 rounded border border-border/80 w-full mt-1 text-left select-all break-all" dir="ltr">
                     {selectedOrder?.beneficiaryIban || "—"}
                   </span>
                 </div>
@@ -1483,14 +1485,16 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                   value={approvalNotes}
                   onChange={(e) => setApprovalNotes(e.target.value)}
                   placeholder="أدخل ملاحظاتك..."
+                  className="max-md:text-base"
                 />
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowApproveDialog(false)}>
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+              <Button variant="outline" className="w-full sm:w-auto min-h-10 max-lg:min-h-11" onClick={() => setShowApproveDialog(false)}>
                 إلغاء
               </Button>
               <Button
+                className="w-full sm:w-auto min-h-10 max-lg:min-h-11"
                 onClick={() => {
                   if (selectedOrder) {
                     approveOrderMutation.mutate({
@@ -1509,8 +1513,8 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
 
         {/* نافذة رفض أمر الصرف */}
         <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-          <DialogContent>
-            <DialogHeader>
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6">
+            <DialogHeader className="text-right">
               <DialogTitle>رفض أمر الصرف</DialogTitle>
               <DialogDescription>
                 يرجى إدخال سبب رفض أمر الصرف رقم {selectedOrder?.orderNumber}
@@ -1524,15 +1528,17 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                   onChange={(e) => setRejectionReason(e.target.value)}
                   placeholder="أدخل سبب الرفض..."
                   required
+                  className="max-md:text-base"
                 />
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+              <Button variant="outline" className="w-full sm:w-auto min-h-10 max-lg:min-h-11" onClick={() => setShowRejectDialog(false)}>
                 إلغاء
               </Button>
               <Button
                 variant="destructive"
+                className="w-full sm:w-auto min-h-10 max-lg:min-h-11"
                 onClick={() => {
                   if (selectedOrder && rejectionReason) {
                     rejectOrderMutation.mutate({
@@ -1551,16 +1557,16 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
 
         {/* نافذة تنفيذ أمر الصرف */}
         <Dialog open={showExecuteDialog} onOpenChange={setShowExecuteDialog}>
-          <DialogContent>
-            <DialogHeader>
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6">
+            <DialogHeader className="text-right">
               <DialogTitle>تنفيذ أمر الصرف</DialogTitle>
               <DialogDescription>
                 تأكيد تنفيذ أمر الصرف رقم {selectedOrder?.orderNumber}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="bg-muted p-4 rounded-lg">
-                <p><strong>المستفيد:</strong> {selectedOrder?.beneficiaryName}</p>
+              <div className="bg-muted p-3.5 sm:p-4 rounded-lg space-y-1 text-sm">
+                <p className="break-words"><strong>المستفيد:</strong> {selectedOrder?.beneficiaryName}</p>
                 <p className="flex items-center gap-1"><strong>المبلغ:</strong> {Number(selectedOrder?.amount || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" /></p>
                 <p><strong>طريقة الدفع:</strong> {PAYMENT_METHOD_MAP[selectedOrder?.paymentMethod || "bank_transfer"]}</p>
               </div>
@@ -1570,14 +1576,16 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                   value={transactionReference}
                   onChange={(e) => setTransactionReference(e.target.value)}
                   placeholder="أدخل رقم العملية البنكية..."
+                  className="max-md:text-base h-10 max-lg:min-h-11"
                 />
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowExecuteDialog(false)}>
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+              <Button variant="outline" className="w-full sm:w-auto min-h-10 max-lg:min-h-11" onClick={() => setShowExecuteDialog(false)}>
                 إلغاء
               </Button>
               <Button
+                className="w-full sm:w-auto min-h-10 max-lg:min-h-11"
                 onClick={() => {
                   if (selectedOrder) {
                     executeOrderMutation.mutate({
@@ -1596,10 +1604,10 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
 
         {/* نافذة تفاصيل أمر الصرف */}
         <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-[500px] max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6">
+            <DialogHeader className="text-right">
               <DialogTitle className="flex items-center gap-2 text-[#1a5f4a]">
-                <FileText className="h-5 w-5 text-[#1a5f4a]" />
+                <FileText className="h-5 w-5 text-[#1a5f4a] shrink-0" />
                 <span>تفاصيل أمر الصرف</span>
               </DialogTitle>
               <DialogDescription className="text-right">
@@ -1619,36 +1627,36 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
 
               {/* قسم تفاصيل المورد والبنك */}
               <div className="border border-border/80 rounded-xl overflow-hidden divide-y divide-border/60">
-                <div className="p-3 flex justify-between items-center gap-2">
+                <div className="p-3 flex justify-between items-start gap-2">
                   <span className="text-xs text-muted-foreground font-semibold shrink-0">العنوان:</span>
-                  <span className="text-sm font-bold text-foreground text-left truncate max-w-[280px]">
+                  <span className="text-sm font-bold text-foreground text-left break-words min-w-0">
                     {selectedOrder?.requestTitle || selectedOrder?.requestDescription || (selectedOrder?.isDirect || !selectedOrder?.requestNumber ? "أمر صرف مخصص" : "—")}
                   </span>
                 </div>
                 {selectedOrder?.projectName && (
-                  <div className="p-3 flex justify-between items-center gap-2">
+                  <div className="p-3 flex justify-between items-start gap-2">
                     <span className="text-xs text-muted-foreground font-semibold shrink-0">المشروع:</span>
-                    <span className="text-sm font-bold text-foreground text-left">{selectedOrder.projectName}</span>
+                    <span className="text-sm font-bold text-foreground text-left break-words min-w-0">{selectedOrder.projectName}</span>
                   </div>
                 )}
-                <div className="p-3 flex justify-between items-center gap-2">
+                <div className="p-3 flex justify-between items-start gap-2">
                   <span className="text-xs text-muted-foreground font-semibold shrink-0">اسم المستفيد (المورد):</span>
-                  <span className="text-sm font-bold text-foreground text-left">{selectedOrder?.beneficiaryName || "—"}</span>
+                  <span className="text-sm font-bold text-foreground text-left break-words min-w-0">{selectedOrder?.beneficiaryName || "—"}</span>
                 </div>
                 <div className="p-3 flex justify-between items-center gap-2">
                   <span className="text-xs text-muted-foreground font-semibold shrink-0">اسم البنك:</span>
                   <span className="text-sm font-bold text-foreground">{selectedOrder?.beneficiaryBank || "—"}</span>
                 </div>
-                <div className="p-3 flex justify-between items-center gap-2">
+                <div className="p-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-2">
                   <span className="text-xs text-muted-foreground font-semibold shrink-0">رقم الآيبان (IBAN):</span>
-                  <span className="text-sm font-mono font-bold text-foreground select-all text-left" dir="ltr">
+                  <span className="text-xs sm:text-sm font-mono font-bold text-foreground select-all text-left break-all" dir="ltr">
                     {selectedOrder?.beneficiaryIban || "—"}
                   </span>
                 </div>
                 {selectedOrder?.beneficiaryAccountName && (
-                  <div className="p-3 flex justify-between items-center gap-2">
+                  <div className="p-3 flex justify-between items-start gap-2">
                     <span className="text-xs text-muted-foreground font-semibold shrink-0">اسم صاحب الحساب:</span>
-                    <span className="text-sm font-bold text-foreground text-left">{selectedOrder.beneficiaryAccountName}</span>
+                    <span className="text-sm font-bold text-foreground text-left break-words min-w-0">{selectedOrder.beneficiaryAccountName}</span>
                   </div>
                 )}
                 <div className="p-3 flex justify-between items-center gap-2">
@@ -1701,14 +1709,14 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                             href={link.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center justify-between p-2.5 bg-blue-50/40 hover:bg-blue-50/80 border border-blue-100/50 dark:bg-blue-950/20 dark:hover:bg-blue-950/30 dark:border-blue-900/30 rounded-xl transition-all group"
+                            className="flex items-center justify-between gap-2 p-2.5 bg-blue-50/40 hover:bg-blue-50/80 border border-blue-100/50 dark:bg-blue-950/20 dark:hover:bg-blue-950/30 dark:border-blue-900/30 rounded-xl transition-all group"
                           >
                             <div className="flex items-center gap-2 min-w-0">
                               <ExternalLink className="h-4 w-4 text-blue-500 shrink-0 group-hover:text-blue-700 transition-colors" />
                               <span className="text-xs font-bold text-blue-700 dark:text-blue-400 truncate">{link.name || "رابط خارجي"}</span>
                             </div>
                             {hostname && (
-                              <span className="text-[10px] text-muted-foreground font-mono bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-100 dark:border-slate-800">
+                              <span className="text-[10px] text-muted-foreground font-mono bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-100 dark:border-slate-800 shrink-0">
                                 {hostname}
                               </span>
                             )}
@@ -1722,7 +1730,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
             </div>
 
             <DialogFooter className="sm:justify-start">
-              <Button variant="outline" onClick={() => setShowDetailsDialog(false)} className="w-full sm:w-auto font-semibold">
+              <Button variant="outline" onClick={() => setShowDetailsDialog(false)} className="w-full sm:w-auto font-semibold min-h-10 max-lg:min-h-11">
                 إغلاق
               </Button>
             </DialogFooter>
@@ -1731,9 +1739,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
 
         {/* نافذة استثناء اعتماد مُعد الأمر */}
         <Dialog open={showExceptionDialog} onOpenChange={setShowExceptionDialog}>
-          <DialogContent dir="rtl" className="sm:max-w-[480px]">
+          <DialogContent dir="rtl" className="w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-[480px] max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6">
             <DialogHeader className="text-right">
-              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg">
+              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-base sm:text-lg">
                 <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
                 <span>استثناء اعتماد أمر الصرف</span>
               </DialogTitle>
@@ -1748,9 +1756,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                   <span className="text-slate-600 dark:text-slate-400 font-medium">المبلغ:</span>
                   <span className="font-bold text-amber-900 dark:text-amber-200 font-mono inline-flex items-center gap-1">{Number(selectedOrder?.amount || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
                 </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-600 dark:text-slate-400 font-medium">المستفيد:</span>
-                  <span className="font-bold text-amber-900 dark:text-amber-200 truncate max-w-[220px]">{selectedOrder?.beneficiaryName || "-"}</span>
+                <div className="flex justify-between items-center gap-2 text-xs">
+                  <span className="text-slate-600 dark:text-slate-400 font-medium shrink-0">المستفيد:</span>
+                  <span className="font-bold text-amber-900 dark:text-amber-200 truncate">{selectedOrder?.beneficiaryName || "-"}</span>
                 </div>
               </div>
 
@@ -1764,16 +1772,16 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                   onChange={(e) => setExceptionNotes(e.target.value)}
                   placeholder="أدخل مبرر استثناء اعتماد مُعد الأمر بشكل واضح ومفصل..."
                   rows={4}
-                  className="text-xs text-right leading-relaxed"
+                  className="text-xs max-md:text-base text-right leading-relaxed"
                 />
               </div>
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0">
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
               <Button
                 variant="outline"
                 onClick={() => setShowExceptionDialog(false)}
-                className="text-xs font-semibold"
+                className="w-full sm:w-auto text-xs font-semibold min-h-10 max-lg:min-h-11"
               >
                 إلغاء
               </Button>
@@ -1787,7 +1795,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                   }
                 }}
                 disabled={!exceptionNotes.trim() || exceptionApproveOrderMutation.isPending}
-                className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
+                className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs min-h-10 max-lg:min-h-11"
               >
                 {exceptionApproveOrderMutation.isPending ? "جاري الاعتماد..." : "تأكيد استثناء الاعتماد"}
               </Button>
@@ -1797,9 +1805,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
 
         {/* نافذة عرض مبررات استثناء الاعتماد */}
         <Dialog open={showViewExceptionDialog} onOpenChange={setShowViewExceptionDialog}>
-          <DialogContent dir="rtl" className="sm:max-w-[480px]">
+          <DialogContent dir="rtl" className="w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-[480px] max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6">
             <DialogHeader className="text-right">
-              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg">
+              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-base sm:text-lg">
                 <Info className="w-5 h-5 text-amber-600 shrink-0" />
                 <span>مبررات استثناء اعتماد أمر الصرف</span>
               </DialogTitle>
@@ -1828,8 +1836,8 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
               </div>
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowViewExceptionDialog(false)} className="text-xs font-semibold">
+            <DialogFooter className="sm:justify-start">
+              <Button variant="outline" onClick={() => setShowViewExceptionDialog(false)} className="w-full sm:w-auto text-xs font-semibold min-h-10 max-lg:min-h-11">
                 إغلاق
               </Button>
             </DialogFooter>
@@ -1869,9 +1877,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
             }
           }}
         >
-          <DialogContent dir="rtl" className="sm:max-w-[550px] rounded-3xl p-6 sm:p-7 text-right">
-            <DialogHeader className="text-right sm:text-right border-b pb-4">
-              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg sm:text-xl font-bold">
+          <DialogContent dir="rtl" className="w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-[550px] max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-7 text-right">
+            <DialogHeader className="text-right sm:text-right border-b pb-3.5 sm:pb-4">
+              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-base sm:text-xl font-bold">
                 <Bell className="w-5 h-5 text-amber-600 shrink-0" />
                 <span>تذكير الاعتماد</span>
               </DialogTitle>
@@ -2042,7 +2050,24 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
               </div>
             )}
 
-            <DialogFooter className="flex flex-row justify-start items-center gap-3 pt-3 border-t border-border/60">
+            <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-start items-stretch sm:items-center gap-2.5 pt-3 border-t border-border/60">
+              <Button
+                variant="outline"
+                onClick={() => setReminderModal({
+                  open: false,
+                  order: null,
+                  isCustomizing: false,
+                  customMessage: "",
+                  channels: {
+                    inApp: true,
+                    email: true,
+                    sms: false,
+                  },
+                })}
+                className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl font-bold text-xs sm:text-sm px-6 cursor-pointer"
+              >
+                إلغاء
+              </Button>
               <Button
                 onClick={() => {
                   if (!reminderModal.order) return;
@@ -2061,27 +2086,10 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                   sendReminderMutation.isPending ||
                   (!reminderModal.channels.inApp && !reminderModal.channels.email && !reminderModal.channels.sms)
                 }
-                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white shadow-sm cursor-pointer disabled:opacity-60"
+                className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl font-bold text-xs sm:text-sm px-6 bg-amber-600 hover:bg-amber-700 text-white shadow-sm cursor-pointer disabled:opacity-60"
               >
                 {sendReminderMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Bell className="w-4 h-4 ml-1.5" />}
                 <span>إرسال التذكير</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setReminderModal({
-                  open: false,
-                  order: null,
-                  isCustomizing: false,
-                  customMessage: "",
-                  channels: {
-                    inApp: true,
-                    email: true,
-                    sms: false,
-                  },
-                })}
-                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 cursor-pointer"
-              >
-                إلغاء
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -2089,9 +2097,9 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
 
         {/* نافذة طلب إلغاء اعتماد أمر الصرف المنفذ */}
         <Dialog open={showCancelExecutedDialog} onOpenChange={setShowCancelExecutedDialog}>
-          <DialogContent dir="rtl" className="sm:max-w-[500px] text-right">
+          <DialogContent dir="rtl" className="w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-[500px] max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 text-right">
             <DialogHeader className="text-right sm:text-right items-start">
-              <DialogTitle className="text-rose-700 dark:text-rose-400 flex items-center gap-2 text-lg font-bold justify-start">
+              <DialogTitle className="text-rose-700 dark:text-rose-400 flex items-center gap-2 text-base sm:text-lg font-bold justify-start">
                 <RotateCcw className="w-5 h-5 text-rose-600 shrink-0" />
                 <span>إلغاء اعتماد أمر الصرف المنفذ</span>
               </DialogTitle>
@@ -2168,7 +2176,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                   placeholder="اكتب سبب طلب إلغاء الاعتماد بالتفصيل..."
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
-                  className="text-xs resize-none rounded-xl"
+                  className="text-xs max-md:text-base resize-none rounded-xl"
                 />
               </div>
 
@@ -2179,7 +2187,17 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
               </div>
             </div>
 
-            <DialogFooter className="flex flex-row items-center justify-start gap-3 sm:gap-3 pt-3 border-t">
+            <DialogFooter className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center sm:justify-start gap-2.5 pt-3 border-t">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCancelExecutedDialog(false);
+                  setCancelReason("");
+                }}
+                className="w-full sm:w-auto min-h-10 max-lg:min-h-11 font-semibold text-xs rounded-xl px-5 cursor-pointer"
+              >
+                تراجع
+              </Button>
               <Button
                 variant="destructive"
                 onClick={() => {
@@ -2196,7 +2214,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                   });
                 }}
                 disabled={requestCancelExecutedMutation.isPending || !cancelReason.trim()}
-                className="font-bold text-xs rounded-xl px-5 py-2.5 cursor-pointer"
+                className="w-full sm:w-auto min-h-10 max-lg:min-h-11 font-bold text-xs rounded-xl px-5 cursor-pointer"
               >
                 {requestCancelExecutedMutation.isPending ? (
                   <>
@@ -2210,25 +2228,15 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                   </>
                 )}
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowCancelExecutedDialog(false);
-                  setCancelReason("");
-                }}
-                className="font-semibold text-xs rounded-xl px-5 py-2.5 cursor-pointer"
-              >
-                تراجع
-              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         {/* نافذة تأكيد / رفض إلغاء الاعتماد بواسطة المدير التنفيذي */}
         <Dialog open={showConfirmCancelDialog} onOpenChange={setShowConfirmCancelDialog}>
-          <DialogContent dir="rtl" className="sm:max-w-[520px] text-right">
+          <DialogContent dir="rtl" className="w-[calc(100vw-1rem)] sm:w-[95vw] sm:max-w-[520px] max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 text-right">
             <DialogHeader className="text-right sm:text-right items-start border-b pb-3">
-              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg font-bold justify-start">
+              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-base sm:text-lg font-bold justify-start">
                 <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
                 <span>مراجعة طلب إلغاء اعتماد أمر الصرف</span>
               </DialogTitle>
@@ -2238,10 +2246,10 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
             </DialogHeader>
 
             <div className="space-y-3 py-3 text-xs">
-              <div className="grid grid-cols-2 gap-2.5 p-3 bg-muted/30 rounded-xl border">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3 bg-muted/30 rounded-xl border">
                 <div>
                   <span className="text-muted-foreground block text-[11px]">المستفيد:</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-100">{selectedOrder?.beneficiaryName || "-"}</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100 break-words">{selectedOrder?.beneficiaryName || "-"}</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-[11px]">المبلغ:</span>
@@ -2251,7 +2259,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-[11px]">نوع الإلغاء المطلوب:</span>
-                  <Badge variant="outline" className="font-semibold text-[10px] mt-0.5 border-amber-500 text-amber-700 bg-amber-50/50">
+                  <Badge variant="outline" className="font-semibold text-[10px] mt-0.5 border-amber-500 text-amber-700 bg-amber-50/50 whitespace-normal">
                     {selectedOrder?.cancellationType === "order_only" ? "إلغاء أمر الصرف فقط" : "إلغاء طلب وأمر الصرف معاً"}
                   </Badge>
                 </div>
@@ -2279,8 +2287,15 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
               </div>
             </div>
 
-            <DialogFooter className="flex flex-row justify-between items-center gap-2 pt-3 border-t">
-              <div className="flex items-center gap-2">
+            <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center gap-2 pt-3 border-t">
+              <Button
+                variant="ghost"
+                onClick={() => setShowConfirmCancelDialog(false)}
+                className="w-full sm:w-auto min-h-10 max-lg:min-h-11 font-semibold text-xs rounded-xl"
+              >
+                إغلاق
+              </Button>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <Button
                   variant="destructive"
                   onClick={() => {
@@ -2288,7 +2303,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                     confirmCancelExecutedMutation.mutate({ id: selectedOrder.id });
                   }}
                   disabled={confirmCancelExecutedMutation.isPending || rejectCancelExecutedMutation.isPending}
-                  className="font-bold text-xs rounded-xl"
+                  className="w-full sm:w-auto min-h-10 max-lg:min-h-11 font-bold text-xs rounded-xl"
                 >
                   {confirmCancelExecutedMutation.isPending ? (
                     <>
@@ -2310,7 +2325,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                     rejectCancelExecutedMutation.mutate({ id: selectedOrder.id });
                   }}
                   disabled={confirmCancelExecutedMutation.isPending || rejectCancelExecutedMutation.isPending}
-                  className="font-bold text-xs rounded-xl text-rose-700 hover:text-rose-800 hover:bg-rose-50 border-rose-200"
+                  className="w-full sm:w-auto min-h-10 max-lg:min-h-11 font-bold text-xs rounded-xl text-rose-700 hover:text-rose-800 hover:bg-rose-50 border-rose-200"
                 >
                   {rejectCancelExecutedMutation.isPending ? (
                     <>
@@ -2325,14 +2340,6 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
                   )}
                 </Button>
               </div>
-
-              <Button
-                variant="ghost"
-                onClick={() => setShowConfirmCancelDialog(false)}
-                className="font-semibold text-xs rounded-xl"
-              >
-                إغلاق
-              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -2344,7 +2351,7 @@ export function DisbursementOrdersView({ requestId, isEmbedded = false }: Disbur
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout tabletNavigation>
       {content}
     </DashboardLayout>
   );

@@ -539,85 +539,86 @@ export default function DisbursementOrderPrint() {
   const canControlExecSig = (currentUser?.email === "ceo@manarah.org.sa" || isExecutiveDirector) && !!executiveDirectorSignatureUrl && isOrderStage2Approved;
 
   return (
-    <div className="min-h-screen bg-gray-100 py-3 sm:py-8 print:py-0 print:bg-white" dir="rtl">
+    <div className="min-h-screen bg-gray-100 pb-20 sm:pb-10 print:py-0 print:pb-0 print:bg-white overflow-x-hidden" dir="rtl">
       {/* أزرار التحكم */}
-      <div className="print:hidden w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-border/70 p-2 sm:p-3 sticky top-0 z-50 shadow-xs sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:shadow-none">
-        <div className="flex flex-wrap items-center justify-between sm:justify-end gap-1.5 sm:gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => {
-              if (window.history.length > 1) {
-                window.history.back();
-              } else {
-                navigate("/disbursement-orders");
-              }
-            }} 
-            className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs sm:bg-white/90 font-bold text-xs sm:text-sm gap-1"
-          >
-            <ArrowRight className="h-3.5 w-3.5 ml-1" />
-            رجوع
-          </Button>
-
-          <Button 
-            size="sm"
-            onClick={handlePrint} 
-            className="h-8 sm:h-9 shadow-md gradient-primary text-white font-bold text-xs sm:text-sm gap-1.5"
-          >
-            <Printer className="h-3.5 w-3.5 ml-1" />
-            <span>تنزيل PDF / طباعة</span>
-          </Button>
-
-          {linkedReportId && (
-            <Button
+      <div className="print:hidden sticky top-0 z-50 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-border/70 shadow-xs">
+        <div className="max-w-[210mm] mx-auto px-3 sm:px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <Button 
+              variant="outline" 
               size="sm"
               onClick={() => {
-                const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-                window.open(`/progress-reports/${linkedReportId}/print?from=${returnUrl}`, "_blank");
-              }}
-              className="h-8 sm:h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-sm"
+                if (window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  navigate("/disbursement-orders");
+                }
+              }} 
+              className="min-h-9 max-lg:min-h-11 bg-white dark:bg-slate-800 border shadow-xs font-bold text-xs sm:text-sm gap-1"
             >
-              {isLinkedInvoice ? (
-                <>
-                  <FileSpreadsheet className="h-3.5 w-3.5 ml-1" />
-                  <span>عرض المستخلص</span>
-                </>
-              ) : (
-                <>
-                  <FileText className="h-3.5 w-3.5 ml-1" />
-                  <span>عرض تقرير الإنجاز</span>
-                </>
-              )}
+              <ArrowRight className="h-3.5 w-3.5 ml-1" />
+              رجوع
             </Button>
-          )}
 
-
-          {/* زر اعتماد أمر الصرف لصاحبي الاعتماد */}
-          {canApproveOrder && (
-            <Button
+            <Button 
               size="sm"
-              onClick={() => approveOrderMutation.mutate({ id: orderId })}
-              disabled={approveOrderMutation.isPending}
-              className="h-8 sm:h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm gap-1 animate-pulse"
+              onClick={handlePrint} 
+              className="min-h-9 max-lg:min-h-11 shadow-md gradient-primary text-white font-bold text-xs sm:text-sm gap-1.5"
             >
-              {approveOrderMutation.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 ml-1 animate-spin" />
-              ) : (
-                <Check className="h-3.5 w-3.5 ml-1" />
-              )}
-              اعتماد أمر الصرف
+              <Printer className="h-3.5 w-3.5 ml-1" />
+              <span>تنزيل PDF / طباعة</span>
             </Button>
-          )}
+
+            {linkedReportId && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+                  window.open(`/progress-reports/${linkedReportId}/print?from=${returnUrl}`, "_blank");
+                }}
+                className="min-h-9 max-lg:min-h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-sm"
+              >
+                {isLinkedInvoice ? (
+                  <>
+                    <FileSpreadsheet className="h-3.5 w-3.5 ml-1" />
+                    <span>عرض المستخلص</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-3.5 w-3.5 ml-1" />
+                    <span>عرض تقرير الإنجاز</span>
+                  </>
+                )}
+              </Button>
+            )}
+
+            {/* زر اعتماد أمر الصرف لصاحبي الاعتماد */}
+            {canApproveOrder && (
+              <Button
+                size="sm"
+                onClick={() => approveOrderMutation.mutate({ id: orderId })}
+                disabled={approveOrderMutation.isPending}
+                className="min-h-9 max-lg:min-h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm gap-1 animate-pulse"
+              >
+                {approveOrderMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 ml-1 animate-spin" />
+                ) : (
+                  <Check className="h-3.5 w-3.5 ml-1" />
+                )}
+                اعتماد أمر الصرف
+              </Button>
+            )}
+          </div>
 
           {/* التحكم بالتوقيعات */}
           {(canControlCreatorSig || canControlExecSig) && (
-            <div className="flex items-center gap-1.5 w-full sm:w-auto mt-1 sm:mt-0 justify-end">
+            <div className="flex flex-wrap items-center gap-1.5 justify-end">
               {canControlCreatorSig && (
                 <label
                   htmlFor="show-creator-sig"
-                  className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 shadow-xs hover:bg-slate-50 transition-colors cursor-pointer select-none text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-200"
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 min-h-9 max-lg:min-h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 shadow-xs hover:bg-slate-50 transition-colors cursor-pointer select-none text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-200"
                 >
-                  <PenTool className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${showCreatorSignature ? "text-emerald-600" : "text-slate-400"}`} />
+                  <PenTool className={`w-3.5 h-3.5 ${showCreatorSignature ? "text-emerald-600" : "text-slate-400"}`} />
                   <span>توقيع المالية</span>
                   <Checkbox
                     id="show-creator-sig"
@@ -629,7 +630,7 @@ export default function DisbursementOrderPrint() {
                         updateOrderSigVisibilityMutation.mutate({ id: order.id, showCreatorSignature: val });
                       }
                     }}
-                    className="scale-75 sm:scale-90"
+                    className="scale-90"
                   />
                 </label>
               )}
@@ -637,9 +638,9 @@ export default function DisbursementOrderPrint() {
               {canControlExecSig && (
                 <label
                   htmlFor="show-exec-sig"
-                  className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 shadow-xs hover:bg-slate-50 transition-colors cursor-pointer select-none text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-200"
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 min-h-9 max-lg:min-h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 shadow-xs hover:bg-slate-50 transition-colors cursor-pointer select-none text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-200"
                 >
-                  <PenTool className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${showExecutiveDirectorSignature ? "text-emerald-600" : "text-slate-400"}`} />
+                  <PenTool className={`w-3.5 h-3.5 ${showExecutiveDirectorSignature ? "text-emerald-600" : "text-slate-400"}`} />
                   <span>توقيع المدير</span>
                   <Checkbox
                     id="show-exec-sig"
@@ -651,7 +652,7 @@ export default function DisbursementOrderPrint() {
                         updateOrderSigVisibilityMutation.mutate({ id: order.id, showExecutiveDirectorSignature: val });
                       }
                     }}
-                    className="scale-75 sm:scale-90"
+                    className="scale-90"
                   />
                 </label>
               )}
@@ -661,7 +662,8 @@ export default function DisbursementOrderPrint() {
       </div>
 
       {/* صفحة الطباعة - متموضعة في منتصف الصفحة تماماً */}
-      <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-2 sm:p-8 print:p-0 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-start overflow-hidden">
+      <div className="px-2 sm:px-4 pt-3 sm:pt-6 print:p-0">
+      <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-2 sm:p-8 print:p-0 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-start overflow-hidden rounded-lg sm:rounded-none print:rounded-none">
         {/* إطار مزدوج فاخر للمستند يشبه قالب العقود */}
         <div className="print-inner border-[2px] sm:border-[3px] border-[#1a5f4a] p-2.5 sm:p-6 rounded-lg relative bg-white print:border-[2px] print:p-5 h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[277mm]">
           {/* خط ذهبي داخلي رفيع للإطار */}
@@ -672,16 +674,16 @@ export default function DisbursementOrderPrint() {
             <div>
               {/* الترويسة - الشعار والتاريخ مثل قالب العقد */}
               <div className="flex flex-row justify-between items-start gap-2 mb-4 sm:mb-6">
-                <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                   {orgSettings?.logoUrl ? (
-                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-11 sm:h-16 w-auto print:h-14" />
+                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-11 sm:h-16 w-auto print:h-14 shrink-0" />
                   ) : (
-                    <div className="w-11 h-11 sm:w-16 sm:h-16 bg-primary/10 rounded-lg flex items-center justify-center print:w-14 print:h-14">
+                    <div className="w-11 h-11 sm:w-16 sm:h-16 bg-primary/10 rounded-lg flex items-center justify-center print:w-14 print:h-14 shrink-0">
                       <span className="text-primary font-bold text-lg sm:text-2xl">تمام</span>
                     </div>
                   )}
-                  <div>
-                    <div className="text-xs sm:text-base font-bold text-[#1a5f4a] print:text-sm leading-tight">
+                  <div className="min-w-0">
+                    <div className="text-xs sm:text-base font-bold text-[#1a5f4a] print:text-sm leading-tight break-words">
                       {orgSettings?.officialReportsName || ""}
                     </div>
                     <div className="text-[10.5px] sm:text-xs text-gray-550 font-medium">الإدارة المالية</div>
@@ -690,14 +692,14 @@ export default function DisbursementOrderPrint() {
 
                 <div className="text-[10px] sm:text-xs space-y-1 text-left print:text-left shrink-0">
                   <div className="flex gap-1.5 justify-end">
-                    <span className="font-bold text-gray-600 hidden xs:inline sm:inline">رقم أمر الصرف:</span>
+                    <span className="font-bold text-gray-600 hidden sm:inline print:inline">رقم أمر الصرف:</span>
                     <span className="border-b border-dotted border-gray-400 px-1 sm:px-2 font-mono text-gray-900 font-bold">{order.orderNumber}</span>
                   </div>
                 </div>
               </div>
 
               {/* الترويسة العلوية - شريط العنوان الأخضر */}
-              <div className="bg-[#1a5f4a] text-white font-bold text-xs sm:text-base sm:text-lg mb-3 sm:mb-4 rounded overflow-hidden text-center py-1.5 sm:py-2 font-display">
+              <div className="bg-[#1a5f4a] text-white font-bold text-xs sm:text-lg mb-3 sm:mb-4 rounded overflow-hidden text-center py-1.5 sm:py-2 px-2 font-display">
                 أمر صرف رقم {order.orderNumber} | {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
               </div>
 
@@ -705,7 +707,7 @@ export default function DisbursementOrderPrint() {
               <div className="mb-3 sm:mb-4 text-xs sm:text-sm">
                 <div className="flex border border-slate-300 rounded overflow-hidden items-center">
                   <span className="p-1.5 sm:p-2.5 bg-slate-100 font-bold border-l border-slate-300 text-slate-700 w-20 sm:w-24 shrink-0 text-center text-xs sm:text-sm">التاريخ</span>
-                  <span className="p-1.5 sm:p-2.5 text-slate-900 font-bold text-xs sm:text-base sm:text-lg flex-1 text-center">{formatGregorianDate(orderDate)} م</span>
+                  <span className="p-1.5 sm:p-2.5 text-slate-900 font-bold text-xs sm:text-lg flex-1 text-center">{formatGregorianDate(orderDate)} م</span>
                 </div>
               </div>
 
@@ -803,7 +805,7 @@ export default function DisbursementOrderPrint() {
                         </td>
                       </tr>
                       
-                      <tr className="border-b border-slate-300">
+                      <tr className="hidden sm:table-row print:table-row border-b border-slate-300">
                         <td className="p-1.5 sm:p-2.5 bg-slate-100 font-bold text-slate-700 text-right w-1/4 border-l border-slate-300">
                           إجمالي قيمة الدعم
                         </td>
@@ -822,7 +824,7 @@ export default function DisbursementOrderPrint() {
                         </td>
                       </tr>
 
-                      <tr>
+                      <tr className="hidden sm:table-row print:table-row">
                         <td className="p-1.5 sm:p-2.5 bg-slate-100 font-bold text-slate-700 text-right w-1/4 border-l border-slate-300">
                           إجمالي ما تم دفعه
                         </td>
@@ -835,6 +837,40 @@ export default function DisbursementOrderPrint() {
                           المبلغ المتبقي بعد الصرف
                         </td>
                         <td className="p-1.5 sm:p-2.5 text-slate-800 font-mono text-center w-1/4">
+                          {isTamamLinked 
+                            ? <span className="inline-flex items-center gap-1">{(tamamTotalSupport - (amountsSpent + amount)).toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> 
+                            : (isCustomType ? "—" : (project ? <span className="inline-flex items-center gap-1">{project.remainingAmount.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> : "—"))}
+                        </td>
+                      </tr>
+
+                      {/* Mobile stacked rows for 4-col financial metrics */}
+                      <tr className="sm:hidden print:hidden border-b border-slate-300">
+                        <td className="p-1.5 bg-slate-100 font-bold text-slate-700 text-right w-28 border-l border-slate-300">إجمالي قيمة الدعم</td>
+                        <td className="p-1.5 text-slate-800 font-mono text-right" colSpan={3}>
+                          {isTamamLinked 
+                            ? <span className="inline-flex items-center gap-1">{tamamTotalSupport.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> 
+                            : (isCustomType ? "—" : (project ? <span className="inline-flex items-center gap-1">{project.contractAmount.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> : "—"))}
+                        </td>
+                      </tr>
+                      <tr className="sm:hidden print:hidden border-b border-slate-300">
+                        <td className="p-1.5 bg-slate-100 font-bold text-slate-700 text-right w-28 border-l border-slate-300">إجمالي قيمة العقد</td>
+                        <td className="p-1.5 text-slate-800 font-mono text-right" colSpan={3}>
+                          {isTamamLinked 
+                            ? <span className="inline-flex items-center gap-1">{tamamTotalSupport.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> 
+                            : (isCustomType ? "—" : (project ? <span className="inline-flex items-center gap-1">{project.contractAmount.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> : "—"))}
+                        </td>
+                      </tr>
+                      <tr className="sm:hidden print:hidden border-b border-slate-300">
+                        <td className="p-1.5 bg-slate-100 font-bold text-slate-700 text-right w-28 border-l border-slate-300">إجمالي ما تم دفعه</td>
+                        <td className="p-1.5 text-slate-800 font-mono text-right" colSpan={3}>
+                          {isTamamLinked 
+                            ? <span className="inline-flex items-center gap-1">{(amountsSpent + amount).toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> 
+                            : (isCustomType ? <span className="inline-flex items-center gap-1">{amount.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> : (project ? <span className="inline-flex items-center gap-1">{project.totalPaid.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> : "—"))}
+                        </td>
+                      </tr>
+                      <tr className="sm:hidden print:hidden">
+                        <td className="p-1.5 bg-slate-100 font-bold text-slate-700 text-right w-28 border-l border-slate-300">المتبقي بعد الصرف</td>
+                        <td className="p-1.5 text-slate-800 font-mono text-right" colSpan={3}>
                           {isTamamLinked 
                             ? <span className="inline-flex items-center gap-1">{(tamamTotalSupport - (amountsSpent + amount)).toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> 
                             : (isCustomType ? "—" : (project ? <span className="inline-flex items-center gap-1">{project.remainingAmount.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> : "—"))}
@@ -914,7 +950,45 @@ export default function DisbursementOrderPrint() {
 
             {/* جدول التوقيعات والاعتماد الفاخر لامر الصرف */}
             <div className="mt-4 sm:mt-6 break-inside-avoid">
-              <table className="w-full border-collapse border border-slate-300 text-[10px] sm:text-xs sm:text-sm text-center">
+              {/* Mobile stacked signatures view */}
+              <div className="sm:hidden print:hidden grid grid-cols-1 gap-2.5 text-xs">
+                <div className="border border-slate-300 rounded-lg overflow-hidden bg-white">
+                  <div className="bg-slate-100 px-3 py-1.5 font-bold text-slate-700 flex items-center justify-between border-b border-slate-200">
+                    <span>{creatorDepartment}</span>
+                    <span className="text-[11px] font-medium text-slate-500">{creatorDate}</span>
+                  </div>
+                  <div className="p-2.5 text-center space-y-1.5">
+                    <div className="font-bold text-slate-900">{creatorName}</div>
+                    {(showCreatorSignature && creatorSignatureUrl && (order.status === "pending_executive" || order.status === "approved" || order.status === "executed" || !!order.approvedAt)) ? (
+                      <div className="h-12 flex items-center justify-center mx-auto overflow-hidden">
+                        <img src={creatorSignatureUrl} alt="توقيع مُعد أمر الصرف" className="max-h-12 max-w-[160px] object-contain" />
+                      </div>
+                    ) : (
+                      <div className="h-9 border-b border-dashed border-gray-300 mx-auto w-32"></div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border border-slate-300 rounded-lg overflow-hidden bg-white">
+                  <div className="bg-slate-100 px-3 py-1.5 font-bold text-slate-700 flex items-center justify-between border-b border-slate-200">
+                    <span>{executiveDirectorDepartment}</span>
+                    <span className="text-[11px] font-medium text-slate-500">{executiveDirectorDate}</span>
+                  </div>
+                  <div className="p-2.5 text-center space-y-1.5">
+                    <div className="font-bold text-slate-900">{executiveDirectorName}</div>
+                    {(showExecutiveDirectorSignature && executiveDirectorSignatureUrl && (order.status === "approved" || order.status === "executed" || !!order.approvedAt)) ? (
+                      <div className="h-12 flex items-center justify-center mx-auto overflow-hidden">
+                        <img src={executiveDirectorSignatureUrl} alt="توقيع المدير التنفيذي" className="max-h-12 max-w-[160px] object-contain" />
+                      </div>
+                    ) : (
+                      <div className="h-9 border-b border-dashed border-gray-300 mx-auto w-32"></div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop, iPad & A4 Print table */}
+              <table className="hidden sm:table print:table w-full border-collapse border border-slate-300 text-xs sm:text-sm text-center">
                 <thead>
                   <tr className="bg-slate-100 border-b border-slate-300 font-bold text-slate-750">
                     <th className="p-1.5 sm:p-2 border-l border-slate-300 w-1/4">الوظيفة</th>
@@ -979,12 +1053,13 @@ export default function DisbursementOrderPrint() {
           </div>
         </div>
       </div>
+      </div>
 
       {/* كرت المرفقات والروابط الجانبية خارج إطار التقرير */}
       {(documentationLinks.length > 0 || !!linkedReportId) && (
-        <div className="fixed bottom-4 sm:bottom-auto sm:top-24 left-4 sm:left-auto sm:right-6 z-30 print:hidden text-right flex flex-col sm:items-end gap-2" dir="rtl">
+        <div className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-40 print:hidden text-right flex flex-col items-end gap-2 max-w-[calc(100vw-2rem)]" dir="rtl">
           {showLinksCard ? (
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/90 dark:border-slate-700 shadow-2xl p-4 space-y-3 w-64 max-w-[260px] animate-in fade-in-50 slide-in-from-top-2 duration-200">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/90 dark:border-slate-700 shadow-2xl p-4 space-y-3 w-[calc(100vw-2rem)] max-w-[300px] animate-in fade-in-50 slide-in-from-bottom-2 duration-200">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/80 pb-2.5">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">

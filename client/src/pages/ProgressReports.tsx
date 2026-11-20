@@ -1806,19 +1806,19 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
   if (isInvoiceMode && (!invoiceAccess.canView ||
       (activeTab === "create-invoice" && !(editingReportId ? invoiceAccess.canEdit : invoiceAccess.canAdd)))) {
-    return <DashboardLayout><div className="py-16 text-center" dir="rtl">غير مصرح لك بالوصول إلى هذا الإجراء في المستخلصات</div></DashboardLayout>;
+    return <DashboardLayout tabletNavigation><div className="py-16 px-4 text-center text-sm sm:text-base text-muted-foreground" dir="rtl">غير مصرح لك بالوصول إلى هذا الإجراء في المستخلصات</div></DashboardLayout>;
   }
   if (!isInvoiceMode && (!reportAccess.canView ||
       (activeTab === "create" && !reportAccess.canAdd) || (activeTab === "edit" && !reportAccess.canEdit))) {
-    return <DashboardLayout><div className="py-16 text-center" dir="rtl">غير مصرح لك بالوصول إلى هذا الإجراء في تقارير الإنجاز</div></DashboardLayout>;
+    return <DashboardLayout tabletNavigation><div className="py-16 px-4 text-center text-sm sm:text-base text-muted-foreground" dir="rtl">غير مصرح لك بالوصول إلى هذا الإجراء في تقارير الإنجاز</div></DashboardLayout>;
   }
 
   if (activeTab === "create" || activeTab === "edit") {
     const formContent = (
-      <fieldset disabled={isSubmitting} aria-busy={isSubmitting} className="space-y-6 max-w-4xl mx-auto min-w-0">
+      <fieldset disabled={isSubmitting} aria-busy={isSubmitting} className="space-y-4 sm:space-y-6 max-w-4xl mx-auto min-w-0 max-w-full overflow-x-hidden pb-10" dir="rtl">
           {/* Page Header */}
           <div className="flex items-center justify-between border-b pb-4">
-            <div className="flex items-center gap-3">
+            <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0">
               <Button
                 variant="outline"
                 size="icon"
@@ -1826,15 +1826,15 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   setActiveTab("list");
                   resetNewReport();
                 }}
-                className="rounded-full hover:bg-muted"
+                className="size-10 max-lg:size-11 shrink-0 rounded-full hover:bg-muted"
               >
                 <ArrowRight className="w-4 h-4" />
               </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-2xl font-bold text-foreground leading-tight">
                   {activeTab === "edit" ? "تعديل تقرير الإنجاز" : "إنشاء تقرير إنجاز جديد"}
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                   {activeTab === "edit" ? "تحديث تفاصيل التقرير والنسب المالية للمشروع" : "أدخل تفاصيل التقرير والنسب المالية للمشروع"}
                 </p>
               </div>
@@ -1842,17 +1842,17 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
           </div>
 
           {/* Form Body - Premium Styled Cards */}
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6">
             {/* Card 1: Project & Payments */}
-            <Card className="border-border/60 shadow-sm">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4">
-                <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-                  <Building2 className="w-4.5 h-4.5 text-primary" />
+            <Card className="py-0 gap-0 border-border/60 shadow-sm overflow-hidden">
+              <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:p-5">
+                <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-foreground">
+                  <Building2 className="w-4.5 h-4.5 text-primary shrink-0" />
                   المشروع وجدولة الدفعات
                 </CardTitle>
-                <CardDescription>اختر المشروع أولاً ثم حدد الدفعة المالية المجدولة المرتبطة</CardDescription>
+                <CardDescription className="text-xs sm:text-sm">اختر المشروع أولاً ثم حدد الدفعة المالية المجدولة المرتبطة</CardDescription>
               </CardHeader>
-              <CardContent className="pt-6 space-y-6">
+              <CardContent className="p-4 sm:p-5 space-y-5 sm:space-y-6">
                 <div className="space-y-2">
                   <Label className="font-semibold text-foreground">المشروع <span className="text-red-500">*</span></Label>
                   <ProjectSearchSelect
@@ -1884,9 +1884,9 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 {newReport.projectId > 0 && (
                   isMilestonesProject ? (
                     <div className="pt-4 border-t border-dashed border-border/80 animate-in fade-in">
-                      <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl p-5 flex items-start gap-3.5 text-amber-900 dark:text-amber-200">
-                        <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                        <div className="space-y-2 flex-1 text-right">
+                      <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl p-4 sm:p-5 flex items-start gap-3 text-amber-900 dark:text-amber-200">
+                        <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                        <div className="space-y-2 flex-1 text-right min-w-0">
                           <h4 className="font-bold text-sm text-amber-900 dark:text-amber-300">
                             لا يمكن إنشاء تقرير إنجاز لهذا المشروع
                           </h4>
@@ -1896,7 +1896,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                           <Button
                             type="button"
                             size="sm"
-                            className="bg-amber-600 hover:bg-amber-700 text-white font-bold h-8 text-xs rounded-lg mt-1 gap-1.5"
+                            className="bg-amber-600 hover:bg-amber-700 text-white font-bold h-9 max-lg:min-h-10 w-full sm:w-auto text-xs rounded-xl mt-1 gap-1.5"
                             onClick={() => {
                               setSelectedProjectId(newReport.projectId);
                               setActiveTab("create-invoice");
@@ -1911,7 +1911,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   ) : (
                     <div className="space-y-3 pt-4 border-t border-dashed border-border/80">
                       <Label className="text-sm font-bold text-foreground flex items-center gap-2">
-                        <CreditCard className="w-4 h-4 text-primary" />
+                        <CreditCard className="w-4 h-4 text-primary shrink-0" />
                         الدفعات وجدولة الإنجاز المرتبطة للمشروع
                       </Label>
                       <p className="text-xs text-muted-foreground">
@@ -1923,7 +1923,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                           <div className="h-28 rounded-xl border border-dashed border-muted-foreground/20 animate-pulse bg-muted/40" />
                         </div>
                       ) : projectDetails?.payments && projectDetails.payments.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-1.5 bg-muted/30 rounded-xl border border-border/60">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[340px] overflow-y-auto p-1.5 bg-muted/30 rounded-xl border border-border/60">
                           {projectDetails.payments.map((payment: any, index: number) => {
                             const isAdvance = isAdvancePayment(payment);
                             const isSelected = selectedPaymentId === payment.id;
@@ -1973,7 +1973,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                                   if (editingReportId) return;
                                   handleSelectPayment(payment);
                                 }}
-                                className={`relative p-4 rounded-xl border-2 text-right transition-all duration-300 flex flex-col justify-between gap-3 ${
+                                className={`relative p-3.5 sm:p-4 rounded-xl border-2 text-right transition-all duration-300 flex flex-col justify-between gap-3 ${
                                   isAdvance
                                     ? "border-slate-200/80 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-800/30 opacity-60 cursor-not-allowed select-none shadow-none"
                                     : isSelected
@@ -1994,25 +1994,25 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                                 )}
                                 
                                 <div className="flex items-start justify-between gap-2">
-                                  <div className="flex items-center gap-2">
-                                    <div className={`p-1.5 rounded-lg ${isSelected ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <div className={`p-1.5 rounded-lg shrink-0 ${isSelected ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
                                       <Coins className="w-4 h-4" />
                                     </div>
-                                    <span className="font-bold text-sm leading-none block text-foreground">
+                                    <span className="font-bold text-xs sm:text-sm leading-snug block text-foreground break-words">
                                       {payment.description || payment.paymentNumber}
                                     </span>
                                   </div>
-                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${statusStyles}`}>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border shrink-0 ${statusStyles}`}>
                                     {statusLabel}
                                   </span>
                                 </div>
                                 
-                                <div className="flex items-baseline justify-between mt-1 border-t border-dashed border-border/40 pt-2">
+                                <div className="flex items-baseline justify-between gap-2 flex-wrap mt-1 border-t border-dashed border-border/40 pt-2">
                                   <span className="text-[11px] text-muted-foreground">قيمة الدفعة:</span>
-                                  <span className="font-extrabold text-base text-foreground inline-flex items-center gap-1">
+                                  <span className="font-extrabold text-sm sm:text-base text-foreground inline-flex items-center gap-1 flex-wrap font-mono">
                                     {getPaymentEffectiveAmount(payment).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                                     {payment.isPartiallyPaid && (
-                                      <span className="text-[10px] font-normal text-muted-foreground mr-1">
+                                      <span className="text-[10px] font-normal font-sans text-muted-foreground mr-1">
                                         (مسدد جزئياً من {parseFloat(payment.agreedAmount || payment.amount || "0").toLocaleString()})
                                       </span>
                                     )}
@@ -2022,7 +2022,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                                 <div className="space-y-1">
                                   <div className="flex items-center justify-between text-[11px]">
                                     <span className="text-muted-foreground">نسبة الإنجاز المطلوبة:</span>
-                                    <span className="font-bold text-primary">{payment.completionPercentage || 0}%</span>
+                                    <span className="font-bold text-primary font-mono">{payment.completionPercentage || 0}%</span>
                                   </div>
                                   <Progress value={payment.completionPercentage || 0} className="h-1.5 bg-muted/60" />
                                 </div>
@@ -2060,55 +2060,55 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 {hasIncompleteSchedule && (
                   <div className="bg-amber-50/80 border border-amber-200/60 dark:bg-amber-950/20 dark:border-amber-900/40 rounded-xl p-4 flex items-start gap-3 text-right backdrop-blur-sm animate-in fade-in">
                     <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
-                    <div className="space-y-1.5 flex-1">
+                    <div className="space-y-1.5 flex-1 min-w-0">
                       <h4 className="font-bold text-amber-900 dark:text-amber-400 text-sm">لا يمكن صرف تقرير إنجاز للمشروع</h4>
                       <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
                         لا يمكن صرف تقرير إنجاز حتى تجدول كل دفعات المشروع. يرجى الذهاب إلى تفاصيل المشروع وجدولة جميع الدفعات.
                       </p>
-                      <div className="flex items-center gap-4 mt-2 text-xs font-semibold text-amber-900 dark:text-amber-400 bg-amber-100/50 dark:bg-amber-950/40 px-3 py-1.5 rounded-lg border border-amber-200/40 w-fit">
-                        <span>قيمة العقد: <span className="font-bold inline-flex items-center gap-1">{totalContractAmount.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span></span>
-                        <span className="w-1 h-1 bg-amber-400 rounded-full"></span>
-                        <span>الدفعات المجدولة: <span className="font-bold inline-flex items-center gap-1">{totalScheduledPayments.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span></span>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs font-semibold text-amber-900 dark:text-amber-400 bg-amber-100/50 dark:bg-amber-950/40 px-3 py-1.5 rounded-lg border border-amber-200/40 w-fit max-w-full">
+                        <span>قيمة العقد: <span className="font-bold font-mono inline-flex items-center gap-1">{totalContractAmount.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span></span>
+                        <span className="hidden sm:inline-block w-1 h-1 bg-amber-400 rounded-full"></span>
+                        <span>الدفعات المجدولة: <span className="font-bold font-mono inline-flex items-center gap-1">{totalScheduledPayments.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span></span>
                       </div>
                     </div>
                   </div>
                 )}
 
-                <Card className="border-border/60 shadow-sm">
-                  <CardHeader className="bg-muted/30 border-b border-border/40 py-4">
-                    <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-                      <FileText className="w-4.5 h-4.5 text-primary" />
+                <Card className="py-0 gap-0 border-border/60 shadow-sm overflow-hidden">
+                  <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:p-5">
+                    <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-foreground">
+                      <FileText className="w-4.5 h-4.5 text-primary shrink-0" />
                       بيانات التقرير ونسب الإنجاز
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-6 space-y-6">
+                  <CardContent className="p-4 sm:p-5 space-y-5 sm:space-y-6">
                     <div className="space-y-2">
                       <Label className="font-semibold text-foreground">عنوان التقرير <span className="text-red-500">*</span></Label>
                       <Input
                         value={newReport.title}
                         onChange={(e) => setNewReport({ ...newReport, title: e.target.value })}
                         placeholder="مثال: تقرير إنجاز دفعة الإنجاز الأولى"
-                        className="h-11 text-foreground"
+                        className="h-11 max-md:text-base text-foreground"
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
                       <div className="space-y-2">
-                        <Label className="font-semibold text-foreground">نسبة الإنجاز المخططة <span className="text-red-500">*</span></Label>
+                        <Label className="font-semibold text-foreground text-xs sm:text-sm">نسبة الإنجاز المخططة <span className="text-red-500">*</span></Label>
                         <div className="relative">
                           <Input
                             type="number"
                             value={newReport.plannedProgress}
                             readOnly
-                            className="bg-muted/40 font-extrabold border-muted-foreground/20 text-slate-900 dark:text-slate-100 cursor-not-allowed h-11 pl-10 text-right focus-visible:ring-0"
+                            className="bg-muted/40 font-extrabold border-muted-foreground/20 text-slate-900 dark:text-slate-100 cursor-not-allowed h-11 max-md:text-base pl-10 text-right focus-visible:ring-0"
                           />
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">%</span>
                         </div>
-                        <p className="text-[10px] text-muted-foreground mt-1">حقل تلقائي يأتي من الدفعة المختارة</p>
+                        <p className="text-[11px] text-muted-foreground mt-1">حقل تلقائي يأتي من الدفعة المختارة</p>
                       </div>
 
                       <div className="space-y-2">
-                        <Label className="font-semibold text-foreground">نسبة الإنجاز الفعلية <span className="text-red-500">*</span></Label>
+                        <Label className="font-semibold text-foreground text-xs sm:text-sm">نسبة الإنجاز الفعلية <span className="text-red-500">*</span></Label>
                         <div className="relative">
                           <Input
                             type="number"
@@ -2123,48 +2123,49 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                                 overallProgress: val,
                               }));
                             }}
-                            className="h-11 font-bold text-foreground pl-10 text-right"
+                            className="h-11 max-md:text-base font-bold text-foreground pl-10 text-right"
                           />
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">%</span>
                         </div>
-                        <p className="text-[10px] text-muted-foreground mt-1">أدخل نسبة إنجاز العمل الحالية بالموقع</p>
+                        <p className="text-[11px] text-muted-foreground mt-1">أدخل نسبة إنجاز العمل الحالية بالموقع</p>
                       </div>
 
                       <div className="space-y-2">
-                        <Label className="font-semibold text-foreground">نسبة الإنجاز الإجمالية <span className="text-red-500">*</span></Label>
+                        <Label className="font-semibold text-foreground text-xs sm:text-sm">نسبة الإنجاز الإجمالية <span className="text-red-500">*</span></Label>
                         <div className="relative">
                           <Input
                             type="number"
                             value={newReport.overallProgress}
                             readOnly
-                            className="bg-muted/40 font-extrabold border-muted-foreground/20 text-slate-900 dark:text-slate-100 cursor-not-allowed h-11 pl-10 text-right focus-visible:ring-0"
+                            className="bg-muted/40 font-extrabold border-muted-foreground/20 text-slate-900 dark:text-slate-100 cursor-not-allowed h-11 max-md:text-base pl-10 text-right focus-visible:ring-0"
                           />
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">%</span>
                         </div>
-                        <p className="text-[10px] text-muted-foreground mt-1">تطابق نسبة الإنجاز الفعلية تلقائياً</p>
+                        <p className="text-[11px] text-muted-foreground mt-1">تطابق نسبة الإنجاز الفعلية تلقائياً</p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* Card 3: Completed Works */}
-                <Card className="border-border/60 shadow-sm">
-                  <CardHeader className="bg-muted/30 border-b border-border/40 py-4">
-                    <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-                      <FileText className="w-4.5 h-4.5 text-primary" />
+                <Card className="py-0 gap-0 border-border/60 shadow-sm overflow-hidden">
+                  <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:p-5">
+                    <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-foreground">
+                      <FileText className="w-4.5 h-4.5 text-primary shrink-0" />
                       الأعمال والملاحظات الفنية
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-6 space-y-6">
+                  <CardContent className="p-4 sm:p-5 space-y-5 sm:space-y-6">
                     <div className="space-y-2">
-                      <Label className="font-semibold text-foreground flex items-center gap-1.5">
-                        الأعمال المنجزة المجدولة للدفعة <span className="text-xs text-muted-foreground">(غير قابلة للتعديل)</span>
+                      <Label className="font-semibold text-foreground flex items-center flex-wrap gap-1.5">
+                        <span>الأعمال المنجزة المجدولة للدفعة</span>
+                        <span className="text-xs text-muted-foreground">(غير قابلة للتعديل)</span>
                       </Label>
                       <Textarea
                         value={newReport.workSummary}
                         readOnly
                         placeholder="الأعمال المخططة التي تأتي تلقائياً من الدفعة..."
-                        className="bg-muted/40 border-muted-foreground/20 text-slate-900 dark:text-slate-100 font-semibold cursor-not-allowed min-h-[100px] leading-relaxed resize-none text-right focus-visible:ring-0"
+                        className="bg-muted/40 border-muted-foreground/20 text-slate-900 dark:text-slate-100 font-semibold cursor-not-allowed min-h-[100px] max-md:text-base leading-relaxed resize-none text-right focus-visible:ring-0"
                       />
                     </div>
 
@@ -2174,26 +2175,26 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                         value={newReport.actualWorkDone}
                         onChange={(e) => setNewReport({ ...newReport, actualWorkDone: e.target.value })}
                         placeholder="اذكر بالتفصيل ما تم إنجازه وتنفيذه فعلياً على أرض الواقع..."
-                        className="min-h-[120px] leading-relaxed text-foreground text-right"
+                        className="min-h-[120px] max-md:text-base leading-relaxed text-foreground text-right"
                       />
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* Card 4: Upload Attachments Section */}
-                <Card className="border-border/60 shadow-sm">
-                  <CardHeader className="bg-muted/30 border-b border-border/40 py-4">
-                    <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-                      <Upload className="w-4.5 h-4.5 text-primary" />
+                <Card className="py-0 gap-0 border-border/60 shadow-sm overflow-hidden">
+                  <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:p-5">
+                    <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-foreground">
+                      <Upload className="w-4.5 h-4.5 text-primary shrink-0" />
                       قسم المرفقات
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-6 space-y-6">
+                  <CardContent className="p-4 sm:p-5 space-y-5">
                     <div className="space-y-4">
                       <Label className="font-semibold text-foreground">تحميل الصور والمستندات (الحد الأقصى 10 ميجابايت)</Label>
                       
                       {/* Dropzone design */}
-                      <div className="border-2 border-dashed border-border hover:border-primary/50 rounded-xl p-6 transition-colors bg-muted/5 flex flex-col items-center justify-center cursor-pointer relative group">
+                      <div className="border-2 border-dashed border-border hover:border-primary/50 rounded-xl p-5 sm:p-6 transition-colors bg-muted/5 flex flex-col items-center justify-center text-center cursor-pointer relative group">
                         <input
                           type="file"
                           multiple
@@ -2202,17 +2203,17 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                           accept="image/*,.heic,.heif,application/pdf"
                         />
                         <Upload className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors mb-2" />
-                        <p className="text-sm font-semibold text-foreground mb-1">اسحب وأفلت الملفات هنا، أو انقر للتصفح</p>
-                        <p className="text-xs text-muted-foreground">يدعم ملفات الصور ومستندات PDF فقط. يمنع تماماً رفع الملفات التنفيذية.</p>
+                        <p className="text-xs sm:text-sm font-semibold text-foreground mb-1">اسحب وأفلت الملفات هنا، أو انقر للتصفح</p>
+                        <p className="text-[11px] sm:text-xs text-muted-foreground">يدعم ملفات الصور ومستندات PDF فقط. يمنع تماماً رفع الملفات التنفيذية.</p>
                       </div>
 
                       {/* File preview list */}
                       {uploadedFiles.length > 0 && (
                         <div className="space-y-2 pt-2">
                           <h4 className="text-xs font-bold text-muted-foreground">المرفقات المختارة ({uploadedFiles.length})</h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                             {uploadedFiles.map((file, idx) => (
-                              <div key={idx} className="flex items-center justify-between border border-border/80 bg-background rounded-lg p-2.5 shadow-xs relative">
+                              <div key={idx} className="flex items-center justify-between gap-2 border border-border/80 bg-background rounded-lg p-2.5 shadow-xs relative">
                                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
                                   {file.type.startsWith("image/") || file.type === "" ? (
                                     <img src={file.base64} alt={file.name} className="w-10 h-10 object-cover rounded-md flex-shrink-0" />
@@ -2235,7 +2236,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                                   type="button"
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/5 shrink-0 rounded-full"
+                                  className="size-8 max-lg:size-9 text-muted-foreground hover:text-destructive hover:bg-destructive/5 shrink-0 rounded-full"
                                   onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== idx))}
                                 >
                                   <X className="w-4 h-4" />
@@ -2250,17 +2251,17 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 </Card>
 
                 {/* Card 5: توصية إدارة المشاريع */}
-                <Card className="border-border/60 shadow-sm border-emerald-500/30 bg-emerald-50/10 dark:bg-emerald-950/5">
-                  <CardHeader className="bg-emerald-50/40 dark:bg-emerald-950/20 border-b border-border/40 py-4">
-                    <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-                      <ShieldCheck className="w-4.5 h-4.5 text-emerald-600" />
+                <Card className="py-0 gap-0 border-border/60 shadow-sm border-emerald-500/30 bg-emerald-50/10 dark:bg-emerald-950/5 overflow-hidden">
+                  <CardHeader className="bg-emerald-50/40 dark:bg-emerald-950/20 border-b border-border/40 p-4 sm:p-5">
+                    <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-foreground">
+                      <ShieldCheck className="w-4.5 h-4.5 text-emerald-600 shrink-0" />
                       توصية إدارة المشاريع
                     </CardTitle>
                     <CardDescription className="text-xs text-muted-foreground">
                       توصية المهندس المشرف وإدارة المشاريع بشأن إنجاز هذه المرحلة وصرف الدفعة المالية للمستفيد
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="pt-6 space-y-3">
+                  <CardContent className="p-4 sm:p-5 space-y-3">
                     <div className="space-y-2">
                       <Label className="font-semibold text-foreground flex items-center justify-between">
                         <span>نص توصية إدارة المشاريع</span>
@@ -2270,7 +2271,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                         onChange={(e) => setNewReport({ ...newReport, recommendations: e.target.value })}
                         placeholder="اكتب هنا توصية إدارة المشاريع ....."
                         rows={4}
-                        className="w-full min-h-[110px] leading-relaxed text-foreground text-right"
+                        className="w-full min-h-[110px] max-md:text-base leading-relaxed text-foreground text-right"
                       />
                     </div>
                   </CardContent>
@@ -2278,7 +2279,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
                 {/* Form Actions */}
                 {uploadFeedback}
-                <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-border/40">
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3 pt-4 border-t border-border/40">
                   <Button
                     variant="outline"
                     size="lg"
@@ -2286,7 +2287,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                       setActiveTab("list");
                       resetNewReport();
                     }}
-                    className="px-6 h-12"
+                    className="w-full sm:w-auto px-6 h-11 sm:h-12 rounded-xl"
                   >
                     إلغاء وتراجع
                   </Button>
@@ -2303,7 +2304,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                       !newReport.title.trim() || 
                       !newReport.actualWorkDone.trim()
                     }
-                    className="px-8 h-12 shadow-sm font-bold bg-primary hover:bg-primary/90 flex items-center gap-2"
+                    className="w-full sm:w-auto px-8 h-11 sm:h-12 rounded-xl shadow-sm font-bold bg-primary hover:bg-primary/90 flex items-center justify-center gap-2"
                   >
                     {(isSubmitting || (editingReportId ? updateMutation.isPending : createMutation.isPending)) ? (
                       <>
@@ -2320,15 +2321,15 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
           </div>
       </fieldset>
       );
-    return embedded ? formContent : <DashboardLayout>{formContent}</DashboardLayout>;
+    return embedded ? formContent : <DashboardLayout tabletNavigation>{formContent}</DashboardLayout>;
   }
 
   if (activeTab === "create-invoice") {
     const invoiceFormContent = (
-      <fieldset disabled={isSubmitting} aria-busy={isSubmitting} className="space-y-6 max-w-4xl mx-auto min-w-0">
+      <fieldset disabled={isSubmitting} aria-busy={isSubmitting} className="space-y-4 sm:space-y-6 max-w-4xl mx-auto min-w-0 max-w-full overflow-x-hidden pb-10" dir="rtl">
         {/* Page Header */}
         <div className="flex items-center justify-between border-b pb-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0">
             <Button
               variant="outline"
               size="icon"
@@ -2336,16 +2337,16 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 setActiveTab("list");
                 resetInvoiceForm();
               }}
-              className="rounded-full hover:bg-muted"
+              className="size-10 max-lg:size-11 shrink-0 rounded-full hover:bg-muted"
             >
               <ArrowRight className="w-4 h-4" />
             </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <FileSpreadsheet className="w-6 h-6 text-emerald-600" />
-                {editingReportId ? "تعديل مستخلص إنجاز مالي" : "إنشاء مستخلص إنجاز مالي جديد"}
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold text-foreground flex items-center gap-2 leading-tight">
+                <FileSpreadsheet className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 shrink-0" />
+                <span>{editingReportId ? "تعديل مستخلص إنجاز مالي" : "إنشاء مستخلص إنجاز مالي جديد"}</span>
               </h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                 {editingReportId
                   ? "تعديل بيانات المستخلص ونسبة الإنجاز والأعمال المنجزة مع تثبيت المشروع والعقد المالي"
                   : "رفع مستخلص مرتبط بعقد بنظام المستخلصات وفق نسبة الإنجاز الفعلي لإصدار أمر الصرف"}
@@ -2355,21 +2356,21 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         </div>
 
         {/* Form Body */}
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6">
           {/* Card 1: المشروع المرتبط */}
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="bg-muted/30 border-b border-border/40 py-4">
-              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-                <Building2 className="w-4.5 h-4.5 text-primary" />
+          <Card className="py-0 gap-0 border-border/60 shadow-sm overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:p-5">
+              <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-foreground">
+                <Building2 className="w-4.5 h-4.5 text-primary shrink-0" />
                 {editingReportId ? "المشروع والعقد المرتبط بالمستخلص" : "اختيار المشروع (نظام المستخلصات)"}
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs sm:text-sm">
                 {editingReportId
                   ? "المشروع والعقد المرتبطين بالمستخلص مقيدان ولا يمكن تغييرهما أثناء تعديل المستخلص."
                   : "حدد المشروع الذي ترغب بإنشاء مستخلص له. تظهر هنا حصراً المشاريع المفعلة بنظام المستخلصات مع إمكانية البحث الفوري."}
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-6 space-y-4">
+            <CardContent className="p-4 sm:p-5 space-y-4">
               {milestoneProjects.length === 0 ? (
                 <div className="bg-amber-50/80 border border-amber-200/60 dark:bg-amber-950/20 dark:border-amber-900/40 rounded-xl p-4 flex items-start gap-3 text-right">
                   <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
@@ -2422,7 +2423,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   </div>
 
                   {isSelectedProjectFullyPaid && (
-                    <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl p-4 flex items-start gap-3.5 text-amber-900 dark:text-amber-200">
+                    <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl p-4 flex items-start gap-3 text-amber-900 dark:text-amber-200">
                       <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                       <div className="space-y-1">
                         <h4 className="font-bold text-xs sm:text-sm">تم سداد كامل قيمة العقد للمشروع</h4>
@@ -2450,7 +2451,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                         onValueChange={(val) => setSelectedContractId(parseInt(val) || null)}
                         disabled={Boolean(editingReportId)}
                       >
-                        <SelectTrigger className="w-full text-right text-xs">
+                        <SelectTrigger className="w-full h-10 max-lg:min-h-11 text-right text-xs">
                           <SelectValue placeholder="اختر العقد المرتبط..." />
                         </SelectTrigger>
                         <SelectContent className="max-h-56">
@@ -2465,23 +2466,21 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   )}
                 </div>
               )}
-
-
             </CardContent>
           </Card>
 
           {/* Card 2: بيانات المستخلص ونسبة الإنجاز */}
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="bg-muted/30 border-b border-border/40 py-4">
-              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-                <FileSpreadsheet className="w-4.5 h-4.5 text-emerald-600" />
+          <Card className="py-0 gap-0 border-border/60 shadow-sm overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:p-5">
+              <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-foreground">
+                <FileSpreadsheet className="w-4.5 h-4.5 text-emerald-600 shrink-0" />
                 بيانات المستخلص ونسبة الإنجاز
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs sm:text-sm">
                 أدخل عنوان المستخلص ونسبة الإنجاز الفعلي ووصف الأعمال المنجزة
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-6 space-y-6">
+            <CardContent className="p-4 sm:p-5 space-y-5 sm:space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="font-semibold text-foreground">عنوان المستخلص <span className="text-red-500">*</span></Label>
@@ -2489,6 +2488,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                     placeholder="مثال: مستخلص الأعمال الترابية والهيكلية - الدفعة الأولى"
                     value={invoiceTitle}
                     onChange={(e) => setInvoiceTitle(e.target.value)}
+                    className="h-11 max-md:text-base"
                   />
                 </div>
 
@@ -2506,7 +2506,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                         const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
                         setInvoicePercentage(val);
                       }}
-                      className="pl-8 text-left font-mono"
+                      className="h-11 max-md:text-base pl-8 text-left font-mono"
                     />
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-bold">%</span>
                   </div>
@@ -2521,27 +2521,27 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   placeholder="اكتب وصفاً مفصلاً لكافة الأعمال والبنود والمواصفات التي تم إنجازها على أرض الواقع خلال هذه المرحلة..."
                   value={invoiceWorkDone}
                   onChange={(e) => setInvoiceWorkDone(e.target.value)}
-                  className="resize-none leading-relaxed"
+                  className="resize-none max-md:text-base leading-relaxed"
                 />
               </div>
             </CardContent>
           </Card>
 
           {/* Card 3: المرفقات والمستندات الثبوتية */}
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="bg-muted/30 border-b border-border/40 py-4">
-              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-                <Upload className="w-4.5 h-4.5 text-primary" />
+          <Card className="py-0 gap-0 border-border/60 shadow-sm overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:p-5">
+              <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-foreground">
+                <Upload className="w-4.5 h-4.5 text-primary shrink-0" />
                 المرفقات والمستندات الثبوتية
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs sm:text-sm">
                 ارفق صور التوثيق الميداني للأعمال المنجزة أو تقارير الفحص أو فواتير المقاول (حتى 10 ميجابايت)
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-6 space-y-4">
+            <CardContent className="p-4 sm:p-5 space-y-4">
               <div
                 onClick={() => invoiceFileInputRef.current?.click()}
-                className="border-2 border-dashed border-border/80 hover:border-primary/60 rounded-xl p-6 text-center cursor-pointer transition-all hover:bg-muted/20"
+                className="border-2 border-dashed border-border/80 hover:border-primary/60 rounded-xl p-5 sm:p-6 text-center cursor-pointer transition-all hover:bg-muted/20"
               >
                 <input
                   type="file"
@@ -2552,11 +2552,11 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   className="hidden"
                 />
                 <div className="flex flex-col items-center gap-2">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                    <Upload className="w-6 h-6" />
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                    <Upload className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <p className="font-bold text-sm text-foreground">اضغط هنا لرفع الملفات أو اسحبها وأفلتها</p>
-                  <p className="text-xs text-muted-foreground">يدعم الصور (PNG, JPG, WEBP) وملفات PDF بحد أقصى 10 ميجابايت إجمالي</p>
+                  <p className="font-bold text-xs sm:text-sm text-foreground">اضغط هنا لرفع الملفات أو اسحبها وأفلتها</p>
+                  <p className="text-[11px] sm:text-xs text-muted-foreground">يدعم الصور (PNG, JPG, WEBP) وملفات PDF بحد أقصى 10 ميجابايت إجمالي</p>
                 </div>
               </div>
 
@@ -2565,20 +2565,17 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   <Label className="text-xs text-muted-foreground font-semibold">المرفقات المختارة ({uploadedFiles.length}):</Label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {uploadedFiles.map((file, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/30 text-xs">
-                        <div className="flex items-center gap-2 truncate">
+                      <div key={idx} className="flex items-center justify-between gap-2 p-2.5 rounded-lg border bg-muted/30 text-xs">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
                           <FileText className="w-4 h-4 text-primary flex-shrink-0" />
                           <span className="truncate font-medium">{file.name}</span>
-                          <span className="text-muted-foreground text-[10px]">({(file.size / 1024).toFixed(1)} ك.ب)</span>
-                          <span className="text-muted-foreground text-[10px]">
-                            {file.uploadedUrl || !file.base64.startsWith("data:") ? "تم الرفع" : "بانتظار الرفع"}
-                          </span>
+                          <span className="text-muted-foreground text-[10px] shrink-0">({(file.size / 1024).toFixed(1)} ك.ب)</span>
                         </div>
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="w-6 h-6 text-destructive hover:bg-destructive/10 rounded-full"
+                          className="size-8 max-lg:size-9 text-destructive hover:bg-destructive/10 rounded-full shrink-0"
                           onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== idx))}
                         >
                           <X className="w-3.5 h-3.5" />
@@ -2592,17 +2589,17 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
           </Card>
 
           {/* Card 4: توصية إدارة المشاريع */}
-          <Card className="border-border/60 shadow-sm border-emerald-500/30 bg-emerald-50/10 dark:bg-emerald-950/5">
-            <CardHeader className="bg-emerald-50/40 dark:bg-emerald-950/20 border-b border-border/40 py-4">
-              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-                <ShieldCheck className="w-4.5 h-4.5 text-emerald-600" />
+          <Card className="py-0 gap-0 border-border/60 shadow-sm border-emerald-500/30 bg-emerald-50/10 dark:bg-emerald-950/5 overflow-hidden">
+            <CardHeader className="bg-emerald-50/40 dark:bg-emerald-950/20 border-b border-border/40 p-4 sm:p-5">
+              <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-foreground">
+                <ShieldCheck className="w-4.5 h-4.5 text-emerald-600 shrink-0" />
                 توصية إدارة المشاريع
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
                 توصية المهندس المشرف وإدارة المشاريع بشأن اعتماد المستخلص وإصدار أمر الصرف
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-6 space-y-3">
+            <CardContent className="p-4 sm:p-5 space-y-3">
               <div className="space-y-2">
                 <Label className="font-semibold text-foreground flex items-center justify-between">
                   <span>نص توصية إدارة المشاريع</span>
@@ -2612,7 +2609,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   onChange={(e) => setInvoiceRecommendations(e.target.value)}
                   placeholder="اكتب هنا توصية إدارة المشاريع بشأن اعتماد المستخلص وإصدار أمر الصرف للمستفيد..."
                   rows={4}
-                  className="w-full min-h-[110px] leading-relaxed text-foreground text-right"
+                  className="w-full min-h-[110px] max-md:text-base leading-relaxed text-foreground text-right"
                 />
               </div>
             </CardContent>
@@ -2620,10 +2617,11 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
           {/* Actions bar */}
           {uploadFeedback}
-          <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t">
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 sm:gap-3 pt-4 border-t">
             <Button
               type="button"
               variant="outline"
+              className="w-full sm:w-auto h-11 rounded-xl"
               onClick={() => {
                 resetInvoiceForm();
                 setActiveTab("list");
@@ -2646,7 +2644,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 invoicePercentage > 100 ||
                 !invoiceWorkDone.trim()
               }
-              className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-8 shadow-sm"
+              className="w-full sm:w-auto h-11 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-8 shadow-sm"
             >
               {isSubmitting || (editingReportId ? updateMutation.isPending : createMutation.isPending) ? (
                 <>
@@ -2664,18 +2662,18 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         </div>
       </fieldset>
     );
-    return embedded ? invoiceFormContent : <DashboardLayout>{invoiceFormContent}</DashboardLayout>;
+    return embedded ? invoiceFormContent : <DashboardLayout tabletNavigation>{invoiceFormContent}</DashboardLayout>;
   }
 
   const listContent = (
-    <div className="space-y-6">
+    <div className="min-w-0 max-w-full overflow-x-hidden space-y-4 sm:space-y-6" dir="rtl">
         {/* العنوان والإجراءات */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">
               {mainViewTab === "invoices" ? "المستخلصات المالية" : "تقارير الإنجاز"}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 leading-relaxed">
               {mainViewTab === "invoices"
                 ? "إدارة ومتابعة مستخلصات المشاريع المعتمدة على نسب الإنجاز الفعلي لإصدار أوامر الصرف"
                 : "متابعة وتوثيق تقدم المشاريع وجدولة الدفعات"}
@@ -2689,13 +2687,16 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   resetInvoiceForm();
                   setActiveTab("create-invoice");
                 }}
-                className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold"
+                className="w-full sm:w-auto h-10 max-lg:min-h-11 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold shrink-0"
               >
                 <Plus className="w-4 h-4 ml-2" />
                 إضافة مستخلص
               </Button>
             ) : (
-              <Button onClick={() => setActiveTab("create")}>
+              <Button
+                onClick={() => setActiveTab("create")}
+                className="w-full sm:w-auto h-10 max-lg:min-h-11 rounded-xl font-bold shrink-0"
+              >
                 <Plus className="w-4 h-4 ml-2" />
                 إضافة تقرير إنجاز
               </Button>
@@ -2704,7 +2705,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         </div>
 
         {/* الإحصائيات - بطاقات عصرية خلفية بيضاء مطابقة لصفحة الطلبات */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
           {[
             {
               label: mainViewTab === "invoices" ? "إجمالي المستخلصات" : "إجمالي التقارير",
@@ -2731,15 +2732,15 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               iconBg: "bg-purple-100 dark:bg-purple-950/40 text-purple-600",
             },
           ].map((stat) => (
-            <Card key={stat.label} className="border-0 shadow-sm overflow-hidden bg-background">
-              <CardContent className="p-3 md:p-4">
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${stat.iconBg}`}>
+            <Card key={stat.label} className="py-0 gap-0 border-0 shadow-sm overflow-hidden bg-background">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className={`w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${stat.iconBg}`}>
                     {stat.icon}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] md:text-xs text-muted-foreground truncate">{stat.label}</p>
-                    <p className="text-lg md:text-xl font-bold text-foreground truncate">{stat.value}</p>
+                    <p className="text-[11px] sm:text-xs text-muted-foreground truncate">{stat.label}</p>
+                    <p className="text-lg sm:text-xl font-bold text-foreground font-mono truncate">{stat.value}</p>
                   </div>
                 </div>
               </CardContent>
@@ -2748,9 +2749,9 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         </div>
 
         {/* أدوات البحث والتصفية */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_220px] gap-2.5 sm:gap-3">
+          <div className="relative min-w-0">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
               placeholder={mainViewTab === "invoices" ? "بحث برقم المستخلص أو العنوان أو المشروع..." : "بحث برقم التقرير أو العنوان..."}
               value={searchTerm}
@@ -2758,18 +2759,18 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 setSearchTerm(e.target.value);
                 resetPage();
               }}
-              className="pr-10"
+              className="pr-10 h-10 max-lg:min-h-11 pointer-coarse:min-h-11 max-md:text-base rounded-xl"
             />
           </div>
           <Select value={statusFilter} onValueChange={(v) => {
             setStatusFilter(v);
             resetPage();
           }}>
-            <SelectTrigger className="w-[180px]">
-              <Filter className="w-4 h-4 ml-2" />
+            <SelectTrigger className="w-full h-10 max-lg:min-h-11 pointer-coarse:min-h-11 rounded-xl">
+              <Filter className="w-4 h-4 ml-2 shrink-0" />
               <SelectValue placeholder="الحالة" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent dir="rtl">
               <SelectItem value="all">جميع الحالات</SelectItem>
               <SelectItem value="draft">مسودة</SelectItem>
               <SelectItem value="pending">بانتظار اعتماد مدير المشروع</SelectItem>
@@ -2781,12 +2782,12 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
         </div>
 
         {/* قائمة التقارير / المستخلصات - تصميم مطابق لصفحة الطلبات */}
-        <Card className="border-0 shadow-sm overflow-hidden">
+        <Card className="py-0 gap-0 border-0 shadow-sm overflow-hidden">
           <CardContent className="p-0">
             {filteredReports.length > 0 ? (
               <div>
                 {/* Table Header (Desktop Only) */}
-                <div className={`hidden md:grid ${showActionsColumn ? "grid-cols-[auto_1.2fr_1fr_1fr_1fr_auto]" : "grid-cols-[auto_1.2fr_1fr_1fr_1fr]"} gap-4 px-5 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right`}>
+                <div className={`hidden lg:grid ${showActionsColumn ? "grid-cols-[auto_1.2fr_1fr_1fr_1fr_auto]" : "grid-cols-[auto_1.2fr_1fr_1fr_1fr]"} gap-4 px-5 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right`}>
                   <div className="w-10"></div>
                   <div>{mainViewTab === "invoices" ? "المستخلص" : "التقرير"}</div>
                   <div>{mainViewTab === "invoices" ? "المشروع والعقد" : "المشروع"}</div>
@@ -2796,7 +2797,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 </div>
 
                 {/* Rows / Cards */}
-                <div className="divide-y divide-border">
+                <div className="max-lg:grid max-lg:grid-cols-1 md:max-lg:grid-cols-2 max-lg:gap-3 max-lg:p-3 sm:max-lg:p-4 max-lg:bg-muted/15 lg:divide-y lg:divide-border">
                   {paginatedReports.map((report: any) => {
                     const variance = report.variance || 0;
                     const status = statusConfig[report.status] || statusConfig.draft;
@@ -2825,13 +2826,11 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                           onClick={() => {
                             navigate(`/progress-reports/${report.id}/print`);
                           }}
-                          className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-slate-700"
+                          className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2.5 max-lg:min-h-11 px-3 hover:bg-muted/50 rounded-md transition-colors text-slate-700 dark:text-slate-200"
                         >
                           <Printer className="w-3.5 h-3.5 text-[#1a5f4a]" />
                           <span>{isInv ? "عرض المستخلص PDF" : "عرض تقرير الإنجاز"}</span>
                         </DropdownMenuItem>
-
-
 
                         {/* تعديل التقرير أو المستخلص */}
                         {!isReportConverted(report) && report.status !== "pending_executive" && report.status !== "approved" && report.status !== "revoked" && report.status !== "rejected" && !isDisbursementApproved(report) && canEditItem(report) && (
@@ -2839,7 +2838,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                             onClick={() => {
                               handleEditReportClick(report);
                             }}
-                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors"
+                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2.5 max-lg:min-h-11 px-3 hover:bg-muted/50 rounded-md transition-colors"
                           >
                             <Edit className="w-3.5 h-3.5 text-blue-600" />
                             <span>{isInv ? "تعديل المستخلص" : "تعديل تقرير الإنجاز"}</span>
@@ -2854,7 +2853,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                               setViewRejectionReasonText(report.rejectionReason || "تم إلغاء اعتماد هذا التقرير");
                               setShowViewRejectionDialog(true);
                             }}
-                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-rose-600 font-bold"
+                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2.5 max-lg:min-h-11 px-3 hover:bg-muted/50 rounded-md transition-colors text-rose-600 font-bold"
                           >
                             <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
                             <span>عرض سبب إلغاء الاعتماد</span>
@@ -2869,7 +2868,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                               setViewRejectionReasonText(report.rejectionReason || "تم رفض التقرير");
                               setShowViewRejectionDialog(true);
                             }}
-                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-rose-600 font-bold"
+                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2.5 max-lg:min-h-11 px-3 hover:bg-muted/50 rounded-md transition-colors text-rose-600 font-bold"
                           >
                             <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
                             <span>عرض سبب إلغاء التقرير</span>
@@ -2884,7 +2883,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                               setRevokeReason("");
                               setShowRevokeDialog(true);
                             }}
-                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-md transition-colors text-amber-700 font-bold"
+                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2.5 max-lg:min-h-11 px-3 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-md transition-colors text-amber-700 font-bold"
                           >
                             <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
                             <span>إلغاء الاعتماد</span>
@@ -2899,7 +2898,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                               setExceptionNotes("");
                               setShowExceptionDialog(true);
                             }}
-                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-md transition-colors font-bold text-amber-700 dark:text-amber-400"
+                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2.5 max-lg:min-h-11 px-3 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-md transition-colors font-bold text-amber-700 dark:text-amber-400"
                           >
                             <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
                             <span>استثناء اعتماد مدير المشروع</span>
@@ -2913,7 +2912,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                               setSelectedReport(report);
                               setShowViewExceptionDialog(true);
                             }}
-                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-md transition-colors text-amber-800 dark:text-amber-300 font-medium"
+                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2.5 max-lg:min-h-11 px-3 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-md transition-colors text-amber-800 dark:text-amber-300 font-medium"
                           >
                             <Info className="w-3.5 h-3.5 text-amber-600" />
                             <span>عرض مبررات استثناء الاعتماد</span>
@@ -2929,7 +2928,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                                 setApprovalNotes("");
                                 setShowApproveDialog(true);
                               }}
-                              className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md transition-colors text-emerald-600 font-bold"
+                              className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2.5 max-lg:min-h-11 px-3 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md transition-colors text-emerald-600 font-bold"
                             >
                               <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
                               <span>{isInv ? "اعتماد المستخلص" : "اعتماد تقرير الإنجاز"}</span>
@@ -2941,7 +2940,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                                 setRejectionReason("");
                                 setShowRejectDialog(true);
                               }}
-                              className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors text-rose-600"
+                              className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2.5 max-lg:min-h-11 px-3 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors text-rose-600"
                             >
                               <XCircle className="w-3.5 h-3.5 text-rose-500" />
                               <span>{isInv ? "رفض المستخلص" : "رفض تقرير الإنجاز"}</span>
@@ -2958,7 +2957,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                                 setApprovalNotes("");
                                 setShowApproveDialog(true);
                               }}
-                              className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md transition-colors text-emerald-600 font-bold"
+                              className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2.5 max-lg:min-h-11 px-3 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md transition-colors text-emerald-600 font-bold"
                             >
                               <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
                               <span>{isInv ? "اعتماد المستخلص" : "اعتماد تقرير الإنجاز"}</span>
@@ -2970,7 +2969,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                                 setRejectionReason("");
                                 setShowRejectDialog(true);
                               }}
-                              className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors text-rose-600"
+                              className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2.5 max-lg:min-h-11 px-3 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors text-rose-600"
                             >
                               <XCircle className="w-3.5 h-3.5 text-rose-500" />
                               <span>{isInv ? "رفض المستخلص" : "رفض تقرير الإنجاز"}</span>
@@ -2983,13 +2982,13 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                     return (
                       <div
                         key={report.id}
-                        className={`grid grid-cols-1 ${showActionsColumn ? "md:grid-cols-[auto_1.2fr_1fr_1fr_1fr_auto]" : "md:grid-cols-[auto_1.2fr_1fr_1fr_1fr]"} gap-3 md:gap-4 px-5 py-4 hover:bg-muted/30 transition-all cursor-pointer items-center text-right ${
+                        className={`max-lg:rounded-xl max-lg:border max-lg:border-border/80 max-lg:bg-card max-lg:shadow-xs max-lg:p-3.5 sm:max-lg:p-4 max-lg:flex max-lg:flex-col max-lg:justify-between lg:grid ${showActionsColumn ? "lg:grid-cols-[auto_1.2fr_1fr_1fr_1fr_auto]" : "lg:grid-cols-[auto_1.2fr_1fr_1fr_1fr]"} gap-3 lg:gap-4 lg:px-5 lg:py-4 hover:bg-muted/30 transition-all cursor-pointer lg:items-center text-right ${
                           isPendingMyAction ? "bg-emerald-100/75 dark:bg-emerald-950/60 hover:bg-emerald-200/70 dark:hover:bg-emerald-900/70 border-r-4 border-r-emerald-700 dark:border-r-emerald-400 shadow-xs" : ""
                         }`}
                         onClick={() => handleViewDetails(report)}
                       >
                         {/* Desktop: Report Icon */}
-                        <div className="hidden md:flex w-10 justify-center">
+                        <div className="hidden lg:flex w-10 justify-center">
                           {isPendingMyAction ? (
                             <TooltipProvider>
                               <Tooltip delayDuration={50}>
@@ -3022,20 +3021,20 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                           )}
                         </div>
 
-                        {/* Report Info (Mobile & Desktop) */}
-                        <div className="flex items-start justify-between md:block gap-3">
-                          <div className="flex items-center gap-3 md:block min-w-0">
-                            <div className="md:hidden shrink-0">
+                        {/* Report Info (Mobile, iPad & Desktop) */}
+                        <div className="flex items-start justify-between lg:block gap-2.5 min-w-0">
+                          <div className="flex items-start gap-2.5 lg:block min-w-0">
+                            <div className="lg:hidden shrink-0 mt-0.5">
                               {isPendingMyAction ? (
-                                <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-tr from-[#1a5f4a] via-emerald-600 to-teal-500 text-white">
+                                <div className="relative flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-tr from-[#1a5f4a] via-emerald-600 to-teal-500 text-white">
                                   <Clock className="w-4 h-4 text-amber-200 animate-spin" style={{ animationDuration: '4s' }} />
                                 </div>
                               ) : isInv ? (
-                                <div className="w-8 h-8 rounded-lg flex items-center justify-center border bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+                                <div className="w-9 h-9 rounded-lg flex items-center justify-center border bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
                                   <FileSpreadsheet className="w-4 h-4" />
                                 </div>
                               ) : (
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${status.iconBg}`}>
+                                <div className={`w-9 h-9 rounded-lg flex items-center justify-center border ${status.iconBg}`}>
                                   {status.icon}
                                 </div>
                               )}
@@ -3047,7 +3046,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                                     مستخلص
                                   </span>
                                 )}
-                                <p className="font-bold text-foreground text-sm">{report.reportNumber}</p>
+                                <p className="font-bold text-foreground text-sm font-mono">{report.reportNumber}</p>
                                 {report.isException && (
                                   <TooltipProvider>
                                     <Tooltip delayDuration={100}>
@@ -3063,36 +3062,36 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                                   </TooltipProvider>
                                 )}
                               </div>
-                              <p className="text-xs text-muted-foreground mt-0.5 truncate break-words line-clamp-1">
+                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 lg:line-clamp-1 break-words">
                                 {report.title}
                               </p>
                             </div>
                           </div>
-                          <div className="text-left md:text-right shrink-0 md:mt-1 flex items-center gap-1">
+                          <div className="text-left lg:text-right shrink-0 lg:mt-1 flex items-center gap-1">
                             {showActionsColumn && hasRowActions && (
-                            <div className="md:hidden" onClick={(e) => e.stopPropagation()}>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 hover:bg-muted p-0 text-muted-foreground hover:text-foreground"
-                                  >
-                                    <MoreVertical className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                {renderDropdownContent()}
-                              </DropdownMenu>
-                            </div>
-                        )}
-                            <p className="text-[10px] md:text-xs text-muted-foreground">
+                              <div className="lg:hidden" onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="size-9 max-lg:size-10 hover:bg-muted p-0 text-muted-foreground hover:text-foreground rounded-lg"
+                                    >
+                                      <MoreVertical className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  {renderDropdownContent()}
+                                </DropdownMenu>
+                              </div>
+                            )}
+                            <p className="hidden lg:block text-xs text-muted-foreground font-mono">
                               {new Date(report.reportDate).toLocaleDateString("ar-SA")}
                             </p>
                           </div>
                         </div>
 
-                        {/* Project Name & Contract (Desktop & Tablet) */}
-                        <div className="hidden md:flex flex-col min-w-0">
+                        {/* Project Name & Contract (Desktop) */}
+                        <div className="hidden lg:flex flex-col min-w-0">
                           <div className="flex items-center gap-1.5 truncate">
                             <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
                             <span className="text-sm text-foreground truncate font-medium">{report.projectName || "—"}</span>
@@ -3103,10 +3102,10 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                         </div>
 
                         {/* Progress & Payout (Desktop) */}
-                        <div className="hidden md:block min-w-0">
+                        <div className="hidden lg:block min-w-0">
                           <div className="flex items-center gap-2">
                             <Progress value={report.actualProgress || report.overallProgress} className="w-16 h-2 bg-muted shrink-0" />
-                            <span className="text-xs font-bold text-foreground">{report.actualProgress || report.overallProgress}%</span>
+                            <span className="text-xs font-bold text-foreground font-mono">{report.actualProgress || report.overallProgress}%</span>
                           </div>
                           {!isInv && (
                             <div className={`flex items-center gap-1 text-[10px] font-semibold mt-1 ${getVarianceColor(variance)}`}>
@@ -3117,27 +3116,38 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                         </div>
 
                         {/* Status (Desktop) */}
-                        <div className="hidden md:block shrink-0">
-                          <span className={`inline-flex items-center gap-1.5 text-[10px] md:text-xs font-medium px-2.5 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
+                        <div className="hidden lg:block shrink-0">
+                          <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
                             {status.badgeIcon}
                             {status.label}
                           </span>
                         </div>
 
-                        {/* Mobile Card Row: Project + Progress + Status */}
-                        <div className="md:hidden flex flex-col gap-3">
-                          <div className="flex items-center justify-between gap-1.5 text-xs text-foreground bg-muted/50 p-2 rounded-md">
-                            <div className="flex items-center gap-1.5 truncate">
+                        {/* Mobile & iPad Portrait Card Body: Project + Progress + Status + Date */}
+                        <div className="lg:hidden flex flex-col gap-2.5 pt-2 border-t border-border/50">
+                          <div className="flex items-center justify-between gap-2 text-xs text-foreground bg-muted/50 px-2.5 py-2 rounded-lg">
+                            <div className="flex items-center gap-1.5 min-w-0">
                               <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                              <span className="truncate">{report.projectName || "—"}</span>
+                              <span className="truncate font-medium">{report.projectName || "—"}</span>
                             </div>
+                            <span className="text-[11px] text-muted-foreground font-mono shrink-0">
+                              {new Date(report.reportDate).toLocaleDateString("ar-SA")}
+                            </span>
                           </div>
-                          <div className="flex items-center justify-between gap-2">
+                          {contractNumberText && (
+                            <p className="text-[11px] text-muted-foreground px-0.5">عقد رقم: <span className="font-mono font-semibold text-foreground">{contractNumberText}</span></p>
+                          )}
+                          <div className="flex items-center justify-between flex-wrap gap-2">
                             <div className="flex items-center gap-2">
-                              <Progress value={report.actualProgress || report.overallProgress} className="w-16 h-1.5 bg-muted shrink-0" />
-                              <span className="text-[10px] font-bold text-foreground">{report.actualProgress || report.overallProgress}%</span>
+                              <Progress value={report.actualProgress || report.overallProgress} className="w-20 h-2 bg-muted shrink-0" />
+                              <span className="text-xs font-bold text-foreground font-mono">{report.actualProgress || report.overallProgress}%</span>
+                              {!isInv && (
+                                <span className={`inline-flex items-center gap-0.5 text-[11px] font-semibold ${getVarianceColor(variance)}`}>
+                                  ({variance > 0 ? "+" : ""}{variance}%)
+                                </span>
+                              )}
                             </div>
-                            <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
+                            <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
                               {status.badgeIcon}
                               {status.label}
                             </span>
@@ -3146,13 +3156,13 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
                         {/* Actions (Desktop Only) */}
                         {showActionsColumn && hasRowActions && (
-                        <div className="hidden md:flex justify-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="hidden lg:flex justify-center" onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 hover:bg-muted p-0 text-muted-foreground hover:text-foreground"
+                                className="h-8 w-8 pointer-coarse:size-10 hover:bg-muted p-0 text-muted-foreground hover:text-foreground"
                               >
                                 <MoreVertical className="w-4 h-4" />
                               </Button>
@@ -3173,14 +3183,17 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   onPageChange={handlePageChange}
                   totalItems={total}
                   itemsPerPage={limit}
-                  itemName="تقرير إنجاز"
-                  itemNamePlural="تقارير إنجاز"
+                  itemName={mainViewTab === "invoices" ? "مستخلص" : "تقرير إنجاز"}
+                  itemNamePlural={mainViewTab === "invoices" ? "مستخلصات" : "تقارير إنجاز"}
+                  className="border-t max-sm:px-2 max-sm:[&_button]:px-2 pointer-coarse:[&_button]:min-h-11"
                 />
               </div>
             ) : (
-              <div className="p-12 text-center text-muted-foreground">
+              <div className="p-10 sm:p-12 text-center text-muted-foreground">
                 <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-sm font-medium">لا توجد تقارير إنجاز حالياً.</p>
+                <p className="text-sm font-medium">
+                  {mainViewTab === "invoices" ? "لا توجد مستخلصات حالياً." : "لا توجد تقارير إنجاز حالياً."}
+                </p>
               </div>
             )}
           </CardContent>
@@ -3189,38 +3202,38 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
         {/* نافذة تفاصيل التقرير */}
         <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" dir="rtl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-2xl" dir="rtl">
             <DialogHeader className="text-right sm:text-right">
-              <DialogTitle className="text-right sm:text-right">
+              <DialogTitle className="text-base sm:text-lg text-right sm:text-right">
                 {isInvoiceReport(selectedReport) ? "تفاصيل المستخلص" : "تفاصيل تقرير الإنجاز"}
               </DialogTitle>
-              <DialogDescription className="text-right sm:text-right">
+              <DialogDescription className="text-xs sm:text-sm text-right sm:text-right">
                 {selectedReport?.reportNumber} - {selectedReport?.title}
               </DialogDescription>
             </DialogHeader>
             
             {selectedReport && (
-              <div className="space-y-6 py-4">
+              <div className="space-y-5 sm:space-y-6 py-3 sm:py-4">
                 {/* المعلومات الأساسية */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                   <div>
-                    <p className="text-sm text-muted-foreground">المشروع</p>
-                    <p className="font-medium">{selectedReport.projectName}</p>
+                    <p className="text-xs text-muted-foreground">المشروع</p>
+                    <p className="font-medium break-words">{selectedReport.projectName}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">تاريخ التقرير</p>
+                    <p className="text-xs text-muted-foreground">تاريخ التقرير</p>
                     <p className="font-medium">
                       {new Date(selectedReport.reportDate).toLocaleDateString("ar-SA")}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">الحالة</p>
-                    <Badge variant={STATUS_MAP[selectedReport.status]?.variant || "secondary"}>
+                    <p className="text-xs text-muted-foreground">الحالة</p>
+                    <Badge variant={STATUS_MAP[selectedReport.status]?.variant || "secondary"} className="mt-1">
                       {STATUS_MAP[selectedReport.status]?.label || selectedReport.status}
                     </Badge>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">معد التقرير</p>
+                    <p className="text-xs text-muted-foreground">معد التقرير</p>
                     <p className="font-medium">{selectedReport.createdByName}</p>
                   </div>
                 </div>
@@ -3228,29 +3241,29 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 <Separator />
                 
                 {/* نسب الإنجاز */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold">نسب الإنجاز</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="p-4 bg-muted/50 rounded-lg text-center">
-                      <p className="text-3xl font-bold">{selectedReport.overallProgress}%</p>
-                      <p className="text-sm text-muted-foreground">الإنجاز الإجمالي</p>
+                <div className="space-y-3 sm:space-y-4">
+                  <h3 className="font-semibold text-sm sm:text-base">نسب الإنجاز</h3>
+                  <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                    <div className="p-2.5 sm:p-4 bg-muted/50 rounded-xl text-center">
+                      <p className="text-xl sm:text-3xl font-bold font-mono">{selectedReport.overallProgress}%</p>
+                      <p className="text-[11px] sm:text-sm text-muted-foreground">الإنجاز الإجمالي</p>
                     </div>
-                    <div className="p-4 bg-blue-50 rounded-lg text-center">
-                      <p className="text-3xl font-bold text-blue-700">{selectedReport.plannedProgress}%</p>
-                      <p className="text-sm text-blue-600">المخطط</p>
+                    <div className="p-2.5 sm:p-4 bg-blue-50 dark:bg-blue-950/30 rounded-xl text-center">
+                      <p className="text-xl sm:text-3xl font-bold font-mono text-blue-700 dark:text-blue-400">{selectedReport.plannedProgress}%</p>
+                      <p className="text-[11px] sm:text-sm text-blue-600 dark:text-blue-400">المخطط</p>
                     </div>
-                    <div className="p-4 bg-green-50 rounded-lg text-center">
-                      <p className="text-3xl font-bold text-green-700">{selectedReport.actualProgress}%</p>
-                      <p className="text-sm text-green-600">الفعلي</p>
+                    <div className="p-2.5 sm:p-4 bg-green-50 dark:bg-green-950/30 rounded-xl text-center">
+                      <p className="text-xl sm:text-3xl font-bold font-mono text-green-700 dark:text-green-400">{selectedReport.actualProgress}%</p>
+                      <p className="text-[11px] sm:text-sm text-green-600 dark:text-green-400">الفعلي</p>
                     </div>
                   </div>
                   
-                  <div className={`p-3 rounded-lg flex items-center gap-2 ${
+                  <div className={`p-3 rounded-xl flex items-center gap-2 text-xs sm:text-sm ${
                     selectedReport.variance > 0 
-                      ? "bg-green-50 border border-green-200" 
+                      ? "bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900" 
                       : selectedReport.variance < 0
-                      ? "bg-red-50 border border-red-200"
-                      : "bg-gray-50 border border-gray-200"
+                      ? "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900"
+                      : "bg-muted/40 border border-border"
                   }`}>
                     {getVarianceIcon(selectedReport.variance)}
                     <span className={getVarianceColor(selectedReport.variance)}>
@@ -3264,8 +3277,8 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 {/* ملخص الأعمال */}
                 {selectedReport.workSummary && (
                   <div className="space-y-2">
-                    <h3 className="font-semibold">الأعمال المنجزة</h3>
-                    <p className="text-muted-foreground whitespace-pre-wrap">
+                    <h3 className="font-semibold text-sm sm:text-base">الأعمال المنجزة</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">
                       {cleanDisplayWorkSummary(selectedReport.workSummary)}
                     </p>
                   </div>
@@ -3273,25 +3286,25 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 
                 {selectedReport.challenges && (
                   <div className="space-y-2">
-                    <h3 className="font-semibold">التحديات والمعوقات</h3>
-                    <p className="text-muted-foreground whitespace-pre-wrap">{selectedReport.challenges}</p>
+                    <h3 className="font-semibold text-sm sm:text-base">التحديات والمعوقات</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">{selectedReport.challenges}</p>
                   </div>
                 )}
                 
                 {selectedReport.nextSteps && (
                   <div className="space-y-2">
-                    <h3 className="font-semibold">الخطوات القادمة</h3>
-                    <p className="text-muted-foreground whitespace-pre-wrap">{selectedReport.nextSteps}</p>
+                    <h3 className="font-semibold text-sm sm:text-base">الخطوات القادمة</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">{selectedReport.nextSteps}</p>
                   </div>
                 )}
                 
                 {selectedReport.recommendations && (
                   <div className="space-y-2">
-                    <h3 className="font-semibold text-primary flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4" />
+                    <h3 className="font-semibold text-sm sm:text-base text-primary flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4 shrink-0" />
                       توصية إدارة المشاريع
                     </h3>
-                    <div className="p-3 bg-muted/40 rounded-lg border text-foreground whitespace-pre-wrap leading-relaxed">
+                    <div className="p-3 bg-muted/40 rounded-xl border text-xs sm:text-sm text-foreground whitespace-pre-wrap break-words leading-relaxed">
                       {selectedReport.recommendations}
                     </div>
                   </div>
@@ -3308,15 +3321,15 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                       return (
                         <div className="space-y-3">
                           <Separator />
-                          <h3 className="font-semibold flex items-center gap-2">
+                          <h3 className="font-semibold text-sm sm:text-base flex items-center gap-2">
                             <FileText className="w-4 h-4 text-primary" />
                             مرفقات التقرير
                           </h3>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
                             {photosArr.map((photo: string, index: number) => {
                               const isImage = photo.startsWith("data:image/") || (photo.startsWith("http") || photo.startsWith("/uploads")) && (photo.toLowerCase().endsWith(".png") || photo.toLowerCase().endsWith(".jpg") || photo.toLowerCase().endsWith(".jpeg") || photo.toLowerCase().endsWith(".webp") || photo.toLowerCase().includes("site_photo") || photo.toLowerCase().includes("proof-documents"));
                               return (
-                                <div key={index} className="border rounded-lg p-2 flex flex-col items-center justify-center bg-muted/20 relative group hover:bg-muted/40 transition-colors">
+                                <div key={index} className="border rounded-xl p-2 flex flex-col items-center justify-center bg-muted/20 relative group hover:bg-muted/40 transition-colors">
                                   {isImage ? (
                                     <img src={photo} alt={`مرفق ${index + 1}`} className="w-full h-24 object-cover rounded-md mb-2" />
                                   ) : (
@@ -3324,7 +3337,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                                       ملف مستند PDF
                                     </div>
                                   )}
-                                  <a href={photo} download={`مرفق_${index + 1}`} className="text-xs text-primary font-semibold hover:underline">
+                                  <a href={photo} download={`مرفق_${index + 1}`} className="text-xs text-primary font-semibold hover:underline py-1">
                                     تحميل المرفق
                                   </a>
                                 </div>
@@ -3342,8 +3355,8 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               </div>
             )}
             
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
+            <DialogFooter className="flex flex-col-reverse sm:flex-row flex-wrap gap-2 pt-2">
+              <Button variant="outline" className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl" onClick={() => setShowDetailsDialog(false)}>
                 إغلاق
               </Button>
 
@@ -3354,14 +3367,13 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                     setShowDetailsDialog(false);
                     handleEditReportClick(selectedReport);
                   }}
-                  className="gap-1.5"
+                  className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl gap-1.5"
                 >
                   <Edit className="w-4 h-4" />
                   {isInvoiceReport(selectedReport) ? "تعديل المستخلص" : "تعديل التقرير"}
                 </Button>
               )}
 
-              
               {/* زر الاعتماد العادي للمرحلة الأولى أو الثانية */}
               {selectedReport && canReviewReportItem(selectedReport) && (
                 ((selectedReport.status === "pending" || selectedReport.status === "submitted" || selectedReport.status === "draft") && (
@@ -3375,7 +3387,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                     setApprovalNotes("");
                     setShowApproveDialog(true);
                   }}
-                  className="gradient-primary text-white font-bold"
+                  className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl gradient-primary text-white font-bold"
                 >
                   <CheckCircle className="w-4 h-4 ml-2" />
                   {isInvoiceReport(selectedReport) ? "اعتماد المستخلص" : "اعتماد التقرير"}
@@ -3390,7 +3402,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                     setExceptionNotes("");
                     setShowExceptionDialog(true);
                   }}
-                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                  className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold"
                 >
                   <ShieldAlert className="w-4 h-4 ml-1.5" />
                   استثناء اعتماد مدير المشروع
@@ -3406,7 +3418,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                     setRevokeReason("");
                     setShowRevokeDialog(true);
                   }}
-                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                  className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold"
                 >
                   <RotateCcw className="w-4 h-4 ml-1.5" />
                   إلغاء الاعتماد
@@ -3418,9 +3430,9 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
         {/* نافذة اعتماد تقرير الإنجاز */}
         <Dialog open={showApproveDialog && canReviewReportItem(selectedReport)} onOpenChange={setShowApproveDialog}>
-          <DialogContent dir="rtl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-2xl" dir="rtl">
             <DialogHeader className="text-right sm:text-right">
-              <DialogTitle className="text-right sm:text-right">
+              <DialogTitle className="text-base sm:text-lg text-right sm:text-right">
                 {isInvoiceReport(selectedReport)
                   ? selectedReport?.status === "pending" || selectedReport?.status === "submitted" || selectedReport?.status === "draft"
                     ? "اعتماد المستخلص (اعتماد مدير المشروع - المرحلة الأولى)"
@@ -3429,7 +3441,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                     ? "اعتماد تقرير الإنجاز (اعتماد مدير المشروع - المرحلة الأولى)"
                     : "اعتماد تقرير الإنجاز (اعتماد المدير التنفيذي - المرحلة الثانية)"}
               </DialogTitle>
-              <DialogDescription className="text-right sm:text-right">
+              <DialogDescription className="text-xs sm:text-sm text-right sm:text-right">
                 {isInvoiceReport(selectedReport)
                   ? selectedReport?.status === "pending" || selectedReport?.status === "submitted" || selectedReport?.status === "draft"
                     ? `هل تريد اعتماد المستخلص رقم ${selectedReport?.reportNumber} وتحويله إلى (بانتظار اعتماد المدير التنفيذي)؟`
@@ -3440,12 +3452,12 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="rounded-lg bg-muted p-4 space-y-1">
-                <p className="font-bold text-slate-800">{selectedReport?.title}</p>
+              <div className="rounded-xl bg-muted p-3.5 sm:p-4 space-y-1">
+                <p className="font-bold text-foreground text-sm">{selectedReport?.title}</p>
                 {selectedReport?.projectName && (
-                  <p className="text-xs text-slate-500">المشروع: {selectedReport.projectName}</p>
+                  <p className="text-xs text-muted-foreground">المشروع: {selectedReport.projectName}</p>
                 )}
-                <p className="text-xs text-slate-500">نسبة الإنجاز: {selectedReport?.overallProgress}%</p>
+                <p className="text-xs text-muted-foreground">نسبة الإنجاز: {selectedReport?.overallProgress}%</p>
               </div>
               <div className="space-y-2">
                 <Label>ملاحظات الاعتماد (اختياري)</Label>
@@ -3453,15 +3465,16 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   value={approvalNotes}
                   onChange={(e) => setApprovalNotes(e.target.value)}
                   placeholder="أدخل أي ملاحظات..."
+                  className="max-md:text-base"
                 />
               </div>
             </div>
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setShowApproveDialog(false)}>
+            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
+              <Button variant="outline" className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl" onClick={() => setShowApproveDialog(false)}>
                 إلغاء
               </Button>
               <Button
-                className="bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold"
+                className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold"
                 onClick={() =>
                   approveReportMutation.mutate({
                     id: selectedReport?.id,
@@ -3470,7 +3483,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                 }
                 disabled={approveReportMutation.isPending}
               >
-                {approveReportMutation.isPending ? "جاري الاعتماد..." : "اعتماد تقرير الإنجاز"}
+                {approveReportMutation.isPending ? "جاري الاعتماد..." : (isInvoiceReport(selectedReport) ? "اعتماد المستخلص" : "اعتماد تقرير الإنجاز")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -3478,12 +3491,12 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
         {/* نافذة إلغاء / رفض تقرير الإنجاز */}
         <Dialog open={showRejectDialog && canReviewReportItem(selectedReport)} onOpenChange={setShowRejectDialog}>
-          <DialogContent dir="rtl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-2xl" dir="rtl">
             <DialogHeader className="text-right sm:text-right">
-              <DialogTitle className="text-right sm:text-right">
+              <DialogTitle className="text-base sm:text-lg text-right sm:text-right">
                 {isInvoiceReport(selectedReport) ? "إلغاء / رفض المستخلص" : "إلغاء / رفض تقرير الإنجاز"}
               </DialogTitle>
-              <DialogDescription className="text-right sm:text-right">
+              <DialogDescription className="text-xs sm:text-sm text-right sm:text-right">
                 {isInvoiceReport(selectedReport)
                   ? `هل تريد إلغاء المستخلص رقم ${selectedReport?.reportNumber}؟`
                   : `هل تريد إلغاء تقرير الإنجاز رقم ${selectedReport?.reportNumber}؟`}
@@ -3496,15 +3509,17 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
                   placeholder="يرجى توضيح سبب إلغاء التقرير (إجباري)..."
+                  className="max-md:text-base"
                 />
               </div>
             </div>
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
+              <Button variant="outline" className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl" onClick={() => setShowRejectDialog(false)}>
                 إلغاء
               </Button>
               <Button
                 variant="destructive"
+                className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl"
                 onClick={() =>
                   rejectReportMutation.mutate({
                     id: selectedReport?.id,
@@ -3521,15 +3536,15 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
         {/* نافذة إلغاء الاعتماد */}
         <Dialog open={showRevokeDialog && canRevokeApprovalItem(selectedReport)} onOpenChange={setShowRevokeDialog}>
-          <DialogContent dir="rtl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-2xl" dir="rtl">
             <DialogHeader className="text-right sm:text-right">
-              <DialogTitle className="text-amber-700 dark:text-amber-400 flex items-center gap-2 text-right sm:text-right">
-                <ShieldAlert className="w-5 h-5 text-amber-600" />
+              <DialogTitle className="text-base sm:text-lg text-amber-700 dark:text-amber-400 flex items-center gap-2 text-right sm:text-right">
+                <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
                 <span>
                   {isInvoiceReport(selectedReport) ? "إلغاء اعتماد المستخلص" : "إلغاء اعتماد تقرير الإنجاز"}
                 </span>
               </DialogTitle>
-              <DialogDescription className="text-right sm:text-right">
+              <DialogDescription className="text-xs sm:text-sm text-right sm:text-right">
                 {isInvoiceReport(selectedReport)
                   ? "هل أنت متأكد من رغبتك في إلغاء اعتماد المستخلص؟"
                   : "هل أنت متأكد من رغبتك في إلغاء اعتماد تقرير الإنجاز؟"}
@@ -3543,11 +3558,12 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   onChange={(e) => setRevokeReason(e.target.value)}
                   placeholder="أدخل سبب إلغاء الاعتماد..."
                   rows={3}
+                  className="max-md:text-base"
                 />
               </div>
             </div>
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setShowRevokeDialog(false)}>
+            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
+              <Button variant="outline" className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl" onClick={() => setShowRevokeDialog(false)}>
                 إلغاء الأمر
               </Button>
               <Button
@@ -3561,7 +3577,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                   }
                 }}
                 disabled={revokeApprovalReportMutation.isPending}
-                className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold"
               >
                 {revokeApprovalReportMutation.isPending ? "جاري إلغاء الاعتماد..." : "تأكيد إلغاء الاعتماد"}
               </Button>
@@ -3571,35 +3587,35 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
         {/* نافذة استثناء اعتماد مدير المشروع */}
         <Dialog open={showExceptionDialog && canExceptionApproveItem(selectedReport)} onOpenChange={setShowExceptionDialog}>
-          <DialogContent dir="rtl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-2xl" dir="rtl">
             <DialogHeader className="text-right sm:text-right">
-              <DialogTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-500 text-right sm:text-right">
-                <ShieldAlert className="w-5 h-5 text-amber-600" />
+              <DialogTitle className="text-base sm:text-lg flex items-center gap-2 text-amber-700 dark:text-amber-500 text-right sm:text-right">
+                <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
                 <span>
                   {isInvoiceReport(selectedReport) ? "استثناء اعتماد مدير المشروع للمستخلص" : "استثناء اعتماد مدير المشروع"}
                 </span>
               </DialogTitle>
-              <DialogDescription className="text-right sm:text-right">
+              <DialogDescription className="text-xs sm:text-sm text-right sm:text-right">
                 يتيح هذا الخيار للمدير الفائق اعتماد المرحلة الأولى نيابة عن مدير المشروع وتوثيق التوقيع والمبرر.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="font-bold text-slate-800">سبب / مبرر الاستثناء *</Label>
+                <Label className="font-bold text-foreground">سبب / مبرر الاستثناء *</Label>
                 <Textarea
                   value={exceptionNotes}
                   onChange={(e) => setExceptionNotes(e.target.value)}
                   placeholder="اكتب سبب أو مبرر استثناء اعتماد مدير المشروع (إجباري)..."
-                  className="min-h-[100px]"
+                  className="min-h-[100px] max-md:text-base"
                 />
               </div>
             </div>
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setShowExceptionDialog(false)}>
+            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
+              <Button variant="outline" className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl" onClick={() => setShowExceptionDialog(false)}>
                 إلغاء
               </Button>
               <Button
-                className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold"
                 onClick={() => {
                   if (selectedReport?.id && exceptionNotes.trim()) {
                     exceptionApproveReportMutation.mutate({
@@ -3618,15 +3634,15 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
         {/* نافذة عرض مبررات استثناء الاعتماد */}
         <Dialog open={showViewExceptionDialog} onOpenChange={setShowViewExceptionDialog}>
-          <DialogContent dir="rtl" className="max-w-md">
+          <DialogContent dir="rtl" className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-2xl">
             <DialogHeader className="text-right sm:text-right">
-              <DialogTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-400 text-right sm:text-right">
-                <Info className="w-5 h-5 text-amber-600" />
+              <DialogTitle className="text-base sm:text-lg flex items-center gap-2 text-amber-800 dark:text-amber-400 text-right sm:text-right">
+                <Info className="w-5 h-5 text-amber-600 shrink-0" />
                 <span>مبررات استثناء اعتماد مدير المشروع</span>
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
-              <div className="rounded-lg bg-amber-50/80 border border-amber-200 p-3.5 space-y-1 text-xs text-amber-900 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-200">
+              <div className="rounded-xl bg-amber-50/80 border border-amber-200 p-3.5 space-y-1 text-xs text-amber-900 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-200">
                 <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">
                   تقرير رقم: <span className="font-mono">{selectedReport?.reportNumber}</span>
                 </p>
@@ -3638,7 +3654,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               </div>
               <div className="space-y-1.5">
                 <Label className="font-bold text-slate-800 dark:text-slate-200 text-xs">سبب / مبرر الاستثناء:</Label>
-                <div className="p-3 bg-slate-50 dark:bg-slate-900 border rounded-md text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap min-h-[70px] font-sans leading-relaxed">
+                <div className="p-3 bg-slate-50 dark:bg-slate-900 border rounded-xl text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap break-words min-h-[70px] font-sans leading-relaxed">
                   {selectedReport?.approvalNotes ? (
                     selectedReport.approvalNotes.replace(/^\[مبرر استثناء اعتماد مدير المشروع\]:\s*/, "")
                   ) : (
@@ -3648,7 +3664,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowViewExceptionDialog(false)}>
+              <Button variant="outline" className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl" onClick={() => setShowViewExceptionDialog(false)}>
                 إغلاق
               </Button>
             </DialogFooter>
@@ -3657,30 +3673,30 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
         {/* نافذة عرض سبب إلغاء التقرير */}
         <Dialog open={showViewRejectionDialog && (selectedReport?.status !== "revoked" || canViewRevokeReasonItem(selectedReport))} onOpenChange={setShowViewRejectionDialog}>
-          <DialogContent dir="rtl" className="max-w-md">
+          <DialogContent dir="rtl" className="w-[calc(100vw-1rem)] sm:w-[95vw] max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-2xl">
             <DialogHeader className="text-right sm:text-right">
-              <DialogTitle className="flex items-center gap-2 text-rose-700 dark:text-rose-400 text-right sm:text-right">
-                <AlertCircle className="w-5 h-5 text-rose-600" />
+              <DialogTitle className="text-base sm:text-lg flex items-center gap-2 text-rose-700 dark:text-rose-400 text-right sm:text-right">
+                <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
                 <span>
                   {isInvoiceReport(selectedReport) ? "سبب إلغاء المستخلص" : "سبب إلغاء تقرير الإنجاز"}
                 </span>
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
-              <div className="rounded-lg bg-rose-50/80 border border-rose-200 p-3.5 space-y-1 text-xs text-rose-900 dark:bg-rose-950/40 dark:border-rose-900 dark:text-rose-200">
+              <div className="rounded-xl bg-rose-50/80 border border-rose-200 p-3.5 space-y-1 text-xs text-rose-900 dark:bg-rose-950/40 dark:border-rose-900 dark:text-rose-200">
                 <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">
                   تقرير رقم: <span className="font-mono">{selectedReport?.reportNumber}</span>
                 </p>
               </div>
               <div className="space-y-1.5">
                 <Label className="font-bold text-slate-800 dark:text-slate-200 text-xs">سبب الإلغاء المسجل:</Label>
-                <div className="p-3 bg-slate-50 dark:bg-slate-900 border rounded-md text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap min-h-[70px] font-sans leading-relaxed">
+                <div className="p-3 bg-slate-50 dark:bg-slate-900 border rounded-xl text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap break-words min-h-[70px] font-sans leading-relaxed">
                   {viewRejectionReasonText || "لا يوجد سبب مسجل"}
                 </div>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowViewRejectionDialog(false)}>
+              <Button variant="outline" className="w-full sm:w-auto min-h-10 max-lg:min-h-11 rounded-xl" onClick={() => setShowViewRejectionDialog(false)}>
                 إغلاق
               </Button>
             </DialogFooter>
@@ -3694,7 +3710,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout tabletNavigation>
       {listContent}
     </DashboardLayout>
   );

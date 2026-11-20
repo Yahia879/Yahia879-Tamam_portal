@@ -67,56 +67,57 @@ export default function NewProjectReportPage() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="w-full space-y-6 animate-in fade-in duration-300" dir="rtl">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-full overflow-x-hidden space-y-4 sm:space-y-6 animate-in fade-in duration-300" dir="rtl">
         {/* Header Block */}
-        <div className="flex items-center gap-3 sm:gap-4 mb-2">
+        <div className="flex items-center gap-3 sm:gap-4 mb-1 sm:mb-2">
           <Link href="/project-reports">
-            <Button variant="ghost" size="icon" className="shrink-0 h-10 w-10">
+            <Button variant="ghost" size="icon" className="shrink-0 size-10 max-lg:size-11 rounded-xl">
               <ArrowRight className="w-5 h-5 text-foreground" />
             </Button>
           </Link>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">إنشاء تقرير جديد</h1>
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-2xl font-bold text-foreground">إنشاء تقرير جديد</h1>
             <p className="text-xs sm:text-sm text-muted-foreground">قم بإعداد وتعبئة تقارير المشاريع والزيارات الميدانية</p>
           </div>
         </div>
 
         {/* 2-Step Progress Indicator Bar */}
-        <div className="mb-6 overflow-x-auto pt-2 pb-2">
+        <div className="mb-4 sm:mb-6 pt-1 pb-1 px-2">
           <div className="flex items-center justify-center max-w-xs sm:max-w-sm mx-auto">
             {/* Step 1 */}
-            <div 
+            <button
+              type="button"
               onClick={() => {
                 if (currentStep === 2) setCurrentStep(1);
               }}
-              className={`flex flex-col items-center shrink-0 cursor-pointer ${currentStep === 1 ? "opacity-100" : "opacity-80"}`}
+              className={`flex flex-col items-center shrink-0 cursor-pointer bg-transparent border-0 p-1 ${currentStep === 1 ? "opacity-100" : "opacity-80 hover:opacity-100"}`}
             >
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
+              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
                 currentStep === 2
                   ? "bg-teal-600 text-white"
                   : "bg-teal-600 text-white ring-4 ring-teal-600/20 scale-105"
               }`}>
                 {currentStep === 2 ? "✓" : "1"}
               </div>
-              <p className={`text-xs mt-1 font-bold ${currentStep === 1 ? "text-teal-700 font-bold" : "text-muted-foreground font-medium"}`}>
+              <p className={`text-xs mt-1.5 ${currentStep === 1 ? "text-teal-700 dark:text-teal-400 font-bold" : "text-muted-foreground font-medium"}`}>
                 اختيار نوع التقرير
               </p>
-            </div>
+            </button>
 
             {/* Divider */}
-            <div className={`flex-1 h-1 mx-4 rounded-full transition-colors duration-300 ${currentStep === 2 ? "bg-teal-600" : "bg-muted"}`} />
+            <div className={`flex-1 h-1 mx-3 sm:mx-4 rounded-full transition-colors duration-300 ${currentStep === 2 ? "bg-teal-600" : "bg-muted"}`} />
 
             {/* Step 2 */}
-            <div className={`flex flex-col items-center shrink-0 ${currentStep === 2 ? "opacity-100" : "opacity-40"}`}>
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
+            <div className={`flex flex-col items-center shrink-0 p-1 ${currentStep === 2 ? "opacity-100" : "opacity-40"}`}>
+              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
                 currentStep === 2
                   ? "bg-teal-600 text-white ring-4 ring-teal-600/20 scale-105"
                   : "bg-muted text-muted-foreground"
               }`}>
                 2
               </div>
-              <p className={`text-xs mt-1 font-bold ${currentStep === 2 ? "text-teal-700 font-bold" : "text-muted-foreground font-medium"}`}>
+              <p className={`text-xs mt-1.5 ${currentStep === 2 ? "text-teal-700 dark:text-teal-400 font-bold" : "text-muted-foreground font-medium"}`}>
                 تعبئة التقرير
               </p>
             </div>
@@ -126,24 +127,24 @@ export default function NewProjectReportPage() {
         {/* Exact Card Design matching /disbursements/new-linked */}
         {currentStep === 1 ? (
           <div className="max-w-4xl mx-auto w-full">
-            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
-                <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                  <Layers className="h-4.5 w-4.5 text-teal-600" />
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900 py-0 gap-0">
+              <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:px-6 sm:py-4 text-right">
+                <CardTitle className="flex items-center gap-2 text-foreground text-sm sm:text-base font-bold">
+                  <Layers className="h-4.5 w-4.5 text-teal-600 shrink-0" />
                   الخطوة 1: اختيار نوع التقرير
                 </CardTitle>
                 <CardDescription className="text-right text-xs text-muted-foreground">
                   حدد نوع التقرير المناسب للمتابعة إلى تعبئة البيانات والملاحظات
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6 pt-6 text-right">
+              <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6 text-right">
                 <div className="space-y-3 pb-2 border-b border-border/40">
                   <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <Layers className="w-4 h-4 text-teal-600" />
+                    <Layers className="w-4 h-4 text-teal-600 shrink-0" />
                     نوع التقرير *
                   </Label>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
                     {reportTypes.map((item) => {
                       const Icon = item.icon;
                       const isSelected = selectedType === item.key;
@@ -152,7 +153,7 @@ export default function NewProjectReportPage() {
                           key={item.key}
                           type="button"
                           onClick={() => setSelectedType(item.key)}
-                          className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                          className={`flex items-start gap-3 p-3.5 sm:p-4 min-h-20 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
                             isSelected
                               ? "bg-teal-50/80 dark:bg-teal-950/30 border-teal-500/80 dark:border-teal-500/60 shadow-xs ring-2 ring-teal-500/20"
                               : "bg-background border-border hover:border-teal-300 dark:hover:border-teal-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
@@ -166,7 +167,7 @@ export default function NewProjectReportPage() {
                             <Icon className="w-5 h-5" />
                           </div>
                           <div className="space-y-1 min-w-0 flex-1">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between gap-2">
                               <span className={`text-xs sm:text-sm font-bold block ${isSelected ? "text-teal-900 dark:text-teal-200" : "text-foreground"}`}>
                                 {item.title}
                               </span>
@@ -174,7 +175,7 @@ export default function NewProjectReportPage() {
                                 <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse shrink-0" />
                               )}
                             </div>
-                            <p className={`text-[11px] leading-relaxed ${isSelected ? "text-teal-750 dark:text-teal-300" : "text-muted-foreground"}`}>
+                            <p className={`text-[11px] sm:text-xs leading-relaxed ${isSelected ? "text-teal-750 dark:text-teal-300" : "text-muted-foreground"}`}>
                               {item.description}
                             </p>
                           </div>
@@ -184,46 +185,46 @@ export default function NewProjectReportPage() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="border-t border-border/40 pt-4 flex justify-end gap-2">
+              <CardFooter className="border-t border-border/40 p-4 sm:px-6 sm:py-4 flex justify-end gap-2">
                 <Button
                   disabled={!selectedType}
                   onClick={() => {
                     if (selectedType) setCurrentStep(2);
                   }}
-                  className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2 disabled:opacity-50"
+                  className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 min-h-11 rounded-xl shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <span>التالي</span>
-                  <ArrowLeft className="h-4 w-4" />
+                  <ArrowLeft className="h-4 w-4 shrink-0" />
                 </Button>
               </CardFooter>
             </Card>
           </div>
         ) : (
           /* Step 2 Form Card */
-          <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-            <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                  <FileCheck className="h-4.5 w-4.5 text-teal-600" />
-                  الخطوة 2: تعبئة {getReportTitle(selectedType)}
+          <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900 py-0 gap-0">
+            <CardHeader className="bg-muted/30 border-b border-border/40 p-4 sm:px-6 sm:py-4 text-right flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="min-w-0">
+                <CardTitle className="flex items-center gap-2 text-foreground text-sm sm:text-base font-bold">
+                  <FileCheck className="h-4.5 w-4.5 text-teal-600 shrink-0" />
+                  <span className="break-words">الخطوة 2: تعبئة {getReportTitle(selectedType)}</span>
                 </CardTitle>
                 <CardDescription className="text-right text-xs text-muted-foreground mt-0.5">
                   قم بإدخال وتأكيد كافة بيانات وملاحظات التقرير
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentStep(1)}
-                  className="gap-2 text-xs font-semibold h-9 rounded-lg border-border/80"
+                  className="w-full sm:w-auto gap-2 text-xs font-semibold min-h-10 max-lg:min-h-11 rounded-lg border-border/80"
                 >
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                   تغيير نوع التقرير
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="p-4 sm:p-6 text-right">
+            <CardContent className="p-3 sm:p-6 text-right min-w-0">
               {selectedType === "semi-monthly" && <SemiMonthlyReportPage showLayout={false} />}
               {selectedType === "monthly" && <MonthlyReportPage showLayout={false} />}
               {selectedType === "quarterly" && <QuarterlyReportPage showLayout={false} />}

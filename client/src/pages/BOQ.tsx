@@ -159,16 +159,16 @@ export default function BOQ() {
 
   if (!canViewBOQ) {
     return (
-      <DashboardLayout>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
+      <DashboardLayout tabletNavigation>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-4 sm:p-6" dir="rtl">
           <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-950/30 text-red-600 flex items-center justify-center mb-4">
             <AlertCircle className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-bold mb-2">ليس لديك صلاحية لعرض جداول الكميات</h2>
-          <p className="text-muted-foreground max-w-md mb-6">
+          <h2 className="text-lg sm:text-xl font-bold mb-2">ليس لديك صلاحية لعرض جداول الكميات</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground max-w-md mb-6">
             يرجى التواصل مع مدير النظام لمنحك صلاحية "عرض جداول الكميات" (boq.view) للوصول إلى هذا القسم.
           </p>
-          <Button onClick={() => navigate("/")} variant="outline">
+          <Button onClick={() => navigate("/")} variant="outline" className="min-h-10 max-lg:min-h-11">
             العودة للرئيسية
           </Button>
         </div>
@@ -177,64 +177,65 @@ export default function BOQ() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <DashboardLayout tabletNavigation>
+      <div className="w-full min-w-0 max-w-full overflow-x-hidden space-y-4 sm:space-y-6" dir="rtl">
         {/* العنوان */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           {selectedRequestId && (
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate("/boq-preparations")}
               type="button"
+              className="size-10 max-lg:size-11 rounded-xl shrink-0"
             >
               <ArrowRight className="w-5 h-5" />
             </Button>
           )}
-          <div>
-            <h1 className="text-2xl font-bold">إعداد وجداول الكميات (BOQ)</h1>
-            <p className="text-muted-foreground">استعراض وإدارة بنود جداول الكميات (BOQ) لكافة الطلبات والمشاريع</p>
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-2xl font-bold">إعداد وجداول الكميات (BOQ)</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">استعراض وإدارة بنود جداول الكميات (BOQ) لكافة الطلبات والمشاريع</p>
           </div>
         </div>
 
         {/* عرض تفاصيل الطلب وجدول الكميات الخاص به */}
         {selectedRequestId ? (
           isLoadingRequestDetails ? (
-            <div className="p-12 text-center bg-white dark:bg-gray-900 rounded-lg shadow-sm">
+            <div className="p-8 sm:p-12 text-center bg-white dark:bg-gray-900 rounded-lg shadow-sm">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
               <p className="text-muted-foreground mt-4 text-sm">جاري تحميل جدول الكميات...</p>
             </div>
           ) : requestDetails ? (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6 min-w-0">
               {/* عرض المكون BoqTab */}
               <BoqTab requestId={parseInt(selectedRequestId)} />
               
               {/* زر إنهاء إعداد جدول الكميات والاعتماد */}
               {boqData && boqData.length > 0 && (
-                <Card className="border-0 shadow-sm bg-white dark:bg-gray-900">
-                  <CardContent className="p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">
+                <Card className="border-0 shadow-sm bg-white dark:bg-gray-900 py-0 gap-0">
+                  <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         عدد البنود المضافة: {boqData.length}
                       </p>
-                      <p className="text-xl font-bold text-primary mt-1 inline-flex items-center gap-1">
+                      <p className="text-lg sm:text-xl font-bold text-primary mt-1 inline-flex flex-wrap items-center gap-1">
                         <span>إجمالي التكلفة التقديرية: {totalAmount.toLocaleString("ar-SA")}</span>
-                        <SaudiRiyal className="w-4 h-4 inline" />
+                        <SaudiRiyal className="w-4 h-4 inline shrink-0" />
                       </p>
                     </div>
                     {requestDetails?.hasAcceptedQuotation ? (
-                      <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-xs px-3 py-1.5 flex items-center gap-1.5">
-                          <CheckCircle className="w-4 h-4 text-emerald-600" />
-                          تم اعتماد عرض السعر (الجدول مقفل ومعتمد)
+                      <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-xs px-3 py-2 flex items-center justify-center gap-1.5 whitespace-normal h-auto text-center">
+                          <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>تم اعتماد عرض السعر (الجدول مقفل ومعتمد)</span>
                         </Badge>
                         {!isContractingOrLater && (
                           <Button
                             size="lg"
                             onClick={() => navigate(`/quotations?requestId=${selectedRequestId}`)}
-                            className="w-full sm:w-auto gap-2 bg-teal-600 hover:bg-teal-700 text-white"
+                            className="w-full sm:w-auto min-h-11 gap-2 bg-teal-600 hover:bg-teal-700 text-white"
                           >
-                            <Receipt className="h-5 w-5" />
+                            <Receipt className="h-5 w-5 shrink-0" />
                             عرض عروض الأسعار
                           </Button>
                         )}
@@ -250,28 +251,28 @@ export default function BOQ() {
                           });
                         }}
                         disabled={completeBOQMutation.isPending}
-                        className="w-full sm:w-auto gap-2"
+                        className="w-full sm:w-auto min-h-11 h-auto py-2.5 gap-2 whitespace-normal"
                       >
                         {completeBOQMutation.isPending ? (
-                          <Loader2 className="h-5 w-5 animate-spin" />
+                          <Loader2 className="h-5 w-5 animate-spin shrink-0" />
                         ) : (
-                          <FileText className="h-5 w-5" />
+                          <FileText className="h-5 w-5 shrink-0" />
                         )}
-                        اعتماد وإنهاء جدول الكميات
+                        <span>اعتماد وإنهاء جدول الكميات</span>
                       </Button>
                     ) : !isContractingOrLater ? (
                       <Button
                         size="lg"
                         onClick={() => navigate(`/quotations?requestId=${selectedRequestId}`)}
-                        className="w-full sm:w-auto gap-2 bg-teal-600 hover:bg-teal-700 text-white"
+                        className="w-full sm:w-auto min-h-11 gap-2 bg-teal-600 hover:bg-teal-700 text-white"
                       >
-                        <Receipt className="h-5 w-5" />
+                        <Receipt className="h-5 w-5 shrink-0" />
                         إدارة عروض الأسعار
                       </Button>
                     ) : (
-                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-xs px-3 py-1.5 flex items-center gap-1.5">
-                        <CheckCircle className="w-4 h-4 text-emerald-600" />
-                        تم اعتماد عرض السعر (الجدول مقفل ومعتمد)
+                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-xs px-3 py-2 flex items-center justify-center gap-1.5 whitespace-normal h-auto text-center">
+                        <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>تم اعتماد عرض السعر (الجدول مقفل ومعتمد)</span>
                       </Badge>
                     )}
                   </CardContent>
@@ -279,30 +280,30 @@ export default function BOQ() {
               )}
             </div>
           ) : (
-            <div className="p-8 text-center bg-white dark:bg-gray-900 rounded-lg shadow-sm space-y-4">
+            <div className="p-6 sm:p-8 text-center bg-white dark:bg-gray-900 rounded-lg shadow-sm space-y-4">
               <AlertCircle className="w-12 h-12 text-destructive mx-auto" />
-              <p className="font-semibold text-lg">تعذر تحميل بيانات جدول الكميات</p>
-              <p className="text-muted-foreground text-sm max-w-md mx-auto">
+              <p className="font-semibold text-base sm:text-lg">تعذر تحميل بيانات جدول الكميات</p>
+              <p className="text-muted-foreground text-xs sm:text-sm max-w-md mx-auto">
                 {requestDetailsError?.message || "قد يكون الطلب غير موجود أو ليس لديك الصلاحية الكافية لعرضه."}
               </p>
-              <Button onClick={() => navigate("/boq-preparations")} variant="outline">
+              <Button onClick={() => navigate("/boq-preparations")} variant="outline" className="min-h-10 max-lg:min-h-11">
                 العودة لقائمة جداول الكميات
               </Button>
             </div>
           )
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* الفلاتر والبحث */}
-            <Card className="border-0 shadow-sm bg-white dark:bg-gray-900">
-              <CardContent className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
-                  <div className="lg:col-span-2 relative">
-                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block flex items-center gap-1">
+            <Card className="border-0 shadow-sm bg-white dark:bg-gray-900 py-0 gap-0">
+              <CardContent className="p-3.5 sm:p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+                  <div className="sm:col-span-2 relative">
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
                       <Search className="w-3 h-3" />
                       البحث
                     </label>
                     <div className="relative">
-                      <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                       <Input
                         placeholder="رقم الطلب أو اسم المسجد..."
                         value={searchQuery}
@@ -310,7 +311,7 @@ export default function BOQ() {
                           setSearchQuery(e.target.value);
                           resetPage();
                         }}
-                        className="h-10 w-full pr-10"
+                        className="h-10 max-lg:min-h-11 max-md:text-base w-full pr-10"
                       />
                     </div>
                   </div>
@@ -320,7 +321,7 @@ export default function BOQ() {
                       setFilterProgram(v);
                       resetPage();
                     }}>
-                      <SelectTrigger className="w-full h-10 text-xs md:text-sm">
+                      <SelectTrigger className="w-full h-10 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs md:text-sm">
                         <SelectValue placeholder="البرنامج" />
                       </SelectTrigger>
                       <SelectContent>
@@ -337,7 +338,7 @@ export default function BOQ() {
                       setFilterStatus(v);
                       resetPage();
                     }}>
-                      <SelectTrigger className="w-full h-10 text-xs md:text-sm">
+                      <SelectTrigger className="w-full h-10 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs md:text-sm">
                         <SelectValue placeholder="الحالة" />
                       </SelectTrigger>
                       <SelectContent>
@@ -353,7 +354,7 @@ export default function BOQ() {
             </Card>
 
             {/* قائمة الطلبات مطابقة لعرض /requests */}
-            <Card className="border-0 shadow-sm overflow-hidden bg-white dark:bg-gray-900">
+            <Card className="border-0 shadow-sm overflow-hidden bg-white dark:bg-gray-900 py-0 gap-0">
               {isLoadingRequests ? (
                 <div className="p-12 text-center">
                   <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
@@ -361,8 +362,74 @@ export default function BOQ() {
                 </div>
               ) : requests.length > 0 ? (
                 <div>
-                  {/* الرأس لسطح المكتب */}
-                  <div className="hidden md:grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-4 px-4 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  {/* عرض البطاقات للموبايل والآيباد العمودي */}
+                  <div className="lg:hidden p-3 sm:p-4 bg-muted/15 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {requests.map((request: any) => {
+                      const status = statusConfig[request.status] || statusConfig.pending;
+                      return (
+                        <div
+                          key={request.id}
+                          onClick={() => navigate(`/boq-preparations/${request.id}`)}
+                          className="rounded-xl border border-border/80 bg-card p-3.5 sm:p-4 shadow-2xs hover:border-primary/40 transition-colors cursor-pointer flex flex-col justify-between gap-3"
+                        >
+                          <div className="space-y-2.5">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="shrink-0">
+                                  <ProgramIcon program={request.programType} size="md" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-bold text-foreground text-sm font-mono">{request.requestNumber}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                    {PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS] || request.programType}
+                                  </p>
+                                </div>
+                              </div>
+                              <span className="text-[11px] text-muted-foreground shrink-0">
+                                {new Date(request.createdAt).toLocaleDateString("ar-SA")}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-xs text-foreground bg-muted/40 p-2.5 rounded-lg border border-border/40">
+                              <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                              <span className="truncate font-medium">{request.mosqueName || "—"}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/50">
+                            <div className="flex flex-col gap-1.5 min-w-0">
+                              <Badge variant="outline" className="text-[11px] py-0.5 w-fit">
+                                {getStageLabel(request.currentStage, request.requestTrack)}
+                              </Badge>
+                              {Boolean(request.hasAcceptedQuotation) ? (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 w-fit">
+                                  <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />
+                                  عرض السعر معتمد (الجدول مقفل)
+                                </span>
+                              ) : Boolean(request.hasBOQ) ? (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 rounded border border-teal-200 dark:border-teal-800 w-fit">
+                                  <FileText className="w-3 h-3 text-teal-600 shrink-0" />
+                                  تم إعداد الجدول ({request.boqItemsCount || 0} بند)
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800 w-fit">
+                                  <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+                                  بحاجة لوضع جدول الكميات
+                                </span>
+                              )}
+                            </div>
+                            <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full border shrink-0 ${status.bg} ${status.color}`}>
+                              {status.icon}
+                              {STATUS_LABELS[request.status as keyof typeof STATUS_LABELS] || request.status}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* الرأس لسطح المكتب والآيباد الأفقي */}
+                  <div className="hidden lg:grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-4 px-4 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                     <div className="w-8"></div>
                     <div>رقم الطلب / البرنامج</div>
                     <div>المسجد</div>
@@ -371,116 +438,72 @@ export default function BOQ() {
                     <div className="w-20 text-center">إجراء</div>
                   </div>
 
-                  {/* الأسطر والبطاقات */}
-                  <div className="divide-y divide-border">
+                  {/* الأسطر لسطح المكتب والآيباد الأفقي */}
+                  <div className="hidden lg:block divide-y divide-border">
                     {requests.map((request: any) => {
                       const status = statusConfig[request.status] || statusConfig.pending;
                       return (
                         <div
                           key={request.id}
-                          className="grid grid-cols-1 md:grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-3 md:gap-4 px-4 py-4 hover:bg-muted/30 transition-colors items-center cursor-pointer"
+                          className="grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-4 px-4 py-4 hover:bg-muted/30 transition-colors items-center cursor-pointer"
                           onClick={() => navigate(`/boq-preparations/${request.id}`)}
                         >
-                          {/* أيقونة البرنامج لسطح المكتب */}
-                          <div className="hidden md:flex w-8 justify-center">
+                          {/* أيقونة البرنامج */}
+                          <div className="flex w-8 justify-center">
                             <ProgramIcon program={request.programType} size="md" />
                           </div>
 
                           {/* معلومات الطلب */}
-                          <div className="flex items-start justify-between md:block gap-3">
-                            <div className="flex items-center gap-3 md:block min-w-0">
-                              <div className="md:hidden shrink-0">
-                                <ProgramIcon program={request.programType} size="md" />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="font-bold text-foreground text-sm">{request.requestNumber}</p>
-                                <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                  {PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS] || request.programType}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="text-left md:text-right shrink-0">
-                              <p className="text-[10px] md:text-xs text-muted-foreground">
-                                {new Date(request.createdAt).toLocaleDateString("ar-SA")}
-                              </p>
-                            </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-foreground text-sm">{request.requestNumber}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                              {PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS] || request.programType}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              {new Date(request.createdAt).toLocaleDateString("ar-SA")}
+                            </p>
                           </div>
 
                           {/* المسجد */}
-                          <div className="hidden md:flex items-center gap-2 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0">
                             <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
                             <span className="text-sm text-foreground truncate">{request.mosqueName || "—"}</span>
                           </div>
 
                           {/* المرحلة وحالة الجدول */}
-                          <div className="hidden md:flex flex-col gap-1 min-w-0">
-                            <Badge variant="outline" className="text-[10px] md:text-xs font-medium py-0 h-auto w-fit">
+                          <div className="flex flex-col gap-1 min-w-0">
+                            <Badge variant="outline" className="text-xs font-medium py-0.5 h-auto w-fit">
                               {getStageLabel(request.currentStage, request.requestTrack)}
                             </Badge>
                             {Boolean(request.hasAcceptedQuotation) ? (
                               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 w-fit">
-                                <CheckCircle className="w-3 h-3 text-emerald-600" />
+                                <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />
                                 عرض السعر معتمد (الجدول مقفل)
                               </span>
                             ) : Boolean(request.hasBOQ) ? (
                               <span className="inline-flex items-center gap-1 text-[10px] font-medium text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 rounded border border-teal-200 dark:border-teal-800 w-fit">
-                                <FileText className="w-3 h-3 text-teal-600" />
+                                <FileText className="w-3 h-3 text-teal-600 shrink-0" />
                                 تم إعداد الجدول ({request.boqItemsCount || 0} بند)
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800 w-fit">
-                                <Clock className="w-3 h-3 text-amber-600" />
+                                <Clock className="w-3 h-3 text-amber-600 shrink-0" />
                                 بحاجة لوضع جدول الكميات
                               </span>
                             )}
                           </div>
 
                           {/* الحالة */}
-                          <div className="hidden md:block shrink-0">
-                            <span className={`inline-flex items-center gap-1.5 text-[10px] md:text-xs font-medium px-2.5 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
+                          <div className="shrink-0">
+                            <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
                               {status.icon}
                               {STATUS_LABELS[request.status as keyof typeof STATUS_LABELS] || request.status}
                             </span>
                           </div>
 
-                          {/* للهواتف المحمولة */}
-                          <div className="md:hidden flex flex-col gap-3">
-                            <div className="flex items-center gap-1.5 text-xs text-foreground bg-muted/50 p-2 rounded-md">
-                              <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                              <span className="truncate">{request.mosqueName || "—"}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex flex-col gap-1">
-                                <Badge variant="outline" className="text-[10px] py-0.5 w-fit">
-                                  {getStageLabel(request.currentStage, request.requestTrack)}
-                                </Badge>
-                                {Boolean(request.hasAcceptedQuotation) ? (
-                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 w-fit">
-                                    <CheckCircle className="w-2.5 h-2.5 text-emerald-600" />
-                                    عرض السعر معتمد (الجدول مقفل)
-                                  </span>
-                                ) : Boolean(request.hasBOQ) ? (
-                                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/40 px-1.5 py-0.5 rounded border border-teal-200 dark:border-teal-800 w-fit">
-                                    <FileText className="w-2.5 h-2.5 text-teal-600" />
-                                    تم إعداد الجدول ({request.boqItemsCount || 0} بند)
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800 w-fit">
-                                    <Clock className="w-2.5 h-2.5 text-amber-600" />
-                                    بحاجة لوضع جدول الكميات
-                                  </span>
-                                )}
-                              </div>
-                              <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
-                                {status.icon}
-                                {STATUS_LABELS[request.status as keyof typeof STATUS_LABELS] || request.status}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* زر الانتقال لسطح المكتب */}
-                          <div className="hidden md:flex justify-center w-20">
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary">
+                          {/* زر الانتقال */}
+                          <div className="flex justify-center w-20">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 pointer-coarse:min-h-10 pointer-coarse:min-w-10 p-0 text-muted-foreground hover:text-primary">
                               <ChevronLeft className="w-4 h-4" />
                             </Button>
                           </div>
@@ -501,10 +524,11 @@ export default function BOQ() {
                     itemsPerPage={limit}
                     itemName="طلب"
                     itemNamePlural="طلبات"
+                    className="max-sm:px-2 max-sm:[&_button]:px-2 pointer-coarse:[&_button]:min-h-11"
                   />
                 </div>
               ) : (
-                <div className="p-12 text-center">
+                <div className="p-10 sm:p-12 text-center">
                   <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
                     <FileText className="w-8 h-8 text-muted-foreground" />
                   </div>
