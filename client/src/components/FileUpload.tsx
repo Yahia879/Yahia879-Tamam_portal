@@ -423,11 +423,13 @@ export function FileUpload({
 
               {/* زر الحذف */}
               <Button
+                type="button"
                 variant="ghost"
                 size="icon"
-                className="flex-shrink-0 h-8 w-8"
+                className="flex-shrink-0 size-9 max-lg:size-11 pointer-coarse:size-11"
                 onClick={() => removeFile(index)}
                 disabled={disabled || file.status === "uploading"}
+                aria-label="إزالة الملف"
               >
                 <X className="w-4 h-4" />
               </Button>

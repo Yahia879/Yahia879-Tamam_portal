@@ -76,6 +76,35 @@ function FitBounds({ markers }: { markers: any[] }) {
   return null;
 }
 
+function MapResizeHandler() {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    const invalidate = () => {
+      map.invalidateSize({ animate: false });
+    };
+
+    const timer = window.setTimeout(invalidate, 150);
+    let observer: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== "undefined" && container) {
+      observer = new ResizeObserver(() => {
+        invalidate();
+      });
+      observer.observe(container);
+    }
+    window.addEventListener("orientationchange", invalidate);
+    window.addEventListener("resize", invalidate);
+
+    return () => {
+      window.clearTimeout(timer);
+      observer?.disconnect();
+      window.removeEventListener("orientationchange", invalidate);
+      window.removeEventListener("resize", invalidate);
+    };
+  }, [map]);
+  return null;
+}
+
 export function LeafletMap({
   className,
   initialCenter = { lat: 24.7136, lng: 46.6753 },
@@ -114,6 +143,7 @@ export function LeafletMap({
         )}
 
         <ChangeView center={[initialCenter.lat, initialCenter.lng]} zoom={initialZoom} />
+        <MapResizeHandler />
         {fitBounds && <FitBounds markers={markers} />}
         
         {markers.map((marker) => (
@@ -123,7 +153,7 @@ export function LeafletMap({
             icon={createStatusIcon(marker.status, markerIconSize)}
           >
             {marker.content && (
-              <Popup>
+              <Popup maxWidth={280}>
                 <div className="rtl font-tajawal text-right">
                   {marker.content}
                 </div>
@@ -134,14 +164,15 @@ export function LeafletMap({
       </MapContainer>
 
       {/* زر تبديل نوع الخريطة المباشر - متموضع أسفل أدوات التكبير */}
-      <div className="absolute top-[82px] left-[10px] z-[1000]">
+      <div className="absolute top-[84px] left-[10px] z-[1000]">
         <button
           type="button"
           onClick={() => setMapType(mapType === 'street' ? 'satellite' : 'street')}
           className={cn(
-            "h-[34px] w-[34px] bg-white rounded-[2px] shadow-sm border border-gray-300 transition-all hover:bg-gray-50 flex items-center justify-center",
+            "size-10 sm:size-[34px] pointer-coarse:size-10 bg-white rounded-[4px] sm:rounded-[2px] shadow-sm border border-gray-300 transition-all hover:bg-gray-50 flex items-center justify-center",
             mapType === 'satellite' ? "text-primary border-primary bg-primary/5" : "text-gray-600"
           )}
+          aria-label={mapType === 'street' ? "التبديل إلى صور الأقمار الصناعية" : "التبديل إلى خريطة الشوارع"}
           title={mapType === 'street' ? "التبديل إلى صور الأقمار الصناعية" : "التبديل إلى خريطة الشوارع"}
         >
           {mapType === 'street' ? (

@@ -172,8 +172,8 @@ export default function Mosques() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <DashboardLayout tabletNavigation>
+      <div className="min-w-0 space-y-4 sm:space-y-6">
         {/* العنوان والإجراءات */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -182,7 +182,7 @@ export default function Mosques() {
           </div>
           <PermissionGuard permission="mosques.create">
             <Link href="/mosques/new">
-              <Button className="gradient-primary text-white w-full sm:w-auto">
+              <Button className="gradient-primary text-white w-full sm:w-auto max-lg:min-h-11 pointer-coarse:min-h-11">
                 <Plus className="w-4 h-4 ml-2" />
                 إضافة مسجد
               </Button>
@@ -191,15 +191,15 @@ export default function Mosques() {
         </div>
 
         {/* بطاقات الإحصائيات */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
+          <Card className="border-0 shadow-sm max-lg:py-0">
+            <CardContent className="p-2.5 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between max-lg:gap-1.5">
                 <div>
                   <p className="text-xs md:text-sm text-muted-foreground">إجمالي المساجد</p>
                   <p className="text-xl md:text-2xl font-bold text-foreground mt-1">{stats?.total || 0}</p>
                 </div>
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <div className="size-8 sm:size-10 lg:size-12 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Building2 className="w-5 h-5 md:w-6 md:h-6 text-primary" />
                 </div>
               </div>
@@ -208,14 +208,14 @@ export default function Mosques() {
 
           {/* بطاقة المساجد قيد المراجعة */}
           <PermissionGuard anyPermission={["mosques.approve", "mosques.reject"]}>
-            <Card className={`border-0 shadow-sm ${pendingCount > 0 ? 'ring-2 ring-yellow-400' : ''}`}>
-              <CardContent className="p-4 md:p-6">
-                <div className="flex items-center justify-between">
+            <Card className={`border-0 shadow-sm max-lg:py-0 ${pendingCount > 0 ? 'ring-2 ring-yellow-400' : ''}`}>
+              <CardContent className="p-2.5 sm:p-4 lg:p-6">
+                <div className="flex items-center justify-between max-lg:gap-1.5">
                   <div>
                     <p className="text-xs md:text-sm text-muted-foreground">قيد المراجعة</p>
                     <p className="text-xl md:text-2xl font-bold text-yellow-600 mt-1">{pendingCount}</p>
                   </div>
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-yellow-100 flex items-center justify-center">
+                  <div className="size-8 sm:size-10 lg:size-12 shrink-0 rounded-lg bg-yellow-100 flex items-center justify-center">
                     <Clock className="w-5 h-5 md:w-6 md:h-6 text-yellow-600" />
                   </div>
                 </div>
@@ -223,7 +223,7 @@ export default function Mosques() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="mt-3 w-full text-xs md:text-sm text-yellow-600 border-yellow-300 hover:bg-yellow-50"
+                    className="mt-3 w-full max-lg:min-h-11 pointer-coarse:min-h-11 max-lg:px-1 max-lg:whitespace-normal text-xs lg:text-sm text-yellow-600 border-yellow-300 hover:bg-yellow-50"
                     onClick={() => {
                       setStatusFilter("pending");
                       setPage(1);
@@ -236,28 +236,28 @@ export default function Mosques() {
             </Card>
           </PermissionGuard>
 
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
+          <Card className="border-0 shadow-sm max-lg:py-0">
+            <CardContent className="p-2.5 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between max-lg:gap-1.5">
                 <div>
                   <p className="text-xs md:text-sm text-muted-foreground">المدن</p>
                   <p className="text-xl md:text-2xl font-bold text-foreground mt-1">{Object.keys(stats?.byCity || {}).length}</p>
                 </div>
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                <div className="size-8 sm:size-10 lg:size-12 shrink-0 rounded-lg bg-blue-100 flex items-center justify-center">
                   <MapPin className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
+          <Card className="border-0 shadow-sm max-lg:py-0">
+            <CardContent className="p-2.5 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between max-lg:gap-1.5">
                 <div>
                   <p className="text-xs md:text-sm text-muted-foreground">المعتمدة</p>
                   <p className="text-xl md:text-2xl font-bold text-green-600 mt-1">{stats?.byApprovalStatus?.approved || 0}</p>
                 </div>
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-green-100 flex items-center justify-center">
+                <div className="size-8 sm:size-10 lg:size-12 shrink-0 rounded-lg bg-green-100 flex items-center justify-center">
                   <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
                 </div>
               </div>
@@ -266,10 +266,10 @@ export default function Mosques() {
         </div>
 
         {/* فلاتر البحث */}
-        <Card className="border-0 shadow-sm">
+        <Card className="border-0 shadow-sm max-lg:py-0">
           <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="md:col-span-2 relative">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+              <div className="sm:col-span-2 relative">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="البحث عن مسجد..."
@@ -278,14 +278,14 @@ export default function Mosques() {
                     setSearch(e.target.value);
                     resetPage();
                   }}
-                  className="pr-10 h-10"
+                  className="pr-10 h-10 max-lg:min-h-11 pointer-coarse:min-h-11 max-md:text-base"
                 />
               </div>
               <Select value={cityFilter} onValueChange={(val) => {
                 setCityFilter(val);
                 resetPage();
               }}>
-                <SelectTrigger className="w-full h-10">
+                <SelectTrigger className="w-full min-w-0 h-10 max-lg:min-h-11 pointer-coarse:min-h-11">
                   <SelectValue placeholder="المدينة" />
                 </SelectTrigger>
                 <SelectContent>
@@ -300,7 +300,7 @@ export default function Mosques() {
                   setStatusFilter(val);
                   resetPage();
                 }}>
-                  <SelectTrigger className="w-full h-10">
+                  <SelectTrigger className="w-full min-w-0 h-10 max-lg:min-h-11 pointer-coarse:min-h-11">
                     <SelectValue placeholder="حالة الاعتماد" />
                   </SelectTrigger>
                   <SelectContent>
@@ -316,7 +316,7 @@ export default function Mosques() {
         </Card>
 
         {/* جدول المساجد / عرض الكروت للموبايل */}
-        <Card className="border-0 shadow-sm overflow-hidden">
+        <Card className="border-0 shadow-sm overflow-hidden max-lg:py-0">
           <CardContent className="p-0">
             {isLoading ? (
               <div className="p-8 text-center">
@@ -326,7 +326,7 @@ export default function Mosques() {
             ) : mosques.length > 0 ? (
               <>
                 {/* عرض الجدول للشاشات الكبيرة */}
-                <div className="hidden md:block overflow-x-auto">
+                <div className="hidden lg:block overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -452,24 +452,24 @@ export default function Mosques() {
                 </div>
 
                 {/* عرض الكروت للموبايل */}
-                <div className="md:hidden divide-y divide-border">
+                <div className="grid gap-2.5 p-2.5 sm:grid-cols-2 sm:gap-3 sm:p-4 lg:hidden">
                   {mosques.map((mosque: any) => {
                     const status = APPROVAL_STATUS[mosque.approvalStatus as keyof typeof APPROVAL_STATUS] || APPROVAL_STATUS.pending;
                     const StatusIcon = status.icon;
 
                     return (
-                      <div key={mosque.id} className={`p-4 ${mosque.approvalStatus === "pending" ? "bg-yellow-50/30" : ""}`}>
+                      <div key={mosque.id} className={`flex min-w-0 flex-col justify-between rounded-xl border p-3 sm:p-4 ${mosque.approvalStatus === "pending" ? "border-yellow-400/50 bg-yellow-50/40 dark:bg-yellow-950/20" : "border-border"}`}>
                         <div className="flex justify-between items-start gap-3 mb-3">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                               <Building2 className="w-5 h-5 text-primary" />
                             </div>
                             <div className="min-w-0">
-                              <p className="font-bold text-foreground truncate">{mosque.name}</p>
-                              <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <MapPin className="w-3 h-3" />
-                                  {mosque.city}
+                              <p className="font-bold text-foreground wrap-anywhere">{mosque.name}</p>
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs text-muted-foreground">
+                                <span className="flex items-start gap-1">
+                                  <MapPin className="w-3 h-3 mt-0.5 shrink-0" />
+                                  <span className="wrap-anywhere">{[mosque.city, mosque.governorate].filter(Boolean).join(" · ")}</span>
                                 </span>
                                 {mosque.capacity && (
                                   <span className="flex items-center gap-1">
@@ -483,14 +483,14 @@ export default function Mosques() {
                           {hasMosqueMenuActions && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Button aria-label="إجراءات المسجد" variant="ghost" size="icon" className="size-11 shrink-0">
                                   <MoreVertical className="w-4 h-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <PermissionGuard permission="mosques.view_details">
                                   <Link href={`/mosques/${mosque.id}`}>
-                                    <DropdownMenuItem className="cursor-pointer text-sm">
+                                    <DropdownMenuItem className="min-h-11 cursor-pointer text-sm">
                                       <Eye className="w-4 h-4 ml-2" />
                                       عرض التفاصيل
                                     </DropdownMenuItem>
@@ -498,7 +498,7 @@ export default function Mosques() {
                                 </PermissionGuard>
                                 <PermissionGuard permission="mosques.edit">
                                   <Link href={`/mosques/${mosque.id}/edit`}>
-                                    <DropdownMenuItem className="cursor-pointer text-sm">
+                                    <DropdownMenuItem className="min-h-11 cursor-pointer text-sm">
                                       <Edit className="w-4 h-4 ml-2" />
                                       تعديل
                                     </DropdownMenuItem>
@@ -507,7 +507,7 @@ export default function Mosques() {
                                 <PermissionGuard permission="mosques.delete">
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
-                                    className="cursor-pointer text-destructive focus:text-destructive text-sm"
+                                    className="min-h-11 cursor-pointer text-destructive focus:text-destructive text-sm"
                                     onClick={() => openDeleteDialog(mosque.id)}
                                   >
                                     <Trash2 className="w-4 h-4 ml-2" />
@@ -528,12 +528,12 @@ export default function Mosques() {
                           </PermissionGuard>
 
                           {!["approved", "rejected"].includes(mosque.approvalStatus || "") && (canApproveMosques || canRejectMosques) && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               {!["approved", "rejected"].includes(mosque.approvalStatus || "") && <PermissionGuard permission="mosques.approve">
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-8 text-[11px] text-green-600 border-green-300 hover:bg-green-50 px-2"
+                                  className="h-11 text-xs text-green-600 border-green-300 hover:bg-green-50 px-2.5"
                                   onClick={() => handleApprove(mosque.id)}
                                   disabled={approveMutation.isPending}
                                   title="اعتماد المسجد"
@@ -546,7 +546,7 @@ export default function Mosques() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-8 text-[11px] text-red-600 border-red-300 hover:bg-red-50 px-2"
+                                  className="h-11 text-xs text-red-600 border-red-300 hover:bg-red-50 px-2.5"
                                   onClick={() => openRejectDialog(mosque.id)}
                                   disabled={rejectMutation.isPending}
                                   title="رفض المسجد"
@@ -575,6 +575,7 @@ export default function Mosques() {
                   itemsPerPage={limit}
                   itemName="مسجد"
                   itemNamePlural="مساجد"
+                  className="max-sm:px-2 max-sm:[&_button]:px-2 pointer-coarse:[&_button]:min-h-11"
                 />
               </>
             ) : (
@@ -596,7 +597,7 @@ export default function Mosques() {
 
       {/* نافذة سبب الرفض */}
       <Dialog open={rejectDialogOpen && canRejectMosques} onOpenChange={setRejectDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto max-sm:p-4 pointer-coarse:[&_button]:min-h-11">
           <DialogHeader>
             <DialogTitle>رفض المسجد</DialogTitle>
             <DialogDescription>
@@ -628,7 +629,7 @@ export default function Mosques() {
 
       {/* نافذة تأكيد الحذف */}
       <Dialog open={deleteDialogOpen && canDeleteMosques} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto max-sm:p-4 pointer-coarse:[&_button]:min-h-11">
           <DialogHeader>
             <DialogTitle className="text-destructive flex items-center gap-2">
               <Trash2 className="w-5 h-5" />

@@ -149,10 +149,10 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
               onChange={(e) => onChange(e.target.value)}
               placeholder={field.placeholder}
               disabled={disabled}
-              className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all ${
+              className={`h-11 rounded-xl text-sm max-md:text-base bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all ${
                 unitSuffix ? 'pl-12' : ''
               } ${error ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20' : ''} ${
-                disabled ? 'disabled:opacity-100 disabled:text-slate-900 disabled:bg-muted/40 font-bold' : ''
+                disabled ? 'disabled:opacity-100 disabled:text-slate-900 dark:disabled:text-foreground disabled:bg-muted/40 font-bold' : ''
               }`}
             />
             {unitSuffix && (
@@ -171,7 +171,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
             placeholder={field.placeholder}
             disabled={disabled}
             rows={4}
-            className={`min-h-[110px] rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all leading-relaxed p-3.5 ${
+            className={`min-h-[110px] rounded-xl text-sm max-md:text-base bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all leading-relaxed p-3.5 ${
               error ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20' : ''
             }`}
           />
@@ -185,7 +185,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
               <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-bold text-xs sm:text-sm text-amber-900 dark:text-amber-200">لا توجد مساجد مسجلة في حسابك</p>
                     <p className="text-[11px] sm:text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5">
                       لتقديم هذا الطلب، يرجى تسجيل المسجد أولاً.
@@ -195,7 +195,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  className="w-full rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-1.5 h-10 shadow-xs"
+                  className="w-full rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-1.5 h-11 shadow-xs"
                   onClick={onAddMosque}
                 >
                   <Plus className="w-4 h-4" />
@@ -220,12 +220,12 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
         // الحقول الأخرى
         return (
           <Select value={value || ''} onValueChange={onChange} disabled={disabled}>
-            <SelectTrigger className={`w-full h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all ${error ? 'border-red-500' : ''}`}>
+            <SelectTrigger className={`w-full min-w-0 h-11 rounded-xl text-sm max-md:text-base bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all ${error ? 'border-red-500' : ''}`}>
               <SelectValue placeholder={field.placeholder || 'اختر...'} />
             </SelectTrigger>
             <SelectContent className="rounded-xl border-border shadow-lg">
               {field.options?.map((option) => (
-                <SelectItem key={option.value} value={option.value} className="text-xs sm:text-sm rounded-lg my-0.5 font-medium">
+                <SelectItem key={option.value} value={option.value} className="text-xs sm:text-sm min-h-10 rounded-lg my-0.5 font-medium">
                   {option.label}
                 </SelectItem>
               ))}
@@ -240,7 +240,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
               value={value !== undefined && value !== null ? value : ''}
               onValueChange={onChange}
               disabled={disabled}
-              className={`grid ${field.options && field.options.length > 2 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'} gap-2.5 sm:gap-3`}
+              className={`grid ${field.options && field.options.length > 2 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 min-[360px]:grid-cols-2'} gap-2.5 sm:gap-3`}
               dir="rtl"
             >
               {field.options?.map((option) => {
@@ -257,7 +257,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
                         onChange(option.value);
                       }
                     }}
-                    className={`relative flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none ${
+                    className={`relative flex items-center justify-between min-h-12 p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none ${
                       isSelected
                         ? isYes
                           ? 'border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 shadow-xs ring-2 ring-emerald-500/20'
@@ -267,19 +267,19 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
                         : 'border-border/60 bg-background hover:bg-muted/40 hover:border-border text-foreground'
                     } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                       <RadioGroupItem
                         value={option.value}
                         id={`${field.name}-${option.value}`}
                         disabled={disabled}
-                        className="border-muted-foreground/40 text-primary"
+                        className="border-muted-foreground/40 text-primary shrink-0"
                       />
-                      <span className="font-bold text-xs sm:text-sm">
+                      <span className="font-bold text-xs sm:text-sm leading-snug">
                         {option.label}
                       </span>
                     </div>
                     {isSelected && (
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-xs ${isYes ? 'bg-emerald-600' : isNo ? 'bg-rose-600' : 'bg-primary'}`}>
+                      <div className={`w-5 h-5 shrink-0 rounded-full flex items-center justify-center text-white text-xs ${isYes ? 'bg-emerald-600' : isNo ? 'bg-rose-600' : 'bg-primary'}`}>
                         <Check className="w-3 h-3 stroke-[3]" />
                       </div>
                     )}
@@ -307,9 +307,9 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
               onChange={(e) => onChange(e.target.value)}
               placeholder={field.placeholder || "05xxxxxxxx"}
               disabled={disabled}
-              className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all ${
+              className={`h-11 rounded-xl text-sm max-md:text-base bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all ${
                 error ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20' : ''
-              } ${disabled ? 'disabled:opacity-100 disabled:text-slate-900 disabled:bg-muted/40 font-bold' : ''}`}
+              } ${disabled ? 'disabled:opacity-100 disabled:text-slate-900 dark:disabled:text-foreground disabled:bg-muted/40 font-bold' : ''}`}
             />
           </div>
         );
@@ -321,7 +321,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
             value={value !== undefined && value !== null ? value : ''}
             onChange={(e) => onChange(e.target.value)}
             disabled={disabled}
-            className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all ${
+            className={`h-11 rounded-xl text-sm max-md:text-base bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all ${
               error ? 'border-red-500' : ''
             }`}
           />
@@ -331,7 +331,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
         return (
           <div
             onClick={() => !disabled && onChange(!value)}
-            className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all ${
+            className={`flex items-center gap-3 min-h-12 p-3.5 rounded-xl border cursor-pointer select-none transition-all ${
               value
                 ? 'border-primary bg-primary/5 text-primary font-bold shadow-2xs'
                 : 'border-border/80 bg-background text-foreground'
@@ -342,7 +342,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
               checked={!!value}
               onChange={(e) => !disabled && onChange(e.target.checked)}
               disabled={disabled}
-              className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+              className="h-4 w-4 rounded border-border text-primary focus:ring-primary shrink-0"
             />
             <span className="text-xs sm:text-sm">{field.placeholder || field.label || "أوافق على هذا الخيار"}</span>
           </div>
@@ -361,7 +361,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
               className="h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80"
             />
             {value && typeof value === 'string' && (
-              <p className="text-xs text-muted-foreground font-semibold">الملف المحدد: {value}</p>
+              <p className="text-xs text-muted-foreground font-semibold break-all">الملف المحدد: {value}</p>
             )}
           </div>
         );
@@ -374,7 +374,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
             onChange={(e) => onChange(e.target.value)}
             placeholder={field.placeholder}
             disabled={disabled}
-            className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 ${
+            className={`h-11 rounded-xl text-sm max-md:text-base bg-background border-border/80 ${
               error ? 'border-red-500' : ''
             }`}
           />

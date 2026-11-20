@@ -231,15 +231,15 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
   };
 
   return (
-    <div className="space-y-4 text-right" dir="rtl">
+    <div className="space-y-4 text-right min-w-0" dir="rtl">
       {/* 1. جدول بنود الباقة السنوية (سلة الاحتياجات) */}
-      <div className="p-4 rounded-xl border border-border/80 bg-card space-y-3.5 shadow-xs">
-        <div className="flex items-center justify-between pb-2 border-b border-border/60">
-          <div>
-            <h3 className="font-bold text-sm sm:text-base text-foreground">
+      <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-card space-y-3.5 shadow-xs min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 pb-3 border-b border-border/60">
+          <div className="min-w-0">
+            <h3 className="font-bold text-sm sm:text-base text-foreground leading-snug">
               جدول بنود الباقة السنوية (سلة الاحتياجات)
             </h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-0.5">
               اختيار الأصناف المعتمدة وتحديد الكميات ودورية التوريد
             </p>
           </div>
@@ -248,75 +248,75 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
             variant="outline"
             size="sm"
             onClick={() => setShowAddCustom(true)}
-            className="h-8 text-xs font-semibold gap-1.5 text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950/40 border-sky-400/50 shrink-0 rounded-lg"
+            className="w-full sm:w-auto h-9 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs font-semibold gap-1.5 text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950/40 border-sky-400/50 shrink-0 rounded-lg justify-center"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-4 h-4 shrink-0" />
             <span>إضافة بند مخصص</span>
           </Button>
         </div>
 
         {/* نموذج إضافة بند مخصص سريع */}
         {showAddCustom && (
-          <div className="p-3 rounded-lg bg-muted/20 border border-sky-400/40 space-y-3 animate-in fade-in duration-150">
-            <p className="text-xs font-bold text-foreground">إضافة صنف إضافي لسلة الاحتياجات</p>
-            <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 text-xs">
-              <div className="sm:col-span-2">
-                <Label className="text-[11px] mb-1 block text-muted-foreground">التصنيف *</Label>
+          <div className="p-3 sm:p-4 rounded-xl bg-muted/20 border border-sky-400/40 space-y-3 animate-in fade-in duration-150">
+            <p className="text-xs sm:text-sm font-bold text-foreground">إضافة صنف إضافي لسلة الاحتياجات</p>
+            <div className="grid grid-cols-1 sm:grid-cols-6 gap-2.5 sm:gap-3 text-xs">
+              <div className="sm:col-span-2 min-w-0">
+                <Label className="text-[11px] mb-1.5 block text-muted-foreground font-semibold">التصنيف *</Label>
                 <Select
                   value={customCategory}
                   onValueChange={(val) => setCustomCategory(val as SedanaCategory)}
                 >
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="w-full min-w-0 h-10 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs sm:text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent dir="rtl" className="max-h-60">
                     {categoriesList.map((cat) => (
-                      <SelectItem key={cat} value={cat} className="text-xs">
+                      <SelectItem key={cat} value={cat} className="text-xs sm:text-sm min-h-10">
                         {cat}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="sm:col-span-2">
-                <Label className="text-[11px] mb-1 block text-muted-foreground">اسم الصنف *</Label>
+              <div className="sm:col-span-2 min-w-0">
+                <Label className="text-[11px] mb-1.5 block text-muted-foreground font-semibold">اسم الصنف *</Label>
                 <Input
                   value={customName}
                   onChange={(e) => setCustomName(e.target.value)}
                   placeholder="مثال: سجاد خارجي، معطر سجاد..."
-                  className="h-8 text-xs"
+                  className="h-10 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs sm:text-sm max-md:text-base"
                 />
               </div>
-              <div className="sm:col-span-2">
-                <Label className="text-[11px] mb-1 block text-muted-foreground">وحدة القياس *</Label>
+              <div className="sm:col-span-2 min-w-0">
+                <Label className="text-[11px] mb-1.5 block text-muted-foreground font-semibold">وحدة القياس *</Label>
                 <Input
                   value={customUnit}
                   onChange={(e) => setCustomUnit(e.target.value)}
                   placeholder="مثال: قطعة، كرتون، لتر..."
-                  className="h-8 text-xs"
+                  className="h-10 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs sm:text-sm max-md:text-base"
                 />
               </div>
-              <div className="sm:col-span-6">
-                <Label className="text-[11px] mb-1 block text-muted-foreground">الوصف / الملاحظات (اختياري)</Label>
+              <div className="sm:col-span-6 min-w-0">
+                <Label className="text-[11px] mb-1.5 block text-muted-foreground font-semibold">الوصف / الملاحظات (اختياري)</Label>
                 <Input
                   value={customDescription}
                   onChange={(e) => setCustomDescription(e.target.value)}
                   placeholder="ملاحظات أو مواصفات البند..."
-                  className="h-8 text-xs"
+                  className="h-10 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs sm:text-sm max-md:text-base"
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-1">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-1">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowAddCustom(false)}
-                className="h-7 text-xs"
+                className="w-full sm:w-auto h-9 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs"
               >
                 إلغاء
               </Button>
-              <Button type="button" size="sm" onClick={handleAddCustom} className="h-7 text-xs bg-sky-600 hover:bg-sky-700 text-white font-semibold">
+              <Button type="button" size="sm" onClick={handleAddCustom} className="w-full sm:w-auto h-9 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs bg-sky-600 hover:bg-sky-700 text-white font-semibold">
                 إضافة للجدول
               </Button>
             </div>
@@ -325,7 +325,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
 
         {/* حالة السلة الفارغة: يظهر زر إضافة باللون الأزرق بدون أي بنود افتراضية */}
         {basketItems.length === 0 ? (
-          <div className="p-8 text-center border-2 border-dashed border-sky-300 dark:border-sky-800 rounded-xl bg-sky-50/30 dark:bg-sky-950/15 space-y-3.5 my-2">
+          <div className="p-5 sm:p-8 text-center border-2 border-dashed border-sky-300 dark:border-sky-800 rounded-xl bg-sky-50/30 dark:bg-sky-950/15 space-y-3.5 my-2">
             <div className="w-12 h-12 rounded-full bg-sky-100 text-sky-600 dark:bg-sky-950/70 dark:text-sky-300 flex items-center justify-center mx-auto border border-sky-200 dark:border-sky-800/80 shadow-xs">
               <Plus className="w-6 h-6" />
             </div>
@@ -333,7 +333,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
               <h4 className="font-bold text-sm text-foreground">
                 سلة الاحتياجات فارغة حالياً
               </h4>
-              <p className="text-xs text-muted-foreground max-w-md mx-auto">
+              <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
                 لم يتم إضافة أي بنود للسلة بعد. انقر على زر "إضافة بند لسلة الاحتياجات" للبدء في تحديد تصنيف سدانة والأصناف المطلوبة لمسجدك.
               </p>
             </div>
@@ -343,27 +343,17 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                 variant="default"
                 size="sm"
                 onClick={handleAddNewRow}
-                className="h-9 px-5 text-xs font-bold gap-2 cursor-pointer shadow-md bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-lg transition-all"
+                className="w-full sm:w-auto h-10 max-lg:min-h-11 pointer-coarse:min-h-11 px-5 text-xs font-bold gap-2 cursor-pointer shadow-md bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-lg transition-all justify-center"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4 shrink-0" />
                 <span>إضافة بند لسلة الاحتياجات</span>
               </Button>
             </div>
           </div>
         ) : (
-          /* الحل الثاني: جدول منظم مع سطر فرعي موسّع للمواصفات بكامل عرض الجدول */
-          <div className="overflow-x-auto border border-border/70 rounded-lg">
-            <table className="w-full text-xs text-right">
-              <thead className="bg-muted/40 text-muted-foreground border-b border-border/70 font-bold">
-                <tr>
-                  <th className="p-3 w-44 sm:w-48 text-right">التصنيف</th>
-                  <th className="p-3 text-right">الصنف المطلوب</th>
-                  <th className="p-3 w-28 text-center">الكمية</th>
-                  <th className="p-3 w-24 text-center">وحدة القياس</th>
-                  <th className="p-3 w-32 text-center">دورية التوريد</th>
-                  <th className="p-3 w-12 text-center">إجراء</th>
-                </tr>
-              </thead>
+          <>
+            {/* عرض البطاقات للموبايل والآيباد العمودي (< lg) بدون تمرير أفقي */}
+            <div className="lg:hidden space-y-3">
               {basketItems.map((item, index) => {
                 const minLimit = getItemLimitForFrequency(item);
                 const isUnderMin =
@@ -379,44 +369,67 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                   : [];
 
                 return (
-                  <tbody key={item.id} className="border-b border-border/70 divide-y-0 hover:bg-muted/15 transition-colors">
-                    {/* السطر الأساسي: الحقول الرئيسية مرتبة بدون تكديس */}
-                    <tr>
-                      {/* عمود 1: التصنيف */}
-                      <td className="p-3 align-middle w-44 sm:w-48">
-                        {item.isCustom ? (
-                          <span className="inline-block text-[11px] font-semibold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800 px-2 py-1 rounded-md">
-                            {item.category || 'بند مخصص'}
+                  <div
+                    key={item.id}
+                    className="p-3.5 sm:p-4 rounded-xl border border-border/80 bg-muted/15 space-y-3 shadow-2xs"
+                  >
+                    {/* ترويسة البند */}
+                    <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/60">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300 border border-sky-300/60 dark:border-sky-800">
+                          بند #{index + 1}
+                        </span>
+                        {item.isCustom && (
+                          <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800 px-2 py-0.5 rounded-md">
+                            مخصص
                           </span>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveItem(item.id)}
+                        className="size-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer rounded-lg shrink-0"
+                        title="حذف الصنف"
+                        aria-label="حذف الصنف"
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+
+                    {/* التصنيف والصنف */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1.5 min-w-0">
+                        <Label className="text-xs font-bold text-foreground block">التصنيف</Label>
+                        {item.isCustom ? (
+                          <div className="min-h-11 px-3 py-2 rounded-lg bg-sky-50/70 dark:bg-sky-950/40 border border-sky-200/80 dark:border-sky-800 flex items-center text-xs sm:text-sm font-semibold text-sky-800 dark:text-sky-300">
+                            {item.category || 'بند مخصص'}
+                          </div>
                         ) : (
                           <Select
                             value={resolvedCategory || ''}
                             onValueChange={(cat) => handleCategoryChange(item.id, cat)}
                           >
-                            <SelectTrigger className="h-9 text-xs w-full bg-background border-input font-medium rounded-lg">
+                            <SelectTrigger className="w-full min-w-0 h-11 text-xs sm:text-sm bg-background border-input font-medium rounded-lg">
                               <SelectValue placeholder="اختر التصنيف..." />
                             </SelectTrigger>
                             <SelectContent dir="rtl" className="max-h-60">
                               {categoriesList.map((cat) => (
-                                <SelectItem key={cat} value={cat} className="text-xs">
+                                <SelectItem key={cat} value={cat} className="text-xs sm:text-sm min-h-10">
                                   {cat}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         )}
-                      </td>
+                      </div>
 
-                      {/* عمود 2: الصنف المطلوب فقط (بدون حشر الوصف تحته) */}
-                      <td className="p-3 align-middle font-medium text-foreground">
+                      <div className="space-y-1.5 min-w-0">
+                        <Label className="text-xs font-bold text-foreground block">الصنف المطلوب</Label>
                         {item.isCustom || item.id === 'water_tankers' || dbOptions.length === 0 ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-semibold text-xs text-foreground">{item.name}</span>
-                            {item.isCustom && (
-                              <span className="text-[10px] text-sky-700 dark:text-sky-300 font-normal bg-sky-100 dark:bg-sky-950/60 px-1.5 py-0.5 rounded border border-sky-300/40">
-                                (مخصص)
-                              </span>
-                            )}
+                          <div className="min-h-11 px-3 py-2 rounded-lg bg-background border border-border/80 flex items-center text-xs sm:text-sm font-semibold text-foreground">
+                            {item.name}
                           </div>
                         ) : (
                           <Select
@@ -425,7 +438,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                             disabled={!resolvedCategory}
                           >
                             <SelectTrigger
-                              className={`h-9 text-xs w-full bg-background border-input font-medium rounded-lg ${
+                              className={`w-full min-w-0 h-11 text-xs sm:text-sm bg-background border-input font-medium rounded-lg ${
                                 !resolvedCategory ? 'opacity-60 cursor-not-allowed bg-muted/30' : ''
                               }`}
                             >
@@ -435,7 +448,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                             </SelectTrigger>
                             <SelectContent dir="rtl" className="max-h-60">
                               {itemsForCat.map((opt: any) => (
-                                <SelectItem key={opt.id} value={String(opt.id)} className="text-xs">
+                                <SelectItem key={opt.id} value={String(opt.id)} className="text-xs sm:text-sm min-h-10">
                                   {opt.valueAr || opt.nameAr || opt.value || opt.name}{' '}
                                   {opt.metadata?.unit ? `(${opt.metadata.unit})` : ''}
                                 </SelectItem>
@@ -443,39 +456,42 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                             </SelectContent>
                           </Select>
                         )}
-                      </td>
+                      </div>
+                    </div>
 
-                      {/* عمود 3: الكمية */}
-                      <td className="p-3 align-middle text-center">
-                        <div className="flex flex-col items-center justify-center">
-                          <Input
-                            type="number"
-                            min="0"
-                            value={item.quantity}
-                            onChange={(e) =>
-                              handleUpdateItem(item.id, { quantity: Number(e.target.value) || 0 })
-                            }
-                            className={`h-9 text-xs text-center w-20 mx-auto transition-all rounded-lg ${
-                              isUnderMin
-                                ? 'border-amber-500 focus-visible:ring-amber-500/30 bg-amber-500/10 font-bold text-amber-700 dark:text-amber-300'
-                                : ''
-                            }`}
-                          />
-                          {isUnderMin && (
-                            <div className="mt-1 text-[10px] text-amber-600 dark:text-amber-400 font-bold whitespace-nowrap bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/25">
-                              أقل من الحد ({minLimit})
-                            </div>
-                          )}
+                    {/* الكمية + وحدة القياس + دورية التوريد */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                      <div className="space-y-1.5 min-w-0">
+                        <Label className="text-xs font-bold text-foreground block">الكمية</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={item.quantity}
+                          onChange={(e) =>
+                            handleUpdateItem(item.id, { quantity: Number(e.target.value) || 0 })
+                          }
+                          className={`h-11 text-sm max-md:text-base text-center w-full transition-all rounded-lg bg-background ${
+                            isUnderMin
+                              ? 'border-amber-500 focus-visible:ring-amber-500/30 bg-amber-500/10 font-bold text-amber-700 dark:text-amber-300'
+                              : ''
+                          }`}
+                        />
+                        {isUnderMin && (
+                          <div className="text-[11px] text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/25 text-center">
+                            أقل من الحد ({minLimit})
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-1.5 min-w-0">
+                        <Label className="text-xs font-bold text-foreground block">وحدة القياس</Label>
+                        <div className="h-11 px-3 rounded-lg bg-muted/40 border border-border/70 flex items-center justify-center text-xs sm:text-sm font-medium text-muted-foreground">
+                          {item.unit || 'قطعة'}
                         </div>
-                      </td>
+                      </div>
 
-                      {/* عمود 4: وحدة القياس */}
-                      <td className="p-3 align-middle text-center text-muted-foreground font-medium">
-                        {item.unit || 'قطعة'}
-                      </td>
-
-                      {/* عمود 5: دورية التوريد */}
-                      <td className="p-3 align-middle text-center">
+                      <div className="space-y-1.5 min-w-0 col-span-2 sm:col-span-1">
+                        <Label className="text-xs font-bold text-foreground block">دورية التوريد</Label>
                         <Select
                           value={item.frequency}
                           onValueChange={(val) =>
@@ -484,69 +500,235 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                             })
                           }
                         >
-                          <SelectTrigger className="h-9 text-xs w-28 mx-auto bg-background border-input font-medium rounded-lg">
+                          <SelectTrigger className="h-11 text-xs sm:text-sm w-full min-w-0 bg-background border-input font-medium rounded-lg">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent dir="rtl">
                             {DELIVERY_FREQUENCIES.map((freq) => (
-                              <SelectItem key={freq} value={freq} className="text-xs">
+                              <SelectItem key={freq} value={freq} className="text-xs sm:text-sm min-h-10">
                                 {freq}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                      </td>
+                      </div>
+                    </div>
 
-                      {/* عمود 6: إجراء */}
-                      <td className="p-3 align-middle text-center">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveItem(item.id)}
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive cursor-pointer rounded-lg"
-                          title="حذف الصنف"
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </td>
-                    </tr>
-
-                    {/* السطر الفرعي الموسع: خانة المواصفات تمتد بعرض الجدول بالكامل */}
-                    <tr>
-                      <td colSpan={6} className="px-3 pt-1.5 pb-3.5">
-                        <Textarea
-                          value={item.description || ''}
-                          onChange={(e) =>
-                            handleUpdateItem(item.id, { description: e.target.value })
-                          }
-                          placeholder="اكتب مواصفات أو تفاصيل إضافية للصنف (اختياري)..."
-                          rows={2}
-                          className="text-xs min-h-[48px] resize-y bg-muted/20 focus:bg-background border-input/80 py-2.5 px-3 leading-relaxed rounded-lg focus:border-sky-500 w-full transition-colors"
-                        />
-                      </td>
-                    </tr>
-                  </tbody>
+                    {/* المواصفات / التفاصيل الإضافية */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground block">مواصفات أو تفاصيل إضافية (اختياري)</Label>
+                      <Textarea
+                        value={item.description || ''}
+                        onChange={(e) =>
+                          handleUpdateItem(item.id, { description: e.target.value })
+                        }
+                        placeholder="اكتب مواصفات أو تفاصيل إضافية للصنف (اختياري)..."
+                        rows={2}
+                        className="text-xs sm:text-sm max-md:text-base min-h-[56px] resize-y bg-background border-input/80 py-2.5 px-3 leading-relaxed rounded-lg focus:border-sky-500 w-full transition-colors"
+                      />
+                    </div>
+                  </div>
                 );
               })}
-            </table>
-          </div>
+            </div>
+
+            {/* عرض الجدول للشاشات الكبيرة والآيباد الأفقي (>= lg) */}
+            <div className="hidden lg:block overflow-x-auto border border-border/70 rounded-lg">
+              <table className="w-full text-xs text-right">
+                <thead className="bg-muted/40 text-muted-foreground border-b border-border/70 font-bold">
+                  <tr>
+                    <th className="p-3 w-44 xl:w-48 text-right">التصنيف</th>
+                    <th className="p-3 text-right">الصنف المطلوب</th>
+                    <th className="p-3 w-28 text-center">الكمية</th>
+                    <th className="p-3 w-24 text-center">وحدة القياس</th>
+                    <th className="p-3 w-32 text-center">دورية التوريد</th>
+                    <th className="p-3 w-12 text-center">إجراء</th>
+                  </tr>
+                </thead>
+                {basketItems.map((item) => {
+                  const minLimit = getItemLimitForFrequency(item);
+                  const isUnderMin =
+                    minLimit !== undefined &&
+                    minLimit > 0 &&
+                    item.quantity < minLimit &&
+                    !item.isCustom;
+
+                  const itemDbOption = dbOptions.find((opt: any) => opt.id === item.dbCategoryId);
+                  const resolvedCategory = (item.category || (itemDbOption as any)?.metadata?.category || (itemDbOption as any)?.category || '') as string;
+                  const itemsForCat = resolvedCategory
+                    ? dbOptions.filter((opt: any) => (opt.metadata?.category || (opt as any).category || 'أدوات المسجد العامة') === resolvedCategory)
+                    : [];
+
+                  return (
+                    <tbody key={item.id} className="border-b border-border/70 divide-y-0 hover:bg-muted/15 transition-colors">
+                      {/* السطر الأساسي: الحقول الرئيسية مرتبة بدون تكديس */}
+                      <tr>
+                        {/* عمود 1: التصنيف */}
+                        <td className="p-3 align-middle w-44 xl:w-48">
+                          {item.isCustom ? (
+                            <span className="inline-block text-[11px] font-semibold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800 px-2 py-1 rounded-md">
+                              {item.category || 'بند مخصص'}
+                            </span>
+                          ) : (
+                            <Select
+                              value={resolvedCategory || ''}
+                              onValueChange={(cat) => handleCategoryChange(item.id, cat)}
+                            >
+                              <SelectTrigger className="h-9 pointer-coarse:min-h-11 text-xs w-full bg-background border-input font-medium rounded-lg">
+                                <SelectValue placeholder="اختر التصنيف..." />
+                              </SelectTrigger>
+                              <SelectContent dir="rtl" className="max-h-60">
+                                {categoriesList.map((cat) => (
+                                  <SelectItem key={cat} value={cat} className="text-xs">
+                                    {cat}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </td>
+
+                        {/* عمود 2: الصنف المطلوب فقط (بدون حشر الوصف تحته) */}
+                        <td className="p-3 align-middle font-medium text-foreground">
+                          {item.isCustom || item.id === 'water_tankers' || dbOptions.length === 0 ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-xs text-foreground">{item.name}</span>
+                              {item.isCustom && (
+                                <span className="text-[10px] text-sky-700 dark:text-sky-300 font-normal bg-sky-100 dark:bg-sky-950/60 px-1.5 py-0.5 rounded border border-sky-300/40">
+                                  (مخصص)
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <Select
+                              value={item.dbCategoryId ? String(item.dbCategoryId) : ''}
+                              onValueChange={(val) => handleSelectDbCategory(item.id, Number(val))}
+                              disabled={!resolvedCategory}
+                            >
+                              <SelectTrigger
+                                className={`h-9 pointer-coarse:min-h-11 text-xs w-full bg-background border-input font-medium rounded-lg ${
+                                  !resolvedCategory ? 'opacity-60 cursor-not-allowed bg-muted/30' : ''
+                                }`}
+                              >
+                                <SelectValue
+                                  placeholder={resolvedCategory ? 'اختر الصنف المطلوب...' : 'يرجى تحديد التصنيف أولاً'}
+                                />
+                              </SelectTrigger>
+                              <SelectContent dir="rtl" className="max-h-60">
+                                {itemsForCat.map((opt: any) => (
+                                  <SelectItem key={opt.id} value={String(opt.id)} className="text-xs">
+                                    {opt.valueAr || opt.nameAr || opt.value || opt.name}{' '}
+                                    {opt.metadata?.unit ? `(${opt.metadata.unit})` : ''}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </td>
+
+                        {/* عمود 3: الكمية */}
+                        <td className="p-3 align-middle text-center">
+                          <div className="flex flex-col items-center justify-center">
+                            <Input
+                              type="number"
+                              min="0"
+                              value={item.quantity}
+                              onChange={(e) =>
+                                handleUpdateItem(item.id, { quantity: Number(e.target.value) || 0 })
+                              }
+                              className={`h-9 pointer-coarse:min-h-11 text-xs text-center w-20 mx-auto transition-all rounded-lg ${
+                                isUnderMin
+                                  ? 'border-amber-500 focus-visible:ring-amber-500/30 bg-amber-500/10 font-bold text-amber-700 dark:text-amber-300'
+                                  : ''
+                              }`}
+                            />
+                            {isUnderMin && (
+                              <div className="mt-1 text-[10px] text-amber-600 dark:text-amber-400 font-bold whitespace-nowrap bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/25">
+                                أقل من الحد ({minLimit})
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* عمود 4: وحدة القياس */}
+                        <td className="p-3 align-middle text-center text-muted-foreground font-medium">
+                          {item.unit || 'قطعة'}
+                        </td>
+
+                        {/* عمود 5: دورية التوريد */}
+                        <td className="p-3 align-middle text-center">
+                          <Select
+                            value={item.frequency}
+                            onValueChange={(val) =>
+                              handleUpdateItem(item.id, {
+                                frequency: val as SedanaDeliveryFrequency,
+                              })
+                            }
+                          >
+                            <SelectTrigger className="h-9 pointer-coarse:min-h-11 text-xs w-28 mx-auto bg-background border-input font-medium rounded-lg">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent dir="rtl">
+                              {DELIVERY_FREQUENCIES.map((freq) => (
+                                <SelectItem key={freq} value={freq} className="text-xs">
+                                  {freq}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+
+                        {/* عمود 6: إجراء */}
+                        <td className="p-3 align-middle text-center">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveItem(item.id)}
+                            className="h-8 w-8 pointer-coarse:size-10 text-muted-foreground hover:text-destructive cursor-pointer rounded-lg"
+                            title="حذف الصنف"
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </td>
+                      </tr>
+
+                      {/* السطر الفرعي الموسع: خانة المواصفات تمتد بعرض الجدول بالكامل */}
+                      <tr>
+                        <td colSpan={6} className="px-3 pt-1.5 pb-3.5">
+                          <Textarea
+                            value={item.description || ''}
+                            onChange={(e) =>
+                              handleUpdateItem(item.id, { description: e.target.value })
+                            }
+                            placeholder="اكتب مواصفات أو تفاصيل إضافية للصنف (اختياري)..."
+                            rows={2}
+                            className="text-xs min-h-[48px] resize-y bg-muted/20 focus:bg-background border-input/80 py-2.5 px-3 leading-relaxed rounded-lg focus:border-sky-500 w-full transition-colors"
+                          />
+                        </td>
+                      </tr>
+                    </tbody>
+                  );
+                })}
+              </table>
+            </div>
+          </>
         )}
 
         {/* أزرار إضافة بند جديد عند وجود بنود في السلة */}
         {basketItems.length > 0 && (
-          <div className="flex items-center justify-between gap-2 pt-1">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={handleAddNewRow}
-              className="h-8 text-xs font-semibold gap-1.5 text-sky-700 dark:text-sky-300 border-sky-400/50 hover:bg-sky-50 dark:hover:bg-sky-950/40 cursor-pointer rounded-lg"
+              className="w-full sm:w-auto h-9 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs font-semibold gap-1.5 text-sky-700 dark:text-sky-300 border-sky-400/50 hover:bg-sky-50 dark:hover:bg-sky-950/40 cursor-pointer rounded-lg justify-center"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-4 h-4 shrink-0" />
               <span>إضافة بند جديد</span>
             </Button>
-            <span className="text-xs text-muted-foreground font-medium">
+            <span className="text-xs text-muted-foreground font-medium text-center sm:text-left">
               عدد البنود المضافة: {basketItems.length}
             </span>
           </div>
@@ -554,9 +736,9 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       </div>
 
       {/* 2. إدراج مرفقات (اختياري) */}
-      <div className="p-4 rounded-xl border border-border/80 bg-card space-y-3 shadow-xs">
+      <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-card space-y-3 shadow-xs">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-bold text-sm sm:text-base text-foreground">
               إدراج مرفقات
             </h3>
@@ -578,14 +760,14 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
         />
 
         {selectedFile ? (
-          <div className="p-3 rounded-lg border border-cyan-500/40 bg-cyan-50/40 dark:bg-cyan-950/20 flex items-center justify-between">
+          <div className="p-3 rounded-lg border border-cyan-500/40 bg-cyan-50/40 dark:bg-cyan-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-cyan-500/15 text-cyan-600 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-cyan-500/15 text-cyan-600 flex items-center justify-center shrink-0">
                 <Check className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <p className="font-bold text-xs text-foreground truncate">{selectedFile.name}</p>
-                <p className="text-[10px] text-muted-foreground font-mono">
+                <p className="font-bold text-xs sm:text-sm text-foreground truncate">{selectedFile.name}</p>
+                <p className="text-[11px] text-muted-foreground font-mono">
                   {(selectedFile.size / (1024 * 1024)).toFixed(2)} ميجابايت
                 </p>
               </div>
@@ -596,7 +778,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={handleRemoveFile}
-                className="h-7 text-xs text-destructive hover:bg-destructive/10"
+                className="w-full sm:w-auto h-9 max-lg:min-h-10 pointer-coarse:min-h-11 text-xs text-destructive hover:bg-destructive/10"
               >
                 إزالة
               </Button>
@@ -605,13 +787,13 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
         ) : (
           <div
             onClick={() => document.getElementById('sedana-warehouse-photo')?.click()}
-            className="p-5 border-2 border-dashed border-border/70 hover:border-cyan-500/50 hover:bg-cyan-50/20 dark:hover:bg-cyan-950/20 transition-all rounded-xl cursor-pointer text-center"
+            className="p-5 sm:p-6 border-2 border-dashed border-border/70 hover:border-cyan-500/50 hover:bg-cyan-50/20 dark:hover:bg-cyan-950/20 transition-all rounded-xl cursor-pointer text-center"
           >
             <Upload className="w-6 h-6 text-muted-foreground mx-auto mb-1.5" />
-            <p className="font-bold text-xs text-foreground">
+            <p className="font-bold text-xs sm:text-sm text-foreground">
               يرجى إدراج المرفقات المطلوبة (اختياري)
             </p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
               اختياري - يدعم الصور (JPG, PNG, WEBP) ومستندات PDF بحد أقصى 10 ميجابايت
             </p>
           </div>

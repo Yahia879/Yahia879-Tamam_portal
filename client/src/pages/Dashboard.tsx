@@ -836,28 +836,28 @@ export default function Dashboard() {
     ];
 
     return (
-      <div className="space-y-6 sm:space-y-8">
+      <div className="min-w-0 space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Hero Section - رسالة الترحيب */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 px-4 sm:px-6 py-4 sm:py-6 text-white shadow-lg">
           <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.5))]" />
-          <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4">
               <div className="flex items-center gap-2 text-white/60 text-[10px] sm:text-xs">
                 <Activity className="w-3.5 h-3.5" />
                 <span>الرئيسية</span>
               </div>
-              <div className="hidden sm:block w-px h-4 bg-white/30" />
-              <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold truncate" title={user?.name}>
+              <div className="hidden lg:block w-px h-4 bg-white/30" />
+              <div className="flex flex-wrap lg:flex-nowrap items-center gap-2 sm:gap-4 min-w-0">
+                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold wrap-anywhere lg:truncate" title={user?.name}>
                   مرحباً، {user?.name || "المستخدم"}
                 </h1>
-                <div className="hidden sm:block w-px h-4 bg-white/40" />
+                <div className="hidden lg:block w-px h-4 bg-white/40" />
                 <span className="text-white/80 text-[10px] sm:text-sm font-medium bg-white/15 rounded-full px-2 sm:px-3 py-0.5 whitespace-nowrap">
                   {roleLabel}
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-2.5 sm:gap-3.5 flex-wrap sm:flex-nowrap shrink-0">
+            <div className="flex items-center gap-2.5 sm:gap-3.5 flex-wrap max-sm:[&_button]:min-h-11 pointer-coarse:[&_button]:min-h-11 md:shrink-0">
               <div className="flex items-center gap-2 bg-white/20 rounded-full px-3 py-1.5 w-fit shrink-0">
                 <Target className="w-3.5 h-3.5 shrink-0" />
                 <span className="text-[10px] sm:text-xs font-medium whitespace-nowrap">نسبة الإنجاز: {completionRate}%</span>
@@ -1125,19 +1125,19 @@ export default function Dashboard() {
 // لبقية مدراء الإدارة العليا (مدير عام، مدير تنفيذي، مدير نظام) يتم عرض النظرة العامة
   if (isExecutiveAdmin) {
     return (
-      <DashboardLayout>
+      <DashboardLayout tabletNavigation>
         {renderExecutiveOverview()}
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 sm:space-y-8" dir={isEn ? "ltr" : "rtl"}>
+    <DashboardLayout tabletNavigation>
+      <div className="min-w-0 space-y-4 sm:space-y-6 lg:space-y-8" dir={isEn ? "ltr" : "rtl"}>
         {/* Hero Section - رسالة الترحيب المخصصة للدور */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 px-4 sm:px-6 py-5 sm:py-6 text-white shadow-lg">
           <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.5))]" />
-          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center gap-2 text-white/80 text-xs">
                 <Activity className="w-3.5 h-3.5" />
@@ -1146,7 +1146,7 @@ export default function Dashboard() {
                 <span className="font-semibold text-white">{roleLabel}</span>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-bold truncate" title={user?.name}>
+                <h1 className="text-xl sm:text-2xl font-bold wrap-anywhere lg:truncate" title={user?.name}>
                   {isEn ? `Welcome, ${user?.name || "User"}` : `مرحباً، ${user?.name || "المستخدم"}`}
                 </h1>
                 <span className="text-white text-xs font-semibold bg-white/20 rounded-full px-3 py-0.5 whitespace-nowrap shadow-xs border border-white/20">
@@ -1159,7 +1159,7 @@ export default function Dashboard() {
             </div>
 
             {/* الأزرار والإجراءات السريعة في الهيدر */}
-            <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap shrink-0">
+            <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap lg:shrink-0 max-lg:[&_button]:min-h-11 pointer-coarse:[&_button]:min-h-11">
 
 
               {isFinancialRole && (
@@ -1659,7 +1659,7 @@ export default function Dashboard() {
 
             {/* أحدث طلبات الصرف وأوامر الصرف (تبويبات) مع تحسين التجربة والبحث الشامل */}
             <Card className="border border-border/80 shadow-xs rounded-2xl bg-card overflow-hidden">
-              <CardHeader className="p-4 sm:p-5 sm:py-6 border-b border-border/80 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-muted/10">
+              <CardHeader className="p-4 sm:p-5 sm:py-6 border-b border-border/80 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-muted/10">
                 <div>
                   <CardTitle className="text-lg sm:text-xl font-extrabold text-foreground flex items-center gap-2.5">
                     <Receipt className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
@@ -1673,13 +1673,13 @@ export default function Dashboard() {
                 </div>
 
                 {/* حقل بحث شامل وأكبر وأوضح لجميع طلبات وأوامر الصرف */}
-                <div className="relative w-full sm:w-80 md:w-[420px] shrink-0">
+                <div className="relative w-full lg:w-[420px] shrink-0">
                   <Search className="w-5 h-5 absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
                   <Input
                     placeholder="بحث شامل برقم الطلب أو الأمر، البيان، أو المستفيد..."
                     value={recordsSearch}
                     onChange={(e) => setRecordsSearch(e.target.value)}
-                    className="h-11 sm:h-12 pr-11 pl-11 text-sm font-medium text-foreground bg-background border-2 border-slate-200 dark:border-slate-700 hover:border-primary/50 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl shadow-xs transition-all placeholder:text-muted-foreground/75"
+                    className="h-11 sm:h-12 pr-11 pl-11 text-base lg:text-sm font-medium text-foreground bg-background border-2 border-slate-200 dark:border-slate-700 hover:border-primary/50 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl shadow-xs transition-all placeholder:text-muted-foreground/75"
                   />
                   {recordsSearch && (
                     <button
@@ -1702,7 +1702,7 @@ export default function Dashboard() {
               <CardContent className="p-0">
                 <Tabs defaultValue="disbursements" dir="rtl" className="w-full">
                   <div className="px-4 pt-3 border-b border-border/60 bg-muted/20">
-                    <TabsList className="bg-muted/60 p-1">
+                    <TabsList className="max-sm:grid max-sm:w-full max-sm:grid-cols-2 max-lg:h-auto bg-muted/60 p-1 max-lg:[&>button]:min-h-11 max-sm:[&>button]:whitespace-normal pointer-coarse:[&>button]:min-h-11">
                       <TabsTrigger value="disbursements" className="text-xs sm:text-sm gap-2 font-bold py-1.5 px-3">
                         <Receipt className="w-4 h-4" />
                         <span>طلبات الصرف ({filteredRecentRequests.length})</span>
@@ -1944,7 +1944,7 @@ export default function Dashboard() {
           <div className="space-y-6">
             {/* بطاقة السجلات التشغيلية للمشاريع مع البحث الشامل والتبويبات */}
             <Card className="border border-border/80 shadow-xs rounded-2xl bg-card overflow-hidden">
-              <CardHeader className="p-4 sm:p-5 sm:py-6 border-b border-border/80 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-muted/10">
+              <CardHeader className="p-4 sm:p-5 sm:py-6 border-b border-border/80 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-muted/10">
                 <div>
                   <CardTitle className="text-lg sm:text-xl font-extrabold text-foreground flex items-center gap-2.5">
                     <FolderKanban className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
@@ -1958,13 +1958,13 @@ export default function Dashboard() {
                 </div>
 
                 {/* حقل بحث شامل وفوري للمشاريع والطلبات والمساجد */}
-                <div className="relative w-full sm:w-80 md:w-[420px] shrink-0">
+                <div className="relative w-full lg:w-[420px] shrink-0">
                   <Search className="w-5 h-5 absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
                   <Input
                     placeholder="بحث شامل برقم المشروع أو الطلب، اسم المسجد، أو المدينة..."
                     value={projectsSearch}
                     onChange={(e) => setProjectsSearch(e.target.value)}
-                    className="h-11 sm:h-12 pr-11 pl-11 text-sm font-medium text-foreground bg-background border-2 border-slate-200 dark:border-slate-700 hover:border-primary/50 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl shadow-xs transition-all placeholder:text-muted-foreground/75"
+                    className="h-11 sm:h-12 pr-11 pl-11 text-base lg:text-sm font-medium text-foreground bg-background border-2 border-slate-200 dark:border-slate-700 hover:border-primary/50 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl shadow-xs transition-all placeholder:text-muted-foreground/75"
                   />
                   {projectsSearch && (
                     <button
@@ -1987,7 +1987,7 @@ export default function Dashboard() {
               <CardContent className="p-0">
                 <Tabs defaultValue="projects" dir="rtl" className="w-full">
                   <div className="px-4 pt-3 border-b border-border/60 bg-muted/20">
-                    <TabsList className="bg-muted/60 p-1">
+                    <TabsList className="max-sm:grid max-sm:w-full max-sm:grid-cols-3 max-lg:h-auto bg-muted/60 p-1 max-lg:[&>button]:min-h-11 max-sm:[&>button]:min-w-0 max-sm:[&>button]:gap-1 max-sm:[&>button]:px-1 max-sm:[&>button]:whitespace-normal pointer-coarse:[&>button]:min-h-11">
                       <TabsTrigger value="projects" className="text-xs sm:text-sm gap-2 font-bold py-1.5 px-3">
                         <FolderKanban className="w-4 h-4" />
                         <span>المشاريع ({filteredRecentProjects.length})</span>
@@ -2335,7 +2335,7 @@ export default function Dashboard() {
             <div className="space-y-6">
               {/* 1. توزيع الطلبات حسب البرنامج (بطاقة عريضة بتصميم حديث وأرقام واضحة) */}
               <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
-                <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-border/60 flex flex-row items-center justify-between">
+                <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-border/60 flex flex-col items-start sm:flex-row sm:items-center justify-between max-sm:[&_button]:min-h-11">
                   <div>
                     <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold">
                       <Layers className="w-5 h-5 text-primary" />
@@ -2408,7 +2408,7 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* 2. المشاريع والطلبات حسب المرحلة */}
                 <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
-                  <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-border/60 flex flex-row items-center justify-between">
+                  <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-border/60 flex flex-col items-start sm:flex-row sm:items-center justify-between max-sm:[&_button]:min-h-11">
                     <div>
                       <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold">
                         <Activity className="w-5 h-5 text-primary" />
@@ -2467,7 +2467,7 @@ export default function Dashboard() {
 
                 {/* 3. المساجد حسب المدن والمناطق */}
                 <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
-                  <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-border/60 flex flex-row items-center justify-between">
+                  <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-border/60 flex flex-col items-start sm:flex-row sm:items-center justify-between max-sm:[&_button]:min-h-11">
                     <div>
                       <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold">
                         <Building2 className="w-5 h-5 text-primary" />
@@ -2557,7 +2557,7 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 max-lg:[&_button]:min-h-11 pointer-coarse:[&_button]:min-h-11">
                   {/* التبديل بين عرض التقويم وعرض القائمة */}
                   <div className="flex items-center bg-muted/70 p-0.5 rounded-lg border border-border/60">
                     <Button
@@ -2595,7 +2595,7 @@ export default function Dashboard() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setCurrentCalMonth(subMonths(currentCalMonth, 1))}
-                        className="h-7.5 w-7.5 p-0 text-muted-foreground hover:text-foreground"
+                        className="h-7.5 w-7.5 max-lg:w-11 pointer-coarse:min-w-11 p-0 text-muted-foreground hover:text-foreground"
                         title={isEn ? "Previous Month" : "الشهر السابق"}
                       >
                         <ChevronRight className="w-4 h-4" />
@@ -2607,7 +2607,7 @@ export default function Dashboard() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setCurrentCalMonth(addMonths(currentCalMonth, 1))}
-                        className="h-7.5 w-7.5 p-0 text-muted-foreground hover:text-foreground"
+                        className="h-7.5 w-7.5 max-lg:w-11 pointer-coarse:min-w-11 p-0 text-muted-foreground hover:text-foreground"
                         title={isEn ? "Next Month" : "الشهر التالي"}
                       >
                         <ChevronLeft className="w-4 h-4" />
@@ -2634,21 +2634,21 @@ export default function Dashboard() {
 
               {/* محتوى التقويم أو القائمة */}
               {fieldViewMode === "calendar" ? (
-                <CardContent className="p-4 sm:p-6">
+                <CardContent className="p-2.5 sm:p-6">
                   <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
                     {/* عمود شبكة التقويم الشهري (7 أعمدة) */}
                     <div className="xl:col-span-7 space-y-3">
                       {/* ترويسة أيام الأسبوع */}
-                      <div className="grid grid-cols-7 gap-1.5 text-center">
+                      <div className="grid grid-cols-7 gap-1 sm:gap-1.5 text-center">
                         {(isEn ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] : ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"]).map((dayName) => (
-                          <div key={dayName} className="text-xs font-bold text-muted-foreground py-1.5 bg-muted/40 rounded-lg">
+                          <div key={dayName} className="text-[9px] sm:text-xs font-bold text-muted-foreground py-1.5 bg-muted/40 rounded-lg">
                             {dayName}
                           </div>
                         ))}
                       </div>
 
                       {/* شبكة الأيام */}
-                      <div className="grid grid-cols-7 gap-1.5">
+                      <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
                         {calGridDays.map((day, idx) => {
                           const inCurrentMonth = isSameMonth(day, currentCalMonth);
                           const isToday = isDateToday(day);
@@ -2658,10 +2658,13 @@ export default function Dashboard() {
                           const hasUrgent = dayEventsList.some((e: any) => e.priority === "urgent" || e.priority === "high");
 
                           return (
-                            <div
+                            <button
                               key={idx}
+                              type="button"
+                              aria-pressed={isSelected}
+                              aria-label={`${format(day, "PPP", { locale: isEn ? enUS : ar })} · ${isEn ? "Appointments" : "المواعيد"}: ${dayEventsList.length}`}
                               onClick={() => setSelectedCalDate(dateStr)}
-                              className={`group min-h-[78px] sm:min-h-[92px] p-1.5 rounded-xl border flex flex-col justify-between transition-all cursor-pointer relative select-none ${
+                              className={`group min-w-0 min-h-11 sm:min-h-[92px] p-1 sm:p-1.5 rounded-lg sm:rounded-xl border flex flex-col justify-between max-sm:items-center transition-all cursor-pointer relative select-none ${
                                 isSelected
                                   ? "border-primary bg-primary/10 shadow-xs ring-2 ring-primary/20"
                                   : isToday
@@ -2672,7 +2675,7 @@ export default function Dashboard() {
                               }`}
                             >
                               {/* رقم اليوم والشارة */}
-                              <div className="flex items-center justify-between">
+                              <span className="flex sm:w-full items-center gap-0.5 justify-between">
                                 <span
                                   className={`text-xs sm:text-sm font-mono font-bold leading-none ${
                                     isSelected
@@ -2687,26 +2690,26 @@ export default function Dashboard() {
                                   {format(day, "d")}
                                 </span>
                                 {isToday && (
-                                  <span className="text-[9px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 px-1 py-0.2 rounded">
+                                  <span className="hidden sm:inline text-[9px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 px-1 py-0.2 rounded">
                                     {isEn ? "Today" : "اليوم"}
                                   </span>
                                 )}
-                                {dayEventsList.length > 0 && !isToday && (
+                                {dayEventsList.length > 0 && (
                                   <span
-                                    className={`w-2 h-2 rounded-full ${
+                                    className={`size-1.5 sm:size-2 rounded-full ${isToday ? "sm:hidden" : ""} ${
                                       hasUrgent ? "bg-rose-500 animate-pulse" : "bg-primary"
                                     }`}
                                     title={`${dayEventsList.length} ${isEn ? "Appointments" : "مواعيد"}`}
                                   />
                                 )}
-                              </div>
+                              </span>
 
                               {/* المواعيد في اليوم */}
-                              <div className="space-y-1 mt-1">
+                              <span className="hidden sm:block w-full space-y-1 mt-1">
                                 {dayEventsList.slice(0, 2).map((evt: any, eIdx: number) => {
                                   const isUrgent = evt.priority === "urgent" || evt.priority === "high";
                                   return (
-                                    <div
+                                    <span
                                       key={eIdx}
                                       className={`text-[10px] truncate px-1.5 py-0.5 rounded font-medium flex items-center gap-1 ${
                                         isUrgent
@@ -2717,23 +2720,23 @@ export default function Dashboard() {
                                     >
                                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isUrgent ? "bg-rose-500" : "bg-primary"}`} />
                                       <span className="truncate">{evt.mosqueName || evt.title || (isEn ? "Inspection" : "معاينة")}</span>
-                                    </div>
+                                    </span>
                                   );
                                 })}
                                 {dayEventsList.length > 2 && (
-                                  <div className="text-[9px] text-muted-foreground font-mono text-center">
+                                  <span className="block text-[9px] text-muted-foreground font-mono text-center">
                                     +{dayEventsList.length - 2} {isEn ? "more" : "أخرى"}
-                                  </div>
+                                  </span>
                                 )}
-                              </div>
-                            </div>
+                              </span>
+                            </button>
                           );
                         })}
                       </div>
 
                       {/* توضيح دلالات الألوان */}
                       <div className="flex flex-wrap items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50 gap-2">
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                           <div className="flex items-center gap-1.5">
                             <span className="w-2.5 h-2.5 rounded-full bg-primary" />
                             <span>{isEn ? "Scheduled Visit" : "معاينة مجدولة"}</span>
@@ -3056,7 +3059,7 @@ export default function Dashboard() {
           <div className="space-y-6">
             {/* توزيع الطلبات حسب البرنامج */}
             <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
-              <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-border/60 flex flex-row items-center justify-between">
+              <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-border/60 flex flex-col items-start sm:flex-row sm:items-center justify-between max-sm:[&_button]:min-h-11">
                 <div>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Layers className="w-4.5 h-4.5 text-primary" />

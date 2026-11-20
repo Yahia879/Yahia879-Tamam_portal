@@ -243,25 +243,27 @@ export default function QuickRequestCreate() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/60 pb-16" dir={lang === "ar" ? "rtl" : "ltr"}>
+    <div className="min-h-screen bg-slate-50/60 dark:bg-background pb-10 sm:pb-16 overflow-x-hidden" dir={lang === "ar" ? "rtl" : "ltr"}>
       {/* Header Container */}
-      <div className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-30 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <div className="bg-white/90 dark:bg-card/90 backdrop-blur-md border-b sticky top-0 z-30 shadow-xs">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 min-h-14 sm:min-h-16 py-2 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <Button
               variant="ghost"
               size="icon"
+              type="button"
               onClick={() => navigate("/requests")}
-              className="text-gray-500 hover:text-gray-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              aria-label={lang === "ar" ? "العودة للطلبات" : "Back to requests"}
+              className="size-11 lg:size-9 pointer-coarse:size-11 shrink-0 text-gray-500 hover:text-gray-900 dark:text-muted-foreground dark:hover:text-foreground hover:bg-slate-100 dark:hover:bg-muted rounded-lg transition-colors cursor-pointer"
             >
               {lang === "ar" ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
             </Button>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg md:text-xl font-bold text-slate-800 flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
+              <h1 className="text-base sm:text-lg md:text-xl font-bold text-slate-800 dark:text-foreground flex items-center gap-2 min-w-0 leading-snug">
                 <Zap className="w-5 h-5 text-teal-600 shrink-0" />
-                <span>{t.title}</span>
+                <span className="truncate">{t.title}</span>
               </h1>
-              <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200/60">
+              <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800/60 shrink-0">
                 {lang === "ar" ? "معالجة فورية" : "Direct Closure"}
               </span>
             </div>
@@ -269,37 +271,37 @@ export default function QuickRequestCreate() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-4 sm:mt-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             
             {/* Section 1: Mosque and Request details */}
-            <div className="space-y-6">
-              <Card className="border border-slate-100 hover:shadow-md transition-shadow duration-300 rounded-xl shadow-xs overflow-hidden">
-                <CardHeader className="border-b pb-4 bg-slate-50/40">
-                  <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
+            <div className="space-y-4 sm:space-y-6 min-w-0">
+              <Card className="border border-slate-100 dark:border-border hover:shadow-md transition-shadow duration-300 rounded-xl shadow-xs overflow-hidden py-0 gap-0">
+                <CardHeader className="border-b pt-4 pb-3.5 px-4 sm:px-6 bg-slate-50/40 dark:bg-muted/20">
+                  <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800 dark:text-foreground">
                     <Building2 className="w-5 h-5 text-teal-600 shrink-0" />
                     {t.mosqueAndRequest}
                   </CardTitle>
-                  <CardDescription className="text-xs text-slate-500 font-medium">
+                  <CardDescription className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
                     {t.mosqueAndRequestDesc}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-4 md:p-6 space-y-5">
+                <CardContent className="p-4 sm:p-5 md:p-6 space-y-4 sm:space-y-5">
                   
                   <div className="space-y-1.5">
-                    <Label htmlFor="mosqueNameInput" className="text-sm font-bold text-slate-700">{t.selectMosque} <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="mosqueNameInput" className="text-sm font-bold text-slate-700 dark:text-foreground">{t.selectMosque} <span className="text-red-500">*</span></Label>
                     <Input
                       id="mosqueNameInput"
                       value={formData.mosqueName}
                       onChange={(e) => setFormData(prev => ({ ...prev, mosqueName: e.target.value }))}
                       placeholder={t.selectMosquePlaceholder}
-                      className="h-10 md:h-11 focus-visible:ring-teal-500 border-slate-200 focus:border-teal-300"
+                      className="h-11 max-md:text-base focus-visible:ring-teal-500 border-slate-200 dark:border-border focus:border-teal-300"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="programSelect" className="text-sm font-bold text-slate-700">{t.programType} <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="programSelect" className="text-sm font-bold text-slate-700 dark:text-foreground">{t.programType} <span className="text-red-500">*</span></Label>
                     <Select
                       value={formData.programType}
                       onValueChange={(val) => setFormData(prev => ({ ...prev, programType: val }))}
@@ -308,7 +310,7 @@ export default function QuickRequestCreate() {
                       <SelectTrigger 
                         id="programSelect" 
                         className={cn(
-                          "w-full h-10 md:h-11 border-slate-200 focus-visible:ring-teal-500 focus:border-teal-300 cursor-pointer",
+                          "w-full min-w-0 h-11 max-md:text-base border-slate-200 dark:border-border focus-visible:ring-teal-500 focus:border-teal-300 cursor-pointer",
                           formData.programType === "taqah" && "text-right justify-end"
                         )}
                         dir={formData.programType === "taqah" ? "rtl" : undefined}
@@ -322,7 +324,7 @@ export default function QuickRequestCreate() {
                             value={p.id}
                             dir={p.id === "taqah" || p.name.includes("طاقة") || p.name.toLowerCase().includes("taqah") ? "rtl" : undefined}
                             className={cn(
-                              "cursor-pointer",
+                              "cursor-pointer min-h-10",
                               (p.id === "taqah" || p.name.includes("طاقة") || p.name.toLowerCase().includes("taqah")) && "text-right justify-end"
                             )}
                           >
@@ -334,14 +336,14 @@ export default function QuickRequestCreate() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="descriptionInput" className="text-sm font-bold text-slate-700">{t.description}</Label>
+                    <Label htmlFor="descriptionInput" className="text-sm font-bold text-slate-700 dark:text-foreground">{t.description}</Label>
                     <Textarea
                       id="descriptionInput"
                       rows={4}
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                       placeholder={t.descriptionPlaceholder}
-                      className="focus-visible:ring-teal-500 border-slate-200 focus:border-teal-300 resize-none min-h-[100px]"
+                      className="focus-visible:ring-teal-500 border-slate-200 dark:border-border focus:border-teal-300 resize-none min-h-[100px] max-md:text-base"
                     />
                   </div>
 
@@ -349,22 +351,22 @@ export default function QuickRequestCreate() {
               </Card>
 
               {/* بيانات الفريق الفني */}
-              <Card className="border border-slate-100 hover:shadow-md transition-shadow duration-300 rounded-xl shadow-xs overflow-hidden">
-                <CardHeader className="border-b pb-4 bg-slate-50/40">
-                  <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
+              <Card className="border border-slate-100 dark:border-border hover:shadow-md transition-shadow duration-300 rounded-xl shadow-xs overflow-hidden py-0 gap-0">
+                <CardHeader className="border-b pt-4 pb-3.5 px-4 sm:px-6 bg-slate-50/40 dark:bg-muted/20">
+                  <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800 dark:text-foreground">
                     <User className="w-5 h-5 text-teal-600 shrink-0" />
                     {t.technicalTeam}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-4 md:p-6">
+                <CardContent className="p-4 sm:p-5 md:p-6">
                   <div className="space-y-1.5">
-                    <Label htmlFor="technicianInput" className="text-sm font-bold text-slate-700">{t.technicianName} <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="technicianInput" className="text-sm font-bold text-slate-700 dark:text-foreground">{t.technicianName} <span className="text-red-500">*</span></Label>
                     <Input
                       id="technicianInput"
                       value={formData.technicianName}
                       onChange={(e) => setFormData(prev => ({ ...prev, technicianName: e.target.value }))}
                       placeholder={t.technicianPlaceholder}
-                      className="h-10 md:h-11 focus-visible:ring-teal-500 border-slate-200 focus:border-teal-300"
+                      className="h-11 max-md:text-base focus-visible:ring-teal-500 border-slate-200 dark:border-border focus:border-teal-300"
                     />
                   </div>
                 </CardContent>
@@ -372,32 +374,32 @@ export default function QuickRequestCreate() {
             </div>
 
             {/* Section 2: Report and closure */}
-            <div className="space-y-6">
-              <Card className="border border-slate-100 hover:shadow-md transition-shadow duration-300 rounded-xl shadow-xs overflow-hidden">
-                <CardHeader className="border-b pb-4 bg-slate-50/40">
-                  <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
+            <div className="space-y-4 sm:space-y-6 min-w-0">
+              <Card className="border border-slate-100 dark:border-border hover:shadow-md transition-shadow duration-300 rounded-xl shadow-xs overflow-hidden py-0 gap-0">
+                <CardHeader className="border-b pt-4 pb-3.5 px-4 sm:px-6 bg-slate-50/40 dark:bg-muted/20">
+                  <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800 dark:text-foreground">
                     <ClipboardList className="w-5 h-5 text-teal-600 shrink-0" />
                     {t.reportAndClose}
                   </CardTitle>
-                  <CardDescription className="text-xs text-slate-500 font-medium">
+                  <CardDescription className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
                     {t.reportAndCloseDesc}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-4 md:p-6 space-y-5">
+                <CardContent className="p-4 sm:p-5 md:p-6 space-y-4 sm:space-y-5">
                   
                   <div className="space-y-1.5">
-                    <Label htmlFor="technicalEval" className="text-sm font-bold text-slate-700">{t.technicalEvaluationLabel} <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="technicalEval" className="text-sm font-bold text-slate-700 dark:text-foreground">{t.technicalEvaluationLabel} <span className="text-red-500">*</span></Label>
                     <Textarea
                       id="technicalEval"
                       value={formData.technicalEvaluation}
                       onChange={(e) => setFormData(prev => ({ ...prev, technicalEvaluation: e.target.value }))}
                       placeholder={t.technicalEvaluationPlaceholder}
-                      className="focus-visible:ring-teal-500 border-slate-200 focus:border-teal-300 min-h-[100px] text-sm md:text-base"
+                      className="focus-visible:ring-teal-500 border-slate-200 dark:border-border focus:border-teal-300 min-h-[100px] text-sm md:text-base max-md:text-base"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="finalEval" className="text-sm font-bold text-slate-700">{t.finalEvaluation}</Label>
+                    <Label htmlFor="finalEval" className="text-sm font-bold text-slate-700 dark:text-foreground">{t.finalEvaluation}</Label>
                     <Select
                       value={formData.finalEvaluation}
                       onValueChange={(val) => setFormData(prev => ({ ...prev, finalEvaluation: val }))}
@@ -405,7 +407,7 @@ export default function QuickRequestCreate() {
                     >
                       <SelectTrigger 
                         id="finalEval" 
-                        className="w-full h-10 md:h-11 text-right justify-end border-slate-200 focus-visible:ring-teal-500 focus:border-teal-300 cursor-pointer"
+                        className="w-full min-w-0 h-11 max-md:text-base text-right justify-end border-slate-200 dark:border-border focus-visible:ring-teal-500 focus:border-teal-300 cursor-pointer"
                         dir="rtl"
                       >
                         <SelectValue placeholder={t.finalEvaluationPlaceholder} />
@@ -416,7 +418,7 @@ export default function QuickRequestCreate() {
                             key={option.value} 
                             value={option.value}
                             dir="rtl"
-                            className="text-right justify-end cursor-pointer"
+                            className="text-right justify-end cursor-pointer min-h-10"
                           >
                             <span className="flex items-center gap-2">
                               <span className={cn("w-2 h-2 rounded-full shrink-0", option.dotColor)} />
@@ -429,13 +431,13 @@ export default function QuickRequestCreate() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="unexecutedWorks" className="text-sm font-bold text-slate-700">{t.unexecutedWorks}</Label>
+                    <Label htmlFor="unexecutedWorks" className="text-sm font-bold text-slate-700 dark:text-foreground">{t.unexecutedWorks}</Label>
                     <Textarea
                       id="unexecutedWorks"
                       value={formData.unexecutedWorks}
                       onChange={(e) => setFormData(prev => ({ ...prev, unexecutedWorks: e.target.value }))}
                       placeholder={t.unexecutedWorksDesc}
-                      className="focus-visible:ring-teal-500 border-slate-200 focus:border-teal-300 min-h-[100px] text-sm md:text-base"
+                      className="focus-visible:ring-teal-500 border-slate-200 dark:border-border focus:border-teal-300 min-h-[100px] text-sm md:text-base max-md:text-base"
                     />
                   </div>
 
@@ -443,17 +445,17 @@ export default function QuickRequestCreate() {
               </Card>
 
               {/* المرفقات */}
-              <Card className="border border-slate-100 hover:shadow-md transition-shadow duration-300 rounded-xl shadow-xs overflow-hidden">
-                <CardHeader className="border-b pb-4 bg-slate-50/40">
-                  <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
+              <Card className="border border-slate-100 dark:border-border hover:shadow-md transition-shadow duration-300 rounded-xl shadow-xs overflow-hidden py-0 gap-0">
+                <CardHeader className="border-b pt-4 pb-3.5 px-4 sm:px-6 bg-slate-50/40 dark:bg-muted/20">
+                  <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800 dark:text-foreground">
                     <Camera className="w-5 h-5 text-teal-600 shrink-0" />
                     {t.attachments}
                   </CardTitle>
-                  <CardDescription className="text-xs text-slate-500 font-medium">
+                  <CardDescription className="text-xs text-slate-500 dark:text-muted-foreground font-medium">
                     {t.attachmentsDesc}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-4 md:p-6">
+                <CardContent className="p-4 sm:p-5 md:p-6">
                   <FileUpload
                     onFilesSelected={(files) => setAttachments(files)}
                     maxFiles={5}
@@ -468,14 +470,14 @@ export default function QuickRequestCreate() {
           </div>
 
           {/* Action Row */}
-          <div className="flex items-center justify-end gap-3 pt-6 mt-8 border-t border-slate-200">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 pt-5 sm:pt-6 mt-6 sm:mt-8 border-t border-slate-200 dark:border-border">
             <Button
               type="button"
               variant="outline"
               size="lg"
               onClick={() => navigate("/requests")}
               disabled={isSubmitting}
-              className="px-6 h-12 font-bold transition-all active:scale-[0.98] cursor-pointer"
+              className="w-full sm:w-auto px-6 min-h-12 font-bold transition-all active:scale-[0.98] cursor-pointer justify-center"
             >
               {t.cancel}
             </Button>
@@ -483,7 +485,7 @@ export default function QuickRequestCreate() {
               type="submit"
               size="lg"
               disabled={isSubmitting}
-              className="gradient-primary text-white gap-2 px-8 h-12 shadow-sm font-bold active:scale-[0.98] transition-all cursor-pointer flex items-center"
+              className="w-full sm:w-auto gradient-primary text-white gap-2 px-8 min-h-12 shadow-sm font-bold active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center"
             >
               {isSubmitting ? (
                 <>
@@ -492,7 +494,7 @@ export default function QuickRequestCreate() {
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4" />
+                  <Save className="w-4 h-4 shrink-0" />
                   {t.save}
                 </>
               )}

@@ -1,5 +1,6 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
+import { useIsMobile } from "@/hooks/useMobile";
 import { getMenuGroupsFromPermissions } from "@/components/DashboardLayout";
 import { getInformationDashboardReturnRoute } from "@/lib/routePermissions";
 import { Card, CardContent } from "@/components/ui/card";
@@ -180,19 +181,19 @@ export default function InformationDashboard() {
     isCurrency?: boolean;
     change?: number;
   }, key: any) => (
-    <Card key={key} className="relative overflow-hidden border-0 shadow-sm hover:shadow-md transition-all bg-card">
-      <CardContent className="p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+    <Card key={key} className="relative overflow-hidden border-0 max-sm:py-2 shadow-sm hover:shadow-md transition-all bg-card">
+      <CardContent className="p-3 sm:p-5 lg:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-3">
           <div className="space-y-1 sm:space-y-2 min-w-0">
-            <p className="text-[10px] sm:text-sm font-medium text-muted-foreground truncate">{stat.title}</p>
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground lg:truncate">{stat.title}</p>
             <div className="flex items-baseline gap-1.5 flex-wrap">
-              <p className="text-xl sm:text-3xl font-bold text-foreground leading-none font-sans">
+              <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-foreground leading-tight lg:leading-none font-sans max-lg:wrap-anywhere">
                 {stat.value}
               </p>
               {stat.isCurrency && <SaudiRiyal className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground shrink-0" />}
             </div>
             {stat.subtext && (
-              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
+              <p className="text-xs text-muted-foreground lg:truncate">
                 {stat.subtext}
               </p>
             )}
@@ -576,6 +577,14 @@ export default function InformationDashboard() {
   // Resolve immediately so a revoked or URL-selected tab cannot render for one frame.
   const activeTab = availableTabs.some(tab => tab.id === selectedTab)
     ? selectedTab : availableTabs[0]?.id;
+  const activeTabButton = useRef<HTMLButtonElement>(null);
+  const compactTabs = useIsMobile(true);
+
+  useEffect(() => {
+    if (compactTabs) {
+      activeTabButton.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
+  }, [activeTab, compactTabs]);
 
   useEffect(() => {
     if (availableTabs.length > 0) {
@@ -610,16 +619,17 @@ export default function InformationDashboard() {
     <div className="min-h-screen w-full bg-slate-50/60 dark:bg-zinc-950 text-foreground flex flex-col font-sans">
       {/* شريط التحكم العلوي الخاص بوضع الشاشة الكاملة */}
       <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 shadow-xs">
-        <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+        <div className="w-full px-3 sm:px-6 lg:px-8 min-h-16 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
           {/* اليمين: زر العودة + الشعار والعنوان */}
-          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <div className="flex items-center gap-1 sm:gap-4 min-w-0">
             {returnRoute && (
               <>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={returnToSidebar}
-                  className="gap-2 rounded-xl text-xs font-bold border-border/80 hover:bg-primary/5 hover:text-primary transition-all shrink-0 cursor-pointer shadow-xs"
+                  className="gap-2 rounded-xl text-xs font-bold border-border/80 hover:bg-primary/5 hover:text-primary transition-all shrink-0 cursor-pointer shadow-xs max-sm:size-11 max-sm:px-0"
+                  aria-label="العودة للرئيسية"
                   title="العودة للرئيسية والمنظومة"
                 >
                   <ArrowRight className="w-4 h-4 text-primary" />
@@ -631,15 +641,15 @@ export default function InformationDashboard() {
             )}
 
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20 shadow-xs">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary hidden sm:flex items-center justify-center shrink-0 border border-primary/20 shadow-xs">
                 <Layers className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-sm sm:text-base font-bold text-foreground truncate">
+                <div className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:gap-2">
+                  <h1 className="text-sm sm:text-base font-bold text-foreground sm:truncate">
                     لوحة المعلومات
                   </h1>
-                  <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 shrink-0">
+                  <span className="text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 sm:shrink-0">
                     {roleLabel}
                   </span>
                 </div>
@@ -648,12 +658,13 @@ export default function InformationDashboard() {
           </div>
 
           {/* اليسار: أدوات التحكم وملء الشاشة */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-3 shrink-0">
             <Button
               variant="default"
               size="sm"
               onClick={toggleFullscreen}
-              className="gap-1.5 text-xs font-bold rounded-xl h-9 cursor-pointer shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground"
+              className="gap-1.5 text-xs font-bold rounded-xl h-9 max-sm:size-11 max-sm:px-0 pointer-coarse:min-h-11 cursor-pointer shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground"
+              aria-label={isFullscreen ? "إنهاء ملء الشاشة" : "ملء الشاشة"}
               title={isFullscreen ? "إنهاء وضع ملء الشاشة (Esc)" : "تفعيل وضع ملء الشاشة الكامل"}
             >
               {isFullscreen ? (
@@ -673,7 +684,8 @@ export default function InformationDashboard() {
               variant="outline"
               size="sm"
               onClick={logout}
-              className="gap-1.5 text-xs font-bold rounded-xl h-9 cursor-pointer shadow-xs border-border/80 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 dark:hover:bg-rose-950/30 transition-all text-muted-foreground"
+              className="gap-1.5 text-xs font-bold rounded-xl h-9 max-sm:size-11 max-sm:px-0 pointer-coarse:min-h-11 cursor-pointer shadow-xs border-border/80 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 dark:hover:bg-rose-950/30 transition-all text-muted-foreground"
+              aria-label="تسجيل الخروج"
               title="تسجيل الخروج"
             >
               <LogOut className="w-4 h-4" />
@@ -683,13 +695,13 @@ export default function InformationDashboard() {
         </div>
       </header>
 
-      <main className="flex-1 w-full p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-[1920px] mx-auto">
+      <main className="flex-1 w-full min-w-0 p-3 sm:p-6 lg:p-8 space-y-5 sm:space-y-8 max-w-[1920px] mx-auto">
         
 
         {/* 2. شريط التنقل المحوري والتبديل بين الأقسام */}
         <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-md border border-border/80 rounded-2xl p-2.5 sm:p-3 shadow-xs">
           <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
-            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 scrollbar-hide">
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto w-full lg:w-auto min-w-0 px-0.5 lg:px-0 pb-1 lg:pb-0 lg:pointer-fine:[scrollbar-width:none] lg:pointer-fine:[&::-webkit-scrollbar]:hidden">
               <span className="text-xs font-bold text-muted-foreground shrink-0 ml-1 hidden xl:inline">
                 الأقسام:
               </span>
@@ -700,10 +712,12 @@ export default function InformationDashboard() {
                   <button
                     key={tab.id}
                     type="button"
+                    ref={isActive ? activeTabButton : undefined}
                     onClick={() => handleTabChange(tab.id)}
-                    className={`inline-flex items-center gap-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer ${
+                    aria-pressed={isActive}
+                    className={`inline-flex items-center gap-2 px-3 sm:px-3.5 py-2 max-lg:min-h-11 pointer-coarse:min-h-11 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer ${
                       isActive
-                        ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25 scale-[1.02]"
+                        ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25 lg:scale-[1.02]"
                         : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60"
                     }`}
                   >
@@ -742,7 +756,7 @@ export default function InformationDashboard() {
                     عرض المؤشرات فقط
                   </span>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                <p className="text-[11px] text-muted-foreground mt-0.5 lg:truncate">
                   عرض رقمي فوري لجميع بطاقات ومؤشرات المنظومة (المساجد، الطلبات، العقود، والمصروفات)
                 </p>
               </div>
@@ -854,7 +868,7 @@ export default function InformationDashboard() {
                     قطاع المساجد
                   </span>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                <p className="text-[11px] text-muted-foreground mt-0.5 lg:truncate">
                   المساجد المعتمدة رسمياً، المساجد النشطة المستفيدة من الخدمات، ونسب التغطية الميدانية والنمو
                 </p>
               </div>
@@ -901,7 +915,7 @@ export default function InformationDashboard() {
                     تقارير الطلبات
                   </span>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                <p className="text-[11px] text-muted-foreground mt-0.5 lg:truncate">
                   مخططات توزيع الطلبات على برامج الخدمات، والمنحنى الشهري لتطور الطلبات ومراحل الإنجاز
                 </p>
               </div>
@@ -948,7 +962,7 @@ export default function InformationDashboard() {
                     المشاريع والعقود
                   </span>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                <p className="text-[11px] text-muted-foreground mt-0.5 lg:truncate">
                   مشاريع الدعم، الميزانيات المعتمدة، شبكة الموردين المؤهلين، ومجموع قيم العقود الرسمية
                 </p>
               </div>
@@ -1011,7 +1025,7 @@ export default function InformationDashboard() {
                     المالية والصرف
                   </span>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                <p className="text-[11px] text-muted-foreground mt-0.5 lg:truncate">
                   الرسوم البيانية للتدفقات النقدية، أوامر الصرف المنفذة، سندات القبض، ومشاريع الدعم والتغطية
                 </p>
               </div>

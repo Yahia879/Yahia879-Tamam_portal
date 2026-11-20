@@ -176,7 +176,7 @@ export function MosqueSearchSelect({
         </PopoverTrigger>
 
         <PopoverContent
-          className="w-[var(--radix-popover-trigger-width)] min-w-[320px] max-w-[95vw] p-0 shadow-xl border-border rounded-xl overflow-hidden z-50 bg-popover"
+          className="w-[var(--radix-popover-trigger-width)] min-w-[min(320px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] p-0 shadow-xl border-border rounded-xl overflow-hidden z-50 bg-popover"
           align="start"
           sideOffset={5}
           dir="rtl"
@@ -191,13 +191,13 @@ export function MosqueSearchSelect({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="بحث باسم المسجد، المدينة، أو الحي..."
-                className="w-full h-10 pr-9 pl-8 text-xs sm:text-sm bg-background border border-input focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg outline-none transition-all placeholder:text-muted-foreground/70"
+                className="w-full h-11 sm:h-10 pr-9 pl-8 text-base sm:text-sm bg-background border border-input focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg outline-none transition-all placeholder:text-muted-foreground/70"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute left-2 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                  className="absolute left-2 p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -214,7 +214,7 @@ export function MosqueSearchSelect({
           </div>
 
           {/* قائمة المساجد */}
-          <div className="max-h-[280px] sm:max-h-[320px] overflow-y-auto p-1.5 space-y-1">
+          <div className="max-h-[45dvh] sm:max-h-[320px] overflow-y-auto p-1.5 space-y-1">
             {filteredMosques.length === 0 ? (
               <div className="py-7 text-center px-4">
                 <Building2 className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
@@ -233,7 +233,7 @@ export function MosqueSearchSelect({
                     key={mosque.id}
                     onClick={() => handleSelect(mosque.id)}
                     className={cn(
-                      "flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-all text-right border",
+                      "flex items-center justify-between p-2.5 min-h-11 rounded-lg cursor-pointer transition-all text-right border",
                       isSelected
                         ? "bg-primary/10 border-primary/30 text-primary font-semibold"
                         : "border-transparent hover:bg-muted/70 hover:border-border/50 text-foreground"

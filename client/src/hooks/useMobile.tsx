@@ -2,20 +2,23 @@ import * as React from "react";
 
 const MOBILE_BREAKPOINT = 768;
 
-export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(
-    undefined
+export function useIsMobile(includeTablet = false) {
+  const query = includeTablet
+    ? "(width < 1024px), (pointer: coarse) and (max-width: 1366px)"
+    : `(width < ${MOBILE_BREAKPOINT}px)`;
+  const [isMobile, setIsMobile] = React.useState(() =>
+    typeof window !== "undefined" && window.matchMedia(query).matches
   );
 
   React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    const mql = window.matchMedia(query);
     const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+      setIsMobile(mql.matches);
     };
     mql.addEventListener("change", onChange);
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    onChange();
     return () => mql.removeEventListener("change", onChange);
-  }, []);
+  }, [query]);
 
-  return !!isMobile;
+  return isMobile;
 }

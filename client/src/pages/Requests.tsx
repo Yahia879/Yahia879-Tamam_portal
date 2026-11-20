@@ -316,10 +316,10 @@ export default function Requests({
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 max-w-full overflow-x-hidden" dir={isEn ? "ltr" : "rtl"}>
+    <DashboardLayout tabletNavigation>
+      <div className="min-w-0 space-y-4 sm:space-y-6 max-w-full overflow-x-hidden" dir={isEn ? "ltr" : "rtl"}>
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
           <div className="min-w-0">
             <h1 className="text-xl md:text-2xl font-bold text-foreground truncate">
               {isEn ? "Quick Response Requests" :
@@ -333,34 +333,32 @@ export default function Requests({
             </p>
           </div>
           {!initialAssignedToMe && (
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center">
+            <div className="grid grid-cols-1 sm:flex sm:flex-wrap lg:flex-nowrap items-stretch sm:items-center gap-2 w-full lg:w-auto shrink-0">
               {user?.role !== "service_requester" && (
                 <PermissionGuard permission="sedana_requests.manage">
-                  <Link href="/service-request?service=sedana">
-                    <Button className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2 w-full sm:w-auto h-10 shadow-sm font-bold border-0 transition-all">
-                      <Sparkles className="w-4 h-4 text-cyan-200" />
+                  <Link href="/service-request?service=sedana" className="w-full sm:w-auto">
+                    <Button className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2 w-full sm:w-auto h-10 max-lg:min-h-11 pointer-coarse:min-h-11 shadow-sm font-bold border-0 transition-all whitespace-nowrap">
+                      <Sparkles className="w-4 h-4 text-cyan-200 shrink-0" />
                       <span>{isEn ? "Operation Services (Sedana)" : "خدمات التشغيل (سدانة)"}</span>
                     </Button>
                   </Link>
                 </PermissionGuard>
               )}
               {userPermissions.includes("requests.create_quick_request") && (
-                <>
-                  <Link href="/requests/quick-create">
-                    <Button 
-                      className="bg-amber-600 hover:bg-amber-700 text-white gap-2 w-full sm:w-auto h-10 shadow-sm transition-all font-semibold"
-                    >
-                      <Zap className="w-4 h-4" />
-                      {lang === "en" ? "Quick Request" : "طلب سريع"}
-                    </Button>
-                  </Link>
-                </>
+                <Link href="/requests/quick-create" className="w-full sm:w-auto">
+                  <Button 
+                    className="bg-amber-600 hover:bg-amber-700 text-white gap-2 w-full sm:w-auto h-10 max-lg:min-h-11 pointer-coarse:min-h-11 shadow-sm transition-all font-semibold whitespace-nowrap"
+                  >
+                    <Zap className="w-4 h-4 shrink-0" />
+                    <span>{lang === "en" ? "Quick Request" : "طلب سريع"}</span>
+                  </Button>
+                </Link>
               )}
               <PermissionGuard permission="requests.create">
-                <Link href="/service-request">
-                  <Button className="gradient-primary text-white gap-2 w-full sm:w-auto h-10">
-                    <Plus className="w-4 h-4" />
-                    {isEn ? "New Request" : "طلب جديد"}
+                <Link href="/service-request" className="w-full sm:w-auto">
+                  <Button className="gradient-primary text-white gap-2 w-full sm:w-auto h-10 max-lg:min-h-11 pointer-coarse:min-h-11 whitespace-nowrap">
+                    <Plus className="w-4 h-4 shrink-0" />
+                    <span>{isEn ? "New Request" : "طلب جديد"}</span>
                   </Button>
                 </Link>
               </PermissionGuard>
@@ -369,8 +367,9 @@ export default function Requests({
         </div>
 
         {/* Stats Row */}
-        <div className={`grid grid-cols-2 ${initialStage === "field_visit" || user?.role === "quick_response" ? "lg:grid-cols-3" : "lg:grid-cols-4"} gap-3 md:gap-4`}>
-          {[
+        {(() => {
+          const isThreeStats = initialStage === "field_visit" || user?.role === "quick_response";
+          const visibleStats = [
             {
               label: isEn ? "Total Requests" : "إجمالي الطلبات",
               value: stats.total,
@@ -395,35 +394,47 @@ export default function Requests({
               icon: <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />,
               iconBg: "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600",
             },
-          ].filter(stat => !((initialStage === "field_visit" || user?.role === "quick_response") && stat.label === (isEn ? "Under Review" : "قيد المراجعة"))).map((stat) => (
-            <Card key={stat.label} className="border-0 shadow-sm overflow-hidden">
-              <CardContent className="p-3 md:p-4">
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${stat.iconBg}`}>
-                    {stat.icon}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] md:text-xs text-muted-foreground truncate">{stat.label}</p>
-                    <p className="text-lg md:text-xl font-bold text-foreground truncate">{stat.value}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+          ].filter(stat => !(isThreeStats && stat.label === (isEn ? "Under Review" : "قيد المراجعة")));
+
+          return (
+            <div className={`grid grid-cols-2 ${isThreeStats ? "md:grid-cols-3" : "md:grid-cols-4"} gap-2.5 sm:gap-3 md:gap-4`}>
+              {visibleStats.map((stat, idx) => (
+                <Card
+                  key={stat.label}
+                  className={cn(
+                    "border-0 shadow-sm overflow-hidden py-0",
+                    isThreeStats && idx === visibleStats.length - 1 && "max-md:col-span-2"
+                  )}
+                >
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex items-center gap-2.5 md:gap-3">
+                      <div className={`w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${stat.iconBg}`}>
+                        {stat.icon}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] md:text-xs text-muted-foreground truncate">{stat.label}</p>
+                        <p className="text-lg md:text-xl font-bold text-foreground truncate">{stat.value}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* بنر التنبيه للطلبات التي بانتظار تأكيد الإغلاق من المدير التنفيذي */}
         {isExecutiveDirector && pendingClosureCount > 0 && (
-          <div className="p-4 bg-gradient-to-l from-amber-500/15 via-amber-500/10 to-orange-500/10 border-2 border-amber-400 dark:border-amber-600 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-            <div className="flex items-center gap-3">
+          <div className="p-3.5 sm:p-4 bg-gradient-to-l from-amber-500/15 via-amber-500/10 to-orange-500/10 border-2 border-amber-400 dark:border-amber-600 rounded-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-start sm:items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
                 <AlertTriangle className="w-5 h-5 animate-pulse" />
               </div>
-              <div>
-                <h4 className="font-bold text-sm sm:text-base text-foreground">
+              <div className="min-w-0">
+                <h4 className="font-bold text-sm sm:text-base text-foreground leading-snug">
                   يوجد {pendingClosureCount} {pendingClosureCount === 1 ? "طلب بحاجة" : "طلبات بحاجة"} إلى تأكيد الإغلاق من قِبل المدير التنفيذي
                 </h4>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                   قام مدير النظام بطلب إغلاق هذه الطلبات، ولا تُغلق نهائياً إلا بعد تأكيد واعتماد المدير التنفيذي
                 </p>
               </div>
@@ -432,7 +443,7 @@ export default function Requests({
               variant={closureFilter === "pending_confirmation" ? "default" : "outline"}
               size="sm"
               className={cn(
-                "font-bold text-xs shrink-0 rounded-xl px-4 h-9 cursor-pointer",
+                "font-bold text-xs shrink-0 rounded-xl px-4 h-10 max-lg:min-h-11 pointer-coarse:min-h-11 w-full sm:w-auto cursor-pointer",
                 closureFilter === "pending_confirmation" 
                   ? "bg-amber-600 hover:bg-amber-700 text-white" 
                   : "border-amber-400 text-amber-900 hover:bg-amber-100 dark:text-amber-200 dark:border-amber-700"
@@ -448,16 +459,16 @@ export default function Requests({
         )}
 
         {/* Filters */}
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
-              <div className="sm:col-span-2 relative">
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block flex items-center gap-1">
+        <Card className="border-0 shadow-sm max-lg:py-0">
+          <CardContent className="p-3 sm:p-4">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 items-end">
+              <div className="lg:col-span-2 relative min-w-0">
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
                   <Search className="w-3 h-3" />
                   {isEn ? "Search" : "البحث"}
                 </label>
                 <div className="relative">
-                  <Search className={`absolute ${isEn ? "left-3" : "right-3"} top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground`} />
+                  <Search className={`absolute ${isEn ? "left-3" : "right-3"} top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none`} />
                   <Input
                     placeholder={isEn ? "Request ID or Mosque Name..." : "رقم الطلب أو اسم المسجد..."}
                     value={search}
@@ -465,18 +476,18 @@ export default function Requests({
                       setSearch(e.target.value);
                       resetPage();
                     }}
-                    className={`h-10 w-full ${isEn ? "pl-10 pr-3" : "pr-10"}`}
+                    className={`h-10 max-lg:min-h-11 pointer-coarse:min-h-11 max-md:text-base w-full ${isEn ? "pl-10 pr-3" : "pr-10"}`}
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 sm:col-span-2">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 lg:col-span-3">
+                <div className="min-w-0">
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{isEn ? "Program" : "البرنامج"}</label>
                   <Select value={programFilter} onValueChange={(v) => {
                     setProgramFilter(v);
                     resetPage();
                   }}>
-                    <SelectTrigger className="w-full h-10 text-xs md:text-sm">
+                    <SelectTrigger className="w-full min-w-0 h-10 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs md:text-sm">
                       <SelectValue placeholder={isEn ? "Program" : "البرنامج"} />
                     </SelectTrigger>
                     <SelectContent>
@@ -489,13 +500,13 @@ export default function Requests({
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{isEn ? "Created By" : "منشئ الطلب"}</label>
                   <Select value={creatorTypeFilter} onValueChange={(v) => {
                     setCreatorTypeFilter(v);
                     resetPage();
                   }}>
-                    <SelectTrigger className="w-full h-10 text-xs md:text-sm">
+                    <SelectTrigger className="w-full min-w-0 h-10 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs md:text-sm">
                       <SelectValue placeholder={isEn ? "Created By" : "منشئ الطلب"} />
                     </SelectTrigger>
                     <SelectContent>
@@ -505,13 +516,13 @@ export default function Requests({
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{isEn ? "Status" : "الحالة"}</label>
                   <Select value={statusFilter} onValueChange={(v) => {
                     setStatusFilter(v);
                     resetPage();
                   }}>
-                    <SelectTrigger className="w-full h-10 text-xs md:text-sm">
+                    <SelectTrigger className="w-full min-w-0 h-10 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs md:text-sm">
                       <SelectValue placeholder={isEn ? "Status" : "الحالة"} />
                     </SelectTrigger>
                     <SelectContent>
@@ -553,20 +564,20 @@ export default function Requests({
         </div>
 
         {/* Requests List */}
-        <Card className="border-0 shadow-sm overflow-hidden">
+        <Card className="border-0 shadow-sm overflow-hidden py-0">
           {isLoading ? (
-            <div className="p-12 text-center">
+            <div className="p-10 sm:p-12 text-center">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
               <p className="text-muted-foreground mt-4 text-sm">{isEn ? "Loading..." : "جاري التحميل..."}</p>
             </div>
           ) : requests.length > 0 ? (
             <div>
-              {/* Table Container with Horizontal Scroll support on desktop */}
-              <div className="overflow-x-auto">
-                <div className="min-w-0 md:min-w-[1100px]">
-                  {/* Table Header (Desktop Only) */}
+              {/* Desktop Table (xl and above) */}
+              <div className="hidden xl:block overflow-x-auto">
+                <div className="min-w-[1100px]">
+                  {/* Table Header */}
                   <div className={cn(
-                    "hidden md:grid grid-cols-[36px_minmax(180px,1.4fr)_minmax(120px,0.9fr)_minmax(130px,1fr)_minmax(115px,0.85fr)_minmax(130px,1fr)_minmax(140px,1.1fr)_minmax(110px,0.8fr)_44px] gap-3.5 px-4 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider items-center",
+                    "grid grid-cols-[36px_minmax(180px,1.4fr)_minmax(120px,0.9fr)_minmax(130px,1fr)_minmax(115px,0.85fr)_minmax(130px,1fr)_minmax(140px,1.1fr)_minmax(110px,0.8fr)_44px] gap-3.5 px-4 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider items-center",
                     isEn ? "border-l-4 border-l-transparent" : "border-r-4 border-r-transparent"
                   )}>
                     <div className="w-9"></div>
@@ -580,7 +591,7 @@ export default function Requests({
                     <div className="w-11 text-center">{isEn ? "View" : "عرض"}</div>
                   </div>
 
-                  {/* Rows / Cards */}
+                  {/* Desktop Table Rows */}
                   <div className="divide-y divide-border">
                     {requests.map((request: any) => {
                       const status = statusConfig[request.status] || statusConfig.pending;
@@ -589,11 +600,19 @@ export default function Requests({
                       const isQuick = request.requestTrack === "quick_response" || request.technicalEvalDecision === "quick_response";
                       const isDonation = request.technicalEvalDecision === "convert_to_donation";
                       const isPendingClosure = request.closureStatus === "pending_confirmation" && isExecutiveDirector;
+                      const requestTitle = request.isMultiMosque || request.programData?.isMultiMosque
+                        ? (request.projectName || request.descriptiveName || "مشروع لعدة مساجد")
+                        : request.programType === "bunyan" 
+                          ? (isEn ? `Request ${request.requesterName || ""}` : `طلب ${request.requesterName || ""}`)
+                          : (isEn 
+                              ? (request.mosqueName?.trim().toLowerCase().startsWith("mosque") ? `Request ${request.mosqueName}` : `Mosque Request ${request.mosqueName || ""}`)
+                              : (request.mosqueName?.trim().startsWith("مسجد") ? `طلب ${request.mosqueName}` : `طلب مسجد ${request.mosqueName || ""}`));
+
                       return (
                         <div
                           key={request.id}
                           className={cn(
-                            "grid grid-cols-1 md:grid-cols-[36px_minmax(180px,1.4fr)_minmax(120px,0.9fr)_minmax(130px,1fr)_minmax(115px,0.85fr)_minmax(130px,1fr)_minmax(140px,1.1fr)_minmax(110px,0.8fr)_44px] gap-3 md:gap-3.5 px-4 py-3.5 transition-colors items-center",
+                            "grid grid-cols-[36px_minmax(180px,1.4fr)_minmax(120px,0.9fr)_minmax(130px,1fr)_minmax(115px,0.85fr)_minmax(130px,1fr)_minmax(140px,1.1fr)_minmax(110px,0.8fr)_44px] gap-3.5 px-4 py-3.5 transition-colors items-center",
                             canViewDetails ? "cursor-pointer" : "cursor-default",
                             isPendingClosure
                               ? cn(
@@ -622,8 +641,8 @@ export default function Requests({
                           )}
                           onClick={() => canViewDetails && navigate(`/requests/${request.id}`)}
                         >
-                          {/* Desktop: Program Icon */}
-                          <div className="hidden md:flex w-9 justify-center shrink-0">
+                          {/* Program Icon */}
+                          <div className="flex w-9 justify-center shrink-0">
                             {request.isMultiMosque || request.programData?.isMultiMosque ? (
                               <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs" title="مشروع مباشر لعدة مساجد">
                                 <MultiMosquesIcon className="w-4.5 h-4.5" />
@@ -645,109 +664,65 @@ export default function Requests({
                             )}
                           </div>
 
-                          {/* Request Info (Mobile & Desktop) */}
-                          <div className="flex items-start justify-between md:block gap-3 min-w-0">
-                            <div className="flex items-center gap-3 md:block min-w-0">
-                              <div className="md:hidden shrink-0">
-                                {request.isMultiMosque || request.programData?.isMultiMosque ? (
-                                  <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs">
-                                    <MultiMosquesIcon className="w-4.5 h-4.5" />
-                                  </div>
-                                ) : isSedana ? (
-                                  <div className="w-8 h-8 rounded-lg bg-sky-100 dark:bg-sky-950/70 text-sky-600 dark:text-sky-400 flex items-center justify-center border border-sky-300 dark:border-sky-700 shadow-xs" title={isEn ? "Sedana Program" : "برنامج سدانة"}>
-                                    <Sparkles className="w-4 h-4 text-sky-600 dark:text-sky-400" />
-                                  </div>
-                                ) : isQuick ? (
-                                  <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-950/70 text-orange-700 dark:text-orange-300 flex items-center justify-center border border-orange-300 dark:border-orange-700 shadow-xs" title={isEn ? "Quick Request" : "طلب سريع"}>
-                                    <Zap className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                                  </div>
-                                ) : isDonation ? (
-                                  <div className="w-8 h-8 rounded-lg bg-pink-100 dark:bg-pink-950/70 text-pink-700 dark:text-pink-300 flex items-center justify-center border border-pink-300 dark:border-pink-700 shadow-xs" title={isEn ? "Donation Opportunity" : "فرصة تبرع"}>
-                                    <HeartHandshake className="w-4 h-4 text-pink-600 dark:text-pink-400" />
-                                  </div>
-                                ) : (
-                                  <ProgramIcon program={request.programType} size="md" />
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <p className="font-bold text-foreground text-sm truncate max-w-full" title={
-                                    request.isMultiMosque || request.programData?.isMultiMosque
-                                      ? (request.projectName || request.descriptiveName || "مشروع لعدة مساجد")
-                                      : request.programType === "bunyan" 
-                                        ? (isEn ? `Request ${request.requesterName || ""}` : `طلب ${request.requesterName || ""}`)
-                                        : (isEn 
-                                            ? (request.mosqueName?.trim().toLowerCase().startsWith("mosque") ? `Request ${request.mosqueName}` : `Mosque Request ${request.mosqueName || ""}`)
-                                            : (request.mosqueName?.trim().startsWith("مسجد") ? `طلب ${request.mosqueName}` : `طلب مسجد ${request.mosqueName || ""}`))
-                                  }>
-                                    {request.isMultiMosque || request.programData?.isMultiMosque
-                                      ? (request.projectName || request.descriptiveName || "مشروع لعدة مساجد")
-                                      : request.programType === "bunyan" 
-                                        ? (isEn ? `Request ${request.requesterName || ""}` : `طلب ${request.requesterName || ""}`)
-                                        : (isEn 
-                                            ? (request.mosqueName?.trim().toLowerCase().startsWith("mosque") ? `Request ${request.mosqueName}` : `Mosque Request ${request.mosqueName || ""}`)
-                                            : (request.mosqueName?.trim().startsWith("مسجد") ? `طلب ${request.mosqueName}` : `طلب مسجد ${request.mosqueName || ""}`))}
-                                  </p>
-                                  {isSedana && (
-                                    <Badge variant="outline" className="bg-sky-100 dark:bg-sky-950/70 text-sky-800 dark:text-sky-300 border-sky-300 dark:border-sky-700 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0">
-                                      <Sparkles className="w-2.5 h-2.5 text-sky-600 dark:text-sky-400" />
-                                      <span>{isEn ? "Sedana" : "سدانة"}</span>
-                                    </Badge>
-                                  )}
-                                  {isQuick && (
-                                    <Badge variant="outline" className="bg-orange-100 dark:bg-orange-950/70 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-700 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0">
-                                      <Timer className="w-2.5 h-2.5 text-orange-600 dark:text-orange-400" />
-                                      <span>{isEn ? "Quick Request" : "طلب سريع"}</span>
-                                    </Badge>
-                                  )}
-                                  {isDonation && (
-                                    <Badge variant="outline" className="bg-pink-100 dark:bg-pink-950/70 text-pink-800 dark:text-pink-200 border-pink-300 dark:border-pink-700 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0">
-                                      <HeartHandshake className="w-2.5 h-2.5 text-pink-600 dark:text-pink-400" />
-                                      <span>{isEn ? "Donation Opportunity" : "فرصة تبرع"}</span>
-                                    </Badge>
-                                  )}
-                                  {!isSedana && !isQuick && !isDonation && (
-                                    <Badge variant="outline" className="bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0">
-                                      <FileText className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
-                                      <span>{isEn ? "General Request" : "طلب عام"}</span>
-                                    </Badge>
-                                  )}
-                                  {request.closureStatus === "pending_confirmation" && isExecutiveDirector && (
-                                    <Badge 
-                                      variant="outline" 
-                                      className="bg-amber-100 text-amber-900 border-amber-400 dark:bg-amber-950/70 dark:text-amber-200 dark:border-amber-600 text-[10px] py-0 px-2 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0 animate-pulse"
-                                      title="طلب إغلاق بانتظار تأكيد واعتماد المدير التنفيذي"
-                                    >
-                                      <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                                      <span>⚠️ بانتظار تأكيد الإغلاق</span>
-                                    </Badge>
-                                  )}
-                                  {Boolean(request.reviewNotes) && (
-                                    <span 
-                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shrink-0" 
-                                      title="يوجد ملاحظات مسجلة على هذا الطلب"
-                                    >
-                                      <StickyNote className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                                      <span>{isEn ? "Notes" : "ملاحظات"}</span>
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-0.5 truncate break-words line-clamp-1">
-                                  {request.isMultiMosque || request.programData?.isMultiMosque
-                                    ? `مشروع مباشر لعدة مساجد (${request.requestNumber})`
-                                    : `${request.programName && !isEn ? request.programName : translateProgram(request.programType)} (${request.requestNumber})`}
-                                </p>
-                              </div>
-                            </div>
-                            <div className={`${isEn ? "text-right md:text-left" : "text-left md:text-right"} shrink-0 md:hidden`}>
-                              <p className="text-[10px] text-muted-foreground">
-                                {new Date(request.createdAt).toLocaleDateString(isEn ? "en-US" : "ar-SA")}
+                          {/* Request Info */}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-bold text-foreground text-sm truncate max-w-full" title={requestTitle}>
+                                {requestTitle}
                               </p>
+                              {isSedana && (
+                                <Badge variant="outline" className="bg-sky-100 dark:bg-sky-950/70 text-sky-800 dark:text-sky-300 border-sky-300 dark:border-sky-700 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0">
+                                  <Sparkles className="w-2.5 h-2.5 text-sky-600 dark:text-sky-400" />
+                                  <span>{isEn ? "Sedana" : "سدانة"}</span>
+                                </Badge>
+                              )}
+                              {isQuick && (
+                                <Badge variant="outline" className="bg-orange-100 dark:bg-orange-950/70 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-700 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0">
+                                  <Timer className="w-2.5 h-2.5 text-orange-600 dark:text-orange-400" />
+                                  <span>{isEn ? "Quick Request" : "طلب سريع"}</span>
+                                </Badge>
+                              )}
+                              {isDonation && (
+                                <Badge variant="outline" className="bg-pink-100 dark:bg-pink-950/70 text-pink-800 dark:text-pink-200 border-pink-300 dark:border-pink-700 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0">
+                                  <HeartHandshake className="w-2.5 h-2.5 text-pink-600 dark:text-pink-400" />
+                                  <span>{isEn ? "Donation Opportunity" : "فرصة تبرع"}</span>
+                                </Badge>
+                              )}
+                              {!isSedana && !isQuick && !isDonation && (
+                                <Badge variant="outline" className="bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0">
+                                  <FileText className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
+                                  <span>{isEn ? "General Request" : "طلب عام"}</span>
+                                </Badge>
+                              )}
+                              {request.closureStatus === "pending_confirmation" && isExecutiveDirector && (
+                                <Badge 
+                                  variant="outline" 
+                                  className="bg-amber-100 text-amber-900 border-amber-400 dark:bg-amber-950/70 dark:text-amber-200 dark:border-amber-600 text-[10px] py-0 px-2 font-bold inline-flex items-center gap-1 shadow-2xs shrink-0 animate-pulse"
+                                  title="طلب إغلاق بانتظار تأكيد واعتماد المدير التنفيذي"
+                                >
+                                  <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                  <span>⚠️ بانتظار تأكيد الإغلاق</span>
+                                </Badge>
+                              )}
+                              {Boolean(request.reviewNotes) && (
+                                <span 
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shrink-0" 
+                                  title="يوجد ملاحظات مسجلة على هذا الطلب"
+                                >
+                                  <StickyNote className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                  <span>{isEn ? "Notes" : "ملاحظات"}</span>
+                                </span>
+                              )}
                             </div>
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate break-words line-clamp-1">
+                              {request.isMultiMosque || request.programData?.isMultiMosque
+                                ? `مشروع مباشر لعدة مساجد (${request.requestNumber})`
+                                : `${request.programName && !isEn ? request.programName : translateProgram(request.programType)} (${request.requestNumber})`}
+                            </p>
                           </div>
 
                           {/* Descriptive Name / التسمية التوضيحية */}
-                          <div className="hidden md:flex items-center min-w-0">
+                          <div className="flex items-center min-w-0">
                             {request.descriptiveName && (!request.isMultiMosque || request.descriptiveName !== request.projectName) ? (
                               <span className="inline-flex items-center gap-1 text-xs font-semibold text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-md border border-purple-200/60 dark:border-purple-800/60 max-w-full min-w-0" title={request.descriptiveName}>
                                 <Tag className="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0 ml-0.5" />
@@ -758,17 +733,17 @@ export default function Requests({
                             )}
                           </div>
 
-                          {/* Mosque (Desktop & Tablet) */}
-                          <div className="hidden md:flex items-center gap-1.5 min-w-0">
+                          {/* Mosque */}
+                          <div className="flex items-center gap-1.5 min-w-0">
                             <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                             <span className="text-xs font-medium text-foreground truncate" title={request.multiMosqueNames || request.mosqueName || "—"}>
                               {request.multiMosqueNames || request.mosqueName || "—"}
                             </span>
                           </div>
 
-                          {/* Stage (Desktop) */}
-                          <div className="hidden md:block min-w-0">
-                            <Badge variant="outline" className="text-[10px] md:text-[11px] font-medium py-0.5 px-2 h-auto max-w-full truncate inline-block" title={translateStage(request.currentStage, request.requestTrack)}>
+                          {/* Stage */}
+                          <div className="min-w-0">
+                            <Badge variant="outline" className="text-[11px] font-medium py-0.5 px-2 h-auto max-w-full truncate inline-block" title={translateStage(request.currentStage, request.requestTrack)}>
                               <span className="truncate">{translateStage(request.currentStage, request.requestTrack)}</span>
                             </Badge>
                             {request.currentResponsibleDepartment && (
@@ -778,8 +753,8 @@ export default function Requests({
                             )}
                           </div>
 
-                          {/* Officer / Admin Name (Desktop) */}
-                          <div className="hidden md:flex items-center min-w-0">
+                          {/* Officer / Admin Name */}
+                          <div className="flex items-center min-w-0">
                             {request.adminName ? (
                               <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-200/80 dark:border-slate-700/80 max-w-full min-w-0" title={request.adminName}>
                                 <User className="w-3.5 h-3.5 text-slate-500 shrink-0" />
@@ -790,8 +765,8 @@ export default function Requests({
                             )}
                           </div>
 
-                          {/* Project (Desktop) */}
-                          <div className="hidden md:flex items-center min-w-0">
+                          {/* Project */}
+                          <div className="flex items-center min-w-0">
                             {request.projectId ? (
                               <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/5 px-2.5 py-1 rounded-md border border-primary/10 max-w-full min-w-0" title={request.projectName}>
                                 <Briefcase className="w-3.5 h-3.5 shrink-0 text-primary" />
@@ -802,9 +777,9 @@ export default function Requests({
                             )}
                           </div>
 
-                          {/* Status (Desktop) */}
-                          <div className="hidden md:flex flex-col items-start gap-1 min-w-0">
-                            <span className={`inline-flex items-center gap-1.5 text-[10px] md:text-xs font-medium px-2.5 py-0.5 rounded-full border ${status.bg} ${status.color} shrink-0`}>
+                          {/* Status */}
+                          <div className="flex flex-col items-start gap-1 min-w-0">
+                            <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full border ${status.bg} ${status.color} shrink-0`}>
                               {status.icon}
                               <span>{translateStatus(request.status)}</span>
                             </span>
@@ -812,7 +787,7 @@ export default function Requests({
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-6 px-2 text-[10px] bg-amber-500/15 border-amber-500/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/25 font-bold shadow-2xs"
+                                className="h-6 pointer-coarse:min-h-9 px-2 text-[10px] bg-amber-500/15 border-amber-500/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/25 font-bold shadow-2xs"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setSelectedClosureRequest(request);
@@ -825,69 +800,11 @@ export default function Requests({
                             )}
                           </div>
 
-                          {/* Mobile Card Row: Location + Officer + Project + Stage + Status */}
-                          <div className="md:hidden flex flex-col gap-2.5">
-                            <div className={cn(
-                              "flex items-center gap-1.5 text-xs text-foreground p-2 rounded-md",
-                              isSedana ? "bg-white/80 dark:bg-cyan-900/30 border border-cyan-200/60 dark:border-cyan-800/40" : "bg-muted/50"
-                            )}>
-                              <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                              <span className="truncate">{request.multiMosqueNames || request.mosqueName || "—"}</span>
-                            </div>
-
-                            <div className={cn(
-                              "flex items-center justify-between text-xs px-2.5 py-1.5 rounded-md",
-                              isSedana ? "bg-white/60 dark:bg-cyan-900/20 border border-cyan-200/40 dark:border-cyan-800/30" : "bg-muted/30"
-                            )}>
-                              <span className="flex items-center gap-1 text-muted-foreground">
-                                <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                                <span>{isEn ? "Officer:" : "اسم المسؤول:"}</span>
-                              </span>
-                              <span className="font-semibold text-foreground truncate max-w-[180px]">
-                                {request.adminName || "—"}
-                              </span>
-                            </div>
-
-                            {request.projectId && (
-                              <div className="flex items-center gap-1.5 text-xs text-foreground bg-primary/5 border border-primary/10 p-2 rounded-md">
-                                <Briefcase className="w-3.5 h-3.5 text-primary shrink-0" />
-                                <span className="font-semibold text-primary truncate">
-                                  {isEn ? "Linked Project:" : "المشروع المرتبط:"} {request.projectName}
-                                </span>
-                              </div>
-                            )}
-                            <div className="flex items-center justify-between gap-2">
-                              <Badge variant="outline" className="text-[10px] py-0.5">
-                                {translateStage(request.currentStage, request.requestTrack)}
-                              </Badge>
-                              <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
-                                {status.icon}
-                                {translateStatus(request.status)}
-                              </span>
-                            </div>
-
-                            {request.closureStatus === "pending_confirmation" && isExecutiveDirector && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="w-full mt-1 bg-amber-500/10 border-amber-500/30 text-amber-800 hover:bg-amber-500/20 font-bold text-xs flex items-center justify-center gap-1.5"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedClosureRequest(request);
-                                  setShowClosureModal(true);
-                                }}
-                              >
-                                <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-                                <span>{isEn ? "Closure Confirmation Decision" : "اتخاذ قرار بشأن إغلاق الطلب"}</span>
-                              </Button>
-                            )}
-                          </div>
-
-                          {/* Desktop Action */}
-                          <div className="hidden md:flex justify-center w-11 shrink-0" onClick={(e) => e.stopPropagation()}>
+                          {/* Action */}
+                          <div className="flex justify-center w-11 shrink-0" onClick={(e) => e.stopPropagation()}>
                             {canViewDetails && (
                               <Link href={`/requests/${request.id}`}>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary">
+                                <Button variant="ghost" size="sm" className="h-8 w-8 pointer-coarse:size-10 p-0 text-muted-foreground hover:text-primary">
                                   <ChevronLeft className={`w-4 h-4 ${isEn ? "rotate-180" : ""}`} />
                                 </Button>
                               </Link>
@@ -900,6 +817,222 @@ export default function Requests({
                 </div>
               </div>
 
+              {/* Mobile & iPad Card Grid (< xl) */}
+              <div className="xl:hidden grid grid-cols-1 md:grid-cols-2 gap-3 p-3 sm:p-4 bg-muted/15">
+                {requests.map((request: any) => {
+                  const status = statusConfig[request.status] || statusConfig.pending;
+                  const isSedana = request.programType?.toLowerCase() === "sedana";
+                  const canViewDetails = access.canViewDetails(request.programType);
+                  const isQuick = request.requestTrack === "quick_response" || request.technicalEvalDecision === "quick_response";
+                  const isDonation = request.technicalEvalDecision === "convert_to_donation";
+                  const isPendingClosure = request.closureStatus === "pending_confirmation" && isExecutiveDirector;
+                  const requestTitle = request.isMultiMosque || request.programData?.isMultiMosque
+                    ? (request.projectName || request.descriptiveName || "مشروع لعدة مساجد")
+                    : request.programType === "bunyan"
+                      ? (isEn ? `Request ${request.requesterName || ""}` : `طلب ${request.requesterName || ""}`)
+                      : (isEn
+                          ? (request.mosqueName?.trim().toLowerCase().startsWith("mosque") ? `Request ${request.mosqueName}` : `Mosque Request ${request.mosqueName || ""}`)
+                          : (request.mosqueName?.trim().startsWith("مسجد") ? `طلب ${request.mosqueName}` : `طلب مسجد ${request.mosqueName || ""}`));
+
+                  return (
+                    <div
+                      key={request.id}
+                      className={cn(
+                        "rounded-xl border p-3.5 sm:p-4 flex flex-col justify-between gap-3 transition-all shadow-2xs",
+                        canViewDetails ? "cursor-pointer active:scale-[0.995]" : "cursor-default",
+                        isPendingClosure
+                          ? cn(
+                              "bg-amber-50/90 hover:bg-amber-100/90 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 border-amber-300/80 dark:border-amber-700/70",
+                              isEn ? "border-l-4 border-l-amber-500" : "border-r-4 border-r-amber-500"
+                            )
+                          : isSedana
+                          ? cn(
+                              "bg-sky-50/90 hover:bg-sky-100/90 dark:bg-sky-950/40 dark:hover:bg-sky-900/50 border-sky-200/80 dark:border-sky-800/70",
+                              isEn ? "border-l-4 border-l-sky-500 dark:border-l-sky-400" : "border-r-4 border-r-sky-500 dark:border-r-sky-400"
+                            )
+                          : isQuick
+                          ? cn(
+                              "bg-orange-50/80 hover:bg-orange-100/80 dark:bg-orange-950/30 dark:hover:bg-orange-900/40 border-orange-200/80 dark:border-orange-800/70",
+                              isEn ? "border-l-4 border-l-orange-500 dark:border-l-orange-400" : "border-r-4 border-r-orange-500 dark:border-r-orange-400"
+                            )
+                          : isDonation
+                          ? cn(
+                              "bg-pink-50/80 hover:bg-pink-100/80 dark:bg-pink-950/30 dark:hover:bg-pink-900/40 border-pink-200/80 dark:border-pink-800/70",
+                              isEn ? "border-l-4 border-l-pink-500 dark:border-l-pink-400" : "border-r-4 border-r-pink-500 dark:border-r-pink-400"
+                            )
+                          : cn(
+                              "bg-emerald-50/90 hover:bg-emerald-100/90 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/40 border-emerald-200/80 dark:border-emerald-800/70",
+                              isEn ? "border-l-4 border-l-emerald-600 dark:border-l-emerald-400" : "border-r-4 border-r-emerald-600 dark:border-r-emerald-400"
+                            )
+                      )}
+                      onClick={() => canViewDetails && navigate(`/requests/${request.id}`)}
+                    >
+                      <div className="space-y-2.5 min-w-0">
+                        {/* Card Top Header: Icon + Title + Date */}
+                        <div className="flex items-start justify-between gap-2.5 min-w-0">
+                          <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                            <div className="shrink-0 mt-0.5">
+                              {request.isMultiMosque || request.programData?.isMultiMosque ? (
+                                <div className="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs">
+                                  <MultiMosquesIcon className="w-4.5 h-4.5" />
+                                </div>
+                              ) : isSedana ? (
+                                <div className="w-9 h-9 rounded-lg bg-sky-100 dark:bg-sky-950/70 text-sky-600 dark:text-sky-400 flex items-center justify-center border border-sky-300 dark:border-sky-700 shadow-xs">
+                                  <Sparkles className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                                </div>
+                              ) : isQuick ? (
+                                <div className="w-9 h-9 rounded-lg bg-orange-100 dark:bg-orange-950/70 text-orange-700 dark:text-orange-300 flex items-center justify-center border border-orange-300 dark:border-orange-700 shadow-xs">
+                                  <Zap className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                </div>
+                              ) : isDonation ? (
+                                <div className="w-9 h-9 rounded-lg bg-pink-100 dark:bg-pink-950/70 text-pink-700 dark:text-pink-300 flex items-center justify-center border border-pink-300 dark:border-pink-700 shadow-xs">
+                                  <HeartHandshake className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+                                </div>
+                              ) : (
+                                <ProgramIcon program={request.programType} size="md" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-bold text-foreground text-sm leading-snug line-clamp-2 break-words" title={requestTitle}>
+                                {requestTitle}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                {request.isMultiMosque || request.programData?.isMultiMosque
+                                  ? `مشروع مباشر لعدة مساجد (${request.requestNumber})`
+                                  : `${request.programName && !isEn ? request.programName : translateProgram(request.programType)} (${request.requestNumber})`}
+                              </p>
+                            </div>
+                          </div>
+                          <div className={cn("shrink-0 flex flex-col items-end gap-1", isEn ? "text-right" : "text-left")}>
+                            <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                              {new Date(request.createdAt).toLocaleDateString(isEn ? "en-US" : "ar-SA")}
+                            </span>
+                            {canViewDetails && (
+                              <ChevronLeft className={`w-4 h-4 text-muted-foreground/70 ${isEn ? "rotate-180" : ""}`} />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Badges Row */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {isSedana && (
+                            <Badge variant="outline" className="bg-sky-100 dark:bg-sky-950/70 text-sky-800 dark:text-sky-300 border-sky-300 dark:border-sky-700 text-[10px] py-0.5 px-2 font-bold inline-flex items-center gap-1">
+                              <Sparkles className="w-2.5 h-2.5 text-sky-600 dark:text-sky-400" />
+                              <span>{isEn ? "Sedana" : "سدانة"}</span>
+                            </Badge>
+                          )}
+                          {isQuick && (
+                            <Badge variant="outline" className="bg-orange-100 dark:bg-orange-950/70 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-700 text-[10px] py-0.5 px-2 font-bold inline-flex items-center gap-1">
+                              <Timer className="w-2.5 h-2.5 text-orange-600 dark:text-orange-400" />
+                              <span>{isEn ? "Quick Request" : "طلب سريع"}</span>
+                            </Badge>
+                          )}
+                          {isDonation && (
+                            <Badge variant="outline" className="bg-pink-100 dark:bg-pink-950/70 text-pink-800 dark:text-pink-200 border-pink-300 dark:border-pink-700 text-[10px] py-0.5 px-2 font-bold inline-flex items-center gap-1">
+                              <HeartHandshake className="w-2.5 h-2.5 text-pink-600 dark:text-pink-400" />
+                              <span>{isEn ? "Donation Opportunity" : "فرصة تبرع"}</span>
+                            </Badge>
+                          )}
+                          {!isSedana && !isQuick && !isDonation && (
+                            <Badge variant="outline" className="bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700 text-[10px] py-0.5 px-2 font-bold inline-flex items-center gap-1">
+                              <FileText className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
+                              <span>{isEn ? "General Request" : "طلب عام"}</span>
+                            </Badge>
+                          )}
+                          {request.closureStatus === "pending_confirmation" && isExecutiveDirector && (
+                            <Badge variant="outline" className="bg-amber-100 text-amber-900 border-amber-400 dark:bg-amber-950/70 dark:text-amber-200 dark:border-amber-600 text-[10px] py-0.5 px-2 font-bold inline-flex items-center gap-1 animate-pulse">
+                              <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                              <span>⚠️ بانتظار تأكيد الإغلاق</span>
+                            </Badge>
+                          )}
+                          {Boolean(request.reviewNotes) && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
+                              <StickyNote className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                              <span>{isEn ? "Notes" : "ملاحظات"}</span>
+                            </span>
+                          )}
+                          {request.descriptiveName && (!request.isMultiMosque || request.descriptiveName !== request.projectName) && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-md border border-purple-200/60 dark:border-purple-800/60 max-w-full min-w-0">
+                              <Tag className="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0" />
+                              <span className="truncate">{request.descriptiveName}</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Metadata rows */}
+                        <div className="space-y-2">
+                          <div className={cn(
+                            "flex items-center gap-1.5 text-xs text-foreground p-2 rounded-lg",
+                            isSedana ? "bg-white/80 dark:bg-cyan-900/30 border border-cyan-200/60 dark:border-cyan-800/40" : "bg-background/70 border border-border/50"
+                          )}>
+                            <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <span className="truncate font-medium">{request.multiMosqueNames || request.mosqueName || "—"}</span>
+                          </div>
+
+                          <div className={cn(
+                            "flex items-center justify-between gap-2 text-xs px-2.5 py-1.5 rounded-lg",
+                            isSedana ? "bg-white/60 dark:bg-cyan-900/20 border border-cyan-200/40 dark:border-cyan-800/30" : "bg-background/50 border border-border/40"
+                          )}>
+                            <span className="flex items-center gap-1 text-muted-foreground shrink-0">
+                              <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                              <span>{isEn ? "Officer:" : "اسم المسؤول:"}</span>
+                            </span>
+                            <span className="font-semibold text-foreground truncate min-w-0">
+                              {request.adminName || "—"}
+                            </span>
+                          </div>
+
+                          {request.projectId && (
+                            <div className="flex items-center gap-1.5 text-xs text-foreground bg-primary/5 border border-primary/15 p-2 rounded-lg min-w-0">
+                              <Briefcase className="w-3.5 h-3.5 text-primary shrink-0" />
+                              <span className="font-semibold text-primary truncate">
+                                {isEn ? "Linked Project:" : "المشروع المرتبط:"} {request.projectName}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Card Footer: Stage + Status + Pending Closure Action */}
+                      <div className="space-y-2 pt-2 border-t border-border/50">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div className="min-w-0 flex flex-col gap-0.5">
+                            <Badge variant="outline" className="text-[11px] py-0.5 px-2 w-fit max-w-full truncate bg-background/80">
+                              {translateStage(request.currentStage, request.requestTrack)}
+                            </Badge>
+                            {request.currentResponsibleDepartment && (
+                              <span className="text-[10px] text-muted-foreground truncate">
+                                {translateDepartment(request.currentResponsibleDepartment)}
+                              </span>
+                            )}
+                          </div>
+                          <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full border shrink-0 ${status.bg} ${status.color}`}>
+                            {status.icon}
+                            <span>{translateStatus(request.status)}</span>
+                          </span>
+                        </div>
+
+                        {request.closureStatus === "pending_confirmation" && isExecutiveDirector && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full min-h-11 bg-amber-500/15 border-amber-500/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/25 font-bold text-xs flex items-center justify-center gap-1.5"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedClosureRequest(request);
+                              setShowClosureModal(true);
+                            }}
+                          >
+                            <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                            <span>{isEn ? "Closure Confirmation Decision" : "اتخاذ قرار بشأن إغلاق الطلب"}</span>
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
               {/* Footer with Enhanced Pagination */}
               <EnhancedPagination
                 page={page}
@@ -910,11 +1043,11 @@ export default function Requests({
                 itemName={isEn ? "request" : "طلب"}
                 itemNamePlural={isEn ? "requests" : "طلبات"}
                 isEn={isEn}
-                className="bg-muted/20 border-t"
+                className="bg-muted/20 border-t max-sm:px-2 max-sm:[&_button]:px-2 pointer-coarse:[&_button]:min-h-11"
               />
             </div>
           ) : (
-            <div className="p-12 text-center">
+            <div className="p-8 sm:p-12 text-center">
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
                 <FileText className="w-8 h-8 text-muted-foreground" />
               </div>
@@ -927,7 +1060,7 @@ export default function Requests({
               {!initialAssignedToMe && (
                 <PermissionGuard permission="requests.create">
                   <Link href="/service-request">
-                    <Button className="gradient-primary text-white gap-2">
+                    <Button className="gradient-primary text-white gap-2 max-lg:min-h-11 pointer-coarse:min-h-11">
                       <Plus className="w-4 h-4" />
                       {isEn ? "New Request" : "تقديم طلب جديد"}
                     </Button>
@@ -947,11 +1080,11 @@ export default function Requests({
             setIsRejecting(false);
           }
         }}>
-          <DialogContent className="max-w-lg" dir={isEn ? "ltr" : "rtl"}>
+          <DialogContent className="max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto max-sm:p-4 pointer-coarse:[&_button]:min-h-11" dir={isEn ? "ltr" : "rtl"}>
             <DialogHeader>
               <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-                <ShieldAlert className="w-5 h-5" />
-                <DialogTitle className="text-lg font-bold">
+                <ShieldAlert className="w-5 h-5 shrink-0" />
+                <DialogTitle className="text-base sm:text-lg font-bold">
                   {isEn ? "Request Closure Decision" : "قرار تأكيد أو رفض إغلاق الطلب"}
                 </DialogTitle>
               </div>
@@ -960,17 +1093,17 @@ export default function Requests({
             {selectedClosureRequest && (
               <div className="space-y-4 pt-2">
                 {/* معلومات الطلب */}
-                <div className="p-3 bg-muted/50 rounded-lg space-y-1.5 text-sm border">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{isEn ? "Request #:" : "رقم الطلب:"}</span>
-                    <span className="font-bold">{selectedClosureRequest.requestNumber}</span>
+                <div className="p-3 bg-muted/50 rounded-lg space-y-2 text-xs sm:text-sm border">
+                  <div className="flex justify-between gap-2 items-center">
+                    <span className="text-muted-foreground shrink-0">{isEn ? "Request #:" : "رقم الطلب:"}</span>
+                    <span className="font-bold truncate">{selectedClosureRequest.requestNumber}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{isEn ? "Mosque:" : "المسجد:"}</span>
-                    <span className="font-semibold">{selectedClosureRequest.mosqueName || selectedClosureRequest.projectName || "—"}</span>
+                  <div className="flex justify-between gap-2 items-start">
+                    <span className="text-muted-foreground shrink-0">{isEn ? "Mosque:" : "المسجد:"}</span>
+                    <span className="font-semibold text-left break-words min-w-0">{selectedClosureRequest.mosqueName || selectedClosureRequest.projectName || "—"}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{isEn ? "Current Stage:" : "المرحلة الحالية:"}</span>
+                  <div className="flex justify-between gap-2 items-center">
+                    <span className="text-muted-foreground shrink-0">{isEn ? "Current Stage:" : "المرحلة الحالية:"}</span>
                     <Badge variant="outline" className="text-xs">
                       {translateStage(selectedClosureRequest.currentStage, selectedClosureRequest.requestTrack)}
                     </Badge>
@@ -980,7 +1113,7 @@ export default function Requests({
                       <span className="text-muted-foreground block text-xs mb-1 font-medium">
                         {isEn ? "Closure Reason from Admin:" : "سبب طلب الإغلاق المقدم من مدير النظام:"}
                       </span>
-                      <p className="text-xs bg-amber-500/10 text-amber-900 dark:text-amber-200 p-2 rounded border border-amber-500/20 whitespace-pre-wrap">
+                      <p className="text-xs bg-amber-500/10 text-amber-900 dark:text-amber-200 p-2 rounded border border-amber-500/20 whitespace-pre-wrap break-words">
                         {selectedClosureRequest.closureReason}
                       </p>
                     </div>
@@ -988,7 +1121,7 @@ export default function Requests({
                 </div>
 
                 {/* تنبيه بالصلاحية */}
-                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-800 dark:text-amber-300">
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
                   <p className="font-semibold mb-1">
                     {isEn ? "Executive Director Confirmation Required" : "مطلوب تأكيد المدير التنفيذي:"}
                   </p>
@@ -1009,12 +1142,13 @@ export default function Requests({
                       placeholder={isEn ? "Please specify why the request should not be closed..." : "اكتب سبب رفض إغلاق الطلب واستمراره..."}
                       value={closureRejectionReason}
                       onChange={(e) => setCloseRejectionReason(e.target.value)}
-                      className="text-xs min-h-[80px]"
+                      className="text-xs sm:text-sm max-md:text-base min-h-[88px]"
                     />
-                    <div className="flex gap-2 justify-end">
+                    <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end">
                       <Button
                         variant="outline"
                         size="sm"
+                        className="w-full sm:w-auto max-lg:min-h-11"
                         onClick={() => {
                           setIsRejecting(false);
                           setCloseRejectionReason("");
@@ -1025,6 +1159,7 @@ export default function Requests({
                       <Button
                         variant="destructive"
                         size="sm"
+                        className="w-full sm:w-auto max-lg:min-h-11"
                         disabled={closureRejectionReason.trim().length < 3 || rejectCloseMutation.isPending}
                         onClick={() => {
                           const reason = closureRejectionReason.trim();
@@ -1043,9 +1178,10 @@ export default function Requests({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col sm:flex-row gap-2.5 justify-end pt-2">
+                  <div className="flex flex-col-reverse sm:flex-row gap-2.5 justify-end pt-2">
                     <Button
                       variant="outline"
+                      className="w-full sm:w-auto max-lg:min-h-11"
                       onClick={() => {
                         setShowClosureModal(false);
                         setSelectedClosureRequest(null);
@@ -1056,7 +1192,7 @@ export default function Requests({
                     
                     <Button
                       variant="outline"
-                      className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/50 gap-1.5"
+                      className="w-full sm:w-auto max-lg:min-h-11 border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/50 gap-1.5"
                       onClick={() => setIsRejecting(true)}
                       disabled={confirmCloseMutation.isPending}
                     >
@@ -1065,7 +1201,7 @@ export default function Requests({
                     </Button>
 
                     <Button
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 font-bold"
+                      className="w-full sm:w-auto max-lg:min-h-11 bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 font-bold"
                       disabled={confirmCloseMutation.isPending}
                       onClick={() => {
                         confirmCloseMutation.mutate({

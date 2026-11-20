@@ -23,35 +23,90 @@ export const SedanaRequestReview: React.FC<SedanaRequestReviewProps> = ({
   const warehousePhoto = formData.warehousePhoto;
 
   return (
-    <div className="space-y-4 text-right" dir="rtl">
-      <div className="p-4 rounded-xl border border-border/80 bg-card space-y-3.5">
-        <div className="flex items-center justify-between pb-2 border-b border-border/60">
+    <div className="space-y-4 text-right min-w-0" dir="rtl">
+      <div className="p-3.5 sm:p-4 rounded-xl border border-border/80 bg-card space-y-3.5 min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pb-2.5 border-b border-border/60">
           <h4 className="font-bold text-sm text-foreground">
             ملخص احتياجات سدانة (التشغيل السنوي)
           </h4>
           {selectedMosque && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground break-words">
               المسجد: <strong className="text-foreground">{selectedMosque.name}</strong>
             </span>
           )}
         </div>
 
-
-
         {/* جدول بنود السلة السنوية */}
-        <div className="space-y-1.5 pt-1">
+        <div className="space-y-2 pt-1">
           <span className="font-bold text-xs text-foreground block">
             بنود سلة الاحتياجات السنوية ({basketItems.length} صنف):
           </span>
 
-          <div className="overflow-x-auto border border-border/70 rounded-md">
+          {/* عرض البطاقات للموبايل (< sm) */}
+          <div className="sm:hidden space-y-2.5">
+            {basketItems.map((item) => {
+              const minLimit = getItemLimitForFrequency(item);
+              const isUnderMin =
+                minLimit !== undefined &&
+                minLimit > 0 &&
+                item.quantity < minLimit &&
+                !item.isCustom;
+
+              return (
+                <div
+                  key={item.id}
+                  className="p-3 rounded-lg border border-border/70 bg-muted/15 space-y-2"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-xs font-bold text-foreground break-words">{item.name}</span>
+                      {item.isCustom && (
+                        <span className="text-[10px] text-primary font-normal bg-primary/10 px-1.5 py-0.5 rounded shrink-0">
+                          (مخصص)
+                        </span>
+                      )}
+                    </div>
+                    {item.description && (
+                      <p className="text-[11px] text-muted-foreground mt-1 break-words leading-relaxed">
+                        {item.description}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/50 text-center">
+                    <div className="bg-background/80 rounded-md p-1.5 border border-border/50">
+                      <span className="text-[10px] text-muted-foreground block">الكمية</span>
+                      <span className="text-xs font-bold font-mono text-foreground">{item.quantity}</span>
+                    </div>
+                    <div className="bg-background/80 rounded-md p-1.5 border border-border/50">
+                      <span className="text-[10px] text-muted-foreground block">الوحدة</span>
+                      <span className="text-xs font-medium text-foreground truncate block">{item.unit}</span>
+                    </div>
+                    <div className="bg-background/80 rounded-md p-1.5 border border-border/50">
+                      <span className="text-[10px] text-muted-foreground block">الدورية</span>
+                      <span className="text-xs font-medium text-foreground truncate block">{item.frequency}</span>
+                    </div>
+                  </div>
+
+                  {isUnderMin && (
+                    <div className="text-[11px] text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20 text-center">
+                      أقل من الحد الأدنى ({minLimit})
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* عرض الجدول للآيباد والشاشات الأكبر (>= sm) */}
+          <div className="hidden sm:block overflow-x-auto border border-border/70 rounded-md">
             <table className="w-full text-xs text-right">
               <thead className="bg-muted/40 text-muted-foreground border-b border-border/70 font-semibold">
                 <tr>
-                  <th className="p-2">الصنف</th>
-                  <th className="p-2 text-center">الكمية</th>
-                  <th className="p-2 text-center">الوحدة</th>
-                  <th className="p-2 text-center">دورية التوريد</th>
+                  <th className="p-2.5">الصنف</th>
+                  <th className="p-2.5 text-center">الكمية</th>
+                  <th className="p-2.5 text-center">الوحدة</th>
+                  <th className="p-2.5 text-center">دورية التوريد</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -88,8 +143,8 @@ export const SedanaRequestReview: React.FC<SedanaRequestReviewProps> = ({
                           )}
                         </div>
                       </td>
-                      <td className="p-2 text-center text-muted-foreground">{item.unit}</td>
-                      <td className="p-2 text-center text-foreground font-medium">{item.frequency}</td>
+                      <td className="p-2.5 text-center text-muted-foreground">{item.unit}</td>
+                      <td className="p-2.5 text-center text-foreground font-medium">{item.frequency}</td>
                     </tr>
                   );
                 })}
@@ -100,10 +155,10 @@ export const SedanaRequestReview: React.FC<SedanaRequestReviewProps> = ({
 
         {/* المرفقات إن وجدت */}
         {warehousePhoto && (
-          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-cyan-50/40 dark:bg-cyan-950/20 border border-cyan-200 text-xs text-cyan-800 dark:text-cyan-300">
+          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-cyan-50/40 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-800 text-xs text-cyan-800 dark:text-cyan-300 min-w-0">
             <Paperclip className="w-3.5 h-3.5 shrink-0 text-cyan-600" />
-            <span>المرفقات المرفوعة: <strong>{warehousePhoto}</strong></span>
-            <CheckCircle2 className="w-3.5 h-3.5 mr-auto text-cyan-600" />
+            <span className="min-w-0 truncate">المرفقات المرفوعة: <strong>{warehousePhoto}</strong></span>
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mr-auto text-cyan-600" />
           </div>
         )}
       </div>

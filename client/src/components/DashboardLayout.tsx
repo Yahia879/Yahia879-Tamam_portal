@@ -25,7 +25,6 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useIsMobile } from "@/hooks/useMobile";
 import {
   LayoutDashboard, 
   LogOut, 
@@ -67,6 +66,7 @@ import {
   ShoppingBag,
   Boxes,
   FileSpreadsheet,
+  X,
 } from "lucide-react";
 import { CSSProperties, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
@@ -584,9 +584,11 @@ const MAX_WIDTH = 480;
 export default function DashboardLayout({
   children,
   defaultCollapsed = false,
+  tabletNavigation = false,
 }: {
   children: React.ReactNode;
   defaultCollapsed?: boolean;
+  tabletNavigation?: boolean;
 }) {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
@@ -658,13 +660,14 @@ export default function DashboardLayout({
   return (
     <SidebarProvider
       defaultOpen={!defaultCollapsed}
+      includeTablet={tabletNavigation}
       style={
         {
           "--sidebar-width": `${sidebarWidth}px`,
         } as CSSProperties
       }
     >
-      <DashboardLayoutContent setSidebarWidth={setSidebarWidth}>
+      <DashboardLayoutContent setSidebarWidth={setSidebarWidth} tabletNavigation={tabletNavigation}>
         {children}
       </DashboardLayoutContent>
     </SidebarProvider>
@@ -780,11 +783,13 @@ function RequesterLayout({ children }: { children: React.ReactNode }) {
 type DashboardLayoutContentProps = {
   children: React.ReactNode;
   setSidebarWidth: (width: number) => void;
+  tabletNavigation: boolean;
 };
 
 function DashboardLayoutContent({
   children,
   setSidebarWidth,
+  tabletNavigation,
 }: DashboardLayoutContentProps) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
@@ -814,7 +819,7 @@ function DashboardLayoutContent({
     (user as any)?.customRole?.nameEn === "Quick Response";
 
   const isEn = isQuickResponseUser && lang === "en";
-  const { state, toggleSidebar, setOpenMobile } = useSidebar();
+  const { state, toggleSidebar, setOpenMobile, isMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -917,7 +922,6 @@ function DashboardLayoutContent({
   const userDisplayName = (isEn && isQuickResponseUser)
     ? "Quick Response"
     : (user?.name || "-");
-  const isMobile = useIsMobile();
   const { theme, toggleTheme, switchable } = useTheme();
   // جلب الشعار من قاعدة البيانات
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
@@ -1026,6 +1030,18 @@ function DashboardLayoutContent({
                   </span>
                 </div>
               </Link>
+              {tabletNavigation && isMobile && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-11 shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  aria-label={isEn ? "Close navigation" : "إغلاق القائمة الجانبية"}
+                  onClick={() => setOpenMobile(false)}
+                >
+                  <X className="size-5" />
+                </Button>
+              )}
             </div>
 
             {/* وضع القائمة المطوية (Icon Mode): الشعار كزر لتوسيع القائمة الجانبية */}
@@ -1130,7 +1146,7 @@ function DashboardLayoutContent({
                                 setLocation(item.path);
                               }}
                               tooltip={tooltipLabel}
-                              className={`h-9 transition-all duration-300 ease-in-out font-normal text-sm relative ${isActive ? 'bg-white/20 !text-white' : ''}`}
+                              className={`${tabletNavigation && isMobile ? "h-11" : "h-9"} transition-all duration-300 ease-in-out font-normal text-sm relative ${isActive ? 'bg-white/20 !text-white' : ''}`}
                             >
                               <div className="relative shrink-0 flex items-center justify-center">
                                 <item.icon
@@ -1247,7 +1263,7 @@ function DashboardLayoutContent({
           <SidebarRail />
         </Sidebar>
         <div
-          className={`absolute top-0 left-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors ${isCollapsed ? "hidden" : ""}`}
+          className={`absolute top-0 left-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors ${isCollapsed || (tabletNavigation && isMobile) ? "hidden" : ""}`}
           onMouseDown={() => {
             if (isCollapsed) return;
             setIsResizing(true);
@@ -1256,7 +1272,7 @@ function DashboardLayoutContent({
         />
       </div>
 
-      <SidebarInset>
+      <SidebarInset className={tabletNavigation ? "min-w-0" : undefined}>
         {isMobile && (() => {
           const hasAnyPendingAction = 
             Boolean(pendingDisbursements?.hasPendingOrders) ||
@@ -1271,14 +1287,17 @@ function DashboardLayoutContent({
             <div className="flex border-b h-14 items-center justify-between bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
               <div className="flex items-center gap-2">
                 <div className="relative shrink-0 flex items-center justify-center">
-                  <SidebarTrigger className="h-9 w-9 rounded-lg bg-background" />
+                  <SidebarTrigger
+                    className={tabletNavigation ? "size-11 rounded-lg bg-background" : "h-9 w-9 rounded-lg bg-background"}
+                    aria-label={tabletNavigation ? (isEn ? "Open navigation" : "فتح القائمة الجانبية") : undefined}
+                  />
                   {hasAnyPendingAction && (
                     <span className="absolute -top-0.5 -right-0.5 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background animate-pulse pointer-events-none" />
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  <img src={mainLogoSrc} alt="شعار" className="w-8 h-8 object-contain" />
-                  <span className="font-semibold text-foreground">
+                  <img src={mainLogoSrc} alt="شعار" className={tabletNavigation ? "size-8 shrink-0 object-contain" : "w-8 h-8 object-contain"} />
+                  <span className={tabletNavigation ? "font-semibold text-foreground truncate" : "font-semibold text-foreground"}>
                     {activeMenuItem?.label || "بوابة تمام"}
                   </span>
                 </div>
@@ -1286,7 +1305,7 @@ function DashboardLayoutContent({
             </div>
           );
         })()}
-        <main className="p-4 md:p-6 lg:p-8 bg-muted/30 min-h-screen">
+        <main className={tabletNavigation ? "min-w-0 p-3 sm:p-5 md:p-6 lg:p-8 bg-muted/30 min-h-screen" : "p-4 md:p-6 lg:p-8 bg-muted/30 min-h-screen"}>
           {children}
         </main>
       </SidebarInset>

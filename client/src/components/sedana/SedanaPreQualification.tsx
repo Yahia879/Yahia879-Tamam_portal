@@ -136,19 +136,19 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
     const hasPendingMosques = (userMosques || []).some(m => m.approvalStatus === 'pending');
     return (
       <div className="space-y-6 animate-in fade-in-50 duration-300 max-w-2xl mx-auto">
-        <Card className="border-2 border-amber-200 dark:border-amber-900/60 bg-gradient-to-br from-amber-50/70 via-orange-50/30 to-background dark:from-amber-950/20 dark:to-background shadow-md overflow-hidden rounded-2xl">
-          <CardHeader className="p-6 sm:p-8 border-b border-amber-100 dark:border-amber-900/40 text-center sm:text-right">
+        <Card className="border-2 border-amber-200 dark:border-amber-900/60 bg-gradient-to-br from-amber-50/70 via-orange-50/30 to-background dark:from-amber-950/20 dark:to-background shadow-md overflow-hidden rounded-2xl py-0 gap-0">
+          <CardHeader className="p-4 sm:p-6 md:p-8 border-b border-amber-100 dark:border-amber-900/40 text-center sm:text-right">
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <div className="w-14 h-14 rounded-2xl bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-xs ring-4 ring-amber-500/10">
                 <Building2 className="w-7 h-7" />
               </div>
-              <div className="space-y-1.5 flex-1">
+              <div className="space-y-1.5 flex-1 min-w-0">
                 <div className="flex items-center justify-center sm:justify-start gap-2">
                   <Badge variant="outline" className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300 text-xs font-bold px-2.5 py-0.5">
                     تنبيه هام
                   </Badge>
                 </div>
-                <CardTitle className="text-xl sm:text-2xl font-black text-amber-950 dark:text-amber-200">
+                <CardTitle className="text-lg sm:text-2xl font-black text-amber-950 dark:text-amber-200 leading-snug">
                   يلزم وجود مسجد معتمد للتقديم على برنامج سدانة
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm leading-relaxed text-amber-900/80 dark:text-amber-300 font-medium">
@@ -160,7 +160,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
             </div>
           </CardHeader>
 
-          <CardContent className="p-6 sm:p-8 space-y-6">
+          <CardContent className="p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
             <div className="p-4 rounded-xl bg-white/90 dark:bg-slate-900/80 border border-amber-200/80 dark:border-amber-900/50 space-y-2 text-xs sm:text-sm text-foreground leading-relaxed">
               <p className="text-muted-foreground">
                 {hasPendingMosques
@@ -411,11 +411,11 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
               )}
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-border">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-border">
               <Button
                 variant="outline"
                 onClick={onBackToServices}
-                className="h-10 text-xs font-bold gap-2"
+                className="w-full sm:w-auto h-11 text-xs font-bold gap-2"
               >
                 <ArrowRight className="w-4 h-4" />
                 <span>العودة لقائمة الخدمات</span>
@@ -430,7 +430,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                   setAdditionalNotes('');
                   setIsEditing(true);
                 }}
-                className="h-10 text-xs font-bold text-foreground border-border hover:bg-muted gap-1.5 cursor-pointer"
+                className="w-full sm:w-auto h-11 text-xs font-bold text-foreground border-border hover:bg-muted gap-1.5 cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>تقديم استبيان جديد</span>
@@ -444,20 +444,20 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
 
   // الحالة 4: تعبئة استبيان أولي جديد
   return (
-    <div className="space-y-6 animate-in fade-in-50 duration-300">
+    <div className="space-y-4 sm:space-y-6 animate-in fade-in-50 duration-300">
       {/* البطاقة الترحيبية والتوضيحية */}
-      <Card className="border border-cyan-200 dark:border-cyan-900/60 bg-gradient-to-r from-cyan-50/70 via-sky-50/30 to-background dark:from-cyan-950/30 dark:to-background shadow-xs overflow-hidden">
-        <CardHeader className="p-6 pb-4">
-          <div className="flex items-start gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-cyan-600 text-white flex items-center justify-center shrink-0 shadow-md">
-              <Sparkles className="w-6 h-6" />
+      <Card className="border border-cyan-200 dark:border-cyan-900/60 bg-gradient-to-r from-cyan-50/70 via-sky-50/30 to-background dark:from-cyan-950/30 dark:to-background shadow-xs overflow-hidden py-0 gap-0">
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex items-start gap-3 sm:gap-3.5">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-cyan-600 text-white flex items-center justify-center shrink-0 shadow-md">
+              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-lg sm:text-xl font-black text-foreground">
+            <div className="space-y-1.5 min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle className="text-base sm:text-xl font-black text-foreground leading-snug">
                   استبيان التأهيل الأولي لبرنامج «سدانة»
                 </CardTitle>
-                <Badge variant="outline" className="bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300 border-cyan-300 text-[11px] font-bold">
+                <Badge variant="outline" className="bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300 border-cyan-300 text-[11px] font-bold shrink-0">
                   مرحلة ما قبل التقديم
                 </Badge>
               </div>
@@ -470,12 +470,12 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
       </Card>
 
       {/* نموذج الاستبيان الأولي */}
-      <Card className="border border-border shadow-md rounded-2xl overflow-hidden bg-background">
-        <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
+      <Card className="border border-border shadow-md rounded-2xl overflow-hidden bg-background py-0 gap-0">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
           {/* اختيار المسجد المستهدف */}
           <div className="space-y-2">
             <Label className="text-xs sm:text-sm font-bold flex items-center gap-1.5 text-foreground">
-              <Building2 className="w-4 h-4 text-cyan-600" />
+              <Building2 className="w-4 h-4 text-cyan-600 shrink-0" />
               <span>المسجد المراد تقديم الطلب له *</span>
             </Label>
 
@@ -484,12 +484,12 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                 value={selectedMosqueId ? String(selectedMosqueId) : ''}
                 onValueChange={(val) => onSelectMosque(Number(val))}
               >
-                <SelectTrigger className="h-10 text-xs sm:text-sm bg-background font-medium">
+                <SelectTrigger className="w-full min-w-0 h-11 text-xs sm:text-sm bg-background font-medium">
                   <SelectValue placeholder="اختر المسجد من مساجدك المعتمدة..." />
                 </SelectTrigger>
                 <SelectContent dir="rtl">
                   {approvedMosques.map((m) => (
-                    <SelectItem key={m.id} value={String(m.id)} className="text-xs sm:text-sm cursor-pointer">
+                    <SelectItem key={m.id} value={String(m.id)} className="text-xs sm:text-sm min-h-10 cursor-pointer">
                       <span>{m.name}</span>
                       {m.city && <span className="text-muted-foreground mr-2 font-normal">({m.city} - {m.district || ''})</span>}
                     </SelectItem>
@@ -497,9 +497,9 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                 </SelectContent>
               </Select>
             ) : approvedMosques.length === 1 ? (
-              <div className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between text-xs sm:text-sm">
-                <span className="font-bold text-foreground">{approvedMosques[0].name}</span>
-                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 text-[11px] font-bold">
+              <div className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between gap-2 text-xs sm:text-sm">
+                <span className="font-bold text-foreground truncate">{approvedMosques[0].name}</span>
+                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 text-[11px] font-bold shrink-0">
                   المسجد المعتمد
                 </Badge>
               </div>
@@ -508,11 +508,11 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
 
           {/* السؤال 1: الاحتياج المحدد */}
           <div className="space-y-2">
-            <Label htmlFor="specificNeeds" className="text-xs sm:text-sm font-bold flex items-center gap-1.5 text-foreground">
-              <span className="w-5 h-5 rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200 text-xs flex items-center justify-center font-bold">1</span>
+            <Label htmlFor="specificNeeds" className="text-xs sm:text-sm font-bold flex items-start sm:items-center gap-1.5 text-foreground leading-snug">
+              <span className="w-5 h-5 shrink-0 rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200 text-xs flex items-center justify-center font-bold">1</span>
               <span>ما الذي تحتاجونه تحديداً في المسجد من البرنامج؟ *</span>
             </Label>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
               وضح بالتفصيل الخدمات والمواد المطلوبة (مثال: عمالة، مواد ومطهرات نظافة شهرية، صيانة مكيفات وفلاتر مياه، معطرات وبخور...).
             </p>
             <Textarea
@@ -521,18 +521,18 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
               onChange={(e) => setSpecificNeeds(e.target.value)}
               placeholder="اكتب تفاصيل الاحتياج الفعلي للمسجد هنا..."
               rows={3}
-              className="text-xs sm:text-sm leading-relaxed"
+              className="text-xs sm:text-sm max-md:text-base leading-relaxed"
               required
             />
           </div>
 
           {/* السؤال 2: جاهزية المستودع */}
           <div className="space-y-3">
-            <Label className="text-xs sm:text-sm font-bold flex items-center gap-1.5 text-foreground">
-              <span className="w-5 h-5 rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200 text-xs flex items-center justify-center font-bold">2</span>
+            <Label className="text-xs sm:text-sm font-bold flex items-start sm:items-center gap-1.5 text-foreground leading-snug">
+              <span className="w-5 h-5 shrink-0 rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200 text-xs flex items-center justify-center font-bold">2</span>
               <span>هل يتوفر مستودع أو مكان مخصص لحفظ وتخزين مواد وأدوات النظافة بالمسجد؟ *</span>
             </Label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
               {[
                 { value: 'yes' as const, label: 'نعم، متوفر مستودع مخصص' },
                 { value: 'partial' as const, label: 'جزئياً (غرفة أو خزانة مغلقة)' },
@@ -544,7 +544,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                     key={opt.value}
                     type="button"
                     onClick={() => setHasCleaningWarehouse(opt.value)}
-                    className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none text-right w-full ${
+                    className={`min-h-12 p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none text-right w-full ${
                       isSelected
                         ? 'border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/40 shadow-xs ring-1 ring-cyan-500/20'
                         : 'border-border hover:border-cyan-300 dark:hover:border-cyan-700 hover:bg-muted/40'
@@ -559,7 +559,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                     >
                       {isSelected && <div className="w-2 h-2 rounded-full bg-cyan-600" />}
                     </div>
-                    <span className="text-xs font-bold text-foreground flex-1">
+                    <span className="text-xs sm:text-sm font-bold text-foreground flex-1 leading-snug">
                       {opt.label}
                     </span>
                   </button>
@@ -574,7 +574,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                   onChange={(e) => setWarehouseDetails(e.target.value)}
                   placeholder="ملاحظات حول طريقة التخزين أو المكان البديل المتاح لحفظ الأدوات..."
                   rows={2}
-                  className="text-xs"
+                  className="text-xs sm:text-sm max-md:text-base"
                 />
               </div>
             )}
@@ -582,8 +582,8 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
 
           {/* السؤال 3: الخطة التشغيلية */}
           <div className="space-y-3">
-            <Label className="text-xs sm:text-sm font-bold flex items-center gap-1.5 text-foreground">
-              <span className="w-5 h-5 rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200 text-xs flex items-center justify-center font-bold">3</span>
+            <Label className="text-xs sm:text-sm font-bold flex items-start sm:items-center gap-1.5 text-foreground leading-snug">
+              <span className="w-5 h-5 shrink-0 rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200 text-xs flex items-center justify-center font-bold">3</span>
               <span>هل توجد خطة تشغيلية أو جدول دوري لنظافة وصيانة المسجد (سنوية/شهرية)؟ *</span>
             </Label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -597,7 +597,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                     key={opt.value}
                     type="button"
                     onClick={() => setHasOperationalPlan(opt.value)}
-                    className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none text-right w-full ${
+                    className={`min-h-12 p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none text-right w-full ${
                       isSelected
                         ? 'border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/40 shadow-xs ring-1 ring-cyan-500/20'
                         : 'border-border hover:border-cyan-300 dark:hover:border-cyan-700 hover:bg-muted/40'
@@ -612,7 +612,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                     >
                       {isSelected && <div className="w-2 h-2 rounded-full bg-cyan-600" />}
                     </div>
-                    <span className="text-xs font-bold text-foreground flex-1">
+                    <span className="text-xs sm:text-sm font-bold text-foreground flex-1 leading-snug">
                       {opt.label}
                     </span>
                   </button>
@@ -627,7 +627,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                   onChange={(e) => setOperationalPlanDetails(e.target.value)}
                   placeholder="ملاحظات أو نبذة مختصرة عن الخطة التشغيلية الحالية للمسجد (اختياري)..."
                   rows={2}
-                  className="text-xs"
+                  className="text-xs sm:text-sm max-md:text-base"
                 />
               </div>
             )}
@@ -635,8 +635,8 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
 
           {/* السؤال 4: ملاحظات إضافية */}
           <div className="space-y-2">
-            <Label htmlFor="additionalNotes" className="text-xs sm:text-sm font-bold flex items-center gap-1.5 text-foreground">
-              <span className="w-5 h-5 rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200 text-xs flex items-center justify-center font-bold">4</span>
+            <Label htmlFor="additionalNotes" className="text-xs sm:text-sm font-bold flex items-start sm:items-center gap-1.5 text-foreground leading-snug">
+              <span className="w-5 h-5 shrink-0 rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200 text-xs flex items-center justify-center font-bold">4</span>
               <span>أي ملاحظات أو مقترحات إضافية من فضيلتكم (اختياري)</span>
             </Label>
             <Textarea
@@ -645,17 +645,17 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
               onChange={(e) => setAdditionalNotes(e.target.value)}
               placeholder="اكتب أي ملاحظة تود مشاركتها مع فريق الجمعية..."
               rows={2}
-              className="text-xs"
+              className="text-xs sm:text-sm max-md:text-base"
             />
           </div>
 
           {/* أزرار الإجراء */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6 border-t border-border">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-5 sm:pt-6 border-t border-border">
             <Button
               type="button"
               variant="outline"
               onClick={onBackToServices}
-              className="w-full sm:w-auto h-11 text-xs font-bold gap-2"
+              className="w-full sm:w-auto min-h-11 text-xs font-bold gap-2 justify-center"
             >
               <ArrowRight className="w-4 h-4" />
               <span>العودة لقائمة الخدمات</span>
@@ -664,7 +664,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
             <Button
               type="submit"
               disabled={submitMutation.isPending || !selectedMosqueId}
-              className="w-full sm:w-auto h-11 bg-cyan-600 hover:bg-cyan-700 text-white font-extrabold text-xs sm:text-sm gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer px-8"
+              className="w-full sm:w-auto min-h-11 bg-cyan-600 hover:bg-cyan-700 text-white font-extrabold text-xs sm:text-sm gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer px-8 justify-center"
             >
               {submitMutation.isPending ? (
                 <>

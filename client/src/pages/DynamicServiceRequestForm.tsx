@@ -814,22 +814,22 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
   const content = (
     <>
-      <div className={`${isSedana ? 'max-w-6xl xl:max-w-7xl' : 'max-w-4xl'} mx-auto px-0 sm:px-4 print:hidden transition-all duration-300`}>
+      <div className={`${isSedana ? 'max-w-6xl xl:max-w-7xl' : 'max-w-4xl'} w-full min-w-0 mx-auto px-0 sm:px-4 print:hidden transition-all duration-300`}>
       {/* رأس الصفحة مع زر الرجوع للإداريين */}
       {showLayout && user?.role !== 'service_requester' && (
-        <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8 pb-4 border-b border-border/40">
+        <div className="flex items-center gap-3 sm:gap-4 mb-5 sm:mb-8 pb-4 border-b border-border/40">
           <Link href="/dashboard">
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl hover:bg-muted shrink-0 text-foreground"
+              className="size-11 lg:size-10 pointer-coarse:size-11 rounded-xl hover:bg-muted shrink-0 text-foreground"
               title="العودة للوحة التحكم"
             >
               <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">تقديم طلب خدمة</h1>
+            <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate">تقديم طلب خدمة</h1>
           </div>
         </div>
       )}
@@ -859,13 +859,13 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       ) : (
         <>
           {/* شريط التقدم */}
-          <div className="mb-6 sm:mb-8 overflow-x-auto pt-2 sm:pt-4 pb-2 hide-scrollbar">
-        <div className="flex items-center justify-between min-w-[320px] sm:min-w-0 px-1">
+          <div className="mb-5 sm:mb-8 overflow-x-auto pt-2 sm:pt-4 pb-2 hide-scrollbar">
+        <div className="flex items-start justify-between w-full min-w-0 px-1.5 sm:px-2">
           {activeSteps.map((step, index) => (
             <React.Fragment key={step.key}>
-              <div className={`flex flex-col items-center justify-start self-start shrink-0 min-h-[64px] sm:min-h-[88px] ${index <= currentStepIndex ? 'opacity-100' : 'opacity-40'}`}>
+              <div className={`flex flex-col items-center justify-start self-start shrink-0 min-h-[60px] sm:min-h-[82px] px-0.5 ${index <= currentStepIndex ? 'opacity-100' : 'opacity-40'}`}>
                 <div
-                  className={`w-7 h-7 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-[10px] sm:text-sm transition-all duration-300 ${
+                  className={`size-8 sm:size-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm transition-all duration-300 ${
                     index < currentStepIndex
                       ? isSedana
                         ? 'bg-cyan-600 text-white'
@@ -879,12 +879,12 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                 >
                   {index < currentStepIndex ? '✓' : step.order}
                 </div>
-                <p className={`text-[9px] sm:text-xs mt-1 text-center max-w-[55px] sm:max-w-[80px] leading-tight ${index === currentStepIndex ? (isSedana ? 'text-cyan-700 dark:text-cyan-400 font-bold' : 'text-primary font-bold') : 'text-muted-foreground font-medium'}`}>
+                <p className={`text-[10px] sm:text-xs mt-1.5 text-center max-w-[58px] sm:max-w-[92px] md:max-w-[120px] leading-tight break-words ${index === currentStepIndex ? (isSedana ? 'text-cyan-700 dark:text-cyan-400 font-bold' : 'text-primary font-bold') : 'text-muted-foreground font-medium'}`}>
                   {step.label}
                 </p>
               </div>
               {index < activeSteps.length - 1 && (
-                <div className={`flex-1 h-0.5 sm:h-1 mx-1 sm:mx-2 rounded-full transition-colors duration-300 ${index < currentStepIndex ? (isSedana ? 'bg-cyan-600' : 'bg-primary') : 'bg-muted'}`} />
+                <div className={`flex-1 min-w-2 sm:min-w-4 h-0.5 sm:h-1 mt-4 sm:mt-5 mx-1 sm:mx-2 rounded-full transition-colors duration-300 ${index < currentStepIndex ? (isSedana ? 'bg-cyan-600' : 'bg-primary') : 'bg-muted'}`} />
               )}
             </React.Fragment>
           ))}
@@ -892,13 +892,13 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       </div>
 
       {/* محتوى الخطوات */}
-      <Card className="p-4 sm:p-8 lg:p-10 shadow-xl border border-border/60 rounded-2xl sm:rounded-3xl bg-background overflow-hidden">
+      <Card className="p-3.5 sm:p-6 md:p-8 lg:p-10 gap-4 sm:gap-6 shadow-xl border border-border/60 rounded-2xl sm:rounded-3xl bg-background overflow-hidden">
         {/* الخطوة 1: اختيار الخدمة */}
         {currentStep === 'service-selection' && (
-          <div className="space-y-5 sm:space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">اختر نوع الخدمة</h2>
-              <p className="text-sm sm:text-base text-muted-foreground">اختر البرنامج الذي تريد تقديم طلب خدمة له</p>
+              <h2 className="text-lg sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">اختر نوع الخدمة</h2>
+              <p className="text-xs sm:text-base text-muted-foreground">اختر البرنامج الذي تريد تقديم طلب خدمة له</p>
             </div>
 
             {programsLoading ? (
@@ -906,27 +906,27 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+              <div className="grid grid-cols-1 min-[360px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
                 {activePrograms.filter((program) => program.id !== 'sedana').map((program) => {
                   const Icon = ICON_MAP[program.icon || 'Package'] || Package;
                   const isSedana = program.id === 'sedana';
                   return (
                     <Card
                       key={program.id}
-                      className={`p-3 sm:p-4 cursor-pointer transition-all hover:shadow-lg border-2 overflow-hidden break-words relative ${
+                      className={`p-3.5 sm:p-4 gap-0 cursor-pointer transition-all hover:shadow-lg border-2 overflow-hidden break-words relative min-h-[112px] sm:min-h-[132px] ${
                         selectedService === program.id
-                          ? 'border-primary bg-primary/5 shadow-md scale-[1.02]'
+                          ? 'border-primary bg-primary/5 shadow-md scale-[1.01]'
                           : 'border-transparent hover:border-primary/20 bg-muted/20'
                       }`}
                       onClick={() => setSelectedService(program.id)}
                     >
-                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${isSedana ? 'bg-cyan-600' : (program.color || 'bg-indigo-600')} flex items-center justify-center mb-2 sm:mb-3 shadow-sm flex-shrink-0`}>
+                      <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg ${isSedana ? 'bg-cyan-600' : (program.color || 'bg-indigo-600')} flex items-center justify-center mb-2.5 sm:mb-3 shadow-sm flex-shrink-0`}>
                         <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
-                      <h3 className="font-bold text-foreground text-xs sm:text-sm leading-tight break-words">
+                      <h3 className="font-bold text-foreground text-xs sm:text-sm leading-snug break-words">
                         {isSedana ? 'خدمات التشغيل (سدانة)' : program.name}
                       </h3>
-                      <p className="text-[9px] sm:text-xs text-muted-foreground mt-1 line-clamp-2 sm:line-clamp-3 leading-relaxed break-words">
+                      <p className="text-[11px] sm:text-xs text-muted-foreground mt-1 line-clamp-2 sm:line-clamp-3 leading-relaxed break-words">
                         {isSedana ? 'رعاية وتشغيل المسجد سنوياً (عمالة، نظافة، مياه، معطرات)' : program.description}
                       </p>
                     </Card>
@@ -939,9 +939,9 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
         {/* الخطوة 2: الشروط والأحكام */}
         {currentStep === 'terms' && (
-          <div className="space-y-5 sm:space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">الشروط والأحكام</h2>
+              <h2 className="text-lg sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">الشروط والأحكام</h2>
             </div>
             {isSedana && user?.role === 'service_requester' && (
               <Alert className="bg-emerald-50/90 border-emerald-200 text-emerald-950 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-200 shadow-xs mb-2">
@@ -955,7 +955,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               <AlertCircle className={`h-4 w-4 ${isSedana ? "text-cyan-600 dark:text-cyan-400" : "text-primary"}`} />
               <AlertDescription className="text-xs sm:text-sm">يرجى قراءة الشروط والأحكام بعناية قبل المتابعة</AlertDescription>
             </Alert>
-            <div className="bg-muted/40 p-4 sm:p-6 rounded-xl max-h-72 sm:max-h-96 overflow-y-auto space-y-3 sm:space-y-4 border border-border" dir="rtl">
+            <div className="bg-muted/40 p-3.5 sm:p-6 rounded-xl max-h-[45dvh] sm:max-h-96 overflow-y-auto space-y-3 sm:space-y-4 border border-border" dir="rtl">
               <h3 className="font-bold text-foreground text-sm sm:text-base">شروط تقديم الطلب:</h3>
               {(() => {
                 const conds = parseConditions(selectedProgramConfig?.conditions);
@@ -976,7 +976,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             </div>
             <div 
               onClick={() => setAgreedToTerms(!agreedToTerms)}
-              className="flex items-center gap-3 p-3 sm:p-4 bg-muted/20 hover:bg-muted/40 rounded-xl border border-border cursor-pointer select-none transition-colors"
+              className="flex items-center gap-3 min-h-12 p-3.5 sm:p-4 bg-muted/20 hover:bg-muted/40 rounded-xl border border-border cursor-pointer select-none transition-colors"
             >
               <Checkbox
                 id="terms"
@@ -993,35 +993,35 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
         {/* الخطوة 3: بيانات مقدم الطلب */}
         {currentStep === 'requester-info' && (
-          <div className="space-y-5 sm:space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">بيانات مقدم الطلب</h2>
-              <p className="text-sm sm:text-base text-muted-foreground">البيانات التالية مأخوذة من حسابك</p>
+              <h2 className="text-lg sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">بيانات مقدم الطلب</h2>
+              <p className="text-xs sm:text-base text-muted-foreground">البيانات التالية مأخوذة من حسابك</p>
             </div>
-            <div className="bg-muted/20 p-4 sm:p-6 rounded-xl space-y-4 border border-border">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                <div className="bg-background p-3 rounded-lg border border-border shadow-sm">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">الاسم</p>
-                  <p className="text-sm sm:text-base font-bold text-foreground">{currentUser?.name || '-'}</p>
+            <div className="bg-muted/20 p-3.5 sm:p-6 rounded-xl space-y-4 border border-border">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
+                <div className="bg-background p-3.5 rounded-lg border border-border shadow-sm min-w-0">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground mb-1">الاسم</p>
+                  <p className="text-sm sm:text-base font-bold text-foreground break-words">{currentUser?.name || '-'}</p>
                 </div>
-                <div className="bg-background p-3 rounded-lg border border-border shadow-sm">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">البريد الإلكتروني</p>
+                <div className="bg-background p-3.5 rounded-lg border border-border shadow-sm min-w-0">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground mb-1">البريد الإلكتروني</p>
                   <p className="text-sm sm:text-base font-bold text-foreground truncate">{currentUser?.email || '-'}</p>
                 </div>
-                <div className="bg-background p-3 rounded-lg border border-border shadow-sm">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">رقم الجوال</p>
-                  <p className="text-sm sm:text-base font-bold text-foreground" dir="ltr">{(currentUser as any)?.phone || '-'}</p>
+                <div className="bg-background p-3.5 rounded-lg border border-border shadow-sm min-w-0">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground mb-1">رقم الجوال</p>
+                  <p className="text-sm sm:text-base font-bold text-foreground text-right" dir="ltr">{(currentUser as any)?.phone || '-'}</p>
                 </div>
-                <div className="bg-background p-3 rounded-lg border border-border shadow-sm">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">الدور</p>
+                <div className="bg-background p-3.5 rounded-lg border border-border shadow-sm min-w-0">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground mb-1">الدور</p>
                   <p className="text-sm sm:text-base font-bold text-foreground">
                     {currentUser?.role ? (ROLE_LABELS[currentUser.role] || (currentUser.role === 'service_requester' ? 'طالب الخدمة' : currentUser.role)) : '-'}
                   </p>
                 </div>
               </div>
             </div>
-            <Alert className="bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/30 text-foreground p-3.5 rounded-2xl flex items-center gap-3">
-              <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+            <Alert className="bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/30 text-foreground p-3.5 rounded-2xl flex items-start sm:items-center gap-3">
+              <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5 sm:mt-0" />
               <AlertDescription className="text-xs sm:text-sm text-foreground/90 font-medium leading-relaxed">
                 إذا كنت تريد تعديل بيانات حسابك، يرجى الذهاب إلى{" "}
                 <Link href="/profile" className="text-primary font-bold underline underline-offset-4 hover:opacity-80">
@@ -1047,9 +1047,9 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
               {/* حقل التسمية التوضيحية الاختياري (يظهر للموظفين فقط وليس للمستفيد) */}
               {currentUser?.role !== "service_requester" && (
-                <div className="col-span-1 sm:col-span-2 space-y-1.5 bg-muted/20 p-4 sm:p-5 rounded-2xl border border-border">
+                <div className="col-span-1 sm:col-span-2 space-y-1.5 bg-muted/20 p-3.5 sm:p-5 rounded-2xl border border-border min-w-0">
                   <label htmlFor="descriptiveName" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
-                    <Tag className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <Tag className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
                     التسمية التوضيحية (اختياري)
                   </label>
                   <Input
@@ -1058,7 +1058,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                     value={formData.descriptiveName || ''}
                     onChange={(e) => handleFieldChange("descriptiveName", e.target.value)}
                     placeholder="مثال: ترميم المصلى الرئيسي، صيانة التكييف، مظلات الخارجية..."
-                    className="h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80"
+                    className="h-11 rounded-xl text-sm max-md:text-base bg-background border-border/80"
                   />
                   <p className="text-[11px] text-muted-foreground">اسم توضيحي يسهل التمييز والتنظيم في جدول الطلبات والمشاريع.</p>
                 </div>
@@ -1135,7 +1135,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleViewFile(selectedFile, selectedFile.name)}
-                                  className="h-8 text-xs text-primary hover:text-primary/80 font-semibold gap-1 shrink-0 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg"
+                                  className="flex-1 sm:flex-none justify-center h-9 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs text-primary hover:text-primary/80 font-semibold gap-1 shrink-0 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg"
                                 >
                                   <Eye className="h-3.5 w-3.5" />
                                   معاينة
@@ -1148,7 +1148,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                                     setSelectedFile(null);
                                     handleFieldChange(field.name, '');
                                   }}
-                                  className="rounded-lg text-destructive hover:bg-destructive/10 text-xs font-semibold gap-1 h-8 px-2.5"
+                                  className="flex-1 sm:flex-none justify-center rounded-lg text-destructive hover:bg-destructive/10 text-xs font-semibold gap-1 h-9 max-lg:min-h-11 pointer-coarse:min-h-11 px-2.5"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                   <span>إزالة</span>
@@ -1207,34 +1207,34 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                               : 'border-border/60 bg-muted/20 hover:bg-muted/40'
                           }`}
                         >
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-colors ${
                               formData.hasPrayerHall ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'
                             }`}>
                               <Building2 className="w-5 h-5" />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <p className="font-bold text-xs sm:text-sm text-foreground">{field.label || 'هل يتضمن المشروع مصلى للنساء؟'}</p>
-                              <p className="text-[11px] text-muted-foreground mt-0.5">{field.help || (field as any).helpText || 'حدد إذا المسجد يشمل قسماً مخصصاً لمصلى النساء'}</p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{field.help || (field as any).helpText || 'حدد إذا المسجد يشمل قسماً مخصصاً لمصلى النساء'}</p>
                             </div>
                           </div>
                           <Checkbox
                             id="hasPrayerHall"
                             checked={!!formData.hasPrayerHall}
-                            className="h-5 w-5 rounded-md data-[state=checked]:bg-primary"
+                            className="h-5 w-5 shrink-0 rounded-md data-[state=checked]:bg-primary"
                           />
                         </div>
 
                         {formData.hasPrayerHall && (
-                          <div className="p-4 sm:p-5 border border-primary/20 rounded-2xl bg-primary/5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                          <div className="p-3.5 sm:p-5 border border-primary/20 rounded-2xl bg-primary/5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
                             <h4 className="font-bold text-xs sm:text-sm text-primary flex items-center gap-2 border-b border-primary/10 pb-2.5">
-                              <Building2 className="w-4 h-4" />
+                              <Building2 className="w-4 h-4 shrink-0" />
                               بيانات مصلى النساء
                             </h4>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div className="space-y-2">
                                 <label htmlFor="womenPrayerCapacity" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
-                                  <Users className="w-4 h-4 text-primary/70" />
+                                  <Users className="w-4 h-4 text-primary/70 shrink-0" />
                                   <span>سعة مصلى النساء (مصلي)</span>
                                   <span className="text-red-500 font-bold">*</span>
                                 </label>
@@ -1244,7 +1244,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                                   value={formData.womenPrayerCapacity || ''}
                                   onChange={(e) => handleFieldChange("womenPrayerCapacity", e.target.value)}
                                   placeholder="مثال: 50"
-                                  className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 ${errors.womenPrayerCapacity ? 'border-red-500' : ''}`}
+                                  className={`h-11 rounded-xl text-sm max-md:text-base bg-background border-border/80 ${errors.womenPrayerCapacity ? 'border-red-500' : ''}`}
                                 />
                                 {errors.womenPrayerCapacity && (
                                   <p className="text-xs text-red-500 font-medium">{errors.womenPrayerCapacity}</p>
@@ -1252,7 +1252,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                               </div>
                               <div className="space-y-2">
                                 <label htmlFor="womenPrayerArea" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
-                                  <Ruler className="w-4 h-4 text-primary/70" />
+                                  <Ruler className="w-4 h-4 text-primary/70 shrink-0" />
                                   <span>المساحة (م²)</span>
                                   <span className="text-red-500 font-bold">*</span>
                                 </label>
@@ -1262,7 +1262,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                                   value={formData.womenPrayerArea || ''}
                                   onChange={(e) => handleFieldChange("womenPrayerArea", e.target.value)}
                                   placeholder="مثال: 50"
-                                  className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 ${errors.womenPrayerArea ? 'border-red-500' : ''}`}
+                                  className={`h-11 rounded-xl text-sm max-md:text-base bg-background border-border/80 ${errors.womenPrayerArea ? 'border-red-500' : ''}`}
                                 />
                                 {errors.womenPrayerArea && (
                                   <p className="text-xs text-red-500 font-medium">{errors.womenPrayerArea}</p>
@@ -1339,34 +1339,34 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                               : 'border-border/60 bg-muted/20 hover:bg-muted/40'
                           }`}
                         >
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-colors ${
                               formData.hasPrayerHall ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'
                             }`}>
                               <Building2 className="w-5 h-5" />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <p className="font-bold text-xs sm:text-sm text-foreground">هل يتضمن المشروع مصلى للنساء؟</p>
-                              <p className="text-[11px] text-muted-foreground mt-0.5">حدد إذا المسجد يشمل قسماً مخصصاً لمصلى النساء</p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">حدد إذا المسجد يشمل قسماً مخصصاً لمصلى النساء</p>
                             </div>
                           </div>
                           <Checkbox
                             id="hasPrayerHall"
                             checked={!!formData.hasPrayerHall}
-                            className="h-5 w-5 rounded-md data-[state=checked]:bg-primary"
+                            className="h-5 w-5 shrink-0 rounded-md data-[state=checked]:bg-primary"
                           />
                         </div>
 
                         {formData.hasPrayerHall && (
-                          <div className="p-4 sm:p-5 border border-primary/20 rounded-2xl bg-primary/5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                          <div className="p-3.5 sm:p-5 border border-primary/20 rounded-2xl bg-primary/5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
                             <h4 className="font-bold text-xs sm:text-sm text-primary flex items-center gap-2 border-b border-primary/10 pb-2.5">
-                              <Building2 className="w-4 h-4" />
+                              <Building2 className="w-4 h-4 shrink-0" />
                               بيانات مصلى النساء
                             </h4>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div className="space-y-2">
                                 <label htmlFor="womenPrayerCapacity" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
-                                  <Users className="w-4 h-4 text-primary/70" />
+                                  <Users className="w-4 h-4 text-primary/70 shrink-0" />
                                   <span>سعة مصلى النساء (مصلي)</span>
                                   <span className="text-red-500 font-bold">*</span>
                                 </label>
@@ -1376,7 +1376,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                                   value={formData.womenPrayerCapacity || ''}
                                   onChange={(e) => handleFieldChange("womenPrayerCapacity", e.target.value)}
                                   placeholder="مثال: 50"
-                                  className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 ${errors.womenPrayerCapacity ? 'border-red-500' : ''}`}
+                                  className={`h-11 rounded-xl text-sm max-md:text-base bg-background border-border/80 ${errors.womenPrayerCapacity ? 'border-red-500' : ''}`}
                                 />
                                 {errors.womenPrayerCapacity && (
                                   <p className="text-xs text-red-500 font-medium">{errors.womenPrayerCapacity}</p>
@@ -1384,7 +1384,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                               </div>
                               <div className="space-y-2">
                                 <label htmlFor="womenPrayerArea" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
-                                  <Ruler className="w-4 h-4 text-primary/70" />
+                                  <Ruler className="w-4 h-4 text-primary/70 shrink-0" />
                                   <span>المساحة (م²)</span>
                                   <span className="text-red-500 font-bold">*</span>
                                 </label>
@@ -1394,7 +1394,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                                   value={formData.womenPrayerArea || ''}
                                   onChange={(e) => handleFieldChange("womenPrayerArea", e.target.value)}
                                   placeholder="مثال: 50"
-                                  className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 ${errors.womenPrayerArea ? 'border-red-500' : ''}`}
+                                  className={`h-11 rounded-xl text-sm max-md:text-base bg-background border-border/80 ${errors.womenPrayerArea ? 'border-red-500' : ''}`}
                                 />
                                 {errors.womenPrayerArea && (
                                   <p className="text-xs text-red-500 font-medium">{errors.womenPrayerArea}</p>
@@ -1430,26 +1430,26 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
         {/* الخطوة الأخيرة: المراجعة والإرسال */}
         {currentStep === 'review' && (
-          <div className="space-y-5 sm:space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">المراجعة والإرسال</h2>
-                <p className="text-sm sm:text-base text-muted-foreground">يرجى مراجعة البيانات قبل إرسال الطلب</p>
+          <div className="space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+              <div className="min-w-0">
+                <h2 className="text-lg sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">المراجعة والإرسال</h2>
+                <p className="text-xs sm:text-base text-muted-foreground">يرجى مراجعة البيانات قبل إرسال الطلب</p>
               </div>
               {!isSedana && (
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handlePrint}
-                  className="gap-2 font-bold rounded-2xl h-11 px-5 shadow-xs self-start sm:self-center border-primary/30 text-primary hover:bg-primary/5"
+                  className="w-full sm:w-auto gap-2 font-bold rounded-2xl h-11 px-5 shadow-xs self-stretch sm:self-center border-primary/30 text-primary hover:bg-primary/5 justify-center"
                 >
-                  <Printer className="w-4 h-4" />
+                  <Printer className="w-4 h-4 shrink-0" />
                   <span>طباعة مسودة الطلب</span>
                 </Button>
               )}
             </div>
 
-            <Alert className={`${isSedana ? 'bg-cyan-50/80 dark:bg-cyan-950/30 border-cyan-200 dark:border-cyan-900 text-cyan-900 dark:text-cyan-200' : 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 text-emerald-900 dark:text-emerald-200'} p-4 rounded-2xl`}>
+            <Alert className={`${isSedana ? 'bg-cyan-50/80 dark:bg-cyan-950/30 border-cyan-200 dark:border-cyan-900 text-cyan-900 dark:text-cyan-200' : 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 text-emerald-900 dark:text-emerald-200'} p-3.5 sm:p-4 rounded-2xl`}>
               <CheckCircle2 className={`h-4 w-4 ${isSedana ? 'text-cyan-600 dark:text-cyan-400' : 'text-emerald-600 dark:text-emerald-400'}`} />
               <AlertDescription className="text-xs sm:text-sm font-medium">
                 {isSedana
@@ -1458,19 +1458,19 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               </AlertDescription>
             </Alert>
 
-            <div className="bg-muted/20 p-4 sm:p-6 rounded-2xl space-y-6 border border-border/80 shadow-inner">
+            <div className="bg-muted/20 p-3 sm:p-6 rounded-2xl space-y-4 sm:space-y-6 border border-border/80 shadow-inner min-w-0">
               {/* ملخص البرنامج */}
-              <div className="bg-background p-4 sm:p-5 rounded-2xl border border-border/70 shadow-xs">
+              <div className="bg-background p-3.5 sm:p-5 rounded-2xl border border-border/70 shadow-xs min-w-0">
                 <p className="text-[10px] sm:text-xs text-muted-foreground mb-2 uppercase tracking-wider font-bold">نوع الخدمة والبرنامج</p>
-                <div className="flex items-center gap-3.5">
+                <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
                   {selectedProgramConfig ? (
                     <>
                       <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl ${isSedana ? 'bg-cyan-600' : (selectedProgramConfig.color || 'bg-primary')} text-white flex items-center justify-center shadow-md shrink-0`}>
                         {React.createElement(ICON_MAP[selectedProgramConfig.icon || 'Package'] || Package, { className: "w-6 h-6" })}
                       </div>
-                      <div>
-                        <p className="font-extrabold text-foreground text-sm sm:text-base">{selectedProgramConfig.name}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{selectedProgramConfig.description}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-extrabold text-foreground text-sm sm:text-base break-words">{selectedProgramConfig.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 break-words">{selectedProgramConfig.description}</p>
                       </div>
                     </>
                   ) : isSedana ? (
@@ -1478,9 +1478,9 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                       <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-cyan-600 text-white flex items-center justify-center shadow-md shrink-0">
                         <Sparkles className="w-6 h-6" />
                       </div>
-                      <div>
-                        <p className="font-extrabold text-foreground text-sm sm:text-base">خدمات التشغيل (سدانة)</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">رعاية وتشغيل المسجد سنوياً (عمالة، نظافة، مياه، معطرات)</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-extrabold text-foreground text-sm sm:text-base break-words">خدمات التشغيل (سدانة)</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 break-words">رعاية وتشغيل المسجد سنوياً (عمالة، نظافة، مياه، معطرات)</p>
                       </div>
                     </>
                   ) : null}
@@ -1488,22 +1488,22 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               </div>
 
               {/* بيانات مقدم الطلب */}
-              <div className="bg-background p-4 sm:p-5 rounded-2xl border border-border/70 shadow-xs">
+              <div className="bg-background p-3.5 sm:p-5 rounded-2xl border border-border/70 shadow-xs min-w-0">
                 <p className="text-[10px] sm:text-xs text-muted-foreground mb-3 uppercase tracking-wider font-bold">بيانات مقدم الطلب</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
-                  <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
+                  <div className="min-w-0">
                     <p className="text-muted-foreground mb-0.5 font-medium">الاسم</p>
-                    <p className="font-bold text-foreground">{user?.name || '-'}</p>
+                    <p className="font-bold text-foreground break-words">{user?.name || '-'}</p>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-muted-foreground mb-0.5 font-medium">البريد الإلكتروني</p>
                     <p className="font-bold text-foreground truncate">{user?.email || '-'}</p>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-muted-foreground mb-0.5 font-medium">رقم الجوال</p>
-                    <p className="font-bold text-foreground font-mono" dir="ltr">{user?.phone || '-'}</p>
+                    <p className="font-bold text-foreground font-mono text-right" dir="ltr">{user?.phone || '-'}</p>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-muted-foreground mb-0.5 font-medium">نوع الحساب / الصفة</p>
                     <p className="font-bold text-foreground">طالب خدمة مساجد</p>
                   </div>
@@ -1557,7 +1557,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                   {selectedFile && (
                     <div className="pt-2 border-t border-border/60">
                       <p className="text-[11px] sm:text-xs text-muted-foreground mb-2 font-medium">المرفقات والوثائق الداعمة</p>
-                      <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-150 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-3">
+                      <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-150 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                             <FileText className="h-5 w-5 text-primary" />
@@ -1574,7 +1574,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                           variant="ghost"
                           size="sm"
                           onClick={() => handleViewFile(selectedFile, selectedFile.name)}
-                          className="h-8 text-xs text-primary hover:text-primary/80 font-semibold gap-1 shrink-0 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg"
+                          className="w-full sm:w-auto justify-center h-9 max-lg:min-h-11 pointer-coarse:min-h-11 text-xs text-primary hover:text-primary/80 font-semibold gap-1 shrink-0 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg"
                         >
                           <Eye className="h-3.5 w-3.5" />
                           معاينة
@@ -1592,15 +1592,15 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
 
         {/* أزرار التنقل */}
-        <div className="flex flex-row items-center justify-between gap-2.5 sm:gap-3 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-border/60">
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 mt-5 sm:mt-8 pt-4 sm:pt-6 border-t border-border/60">
           {currentStep !== activeSteps[0]?.key ? (
             <Button
               variant="outline"
               size="lg"
               onClick={handlePreviousStep}
-              className="rounded-xl sm:rounded-2xl font-bold h-10 sm:h-12 px-4 sm:px-6 gap-1.5 sm:gap-2 text-xs sm:text-sm shadow-xs hover:bg-muted"
+              className="w-full sm:w-auto justify-center rounded-xl sm:rounded-2xl font-bold min-h-11 sm:min-h-12 px-4 sm:px-6 gap-1.5 sm:gap-2 text-xs sm:text-sm shadow-xs hover:bg-muted"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4 shrink-0" />
               <span>السابق</span>
             </Button>
           ) : isSedana ? (
@@ -1615,13 +1615,13 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                 setSelectedService(null);
                 setCurrentStep('service-selection');
               }}
-              className="rounded-xl sm:rounded-2xl font-bold h-10 sm:h-12 px-4 sm:px-6 gap-1.5 sm:gap-2 text-xs sm:text-sm shadow-xs hover:bg-muted"
+              className="w-full sm:w-auto justify-center rounded-xl sm:rounded-2xl font-bold min-h-11 sm:min-h-12 px-4 sm:px-6 gap-1.5 sm:gap-2 text-xs sm:text-sm shadow-xs hover:bg-muted"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4 shrink-0" />
               <span>العودة لقائمة الخدمات</span>
             </Button>
           ) : (
-            <div /> // Placeholder to keep Next button on the left (RTL)
+            <div className="hidden sm:block" /> // Placeholder to keep Next button on the left (RTL)
           )}
           
           {currentStep !== 'review' ? (
@@ -1629,30 +1629,30 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               size="lg"
               onClick={handleNextStep}
               disabled={Boolean(currentStep === 'details' && isCurrentMosqueUnapproved)}
-              className={`rounded-xl sm:rounded-2xl font-bold h-10 sm:h-12 px-5 sm:px-8 gap-1.5 sm:gap-2 text-xs sm:text-sm text-white shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`w-full sm:w-auto justify-center rounded-xl sm:rounded-2xl font-bold min-h-11 sm:min-h-12 px-5 sm:px-8 gap-1.5 sm:gap-2 text-xs sm:text-sm text-white shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                 isSedana ? 'bg-cyan-600 hover:bg-cyan-700 cursor-pointer' : 'gradient-primary hover:opacity-95'
               }`}
             >
               <span>التالي</span>
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4 shrink-0" />
             </Button>
           ) : (
             <Button
               size="lg"
               onClick={handleSubmit}
               disabled={isSubmitting || createRequestMutation.isPending || uploadAttachmentMutation.isPending}
-              className={`rounded-xl sm:rounded-2xl font-bold h-10 sm:h-12 px-5 sm:px-8 gap-1.5 sm:gap-2 text-xs sm:text-sm text-white shadow-md transition-all ${
+              className={`w-full sm:w-auto justify-center rounded-xl sm:rounded-2xl font-bold min-h-11 sm:min-h-12 px-5 sm:px-8 gap-1.5 sm:gap-2 text-xs sm:text-sm text-white shadow-md transition-all ${
                 isSedana ? 'bg-cyan-600 hover:bg-cyan-700 cursor-pointer' : 'gradient-primary hover:opacity-95'
               }`}
             >
               {isSubmitting || createRequestMutation.isPending || uploadAttachmentMutation.isPending ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                   <span>جاري الإرسال...</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="w-4 h-4" />
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
                   <span>{selectedService === 'sedana' ? 'إرسال الطلب السنوي' : 'إرسال الطلب'}</span>
                 </>
               )}
@@ -1673,18 +1673,19 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
         return (
           <div 
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-in fade-in duration-200"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200"
             onClick={handleClosePreview}
           >
             <div 
-              className="relative max-w-5xl w-full h-[90vh] flex flex-col items-center bg-slate-900/95 border border-slate-800 rounded-2xl p-2 sm:p-4 shadow-2xl overflow-hidden"
+              className="relative max-w-5xl w-full h-[90dvh] flex flex-col items-center bg-slate-900/95 border border-slate-800 rounded-2xl p-2 sm:p-4 shadow-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Close button */}
               <button 
                 onClick={handleClosePreview}
-                className="absolute top-4 right-4 bg-slate-800/80 hover:bg-red-600/80 text-white rounded-full p-2.5 transition-all z-10 shadow-lg cursor-pointer"
+                className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-slate-800/80 hover:bg-red-600/80 text-white rounded-full min-h-11 min-w-11 flex items-center justify-center transition-all z-10 shadow-lg cursor-pointer"
                 title="إغلاق"
+                aria-label="إغلاق"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1692,21 +1693,22 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               {/* Download button */}
               <button 
                 onClick={handleDownloadPreview}
-                className="absolute top-4 left-4 bg-slate-800/80 hover:bg-primary/80 text-white rounded-full p-2.5 transition-all flex items-center gap-1.5 px-4 z-10 shadow-lg cursor-pointer"
+                className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-slate-800/80 hover:bg-primary/80 text-white rounded-full min-h-11 min-w-11 px-3 sm:px-4 transition-all flex items-center justify-center gap-1.5 z-10 shadow-lg cursor-pointer"
                 title="تحميل"
+                aria-label="تحميل"
               >
-                <Download className="w-4 h-4" />
+                <Download className="w-4 h-4 shrink-0" />
                 <span className="text-xs font-bold hidden sm:inline">تحميل</span>
               </button>
 
               {/* Document/Image container */}
-              <div className="w-full flex-1 flex items-center justify-center p-2 overflow-hidden mt-12 mb-2 min-h-[50vh]">
+              <div className="w-full flex-1 flex items-center justify-center p-1 sm:p-2 overflow-hidden mt-14 mb-2 min-h-0">
                 {isImage ? (
                   <div className="w-full h-full flex items-center justify-center overflow-auto">
                     <img 
                       src={previewUrl} 
                       alt={previewDoc.title} 
-                      className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-md border border-slate-800 bg-white"
+                      className="max-w-full max-h-[70dvh] object-contain rounded-lg shadow-md border border-slate-800 bg-white"
                     />
                   </div>
                 ) : isPdf ? (
@@ -1718,7 +1720,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                 ) : isDocx ? (
                   <div 
                     id="docx-preview-container" 
-                    className="w-full h-full overflow-y-auto bg-white rounded-lg p-6 border shadow-inner flex justify-center text-black"
+                    className="w-full h-full overflow-y-auto bg-white rounded-lg p-4 sm:p-6 border shadow-inner flex justify-center text-black"
                     dir="ltr"
                   >
                     <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -1727,7 +1729,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center p-8 bg-slate-850 border border-slate-700/60 rounded-2xl max-w-md w-full text-center shadow-lg">
+                  <div className="flex flex-col items-center justify-center p-6 sm:p-8 bg-slate-850 border border-slate-700/60 rounded-2xl max-w-md w-full text-center shadow-lg">
                     <div className="p-4 bg-slate-800 rounded-full mb-4">
                       {contentType.includes("spreadsheet") || contentType.includes("excel") ? (
                         <FileText className="w-12 h-12 text-emerald-400" />
@@ -1737,13 +1739,13 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                         <FileText className="w-12 h-12 text-amber-400" />
                       )}
                     </div>
-                    <h3 className="text-base font-bold text-slate-100 mb-2">{previewDoc.title}</h3>
+                    <h3 className="text-base font-bold text-slate-100 mb-2 break-all">{previewDoc.title}</h3>
                     <p className="text-xs text-slate-400 mb-6 max-w-xs leading-relaxed">
                       هذا الملف لا يمكن معاينته مباشرة في المتصفح. يرجى تحميله لفتحه واستعراض محتواه.
                     </p>
                     <Button 
                       onClick={handleDownloadPreview}
-                      className="w-full flex items-center justify-center gap-2"
+                      className="w-full min-h-11 flex items-center justify-center gap-2"
                     >
                       <Download className="w-4 h-4" />
                       تحميل المستند
@@ -1753,12 +1755,12 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               </div>
 
               {/* Caption/Name */}
-              <div className="mt-2 text-center px-4 py-2.5 w-full border-t border-slate-800/80 bg-slate-950/20 flex justify-between items-center text-slate-300">
-                <p className="text-xs font-medium flex items-center gap-1.5">
-                  <Info className="h-4 w-4 text-slate-400" />
-                  معاينة مستند - {previewDoc.title}
+              <div className="mt-1 sm:mt-2 px-3 sm:px-4 py-2 w-full border-t border-slate-800/80 bg-slate-950/20 flex flex-col sm:flex-row justify-between items-center gap-1 text-slate-300 min-w-0">
+                <p className="text-xs font-medium flex items-center gap-1.5 min-w-0 max-w-full">
+                  <Info className="h-4 w-4 text-slate-400 shrink-0" />
+                  <span className="truncate">معاينة مستند - {previewDoc.title}</span>
                 </p>
-                <p className="text-xs font-bold">{previewDoc.title}</p>
+                <p className="text-xs font-bold truncate max-w-full hidden sm:block">{previewDoc.title}</p>
               </div>
             </div>
           </div>
@@ -2069,32 +2071,32 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             </AlertDescription>
           </Alert>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <Link href="/my-requests">
-              <Button className="h-10 px-5 rounded-xl font-bold bg-primary hover:bg-primary/95 text-white transition-all">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 pt-2">
+            <Link href="/my-requests" className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto min-h-11 px-5 rounded-xl font-bold bg-primary hover:bg-primary/95 text-white transition-all">
                 متابعة طلباتي السابقة
               </Button>
             </Link>
 
             {exceptionStatus && exceptionStatus.status === "pending" ? (
-              <Button disabled variant="outline" className="h-10 px-5 rounded-xl font-bold bg-slate-100 text-slate-500">
+              <Button disabled variant="outline" className="w-full sm:w-auto min-h-11 px-5 rounded-xl font-bold bg-slate-100 text-slate-500">
                 طلب الاستثناء قيد المراجعة حالياً
               </Button>
             ) : exceptionStatus && exceptionStatus.status === "rejected" ? (
-              <Button disabled variant="outline" className="h-10 px-5 rounded-xl font-bold bg-red-50 text-red-600 border border-red-200/50">
+              <Button disabled variant="outline" className="w-full sm:w-auto min-h-11 px-5 rounded-xl font-bold bg-red-50 text-red-600 border border-red-200/50">
                 تم رفض طلب الاستثناء السابق
               </Button>
             ) : (
               <Button 
                 onClick={() => setIsExceptionModalOpen(true)} 
-                className="h-10 px-5 rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white transition-all"
+                className="w-full sm:w-auto min-h-11 px-5 rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white transition-all"
               >
                 طلب استثناء
               </Button>
             )}
 
-            <Link href="/requester">
-              <Button variant="outline" className="h-10 px-5 rounded-xl font-bold transition-all">
+            <Link href="/requester" className="w-full sm:w-auto">
+              <Button variant="outline" className="w-full sm:w-auto min-h-11 px-5 rounded-xl font-bold transition-all">
                 العودة للوحة التحكم
               </Button>
             </Link>
@@ -2102,12 +2104,12 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
         </div>
 
         <Dialog open={isExceptionModalOpen} onOpenChange={setIsExceptionModalOpen}>
-          <DialogContent className="sm:max-w-lg" dir="rtl">
+          <DialogContent className="sm:max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto max-sm:p-4 pointer-coarse:[&_button]:min-h-11" dir="rtl">
             <DialogHeader className="text-right">
-              <DialogTitle className="text-lg font-bold">تقديم طلب استثناء لإنشاء طلب جديد</DialogTitle>
+              <DialogTitle className="text-base sm:text-lg font-bold">تقديم طلب استثناء لإنشاء طلب جديد</DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-4 py-4 text-right">
+            <div className="space-y-4 py-3 sm:py-4 text-right">
               <div className="space-y-2">
                 <Label htmlFor="reason" className="text-sm font-bold text-slate-700 dark:text-slate-300">سبب طلب الاستثناء / مبررات التقديم <span className="text-destructive">*</span></Label>
                 <Textarea 
@@ -2115,7 +2117,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                   value={exceptionReason} 
                   onChange={(e) => setExceptionReason(e.target.value)} 
                   placeholder="يرجى كتابة سبب طلب الاستثناء بالتفصيل هنا..." 
-                  className="min-h-[120px] rounded-xl text-xs sm:text-sm leading-relaxed"
+                  className="min-h-[120px] rounded-xl text-xs sm:text-sm max-md:text-base leading-relaxed"
                 />
               </div>
 
@@ -2131,27 +2133,16 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                         setExceptionFile(e.target.files[0]);
                       }
                     }} 
-                    className="h-10 text-xs sm:text-sm rounded-xl cursor-pointer"
+                    className="h-11 text-xs sm:text-sm rounded-xl cursor-pointer"
                   />
                 </div>
                 {exceptionFile && (
-                  <p className="text-xs text-muted-foreground mt-1">الملف المختار: {exceptionFile.name}</p>
+                  <p className="text-xs text-muted-foreground mt-1 break-all">الملف المختار: {exceptionFile.name}</p>
                 )}
               </div>
             </div>
 
-            <DialogFooter className="flex flex-row gap-2 justify-end pt-4 border-t border-border">
-              <Button 
-                onClick={handleExceptionSubmit} 
-                disabled={isSubmittingException || submitExceptionMutation.isPending}
-                className="h-10 px-6 rounded-xl font-bold bg-primary hover:bg-primary/95 text-white"
-              >
-                {isSubmittingException || submitExceptionMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  "تقديم طلب الاستثناء"
-                )}
-              </Button>
+            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-4 border-t border-border">
               <Button 
                 variant="outline" 
                 onClick={() => {
@@ -2159,9 +2150,20 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                   setExceptionReason("");
                   setExceptionFile(null);
                 }} 
-                className="h-10 px-5 rounded-xl font-bold"
+                className="w-full sm:w-auto min-h-11 px-5 rounded-xl font-bold"
               >
                 إلغاء
+              </Button>
+              <Button 
+                onClick={handleExceptionSubmit} 
+                disabled={isSubmittingException || submitExceptionMutation.isPending}
+                className="w-full sm:w-auto min-h-11 px-6 rounded-xl font-bold bg-primary hover:bg-primary/95 text-white"
+              >
+                {isSubmittingException || submitExceptionMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "تقديم طلب الاستثناء"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
